@@ -1,3 +1,5 @@
 #!/usr/bin/env python
+"""Commandline interface for the Nuxeo Drive filesystem synchronizer"""
 
-# TODO: implement me!
+from nxdrive.commandline import main
+main()
