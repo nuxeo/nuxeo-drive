@@ -1,0 +1,6 @@
+*.egg-info
+*.pyc
+target
+.classpath
+.project
+.settings
