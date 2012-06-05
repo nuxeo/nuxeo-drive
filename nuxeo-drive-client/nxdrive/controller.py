@@ -5,16 +5,19 @@ from nxdrive.model import get_session
 from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
 
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import MultipleResultsFound
+
 
 class Controller(object):
     """Manage configuration and perform Nuxeo Drive Operations"""
 
-    def __init__(self, config_folder, nuxeo_client_factory=None):
+    def __init__(self, config_folder, nuxeo_client_factory=None, echo=False):
         self.config_folder = os.path.expanduser(config_folder)
         if not os.path.exists(self.config_folder):
             os.makedirs(self.config_folder)
 
-        self.session = get_session(self.config_folder)
+        self.session = get_session(self.config_folder, echo=echo)
         # make it possible to pass an arbitrary nuxeo client factory
         # for testing
         self.nuxeo_client_factory = nuxeo_client_factory
@@ -36,9 +39,11 @@ class Controller(object):
         # TODO
         return ()
 
-    def bind_server(self, local_folder, nuxeo_url, username, password):
+    def bind_server(self, local_folder, server_url, username, password):
         """Bind a local folder to a remote nuxeo server"""
-        # TODO
+        self.session.add(ServerBinding(local_folder, server_url, username,
+                                       password))
+        self.session.commit()
 
     def bind_root(self, local_root, remote_root):
         """Bind local root to a remote root (folderish document in Nuxeo).
@@ -52,3 +57,31 @@ class Controller(object):
         user account must have write access to that folder, otherwise
         a RuntimeError will be raised.
         """
+        # Check that local_root is a subfolder of bound folder
+        local_folder = os.path.abspath(os.path.join(local_root, '..'))
+        server_binding = None
+        try:
+            server_binding = self.session.query(ServerBinding).filter(
+                ServerBinding.local_folder == local_folder).one()
+        except NoResultFound:
+            raise RuntimeError(
+                ('Could not bind %s as a root as parent folder is not bound'
+                 ' to any Nuxeo server') % local_root)
+        except MultipleResultsFound:
+            raise RuntimeError('There is more than one server binding for ' +
+                               local_folder)
+
+        # Check the remote root exists and is an editable folder by current
+        # user.
+        client = self.nuxeo_client_factory(server_binding.remote_host,
+                                           server_binding.remote_user,
+                                           server_binding.remote_password)
+        if not client.is_valid_root(remote_root):
+            raise RuntimeError(
+                'No folder at "%s" editable by "%s" on server "%s"'
+                % (remote_root, server_binding.remote_user,
+                   server_binding.remote_password))
+
+        # Check that remote_root exists on the matching server
+        self.session.add(RootBinding(local_root, remote_root))
+        self.session.commit()

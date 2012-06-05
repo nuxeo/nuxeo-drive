@@ -1,4 +1,4 @@
-"""Database model for Nuxeo Drive"""
+
 
 import os
 import datetime
@@ -18,6 +18,26 @@ Base = declarative_base()
 
 
 __model_version__ = 1
+
+# Summary status from last known pair of states
+
+STATUS_FROM_PAIRS = {
+    # regular cases
+    ('unknown', 'unknown'): 'unknown',
+    ('synchronized', 'synchronized'): 'synchronized',
+    ('created', 'unknown'): 'locally_created',
+    ('unknown', 'created'): 'remotely_created',
+    ('modified', 'synchronized'): 'locally_modified',
+    ('synchronized', 'modified'): 'remotely_modified',
+    ('deleted', 'synchronized'): 'locally_deleted',
+    ('synchronized', 'deleted'): 'remotely_deleted',
+    ('deleted', 'deleted'): 'deleted',  # should probably never happen
+
+    # conflict cases
+    ('modified', 'deleted'): 'conflicted',
+    ('deleted', 'modified'): 'conflicted',
+    ('modified', 'modified'): 'conflicted',
+}
 
 
 class ServerBinding(Base):
@@ -53,6 +73,45 @@ class RootBinding(Base):
         # expected local folder should be the direct parent of the
         local_folder = os.path.abspath(os.path.join(local_root, '..'))
         self.local_folder = local_folder
+
+
+class LastKnownState(Base):
+    """Aggregate state aggregated from last collected events."""
+    __tablename__ = 'last_known_states'
+
+    local_root = Column(String, ForeignKey('root_binding.local_root'))
+
+    # Date
+    last_remote_updated = Column(DateTime)
+    last_local_updated = Column(DateTime)
+
+    # Parent path from root for fast children queries,
+    # can be None for the root it-self.
+    parent_path = Column(String)
+
+    # Path from root using unix separator, '/' for the root it-self.
+    path = Column(String)
+
+    # Remote reference (instead of path based lookup)
+    remote_ref = Column(String)
+
+    # Last known state based on event log
+    local_state = Column(String)
+    remote_state = Column(String)
+
+    # Track move operations to avoid loosing history
+    locally_moved_from = Column(String)
+    locally_moved_to = Column(String)
+    remotely_moved_from = Column(String)
+    remotely_moved_to = Column(String)
+
+    root_binding = relationship('RootBinding')
+
+    def __init__(self, local_root, path, last_local_updated,
+                 last_remote_updated):
+        # TODO
+        self.local_state = 'unknown'
+        self.remote_state = 'unknown'
 
 
 class FileEvent(Base):

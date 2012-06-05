@@ -32,9 +32,13 @@ class FakeNuxeoClient(object):
         self.user_id = user_id
         self.password = password
 
+    def is_valid_root(self, ref_or_path):
+        return ref_or_path == 'dead-beef-cafe-babe'
+
 
 def test_bindings():
-    ctl = Controller(test_config_folder, nuxeo_client_factory=FakeNuxeoClient)
+    ctl = Controller(test_config_folder, nuxeo_client_factory=FakeNuxeoClient,
+                     echo=True)
 
     # by default no bindings => no status to report
     assert_equal(ctl.status(), ())
