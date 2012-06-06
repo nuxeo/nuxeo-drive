@@ -131,9 +131,23 @@ def test_binding_deletions():
     assert_true(ctl.get_root_binding(folder2) is None)
     assert_true(ctl.get_root_binding(folder3) is not None)
 
+    # check that you cannot unbind the same root twice
+    assert_raises(RuntimeError, ctl.unbind_root, folder2)
+    assert_true(ctl.get_server_binding(TEST_SYNCED_FOLDER) is not None)
+    assert_true(ctl.get_root_binding(folder1) is not None)
+    assert_true(ctl.get_root_binding(folder2) is None)
+    assert_true(ctl.get_root_binding(folder3) is not None)
+
     # let's unbind the whole server folder
     ctl.unbind_server(TEST_SYNCED_FOLDER)
     assert_true(ctl.get_server_binding(TEST_SYNCED_FOLDER) is None)
     assert_true(ctl.get_root_binding(folder1) is None)
     assert_true(ctl.get_root_binding(folder2) is None)
     assert_true(ctl.get_root_binding(folder3) is None)
+
+    # check that you cannot unbind the same server twice
+    assert_raises(RuntimeError, ctl.unbind_server, TEST_SYNCED_FOLDER)
+
+    # check that you cannot unbind non bound roots and servers
+    assert_raises(RuntimeError, ctl.unbind_root, folder2 + '-bis')
+    assert_raises(RuntimeError, ctl.unbind_server, TEST_SYNCED_FOLDER + '-bis')
