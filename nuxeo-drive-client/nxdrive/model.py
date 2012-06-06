@@ -60,14 +60,16 @@ class RootBinding(Base):
     __tablename__ = 'root_bindings'
 
     local_root = Column(String, primary_key=True)
+    remote_repo = Column(String)
     remote_root = Column(String)
     local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
 
     server_binding = relationship('ServerBinding')
 
-    def __init__(self, local_root, remote_root):
+    def __init__(self, local_root, remote_repo, remote_root):
         local_root = os.path.abspath(local_root)
         self.local_root = local_root
+        self.remote_repo = remote_repo
         self.remote_root = remote_root
 
         # expected local folder should be the direct parent of the
@@ -79,20 +81,25 @@ class LastKnownState(Base):
     """Aggregate state aggregated from last collected events."""
     __tablename__ = 'last_known_states'
 
-    local_root = Column(String, ForeignKey('root_binding.local_root'))
+    local_root = Column(String, ForeignKey('root_bindings.local_root'),
+                        primary_key=True)
+    root_binding = relationship('RootBinding')
 
-    # Date
+    # Timestamps to detect modifications
     last_remote_updated = Column(DateTime)
     last_local_updated = Column(DateTime)
+
+    # TODO: save the digest too for better updated / moves detections?
 
     # Parent path from root for fast children queries,
     # can be None for the root it-self.
     parent_path = Column(String)
 
     # Path from root using unix separator, '/' for the root it-self.
-    path = Column(String)
+    path = Column(String, primary_key=True)
 
     # Remote reference (instead of path based lookup)
+    remote_repo = Column(String)
     remote_ref = Column(String)
 
     # Last known state based on event log
@@ -105,9 +112,7 @@ class LastKnownState(Base):
     remotely_moved_from = Column(String)
     remotely_moved_to = Column(String)
 
-    root_binding = relationship('RootBinding')
-
-    def __init__(self, local_root, path, last_local_updated,
+    def __init__(self, local_root, path, remote_ref, last_local_updated,
                  last_remote_updated):
         # TODO
         self.local_state = 'unknown'

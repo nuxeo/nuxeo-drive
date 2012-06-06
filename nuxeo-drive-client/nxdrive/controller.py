@@ -12,7 +12,9 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 class Controller(object):
     """Manage configuration and perform Nuxeo Drive Operations"""
 
-    def __init__(self, config_folder, nuxeo_client_factory=None, echo=False):
+    def __init__(self, config_folder, nuxeo_client_factory=None, echo=None):
+        if echo is None:
+            echo = os.environ.get('NX_DRIVE_LOG_SQL', None) is not None
         self.config_folder = os.path.expanduser(config_folder)
         if not os.path.exists(self.config_folder):
             os.makedirs(self.config_folder)
@@ -41,11 +43,25 @@ class Controller(object):
 
     def bind_server(self, local_folder, server_url, username, password):
         """Bind a local folder to a remote nuxeo server"""
+        try:
+            server_binding = self.session.query(ServerBinding).filter(
+                ServerBinding.local_folder == local_folder).one()
+            raise RuntimeError(
+                "%s is already bound to '%s' with user '%s'" % (
+                    local_folder, server_binding.remote_host,
+                    server_binding.remote_user))
+        except NoResultFound:
+            # this is expected in most cases
+            pass
+        except MultipleResultsFound:
+            raise RuntimeError('There is more than one server binding for ' +
+                               local_folder)
+
         self.session.add(ServerBinding(local_folder, server_url, username,
                                        password))
         self.session.commit()
 
-    def bind_root(self, local_root, remote_root):
+    def bind_root(self, local_root, remote_repo, remote_root):
         """Bind local root to a remote root (folderish document in Nuxeo).
 
         local_root must be a direct sub-folder of a local_folder already
@@ -76,12 +92,19 @@ class Controller(object):
         client = self.nuxeo_client_factory(server_binding.remote_host,
                                            server_binding.remote_user,
                                            server_binding.remote_password)
-        if not client.is_valid_root(remote_root):
+        if not client.is_valid_root(remote_repo, remote_root):
             raise RuntimeError(
-                'No folder at "%s" editable by "%s" on server "%s"'
-                % (remote_root, server_binding.remote_user,
+                'No folder at "%s/%s" editable by "%s" on server "%s"'
+                % (remote_repo, remote_root, server_binding.remote_user,
                    server_binding.remote_password))
 
+        # Ensure that the local folder exists
+        if os.path.exists(local_root):
+            if not os.path.isdir(local_root):
+                raise RuntimeError('%s is not a folder' % local_root)
+        else:
+            os.makedirs(local_root)
+
         # Check that remote_root exists on the matching server
-        self.session.add(RootBinding(local_root, remote_root))
+        self.session.add(RootBinding(local_root, remote_repo, remote_root))
         self.session.commit()
