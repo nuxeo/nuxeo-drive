@@ -6,7 +6,6 @@ from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
 
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.exc import MultipleResultsFound
 
 
 class Controller(object):
@@ -53,13 +52,41 @@ class Controller(object):
         except NoResultFound:
             # this is expected in most cases
             pass
-        except MultipleResultsFound:
-            raise RuntimeError('There is more than one server binding for ' +
-                               local_folder)
-
         self.session.add(ServerBinding(local_folder, server_url, username,
                                        password))
         self.session.commit()
+
+    def get_server_binding(self, local_folder, raise_if_missing=False):
+        """Find the ServerBinding instance for a given local_folder"""
+        try:
+            return self.session.query(ServerBinding).filter(
+                ServerBinding.local_folder == local_folder).one()
+        except NoResultFound:
+            if raise_if_missing:
+                raise RuntimeError(
+                    "Folder '%s' is not bound to any Nuxeo server"
+                    % local_folder)
+            return None
+
+    def unbind_server(self, local_folder):
+        """Remove the binding to a Nuxeo server
+
+        Local files are not deleted"""
+        binding = self.get_server_binding(local_folder, raise_if_missing=True)
+        self.session.delete(binding)
+        self.session.commit()
+
+    def get_root_binding(self, local_root, raise_if_missing=False):
+        """Find the RootBinding instance for a given local_root"""
+        try:
+            return self.session.query(RootBinding).filter(
+                RootBinding.local_root == local_root).one()
+        except NoResultFound:
+            if raise_if_missing:
+                raise RuntimeError(
+                    "Folder '%s' is not bound as a root."
+                    % local_root)
+            return None
 
     def bind_root(self, local_root, remote_repo, remote_root):
         """Bind local root to a remote root (folderish document in Nuxeo).
@@ -75,17 +102,8 @@ class Controller(object):
         """
         # Check that local_root is a subfolder of bound folder
         local_folder = os.path.abspath(os.path.join(local_root, '..'))
-        server_binding = None
-        try:
-            server_binding = self.session.query(ServerBinding).filter(
-                ServerBinding.local_folder == local_folder).one()
-        except NoResultFound:
-            raise RuntimeError(
-                ('Could not bind %s as a root as parent folder is not bound'
-                 ' to any Nuxeo server') % local_root)
-        except MultipleResultsFound:
-            raise RuntimeError('There is more than one server binding for ' +
-                               local_folder)
+        server_binding = self.get_server_binding(local_folder,
+                                                 raise_if_missing=True)
 
         # Check the remote root exists and is an editable folder by current
         # user.
@@ -107,4 +125,10 @@ class Controller(object):
 
         # Check that remote_root exists on the matching server
         self.session.add(RootBinding(local_root, remote_repo, remote_root))
+        self.session.commit()
+
+    def unbind_root(self, local_root):
+        """Remove binding on a root folder"""
+        binding = self.get_root_binding(local_root, raise_if_missing=True)
+        self.session.delete(binding)
         self.session.commit()

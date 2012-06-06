@@ -9,6 +9,7 @@ from sqlalchemy import Integer
 from sqlalchemy import Sequence
 from sqlalchemy import String
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -64,7 +65,9 @@ class RootBinding(Base):
     remote_root = Column(String)
     local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
 
-    server_binding = relationship('ServerBinding')
+    server_binding = relationship(
+        'ServerBinding',
+        backref=backref("roots", cascade="all, delete-orphan"))
 
     def __init__(self, local_root, remote_repo, remote_root):
         local_root = os.path.abspath(local_root)
@@ -83,7 +86,9 @@ class LastKnownState(Base):
 
     local_root = Column(String, ForeignKey('root_bindings.local_root'),
                         primary_key=True)
-    root_binding = relationship('RootBinding')
+    root_binding = relationship(
+        'RootBinding',
+        backref=backref("states", cascade="all, delete-orphan"))
 
     # Timestamps to detect modifications
     last_remote_updated = Column(DateTime)
