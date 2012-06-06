@@ -1,6 +1,7 @@
 """Main API to perform Nuxeo Drive operations"""
 
 import os.path
+from nxdrive.client import NuxeoClient
 from nxdrive.model import get_session
 from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
@@ -21,7 +22,10 @@ class Controller(object):
         self.session = get_session(self.config_folder, echo=echo)
         # make it possible to pass an arbitrary nuxeo client factory
         # for testing
-        self.nuxeo_client_factory = nuxeo_client_factory
+        if nuxeo_client_factory is not None:
+            self.nuxeo_client_factory = nuxeo_client_factory
+        else:
+            self.nuxeo_client_factory = NuxeoClient
 
     def start(self):
         """Start the Nuxeo Drive daemon"""
@@ -40,6 +44,18 @@ class Controller(object):
         # TODO
         return ()
 
+    def get_server_binding(self, local_folder, raise_if_missing=False):
+        """Find the ServerBinding instance for a given local_folder"""
+        try:
+            return self.session.query(ServerBinding).filter(
+                ServerBinding.local_folder == local_folder).one()
+        except NoResultFound:
+            if raise_if_missing:
+                raise RuntimeError(
+                    "Folder '%s' is not bound to any Nuxeo server"
+                    % local_folder)
+            return None
+
     def bind_server(self, local_folder, server_url, username, password):
         """Bind a local folder to a remote nuxeo server"""
         try:
@@ -52,21 +68,20 @@ class Controller(object):
         except NoResultFound:
             # this is expected in most cases
             pass
+
+        # check the connection to the server by performing a issuing an
+        # authentication request
+        client = self.nuxeo_client_factory(
+            server_url, username, password)
+
+        if not client.authenticate():
+            raise RuntimeError(
+                'Failed to authenticate "%s" on server "%s"'
+                % (username, server_url))
+
         self.session.add(ServerBinding(local_folder, server_url, username,
                                        password))
         self.session.commit()
-
-    def get_server_binding(self, local_folder, raise_if_missing=False):
-        """Find the ServerBinding instance for a given local_folder"""
-        try:
-            return self.session.query(ServerBinding).filter(
-                ServerBinding.local_folder == local_folder).one()
-        except NoResultFound:
-            if raise_if_missing:
-                raise RuntimeError(
-                    "Folder '%s' is not bound to any Nuxeo server"
-                    % local_folder)
-            return None
 
     def unbind_server(self, local_folder):
         """Remove the binding to a Nuxeo server

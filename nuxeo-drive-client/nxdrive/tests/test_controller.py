@@ -36,6 +36,13 @@ class FakeNuxeoClient(object):
         self.user_id = user_id
         self.password = password
 
+    def authenticate(self):
+        # dummy check
+        return (
+            (self.user_id == 'myuser' and self.password == 'secretpassword')
+            or
+            (self.user_id == 'nemo' and self.password == 'secret'))
+
     def is_valid_root(self, repo, ref_or_path):
         # dummy check
         return repo == 'default'
@@ -68,6 +75,12 @@ def test_bindings():
     # Registering an other server on the same root will yield an error
     assert_raises(RuntimeError, ctl.bind_server, TEST_SYNCED_FOLDER,
                   'http://somewhere.else.info', 'nemo', 'secret')
+
+    # Registering a server with a the wrong credentials will also fail
+    assert_raises(RuntimeError, ctl.bind_server, TEST_SYNCED_FOLDER + '2',
+                  'http://example.com/nuxeo',
+                  'myuser', 'wrong password')
+
 
     # Registering a root outside of a server-bound folder will also yield an
     # error

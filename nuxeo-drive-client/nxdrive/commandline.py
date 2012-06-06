@@ -6,6 +6,8 @@ from getpass import getpass
 
 from nxdrive.controller import Controller
 
+DEFAULT_NX_DRIVE_FOLDER = '~/Nuxeo Drive'
+
 
 def make_cli_parser():
     """Parse commandline arguments using a git-like subcommands scheme"""
@@ -24,26 +26,53 @@ def make_cli_parser():
     )
 
     # Link to a remote Nuxeo server
-    attach_parser = subparsers.add_parser(
-        'attach', help='Detach a local folder to a Nuxeo server.')
-    attach_parser.set_defaults(command='attach')
-    attach_parser.add_argument(
+    bind_server_parser = subparsers.add_parser(
+        'bind-server', help='Attach a local folder to a Nuxeo server.')
+    bind_server_parser.set_defaults(command='bind_server')
+    bind_server_parser.add_argument(
         "--password", help="Password for the Nuxeo account")
-    attach_parser.add_argument(
+    bind_server_parser.add_argument(
         "--local-folder",
         help="Local folder that will host the list of synchronized"
         " workspaces with a remote Nuxeo server.",
-        default="~/Nuxeo Drive",
+        default=DEFAULT_NX_DRIVE_FOLDER,
     )
-    attach_parser.add_argument(
+    bind_server_parser.add_argument(
         "username", help="User account to connect to Nuxeo")
-    attach_parser.add_argument("nuxeo_url", help="URL of the Nuxeo server.")
+    bind_server_parser.add_argument("nuxeo_url",
+                                    help="URL of the Nuxeo server.")
 
     # Unlink from a remote Nuxeo server
-    detach_parser = subparsers.add_parser(
-        'detach', help='Detach from a remote Nuxeo server.')
-    detach_parser.set_defaults(command='detach')
-    detach_parser.add_argument("nuxeo_url", help="URL of the Nuxeo server.")
+    unbind_server_parser = subparsers.add_parser(
+        'unbind-server', help='Detach from a remote Nuxeo server.')
+    unbind_server_parser.set_defaults(command='unbind_server')
+    unbind_server_parser.add_argument(
+        "--local-folder",
+        help="Local folder that hosts the list of synchronized"
+        " workspaces with a remote Nuxeo server.",
+        default=DEFAULT_NX_DRIVE_FOLDER,
+    )
+
+    # Bind root folders
+    bind_root_parser = subparsers.add_parser(
+        'bind-root',
+        help='Attach a local folder as a root for synchronization.')
+    bind_root_parser.set_defaults(command='bind_root')
+    bind_root_parser.add_argument(
+        "local_root", help="Local sub-folder to synchronize.")
+    bind_root_parser.add_argument(
+        "remote_root",
+        help="Remote path or id reference of a folder to sychronize.")
+    bind_root_parser.add_argument(
+        "--remote-repo", default='default',
+        help="Name of the remote repository.")
+
+    # Unlink from a remote Nuxeo root
+    unbind_root_parser = subparsers.add_parser(
+        'unbind-root', help='Detach from a remote Nuxeo root.')
+    unbind_root_parser.set_defaults(command='unbind_root')
+    unbind_root_parser.add_argument(
+        "local_root", help="Local sub-folder to de-synchronize.")
 
     # Start / Stop the synchronization daemon
     start_parser = subparsers.add_parser(
@@ -74,7 +103,7 @@ class CliHandler(object):
     def handle(self, args):
         # use the CLI parser to check that the first args is a valid command
         options = self.parser.parse_args(args)
-        self.controller = Controller(options.nxdrive_home, process_type='cli')
+        self.controller = Controller(options.nxdrive_home)
 
         handler = getattr(self, options.command, None)
         if handler is None:
@@ -96,13 +125,26 @@ class CliHandler(object):
             print status + '\t' + filename
         return 0
 
-    def attach(self, options):
+    def bind_server(self, options):
         if options.password is None:
             password = getpass()
         else:
             password = options.password
-        self.controller.attach(options.local_folder, options.nuxeo_url,
-                               options.username, password)
+        self.controller.bind_server(options.local_folder, options.nuxeo_url,
+                                    options.username, password)
+        return 0
+
+    def unbind_server(self, options):
+        self.controller.unbind_server(options.local_folder)
+        return 0
+
+    def bind_root(self, options):
+        self.controller.bind_root(options.local_root, options.remote_repo,
+                                    options.remote_root)
+        return 0
+
+    def unbind_root(self, options):
+        self.controller.unbind_root(options.local_root)
         return 0
 
 
