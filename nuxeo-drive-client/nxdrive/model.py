@@ -45,14 +45,14 @@ class ServerBinding(Base):
     __tablename__ = 'server_bindings'
 
     local_folder = Column(String, primary_key=True)
-    remote_host = Column(String)
+    server_url = Column(String)
     remote_user = Column(String)
     remote_password = Column(String)
 
-    def __init__(self, local_folder, remote_host, remote_user,
+    def __init__(self, local_folder, server_url, remote_user,
                  remote_password):
         self.local_folder = local_folder
-        self.remote_host = remote_host
+        self.server_url = server_url
         self.remote_user = remote_user
         self.remote_password = remote_password
 

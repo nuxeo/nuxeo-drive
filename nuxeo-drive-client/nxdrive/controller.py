@@ -63,7 +63,7 @@ class Controller(object):
                 ServerBinding.local_folder == local_folder).one()
             raise RuntimeError(
                 "%s is already bound to '%s' with user '%s'" % (
-                    local_folder, server_binding.remote_host,
+                    local_folder, server_binding.server_url,
                     server_binding.remote_user))
         except NoResultFound:
             # this is expected in most cases
@@ -122,14 +122,27 @@ class Controller(object):
 
         # Check the remote root exists and is an editable folder by current
         # user.
-        client = self.nuxeo_client_factory(server_binding.remote_host,
+        client = self.nuxeo_client_factory(server_binding.server_url,
                                            server_binding.remote_user,
-                                           server_binding.remote_password)
-        if not client.is_valid_root(remote_repo, remote_root):
+                                           server_binding.remote_password,
+                                           repo=remote_repo,
+                                           base_folder=remote_root)
+        root_info = client.get_state('/')
+        if root_info is None or not root_info.is_folderish():
             raise RuntimeError(
-                'No folder at "%s/%s" editable by "%s" on server "%s"'
+                'No folder at "%s/%s" visible by "%s" on server "%s"'
+                % (remote_repo, remote_root, server_binding.remote_user,
+                   server_binding.server_url))
+
+        if client.check_writable('/'):
+            raise RuntimeError(
+                'Folder at "%s/%s" is not editable by "%s" on server "%s"'
                 % (remote_repo, remote_root, server_binding.remote_user,
                    server_binding.remote_password))
+
+
+
+        # TODO: check write properties / remove ACL
 
         # Ensure that the local folder exists
         if os.path.exists(local_root):
@@ -140,6 +153,9 @@ class Controller(object):
 
         # Check that remote_root exists on the matching server
         self.session.add(RootBinding(local_root, remote_repo, remote_root))
+
+        self.update_local_state(local_root, '/', recursive=True)
+        self.update_remote_state(local_root, '/', doc=remote_root_doc)
         self.session.commit()
 
     def unbind_root(self, local_root):
