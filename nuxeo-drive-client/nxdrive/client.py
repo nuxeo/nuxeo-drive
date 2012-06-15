@@ -12,6 +12,7 @@ import random
 import shutil
 import time
 import urllib2
+import urllib
 
 
 # Make the following an optional binding configuration
@@ -200,7 +201,8 @@ class NuxeoClient(object):
         doc = self.create(parent, FILE_TYPE, name=name,
                     properties={'dc:title': name})
         ref = doc[u'uid']
-        self.attach_blob(ref, content, name)
+        if content is not None:
+            self.attach_blob(ref, content, name)
         return ref
 
     #
@@ -287,14 +289,16 @@ class NuxeoClient(object):
         blob_part = MIMEBase(maintype, subtype)
         blob_part.add_header("Content-ID", "input")
         blob_part.add_header("Content-Transfer-Encoding", "binary")
+        # RFC2231 (encoding extension in HTTP headers).
+        quoted_filename = urllib.quote(filename.encode('utf-8'))
         blob_part.add_header("Content-Disposition",
-            "attachment;filename=%s" % filename)
+                             "attachment;filename*=UTF-8''" + quoted_filename)
 
         blob_part.set_payload(blob)
         container.attach(blob_part)
 
         # Create data by hand :(
-        boundary = "====Part=%s=%s===" % (time.time,
+        boundary = "====Part=%s=%s===" % (str(time.time()).replace('.', '='),
                                           random.randint(0, 1000000000))
         headers = {
             "Accept": "application/json+nxentity, */*",

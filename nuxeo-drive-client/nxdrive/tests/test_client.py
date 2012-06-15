@@ -50,11 +50,11 @@ def test_authenticate():
 
 @with_integration_server
 def test_make_documents():
-    doc_1 = nxclient.make_file(TEST_WORKSPACE, 'Document_1.txt')
+    doc_1 = nxclient.make_file(TEST_WORKSPACE, 'Document 1.txt')
     assert_true(nxclient.exists(doc_1))
     assert_equal(nxclient.get_content(doc_1), "")
 
-    doc_2 = nxclient.make_file(TEST_WORKSPACE, 'Document_2.txt',
+    doc_2 = nxclient.make_file(TEST_WORKSPACE, 'Document 2.txt',
                               content='Some text.')
     assert_true(nxclient.exists(doc_2))
     assert_equal(nxclient.get_content(doc_2), "Some text.")
@@ -65,7 +65,7 @@ def test_make_documents():
 
     folder_1 = nxclient.make_folder(TEST_WORKSPACE, 'Some folder')
     assert_true(nxclient.exists(folder_1))
-    doc_3 = nxclient.make_file(folder_1, 'Document_3.txt',
+    doc_3 = nxclient.make_file(folder_1, 'Document 3.txt',
                               content='Some other text.')
     nxclient.delete(folder_1)
     assert_false(nxclient.exists(folder_1))
