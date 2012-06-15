@@ -50,18 +50,26 @@ def test_authenticate():
 
 @with_integration_server
 def test_make_documents():
-    doc1 = nxclient.make_file(TEST_WORKSPACE, 'Document_1.txt')
-    assert_true(nxclient.exists(doc1))
-    assert_equal(nxclient.get_content(doc1), "")
+    doc_1 = nxclient.make_file(TEST_WORKSPACE, 'Document_1.txt')
+    assert_true(nxclient.exists(doc_1))
+    assert_equal(nxclient.get_content(doc_1), "")
 
-    doc2 = nxclient.make_file(TEST_WORKSPACE, 'Document_2.txt',
+    doc_2 = nxclient.make_file(TEST_WORKSPACE, 'Document_2.txt',
                               content='Some text.')
-    assert_true(nxclient.exists(doc2))
-    assert_equal(nxclient.get_content(doc2), "Some text.")
+    assert_true(nxclient.exists(doc_2))
+    assert_equal(nxclient.get_content(doc_2), "Some text.")
 
-    nxclient.delete(doc2)
-    assert_true(nxclient.exists(doc1))
-    assert_false(nxclient.exists(doc2))
+    nxclient.delete(doc_2)
+    assert_true(nxclient.exists(doc_1))
+    assert_false(nxclient.exists(doc_2))
+
+    folder_1 = nxclient.make_folder(TEST_WORKSPACE, 'Some folder')
+    assert_true(nxclient.exists(folder_1))
+    doc_3 = nxclient.make_file(folder_1, 'Document_3.txt',
+                              content='Some other text.')
+    nxclient.delete(folder_1)
+    assert_false(nxclient.exists(folder_1))
+    assert_false(nxclient.exists(doc_3))
 
 
 # TODO: add tests with long file names and special characters

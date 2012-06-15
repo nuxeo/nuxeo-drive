@@ -191,8 +191,10 @@ class NuxeoClient(object):
     def get_content(self, ref):
         return self.get_blob(ref)
 
-    def make_folder(self, path):
-        raise NotImplementedError()
+    def make_folder(self, parent, name):
+        doc = self.create(parent, FOLDER_TYPE, name=name,
+                    properties={'dc:title': name})
+        return doc[u'uid']
 
     def make_file(self, parent, name, content=None):
         doc = self.create(parent, FILE_TYPE, name=name,
