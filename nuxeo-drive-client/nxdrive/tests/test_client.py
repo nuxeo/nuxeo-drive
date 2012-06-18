@@ -1,11 +1,14 @@
 import os
+import hashlib
 from nose import with_setup
 from nose import SkipTest
 from nose.tools import assert_true
 from nose.tools import assert_false
 from nose.tools import assert_equal
+from nose.tools import assert_raises
 
 from nxdrive.client import NuxeoClient
+from nxdrive.client import Unauthorized
 
 
 TEST_WORKSPACE = '/default-domain/workspaces/test-nxdrive'
@@ -39,34 +42,39 @@ with_integration_server = with_setup(
 
 
 @with_integration_server
-def test_authenticate():
-    assert_true(nxclient.authenticate())
-
-    bad_client = NuxeoClient(nxclient.server_url,
-                             'someone else',
-                             'bad password')
-    assert_false(bad_client.authenticate())
+def test_authentication_failure():
+    assert_raises(
+        Unauthorized,
+        NuxeoClient, nxclient.server_url, 'someone else', 'bad password')
 
 
 @with_integration_server
 def test_make_documents():
+    SOME_TEXT_CONTENT = "Some text content."
+    SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
+
     doc_1 = nxclient.make_file(TEST_WORKSPACE, 'Document 1.txt')
     assert_true(nxclient.exists(doc_1))
     assert_equal(nxclient.get_content(doc_1), "")
+    doc_1_info = nxclient.get_info(doc_1)
+    assert_equal(doc_1_info.uid, doc_1)
+    assert_equal(doc_1_info.digest, None)
 
     doc_2 = nxclient.make_file(TEST_WORKSPACE, 'Document 2.txt',
-                              content='Some text.')
+                              content=SOME_TEXT_CONTENT)
     assert_true(nxclient.exists(doc_2))
-    assert_equal(nxclient.get_content(doc_2), "Some text.")
+    assert_equal(nxclient.get_content(doc_2), SOME_TEXT_CONTENT)
+    doc_2_info = nxclient.get_info(doc_2)
+    assert_equal(doc_2_info.digest, SOME_TEXT_DIGEST)
 
     nxclient.delete(doc_2)
     assert_true(nxclient.exists(doc_1))
     assert_false(nxclient.exists(doc_2))
 
-    folder_1 = nxclient.make_folder(TEST_WORKSPACE, 'Some folder')
+    folder_1 = nxclient.make_folder(TEST_WORKSPACE, SOME_TEXT_CONTENT)
     assert_true(nxclient.exists(folder_1))
     doc_3 = nxclient.make_file(folder_1, 'Document 3.txt',
-                              content='Some other text.')
+                               content=SOME_TEXT_CONTENT)
     nxclient.delete(folder_1)
     assert_false(nxclient.exists(folder_1))
     assert_false(nxclient.exists(doc_3))

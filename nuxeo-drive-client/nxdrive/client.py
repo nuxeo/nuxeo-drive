@@ -1,8 +1,11 @@
 """Uniform API to access both local and remote resource for synchronization."""
 
+from pprint import pprint
+from collections import namedtuple
 from datetime import datetime
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
+import hashlib
 import base64
 import json
 import logging as log
@@ -31,24 +34,57 @@ class Unauthorized(Exception):
                 "the provided credentials" % (self.user_id, self.server_url))
 
 
-class Info(object):
-    """Data transfer object representing the state in one tree"""
+# Data transfer objects
 
-    def __init__(self, root, path, uid, type, mtime, digest=None):
-        self.root
-        self.path = path
-        self.uid = uid
-        self.type = type
-        self.mtime = mtime
-        self.digest = digest
+class FileInfo(object):
+    """Data Transfer Object for file info on the Local FS"""
 
-    def __repr__(self):
-        return "Info(%r, %r, %r, %r, %r, %r)" % (
-            self.root, self.path, self.uid, self.type, self.mtime,
-            self.digest)
+    def __init__(self, root, path, folderish, last_modification_time,
+                 digest_func='md5'):
+        self.root = root  # the sync root folder local path
+        self.path = path  # the relative path to the root
+        self.folderish = folderish  # True if a Folder
 
-    def is_folderish(self):
-        return self.type == 'folder'
+        # Last OS modification date of the file
+        self.last_modification_time = last_modification_time
+
+        # Function to use
+        self._digest_func = digest_func.lower()
+
+    def get_digest(self):
+        """Lazy computation of the digest"""
+        digester = getattr(hashlib, self._digest_func, None)
+        if digester is None:
+            raise ValueError('Unknow digest method: ' + self.digest_func)
+
+        filepath = os.path.join(self.root, self.path)
+        h = digester()
+        with open(filepath, 'rb') as f:
+            while True:
+                buffer = f.read(1024 ** 2)
+                if buffer == '':
+                    break
+                h.update(buffer)
+        return h.hexdigest()
+
+
+BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
+    'root',  # ref of the document that serves as sync root
+    'name',  # title of the document (not guaranteed to be locally unique)
+    'uid',   # ref of the document
+    'parent_uid',  # ref of the parent document
+    'folderish',  # True is can host child documents
+    'last_modification_time',  # last update time
+    'digest',  # digest of the document
+])
+
+
+class NuxeoDocumentInfo(BaseNuxeoDocumentInfo):
+    """Data Transfer Object for doc info on the Remote Nuxeo repository"""
+
+    def get_digest(self):
+        """Eager retrieval of the digest"""
+        return self.digest
 
 
 # TODO: add support for the move operations
@@ -56,8 +92,9 @@ class Info(object):
 class LocalClient(object):
     """Client API implementation for the local file system"""
 
-    def __init__(self, base_folder):
+    def __init__(self, base_folder, digest_func='md5'):
         self.base_folder = base_folder
+        self._digest_func = digest_func
 
     def authenticate(self):
         # TODO
@@ -68,17 +105,16 @@ class LocalClient(object):
         os_path = os.path.join(self.base_folder, ref)
         if not os.path.exists(os_path):
             return None
-        if os.path.isdir(os_path):
-            type = 'folder'
-        else:
-            type = 'file'
+        folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
         mtime = datetime.fromtimestamp(stat_info.st_mtime)
+        path = os_path[len(self.base_folder) + 1:]
         # On unix we could use the inode for file move detection but that won't
         # work on Windows. To reduce complexity of the code and the possibility
         # to have Windows specific bugs, let's not use the unixe inode at all.
         # uid = str(stat_info.st_ino)
-        return Info(os_path[len(self.base_folder) + 1:], None, type, mtime)
+        return FileInfo(self.base_folder, path, folderish, mtime,
+                        digest_func=self._digest_func)
 
     def get_content(self, ref):
         return open(os.path.join(self.base_folder, ref), "rb").read()
@@ -125,13 +161,14 @@ class NuxeoClient(object):
     """Client for the Nuxeo Content Automation HTTP API"""
 
     def __init__(self, server_url, user_id, password,
-                 base_folder=None, repo="default"):
+                 base_folder='/', repo="default"):
         if not server_url.endswith('/'):
             server_url += '/'
         self.server_url = server_url
         self.user_id = user_id
         self.password = password
         self.base_folder = base_folder
+
         # TODO: actually use the repo info
         self.repo = repo
 
@@ -142,9 +179,11 @@ class NuxeoClient(object):
         self.opener = urllib2.build_opener(cookie_processor)
         self.automation_url = server_url + 'site/automation/'
 
-    def check_fetch_api(self):
-        if not hasattr(self, 'operations'):
-            self.fetch_api()
+        self.fetch_api()
+
+        # fetch the root folder ref
+        base_folder = base_folder if not None else '/'
+        self._base_folder_ref = self.fetch(base_folder)['uid']
 
     def fetch_api(self):
         headers = {
@@ -162,7 +201,8 @@ class NuxeoClient(object):
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
 
-    def authenticate(self):
+    @staticmethod
+    def authenticate(self, server):
         # Perform a cheap query to trigger authentication check
         try:
             self.fetch_api()
@@ -186,8 +226,24 @@ class NuxeoClient(object):
     def get_descendants(self, path=""):
         raise NotImplementedError()
 
-    def get_state(self, path):
-        raise NotImplementedError()
+    def get_info(self, ref):
+        doc = self.fetch(ref)
+        props = doc['properties']
+        folderish = 'Folderish' in doc['facets']
+
+        # TODO: support other main files
+        blob = props.get('file:content')
+        if blob is None:
+            digest = None
+        else:
+            digest = blob.get('digest')
+
+        # XXX: we need another roundtrip just to fetch the parent uid...
+        parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
+
+        return NuxeoDocumentInfo(
+            self._base_folder_ref, props['dc:title'], doc['uid'], parent_uid,
+            folderish, doc['lastModified'], digest)
 
     def get_content(self, ref):
         return self.get_blob(ref)
@@ -257,6 +313,7 @@ class NuxeoClient(object):
             target=target, name=name)
 
     # These ones are special: no 'input' parameter
+
     def fetch(self, ref):
         return self._execute("Document.Fetch", value=ref)
 
@@ -374,7 +431,6 @@ class NuxeoClient(object):
             return s
 
     def _check_params(self, command, input, params):
-        self.check_fetch_api()
         if command not in self.operations:
             raise ValueError("'%s' is not a registered operations." % command)
         method = self.operations[command]
