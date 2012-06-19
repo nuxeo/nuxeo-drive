@@ -318,7 +318,7 @@ class NuxeoClient(object):
 
     def make_file(self, parent, name, content=None):
         doc = self.create(parent, FILE_TYPE, name=name,
-                    properties={'dc:title': name})
+                          properties={'dc:title': name})
         ref = doc[u'uid']
         if content is not None:
             self.attach_blob(ref, content, name)
