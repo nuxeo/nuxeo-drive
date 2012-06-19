@@ -316,6 +316,10 @@ class NuxeoClient(object):
             self.attach_blob(ref, content, name)
         return ref
 
+    def check_writable(self, ref):
+        # TODO: which operation can be used to perform a permission check?
+        return True
+
     #
     # Utilities
     #
