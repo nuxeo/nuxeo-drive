@@ -15,6 +15,11 @@ from nxdrive.client import NotFound
 
 TEST_WORKSPACE = '/default-domain/workspaces/test-nxdrive'
 
+EMPTY_DIGEST = hashlib.md5().hexdigest()
+SOME_TEXT_CONTENT = "Some text content."
+SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
+
+
 nxclient = None
 
 
@@ -52,16 +57,13 @@ def test_authentication_failure():
 
 @with_integration_server
 def test_make_documents():
-    SOME_TEXT_CONTENT = "Some text content."
-    SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
-
     doc_1 = nxclient.make_file(TEST_WORKSPACE, 'Document 1.txt')
     assert_true(nxclient.exists(doc_1))
     assert_equal(nxclient.get_content(doc_1), "")
     doc_1_info = nxclient.get_info(doc_1)
     assert_equal(doc_1_info.name, 'Document 1.txt')
     assert_equal(doc_1_info.uid, doc_1)
-    assert_equal(doc_1_info.get_digest(), None)
+    assert_equal(doc_1_info.get_digest(), EMPTY_DIGEST)
     assert_equal(doc_1_info.folderish, False)
 
     doc_2 = nxclient.make_file(TEST_WORKSPACE, 'Document 2.txt',

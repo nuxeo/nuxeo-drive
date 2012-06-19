@@ -17,6 +17,11 @@ LOCAL_TEST_FOLDER = None
 TEST_WORKSPACE = None
 nxclient = None
 
+EMPTY_DIGEST = hashlib.md5().hexdigest()
+SOME_TEXT_CONTENT = "Some text content."
+SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
+
+
 
 def setup_temp_folder():
     global nxclient, LOCAL_TEST_FOLDER, TEST_WORKSPACE
@@ -36,10 +41,6 @@ with_temp_folder = with_setup(setup_temp_folder, teardown_temp_folder)
 
 @with_temp_folder
 def test_make_documents():
-    SOME_TEXT_CONTENT = "Some text content."
-    SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
-    EMPTY_DIGEST = hashlib.md5().hexdigest()
-
     doc_1 = nxclient.make_file(TEST_WORKSPACE, 'Document 1.txt')
     assert_true(nxclient.exists(doc_1))
     assert_equal(nxclient.get_content(doc_1), "")

@@ -277,11 +277,17 @@ class NuxeoClient(object):
         folderish = 'Folderish' in doc['facets']
 
         # TODO: support other main files
-        blob = props.get('file:content')
-        if blob is None:
+        if folderish:
             digest = None
         else:
-            digest = blob.get('digest')
+            blob = props.get('file:content')
+            if blob is None:
+                # Be consistent with empty files on the local filesystem
+                # TODO: find a way to introspect which hash function to use
+                # from the repo configuration
+                digest = hashlib.md5().hexdigest()
+            else:
+                digest = blob.get('digest')
 
         # XXX: we need another roundtrip just to fetch the parent uid...
         parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
