@@ -5,6 +5,7 @@ from nose import SkipTest
 from nose.tools import assert_true
 from nose.tools import assert_false
 from nose.tools import assert_equal
+from nose.tools import assert_not_equal
 from nose.tools import assert_raises
 
 from nxdrive.client import NuxeoClient
@@ -59,7 +60,7 @@ def test_make_documents():
     doc_1_info = nxclient.get_info(doc_1)
     assert_equal(doc_1_info.name, 'Document 1.txt')
     assert_equal(doc_1_info.uid, doc_1)
-    assert_equal(doc_1_info.digest, None)
+    assert_equal(doc_1_info.get_digest(), None)
     assert_equal(doc_1_info.folderish, False)
 
     doc_2 = nxclient.make_file(TEST_WORKSPACE, 'Document 2.txt',
@@ -69,7 +70,7 @@ def test_make_documents():
     doc_2_info = nxclient.get_info(doc_2)
     assert_equal(doc_2_info.name, 'Document 2.txt')
     assert_equal(doc_2_info.uid, doc_2)
-    assert_equal(doc_2_info.digest, SOME_TEXT_DIGEST)
+    assert_equal(doc_2_info.get_digest(), SOME_TEXT_DIGEST)
     assert_equal(doc_2_info.folderish, False)
 
     nxclient.delete(doc_2)
@@ -81,7 +82,7 @@ def test_make_documents():
     folder_1_info = nxclient.get_info(folder_1)
     assert_equal(folder_1_info.name, 'A new folder')
     assert_equal(folder_1_info.uid, folder_1)
-    assert_equal(folder_1_info.digest, None)
+    assert_equal(folder_1_info.get_digest(), None)
     assert_equal(folder_1_info.folderish, True)
 
     doc_3 = nxclient.make_file(folder_1, 'Document 3.txt',
@@ -91,4 +92,24 @@ def test_make_documents():
     assert_false(nxclient.exists(doc_3))
 
 
-# TODO: add tests with long file names and special characters
+@with_integration_server
+def test_complex_filenames():
+    # create another folder with the same title
+    title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
+    folder_1 = nxclient.make_folder(TEST_WORKSPACE, title_with_accents)
+    folder_1_info = nxclient.get_info(folder_1)
+    assert_equal(folder_1_info.name, title_with_accents)
+
+    # create another folder with the same title
+    title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
+    folder_2 = nxclient.make_folder(TEST_WORKSPACE, title_with_accents)
+    folder_2_info = nxclient.get_info(folder_2)
+    assert_equal(folder_2_info.name, title_with_accents)
+    assert_not_equal(folder_1, folder_2)
+
+    # Create a file
+    # TODO: handle sanitization of the '/' character in local name
+    long_filename = u"\xe9" * 50 + u"%$#!*()[]{}+_-=';:&^" + ".doc"
+    file_1 = nxclient.make_file(folder_1, long_filename)
+    file_1 = nxclient.get_info(file_1)
+    assert_equal(file_1.name, long_filename)
