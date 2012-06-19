@@ -22,6 +22,8 @@ import re
 FILE_TYPE = 'File'
 FOLDER_TYPE = 'Folder'
 
+BUFFER_SIZE = 1024 ** 2
+
 
 class Unauthorized(Exception):
 
@@ -59,6 +61,9 @@ class FileInfo(object):
         # practice
         self.name = os.path.basename(path)
 
+        self._filepath = os.path.join(
+            root, path[1:].replace('/', os.path.sep))
+
     def get_digest(self):
         """Lazy computation of the digest"""
         if self.folderish:
@@ -67,11 +72,10 @@ class FileInfo(object):
         if digester is None:
             raise ValueError('Unknow digest method: ' + self.digest_func)
 
-        filepath = os.path.join(self.root, self.path[1:])
         h = digester()
-        with open(filepath, 'rb') as f:
+        with open(self._filepath, 'rb') as f:
             while True:
-                buffer = f.read(1024 ** 2)
+                buffer = f.read(BUFFER_SIZE)
                 if buffer == '':
                     break
                 h.update(buffer)
@@ -118,6 +122,7 @@ class LocalClient(object):
         stat_info = os.stat(os_path)
         mtime = datetime.fromtimestamp(stat_info.st_mtime)
         path = '/' + os_path[len(self.base_folder) + 1:]
+        path = path.replace(os.path.sep, '/')  # unix style path
         # On unix we could use the inode for file move detection but that won't
         # work on Windows. To reduce complexity of the code and the possibility
         # to have Windows specific bugs, let's not use the unixe inode at all.
@@ -178,11 +183,14 @@ class LocalClient(object):
         return os.access(os_path, os.W_OK)
 
     def _abspath(self, ref):
+        """Absolute path on the operating system"""
         if not ref.startswith('/'):
             raise ValueError("LocalClient expects ref starting with '/'")
-        return os.path.abspath(os.path.join(self.base_folder, ref[1:]))
+        path_suffix = ref[1:].replace('/', os.path.sep)
+        return os.path.abspath(os.path.join(self.base_folder, path_suffix))
 
     def _abspath_deduped(self, parent, orig_name):
+        """Absolute path on the operating system with deduplicated names"""
         # decompose the name into actionable components
         if "." in orig_name:
             name, extension = orig_name.rsplit('.', 1)
