@@ -2,6 +2,7 @@
 
 import os.path
 from nxdrive.client import NuxeoClient
+from nxdrive.client import LocalClient
 from nxdrive.model import get_session
 from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
@@ -69,15 +70,9 @@ class Controller(object):
             # this is expected in most cases
             pass
 
-        # check the connection to the server by performing a issuing an
-        # authentication request
-        client = self.nuxeo_client_factory(
-            server_url, username, password)
-
-        if not client.authenticate():
-            raise RuntimeError(
-                'Failed to authenticate "%s" on server "%s"'
-                % (username, server_url))
+        # check the connection to the server by issuing an authentication
+        # request
+        self.nuxeo_client_factory(server_url, username, password)
 
         self.session.add(ServerBinding(local_folder, server_url, username,
                                        password))
@@ -122,27 +117,23 @@ class Controller(object):
 
         # Check the remote root exists and is an editable folder by current
         # user.
-        client = self.nuxeo_client_factory(server_binding.server_url,
-                                           server_binding.remote_user,
-                                           server_binding.remote_password,
-                                           repo=remote_repo,
-                                           base_folder=remote_root)
-        root_info = client.get_state('/')
-        if root_info is None or not root_info.is_folderish():
+        nxclient = self.nuxeo_client_factory(server_binding.server_url,
+                                             server_binding.remote_user,
+                                             server_binding.remote_password,
+                                             repository=remote_repo,
+                                             base_folder=remote_root)
+        root_info = nxclient.get_info(remote_root)
+        if root_info is None or not root_info.folderish:
             raise RuntimeError(
                 'No folder at "%s/%s" visible by "%s" on server "%s"'
                 % (remote_repo, remote_root, server_binding.remote_user,
                    server_binding.server_url))
 
-        if client.check_writable('/'):
+        if nxclient.check_writable(remote_root):
             raise RuntimeError(
                 'Folder at "%s/%s" is not editable by "%s" on server "%s"'
                 % (remote_repo, remote_root, server_binding.remote_user,
                    server_binding.remote_password))
-
-
-
-        # TODO: check write properties / remove ACL
 
         # Ensure that the local folder exists
         if os.path.exists(local_root):
@@ -150,12 +141,14 @@ class Controller(object):
                 raise RuntimeError('%s is not a folder' % local_root)
         else:
             os.makedirs(local_root)
+        lcclient = LocalClient(local_root)
+        if not lcclient.check_writable('/'):
+            raise RuntimeError('Missing write permission on ' + local_root)
 
         # Check that remote_root exists on the matching server
         self.session.add(RootBinding(local_root, remote_repo, remote_root))
 
-        self.update_local_state(local_root, '/', recursive=True)
-        self.update_remote_state(local_root, '/', doc=remote_root_doc)
+        # TODO: initialize the metadata info by recursive walk on each side
         self.session.commit()
 
     def unbind_root(self, local_root):

@@ -173,9 +173,13 @@ class LocalClient(object):
         os_path = self._abspath(ref)
         return os.path.exists(os_path)
 
+    def check_writable(self, ref):
+        os_path = self._abspath(ref)
+        return os.access(os_path, os.W_OK)
+
     def _abspath(self, ref):
         if not ref.startswith('/'):
-            raise ValueError("FileClient expects ref starting with '/'")
+            raise ValueError("LocalClient expects ref starting with '/'")
         return os.path.abspath(os.path.join(self.base_folder, ref[1:]))
 
     def _abspath_deduped(self, parent, orig_name):
@@ -207,7 +211,7 @@ class NuxeoClient(object):
     """Client for the Nuxeo Content Automation HTTP API"""
 
     def __init__(self, server_url, user_id, password,
-                 base_folder='/', repo="default"):
+                 base_folder='/', repository="default"):
         if not server_url.endswith('/'):
             server_url += '/'
         self.server_url = server_url
@@ -215,8 +219,8 @@ class NuxeoClient(object):
         self.password = password
         self.base_folder = base_folder
 
-        # TODO: actually use the repo info
-        self.repo = repo
+        # TODO: actually use the repository info
+        self.repository = repository
 
         self.auth = 'Basic %s' % base64.b64encode(
                 self.user_id + ":" + self.password).strip()
@@ -284,7 +288,7 @@ class NuxeoClient(object):
             if blob is None:
                 # Be consistent with empty files on the local filesystem
                 # TODO: find a way to introspect which hash function to use
-                # from the repo configuration
+                # from the repository configuration
                 digest = hashlib.md5().hexdigest()
             else:
                 digest = blob.get('digest')
