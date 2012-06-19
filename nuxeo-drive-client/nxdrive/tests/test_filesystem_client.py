@@ -22,7 +22,6 @@ SOME_TEXT_CONTENT = "Some text content."
 SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 
 
-
 def setup_temp_folder():
     global nxclient, LOCAL_TEST_FOLDER, TEST_WORKSPACE
     LOCAL_TEST_FOLDER = tempfile.mkdtemp('-nuxeo-drive-tests')
