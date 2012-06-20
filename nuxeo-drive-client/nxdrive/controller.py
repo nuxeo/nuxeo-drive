@@ -30,8 +30,10 @@ class Controller(object):
             self.nuxeo_client_factory = NuxeoClient
 
     def start(self):
-        """Start the Nuxeo Drive daemon"""
-        # TODO
+        """Start the Nuxeo Drive daemon if not already started"""
+        # TODO, see:
+        # https://github.com/mozilla-services/circus/blob/master/circus/
+        # circusd.py#L34
 
     def stop(self):
         """Stop the Nuxeo Drive daemon"""
