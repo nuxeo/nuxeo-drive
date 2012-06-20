@@ -183,7 +183,7 @@ class Controller(object):
             # TODO: how to handle the too many children case properly?
             # Shall we introduce some pagination or shall we raise an
             # exception if a folder contains too many children?
-            children = remote_client.get_children(remote_info.uid)
+            children = remote_client.get_children_info(remote_info.uid)
             for child_remote_info in children:
                 if child_remote_info.folderish:
                     child_local_path = local_client.make_folder(

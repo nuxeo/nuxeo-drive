@@ -25,6 +25,11 @@ FOLDER_TYPE = 'Folder'
 BUFFER_SIZE = 1024 ** 2
 
 
+def safe_filename(name, replacement='-'):
+    """Replace invalid character in candidate filename"""
+    return re.sub(r'(/|\\)', replacement, name)
+
+
 class Unauthorized(Exception):
 
     def __init__(self, server_url, user_id):
@@ -147,9 +152,15 @@ class LocalClient(object):
                     result.append(self.get_info(descendant_ref))
         return result
 
-    def get_children(self, ref):
-        # TODO: implement me!
-        return []
+    def get_children_info(self, ref):
+        os_path = self._abspath(ref)
+        result = []
+        children = os.listdir(os_path)
+        children.sort()
+        for child_name in children:
+            if not child_name.startswith('.'):
+                result.append(self.get_info(ref + '/' + child_name))
+        return result
 
     def make_folder(self, parent, name):
         os_path, name = self._abspath_deduped(parent, name)
@@ -193,7 +204,7 @@ class LocalClient(object):
     def _abspath_deduped(self, parent, orig_name):
         """Absolute path on the operating system with deduplicated names"""
         # make name safe by removing invalid chars
-        name = re.sub(r'(/|\\)', '-', orig_name)
+        name = safe_filename(orig_name)
 
         # decompose the name into actionable components
         if "." in name:
@@ -279,7 +290,7 @@ class NuxeoClient(object):
     def get_descendants(self, ref):
         raise NotImplementedError()
 
-    def get_children(self, ref):
+    def get_children_indo(self, ref):
         # TODO: implement me!
         return []
 
