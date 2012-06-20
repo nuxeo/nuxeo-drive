@@ -35,12 +35,13 @@ def teardown():
 class FakeNuxeoClient(object):
     """Fake / mock client that does not require a real nuxeo instance"""
 
-    def __init__(self, server_url, user_id, password, repository=None,
+    def __init__(self, server_url, user_id, password, repository='default',
                  base_folder=None):
         self.server_url = server_url
         self.user_id = user_id
         self.password = password
         self.base_folder = base_folder
+        self.repository = repository
 
         if user_id != 'username' or password != 'secret':
             raise Unauthorized(server_url, user_id)
@@ -76,6 +77,10 @@ class FakeNuxeoClient(object):
 
     def check_writable(self, ref):
         return ref in ['/']
+
+    def get_children(self, ref):
+        # TODO: implement me!
+        return []
 
 
 @with_setup(setup, teardown)

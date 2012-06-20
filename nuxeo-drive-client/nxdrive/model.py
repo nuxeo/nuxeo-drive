@@ -94,7 +94,9 @@ class LastKnownState(Base):
     last_remote_updated = Column(DateTime)
     last_local_updated = Column(DateTime)
 
-    # TODO: save the digest too for better updated / moves detections?
+    # Save the digest too for better updates / moves detection
+    local_digest = Column(String)
+    remote_digest = Column(String)
 
     # Parent path from root for fast children queries,
     # can be None for the root it-self.
@@ -102,6 +104,8 @@ class LastKnownState(Base):
 
     # Path from root using unix separator, '/' for the root it-self.
     path = Column(String, primary_key=True)
+
+    folderish = Column(Integer)
 
     # Remote reference (instead of path based lookup)
     remote_repo = Column(String)
@@ -117,11 +121,23 @@ class LastKnownState(Base):
     remotely_moved_from = Column(String)
     remotely_moved_to = Column(String)
 
-    def __init__(self, local_root, path, remote_ref, last_local_updated,
-                 last_remote_updated):
-        # TODO
+    def __init__(self, local_root, path, remote_repo, remote_ref,
+                 local_last_updated, remote_last_updated, folderish=True,
+                 local_digest=None, remote_digest=None):
         self.local_state = 'unknown'
         self.remote_state = 'unknown'
+        self.local_root = local_root
+        self.path = path
+        parent_path, _ = path.rsplit('/', 1)
+        if parent_path != '':
+            self.parent_path = parent_path
+        self.remote_repo = remote_repo
+        self.remote_ref = remote_ref
+        self.local_last_updated = local_last_updated
+        self.remote_last_updated = remote_last_updated
+        self.folderish = int(folderish)
+        self.local_digest = local_digest
+        self.remote_digest = remote_digest
 
 
 class FileEvent(Base):

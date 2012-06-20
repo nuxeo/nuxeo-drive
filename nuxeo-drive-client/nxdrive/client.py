@@ -133,11 +133,8 @@ class LocalClient(object):
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()
 
-    def get_descendants(self, ref=None):
-        if ref is None:
-            os_path = self.base_folder
-        else:
-            os_path = self._abspath(ref)
+    def get_descendants(self, ref):
+        os_path = self._abspath(ref)
         result = []
         for root, dirs, files in os.walk(os_path):
             for dir in dirs:
@@ -149,6 +146,10 @@ class LocalClient(object):
                     descendant_ref = os.path.join(os_path, root, file)
                     result.append(self.get_info(descendant_ref))
         return result
+
+    def get_children(self, ref):
+        # TODO: implement me!
+        return []
 
     def make_folder(self, parent, name):
         os_path, name = self._abspath_deduped(parent, name)
@@ -272,8 +273,12 @@ class NuxeoClient(object):
     # Client API common with the FS API
     #
 
-    def get_descendants(self, path=""):
+    def get_descendants(self, ref):
         raise NotImplementedError()
+
+    def get_children(self, ref):
+        # TODO: implement me!
+        return []
 
     def get_info(self, ref):
         try:

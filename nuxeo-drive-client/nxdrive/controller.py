@@ -6,6 +6,7 @@ from nxdrive.client import LocalClient
 from nxdrive.model import get_session
 from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
+from nxdrive.model import LastKnownState
 
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -122,8 +123,8 @@ class Controller(object):
                                              server_binding.remote_password,
                                              repository=remote_repo,
                                              base_folder=remote_root)
-        root_info = nxclient.get_info(remote_root)
-        if root_info is None or not root_info.folderish:
+        remote_info = nxclient.get_info(remote_root)
+        if remote_info is None or not remote_info.folderish:
             raise RuntimeError(
                 'No folder at "%s/%s" visible by "%s" on server "%s"'
                 % (remote_repo, remote_root, server_binding.remote_user,
@@ -135,21 +136,65 @@ class Controller(object):
                 % (remote_repo, remote_root, server_binding.remote_user,
                    server_binding.remote_password))
 
-        # Ensure that the local folder exists
+        # Check that this workspace does not already exist locally
         if os.path.exists(local_root):
-            if not os.path.isdir(local_root):
-                raise RuntimeError('%s is not a folder' % local_root)
-        else:
-            os.makedirs(local_root)
-        lcclient = LocalClient(local_root)
-        if not lcclient.check_writable('/'):
-            raise RuntimeError('Missing write permission on ' + local_root)
+            raise RuntimeError(
+                'Cannot initialize binding to existing local folder: %s'
+                % local_root)
 
-        # Check that remote_root exists on the matching server
+        os.makedirs(local_root)
+        lcclient = LocalClient(local_root)
+        local_info = lcclient.get_info('/')
+
+        # Register the binding itself
         self.session.add(RootBinding(local_root, remote_repo, remote_root))
 
-        # TODO: initialize the metadata info by recursive walk on each side
+        # Initialize the metadata info by recursive walk on the remote folder
+        # structure
+        self._recursive_init(lcclient, local_info, nxclient, remote_info)
         self.session.commit()
+
+    def _recursive_init(self, local_client, local_info, remote_client,
+                        remote_info):
+        """Initialize the metadata table by walking the binding tree"""
+
+        folderish = remote_info.folderish
+        state = LastKnownState(
+            local_client.base_folder, local_info.path,
+            remote_client.repository, remote_info.uid,
+            local_info.last_modification_time,
+            remote_info.last_modification_time,
+            folderish=folderish,
+            local_digest=local_info.get_digest(),
+            remote_digest=remote_info.get_digest())
+
+        if folderish:
+            # Mark as synchronized as there is nothing to download later
+            state.local_state = 'synchronized'
+            state.remote_state = 'synchronized'
+        else:
+            # Mark remote as updated to trigger a download of the binary
+            # attachment during the next synchro
+            state.remote_state = 'updated'
+
+        self.session.add(state)
+
+        if folderish:
+            # TODO: how to handle the too many children case properly?
+            # Shall we introduce some pagination or shall we raise an
+            # exception if a folder contains too many children?
+            children = remote_client.get_children(remote_info.uid)
+            for child_remote_info in children:
+                if child_remote_info.folderish:
+                    child_local_path = local_client.make_folder(
+                        local_info.path, child_remote_info.title)
+
+                    child_local_info = local_client.get_info(child_local_path)
+                else:
+                    child_local_path = local_client.make_file(
+                        local_client.path, child_remote_info.title)
+                self._recursive_init(local_client, child_local_info,
+                                     remote_client, child_local_info)
 
     def unbind_root(self, local_root):
         """Remove binding on a root folder"""
