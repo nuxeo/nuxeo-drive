@@ -3,6 +3,7 @@
 import os.path
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
+from nxdrive.client import safe_filename
 from nxdrive.model import get_session
 from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
@@ -101,12 +102,12 @@ class Controller(object):
                     % local_root)
             return None
 
-    def bind_root(self, local_root, remote_repo, remote_root):
+    def bind_root(self, local_folder, remote_root, repository='default'):
         """Bind local root to a remote root (folderish document in Nuxeo).
 
-        local_root must be a direct sub-folder of a local_folder already
-        bound to an existing Nuxeo server. If it does not exists, the local
-        folder will be created.
+        local_folder must be already bound to an existing Nuxeo server. A
+        new folder will be created under that folder to bind the remote
+        root.
 
         remote_root must be the IdRef or PathRef of an existing folderish
         document on the remote server bound to the local folder. The
@@ -114,7 +115,6 @@ class Controller(object):
         a RuntimeError will be raised.
         """
         # Check that local_root is a subfolder of bound folder
-        local_folder = os.path.abspath(os.path.join(local_root, '..'))
         server_binding = self.get_server_binding(local_folder,
                                                  raise_if_missing=True)
 
@@ -123,33 +123,36 @@ class Controller(object):
         nxclient = self.nuxeo_client_factory(server_binding.server_url,
                                              server_binding.remote_user,
                                              server_binding.remote_password,
-                                             repository=remote_repo,
+                                             repository=repository,
                                              base_folder=remote_root)
         remote_info = nxclient.get_info(remote_root)
         if remote_info is None or not remote_info.folderish:
             raise RuntimeError(
                 'No folder at "%s/%s" visible by "%s" on server "%s"'
-                % (remote_repo, remote_root, server_binding.remote_user,
+                % (repository, remote_root, server_binding.remote_user,
                    server_binding.server_url))
 
-        if nxclient.check_writable(remote_root):
+        if not nxclient.check_writable(remote_root):
             raise RuntimeError(
-                'Folder at "%s/%s" is not editable by "%s" on server "%s"'
-                % (remote_repo, remote_root, server_binding.remote_user,
-                   server_binding.remote_password))
+                'Folder at "%s:%s" is not editable by "%s" on server "%s"'
+                % (repository, remote_root, server_binding.remote_user,
+                   server_binding.server_url))
 
         # Check that this workspace does not already exist locally
+        # TODO: shall we handle deduplication for root names too?
+        local_root = os.path.join(local_folder,
+                                  safe_filename(remote_info.name))
         if os.path.exists(local_root):
             raise RuntimeError(
                 'Cannot initialize binding to existing local folder: %s'
                 % local_root)
 
-        os.makedirs(local_root)
+        os.mkdir(local_root)
         lcclient = LocalClient(local_root)
         local_info = lcclient.get_info('/')
 
         # Register the binding itself
-        self.session.add(RootBinding(local_root, remote_repo, remote_root))
+        self.session.add(RootBinding(local_root, repository, remote_root))
 
         # Initialize the metadata info by recursive walk on the remote folder
         # structure
@@ -189,14 +192,13 @@ class Controller(object):
             for child_remote_info in children:
                 if child_remote_info.folderish:
                     child_local_path = local_client.make_folder(
-                        local_info.path, child_remote_info.title)
-
-                    child_local_info = local_client.get_info(child_local_path)
+                        local_info.path, child_remote_info.name)
                 else:
                     child_local_path = local_client.make_file(
-                        local_client.path, child_remote_info.title)
+                        local_info.path, child_remote_info.name)
+                child_local_info = local_client.get_info(child_local_path)
                 self._recursive_init(local_client, child_local_info,
-                                     remote_client, child_local_info)
+                                     remote_client, child_remote_info)
 
     def unbind_root(self, local_root):
         """Remove binding on a root folder"""

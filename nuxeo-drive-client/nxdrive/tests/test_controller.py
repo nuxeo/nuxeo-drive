@@ -76,7 +76,7 @@ class FakeNuxeoClient(object):
         return root_info
 
     def check_writable(self, ref):
-        return ref in ['/']
+        return True
 
     def get_children_info(self, ref):
         # TODO: implement me!
@@ -90,22 +90,27 @@ def test_bindings():
     # by default no bindings => no status to report
     assert_equal(ctl.status(), ())
 
-    # it is not possible to bind a new root if not a subfolder of a bound
-    # local folder
+    # it is not possible to bind a new root if the local folder is not bound to
+    # the server
     remote_repo = 'default'
     remote_root = 'dead-beef-cafe-babe'
-    local_root = join(TEST_SYNCED_FOLDER, 'Dead Beef')
-    assert_raises(RuntimeError, ctl.bind_root, local_root, remote_repo,
-                  remote_root)
+    expected_local_root = join(TEST_SYNCED_FOLDER, 'The Root')
+
+    assert_raises(RuntimeError, ctl.bind_root, TEST_SYNCED_FOLDER,
+                  remote_root, repository=remote_repo)
 
     # register a new server binding
-    ctl.bind_server(TEST_SYNCED_FOLDER,
-                    'http://example.com/nuxeo',
+    ctl.bind_server(TEST_SYNCED_FOLDER, 'http://example.com/nuxeo',
                     'username', 'secret')
-    ctl.bind_root(local_root, remote_repo, remote_root)
+    ctl.bind_root(TEST_SYNCED_FOLDER, remote_root, repository=remote_repo)
 
-    # The local Dead Beef folder has been created if missing
-    assert_true(os.path.exists(local_root))
+    # The local root folder has been created
+    assert_true(os.path.exists(expected_local_root))
+
+    # Registering twice the same root will also raise an integrity constraint
+    # error
+    assert_raises(Exception, ctl.bind_root, TEST_SYNCED_FOLDER, remote_root,
+                  repository=remote_root)
 
     # Registering an other server on the same root will yield an error
     assert_raises(RuntimeError, ctl.bind_server, TEST_SYNCED_FOLDER,
@@ -116,42 +121,31 @@ def test_bindings():
                   'http://example.com/nuxeo',
                   'username', 'wrong password')
 
-    # Registering a root outside of a server-bound folder will also yield an
-    # error
-    other_root = join(TEST_FOLDER, 'other_root')
-    assert_raises(RuntimeError, ctl.bind_root, other_root, remote_repo,
-                  remote_root)
+    # Registering a root outside in an unbound toplevel folder will fail
+    other_folder = join(TEST_FOLDER, 'other_folder')
+    assert_raises(RuntimeError, ctl.bind_root, other_folder, remote_root,
+                  repository=remote_repo)
 
     # local folder has not be created
-    assert_false(os.path.exists(other_root))
-
-    # Registering twice the same root will also raise an integrity constraint
-    # error
-    assert_raises(Exception, ctl.bind_root, local_root, remote_repo,
-                  remote_root)
+    assert_false(os.path.exists(other_folder))
 
 
+@with_setup(setup, teardown)
 def test_binding_deletions():
     ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient)
-
-    # it is not possible to bind a new root if not a subfolder of a bound
-    # local folder
-    remote_repo = 'default'
-    remote_root = 'dead-beef-cafe-babe'
-    local_root = join(TEST_SYNCED_FOLDER, 'Dead Beef')
-    assert_raises(RuntimeError, ctl.bind_root, local_root, remote_repo,
-                  remote_root)
 
     # register a couple of bindings
     ctl.bind_server(TEST_SYNCED_FOLDER, 'http://example.com/nuxeo',
                     'username', 'secret')
-    folder_1 = join(TEST_SYNCED_FOLDER, 'folder_1')
-    folder_2 = join(TEST_SYNCED_FOLDER, 'folder_2')
-    folder_3 = join(TEST_SYNCED_FOLDER, 'folder_3')
 
-    ctl.bind_root(folder_1, 'default', 'folder_1-nuxeo-ref')
-    ctl.bind_root(folder_2, 'default', 'folder_2-nuxeo-ref')
-    ctl.bind_root(folder_3, 'default', 'folder_3-nuxeo-ref')
+    ctl.bind_root(TEST_SYNCED_FOLDER, 'folder_1-nuxeo-ref')
+    ctl.bind_root(TEST_SYNCED_FOLDER, 'folder_2-nuxeo-ref')
+    ctl.bind_root(TEST_SYNCED_FOLDER, 'folder_3-nuxeo-ref')
+
+    # Expected created local folders
+    folder_1 = join(TEST_SYNCED_FOLDER, 'Folder 1')
+    folder_2 = join(TEST_SYNCED_FOLDER, 'Folder 2')
+    folder_3 = join(TEST_SYNCED_FOLDER, 'Folder 3')
 
     assert_true(ctl.get_server_binding(TEST_SYNCED_FOLDER) is not None)
     assert_true(ctl.get_root_binding(folder_1) is not None)
