@@ -192,12 +192,15 @@ class LocalClient(object):
 
     def _abspath_deduped(self, parent, orig_name):
         """Absolute path on the operating system with deduplicated names"""
+        # make name safe by removing invalid chars
+        name = re.sub(r'(/|\\)', '-', orig_name)
+
         # decompose the name into actionable components
-        if "." in orig_name:
-            name, extension = orig_name.rsplit('.', 1)
+        if "." in name:
+            name, extension = name.rsplit('.', 1)
             suffix = "." + extension
         else:
-            name, suffix = orig_name, ""
+            name, suffix = name, ""
 
         for _ in range(1000):
             os_path = self._abspath(os.path.join(parent, name + suffix))
