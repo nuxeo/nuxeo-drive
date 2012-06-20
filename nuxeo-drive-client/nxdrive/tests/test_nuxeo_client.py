@@ -13,7 +13,8 @@ from nxdrive.client import Unauthorized
 from nxdrive.client import NotFound
 
 
-TEST_WORKSPACE = '/default-domain/workspaces/test-nxdrive'
+TEST_WORKSPACE_PATH = '/default-domain/workspaces/test-nxdrive'
+TEST_WORKSPACE = None
 
 EMPTY_DIGEST = hashlib.md5().hexdigest()
 SOME_TEXT_CONTENT = "Some text content."
@@ -24,7 +25,7 @@ nxclient = None
 
 
 def setup_integration_server():
-    global nxclient
+    global nxclient, TEST_WORKSPACE
     NUXEO_URL = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
     USER = os.environ.get('NXDRIVE_TEST_USER')
     PASSWORD = os.environ.get('NXDRIVE_TEST_PASSWORD')
@@ -33,10 +34,11 @@ def setup_integration_server():
                        "environment.")
     nxclient = NuxeoClient(NUXEO_URL, USER, PASSWORD)
 
-    parent_path = os.path.dirname(TEST_WORKSPACE)
-    workspace_name = os.path.basename(TEST_WORKSPACE)
-    nxclient.create(parent_path, 'Workspace', name=workspace_name,
-                    properties={'dc:title': 'Nuxeo Drive Tests'})
+    parent_path = os.path.dirname(TEST_WORKSPACE_PATH)
+    workspace_name = os.path.basename(TEST_WORKSPACE_PATH)
+    TEST_WORKSPACE = nxclient.create(
+        parent_path, 'Workspace', name=workspace_name,
+        properties={'dc:title': 'Nuxeo Drive Tests'})[u'uid']
 
 
 def teardown_integration_server():
@@ -121,3 +123,22 @@ def test_complex_filenames():
 @with_integration_server
 def test_missing_document():
     assert_raises(NotFound, nxclient.get_info, '/Something Missing')
+
+
+@with_integration_server
+def test_get_children_info():
+    folder_1 = nxclient.make_folder(TEST_WORKSPACE, 'Folder 1')
+    folder_2 = nxclient.make_folder(TEST_WORKSPACE, 'Folder 2')
+    file_1 = nxclient.make_file(TEST_WORKSPACE, 'File 1.txt', content="foo\n")
+
+    # not a direct child of TEST_WORKSPACE
+    nxclient.make_file(folder_1, 'File 2.txt', content="bar\n")
+
+    workspace_children = nxclient.get_children_info(TEST_WORKSPACE)
+    assert_equal(len(workspace_children), 3)
+    assert_equal(workspace_children[0].uid, file_1)
+    assert_equal(workspace_children[0].name, 'File 1.txt')
+    assert_equal(workspace_children[1].uid, folder_1)
+    assert_equal(workspace_children[1].name, 'Folder 1')
+    assert_equal(workspace_children[2].uid, folder_2)
+    assert_equal(workspace_children[2].name, 'Folder 2')

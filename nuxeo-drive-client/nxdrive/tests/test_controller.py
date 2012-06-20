@@ -78,7 +78,7 @@ class FakeNuxeoClient(object):
     def check_writable(self, ref):
         return ref in ['/']
 
-    def get_children(self, ref):
+    def get_children_info(self, ref):
         # TODO: implement me!
         return []
 

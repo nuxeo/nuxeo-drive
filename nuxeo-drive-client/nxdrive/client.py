@@ -23,6 +23,7 @@ FILE_TYPE = 'File'
 FOLDER_TYPE = 'Folder'
 
 BUFFER_SIZE = 1024 ** 2
+MAX_CHILDREN = 1000
 
 
 def safe_filename(name, replacement='-'):
@@ -158,7 +159,7 @@ class LocalClient(object):
         children = os.listdir(os_path)
         children.sort()
         for child_name in children:
-            if not child_name.startswith('.'):
+            if not child_name.startswith('.'):  # ignore hidden unix files
                 result.append(self.get_info(ref + '/' + child_name))
         return result
 
@@ -290,9 +291,26 @@ class NuxeoClient(object):
     def get_descendants(self, ref):
         raise NotImplementedError()
 
-    def get_children_indo(self, ref):
-        # TODO: implement me!
-        return []
+    def get_children_info(self, ref):
+        from pprint import pprint
+        # TODO: make the list of document type to synchronize configurable or
+        # maybe use a dedicated facet
+        types = ['File', 'Workspace', 'Folder', 'SocialFolder']
+        query = (
+            "SELECT * FROM Document"
+            "       WHERE ecm:parentId = '%s'"
+            "       AND ecm:primaryType IN ('%s')"
+            "       ORDER BY dc:title, dc:created LIMIT %d"
+        ) % (ref, "', '".join(types), MAX_CHILDREN)
+
+        results = self.query(query)[u'entries']
+        if len(results) == MAX_CHILDREN:
+            # TODO: how to best handle this case? A warning and return an empty
+            # list, a dedicated exception?
+            raise RuntimeError("Folder %r on server %r has more than the"
+                               "maximum number of children: %d" % (
+                                   ref, self.server_url, MAX_CHILDREN))
+        return [self._doc_to_info(d) for d in results]
 
     def get_info(self, ref):
         try:
@@ -303,7 +321,10 @@ class NuxeoClient(object):
                     ref, self.server_url))
             else:
                 raise e
+        return self._doc_to_info(doc)
 
+    def _doc_to_info(self, doc):
+        """Convert Automation document description to NuxeoDocumentInfo"""
         props = doc['properties']
         folderish = 'Folderish' in doc['facets']
 
@@ -331,6 +352,11 @@ class NuxeoClient(object):
         return self.get_blob(ref)
 
     def make_folder(self, parent, name):
+        # TODO: make it possible to configure context dependent:
+        # - SocialFolder under SocialFolder or SocialWorkspace
+        # - Folder under Folder or Workspace
+        # This configuration should be provided by a special operation on the
+        # server.
         doc = self.create(parent, FOLDER_TYPE, name=name,
                     properties={'dc:title': name})
         return doc[u'uid']
@@ -346,16 +372,6 @@ class NuxeoClient(object):
     def check_writable(self, ref):
         # TODO: which operation can be used to perform a permission check?
         return True
-
-    #
-    # Utilities
-    #
-
-    def get_full_path(self, path):
-        if path != "":
-            return self.base_folder + "/" + path
-        else:
-            return self.base_folder
 
     #
     # Generic Automation features reused from nuxeolib
