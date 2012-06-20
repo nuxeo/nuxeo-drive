@@ -67,7 +67,7 @@ class FileInfo(object):
         # practice
         self.name = os.path.basename(path)
 
-        self._filepath = os.path.join(
+        self.filepath = os.path.join(
             root, path[1:].replace('/', os.path.sep))
 
     def get_digest(self):
@@ -79,7 +79,7 @@ class FileInfo(object):
             raise ValueError('Unknow digest method: ' + self.digest_func)
 
         h = digester()
-        with open(self._filepath, 'rb') as f:
+        with open(self.filepath, 'rb') as f:
             while True:
                 buffer = f.read(BUFFER_SIZE)
                 if buffer == '':
@@ -160,7 +160,11 @@ class LocalClient(object):
         children.sort()
         for child_name in children:
             if not child_name.startswith('.'):  # ignore hidden unix files
-                result.append(self.get_info(ref + '/' + child_name))
+                if ref == '/':
+                    child_ref = ref + child_name
+                else:
+                    child_ref = ref + '/' + child_name
+                result.append(self.get_info(child_ref))
         return result
 
     def make_folder(self, parent, name):

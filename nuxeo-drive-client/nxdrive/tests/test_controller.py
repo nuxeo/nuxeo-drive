@@ -79,7 +79,6 @@ class FakeNuxeoClient(object):
         return True
 
     def get_children_info(self, ref):
-        # TODO: implement me!
         return []
 
 

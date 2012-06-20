@@ -16,6 +16,7 @@ from nxdrive.controller import Controller
 
 
 TEST_WORKSPACE_PATH = '/default-domain/workspaces/test-nxdrive'
+TEST_WORKSPACE_TITLE = 'Nuxeo Drive Tests'
 TEST_WORKSPACE = None
 
 EMPTY_DIGEST = hashlib.md5().hexdigest()
@@ -51,7 +52,7 @@ def setup_integration_env():
     root_nxclient = NuxeoClient(NUXEO_URL, USER, PASSWORD)
     TEST_WORKSPACE = root_nxclient.create(
         parent_path, 'Workspace', name=workspace_name,
-        properties={'dc:title': 'Nuxeo Drive Tests'})[u'uid']
+        properties={'dc:title': TEST_WORKSPACE_TITLE})[u'uid']
 
     # Client to be use to create remote test documents and folders
     nxclient = NuxeoClient(NUXEO_URL, USER, PASSWORD,
@@ -106,7 +107,40 @@ def make_server_tree():
 
 @with_integration_env
 def test_binding_initialization():
+    # Create some documents in a Nuxeo workspace and bind this server to a
+    # Nuxeo Drive local folder
     make_server_tree()
     ctl = Controller(LOCAL_NXDRIVE_CONF_FOLDER)
     ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
     ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
+
+    # The binding operation creates a new local folder with the Workspace name
+    # and reproduce the server side structure with folders and empty documents.
+    expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
+    local = LocalClient(expected_folder)
+    level_0 = local.get_children_info('/')
+
+    def size(info):
+        return os.stat(info.filepath).st_size
+
+    assert_equal(len(level_0), 3)
+    assert_equal(level_0[0].name, 'File 5.doc')
+    assert_equal(size(level_0[0]), 0)
+    assert_equal(level_0[1].name, 'Folder 1')
+    assert_equal(level_0[2].name, 'Folder 2')
+
+    level_1 = local.get_children_info(level_0[1].path)
+    assert_equal(len(level_1), 3)
+    assert_equal(level_1[0].name, 'File 1.doc')
+    assert_equal(size(level_1[0]), 0)
+    assert_equal(level_1[1].name, 'Folder 1.1')
+    assert_equal(level_1[2].name, 'Folder 1.2')
+
+    level_2 = local.get_children_info(level_0[2].path)
+    assert_equal(len(level_2), 3)
+    assert_equal(level_2[0].name, 'Duplicated File.txt')
+    assert_equal(size(level_2[0]), 0)
+    assert_equal(level_2[1].name, 'Duplicated File__1.txt')  # deduped name
+    assert_equal(size(level_2[1]), 0)
+    assert_equal(level_2[2].name, 'File 4.doc')
+    assert_equal(size(level_2[2]), 0)
