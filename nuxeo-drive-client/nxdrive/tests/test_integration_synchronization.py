@@ -144,3 +144,30 @@ def test_binding_initialization():
     assert_equal(size(level_2[1]), 0)
     assert_equal(level_2[2].name, 'File 4.doc')
     assert_equal(size(level_2[2]), 0)
+
+    # Check the aggregate states information from the controller
+    states = ctl.children_states(expected_folder)
+    expected_states = [
+        (u'/File 5.doc', 'remotely_modified'),
+        (u'/Folder 1', 'children_modified'),
+        (u'/Folder 2', 'children_modified'),
+    ]
+    assert_equal(states, expected_states)
+
+    states = ctl.children_states(expected_folder + '/Folder 1')
+    expected_states = [
+        (u'/Folder 1/File 1.doc', 'remotely_modified'),
+        (u'/Folder 1/Folder 1.1', 'children_modified'),
+        (u'/Folder 1/Folder 1.2', 'children_modified'),
+    ]
+    assert_equal(states, expected_states)
+
+    states = ctl.children_states(expected_folder + '/Folder 1/Folder 1.1')
+    expected_states = [
+        (u'/Folder 1/Folder 1.1/File 2.doc', 'remotely_modified'),
+    ]
+    assert_equal(states, expected_states)
+
+    # Check the list of operations to perform to synchronize
+    operations = ctl.list_pending_operations()
+    #assert_equal(len(operations), 5)

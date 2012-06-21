@@ -86,8 +86,8 @@ class FakeNuxeoClient(object):
 def test_bindings():
     ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient)
 
-    # by default no bindings => no status to report
-    assert_equal(ctl.status(), ())
+    # by default no bindings => cannot ask for a status
+    assert_raises(NotFound, ctl.children_states, TEST_SYNCED_FOLDER)
 
     # it is not possible to bind a new root if the local folder is not bound to
     # the server
@@ -101,10 +101,14 @@ def test_bindings():
     # register a new server binding
     ctl.bind_server(TEST_SYNCED_FOLDER, 'http://example.com/nuxeo',
                     'username', 'secret')
+    # TODO: implement me: children states of the server folder
+    #assert_equal(ctl.children_states(TEST_SYNCED_FOLDER), [])
+
     ctl.bind_root(TEST_SYNCED_FOLDER, remote_root, repository=remote_repo)
 
     # The local root folder has been created
     assert_true(os.path.exists(expected_local_root))
+    assert_equal(ctl.children_states(expected_local_root), [])
 
     # Registering twice the same root will also raise an integrity constraint
     # error

@@ -79,6 +79,11 @@ class RootBinding(Base):
         local_folder = os.path.abspath(os.path.join(local_root, '..'))
         self.local_folder = local_folder
 
+    def __repr__(self):
+        return ("RootBinding<local_root=%r, local_folder=%r, remote_repo=%r,"
+                "remote_root=%r>" % (self.local_root, self.local_folder,
+                                     self.remote_repo, self.remote_root))
+
 
 class LastKnownState(Base):
     """Aggregate state aggregated from last collected events."""
@@ -128,9 +133,11 @@ class LastKnownState(Base):
         self.remote_state = 'unknown'
         self.local_root = local_root
         self.path = path
-        parent_path, _ = path.rsplit('/', 1)
-        if parent_path != '':
-            self.parent_path = parent_path
+        if path == '/':
+            self.parent_path = None
+        else:
+            parent_path, _ = path.rsplit('/', 1)
+            self.parent_path = '/' if parent_path == '' else parent_path
         self.remote_repo = remote_repo
         self.remote_ref = remote_ref
         self.local_last_updated = local_last_updated
@@ -138,6 +145,16 @@ class LastKnownState(Base):
         self.folderish = int(folderish)
         self.local_digest = local_digest
         self.remote_digest = remote_digest
+
+    def get_summary_state(self):
+        pair = (self.local_state, self.remote_state)
+        return STATUS_FROM_PAIRS.get(pair, 'unknown')
+
+    def __repr__(self):
+        return ("LastKnownState<local_root=%r, path=%r, "
+                "local_state=%r, remote_state=%r>") % (
+                self.local_root, self.path, self.local_state,
+                    self.remote_state)
 
 
 class FileEvent(Base):

@@ -8,8 +8,10 @@ from nxdrive.model import get_session
 from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
+from nxdrive.client import NotFound
 
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import asc
 
 
 class Controller(object):
@@ -40,14 +42,92 @@ class Controller(object):
         """Stop the Nuxeo Drive daemon"""
         # TODO
 
-    def status(self, files=()):
-        """Fetch the status of some files
+    def children_states(self, folder_path):
+        """Fetch the status of the children of a folder
 
-        If the list of files is empty, the status of the synchronization
-        roots is returned.
+        Warning the current implementation of this method is not very scalable
+        as it loads all the descendants info in memory and do some complex
+        filtering on them in Python rather than SQL.
+
+        Maybe another data model could be devised to make it possible
+        to compute the same filtering in SQL instead, probably by materializing
+        the pair state directly in the database.
         """
-        # TODO
-        return ()
+        server_binding = self.get_server_binding(folder_path)
+        if server_binding is not None:
+            # TODO: if folder_path is the top level Nuxeo Drive folder, list
+            # all the root binding states
+            raise NotImplementedError(
+                "Children States of a server binding is not yet implemented")
+
+        # Find the root binding for this absolute path
+        binding, path = self._binding_path(folder_path)
+
+        # find the python list of all the descendants of path ordered by
+        # path and then aggregate state for folderish documents using a OR
+        # operation on "to synchronize"
+        states = self.session.query(LastKnownState).filter(
+            LastKnownState.local_root == binding.local_root
+        ).order_by(asc(LastKnownState.path)).all()
+        results = []
+        candidate_folder_path = None
+        candidate_folder_state = None
+        for state in states:
+            if state.parent_path == path:
+                if candidate_folder_path is not None:
+                    # we have now collected enough information on the previous
+                    # candidate folder
+                    results.append(
+                        (candidate_folder_path, candidate_folder_state))
+                    candidate_folder_path, candidate_folder_state = None, None
+
+                if state.folderish:
+                    # need to inspect the following elements (potential
+                    # descendants) to know if the folder has any descendant
+                    # that needs synchronization
+                    candidate_folder_path = state.path
+                    candidate_folder_state = 'synchronized'
+                    continue
+                else:
+                    # this is a non-folderish direct child, collect info
+                    # directly
+                    results.append((state.path, state.get_summary_state()))
+
+            elif candidate_folder_state == 'synchronized':
+                if (not state.folderish
+                    and state.get_summary_state() != 'synchronized'):
+                        # this is a non-synchronized descendant of the current
+                        # folder candidate: invalidate it
+                        candidate_folder_state = 'children_modified'
+
+        if candidate_folder_state is not None:
+            results.append((candidate_folder_path, candidate_folder_state))
+
+        return results
+
+    def _binding_path(self, folder_path):
+        folder_path = os.path.abspath(folder_path)
+
+        # Check exact root binding match
+        binding = self.get_root_binding(folder_path)
+        if binding is not None:
+            return binding, '/'
+
+        # Check for root bindings that are prefix of folder_path
+        all_root_bindings = self.session.query(RootBinding).all()
+        root_bindings = [rb for rb in all_root_bindings
+                         if folder_path.startswith(
+                             rb.local_root + os.path.sep)]
+        if len(root_bindings) == 0:
+            raise NotFound("Could not find any root binding for "
+                               + folder_path)
+        elif len(root_bindings) > 1:
+            raise RuntimeError("Found more than one binding for %s: %r" % (
+                folder_path, root_bindings))
+        binding = root_bindings[0]
+        path = folder_path[len(binding.local_root):]
+        path.replace(os.path.sep, '/')
+        return binding, path
 
     def get_server_binding(self, local_folder, raise_if_missing=False):
         """Find the ServerBinding instance for a given local_folder"""
@@ -180,7 +260,8 @@ class Controller(object):
         else:
             # Mark remote as updated to trigger a download of the binary
             # attachment during the next synchro
-            state.remote_state = 'updated'
+            state.local_state = 'synchronized'
+            state.remote_state = 'modified'
 
         self.session.add(state)
 
@@ -205,3 +286,7 @@ class Controller(object):
         binding = self.get_root_binding(local_root, raise_if_missing=True)
         self.session.delete(binding)
         self.session.commit()
+
+    def list_pending_operations(self):
+        # TODO: implement pending operations
+        return []
