@@ -110,6 +110,7 @@ class Controller(object):
         return results
 
     def _binding_path(self, folder_path):
+        """Find a root binding and relative path for a given FS path"""
         folder_path = os.path.abspath(folder_path)
 
         # Check exact root binding match
