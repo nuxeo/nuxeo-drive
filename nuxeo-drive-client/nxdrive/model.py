@@ -129,7 +129,8 @@ class LastKnownState(Base):
 
     def __init__(self, local_root, path, remote_repo, remote_ref,
                  local_last_updated, remote_last_updated, folderish=True,
-                 local_digest=None, remote_digest=None):
+                 local_digest=None, remote_digest=None,
+                 local_state='unknown', remote_state='unknown'):
         self.local_root = local_root
         self.path = path
         if path == '/':
@@ -144,7 +145,7 @@ class LastKnownState(Base):
         self.folderish = int(folderish)
         self.local_digest = local_digest
         self.remote_digest = remote_digest
-        self.update_state(local_state='unknown', remote_state='unknown')
+        self.update_state(local_state=local_state, remote_state=remote_state)
 
     def update_state(self, local_state=None, remote_state=None):
         if local_state is not None:
