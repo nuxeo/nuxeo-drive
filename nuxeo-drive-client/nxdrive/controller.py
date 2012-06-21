@@ -301,3 +301,75 @@ class Controller(object):
         return self.session.query(LastKnownState).filter(
             LastKnownState.pair_state != 'synchronized'
         ).order_by(asc(LastKnownState.path)).limit(limit).all()
+
+    def next_pending(self):
+        """Return the next pending file to synchronize or None"""
+        pending = self.list_pending(limit=1)
+        return pending[0] if len(pending) > 0 else None
+
+    def perform_sync(self, limit=None):
+        """Synchronize one file at a time from the pending list."""
+        cached_remote_clients = {}
+        done = 0
+        pending = self.next_pending()
+        while pending is not None and (limit is None or done < limit):
+            # Find a cached remote client for the server binding of the file to
+            # synchronize
+            key = pending.local_root
+            remote_client = cached_remote_clients.get(key)
+            if remote_client is None:
+                remote_client = pending.get_remote_client()
+                cached_remote_clients[key] = remote_client
+
+            # local clients are cheap
+            local_client = pending.get_local_client()
+
+            # Update the status the collected info of this file to make sure
+            # we won't perfom inconsistent operations
+            local_refresh, local_info = pending.refresh_local(local_client)
+            remote_refresh, remote_info = pending.refresh_remote(remote_client)
+            if local_refresh or remote_refresh:
+                # Make refreshed state immediately available to other
+                # processes as file transfer can take a long time
+                self.session.add(pending)
+                self.session.commit()
+
+            # TODO: refactor blob access API to avoid loading content in memory
+            # as python strings
+
+            if pending.pair_state == 'locally_modified':
+                # TODO: avoid a query by finding a way to pass the recently
+                # fetched filename from last refresh
+                remote_client.update_content(
+                    pending.remote_ref,
+                    local_client.get_content(pending.path))
+            elif pending.pair_state == 'remotely_modified':
+                local_client.update_content(
+                    pending.path,
+                    remote_client.get_content(pending.remote_ref))
+            elif pending.pair_state == 'locally_created':
+                # TODO: implement me
+                pass
+            elif pending.pair_state == 'remotely_created':
+                # TODO: implement me
+                pass
+            elif pending.pair_state == 'locally_deleted':
+                # TODO: implement me
+                pass
+            elif pending.pair_state == 'remotely_deleted':
+                # TODO: implement me
+                pass
+
+            # TODO: handle other cases such as moves and lock updates
+
+            # TODO: wrap the individual state synchronization in a dedicated
+            # method call wrapped with a try catch logic to be able to skip to
+            # the next
+
+            # Ensure that concurrent process can monitor the synchronization
+            # progress and benefit from refreshed info
+            pending.update_state('synchronized', 'synchronized')
+            self.session.add(pending)
+            self.session.commit()
+            done += 1
+            pending = self.next_pending()

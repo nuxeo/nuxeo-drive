@@ -14,6 +14,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from nxdrive.client import NuxeoClient
+from nxdrive.client import LocalClient
+
 # make the declarative base class for the ORM mapping
 Base = declarative_base()
 
@@ -160,6 +163,30 @@ class LastKnownState(Base):
                 "local_state=%r, remote_state=%r>") % (
                 self.local_root, self.path, self.local_state,
                     self.remote_state)
+
+    def get_local_client(self):
+        return LocalClient(self.local_root)
+
+    def get_nuxeo_client(self):
+        rb = self.root_binding
+        sb = rb.server_binding
+        return NuxeoClient(
+            sb.server_url, sb.remote_user, sb.remote_password,
+            base_folder=rb.remote_root, repository=rb.remote_repo)
+
+    def refresh_local(self, client=None):
+        """Update the state from the local filesystem info."""
+        client = client if client is not None else self.get_local_client()
+        # TODO
+
+    def refresh_remote(self, client=None):
+        """Update the state from the remote server info.
+
+        Can reuse an existing client to spare some redundant client init HTTP
+        request.
+        """
+        client = client if client is not None else self.get_remote_client()
+        # TODO
 
 
 class FileEvent(Base):

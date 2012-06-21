@@ -165,7 +165,7 @@ class LocalClient(object):
                 f.write(content)
         return os.path.join(parent, name)
 
-    def update(self, ref, content):
+    def update_content(self, ref, content):
         with open(self._abspath(ref), "wb") as f:
             f.write(content)
 
@@ -265,6 +265,10 @@ class NuxeoClient(object):
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
 
+    #
+    # Client API common with the FS API
+    #
+
     def exists(self, ref):
         if ref.startswith('/'):
             results = self.query(
@@ -273,10 +277,6 @@ class NuxeoClient(object):
             results = self.query(
                 "SELECT * FROM Document WHERE ecm:uuid = '%s' LIMIT 1" % ref)
         return len(results[u'entries']) == 1
-
-    #
-    # Client API common with the FS API
-    #
 
     def get_children_info(self, ref):
         from pprint import pprint
@@ -337,6 +337,11 @@ class NuxeoClient(object):
 
     def get_content(self, ref):
         return self.get_blob(ref)
+
+    def update_content(self, ref, content, name=None):
+        if name is None:
+            name = self.get_info(ref).name
+        self.attach_blob(content, name)
 
     def make_folder(self, parent, name):
         # TODO: make it possible to configure context dependent:
