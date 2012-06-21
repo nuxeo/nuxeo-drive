@@ -139,20 +139,6 @@ class LocalClient(object):
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()
 
-    def get_descendants(self, ref):
-        os_path = self._abspath(ref)
-        result = []
-        for root, dirs, files in os.walk(os_path):
-            for dir in dirs:
-                if not dir.startswith('.'):
-                    descendant_ref = os.path.join(os_path, root, dir)
-                    result.append(self.get_info(descendant_ref))
-            for file in files:
-                if not file.startswith('.'):
-                    descendant_ref = os.path.join(os_path, root, file)
-                    result.append(self.get_info(descendant_ref))
-        return result
-
     def get_children_info(self, ref):
         os_path = self._abspath(ref)
         result = []
@@ -291,9 +277,6 @@ class NuxeoClient(object):
     #
     # Client API common with the FS API
     #
-
-    def get_descendants(self, ref):
-        raise NotImplementedError()
 
     def get_children_info(self, ref):
         from pprint import pprint
