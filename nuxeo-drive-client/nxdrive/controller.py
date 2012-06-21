@@ -33,7 +33,7 @@ class Controller(object):
             self.nuxeo_client_factory = NuxeoClient
 
     def start(self):
-        """Start the Nuxeo Drive daemon if not already started"""
+        """Start the Nuxeo Drive main daemon if not already started"""
         # TODO, see:
         # https://github.com/mozilla-services/circus/blob/master/circus/
         # circusd.py#L34
@@ -291,6 +291,12 @@ class Controller(object):
         self.session.delete(binding)
         self.session.commit()
 
-    def list_pending_operations(self):
-        # TODO: implement pending operations
-        return []
+    def list_pending(self, limit=100):
+        """List pending files to synchronize, ordered by path
+
+        Ordering by path makes it possible to synchronize sub folders content
+        only once the parent folders have already been synchronized.
+        """
+        return self.session.query(LastKnownState).filter(
+            LastKnownState.pair_state != 'synchronized'
+        ).order_by(asc(LastKnownState.path)).limit(limit).all()

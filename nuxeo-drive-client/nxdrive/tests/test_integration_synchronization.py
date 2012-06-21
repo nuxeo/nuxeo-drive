@@ -168,6 +168,17 @@ def test_binding_initialization():
     ]
     assert_equal(states, expected_states)
 
-    # Check the list of operations to perform to synchronize
-    operations = ctl.list_pending_operations()
-    #assert_equal(len(operations), 5)
+    # Check the list of files and folders with synchronization pending
+    pending = ctl.list_pending()
+    assert_equal(len(pending), 7)
+    assert_equal(pending[0].path, '/File 5.doc')
+    assert_equal(pending[1].path, '/Folder 1/File 1.doc')
+    assert_equal(pending[2].path, '/Folder 1/Folder 1.1/File 2.doc')
+    assert_equal(pending[3].path, '/Folder 1/Folder 1.2/File 3.doc')
+    assert_equal(pending[4].path, '/Folder 2/Duplicated File.txt')
+    assert_equal(pending[5].path, '/Folder 2/Duplicated File__1.txt')
+    assert_equal(pending[6].path, '/Folder 2/File 4.doc')
+
+    # It is also possible to restrict the number of pending tasks
+    pending = ctl.list_pending(limit=2)
+    assert_equal(len(pending), 2)
