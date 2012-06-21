@@ -45,6 +45,10 @@ class Controller(object):
     def children_states(self, folder_path):
         """Fetch the status of the children of a folder
 
+        The state of the folder is a summary of their descendant rather
+        than their own instric synchronization step which is of little
+        use for the end user.
+
         Warning the current implementation of this method is not very scalable
         as it loads all the descendants info in memory and do some complex
         filtering on them in Python rather than SQL.
@@ -91,11 +95,11 @@ class Controller(object):
                 else:
                     # this is a non-folderish direct child, collect info
                     # directly
-                    results.append((state.path, state.get_summary_state()))
+                    results.append((state.path, state.pair_state))
 
             elif candidate_folder_state == 'synchronized':
                 if (not state.folderish
-                    and state.get_summary_state() != 'synchronized'):
+                    and state.pair_state != 'synchronized'):
                         # this is a non-synchronized descendant of the current
                         # folder candidate: invalidate it
                         candidate_folder_state = 'children_modified'
@@ -255,13 +259,13 @@ class Controller(object):
 
         if folderish:
             # Mark as synchronized as there is nothing to download later
-            state.local_state = 'synchronized'
-            state.remote_state = 'synchronized'
+            state.update_state(local_state='synchronized',
+                               remote_state='synchronized')
         else:
             # Mark remote as updated to trigger a download of the binary
             # attachment during the next synchro
-            state.local_state = 'synchronized'
-            state.remote_state = 'modified'
+            state.update_state(local_state='synchronized',
+                               remote_state='modified')
 
         self.session.add(state)
 

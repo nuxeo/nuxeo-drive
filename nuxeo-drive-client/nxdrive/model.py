@@ -22,7 +22,7 @@ __model_version__ = 1
 
 # Summary status from last known pair of states
 
-STATUS_FROM_PAIRS = {
+PAIR_STATES = {
     # regular cases
     ('unknown', 'unknown'): 'unknown',
     ('synchronized', 'synchronized'): 'synchronized',
@@ -119,6 +119,7 @@ class LastKnownState(Base):
     # Last known state based on event log
     local_state = Column(String)
     remote_state = Column(String)
+    pair_state = Column(String)
 
     # Track move operations to avoid loosing history
     locally_moved_from = Column(String)
@@ -129,8 +130,6 @@ class LastKnownState(Base):
     def __init__(self, local_root, path, remote_repo, remote_ref,
                  local_last_updated, remote_last_updated, folderish=True,
                  local_digest=None, remote_digest=None):
-        self.local_state = 'unknown'
-        self.remote_state = 'unknown'
         self.local_root = local_root
         self.path = path
         if path == '/':
@@ -145,10 +144,15 @@ class LastKnownState(Base):
         self.folderish = int(folderish)
         self.local_digest = local_digest
         self.remote_digest = remote_digest
+        self.update_state(local_state='unknown', remote_state='unknown')
 
-    def get_summary_state(self):
+    def update_state(self, local_state=None, remote_state=None):
+        if local_state is not None:
+            self.local_state = local_state
+        if remote_state is not None:
+            self.remote_state = remote_state
         pair = (self.local_state, self.remote_state)
-        return STATUS_FROM_PAIRS.get(pair, 'unknown')
+        self.pair_state = PAIR_STATES.get(pair, 'unknown')
 
     def __repr__(self):
         return ("LastKnownState<local_root=%r, path=%r, "
