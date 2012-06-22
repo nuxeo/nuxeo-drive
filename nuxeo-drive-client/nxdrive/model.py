@@ -168,10 +168,12 @@ class LastKnownState(Base):
     def get_local_client(self):
         return LocalClient(self.local_root)
 
-    def get_remote_client(self):
+    def get_remote_client(self, factory=None):
+        if factory is None:
+            factory = NuxeoClient
         rb = self.root_binding
         sb = rb.server_binding
-        return NuxeoClient(
+        return factory(
             sb.server_url, sb.remote_user, sb.remote_password,
             base_folder=rb.remote_root, repository=rb.remote_repo)
 

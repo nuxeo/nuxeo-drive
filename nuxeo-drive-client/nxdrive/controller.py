@@ -1,6 +1,9 @@
 """Main API to perform Nuxeo Drive operations"""
 
+from time import time
+from time import sleep
 import os.path
+import logging
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
@@ -31,6 +34,8 @@ class Controller(object):
             self.nuxeo_client_factory = nuxeo_client_factory
         else:
             self.nuxeo_client_factory = NuxeoClient
+
+        self._cached_remote_clients = {}
 
     def start(self):
         """Start the Nuxeo Drive main daemon if not already started"""
@@ -291,6 +296,21 @@ class Controller(object):
         self.session.delete(binding)
         self.session.commit()
 
+    def scan_local_folders(self):
+        """Recursively scan the bound local folders looking for updates"""
+        # TODO
+        raise NotImplementedError()
+
+    def scan_remote_folders(self):
+        """Recursively scan the bound remote folders looking for updates"""
+        # TODO
+        raise NotImplementedError()
+
+    def refresh_remote_folders_from_log():
+        """Query the remote server audit log looking for state updates."""
+        # TODO
+        raise NotImplementedError()
+
     def list_pending(self, limit=100):
         """List pending files to synchronize, ordered by path
 
@@ -306,79 +326,156 @@ class Controller(object):
         pending = self.list_pending(limit=1)
         return pending[0] if len(pending) > 0 else None
 
-    def synchronize(self, limit=None):
-        """Synchronize one file at a time from the pending list."""
-        cached_remote_clients = {}
-        synchronized = 0
-        pending = self.next_pending()
-        while pending is not None and (limit is None or synchronized < limit):
-            # Find a cached remote client for the server binding of the file to
-            # synchronize
-            key = pending.local_root
-            remote_client = cached_remote_clients.get(key)
-            if remote_client is None:
-                remote_client = pending.get_remote_client()
-                cached_remote_clients[key] = remote_client
+    def get_remote_client(self, doc_pair):
+        """Fetch a client from the cache or create a new instance"""
+        remote_client = self._cached_remote_clients.get(doc_pair.local_root)
+        if remote_client is None:
+            remote_client = doc_pair.get_remote_client(
+                self.nuxeo_client_factory)
+            self._cached_remote_clients[doc_pair.local_root] = remote_client
+        return remote_client
 
-            # local clients are cheap
-            local_client = pending.get_local_client()
+    def synchronize_one(self, doc_pair):
+        """Refresh state a perform network transfer for a pair of documents."""
+        # Find a cached remote client for the server binding of the file to
+        # synchronize
+        remote_client = self.get_remote_client(doc_pair)
+        # local clients are cheap
+        local_client = doc_pair.get_local_client()
 
-            # Update the status the collected info of this file to make sure
-            # we won't perfom inconsistent operations
+        # Update the status the collected info of this file to make sure
+        # we won't perfom inconsistent operations
 
-            # TODO: how to refresh the state of something that has not been
-            # linked to a remote resource (just local path or remote ref)?
-            pending.refresh_local(local_client)
-            remote_info = pending.refresh_remote(remote_client)
-            if len(self.session.dirty):
-                # Make refreshed state immediately available to other
-                # processes as file transfer can take a long time
-                self.session.commit()
+        # TODO: how to refresh the state of something that has not been
+        # linked to a remote resource (just local path or remote ref)?
+        doc_pair.refresh_local(local_client)
+        remote_info = doc_pair.refresh_remote(remote_client)
+        if len(self.session.dirty):
+            # Make refreshed state immediately available to other
+            # processes as file transfer can take a long time
+            self.session.commit()
 
-            # TODO: refactor blob access API to avoid loading content in memory
-            # as python strings
+        # TODO: refactor blob access API to avoid loading content in memory
+        # as python strings
 
-            if pending.pair_state == 'locally_modified':
+        if doc_pair.pair_state == 'locally_modified':
+            if doc_pair.remote_digest != doc_pair.local_digest:
                 old_name = None
                 if remote_info is not None:
                     old_name = remote_info.name
                 remote_client.update_content(
-                    pending.remote_ref,
-                    local_client.get_content(pending.path),
+                    doc_pair.remote_ref,
+                    local_client.get_content(doc_pair.path),
                     name=old_name,
                 )
-                pending.refresh_remote(remote_client)
-                pending.update_state('synchronized', 'synchronized')
-            elif pending.pair_state == 'remotely_modified':
+                doc_pair.refresh_remote(remote_client)
+            doc_pair.update_state('synchronized', 'synchronized')
+
+        elif doc_pair.pair_state == 'remotely_modified':
+            if doc_pair.remote_digest != doc_pair.local_digest:
                 local_client.update_content(
-                    pending.path,
-                    remote_client.get_content(pending.remote_ref),
+                    doc_pair.path,
+                    remote_client.get_content(doc_pair.remote_ref),
                 )
-                pending.refresh_local(local_client)
-                pending.update_state('synchronized', 'synchronized')
-            elif pending.pair_state == 'locally_created':
-                # TODO: implement me
-                pass
-            elif pending.pair_state == 'remotely_created':
-                # TODO: implement me
-                pass
-            elif pending.pair_state == 'locally_deleted':
-                # TODO: implement me
-                pass
-            elif pending.pair_state == 'remotely_deleted':
-                # TODO: implement me
-                pass
+                doc_pair.refresh_local(local_client)
+            doc_pair.update_state('synchronized', 'synchronized')
 
-            # TODO: handle other cases such as moves and lock updates
+        elif doc_pair.pair_state == 'locally_created':
+            name = os.path.basename(doc_pair.path)
+            # Find the parent pair to find the ref of the remote folder to
+            # create the document
+            parent_pair = self.session.query(LastKnownState).filter_by(
+                local_root=doc_pair.local_root, path=doc_pair.parent_path
+            ).one()
+            parent_ref = parent_pair.remote_ref
+            if parent_ref is None:
+                logging.warn(
+                    "Parent folder of %r/%r is not bound to a remote folder",
+                    doc_pair.local_root, doc_pair.path)
+            if doc_pair.folderish:
+                remote_ref = remote_client.make_folder(parent_ref, name)
+            else:
+                remote_ref = remote_client.make_file(
+                    parent_ref, name,
+                    content=local_client.get_content(doc_pair.path))
+            doc_pair.remote_ref = remote_ref
+            doc_pair.refresh_remote(remote_client)
 
-            # TODO: wrap the individual state synchronization in a dedicated
-            # method call wrapped with a try catch logic to be able to skip to
-            # the next
+        elif doc_pair.pair_state == 'remotely_created':
+            # TODO: implement me
+            pass
 
-            # Ensure that concurrent process can monitor the synchronization
-            # progress
-            if len(self.session.dirty) != 0:
-                self.session.commit()
+        elif doc_pair.pair_state == 'locally_deleted':
+            # TODO: implement me
+            pass
+
+        elif doc_pair.pair_state == 'remotely_deleted':
+            # TODO: implement me
+            pass
+
+        # TODO: handle other cases such as moves and lock updates
+
+        # TODO: wrap the individual state synchronization in a dedicated
+        # method call wrapped with a try catch logic to be able to skip to
+        # the next
+
+        # Ensure that concurrent process can monitor the synchronization
+        # progress
+        if len(self.session.dirty) != 0:
+            self.session.commit()
+
+    def synchronize(self, limit=None):
+        """Synchronize one file at a time from the pending list."""
+        synchronized = 0
+        pending = self.next_pending()
+        while pending is not None and (limit is None or synchronized < limit):
+            self.synchronize_one(pending)
             synchronized += 1
             pending = self.next_pending()
         return synchronized
+
+    def loop(self, full_local_scan=True, full_remote_scan=True, delta=5,
+             max_sync_step=10):
+        """Forever loop to scan / refresh states and perform synchronization
+
+        delta is an delay in seconds that ensures that two consecutive
+        scans won't happen too closely from one another.
+        """
+        # Instance flag to allow for another thread to interrupt the
+        # synchronization loop cleanly
+        self.continue_synchronization = True
+        if not full_local_scan:
+            # TODO: ensure that the watchdog thread for incremental state
+            # update is started thread is started (and make sure it's able to
+            # detect new bindings while running)
+            pass
+
+        previous_time = time()
+        first_pass = True
+        while self.continue_synchronization:
+            try:
+                # the alternative is the watchdog thread
+                if full_local_scan or first_pass:
+                    self.scan_local_folders()
+
+                if full_remote_scan or first_pass:
+                    self.scan_remote_folders()
+                else:
+                    self.refresh_remote_from_log()
+
+                self.synchronize(limit=max_sync_step)
+            except Exception as e:
+                # TODO: catch network related errors and log them at debug
+                # level instead as we expect the daemon to work even in offline
+                # mode without crashing
+                logging.error(e)
+
+            # safety net to ensure that Nuxe Drive won't eat all the CPU, disk
+            # and network resources of the machine scanning over an over the
+            # bound folders too often.
+            current_time = time()
+            spent = current_time - previous_time
+            if spent < delta:
+                sleep(delta - spent)
+            previous_time = current_time
+            first_pass = False
