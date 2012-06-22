@@ -296,17 +296,17 @@ class Controller(object):
         self.session.delete(binding)
         self.session.commit()
 
-    def scan_local_folders(self):
-        """Recursively scan the bound local folders looking for updates"""
+    def scan_local_folder(self, root_binding):
+        """Recursively scan the bound local folder looking for updates"""
         # TODO
         raise NotImplementedError()
 
-    def scan_remote_folders(self):
-        """Recursively scan the bound remote folders looking for updates"""
+    def scan_remote_folder(self, root_binding):
+        """Recursively scan the bound remote folder looking for updates"""
         # TODO
         raise NotImplementedError()
 
-    def refresh_remote_folders_from_log():
+    def refresh_remote_folders_from_log(root_binding):
         """Query the remote server audit log looking for state updates."""
         # TODO
         raise NotImplementedError()
@@ -430,18 +430,18 @@ class Controller(object):
         if len(self.session.dirty) != 0:
             self.session.commit()
 
-    def synchronize(self, limit=None):
+    def synchronize(self, limit=None, local_root=None):
         """Synchronize one file at a time from the pending list."""
         synchronized = 0
-        pending = self.next_pending()
+        pending = self.next_pending(local_root=local_root)
         while pending is not None and (limit is None or synchronized < limit):
             self.synchronize_one(pending)
             synchronized += 1
-            pending = self.next_pending()
+            pending = self.next_pending(local_root=local_root)
         return synchronized
 
     def loop(self, full_local_scan=True, full_remote_scan=True, delta=5,
-             max_sync_step=10):
+             max_sync_step=50):
         """Forever loop to scan / refresh states and perform synchronization
 
         delta is an delay in seconds that ensures that two consecutive
@@ -454,34 +454,39 @@ class Controller(object):
             # TODO: ensure that the watchdog thread for incremental state
             # update is started thread is started (and make sure it's able to
             # detect new bindings while running)
-            pass
+            raise NotImplementedError()
 
         previous_time = time()
         first_pass = True
         while self.continue_synchronization:
-            try:
-                # the alternative is the watchdog thread
-                if full_local_scan or first_pass:
-                    self.scan_local_folders()
+            for rb in self.session.query(RootBinding).all():
+                has_done_scan = True
+                try:
+                    # the alternative is the watchdog thread
+                    if full_local_scan or first_pass:
+                        self.scan_local_folder(rb.root_binding)
+                        has_done_scan = True
 
-                if full_remote_scan or first_pass:
-                    self.scan_remote_folders()
-                else:
-                    self.refresh_remote_from_log()
+                    if full_remote_scan or first_pass:
+                        self.scan_remote_folder(rb.remote_ref)
+                        has_done_scan = True
+                    else:
+                        self.refresh_remote_from_log(rb.remote_ref)
 
-                self.synchronize(limit=max_sync_step)
-            except Exception as e:
-                # TODO: catch network related errors and log them at debug
-                # level instead as we expect the daemon to work even in offline
-                # mode without crashing
-                logging.error(e)
+                    self.synchronize(limit=max_sync_step,
+                                     local_root=rb.local_root)
+                except Exception as e:
+                    # TODO: catch network related errors and log them at debug
+                    # level instead as we expect the daemon to work even in
+                    # offline mode without crashing
+                    logging.error(e)
 
             # safety net to ensure that Nuxe Drive won't eat all the CPU, disk
             # and network resources of the machine scanning over an over the
             # bound folders too often.
             current_time = time()
             spent = current_time - previous_time
-            if spent < delta:
+            if spent < delta and has_done_scan:
                 sleep(delta - spent)
             previous_time = current_time
             first_pass = False
