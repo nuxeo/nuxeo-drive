@@ -98,11 +98,11 @@ def make_server_tree():
     nxclient.make_file(folder_2, 'Duplicated File.txt',
                                content="Other content.")
 
-    nxclient.make_file(folder_1, 'File 1.doc', content="aaa")
-    nxclient.make_file(folder_1_1, 'File 2.doc', content="bbb")
-    nxclient.make_file(folder_1_2, 'File 3.doc', content="ccc")
-    nxclient.make_file(folder_2, 'File 4.doc', content="ddd")
-    nxclient.make_file(TEST_WORKSPACE, 'File 5.doc', content="eee")
+    nxclient.make_file(folder_1, 'File 1.txt', content="aaa")
+    nxclient.make_file(folder_1_1, 'File 2.txt', content="bbb")
+    nxclient.make_file(folder_1_2, 'File 3.txt', content="ccc")
+    nxclient.make_file(folder_2, 'File 4.txt', content="ddd")
+    nxclient.make_file(TEST_WORKSPACE, 'File 5.txt', content="eee")
 
 
 @with_integration_env
@@ -124,14 +124,14 @@ def test_binding_initialization_and_first_sync():
         return os.stat(info.filepath).st_size
 
     assert_equal(len(level_0), 3)
-    assert_equal(level_0[0].name, 'File 5.doc')
+    assert_equal(level_0[0].name, 'File 5.txt')
     assert_equal(size(level_0[0]), 0)
     assert_equal(level_0[1].name, 'Folder 1')
     assert_equal(level_0[2].name, 'Folder 2')
 
     level_1 = local.get_children_info(level_0[1].path)
     assert_equal(len(level_1), 3)
-    assert_equal(level_1[0].name, 'File 1.doc')
+    assert_equal(level_1[0].name, 'File 1.txt')
     assert_equal(size(level_1[0]), 0)
     assert_equal(level_1[1].name, 'Folder 1.1')
     assert_equal(level_1[2].name, 'Folder 1.2')
@@ -142,13 +142,13 @@ def test_binding_initialization_and_first_sync():
     assert_equal(size(level_2[0]), 0)
     assert_equal(level_2[1].name, 'Duplicated File__1.txt')  # deduped name
     assert_equal(size(level_2[1]), 0)
-    assert_equal(level_2[2].name, 'File 4.doc')
+    assert_equal(level_2[2].name, 'File 4.txt')
     assert_equal(size(level_2[2]), 0)
 
     # Check the aggregate states information from the controller
     states = ctl.children_states(expected_folder)
     expected_states = [
-        (u'/File 5.doc', 'remotely_modified'),
+        (u'/File 5.txt', 'remotely_modified'),
         (u'/Folder 1', 'children_modified'),
         (u'/Folder 2', 'children_modified'),
     ]
@@ -156,7 +156,7 @@ def test_binding_initialization_and_first_sync():
 
     states = ctl.children_states(expected_folder + '/Folder 1')
     expected_states = [
-        (u'/Folder 1/File 1.doc', 'remotely_modified'),
+        (u'/Folder 1/File 1.txt', 'remotely_modified'),
         (u'/Folder 1/Folder 1.1', 'children_modified'),
         (u'/Folder 1/Folder 1.2', 'children_modified'),
     ]
@@ -164,20 +164,20 @@ def test_binding_initialization_and_first_sync():
 
     states = ctl.children_states(expected_folder + '/Folder 1/Folder 1.1')
     expected_states = [
-        (u'/Folder 1/Folder 1.1/File 2.doc', 'remotely_modified'),
+        (u'/Folder 1/Folder 1.1/File 2.txt', 'remotely_modified'),
     ]
     assert_equal(states, expected_states)
 
     # Check the list of files and folders with synchronization pending
     pending = ctl.list_pending()
     assert_equal(len(pending), 7)
-    assert_equal(pending[0].path, '/File 5.doc')
-    assert_equal(pending[1].path, '/Folder 1/File 1.doc')
-    assert_equal(pending[2].path, '/Folder 1/Folder 1.1/File 2.doc')
-    assert_equal(pending[3].path, '/Folder 1/Folder 1.2/File 3.doc')
+    assert_equal(pending[0].path, '/File 5.txt')
+    assert_equal(pending[1].path, '/Folder 1/File 1.txt')
+    assert_equal(pending[2].path, '/Folder 1/Folder 1.1/File 2.txt')
+    assert_equal(pending[3].path, '/Folder 1/Folder 1.2/File 3.txt')
     assert_equal(pending[4].path, '/Folder 2/Duplicated File.txt')
     assert_equal(pending[5].path, '/Folder 2/Duplicated File__1.txt')
-    assert_equal(pending[6].path, '/Folder 2/File 4.doc')
+    assert_equal(pending[6].path, '/Folder 2/File 4.txt')
 
     # It is also possible to restrict the number of pending tasks
     pending = ctl.list_pending(limit=2)
@@ -187,21 +187,21 @@ def test_binding_initialization_and_first_sync():
     ctl.perform_sync(2)
     pending = ctl.list_pending()
     assert_equal(len(pending), 5)
-    assert_equal(pending[0].path, '/Folder 1/Folder 1.1/File 2.doc')
-    assert_equal(pending[1].path, '/Folder 1/Folder 1.2/File 3.doc')
+    assert_equal(pending[0].path, '/Folder 1/Folder 1.1/File 2.txt')
+    assert_equal(pending[1].path, '/Folder 1/Folder 1.2/File 3.txt')
     assert_equal(pending[2].path, '/Folder 2/Duplicated File.txt')
     assert_equal(pending[3].path, '/Folder 2/Duplicated File__1.txt')
-    assert_equal(pending[4].path, '/Folder 2/File 4.doc')
+    assert_equal(pending[4].path, '/Folder 2/File 4.txt')
 
     states = ctl.children_states(expected_folder)
     expected_states = [
-        (u'/File 5.doc', 'synchronized'),
+        (u'/File 5.txt', 'synchronized'),
         (u'/Folder 1', 'children_modified'),
         (u'/Folder 2', 'children_modified'),
     ]
     states = ctl.children_states(expected_folder + '/Folder 1')
     expected_states = [
-        (u'/Folder 1/File 1.doc', 'synchronized'),
+        (u'/Folder 1/File 1.txt', 'synchronized'),
         (u'/Folder 1/Folder 1.1', 'children_modified'),
         (u'/Folder 1/Folder 1.2', 'children_modified'),
     ]
