@@ -462,7 +462,8 @@ class Controller(object):
             for rb in self.session.query(RootBinding).all():
                 has_done_scan = True
                 try:
-                    # the alternative is the watchdog thread
+                    # the alternative to local full scan is the watchdog
+                    # thread
                     if full_local_scan or first_pass:
                         self.scan_local_folder(rb.root_binding)
                         has_done_scan = True
