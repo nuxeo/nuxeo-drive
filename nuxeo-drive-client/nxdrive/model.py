@@ -100,8 +100,8 @@ class LastKnownState(Base):
         backref=backref("states", cascade="all, delete-orphan"))
 
     # Timestamps to detect modifications
-    last_remote_updated = Column(DateTime)
     last_local_updated = Column(DateTime)
+    last_remote_updated = Column(DateTime)
 
     # Save the digest too for better updates / moves detection
     local_digest = Column(String)
@@ -132,7 +132,7 @@ class LastKnownState(Base):
     remotely_moved_to = Column(String)
 
     def __init__(self, local_root, path, remote_repo, remote_ref,
-                 local_last_updated, remote_last_updated, folderish=True,
+                 last_local_updated, last_remote_updated, folderish=True,
                  local_digest=None, remote_digest=None,
                  local_state='unknown', remote_state='unknown'):
         self.local_root = local_root
@@ -144,8 +144,8 @@ class LastKnownState(Base):
             self.parent_path = '/' if parent_path == '' else parent_path
         self.remote_repo = remote_repo
         self.remote_ref = remote_ref
-        self.local_last_updated = local_last_updated
-        self.remote_last_updated = remote_last_updated
+        self.last_local_updated = last_local_updated
+        self.last_remote_updated = last_remote_updated
         self.folderish = int(folderish)
         self.local_digest = local_digest
         self.remote_digest = remote_digest
@@ -176,13 +176,7 @@ class LastKnownState(Base):
             base_folder=rb.remote_root, repository=rb.remote_repo)
 
     def refresh_local(self, client=None):
-        """Update the state from the local filesystem info.
-
-        Return the pair (refreshed, info) where refreshed is a boolean
-        marker that states whether the metadata entry have been updated
-        and info is the collected info (or None if the document is
-        missing).
-        """
+        """Update the state from the local filesystem info."""
         client = client if client is not None else self.get_local_client()
         try:
             local_info = client.get_info(self.path)
@@ -191,51 +185,54 @@ class LastKnownState(Base):
                 # the file use to exist, it has been deleted
                 self.update_state(local_state='deleted')
                 self.local_digest = None
-                return True, None
-            return False, None
+            return None
 
-        if (self.last_local_updated is None
-            or local_info.last_modification_time > self.last_local_updated):
+        if self.last_local_updated is None:
+            self.last_local_updated = local_info.last_modification_time
+            self.local_digest = local_info.get_digest()
+            # shall we update the state here? if so how?
+            self.folderish = local_info.folderish
+
+        elif local_info.last_modification_time > self.last_local_updated:
             self.last_local_updated = local_info.last_modification_time
             self.local_digest = local_info.get_digest()
             # XXX: shall we store local_folderish and remote_folderish to
             # detect such kind of conflicts instead?
             self.folderish = local_info.folderish
             self.update_state(local_state='modified')
-            return True, local_info
-        return False, local_info
+
+        return local_info
 
     def refresh_remote(self, client=None):
         """Update the state from the remote server info.
 
         Can reuse an existing client to spare some redundant client init HTTP
         request.
-
-        Return the pair (refreshed, info) where refreshed is a boolean
-        marker that states whether the metadata entry have been updated
-        and info is the collected info (or None if the document is
-        missing).
         """
         client = client if client is not None else self.get_remote_client()
         try:
-            remote_info = client.get_info(self.path)
+            remote_info = client.get_info(self.remote_ref)
         except NotFound:
             if self.remote_state in ('created', 'updated', 'synchronized'):
                 self.update_state(remote_state='deleted')
                 self.remote_digest = None
-                return True, None
-            return False, None
+            return None
 
-        if (self.last_remote_updated is None
-            or remote_info.last_modification_time > self.last_remote_updated):
+        if self.last_remote_updated is None:
+            self.last_remote_updated = remote_info.last_modification_time
+            self.remote_digest = remote_info.get_digest()
+            # shall we update the state here? if so how?
+            self.folderish = remote_info.folderish
+
+        elif remote_info.last_modification_time > self.last_remote_updated:
             self.last_remote_updated = remote_info.last_modification_time
             self.remote_digest = remote_info.get_digest()
             # XXX: shall we store local_folderish and remote_folderish to
             # detect such kind of conflicts instead?
             self.folderish = remote_info.folderish
             self.update_state(local_state='modified')
-            return True, remote_info
-        return False, remote_info
+
+        return remote_info
 
 
 class FileEvent(Base):

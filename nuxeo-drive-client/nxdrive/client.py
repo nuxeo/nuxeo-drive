@@ -279,7 +279,6 @@ class NuxeoClient(object):
         return len(results[u'entries']) == 1
 
     def get_children_info(self, ref):
-        from pprint import pprint
         # TODO: make the list of document type to synchronize configurable or
         # maybe use a dedicated facet
         types = ['File', 'Workspace', 'Folder', 'SocialFolder']
@@ -314,6 +313,8 @@ class NuxeoClient(object):
         """Convert Automation document description to NuxeoDocumentInfo"""
         props = doc['properties']
         folderish = 'Folderish' in doc['facets']
+        last_update = datetime.strptime(doc['lastModified'],
+                                        "%Y-%m-%dT%H:%M:%S.%fZ")
 
         # TODO: support other main files
         if folderish:
@@ -330,10 +331,9 @@ class NuxeoClient(object):
 
         # XXX: we need another roundtrip just to fetch the parent uid...
         parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
-
         return NuxeoDocumentInfo(
             self._base_folder_ref, props['dc:title'], doc['uid'], parent_uid,
-            folderish, doc['lastModified'], digest)
+            folderish, last_update, digest)
 
     def get_content(self, ref):
         return self.get_blob(ref)

@@ -326,27 +326,37 @@ class Controller(object):
 
             # Update the status the collected info of this file to make sure
             # we won't perfom inconsistent operations
-            local_refresh, local_info = pending.refresh_local(local_client)
-            remote_refresh, remote_info = pending.refresh_remote(remote_client)
-            if local_refresh or remote_refresh:
+
+            # TODO: how to refresh the state of something that has not been
+            # linked to a remote resource (just local path or remote ref)?
+            pending.refresh_local(local_client)
+            remote_info = pending.refresh_remote(remote_client)
+            if len(self.session.dirty):
                 # Make refreshed state immediately available to other
                 # processes as file transfer can take a long time
-                self.session.add(pending)
                 self.session.commit()
 
             # TODO: refactor blob access API to avoid loading content in memory
             # as python strings
 
             if pending.pair_state == 'locally_modified':
-                # TODO: avoid a query by finding a way to pass the recently
-                # fetched filename from last refresh
+                old_name = None
+                if remote_info is not None:
+                    old_name = remote_info.name
                 remote_client.update_content(
                     pending.remote_ref,
-                    local_client.get_content(pending.path))
+                    local_client.get_content(pending.path),
+                    name=old_name,
+                )
+                pending.refresh_remote(remote_client)
+                pending.update_state('synchronized', 'synchronized')
             elif pending.pair_state == 'remotely_modified':
                 local_client.update_content(
                     pending.path,
-                    remote_client.get_content(pending.remote_ref))
+                    remote_client.get_content(pending.remote_ref),
+                )
+                pending.refresh_local(local_client)
+                pending.update_state('synchronized', 'synchronized')
             elif pending.pair_state == 'locally_created':
                 # TODO: implement me
                 pass
@@ -367,9 +377,8 @@ class Controller(object):
             # the next
 
             # Ensure that concurrent process can monitor the synchronization
-            # progress and benefit from refreshed info
-            pending.update_state('synchronized', 'synchronized')
-            self.session.add(pending)
-            self.session.commit()
+            # progress
+            if len(self.session.dirty) != 0:
+                self.session.commit()
             done += 1
             pending = self.next_pending()

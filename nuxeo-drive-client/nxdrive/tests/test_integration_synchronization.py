@@ -199,6 +199,9 @@ def test_binding_initialization_and_first_sync():
         (u'/Folder 1', 'children_modified'),
         (u'/Folder 2', 'children_modified'),
     ]
+    # The actual content of the file has been updated
+    assert_equal(local.get_content('/File 5.txt'), "eee")
+
     states = ctl.children_states(expected_folder + '/Folder 1')
     expected_states = [
         (u'/Folder 1/File 1.txt', 'synchronized'),
@@ -206,3 +209,30 @@ def test_binding_initialization_and_first_sync():
         (u'/Folder 1/Folder 1.2', 'children_modified'),
     ]
     assert_equal(states, expected_states)
+
+    # synchronize everything else
+    ctl.perform_sync()
+    assert_equal(ctl.list_pending(), [])
+    states = ctl.children_states(expected_folder)
+    expected_states = [
+        (u'/File 5.txt', 'synchronized'),
+        (u'/Folder 1', 'synchronized'),
+        (u'/Folder 2', 'synchronized'),
+    ]
+    assert_equal(states, expected_states)
+
+    states = ctl.children_states(expected_folder + '/Folder 1')
+    expected_states = [
+        (u'/Folder 1/File 1.txt', 'synchronized'),
+        (u'/Folder 1/Folder 1.1', 'synchronized'),
+        (u'/Folder 1/Folder 1.2', 'synchronized'),
+    ]
+    assert_equal(states, expected_states)
+    assert_equal(local.get_content('/Folder 1/File 1.txt'), "aaa")
+    assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbb")
+    assert_equal(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
+    assert_equal(local.get_content('/Folder 2/File 4.txt'), "ddd")
+    assert_equal(local.get_content('/Folder 2/Duplicated File.txt'),
+                 "Some content.")
+    assert_equal(local.get_content('/Folder 2/Duplicated File__1.txt'),
+                 "Other content.")
