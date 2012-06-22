@@ -267,7 +267,6 @@ class Controller(object):
             # attachment during the next synchro
             state.update_state(local_state='synchronized',
                                remote_state='modified')
-
         self.session.add(state)
 
         if folderish:
@@ -307,12 +306,12 @@ class Controller(object):
         pending = self.list_pending(limit=1)
         return pending[0] if len(pending) > 0 else None
 
-    def perform_sync(self, limit=None):
+    def synchronize(self, limit=None):
         """Synchronize one file at a time from the pending list."""
         cached_remote_clients = {}
-        done = 0
+        synchronized = 0
         pending = self.next_pending()
-        while pending is not None and (limit is None or done < limit):
+        while pending is not None and (limit is None or synchronized < limit):
             # Find a cached remote client for the server binding of the file to
             # synchronize
             key = pending.local_root
@@ -380,5 +379,6 @@ class Controller(object):
             # progress
             if len(self.session.dirty) != 0:
                 self.session.commit()
-            done += 1
+            synchronized += 1
             pending = self.next_pending()
+        return synchronized

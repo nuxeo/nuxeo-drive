@@ -30,13 +30,12 @@ LOCAL_TEST_FOLDER = None
 LOCAL_NXDRIVE_FOLDER = None
 LOCAL_NXDRIVE_CONF_FOLDER = None
 
-lcclient = None
-nxclient = None
+remote_client = None
 
 
 def setup_integration_env():
     global NUXEO_URL, USER, PASSWORD
-    global nxclient, lcclient, TEST_WORKSPACE, LOCAL_TEST_FOLDER
+    global remote_client, lcclient, TEST_WORKSPACE, LOCAL_TEST_FOLDER
     global LOCAL_NXDRIVE_FOLDER, LOCAL_NXDRIVE_CONF_FOLDER
 
     # Check the Nuxeo server test environment
@@ -49,13 +48,13 @@ def setup_integration_env():
 
     parent_path = os.path.dirname(TEST_WORKSPACE_PATH)
     workspace_name = os.path.basename(TEST_WORKSPACE_PATH)
-    root_nxclient = NuxeoClient(NUXEO_URL, USER, PASSWORD)
-    TEST_WORKSPACE = root_nxclient.create(
+    root_remote_client = NuxeoClient(NUXEO_URL, USER, PASSWORD)
+    TEST_WORKSPACE = root_remote_client.create(
         parent_path, 'Workspace', name=workspace_name,
         properties={'dc:title': TEST_WORKSPACE_TITLE})[u'uid']
 
     # Client to be use to create remote test documents and folders
-    nxclient = NuxeoClient(NUXEO_URL, USER, PASSWORD,
+    remote_client = NuxeoClient(NUXEO_URL, USER, PASSWORD,
                            base_folder=TEST_WORKSPACE)
 
     # Check the local filesystem test environment
@@ -69,13 +68,10 @@ def setup_integration_env():
         LOCAL_TEST_FOLDER, 'nuxeo-drive-conf')
     os.mkdir(LOCAL_NXDRIVE_CONF_FOLDER)
 
-    # Local client to use to create local test files and folders
-    lcclient = LocalClient(LOCAL_NXDRIVE_CONF_FOLDER)
-
 
 def teardown_integration_env():
-    if nxclient is not None and nxclient.exists(TEST_WORKSPACE):
-        nxclient.delete(TEST_WORKSPACE)
+    if remote_client is not None and remote_client.exists(TEST_WORKSPACE):
+        remote_client.delete(TEST_WORKSPACE)
 
     if os.path.exists(LOCAL_TEST_FOLDER):
         shutil.rmtree(LOCAL_TEST_FOLDER)
@@ -87,22 +83,22 @@ with_integration_env = with_setup(
 
 def make_server_tree():
     # create some folders on the server
-    folder_1 = nxclient.make_folder(TEST_WORKSPACE, 'Folder 1')
-    folder_1_1 = nxclient.make_folder(folder_1, 'Folder 1.1')
-    folder_1_2 = nxclient.make_folder(folder_1, 'Folder 1.2')
-    folder_2 = nxclient.make_folder(TEST_WORKSPACE, 'Folder 2')
+    folder_1 = remote_client.make_folder(TEST_WORKSPACE, 'Folder 1')
+    folder_1_1 = remote_client.make_folder(folder_1, 'Folder 1.1')
+    folder_1_2 = remote_client.make_folder(folder_1, 'Folder 1.2')
+    folder_2 = remote_client.make_folder(TEST_WORKSPACE, 'Folder 2')
 
     # create some files on the server
-    nxclient.make_file(folder_2, 'Duplicated File.txt',
-                               content="Some content.")
-    nxclient.make_file(folder_2, 'Duplicated File.txt',
-                               content="Other content.")
+    remote_client.make_file(folder_2, 'Duplicated File.txt',
+                            content="Some content.")
+    remote_client.make_file(folder_2, 'Duplicated File.txt',
+                            content="Other content.")
 
-    nxclient.make_file(folder_1, 'File 1.txt', content="aaa")
-    nxclient.make_file(folder_1_1, 'File 2.txt', content="bbb")
-    nxclient.make_file(folder_1_2, 'File 3.txt', content="ccc")
-    nxclient.make_file(folder_2, 'File 4.txt', content="ddd")
-    nxclient.make_file(TEST_WORKSPACE, 'File 5.txt', content="eee")
+    remote_client.make_file(folder_1, 'File 1.txt', content="aaa")
+    remote_client.make_file(folder_1_1, 'File 2.txt', content="bbb")
+    remote_client.make_file(folder_1_2, 'File 3.txt', content="ccc")
+    remote_client.make_file(folder_2, 'File 4.txt', content="ddd")
+    remote_client.make_file(TEST_WORKSPACE, 'File 5.txt', content="eee")
 
 
 @with_integration_env
@@ -184,7 +180,7 @@ def test_binding_initialization_and_first_sync():
     assert_equal(len(pending), 2)
 
     # Synchronize the first 2 documents:
-    ctl.perform_sync(2)
+    assert_equal(ctl.synchronize(limit=2), 2)
     pending = ctl.list_pending()
     assert_equal(len(pending), 5)
     assert_equal(pending[0].path, '/Folder 1/Folder 1.1/File 2.txt')
@@ -211,7 +207,7 @@ def test_binding_initialization_and_first_sync():
     assert_equal(states, expected_states)
 
     # synchronize everything else
-    ctl.perform_sync()
+    assert_equal(ctl.synchronize(), 5)
     assert_equal(ctl.list_pending(), [])
     states = ctl.children_states(expected_folder)
     expected_states = [
@@ -236,3 +232,20 @@ def test_binding_initialization_and_first_sync():
                  "Some content.")
     assert_equal(local.get_content('/Folder 2/Duplicated File__1.txt'),
                  "Other content.")
+
+    # Nothing else left to synchronize
+    assert_equal(ctl.list_pending(), [])
+    assert_equal(ctl.synchronize(), 0)
+    assert_equal(ctl.list_pending(), [])
+
+
+@with_integration_env
+def test_binding_synchronization_empty_start():
+    ctl = Controller(LOCAL_NXDRIVE_CONF_FOLDER)
+    ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
+    ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
+    expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
+    local_client = LocalClient(expected_folder)
+
+    assert_equal(ctl.list_pending(), [])
+    assert_equal(ctl.synchronize(), 0)
