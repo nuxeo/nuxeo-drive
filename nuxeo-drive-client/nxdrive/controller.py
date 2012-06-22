@@ -311,19 +311,25 @@ class Controller(object):
         # TODO
         raise NotImplementedError()
 
-    def list_pending(self, limit=100):
+    def list_pending(self, limit=100, local_root=None):
         """List pending files to synchronize, ordered by path
 
         Ordering by path makes it possible to synchronize sub folders content
         only once the parent folders have already been synchronized.
         """
-        return self.session.query(LastKnownState).filter(
-            LastKnownState.pair_state != 'synchronized'
-        ).order_by(asc(LastKnownState.path)).limit(limit).all()
+        if local_root is not None:
+            return self.session.query(LastKnownState).filter(
+                LastKnownState.pair_state != 'synchronized',
+                LastKnownState.local_root == local_root
+            ).order_by(asc(LastKnownState.path)).limit(limit).all()
+        else:
+            return self.session.query(LastKnownState).filter(
+                LastKnownState.pair_state != 'synchronized'
+            ).order_by(asc(LastKnownState.path)).limit(limit).all()
 
-    def next_pending(self):
+    def next_pending(self, local_root=None):
         """Return the next pending file to synchronize or None"""
-        pending = self.list_pending(limit=1)
+        pending = self.list_pending(limit=1, local_root=local_root)
         return pending[0] if len(pending) > 0 else None
 
     def get_remote_client(self, doc_pair):

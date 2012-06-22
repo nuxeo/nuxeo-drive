@@ -175,6 +175,10 @@ def test_binding_initialization_and_first_sync():
     assert_equal(pending[5].path, '/Folder 2/Duplicated File__1.txt')
     assert_equal(pending[6].path, '/Folder 2/File 4.txt')
 
+    # It is also possible to restrict the list of pending document to a
+    # specific root
+    assert_equal(len(ctl.list_pending(local_root=expected_folder)), 7)
+
     # It is also possible to restrict the number of pending tasks
     pending = ctl.list_pending(limit=2)
     assert_equal(len(pending), 2)
