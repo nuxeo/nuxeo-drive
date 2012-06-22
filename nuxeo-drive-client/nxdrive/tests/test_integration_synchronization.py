@@ -106,7 +106,7 @@ def make_server_tree():
 
 
 @with_integration_env
-def test_binding_initialization():
+def test_binding_initialization_and_first_sync():
     # Create some documents in a Nuxeo workspace and bind this server to a
     # Nuxeo Drive local folder
     make_server_tree()
@@ -182,3 +182,27 @@ def test_binding_initialization():
     # It is also possible to restrict the number of pending tasks
     pending = ctl.list_pending(limit=2)
     assert_equal(len(pending), 2)
+
+    # Synchronize the first 2 documents:
+    ctl.perform_sync(2)
+    pending = ctl.list_pending()
+    assert_equal(len(pending), 5)
+    assert_equal(pending[0].path, '/Folder 1/Folder 1.1/File 2.doc')
+    assert_equal(pending[1].path, '/Folder 1/Folder 1.2/File 3.doc')
+    assert_equal(pending[2].path, '/Folder 2/Duplicated File.txt')
+    assert_equal(pending[3].path, '/Folder 2/Duplicated File__1.txt')
+    assert_equal(pending[4].path, '/Folder 2/File 4.doc')
+
+    states = ctl.children_states(expected_folder)
+    expected_states = [
+        (u'/File 5.doc', 'synchronized'),
+        (u'/Folder 1', 'children_modified'),
+        (u'/Folder 2', 'children_modified'),
+    ]
+    states = ctl.children_states(expected_folder + '/Folder 1')
+    expected_states = [
+        (u'/Folder 1/File 1.doc', 'synchronized'),
+        (u'/Folder 1/Folder 1.1', 'children_modified'),
+        (u'/Folder 1/Folder 1.2', 'children_modified'),
+    ]
+    assert_equal(states, expected_states)

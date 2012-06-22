@@ -16,6 +16,7 @@ from sqlalchemy.orm import sessionmaker
 
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
+from nxdrive.client import NotFound
 
 # make the declarative base class for the ORM mapping
 Base = declarative_base()
@@ -167,7 +168,7 @@ class LastKnownState(Base):
     def get_local_client(self):
         return LocalClient(self.local_root)
 
-    def get_nuxeo_client(self):
+    def get_remote_client(self):
         rb = self.root_binding
         sb = rb.server_binding
         return NuxeoClient(
@@ -175,18 +176,66 @@ class LastKnownState(Base):
             base_folder=rb.remote_root, repository=rb.remote_repo)
 
     def refresh_local(self, client=None):
-        """Update the state from the local filesystem info."""
+        """Update the state from the local filesystem info.
+
+        Return the pair (refreshed, info) where refreshed is a boolean
+        marker that states whether the metadata entry have been updated
+        and info is the collected info (or None if the document is
+        missing).
+        """
         client = client if client is not None else self.get_local_client()
-        # TODO
+        try:
+            local_info = client.get_info(self.path)
+        except NotFound:
+            if self.local_state in ('created', 'updated', 'synchronized'):
+                # the file use to exist, it has been deleted
+                self.update_state(local_state='deleted')
+                self.local_digest = None
+                return True, None
+            return False, None
+
+        if (self.last_local_updated is None
+            or local_info.last_modification_time > self.last_local_updated):
+            self.last_local_updated = local_info.last_modification_time
+            self.local_digest = local_info.get_digest()
+            # XXX: shall we store local_folderish and remote_folderish to
+            # detect such kind of conflicts instead?
+            self.folderish = local_info.folderish
+            self.update_state(local_state='modified')
+            return True, local_info
+        return False, local_info
 
     def refresh_remote(self, client=None):
         """Update the state from the remote server info.
 
         Can reuse an existing client to spare some redundant client init HTTP
         request.
+
+        Return the pair (refreshed, info) where refreshed is a boolean
+        marker that states whether the metadata entry have been updated
+        and info is the collected info (or None if the document is
+        missing).
         """
         client = client if client is not None else self.get_remote_client()
-        # TODO
+        try:
+            remote_info = client.get_info(self.path)
+        except NotFound:
+            if self.remote_state in ('created', 'updated', 'synchronized'):
+                self.update_state(remote_state='deleted')
+                self.remote_digest = None
+                return True, None
+            return False, None
+
+        if (self.last_remote_updated is None
+            or remote_info.last_modification_time > self.last_remote_updated):
+            self.last_remote_updated = remote_info.last_modification_time
+            self.remote_digest = remote_info.get_digest()
+            # XXX: shall we store local_folderish and remote_folderish to
+            # detect such kind of conflicts instead?
+            self.folderish = remote_info.folderish
+            self.update_state(local_state='modified')
+            return True, remote_info
+        return False, remote_info
 
 
 class FileEvent(Base):
