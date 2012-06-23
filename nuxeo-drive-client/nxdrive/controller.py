@@ -444,6 +444,7 @@ class Controller(object):
                 logging.warn(
                     "Parent folder of %r/%r is not bound to a remote folder",
                     doc_pair.local_root, doc_pair.path)
+                return
             if doc_pair.folderish:
                 remote_ref = remote_client.make_folder(parent_ref, name)
             else:
@@ -454,8 +455,28 @@ class Controller(object):
             doc_pair.refresh_remote(remote_client)
 
         elif doc_pair.pair_state == 'remotely_created':
-            # TODO: implement me
-            pass
+            name = remote_info.name
+            # Find the parent pair to find the path of the local folder to
+            # create the document into
+            parent_pair = session.query(LastKnownState).filter_by(
+                local_root=doc_pair.local_root,
+                remote_ref=remote_info.parent_ref
+            ).one()
+            parent_path = parent_pair.path
+            if parent_path is None:
+                logging.warn(
+                    "Parent folder of doc %r (%r:%r) is not bound to a local"
+                    " folder",
+                    name, doc_pair.remote_repo, doc_pair.remote_ref)
+                return
+            if doc_pair.folderish:
+                path = local_client.make_folder(parent_path, name)
+            else:
+                path = local_client.make_file(
+                    parent_path, name,
+                    content=remote_client.get_content(doc_pair.remote_ref))
+            doc_pair.path = path
+            doc_pair.refresh_local(local_client)
 
         elif doc_pair.pair_state == 'locally_deleted':
             # TODO: implement me
