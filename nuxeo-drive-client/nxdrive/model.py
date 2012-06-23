@@ -110,7 +110,7 @@ class LastKnownState(Base):
 
     # Parent path from root for fast children queries,
     # can be None for the root it-self.
-    parent_path = Column(String)
+    parent_path = Column(String, index=True)
 
     # Path from root using unix separator, '/' for the root it-self.
     path = Column(String, primary_key=True)
@@ -119,12 +119,12 @@ class LastKnownState(Base):
 
     # Remote reference (instead of path based lookup)
     remote_repo = Column(String)
-    remote_ref = Column(String)
+    remote_ref = Column(String, index=True)
 
     # Last known state based on event log
     local_state = Column(String)
     remote_state = Column(String)
-    pair_state = Column(String)
+    pair_state = Column(String, index=True)
 
     # Track move operations to avoid loosing history
     locally_moved_from = Column(String)
