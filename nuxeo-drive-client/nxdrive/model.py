@@ -13,6 +13,7 @@ from sqlalchemy.orm import backref
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session
 
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
@@ -253,12 +254,30 @@ class FileEvent(Base):
             utc_time = datetime.utcnow()
 
 
-def get_session(nxdrive_home, echo=False):
+def get_session_maker(nxdrive_home, echo=False):
+    """Return a session maker configured for using nxdrive_home
+
+    The database is created in nxdrive_home if missing and the tables
+    are intialized based on the model classes from this module (they
+    all inherit the same abstract base class.
+    """
     # We store the DB as SQLite files in the nxdrive_home folder
     dbfile = os.path.join(os.path.abspath(nxdrive_home), 'nxdrive.db')
     engine = create_engine('sqlite:///' + dbfile, echo=echo)
 
     # Ensure that the tables are properly initialized
     Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    return Session()
+    return sessionmaker(bind=engine)
+
+
+def get_scoped_session_maker(nxdrive_home, echo=False):
+    """Return a session maker configured for using nxdrive_home
+
+    The database is created in nxdrive_home if missing and the tables
+    are intialized based on the model classes from this module (they
+    all inherit the same abstract base class.
+
+    Sessions built with this maker are reusable thread local
+    singletons.
+    """
+    return scoped_session(get_session_maker(nxdrive_home, echo=echo))

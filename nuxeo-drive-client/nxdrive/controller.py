@@ -4,10 +4,12 @@ from time import time
 from time import sleep
 import os.path
 import logging
+from threading import local
+
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
-from nxdrive.model import get_session
+from nxdrive.model import get_scoped_session_maker
 from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
@@ -18,7 +20,11 @@ from sqlalchemy import asc
 
 
 class Controller(object):
-    """Manage configuration and perform Nuxeo Drive Operations"""
+    """Manage configuration and perform Nuxeo Drive Operations
+
+    This class is thread safe: instance can be shared by multiple threads
+    as DB sessions and Nuxeo clients are thread locals.
+    """
 
     def __init__(self, config_folder, nuxeo_client_factory=None, echo=None):
         if echo is None:
@@ -27,7 +33,11 @@ class Controller(object):
         if not os.path.exists(self.config_folder):
             os.makedirs(self.config_folder)
 
-        self.session = get_session(self.config_folder, echo=echo)
+        # Handle connection to the local Nuxeo Drive configuration and
+        # metadata sqlite database.
+        self._session_maker = get_scoped_session_maker(
+            self.config_folder, echo=echo)
+
         # make it possible to pass an arbitrary nuxeo client factory
         # for testing
         if nuxeo_client_factory is not None:
@@ -35,7 +45,15 @@ class Controller(object):
         else:
             self.nuxeo_client_factory = NuxeoClient
 
-        self._cached_remote_clients = {}
+        self._local = local()
+
+    def get_session(self):
+        """Reuse the thread local session for this controller
+
+        Using the controller in several thread should be thread safe as long as
+        this method is always call
+        """
+        return self._session_maker()
 
     def start(self):
         """Start the Nuxeo Drive main daemon if not already started"""
@@ -62,7 +80,8 @@ class Controller(object):
         to compute the same filtering in SQL instead, probably by materializing
         the pair state directly in the database.
         """
-        server_binding = self.get_server_binding(folder_path)
+        session = self.get_session()
+        server_binding = self.get_server_binding(folder_path, session=session)
         if server_binding is not None:
             # TODO: if folder_path is the top level Nuxeo Drive folder, list
             # all the root binding states
@@ -70,12 +89,12 @@ class Controller(object):
                 "Children States of a server binding is not yet implemented")
 
         # Find the root binding for this absolute path
-        binding, path = self._binding_path(folder_path)
+        binding, path = self._binding_path(folder_path, session=session)
 
         # find the python list of all the descendants of path ordered by
         # path and then aggregate state for folderish documents using a OR
         # operation on "to synchronize"
-        states = self.session.query(LastKnownState).filter(
+        states = session.query(LastKnownState).filter(
             LastKnownState.local_root == binding.local_root
         ).order_by(asc(LastKnownState.path)).all()
         results = []
@@ -114,17 +133,18 @@ class Controller(object):
 
         return results
 
-    def _binding_path(self, folder_path):
+    def _binding_path(self, folder_path, session=None):
         """Find a root binding and relative path for a given FS path"""
         folder_path = os.path.abspath(folder_path)
 
         # Check exact root binding match
-        binding = self.get_root_binding(folder_path)
+        binding = self.get_root_binding(folder_path, session=session)
         if binding is not None:
             return binding, '/'
 
         # Check for root bindings that are prefix of folder_path
-        all_root_bindings = self.session.query(RootBinding).all()
+        session = self.get_session()
+        all_root_bindings = session.query(RootBinding).all()
         root_bindings = [rb for rb in all_root_bindings
                          if folder_path.startswith(
                              rb.local_root + os.path.sep)]
@@ -139,10 +159,13 @@ class Controller(object):
         path.replace(os.path.sep, '/')
         return binding, path
 
-    def get_server_binding(self, local_folder, raise_if_missing=False):
+    def get_server_binding(self, local_folder, raise_if_missing=False,
+                           session=None):
         """Find the ServerBinding instance for a given local_folder"""
+        if session is None:
+            session = self.get_session()
         try:
-            return self.session.query(ServerBinding).filter(
+            return session.query(ServerBinding).filter(
                 ServerBinding.local_folder == local_folder).one()
         except NoResultFound:
             if raise_if_missing:
@@ -153,8 +176,9 @@ class Controller(object):
 
     def bind_server(self, local_folder, server_url, username, password):
         """Bind a local folder to a remote nuxeo server"""
+        session = self.get_session()
         try:
-            server_binding = self.session.query(ServerBinding).filter(
+            server_binding = session.query(ServerBinding).filter(
                 ServerBinding.local_folder == local_folder).one()
             raise RuntimeError(
                 "%s is already bound to '%s' with user '%s'" % (
@@ -168,22 +192,31 @@ class Controller(object):
         # request
         self.nuxeo_client_factory(server_url, username, password)
 
-        self.session.add(ServerBinding(local_folder, server_url, username,
+        session.add(ServerBinding(local_folder, server_url, username,
                                        password))
-        self.session.commit()
+        session.commit()
 
     def unbind_server(self, local_folder):
         """Remove the binding to a Nuxeo server
 
         Local files are not deleted"""
-        binding = self.get_server_binding(local_folder, raise_if_missing=True)
-        self.session.delete(binding)
-        self.session.commit()
+        session = self.get_session()
+        binding = self.get_server_binding(local_folder, raise_if_missing=True,
+                                          session=session)
+        session.delete(binding)
+        session.commit()
 
-    def get_root_binding(self, local_root, raise_if_missing=False):
-        """Find the RootBinding instance for a given local_root"""
+    def get_root_binding(self, local_root, raise_if_missing=False,
+                         session=None):
+        """Find the RootBinding instance for a given local_root
+
+        It is the responsability of the caller to commit any change in
+        the same thread if needed.
+        """
+        if session is None:
+            session = self.get_session()
         try:
-            return self.session.query(RootBinding).filter(
+            return session.query(RootBinding).filter(
                 RootBinding.local_root == local_root).one()
         except NoResultFound:
             if raise_if_missing:
@@ -205,8 +238,10 @@ class Controller(object):
         a RuntimeError will be raised.
         """
         # Check that local_root is a subfolder of bound folder
+        session = self.get_session()
         server_binding = self.get_server_binding(local_folder,
-                                                 raise_if_missing=True)
+                                                 raise_if_missing=True,
+                                                 session=session)
 
         # Check the remote root exists and is an editable folder by current
         # user.
@@ -242,12 +277,12 @@ class Controller(object):
         local_info = lcclient.get_info('/')
 
         # Register the binding itself
-        self.session.add(RootBinding(local_root, repository, remote_root))
+        session.add(RootBinding(local_root, repository, remote_root))
 
         # Initialize the metadata info by recursive walk on the remote folder
         # structure
         self._recursive_init(lcclient, local_info, nxclient, remote_info)
-        self.session.commit()
+        session.commit()
 
     def _recursive_init(self, local_client, local_info, remote_client,
                         remote_info):
@@ -272,7 +307,8 @@ class Controller(object):
             # attachment during the next synchro
             state.update_state(local_state='synchronized',
                                remote_state='modified')
-        self.session.add(state)
+        session = self.get_session()
+        session.add(state)
 
         if folderish:
             # TODO: how to handle the too many children case properly?
@@ -292,9 +328,11 @@ class Controller(object):
 
     def unbind_root(self, local_root):
         """Remove binding on a root folder"""
-        binding = self.get_root_binding(local_root, raise_if_missing=True)
-        self.session.delete(binding)
-        self.session.commit()
+        session = self.get_session()
+        binding = self.get_root_binding(local_root, raise_if_missing=True,
+                                        session=session)
+        session.delete(binding)
+        session.commit()
 
     def scan_local_folder(self, root_binding):
         """Recursively scan the bound local folder looking for updates"""
@@ -311,38 +349,46 @@ class Controller(object):
         # TODO
         raise NotImplementedError()
 
-    def list_pending(self, limit=100, local_root=None):
+    def list_pending(self, limit=100, local_root=None, session=None):
         """List pending files to synchronize, ordered by path
 
         Ordering by path makes it possible to synchronize sub folders content
         only once the parent folders have already been synchronized.
         """
+        if session is None:
+            session = self.get_session()
         if local_root is not None:
-            return self.session.query(LastKnownState).filter(
+            return session.query(LastKnownState).filter(
                 LastKnownState.pair_state != 'synchronized',
                 LastKnownState.local_root == local_root
             ).order_by(asc(LastKnownState.path)).limit(limit).all()
         else:
-            return self.session.query(LastKnownState).filter(
+            return session.query(LastKnownState).filter(
                 LastKnownState.pair_state != 'synchronized'
             ).order_by(asc(LastKnownState.path)).limit(limit).all()
 
-    def next_pending(self, local_root=None):
+    def next_pending(self, local_root=None, session=None):
         """Return the next pending file to synchronize or None"""
-        pending = self.list_pending(limit=1, local_root=local_root)
+        pending = self.list_pending(limit=1, local_root=local_root,
+                                    session=session)
         return pending[0] if len(pending) > 0 else None
 
     def get_remote_client(self, doc_pair):
         """Fetch a client from the cache or create a new instance"""
-        remote_client = self._cached_remote_clients.get(doc_pair.local_root)
+        if not hasattr(self._local, 'remote_clients'):
+            self._local.remote_clients = dict()
+        cache = self._local.remote_clients
+        remote_client = cache.get(doc_pair.local_root)
         if remote_client is None:
             remote_client = doc_pair.get_remote_client(
                 self.nuxeo_client_factory)
-            self._cached_remote_clients[doc_pair.local_root] = remote_client
+            cache[doc_pair.local_root] = remote_client
         return remote_client
 
-    def synchronize_one(self, doc_pair):
+    def synchronize_one(self, doc_pair, session=None):
         """Refresh state a perform network transfer for a pair of documents."""
+        if session is None:
+            session = self.get_session()
         # Find a cached remote client for the server binding of the file to
         # synchronize
         remote_client = self.get_remote_client(doc_pair)
@@ -356,10 +402,10 @@ class Controller(object):
         # linked to a remote resource (just local path or remote ref)?
         doc_pair.refresh_local(local_client)
         remote_info = doc_pair.refresh_remote(remote_client)
-        if len(self.session.dirty):
+        if len(session.dirty):
             # Make refreshed state immediately available to other
             # processes as file transfer can take a long time
-            self.session.commit()
+            session.commit()
 
         # TODO: refactor blob access API to avoid loading content in memory
         # as python strings
@@ -390,7 +436,7 @@ class Controller(object):
             name = os.path.basename(doc_pair.path)
             # Find the parent pair to find the ref of the remote folder to
             # create the document
-            parent_pair = self.session.query(LastKnownState).filter_by(
+            parent_pair = session.query(LastKnownState).filter_by(
                 local_root=doc_pair.local_root, path=doc_pair.parent_path
             ).one()
             parent_ref = parent_pair.remote_ref
@@ -427,17 +473,18 @@ class Controller(object):
 
         # Ensure that concurrent process can monitor the synchronization
         # progress
-        if len(self.session.dirty) != 0:
-            self.session.commit()
+        if len(session.dirty) != 0:
+            session.commit()
 
     def synchronize(self, limit=None, local_root=None):
         """Synchronize one file at a time from the pending list."""
         synchronized = 0
-        pending = self.next_pending(local_root=local_root)
+        session = self.get_session()
+        pending = self.next_pending(local_root=local_root, session=session)
         while pending is not None and (limit is None or synchronized < limit):
-            self.synchronize_one(pending)
+            self.synchronize_one(pending, session=session)
             synchronized += 1
-            pending = self.next_pending(local_root=local_root)
+            pending = self.next_pending(local_root=local_root, session=session)
         return synchronized
 
     def loop(self, full_local_scan=True, full_remote_scan=True, delta=5,
@@ -458,8 +505,9 @@ class Controller(object):
 
         previous_time = time()
         first_pass = True
+        session = self.get_session()
         while self.continue_synchronization:
-            for rb in self.session.query(RootBinding).all():
+            for rb in session.query(RootBinding).all():
                 has_done_scan = True
                 try:
                     # the alternative to local full scan is the watchdog
