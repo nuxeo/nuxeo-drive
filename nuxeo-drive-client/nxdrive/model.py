@@ -185,14 +185,18 @@ class LastKnownState(Base):
     def refresh_local(self, client=None):
         """Update the state from the local filesystem info."""
         client = client if client is not None else self.get_local_client()
-        try:
-            local_info = client.get_info(self.path)
-        except NotFound:
-            if self.local_state in ('created', 'updated', 'synchronized'):
+        local_info = client.get_info(self.path, raise_if_missing=False)
+        self.update_local(local_info)
+        return local_info
+
+    def update_local(self, local_info):
+        """Update the state from pre-fetched local filesystem info."""
+        if local_info is None:
+            if self.local_state in ('unknown', 'created', 'updated',
+                                    'synchronized'):
                 # the file use to exist, it has been deleted
                 self.update_state(local_state='deleted')
                 self.local_digest = None
-            return None
 
         if self.last_local_updated is None:
             self.last_local_updated = local_info.last_modification_time
@@ -208,7 +212,7 @@ class LastKnownState(Base):
             self.folderish = local_info.folderish
             self.update_state(local_state='modified')
 
-        return local_info
+        # else: nothing to do
 
     def refresh_remote(self, client=None):
         """Update the state from the remote server info.
@@ -217,13 +221,17 @@ class LastKnownState(Base):
         request.
         """
         client = client if client is not None else self.get_remote_client()
-        try:
-            remote_info = client.get_info(self.remote_ref)
-        except NotFound:
-            if self.remote_state in ('created', 'updated', 'synchronized'):
+        remote_info = client.get_info(self.remote_ref, raise_if_missing=False)
+        self.update_remote(remote_info)
+        return remote_info
+
+    def update_remote(self, remote_info):
+        """Update the state from the pre-fetched remote server info."""
+        if remote_info is None:
+            if self.remote_state in ('unknown', 'created', 'updated',
+                                     'synchronized'):
                 self.update_state(remote_state='deleted')
                 self.remote_digest = None
-            return None
 
         if self.last_remote_updated is None:
             self.last_remote_updated = remote_info.last_modification_time
@@ -239,7 +247,7 @@ class LastKnownState(Base):
             self.folderish = remote_info.folderish
             self.update_state(local_state='modified')
 
-        return remote_info
+        # else: nothing to update
 
 
 class FileEvent(Base):

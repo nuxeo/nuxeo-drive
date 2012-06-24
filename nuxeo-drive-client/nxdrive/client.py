@@ -119,11 +119,14 @@ class LocalClient(object):
         self._digest_func = digest_func
 
     # Getters
-    def get_info(self, ref):
+    def get_info(self, ref, raise_if_missing=True):
         os_path = self._abspath(ref)
         if not os.path.exists(os_path):
-            raise NotFound("Could not found file '%s' under '%s'" % (
+            if raise_if_missing:
+                raise NotFound("Could not found file '%s' under '%s'" % (
                 ref, self.base_folder))
+            else:
+                return None
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
         mtime = datetime.fromtimestamp(stat_info.st_mtime)
@@ -298,13 +301,15 @@ class NuxeoClient(object):
                                    ref, self.server_url, MAX_CHILDREN))
         return [self._doc_to_info(d) for d in results]
 
-    def get_info(self, ref):
+    def get_info(self, ref, raise_if_missing=True):
         try:
             doc = self.fetch(ref)
         except urllib2.HTTPError as e:
             if e.code == 404:
-                raise NotFound("Could not find '%s' on '%s'" % (
-                    ref, self.server_url))
+                if raise_if_missing:
+                    raise NotFound("Could not find '%s' on '%s'" % (
+                        ref, self.server_url))
+                return None
             else:
                 raise e
         return self._doc_to_info(doc)
