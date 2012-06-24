@@ -37,11 +37,15 @@ PAIR_STATES = {
     ('synchronized', 'modified'): 'remotely_modified',
     ('deleted', 'synchronized'): 'locally_deleted',
     ('synchronized', 'deleted'): 'remotely_deleted',
-    ('deleted', 'deleted'): 'deleted',  # should probably never happen
+    ('deleted', 'deleted'): 'deleted',
 
-    # conflict cases
-    ('modified', 'deleted'): 'conflicted',
-    ('deleted', 'modified'): 'conflicted',
+    # conflicts with automatic resolution
+    ('created', 'deleted'): 'locally_created',
+    ('deleted', 'created'): 'remotely_created',
+    ('modified', 'deleted'): 'locally_created',
+    ('deleted', 'modified'): 'remotely_created',
+
+    # conflict cases that need special
     ('modified', 'modified'): 'conflicted',
 }
 

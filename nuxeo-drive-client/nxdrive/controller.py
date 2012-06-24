@@ -411,6 +411,8 @@ class Controller(object):
         # as python strings
 
         if doc_pair.pair_state == 'locally_modified':
+            # TODO: handle smart versionning policy here (or maybe delegate to
+            # a dedicated server-side operation)
             if doc_pair.remote_digest != doc_pair.local_digest:
                 old_name = None
                 if remote_info is not None:
@@ -452,6 +454,7 @@ class Controller(object):
                     parent_ref, name,
                     content=local_client.get_content(doc_pair.path))
             doc_pair.remote_ref = remote_ref
+            doc_pair.update_state('synchronized', 'synchronized')
             doc_pair.refresh_remote(remote_client)
 
         elif doc_pair.pair_state == 'remotely_created':
@@ -476,36 +479,85 @@ class Controller(object):
                     parent_path, name,
                     content=remote_client.get_content(doc_pair.remote_ref))
             doc_pair.path = path
+            doc_pair.update_state('synchronized', 'synchronized')
             doc_pair.refresh_local(local_client)
 
         elif doc_pair.pair_state == 'locally_deleted':
-            # TODO: implement me
-            pass
+            if doc_pair.remote_ref is not None:
+                # TODO: handle trash management with a dedicated server side
+                # operations?
+                remote_client.delete(remote_ref)
+            # XXX: shall we also delete all the subcontent / folder at
+            # once in the medata table?
+            session.delete(doc_pair)
 
         elif doc_pair.pair_state == 'remotely_deleted':
-            # TODO: implement me
-            pass
+            if doc_pair.path is not None:
+                try:
+                    # TODO: handle OS-specific trash management?
+                    local_client.delete(doc_pair.path)
+                    session.delete(doc_pair)
+                    # XXX: shall we also delete all the subcontent / folder at
+                    # once in the medata table?
+                except OSError:
+                    # Under Windows deletion can be impossible while another
+                    # process is accessing the same file (e.g. word processor)
+                    # TODO: be more specific as detecting this case
+                    logging.debug("Deletion of %r/%r delayed due to concurrent"
+                                  "editing of this file by another process.",
+                                  doc_pair.local_root, doc_pair.path)
+            else:
+                session.delete(doc_pair)
+
+        elif doc_pair.pair_state == 'deleted':
+            # No need to store this information any further
+            session.delete(doc_pair)
+            session.commit()
+
+        elif doc_pair.pair_state == 'conflicted':
+            if doc_pair.local_digest == doc_pair.remote_digest != None:
+                # Automated conflict resolution based on digest content:
+                doc_pair.update_state('synchronized', 'synchronized')
+        else:
+            logging.warn()
 
         # TODO: handle other cases such as moves and lock updates
 
-        # TODO: wrap the individual state synchronization in a dedicated
-        # method call wrapped with a try catch logic to be able to skip to
-        # the next
-
         # Ensure that concurrent process can monitor the synchronization
         # progress
-        if len(session.dirty) != 0:
+        if len(session.dirty) != 0 or len(session.deleted) != 0:
             session.commit()
 
-    def synchronize(self, limit=None, local_root=None):
-        """Synchronize one file at a time from the pending list."""
+    def synchronize(self, limit=None, local_root=None, fault_tolerant=False):
+        """Synchronize one file at a time from the pending list.
+
+        Fault tolerant mode is meant to be skip problematic documents while not
+        preventing the rest of the synchronization loop to work on documents
+        that work as expected.
+
+        This mode will probably hide real Nuxeo Drive bug in the
+        logs. It should thus not be enabled when writing tests for the
+        synchronization code but might be useful when running Nuxeo
+        Drive in daemon mode.
+        """
         synchronized = 0
         session = self.get_session()
-        pending = self.next_pending(local_root=local_root, session=session)
-        while pending is not None and (limit is None or synchronized < limit):
-            self.synchronize_one(pending, session=session)
-            synchronized += 1
-            pending = self.next_pending(local_root=local_root, session=session)
+        doc_pair = self.next_pending(local_root=local_root, session=session)
+        while doc_pair is not None and (limit is None or synchronized < limit):
+            try:
+                self.synchronize_one(doc_pair, session=session)
+                synchronized += 1
+            except Exception as e:
+                if not fault_tolerant:
+                    raise e
+                logging.error("Failed to synchronize %r: %r", doc_pair, e)
+                # TODO: flag pending and all descendant as failed with a time
+                # stamp and make next_pending ignore recently (e.g. up to 30s)
+                # failed synchronized pairs
+                raise NotImplementedError(
+                    'Fault tolerant synchronization not implemented yet.')
+            doc_pair = self.next_pending(local_root=local_root,
+                                         session=session)
         return synchronized
 
     def loop(self, full_local_scan=True, full_remote_scan=True, delta=5,
@@ -544,7 +596,8 @@ class Controller(object):
                         self.refresh_remote_from_log(rb.remote_ref)
 
                     self.synchronize(limit=max_sync_step,
-                                     local_root=rb.local_root)
+                                     local_root=rb.local_root,
+                                     fault_tolerant=True)
                 except Exception as e:
                     # TODO: catch network related errors and log them at debug
                     # level instead as we expect the daemon to work even in
