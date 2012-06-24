@@ -115,14 +115,14 @@ class Controller(object):
                     # descendants) to know if the folder has any descendant
                     # that needs synchronization
                     candidate_folder_path = state.path
-                    candidate_folder_state = 'synchronized'
+                    candidate_folder_state = state.pair_state
                     continue
                 else:
                     # this is a non-folderish direct child, collect info
                     # directly
                     results.append((state.path, state.pair_state))
 
-            elif candidate_folder_state == 'synchronized':
+            elif candidate_folder_state not in (None, 'children_modified'):
                 if (not state.folderish
                     and state.pair_state != 'synchronized'):
                         # this is a non-synchronized descendant of the current
@@ -368,14 +368,14 @@ class Controller(object):
         children_info = client.get_children_info(local_info.path)
         children_path = set(c.path for c in children_info)
 
-        deleted_children = session.query(LastKnownState).filter_by(
+        q = session.query(LastKnownState).filter_by(
             local_root=local_root,
             parent_path=local_info.path,
-        ).filter(
-            not_(LastKnownState.path.in_(children_path))
-        ).all()
+        )
+        if len(children_path) > 0:
+            q = q.filter(not_(LastKnownState.path.in_(children_path)))
 
-        for deleted_child in deleted_children:
+        for deleted_child in q.all():
             if deleted_child.remote_ref is None:
                 # Unbound child metadata can be removed
                 session.delete(deleted_child)
