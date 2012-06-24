@@ -17,6 +17,7 @@ from nxdrive.client import NotFound
 
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import asc
+from sqlalchemy import not_
 
 
 class Controller(object):
@@ -290,10 +291,12 @@ class Controller(object):
 
         folderish = remote_info.folderish
         state = LastKnownState(
-            local_client.base_folder, local_info.path,
-            remote_client.repository, remote_info.uid,
-            local_info.last_modification_time,
-            remote_info.last_modification_time,
+            local_client.base_folder,
+            path=local_info.path,
+            remote_ref=remote_info.uid,
+            remote_name=remote_info.name,
+            last_local_updated=local_info.last_modification_time,
+            last_remote_updated=remote_info.last_modification_time,
             folderish=folderish,
             local_digest=local_info.get_digest(),
             remote_digest=remote_info.get_digest())
@@ -326,20 +329,107 @@ class Controller(object):
                 self._recursive_init(local_client, child_local_info,
                                      remote_client, child_remote_info)
 
-    def unbind_root(self, local_root):
+    def unbind_root(self, local_root, session=None):
         """Remove binding on a root folder"""
-        session = self.get_session()
+        if session is None:
+            session = self.get_session()
         binding = self.get_root_binding(local_root, raise_if_missing=True,
                                         session=session)
         session.delete(binding)
         session.commit()
 
-    def scan_local_folder(self, root_binding):
+    def _scan_local(self, local_root, session):
         """Recursively scan the bound local folder looking for updates"""
-        # TODO
-        raise NotImplementedError()
+        root_state = session.query(LastKnownState).filter_by(
+            local_root=local_root, path='/').one()
 
-    def scan_remote_folder(self, root_binding):
+        client = root_state.get_local_client()
+        root_info = client.get_info('/')
+        # recursive update
+        self._scan_local_recursive(local_root, session, client,
+                                   root_state, root_info)
+        session.commit()
+
+    def _scan_local_recursive(self, local_root, session, client,
+                              doc_pair, local_info):
+        """Recursively scan the bound local folder looking for updates"""
+        if local_info is None:
+            raise ValueError("Cannot bind %r to missing local info" %
+                             doc_pair)
+
+        # Update the pair state from the collected local info
+        doc_pair.update_local(local_info)
+
+        if not local_info.folderish:
+            # No children to align, early stop.
+            return
+
+        # detect recently deleted children
+        children_info = client.get_children_info(local_info.path)
+        children_path = set(c.path for c in children_info)
+
+        deleted_children = session.query(LastKnownState).filter_by(
+            local_root=local_root,
+            parent_path=local_info.path,
+        ).filter(
+            not_(LastKnownState.path.in_(children_path))
+        ).all()
+
+        for deleted_child in deleted_children:
+            if deleted_child.remote_ref is None:
+                # Unbound child metadata can be removed
+                session.delete(deleted_child)
+            else:
+                # make it for remote deletion
+                deleted_child.update_local(None)
+
+        # recursively update children
+        for child_info in children_info:
+
+            # TODO: detect whether this is a __digit suffix name and relax the
+            # alignment queries accordingly
+            child_name = os.path.basename(child_info.path)
+            child_pair = session.query(LastKnownState).filter_by(
+                local_root=local_root,
+                path=child_info.path).first()
+
+            if child_pair is None:
+                # Try to find an existing remote doc that has not yet been
+                # bound to any local file that would align with both name
+                # and digest
+                child_pair = session.query(LastKnownState).filter_by(
+                    local_root=local_root,
+                    path=None,
+                    remote_parent_ref=doc_pair.remote_ref,
+                    remote_name=child_name,
+                    folderish=child_info.folderish,
+                    remote_digest=child_info.get_digest(),
+                ).first()
+
+            if child_pair is None:
+                # Previous attempt has failed: relax the digest constraint
+                child_pair = session.query(LastKnownState).filter_by(
+                    local_root=local_root,
+                    path=None,
+                    remote_parent_ref=doc_pair.remote_ref,
+                    remote_name=child_name,
+                    folderish=child_info.folderish,
+                ).first()
+
+            if child_pair is None:
+                # Could not find any pair state to align to, create one
+                child_pair = LastKnownState(
+                    local_root,
+                    path=child_info.path,
+                    last_local_updated=local_info.last_modification_time,
+                    folderish=child_info.folderish,
+                    local_digest=child_info.get_digest())
+                session.add(child_pair)
+
+            self._scan_local_recursive(local_root, session, client,
+                                       child_pair, child_info)
+
+    def _scan_remote(self, local_root, session):
         """Recursively scan the bound remote folder looking for updates"""
         # TODO
         raise NotImplementedError()
@@ -483,13 +573,17 @@ class Controller(object):
             doc_pair.refresh_local(local_client)
 
         elif doc_pair.pair_state == 'locally_deleted':
-            if doc_pair.remote_ref is not None:
-                # TODO: handle trash management with a dedicated server side
-                # operations?
-                remote_client.delete(remote_ref)
-            # XXX: shall we also delete all the subcontent / folder at
-            # once in the medata table?
-            session.delete(doc_pair)
+            if doc_pair.path == '/':
+                # Special case: unbind root instead of performing deletion
+                self.unbind_root(doc_pair.local_root, session=session)
+            else:
+                if doc_pair.remote_ref is not None:
+                    # TODO: handle trash management with a dedicated server
+                    # side operations?
+                    remote_client.delete(remote_ref)
+                # XXX: shall we also delete all the subcontent / folder at
+                # once in the medata table?
+                session.delete(doc_pair)
 
         elif doc_pair.pair_state == 'remotely_deleted':
             if doc_pair.path is not None:
@@ -535,8 +629,8 @@ class Controller(object):
         preventing the rest of the synchronization loop to work on documents
         that work as expected.
 
-        This mode will probably hide real Nuxeo Drive bug in the
-        logs. It should thus not be enabled when writing tests for the
+        This mode will probably hide real Nuxeo Drive bugs in the
+        logs. It should thus not be enabled when running tests for the
         synchronization code but might be useful when running Nuxeo
         Drive in daemon mode.
         """
@@ -544,18 +638,21 @@ class Controller(object):
         session = self.get_session()
         doc_pair = self.next_pending(local_root=local_root, session=session)
         while doc_pair is not None and (limit is None or synchronized < limit):
-            try:
+            if fault_tolerant:
+                try:
+                    self.synchronize_one(doc_pair, session=session)
+                    synchronized += 1
+                except Exception as e:
+                    logging.error("Failed to synchronize %r: %r", doc_pair, e)
+                    # TODO: flag pending and all descendant as failed with a time
+                    # stamp and make next_pending ignore recently (e.g. up to 30s)
+                    # failed synchronized pairs
+                    raise NotImplementedError(
+                        'Fault tolerant synchronization not implemented yet.')
+            else:
                 self.synchronize_one(doc_pair, session=session)
                 synchronized += 1
-            except Exception as e:
-                if not fault_tolerant:
-                    raise e
-                logging.error("Failed to synchronize %r: %r", doc_pair, e)
-                # TODO: flag pending and all descendant as failed with a time
-                # stamp and make next_pending ignore recently (e.g. up to 30s)
-                # failed synchronized pairs
-                raise NotImplementedError(
-                    'Fault tolerant synchronization not implemented yet.')
+
             doc_pair = self.next_pending(local_root=local_root,
                                          session=session)
         return synchronized
@@ -586,11 +683,11 @@ class Controller(object):
                     # the alternative to local full scan is the watchdog
                     # thread
                     if full_local_scan or first_pass:
-                        self.scan_local_folder(rb.root_binding)
+                        self._scan_local(rb.local_root, session)
                         has_done_scan = True
 
                     if full_remote_scan or first_pass:
-                        self.scan_remote_folder(rb.remote_ref)
+                        self._scan_remote(rb.local_root, session)
                         has_done_scan = True
                     else:
                         self.refresh_remote_from_log(rb.remote_ref)

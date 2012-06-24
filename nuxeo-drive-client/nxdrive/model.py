@@ -109,21 +109,22 @@ class LastKnownState(Base):
     last_remote_updated = Column(DateTime)
 
     # Save the digest too for better updates / moves detection
-    local_digest = Column(String)
-    remote_digest = Column(String)
+    local_digest = Column(String, index=True)
+    remote_digest = Column(String, index=True)
+
+    # Path from root using unix separator, '/' for the root it-self.
+    path = Column(String, primary_key=True)
 
     # Parent path from root for fast children queries,
     # can be None for the root it-self.
     parent_path = Column(String, index=True)
 
-    # Path from root using unix separator, '/' for the root it-self.
-    path = Column(String, primary_key=True)
+    # Remote reference (instead of path based lookup)
+    remote_ref = Column(String, index=True)
+    remote_name = Column(String, index=True)
+    remote_parent_ref = Column(String, index=True)
 
     folderish = Column(Integer)
-
-    # Remote reference (instead of path based lookup)
-    remote_repo = Column(String)
-    remote_ref = Column(String, index=True)
 
     # Last known state based on event log
     local_state = Column(String)
@@ -136,19 +137,24 @@ class LastKnownState(Base):
     remotely_moved_from = Column(String)
     remotely_moved_to = Column(String)
 
-    def __init__(self, local_root, path, remote_repo, remote_ref,
-                 last_local_updated, last_remote_updated, folderish=True,
-                 local_digest=None, remote_digest=None,
+    def __init__(self, local_root, path=None, remote_ref=None,
+                 remote_name=None, remote_parent_ref=None,
+                 last_local_updated=None,
+                 last_remote_updated=None,
+                 folderish=True, local_digest=None, remote_digest=None,
                  local_state='unknown', remote_state='unknown'):
         self.local_root = local_root
+        if path is None and remote_ref is None:
+            raise ValueError("At least path or remote_ref should be provided")
         self.path = path
         if path == '/':
             self.parent_path = None
-        else:
+        elif path is not None:
             parent_path, _ = path.rsplit('/', 1)
             self.parent_path = '/' if parent_path == '' else parent_path
-        self.remote_repo = remote_repo
         self.remote_ref = remote_ref
+        self.remote_name = remote_name
+        self.remote_parent_ref = remote_parent_ref
         self.last_local_updated = last_local_updated
         self.last_remote_updated = last_remote_updated
         self.folderish = int(folderish)
@@ -197,20 +203,28 @@ class LastKnownState(Base):
                 # the file use to exist, it has been deleted
                 self.update_state(local_state='deleted')
                 self.local_digest = None
+            return
+
+        if self.path is None:
+            self.path = local_info.path
+
+        if self.path != local_info.path:
+            raise ValueError("State %r cannot be mapped to %r/%r" % (
+                self, local_info.local_root, local_info.path))
 
         if self.last_local_updated is None:
             self.last_local_updated = local_info.last_modification_time
             self.local_digest = local_info.get_digest()
-            # shall we update the state here? if so how?
             self.folderish = local_info.folderish
 
         elif local_info.last_modification_time > self.last_local_updated:
             self.last_local_updated = local_info.last_modification_time
-            self.local_digest = local_info.get_digest()
-            # XXX: shall we store local_folderish and remote_folderish to
-            # detect such kind of conflicts instead?
-            self.folderish = local_info.folderish
             self.update_state(local_state='modified')
+            self.local_digest = local_info.get_digest()
+            self.folderish = local_info.folderish
+
+        # XXX: shall we store local_folderish and remote_folderish to
+        # detect such kind of conflicts instead?
 
         # else: nothing to do
 
@@ -233,19 +247,25 @@ class LastKnownState(Base):
                 self.update_state(remote_state='deleted')
                 self.remote_digest = None
 
+        if self.remote_ref is None:
+            self.remote_ref = remote_info.uid
+            self.remote_parent_ref = remote_info.parent_uid
+            self.remote_name = remote_info.name
+
+        if self.remote_ref != remote_info.uid:
+            raise ValueError("State %r cannot be mapped to remote doc %r" % (
+                self, remote_info.name))
+
         if self.last_remote_updated is None:
             self.last_remote_updated = remote_info.last_modification_time
             self.remote_digest = remote_info.get_digest()
-            # shall we update the state here? if so how?
             self.folderish = remote_info.folderish
 
         elif remote_info.last_modification_time > self.last_remote_updated:
             self.last_remote_updated = remote_info.last_modification_time
-            self.remote_digest = remote_info.get_digest()
-            # XXX: shall we store local_folderish and remote_folderish to
-            # detect such kind of conflicts instead?
-            self.folderish = remote_info.folderish
             self.update_state(local_state='modified')
+            self.remote_digest = remote_info.get_digest()
+            self.folderish = remote_info.folderish
 
         # else: nothing to update
 

@@ -13,6 +13,7 @@ from nxdrive.controller import Controller
 from nxdrive.client import NuxeoDocumentInfo
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
+from nxdrive.client import LocalClient
 
 TEST_FOLDER = tempfile.mkdtemp()
 TEST_SYNCED_FOLDER = join(TEST_FOLDER, 'local_folder')
@@ -131,6 +132,80 @@ def test_bindings():
 
     # local folder has not be created
     assert_false(os.path.exists(other_folder))
+
+
+@with_setup(setup, teardown)
+def test_local_scan():
+    ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient)
+    ctl.bind_server(TEST_SYNCED_FOLDER, 'http://example.com/nuxeo',
+                    'username', 'secret')
+    ctl.bind_root(TEST_SYNCED_FOLDER, 'folder_1-nuxeo-ref')
+    ctl.bind_root(TEST_SYNCED_FOLDER, 'folder_2-nuxeo-ref')
+    root_1 = join(TEST_SYNCED_FOLDER, 'Folder 1')
+    root_2 = join(TEST_SYNCED_FOLDER, 'Folder 2')
+
+    client_1 = LocalClient(root_1)
+    client_2 = LocalClient(root_2)
+
+    # Folder are registered but empty for now
+    assert_equal(ctl.children_states(root_1), [])
+    assert_equal(ctl.children_states(root_2), [])
+
+    # Put some content under the first root
+    client_1.make_file('/', 'File 1.txt',
+                       content="Initial 'File 1.txt' content")
+    folder_3 = client_1.make_folder('/', 'Folder 3')
+    client_1.make_file(folder_3, 'File 2.txt',
+                       content="Initial 'File 2.txt' content")
+
+    # The states have not been updated
+    assert_equal(ctl.children_states(root_1), [])
+    assert_equal(ctl.children_states(root_2), [])
+
+    # Scanning the other root will not updated the first root states.
+    session = ctl.get_session()
+    ctl._scan_local(root_2, session)
+    assert_equal(ctl.children_states(root_1), [])
+
+    # Scanning root_1 will find the changes
+    ctl._scan_local(root_1, session)
+    assert_equal(ctl.children_states(root_1), [
+        (u'/File 1.txt', u'unknown'),
+        (u'/Folder 3', 'children_modified'),
+    ])
+    folder_3_abs = os.path.join(root_1, 'Folder 3')
+    assert_equal(ctl.children_states(folder_3_abs), [
+        (u'/Folder 3/File 2.txt', u'unknown'),
+    ])
+
+    # Let's do some changes
+    client_1.delete('/File 1.txt')
+    client_1.make_folder('/Folder 3', 'Folder 3.1')
+    client_1.make_file('/Folder 3', 'File 3.txt',
+                      content="Initial 'File 3.txt' content")
+    client_1.update_content('/Folder 3/File 2.txt',
+                            "Updated content for 'File 2.txt'")
+
+    # If we don't do a rescan, the controller is not aware of the changes
+    assert_equal(ctl.children_states(root_1), [
+        (u'/File 1.txt', u'unknown'),
+        (u'/Folder 3', 'children_modified'),
+    ])
+    folder_3_abs = os.path.join(root_1, 'Folder 3')
+    assert_equal(ctl.children_states(folder_3_abs), [
+        (u'/Folder 3/File 2.txt', u'unknown'),
+    ])
+
+    # Let's scan again
+    ctl._scan_local(root_1, session)
+    assert_equal(ctl.children_states(root_1), [
+        (u'/Folder 3', 'children_modified'),
+    ])
+    assert_equal(ctl.children_states(folder_3_abs), [
+        (u'/Folder 3/File 2.txt', u'unknown'),
+        (u'/Folder 3/File 3.txt', u'unknown'),
+        (u'/Folder 3/Folder 3.1', u'unknown')
+    ])
 
 
 @with_setup(setup, teardown)
