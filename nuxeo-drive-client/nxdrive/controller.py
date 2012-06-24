@@ -350,6 +350,22 @@ class Controller(object):
                                    root_state, root_info)
         session.commit()
 
+    def _mark_deleted_local_recursive(self, local_root, session, doc_pair):
+        """Update the metadata of the descendants of locally deleted doc"""
+        # delete descendants first
+        children = session.query(LastKnownState).filter_by(
+            local_root=local_root, parent_path=doc_pair.path).all()
+        for child in children:
+            self._mark_deleted_local_recursive(local_root, session, child)
+
+        # update the state of the parent it-self
+        if doc_pair.remote_ref is None:
+            # Unbound child metadata can be removed
+            session.delete(doc_pair)
+        else:
+            # make it for remote deletion
+            doc_pair.update_local(None)
+
     def _scan_local_recursive(self, local_root, session, client,
                               doc_pair, local_info):
         """Recursively scan the bound local folder looking for updates"""
@@ -375,13 +391,8 @@ class Controller(object):
         if len(children_path) > 0:
             q = q.filter(not_(LastKnownState.path.in_(children_path)))
 
-        for deleted_child in q.all():
-            if deleted_child.remote_ref is None:
-                # Unbound child metadata can be removed
-                session.delete(deleted_child)
-            else:
-                # make it for remote deletion
-                deleted_child.update_local(None)
+        for deleted in q.all():
+            self._mark_deleted_local_recursive(local_root, session, deleted)
 
         # recursively update children
         for child_info in children_info:

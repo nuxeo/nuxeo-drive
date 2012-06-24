@@ -207,6 +207,12 @@ def test_local_scan():
         (u'/Folder 3/Folder 3.1', u'unknown')
     ])
 
+    # Delete some top level folder
+    client_1.delete('/Folder 3')
+    ctl._scan_local(root_1, session)
+    assert_equal(ctl.children_states(root_1), [])
+    assert_equal(ctl.children_states(folder_3_abs), [])
+
 
 @with_setup(setup, teardown)
 def test_binding_deletions():
