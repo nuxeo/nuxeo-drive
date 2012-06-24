@@ -115,14 +115,17 @@ class LastKnownState(Base):
     # Path from root using unix separator, '/' for the root it-self.
     path = Column(String, primary_key=True)
 
-    # Parent path from root for fast children queries,
-    # can be None for the root it-self.
-    parent_path = Column(String, index=True)
-
     # Remote reference (instead of path based lookup)
     remote_ref = Column(String, index=True)
-    remote_name = Column(String, index=True)
+
+    # Parent path from root / ref for fast children queries,
+    # can be None for the root it-self.
+    parent_path = Column(String, index=True)
     remote_parent_ref = Column(String, index=True)
+
+    # Names for fast alignment queries
+    local_name = Column(String, index=True)
+    remote_name = Column(String, index=True)
 
     folderish = Column(Integer)
 
@@ -137,29 +140,18 @@ class LastKnownState(Base):
     remotely_moved_from = Column(String)
     remotely_moved_to = Column(String)
 
-    def __init__(self, local_root, path=None, remote_ref=None,
-                 remote_name=None, remote_parent_ref=None,
-                 last_local_updated=None,
-                 last_remote_updated=None,
-                 folderish=True, local_digest=None, remote_digest=None,
+    def __init__(self, local_root, local_info=None, remote_info=None,
                  local_state='unknown', remote_state='unknown'):
         self.local_root = local_root
-        if path is None and remote_ref is None:
-            raise ValueError("At least path or remote_ref should be provided")
-        self.path = path
-        if path == '/':
-            self.parent_path = None
-        elif path is not None:
-            parent_path, _ = path.rsplit('/', 1)
-            self.parent_path = '/' if parent_path == '' else parent_path
-        self.remote_ref = remote_ref
-        self.remote_name = remote_name
-        self.remote_parent_ref = remote_parent_ref
-        self.last_local_updated = last_local_updated
-        self.last_remote_updated = last_remote_updated
-        self.folderish = int(folderish)
-        self.local_digest = local_digest
-        self.remote_digest = remote_digest
+        if local_info is None and remote_info is None:
+            raise ValueError(
+                "At least local_info or remote_info should be provided")
+
+        if local_info is not None:
+            self.update_local(local_info)
+        if remote_info is not None:
+            self.update_remote(remote_info)
+
         self.update_state(local_state=local_state, remote_state=remote_state)
 
     def update_state(self, local_state=None, remote_state=None):
@@ -207,6 +199,12 @@ class LastKnownState(Base):
 
         if self.path is None:
             self.path = local_info.path
+            if self.path == '/':
+                self.parent_path = None
+                self.local_name = os.path.basename(self.local_root)
+            else:
+                self.parent_path = os.path.dirname(local_info.path)
+                self.local_name = os.path.basename(self.path)
 
         if self.path != local_info.path:
             raise ValueError("State %r cannot be mapped to %r/%r" % (

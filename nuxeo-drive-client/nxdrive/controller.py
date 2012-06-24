@@ -290,17 +290,9 @@ class Controller(object):
         """Initialize the metadata table by walking the binding tree"""
 
         folderish = remote_info.folderish
-        state = LastKnownState(
-            local_client.base_folder,
-            path=local_info.path,
-            remote_ref=remote_info.uid,
-            remote_name=remote_info.name,
-            last_local_updated=local_info.last_modification_time,
-            last_remote_updated=remote_info.last_modification_time,
-            folderish=folderish,
-            local_digest=local_info.get_digest(),
-            remote_digest=remote_info.get_digest())
-
+        state = LastKnownState(local_client.base_folder,
+                               local_info=local_info,
+                               remote_info=remote_info)
         if folderish:
             # Mark as synchronized as there is nothing to download later
             state.update_state(local_state='synchronized',
@@ -363,7 +355,7 @@ class Controller(object):
             # Unbound child metadata can be removed
             session.delete(doc_pair)
         else:
-            # make it for remote deletion
+            # mark it for remote deletion
             doc_pair.update_local(None)
 
     def _scan_local_recursive(self, local_root, session, client,
@@ -429,12 +421,7 @@ class Controller(object):
 
             if child_pair is None:
                 # Could not find any pair state to align to, create one
-                child_pair = LastKnownState(
-                    local_root,
-                    path=child_info.path,
-                    last_local_updated=local_info.last_modification_time,
-                    folderish=child_info.folderish,
-                    local_digest=child_info.get_digest())
+                child_pair = LastKnownState(local_root, local_info=child_info)
                 session.add(child_pair)
 
             self._scan_local_recursive(local_root, session, client,
@@ -442,8 +429,101 @@ class Controller(object):
 
     def _scan_remote(self, local_root, session):
         """Recursively scan the bound remote folder looking for updates"""
-        # TODO
-        raise NotImplementedError()
+        root_state = session.query(LastKnownState).filter_by(
+            local_root=local_root, path='/').one()
+
+        client = self.get_remote_client(root_state)
+        root_info = client.get_info(root_state.remote_ref)
+        # recursive update
+        self._scan_remote_recursive(local_root, session, client,
+                                    root_state, root_info)
+        session.commit()
+
+    def _mark_deleted_remote_recursive(self, local_root, session, doc_pair):
+        """Update the metadata of the descendants of remotely deleted doc"""
+        # delete descendants first
+        children = session.query(LastKnownState).filter_by(
+            local_root=local_root, remote_parent_ref=doc_pair.parent_uid).all()
+        for child in children:
+            self._mark_deleted_remote_recursive(local_root, session, child)
+
+        # update the state of the parent it-self
+        if doc_pair.path is None:
+            # Unbound child metadata can be removed
+            session.delete(doc_pair)
+        else:
+            # schedule it for local deletion
+            doc_pair.update_remote(None)
+
+    def _scan_remote_recursive(self, local_root, session, client,
+                               doc_pair, remote_info):
+        """Recursively scan the bound remote folder looking for updates"""
+        if remote_info is None:
+            raise ValueError("Cannot bind %r to missing remote info" %
+                             doc_pair)
+
+        # Update the pair state from the collected remote info
+        doc_pair.update_remote(remote_info)
+
+        if not remote_info.folderish:
+            # No children to align, early stop.
+            return
+
+        # detect recently deleted children
+        children_info = client.get_children_info(remote_info.remote_ref)
+        children_path = set(c.path for c in children_info)
+
+        q = session.query(LastKnownState).filter_by(
+            local_root=local_root,
+            remote_parent_ref=remote_info.uid,
+        )
+        if len(children_path) > 0:
+            q = q.filter(not_(LastKnownState.path.in_(children_path)))
+
+        for deleted in q.all():
+            self._mark_deleted_remote_recursive(local_root, session, deleted)
+
+        # recursively update children
+        for child_info in children_info:
+
+            # TODO: detect whether this is a __digit suffix name and relax the
+            # alignment queries accordingly
+            child_name = child_info.remote_name
+            child_pair = session.query(LastKnownState).filter_by(
+                local_root=local_root,
+                remote_ref=child_info.uid).first()
+
+            if child_pair is None:
+                # Try to find an existing local doc that has not yet been
+                # bound to any remote file that would align with both name
+                # and digest
+                child_pair = session.query(LastKnownState).filter_by(
+                    local_root=local_root,
+                    remote_ref=None,
+                    parent_path=doc_pair.path,
+                    local_name=child_name,
+                    folderish=child_info.folderish,
+                    local_digest=child_info.get_digest(),
+                ).first()
+
+            if child_pair is None:
+                # Previous attempt has failed: relax the digest constraint
+                child_pair = session.query(LastKnownState).filter_by(
+                    local_root=local_root,
+                    remote_ref=None,
+                    parent_path=doc_pair.path,
+                    local_name=child_name,
+                    folderish=child_info.folderish,
+                ).first()
+
+            if child_pair is None:
+                # Could not find any pair state to align to, create one
+                child_pair = LastKnownState(local_root,
+                                            remote_info=remote_info)
+                session.add(child_pair)
+
+            self._scan_remote_recursive(local_root, session, client,
+                                        child_pair, child_info)
 
     def refresh_remote_folders_from_log(root_binding):
         """Query the remote server audit log looking for state updates."""
