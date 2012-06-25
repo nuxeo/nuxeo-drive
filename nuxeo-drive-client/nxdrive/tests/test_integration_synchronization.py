@@ -361,6 +361,16 @@ def test_binding_synchronization_empty_start():
     assert_equal(remote_client.get_content('/Folder 3/File 6.txt'),
                  "ffff")
 
+    # Rescan: no change to detect we should reach a fixpoint
+    ctl._scan_local(expected_folder, session)
+    ctl._scan_remote(expected_folder, session)
+    assert_equal(len(ctl.list_pending()), 0)
+    assert_equal(ctl.children_states(expected_folder), [
+        (u'/Folder 1', 'synchronized'),
+        (u'/Folder 3', 'synchronized'),
+        (u'/Folder 4', 'synchronized'),
+    ])
+
 
 @with_integration_env
 def test_synchronization_loop():
