@@ -291,5 +291,3 @@ def test_binding_synchronization_empty_start():
                  "Some content.")
     assert_equal(local.get_content('/Folder 2/Duplicated File__1.txt'),
                  "Other content.")
-
-
