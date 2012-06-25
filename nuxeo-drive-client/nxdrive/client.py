@@ -455,10 +455,17 @@ class NuxeoClient(object):
         blob_part = MIMEBase(maintype, subtype)
         blob_part.add_header("Content-ID", "input")
         blob_part.add_header("Content-Transfer-Encoding", "binary")
-        # RFC2231 (encoding extension in HTTP headers).
-        quoted_filename = urllib.quote(filename.encode('utf-8'))
-        blob_part.add_header("Content-Disposition",
-                             "attachment;filename*=UTF-8''" + quoted_filename)
+        ascii_filename = filename.encode('ascii', 'ignore')
+        #content_disposition = "attachment; filename=" + ascii_filename
+        #quoted_filename = urllib.quote(filename.encode('utf-8'))
+        #content_disposition += "; filename filename*=UTF-8''" \
+        #    + quoted_filename
+        #print content_disposition
+        #blob_part.add_header("Content-Disposition:", content_disposition)
+
+        # XXX: Use ASCCI safe version of the filename for now
+        blob_part.add_header('Content-Disposition', 'attachment',
+                             filename=ascii_filename)
 
         blob_part.set_payload(blob)
         container.attach(blob_part)
