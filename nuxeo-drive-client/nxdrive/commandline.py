@@ -168,3 +168,6 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
     return CliHandler().handle(args)
+
+if __name__ == "__main__":
+    main()
