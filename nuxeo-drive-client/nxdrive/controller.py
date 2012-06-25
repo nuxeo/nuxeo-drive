@@ -665,6 +665,9 @@ class Controller(object):
                 logging.warn(
                     "Parent folder of %r/%r is not bound to a remote folder",
                     doc_pair.local_root, doc_pair.path)
+                # Inconsistent state: delete and let the next scan redetect for
+                # now
+                # TODO: how to handle this case in incremental mode?
                 session.delete(doc_pair)
                 session.commit()
                 return
@@ -691,6 +694,9 @@ class Controller(object):
                     "Parent folder of doc %r (%r:%r) is not bound to a local"
                     " folder",
                     name, doc_pair.remote_repo, doc_pair.remote_ref)
+                # Inconsistent state: delete and let the next scan redetect for
+                # now
+                # TODO: how to handle this case in incremental mode?
                 session.delete(doc_pair)
                 session.commit()
                 return
