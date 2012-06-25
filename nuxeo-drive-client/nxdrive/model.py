@@ -272,7 +272,7 @@ class LastKnownState(Base):
 
         elif remote_info.last_modification_time > self.last_remote_updated:
             self.last_remote_updated = remote_info.last_modification_time
-            self.update_state(local_state='modified')
+            self.update_state(remote_state='modified')
             self.remote_digest = remote_info.get_digest()
             self.folderish = remote_info.folderish
             self.remote_name = remote_info.name

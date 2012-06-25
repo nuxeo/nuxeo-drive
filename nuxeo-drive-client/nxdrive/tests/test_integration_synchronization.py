@@ -4,11 +4,7 @@ import shutil
 import tempfile
 from nose import with_setup
 from nose import SkipTest
-from nose.tools import assert_true
-from nose.tools import assert_false
 from nose.tools import assert_equal
-from nose.tools import assert_not_equal
-from nose.tools import assert_raises
 
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
@@ -319,6 +315,11 @@ def test_binding_synchronization_empty_start():
         (u'/Folder 1/Folder 1.2', 'synchronized'),
     ]
     assert_equal(states, expected_states)
+    states = ctl.children_states(expected_folder + '/Folder 1/Folder 1.1')
+    expected_states = [
+        (u'/Folder 1/Folder 1.1/File 2.txt', u'remotely_modified'),
+    ]
+    assert_equal(states, expected_states)
     states = ctl.children_states(expected_folder + '/Folder 2')
     expected_states = [
         (u'/Folder 2/Duplicated File.txt', u'remotely_deleted'),
@@ -344,3 +345,9 @@ def test_binding_synchronization_empty_start():
         (u'/Folder 1/Folder 1.2', 'synchronized'),
     ]
     assert_equal(states, expected_states)
+    assert_equal(local.get_content('/Folder 1/File 1.txt'), "aaaa")
+    assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
+    assert_equal(remote_client.get_content('/Folder 1/File 1.txt'),
+                 "aaaa")
+    assert_equal(remote_client.get_content('/Folder 1/Folder 1.1/File 2.txt'),
+                 "bbbb")
