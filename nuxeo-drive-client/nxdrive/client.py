@@ -93,6 +93,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'name',  # title of the document (not guaranteed to be locally unique)
     'uid',   # ref of the document
     'parent_uid',  # ref of the parent document
+    'path',  # remote path (useful for ordering)
     'folderish',  # True is can host child documents
     'last_modification_time',  # last update time
     'digest',  # digest of the document
@@ -338,7 +339,7 @@ class NuxeoClient(object):
         parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
         return NuxeoDocumentInfo(
             self._base_folder_ref, props['dc:title'], doc['uid'], parent_uid,
-            folderish, last_update, digest)
+            doc['path'], folderish, last_update, digest)
 
     def get_content(self, ref):
         return self.get_blob(ref)

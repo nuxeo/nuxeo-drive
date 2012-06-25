@@ -17,7 +17,6 @@ from sqlalchemy.orm import scoped_session
 
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
-from nxdrive.client import NotFound
 
 # make the declarative base class for the ORM mapping
 Base = declarative_base()
@@ -115,6 +114,7 @@ class LastKnownState(Base):
 
     # Path from root using unix separator, '/' for the root it-self.
     path = Column(String, index=True)
+    remote_path = Column(String)  # for ordering only
 
     # Remote reference (instead of path based lookup)
     remote_ref = Column(String, index=True)
@@ -165,9 +165,10 @@ class LastKnownState(Base):
 
     def __repr__(self):
         return ("LastKnownState<local_root=%r, path=%r, "
-                "local_state=%r, remote_state=%r>") % (
-                self.local_root, self.path, self.local_state,
-                    self.remote_state)
+                "remote_name=%r, local_state=%r, remote_name=%r>") % (
+                    os.path.basename(self.local_root),
+                    self.path, self.remote_name,
+                    self.local_state, self.remote_state)
 
     def get_local_client(self):
         return LocalClient(self.local_root)
@@ -250,6 +251,7 @@ class LastKnownState(Base):
             self.remote_ref = remote_info.uid
             self.remote_parent_ref = remote_info.parent_uid
             self.remote_name = remote_info.name
+            self.remote_path = remote_info.path
 
         if self.remote_ref != remote_info.uid:
             raise ValueError("State %r cannot be mapped to remote doc %r" % (
@@ -259,12 +261,16 @@ class LastKnownState(Base):
             self.last_remote_updated = remote_info.last_modification_time
             self.remote_digest = remote_info.get_digest()
             self.folderish = remote_info.folderish
+            self.remote_name = remote_info.name
+            self.remote_path = remote_info.path
 
         elif remote_info.last_modification_time > self.last_remote_updated:
             self.last_remote_updated = remote_info.last_modification_time
             self.update_state(local_state='modified')
             self.remote_digest = remote_info.get_digest()
             self.folderish = remote_info.folderish
+            self.remote_name = remote_info.name
+            self.remote_path = remote_info.path
 
         # else: nothing to update
 

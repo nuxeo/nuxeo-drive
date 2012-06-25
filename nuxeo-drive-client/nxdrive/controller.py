@@ -548,11 +548,17 @@ class Controller(object):
             return session.query(LastKnownState).filter(
                 LastKnownState.pair_state != 'synchronized',
                 LastKnownState.local_root == local_root
-            ).order_by(asc(LastKnownState.path)).limit(limit).all()
+            ).order_by(
+                asc(LastKnownState.path),
+                asc(LastKnownState.remote_path),
+            ).limit(limit).all()
         else:
             return session.query(LastKnownState).filter(
                 LastKnownState.pair_state != 'synchronized'
-            ).order_by(asc(LastKnownState.path)).limit(limit).all()
+            ).order_by(
+                asc(LastKnownState.path),
+                asc(LastKnownState.remote_path),
+            ).limit(limit).all()
 
     def next_pending(self, local_root=None, session=None):
         """Return the next pending file to synchronize or None"""
@@ -585,10 +591,19 @@ class Controller(object):
         # Update the status the collected info of this file to make sure
         # we won't perfom inconsistent operations
 
-        # TODO: how to refresh the state of something that has not been
-        # linked to a remote resource (just local path or remote ref)?
-        doc_pair.refresh_local(local_client)
-        remote_info = doc_pair.refresh_remote(remote_client)
+        if doc_pair.path is not None:
+            doc_pair.refresh_local(local_client)
+        if doc_pair.remote_ref is not None:
+            remote_info = doc_pair.refresh_remote(remote_client)
+
+        # Detect creation
+        if (doc_pair.local_state == 'unknown'
+            and doc_pair.remote_state == 'unknown'):
+            if doc_pair.remote_ref is not None and doc_pair.path is None:
+                doc_pair.update_state(remote_state='created')
+            if doc_pair.remote_ref is None and doc_pair.path is not None:
+                doc_pair.update_state(local_state='created')
+
         if len(session.dirty):
             # Make refreshed state immediately available to other
             # processes as file transfer can take a long time
@@ -650,7 +665,7 @@ class Controller(object):
             # create the document into
             parent_pair = session.query(LastKnownState).filter_by(
                 local_root=doc_pair.local_root,
-                remote_ref=remote_info.parent_ref
+                remote_ref=remote_info.parent_uid,
             ).one()
             parent_path = parent_pair.path
             if parent_path is None:
@@ -710,7 +725,8 @@ class Controller(object):
                 # Automated conflict resolution based on digest content:
                 doc_pair.update_state('synchronized', 'synchronized')
         else:
-            logging.warn()
+            logging.warn("Unhandled pair_state: %r for %r" %
+                         (doc_pair.pair_state, doc_pair))
 
         # TODO: handle other cases such as moves and lock updates
 

@@ -274,4 +274,4 @@ def test_binding_synchronization_empty_start():
     assert_equal(ctl.children_states(expected_folder), [])
 
     # Let's perform the synchronization
-    #assert_equal(ctl.synchronize(), 11)
+    assert_equal(ctl.synchronize(), 11)
