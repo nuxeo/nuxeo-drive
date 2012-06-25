@@ -149,7 +149,6 @@ def test_local_scan():
     root_2 = join(TEST_SYNCED_FOLDER, 'Folder 2')
 
     client_1 = LocalClient(root_1)
-    client_2 = LocalClient(root_2)
 
     # Folder are registered but empty for now
     assert_equal(ctl.children_states(root_1), [])
@@ -211,7 +210,8 @@ def test_local_scan():
         (u'/Folder 3/Folder 3.1', u'unknown')
     ])
 
-    # Delete some top level folder
+    # Delete the toplevel folder that has not been synchronised to the
+    # server
     client_1.delete('/Folder 3')
     ctl._scan_local(root_1, session)
     assert_equal(ctl.children_states(root_1), [])
