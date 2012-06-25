@@ -314,7 +314,7 @@ def test_binding_synchronization_empty_start():
     expected_states = [
         (u'/Folder 1/File 1.txt', 'locally_modified'),
         (u'/Folder 1/Folder 1.1', 'children_modified'),
-        (u'/Folder 1/Folder 1.2', 'locally_modified'),  # WTF?
+        (u'/Folder 1/Folder 1.2', 'synchronized'),
     ]
     assert_equal(states, expected_states)
     states = ctl.children_states(expected_folder + '/Folder 2')

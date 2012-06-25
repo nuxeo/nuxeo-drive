@@ -217,9 +217,13 @@ class LastKnownState(Base):
 
         elif local_info.last_modification_time > self.last_local_updated:
             self.last_local_updated = local_info.last_modification_time
-            self.update_state(local_state='modified')
-            self.local_digest = local_info.get_digest()
             self.folderish = local_info.folderish
+            if not self.folderish:
+                # The time stamp of folderish folder seems to be updated when
+                # children are added under Linux? Is this the same under OSX
+                # and Windows?
+                self.update_state(local_state='modified')
+            self.local_digest = local_info.get_digest()
 
         # XXX: shall we store local_folderish and remote_folderish to
         # detect such kind of conflicts instead?
