@@ -599,10 +599,10 @@ class Controller(object):
         # Detect creation
         if (doc_pair.local_state == 'unknown'
             and doc_pair.remote_state == 'unknown'):
-            if doc_pair.remote_ref is not None and doc_pair.path is None:
-                doc_pair.update_state(remote_state='created')
             if doc_pair.remote_ref is None and doc_pair.path is not None:
                 doc_pair.update_state(local_state='created')
+            if doc_pair.remote_ref is not None and doc_pair.path is None:
+                doc_pair.update_state(remote_state='created')
 
         if len(session.dirty):
             # Make refreshed state immediately available to other
@@ -680,9 +680,8 @@ class Controller(object):
                 path = local_client.make_file(
                     parent_path, name,
                     content=remote_client.get_content(doc_pair.remote_ref))
-            doc_pair.path = path
             doc_pair.update_state('synchronized', 'synchronized')
-            doc_pair.refresh_local(local_client)
+            doc_pair.update_local(local_client.get_info(path))
 
         elif doc_pair.pair_state == 'locally_deleted':
             if doc_pair.path == '/':

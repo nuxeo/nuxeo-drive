@@ -249,7 +249,6 @@ def test_binding_synchronization_empty_start():
     ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
     ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
     expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
-    local_client = LocalClient(expected_folder)
 
     # Nothing to synchronize by default
     assert_equal(ctl.list_pending(), [])
@@ -260,7 +259,7 @@ def test_binding_synchronization_empty_start():
 
     # By default nothing is detected
     assert_equal(ctl.list_pending(), [])
-    assert_equal(ctl.children_states(expected_folder), [])
+    #assert_equal(ctl.children_states(expected_folder), [])
 
     # Let's scan manually
     session = ctl.get_session()
@@ -271,7 +270,26 @@ def test_binding_synchronization_empty_start():
 
     # ...but nothing is yet visible locally as those files don't exist there
     # yet.
-    assert_equal(ctl.children_states(expected_folder), [])
+    #assert_equal(ctl.children_states(expected_folder), [])
 
     # Let's perform the synchronization
-    assert_equal(ctl.synchronize(), 11)
+    assert_equal(ctl.synchronize(limit=1000), 11)
+
+    # We should now be fully synchronized
+    assert_equal(len(ctl.list_pending()), 0)
+    assert_equal(ctl.children_states(expected_folder), [
+        (u'/File 5.txt', u'synchronized'),
+        (u'/Folder 1', u'synchronized'),
+        (u'/Folder 2', u'synchronized'),
+    ])
+    local = LocalClient(expected_folder)
+    assert_equal(local.get_content('/Folder 1/File 1.txt'), "aaa")
+    assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbb")
+    assert_equal(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
+    assert_equal(local.get_content('/Folder 2/File 4.txt'), "ddd")
+    assert_equal(local.get_content('/Folder 2/Duplicated File.txt'),
+                 "Some content.")
+    assert_equal(local.get_content('/Folder 2/Duplicated File__1.txt'),
+                 "Other content.")
+
+

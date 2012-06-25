@@ -201,12 +201,10 @@ class LastKnownState(Base):
 
         if self.path is None:
             self.path = local_info.path
-            if self.path == '/':
-                self.parent_path = None
-                self.local_name = os.path.basename(self.local_root)
-            else:
-                self.parent_path = os.path.dirname(local_info.path)
-                self.local_name = os.path.basename(self.path)
+            self.local_name = os.path.basename(self.local_root)
+            if self.path != '/':
+                parent_path, _ = local_info.path.rsplit('/', 1)
+                self.parent_path = '/' if parent_path == '' else parent_path
 
         if self.path != local_info.path:
             raise ValueError("State %r cannot be mapped to %r/%r" % (
