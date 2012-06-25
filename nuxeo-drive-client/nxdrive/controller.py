@@ -814,7 +814,7 @@ class Controller(object):
                                          session=session)
         return synchronized
 
-    def loop(self, full_local_scan=True, full_remote_scan=True, delay=5,
+    def loop(self, full_local_scan=True, full_remote_scan=True, delay=10,
              max_sync_step=50, max_loops=None, fault_tolerant=True):
         """Forever loop to scan / refresh states and perform synchronization
 
