@@ -273,7 +273,7 @@ def test_binding_synchronization_empty_start():
     #assert_equal(ctl.children_states(expected_folder), [])
 
     # Let's perform the synchronization
-    assert_equal(ctl.synchronize(limit=1000), 11)
+    assert_equal(ctl.synchronize(limit=100), 11)
 
     # We should now be fully synchronized
     assert_equal(len(ctl.list_pending()), 0)
@@ -299,6 +299,7 @@ def test_binding_synchronization_empty_start():
     remote_client.delete('/Folder 2')
     remote_client.make_folder('/', 'Folder 3')
     remote_client.make_file('/Folder 3', 'File 6.txt')
+    local.make_folder('/', 'Folder 4')
 
     # Rescan
     ctl._scan_local(expected_folder, session)
@@ -309,6 +310,7 @@ def test_binding_synchronization_empty_start():
         (u'/Folder 2', u'children_modified'),  # what do we want for this?
         # Folder 3 is not yet visible has not sync has happen to give it a
         # local path yet
+        (u'/Folder 4', u'unknown'),
     ])
     states = ctl.children_states(expected_folder + '/Folder 1')
     expected_states = [
@@ -322,5 +324,23 @@ def test_binding_synchronization_empty_start():
         (u'/Folder 2/Duplicated File.txt', u'remotely_deleted'),
         (u'/Folder 2/Duplicated File__1.txt', u'remotely_deleted'),
         (u'/Folder 2/File 4.txt', u'remotely_deleted'),
+    ]
+    assert_equal(states, expected_states)
+
+    # Perform synchronization
+    assert_equal(ctl.synchronize(limit=100), 8)
+
+    # We should now be fully synchronized again
+    assert_equal(len(ctl.list_pending()), 0)
+    assert_equal(ctl.children_states(expected_folder), [
+        (u'/Folder 1', 'synchronized'),
+        # WTF is Folder 3?
+        (u'/Folder 4', 'synchronized'),
+    ])
+    states = ctl.children_states(expected_folder + '/Folder 1')
+    expected_states = [
+        (u'/Folder 1/File 1.txt', 'synchronized'),
+        (u'/Folder 1/Folder 1.1', 'synchronized'),
+        (u'/Folder 1/Folder 1.2', 'synchronized'),
     ]
     assert_equal(states, expected_states)

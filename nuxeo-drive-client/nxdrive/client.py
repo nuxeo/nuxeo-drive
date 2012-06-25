@@ -307,17 +307,12 @@ class NuxeoClient(object):
 
     def get_info(self, ref, raise_if_missing=True):
         ref = self._check_ref(ref)
-        try:
-            doc = self.fetch(ref)
-        except urllib2.HTTPError as e:
-            if e.code == 404:
-                if raise_if_missing:
-                    raise NotFound("Could not find '%s' on '%s'" % (
-                        ref, self.server_url))
-                return None
-            else:
-                raise e
-        return self._doc_to_info(doc)
+        if not self.exists(ref):
+            if raise_if_missing:
+                raise NotFound("Could not find '%s' on '%s'" % (
+                    ref, self.server_url))
+            return None
+        return self._doc_to_info(self.fetch(ref))
 
     def _doc_to_info(self, doc):
         """Convert Automation document description to NuxeoDocumentInfo"""

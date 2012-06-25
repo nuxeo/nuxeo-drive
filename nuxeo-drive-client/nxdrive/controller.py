@@ -122,7 +122,8 @@ class Controller(object):
         children_states = session.query(LastKnownState).filter_by(
             local_root=local_root).filter(f).order_by(
                 asc(LastKnownState.local_name),
-                asc(LastKnownState.remote_name)).all()
+                asc(LastKnownState.remote_name),
+            ).all()
 
         results = []
         for child_state in children_states:
@@ -656,7 +657,7 @@ class Controller(object):
                 remote_ref = remote_client.make_file(
                     parent_ref, name,
                     content=local_client.get_content(doc_pair.path))
-            doc_pair.update_local(remote_client.get_info(remote_ref))
+            doc_pair.update_remote(remote_client.get_info(remote_ref))
             doc_pair.update_state('synchronized', 'synchronized')
 
         elif doc_pair.pair_state == 'remotely_created':
@@ -691,7 +692,7 @@ class Controller(object):
                 if doc_pair.remote_ref is not None:
                     # TODO: handle trash management with a dedicated server
                     # side operations?
-                    remote_client.delete(remote_ref)
+                    remote_client.delete(doc_pair.remote_ref)
                 # XXX: shall we also delete all the subcontent / folder at
                 # once in the medata table?
                 session.delete(doc_pair)
