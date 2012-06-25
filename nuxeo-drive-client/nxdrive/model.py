@@ -32,8 +32,10 @@ PAIR_STATES = {
     ('synchronized', 'synchronized'): 'synchronized',
     ('created', 'unknown'): 'locally_created',
     ('unknown', 'created'): 'remotely_created',
-    ('modified', 'synchronized'): 'locally_modified',
-    ('synchronized', 'modified'): 'remotely_modified',
+    ('modified', 'synchronized'): 'locally_modified',  # TODO: check
+    ('synchronized', 'modified'): 'remotely_modified',  # TODO: check
+    ('modified', 'unknown'): 'locally_modified',
+    ('unknown', 'modified'): 'remotely_modified',
     ('deleted', 'synchronized'): 'locally_deleted',
     ('synchronized', 'deleted'): 'remotely_deleted',
     ('deleted', 'deleted'): 'deleted',
