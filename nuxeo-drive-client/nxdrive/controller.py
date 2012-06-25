@@ -20,6 +20,11 @@ from sqlalchemy import asc
 from sqlalchemy import not_
 from sqlalchemy import or_
 
+try:
+    from exceptions import WindowsError
+except ImportError:
+    WindowsError = None  # this will never be raised under unix
+
 
 class Controller(object):
     """Manage configuration and perform Nuxeo Drive Operations
@@ -423,14 +428,22 @@ class Controller(object):
                 # Try to find an existing remote doc that has not yet been
                 # bound to any local file that would align with both name
                 # and digest
-                child_pair = session.query(LastKnownState).filter_by(
-                    local_root=local_root,
-                    path=None,
-                    remote_parent_ref=doc_pair.remote_ref,
-                    remote_name=child_name,
-                    folderish=child_info.folderish,
-                    remote_digest=child_info.get_digest(),
-                ).first()
+                try:
+                    child_digest = child_info.get_digest()
+                    child_pair = session.query(LastKnownState).filter_by(
+                        local_root=local_root,
+                        path=None,
+                        remote_parent_ref=doc_pair.remote_ref,
+                        remote_name=child_name,
+                        folderish=child_info.folderish,
+                        remote_digest=child_digest,
+                    ).first()
+                except (IOError, WindowsError):
+                    # The file is currently being accessed and we cannot
+                    # compute the digest
+                    logging.debug("Cannot perform alignment of %r using"
+                            " digest info due to concurrent file access",
+                            local_info.filepath)
 
             if child_pair is None:
                 # Previous attempt has failed: relax the digest constraint
@@ -644,15 +657,19 @@ class Controller(object):
                 )
                 doc_pair.refresh_remote(remote_client)
             doc_pair.update_state('synchronized', 'synchronized')
-
+              
         elif doc_pair.pair_state == 'remotely_modified':
-            if doc_pair.remote_digest != doc_pair.local_digest:
-                local_client.update_content(
-                    doc_pair.path,
-                    remote_client.get_content(doc_pair.remote_ref),
-                )
-                doc_pair.refresh_local(local_client)
-            doc_pair.update_state('synchronized', 'synchronized')
+            try:
+                if doc_pair.remote_digest != doc_pair.local_digest != None:
+                    local_client.update_content(
+                        doc_pair.path,
+                        remote_client.get_content(doc_pair.remote_ref),
+                    )
+                    doc_pair.refresh_local(local_client)
+                doc_pair.update_state('synchronized', 'synchronized')
+            except (IOError, WindowsError):
+                logging.debug("Delaying update for remotely modified "
+                        "content %r due to concurrent file access.", doc_pair)
 
         elif doc_pair.pair_state == 'locally_created':
             name = os.path.basename(doc_pair.path)
@@ -731,10 +748,11 @@ class Controller(object):
                     session.delete(doc_pair)
                     # XXX: shall we also delete all the subcontent / folder at
                     # once in the medata table?
-                except OSError:
+                except (IOError, WindowsError) as e:
                     # Under Windows deletion can be impossible while another
                     # process is accessing the same file (e.g. word processor)
-                    # TODO: be more specific as detecting this case
+                    # TODO: be more specific as detecting this case:
+                    # shall we restrict to the case e.errno == 13 ?
                     logging.debug("Deletion of %r/%r delayed due to concurrent"
                                   "editing of this file by another process.",
                                   doc_pair.local_root, doc_pair.path)

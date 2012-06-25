@@ -1,5 +1,6 @@
 
 
+import logging
 import os
 import datetime
 from sqlalchemy import Column
@@ -17,6 +18,12 @@ from sqlalchemy.orm import scoped_session
 
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
+
+try:
+    from exceptions import WindowsError
+except ImportError:
+    WindowsError = None  # this will never be raised under unix
+
 
 # make the declarative base class for the ORM mapping
 Base = declarative_base()
@@ -215,10 +222,13 @@ class LastKnownState(Base):
             raise ValueError("State %r cannot be mapped to %r/%r" % (
                 self, local_info.base_folder, local_info.path))
 
+        # Shall we recompute the digest from the current file?
+        update_digest = self.local_digest == None
+
         if self.last_local_updated is None:
             self.last_local_updated = local_info.last_modification_time
-            self.local_digest = local_info.get_digest()
             self.folderish = local_info.folderish
+            update_digest = True
 
         elif local_info.last_modification_time > self.last_local_updated:
             self.last_local_updated = local_info.last_modification_time
@@ -228,7 +238,17 @@ class LastKnownState(Base):
                 # children are added under Linux? Is this the same under OSX
                 # and Windows?
                 self.update_state(local_state='modified')
-            self.local_digest = local_info.get_digest()
+            update_digest = True
+
+        if update_digest:
+            try:
+                self.local_digest = local_info.get_digest()
+            except (IOError, WindowsError):
+                # This can fail when another process is writing the same file
+                # let's postpone digest computation in that case
+                logging.debug("Delaying local digest computation for %r"
+                        " due to possible concurrent file access.",
+                        local_info.filepath)
 
         # XXX: shall we store local_folderish and remote_folderish to
         # detect such kind of conflicts instead?

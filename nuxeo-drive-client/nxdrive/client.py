@@ -149,7 +149,9 @@ class LocalClient(object):
         children = os.listdir(os_path)
         children.sort()
         for child_name in children:
-            if not child_name.startswith('.'):  # ignore hidden unix files
+            if (not child_name.startswith('.')
+                and not child_name.startswith('~$')):
+				# ignore hidden unix files and windows locks
                 if ref == '/':
                     child_ref = ref + child_name
                 else:
