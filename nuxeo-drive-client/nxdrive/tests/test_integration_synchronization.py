@@ -371,6 +371,16 @@ def test_binding_synchronization_empty_start():
         (u'/Folder 4', 'synchronized'),
     ])
 
+    # Send some binary data that is not valid in utf-8 or ascii (to test the
+    # HTTP / Multipart transform layer).
+    local.update_content('/Folder 1/File 1.txt', "\x80")
+    remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', '\x80')
+    ctl._scan_local(expected_folder, session)
+    ctl._scan_remote(expected_folder, session)
+    assert_equal(ctl.synchronize(limit=100), 2)
+    assert_equal(remote_client.get_content('/Folder 1/File 1.txt'), "\x80")
+    assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
+
 
 @with_integration_env
 def test_synchronization_loop():
