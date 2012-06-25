@@ -67,7 +67,7 @@ class Controller(object):
         """Stop the Nuxeo Drive daemon"""
         # TODO
 
-    def children_states(self, folder_path):
+    def children_states(self, folder_path, full_states=False):
         """List the status of the children of a folder
 
         The state of the folder is a summary of their descendant rather
@@ -98,6 +98,11 @@ class Controller(object):
 
         states = self._pair_states_recursive(binding.local_root, session,
                                              folder_state)
+        if full_states:
+            return [(s, pair_state) for s, pair_state in states
+                    if (s.parent_path == path
+                        or s.remote_parent_ref == folder_state.remote_ref)]
+
         return [(s.path, pair_state) for s, pair_state in states
                 if s.path is not None and s.parent_path == path]
 

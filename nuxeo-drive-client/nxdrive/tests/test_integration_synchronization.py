@@ -293,8 +293,8 @@ def test_binding_synchronization_empty_start():
     local.update_content('/Folder 1/File 1.txt', 'aaaa')
     remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', 'bbbb')
     remote_client.delete('/Folder 2')
-    remote_client.make_folder('/', 'Folder 3')
-    remote_client.make_file('/Folder 3', 'File 6.txt')
+    f3 = remote_client.make_folder(TEST_WORKSPACE, 'Folder 3')
+    remote_client.make_file(f3, 'File 6.txt', content='ffff')
     local.make_folder('/', 'Folder 4')
 
     # Rescan
@@ -308,6 +308,12 @@ def test_binding_synchronization_empty_start():
         # local path yet
         (u'/Folder 4', u'unknown'),
     ])
+    # It is possible to fetch the full children states of the root though:
+    full_states = ctl.children_states(expected_folder, full_states=True)
+    assert_equal(len(full_states), 5)
+    assert_equal(full_states[0][0].remote_name, 'Folder 3')
+    assert_equal(full_states[0][1], 'children_modified')
+
     states = ctl.children_states(expected_folder + '/Folder 1')
     expected_states = [
         (u'/Folder 1/File 1.txt', 'locally_modified'),
@@ -329,13 +335,13 @@ def test_binding_synchronization_empty_start():
     assert_equal(states, expected_states)
 
     # Perform synchronization
-    assert_equal(ctl.synchronize(limit=100), 8)
+    assert_equal(ctl.synchronize(limit=100), 10)
 
     # We should now be fully synchronized again
     assert_equal(len(ctl.list_pending()), 0)
     assert_equal(ctl.children_states(expected_folder), [
         (u'/Folder 1', 'synchronized'),
-        # WTF is Folder 3?
+        (u'/Folder 3', 'synchronized'),
         (u'/Folder 4', 'synchronized'),
     ])
     states = ctl.children_states(expected_folder + '/Folder 1')
@@ -347,7 +353,10 @@ def test_binding_synchronization_empty_start():
     assert_equal(states, expected_states)
     assert_equal(local.get_content('/Folder 1/File 1.txt'), "aaaa")
     assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
+    assert_equal(local.get_content('/Folder 3/File 6.txt'), "ffff")
     assert_equal(remote_client.get_content('/Folder 1/File 1.txt'),
                  "aaaa")
     assert_equal(remote_client.get_content('/Folder 1/Folder 1.1/File 2.txt'),
                  "bbbb")
+    assert_equal(remote_client.get_content('/Folder 3/File 6.txt'),
+                 "ffff")
