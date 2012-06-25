@@ -190,6 +190,7 @@ class Controller(object):
     def bind_server(self, local_folder, server_url, username, password):
         """Bind a local folder to a remote nuxeo server"""
         session = self.get_session()
+        local_folder = os.path.abspath(os.path.expanduser(local_folder))
         try:
             server_binding = session.query(ServerBinding).filter(
                 ServerBinding.local_folder == local_folder).one()
@@ -207,6 +208,12 @@ class Controller(object):
 
         session.add(ServerBinding(local_folder, server_url, username,
                                        password))
+
+        # Create the local folder to host the synchronized files: this
+        # is useless as long as bind_root is not called
+        if not os.path.exists(local_folder):
+            os.makedirs(local_folder)
+
         session.commit()
 
     def unbind_server(self, local_folder):
@@ -214,6 +221,7 @@ class Controller(object):
 
         Local files are not deleted"""
         session = self.get_session()
+        local_folder = os.path.abspath(os.path.expanduser(local_folder))
         binding = self.get_server_binding(local_folder, raise_if_missing=True,
                                           session=session)
         session.delete(binding)
@@ -226,6 +234,7 @@ class Controller(object):
         It is the responsability of the caller to commit any change in
         the same thread if needed.
         """
+        local_root = os.path.abspath(os.path.expanduser(local_root))
         if session is None:
             session = self.get_session()
         try:
@@ -252,6 +261,7 @@ class Controller(object):
         """
         # Check that local_root is a subfolder of bound folder
         session = self.get_session()
+        local_folder = os.path.abspath(os.path.expanduser(local_folder))
         server_binding = self.get_server_binding(local_folder,
                                                  raise_if_missing=True,
                                                  session=session)
@@ -285,7 +295,7 @@ class Controller(object):
                 'Cannot initialize binding to existing local folder: %s'
                 % local_root)
 
-        os.mkdir(local_root)
+        os.makedirs(local_root)
         lcclient = LocalClient(local_root)
         local_info = lcclient.get_info('/')
 
@@ -335,6 +345,7 @@ class Controller(object):
 
     def unbind_root(self, local_root, session=None):
         """Remove binding on a root folder"""
+        local_root = os.path.abspath(os.path.expanduser(local_root))
         if session is None:
             session = self.get_session()
         binding = self.get_root_binding(local_root, raise_if_missing=True,
@@ -762,9 +773,9 @@ class Controller(object):
                     synchronized += 1
                 except Exception as e:
                     logging.error("Failed to synchronize %r: %r", doc_pair, e)
-                    # TODO: flag pending and all descendant as failed with a time
-                    # stamp and make next_pending ignore recently (e.g. up to 30s)
-                    # failed synchronized pairs
+                    # TODO: flag pending and all descendant as failed with a
+                    # time stamp and make next_pending ignore recently (e.g.
+                    # up to 30s) failed synchronized pairs
                     raise NotImplementedError(
                         'Fault tolerant synchronization not implemented yet.')
             else:

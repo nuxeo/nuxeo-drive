@@ -59,10 +59,15 @@ def make_cli_parser():
         help='Attach a local folder as a root for synchronization.')
     bind_root_parser.set_defaults(command='bind_root')
     bind_root_parser.add_argument(
-        "local_root", help="Local sub-folder to synchronize.")
-    bind_root_parser.add_argument(
         "remote_root",
         help="Remote path or id reference of a folder to sychronize.")
+    bind_root_parser.add_argument(
+        "--local-folder",
+        help="Local folder that will host the list of synchronized"
+        " workspaces with a remote Nuxeo server. Must be bound with the"
+        " 'bind-server' command.",
+        default=DEFAULT_NX_DRIVE_FOLDER,
+    )
     bind_root_parser.add_argument(
         "--remote-repo", default='default',
         help="Name of the remote repository.")
@@ -81,6 +86,10 @@ def make_cli_parser():
     stop_parser = subparsers.add_parser(
         'stop', help='Stop the synchronization daemon')
     stop_parser.set_defaults(command='stop')
+    start_parser = subparsers.add_parser(
+        'console',
+        help='Start the synchronization with detaching the process.')
+    start_parser.set_defaults(command='console')
 
     # Introspect current synchronization status
     status_parser = subparsers.add_parser(
@@ -119,6 +128,13 @@ class CliHandler(object):
         self.controller.stop()
         return 0
 
+    def console(self, options):
+        try:
+            self.controller.loop()
+        except KeyboardInterrupt:
+            self.controller.get_session().rollback()
+        return 0
+
     def status(self, options):
         states = self.controller.status(options.files)
         for filename, status in states:
@@ -139,8 +155,8 @@ class CliHandler(object):
         return 0
 
     def bind_root(self, options):
-        self.controller.bind_root(options.local_root, options.remote_repo,
-                                    options.remote_root)
+        self.controller.bind_root(options.local_folder, options.remote_root,
+                                  repository=options.remote_root)
         return 0
 
     def unbind_root(self, options):
