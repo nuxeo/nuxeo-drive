@@ -18,6 +18,7 @@ from nxdrive.client import NotFound
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import asc
 from sqlalchemy import not_
+from sqlalchemy import or_
 
 
 class Controller(object):
@@ -67,19 +68,14 @@ class Controller(object):
         # TODO
 
     def children_states(self, folder_path):
-        """Fetch the status of the children of a folder
+        """List the status of the children of a folder
 
         The state of the folder is a summary of their descendant rather
         than their own instric synchronization step which is of little
         use for the end user.
 
-        Warning the current implementation of this method is not very scalable
-        as it loads all the descendants info in memory and do some complex
-        filtering on them in Python rather than SQL.
-
-        Maybe another data model could be devised to make it possible
-        to compute the same filtering in SQL instead, probably by materializing
-        the pair state directly in the database.
+        If full is True the full state object is returned instead of just the
+        local path.
         """
         session = self.get_session()
         server_binding = self.get_server_binding(folder_path, session=session)
@@ -92,47 +88,57 @@ class Controller(object):
         # Find the root binding for this absolute path
         binding, path = self._binding_path(folder_path, session=session)
 
-        # find the python list of all the descendants of path ordered by
-        # path and then aggregate state for folderish documents using a OR
-        # operation on "to synchronize"
-        states = session.query(LastKnownState).filter(
-            LastKnownState.local_root == binding.local_root
-        ).order_by(asc(LastKnownState.path)).all()
+        try:
+            folder_state = session.query(LastKnownState).filter_by(
+                local_root=binding.local_root,
+                path=path,
+            ).one()
+        except NoResultFound:
+            return []
+
+        states = self._pair_states_recursive(binding.local_root, session,
+                                             folder_state)
+        return [(s.path, pair_state) for s, pair_state in states
+                if s.path is not None and s.parent_path == path]
+
+    def _pair_states_recursive(self, local_root, session, doc_pair):
+        """TODO: write me"""
+        if not doc_pair.folderish:
+            return [(doc_pair, doc_pair.pair_state)]
+
+        if doc_pair.path is not None and doc_pair.remote_ref is not None:
+            f = or_(
+                LastKnownState.parent_path == doc_pair.path,
+                LastKnownState.remote_parent_ref == doc_pair.remote_ref,
+            )
+        elif doc_pair.path is not None:
+            f = LastKnownState.parent_path == doc_pair.path
+        elif doc_pair.remote_ref is not None:
+            f = LastKnownState.remote_parent_ref == doc_pair.remote_ref
+        else:
+            raise ValueError("Illegal state %r: at least path or remote_ref"
+                             " should be not None." % doc_pair)
+
+        children_states = session.query(LastKnownState).filter_by(
+            local_root=local_root).filter(f).order_by(
+                asc(LastKnownState.local_name),
+                asc(LastKnownState.remote_name)).all()
+
         results = []
-        candidate_folder_path = None
-        candidate_folder_state = None
-        for state in states:
-            if state.parent_path == path:
-                if candidate_folder_path is not None:
-                    # we have now collected enough information on the previous
-                    # candidate folder
-                    results.append(
-                        (candidate_folder_path, candidate_folder_state))
-                    candidate_folder_path, candidate_folder_state = None, None
+        for child_state in children_states:
+            sub_results = self._pair_states_recursive(
+                local_root, session, child_state)
+            results.extend(sub_results)
 
-                if state.folderish:
-                    # need to inspect the following elements (potential
-                    # descendants) to know if the folder has any descendant
-                    # that needs synchronization
-                    candidate_folder_path = state.path
-                    candidate_folder_state = state.pair_state
-                    continue
-                else:
-                    # this is a non-folderish direct child, collect info
-                    # directly
-                    results.append((state.path, state.pair_state))
-
-            elif candidate_folder_state not in (None, 'children_modified'):
-                if (not state.folderish
-                    and state.pair_state != 'synchronized'):
-                        # this is a non-synchronized descendant of the current
-                        # folder candidate: invalidate it
-                        candidate_folder_state = 'children_modified'
-
-        if candidate_folder_state is not None:
-            results.append((candidate_folder_path, candidate_folder_state))
-
-        return results
+        # A folder stays synchronized (or unknown) only if all the descendants
+        # are themselfves synchronized.
+        pair_state = doc_pair.pair_state
+        for _, sub_pair_state in results:
+            if sub_pair_state != 'synchronized':
+                pair_state = 'children_modified'
+            break
+        # Pre-pend the folder state to the descendants
+        return [(doc_pair, pair_state)] + results
 
     def _binding_path(self, folder_path, session=None):
         """Find a root binding and relative path for a given FS path"""
@@ -470,15 +476,15 @@ class Controller(object):
             return
 
         # detect recently deleted children
-        children_info = client.get_children_info(remote_info.remote_ref)
-        children_path = set(c.path for c in children_info)
+        children_info = client.get_children_info(remote_info.uid)
+        children_refs = set(c.uid for c in children_info)
 
         q = session.query(LastKnownState).filter_by(
             local_root=local_root,
             remote_parent_ref=remote_info.uid,
         )
-        if len(children_path) > 0:
-            q = q.filter(not_(LastKnownState.path.in_(children_path)))
+        if len(children_refs) > 0:
+            q = q.filter(not_(LastKnownState.remote_ref.in_(children_refs)))
 
         for deleted in q.all():
             self._mark_deleted_remote_recursive(local_root, session, deleted)
@@ -488,7 +494,7 @@ class Controller(object):
 
             # TODO: detect whether this is a __digit suffix name and relax the
             # alignment queries accordingly
-            child_name = child_info.remote_name
+            child_name = child_info.name
             child_pair = session.query(LastKnownState).filter_by(
                 local_root=local_root,
                 remote_ref=child_info.uid).first()
@@ -518,8 +524,8 @@ class Controller(object):
 
             if child_pair is None:
                 # Could not find any pair state to align to, create one
-                child_pair = LastKnownState(local_root,
-                                            remote_info=remote_info)
+                child_pair = LastKnownState(
+                    local_root, remote_info=child_info)
                 session.add(child_pair)
 
             self._scan_remote_recursive(local_root, session, client,

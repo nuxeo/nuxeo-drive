@@ -251,5 +251,27 @@ def test_binding_synchronization_empty_start():
     expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
     local_client = LocalClient(expected_folder)
 
+    # Nothing to synchronize by default
     assert_equal(ctl.list_pending(), [])
     assert_equal(ctl.synchronize(), 0)
+
+    # Let's create some document on the server
+    make_server_tree()
+
+    # By default nothing is detected
+    assert_equal(ctl.list_pending(), [])
+    assert_equal(ctl.children_states(expected_folder), [])
+
+    # Let's scan manually
+    session = ctl.get_session()
+    ctl._scan_remote(expected_folder, session)
+
+    # Changes on the remote server have been detected...
+    assert_equal(len(ctl.list_pending()), 11)
+
+    # ...but nothing is yet visible locally as those files don't exist there
+    # yet.
+    assert_equal(ctl.children_states(expected_folder), [])
+
+    # Let's perform the synchronization
+    #assert_equal(ctl.synchronize(), 11)

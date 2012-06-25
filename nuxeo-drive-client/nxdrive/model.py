@@ -98,8 +98,9 @@ class LastKnownState(Base):
     """Aggregate state aggregated from last collected events."""
     __tablename__ = 'last_known_states'
 
+    id = Column(Integer, Sequence('state_id_seq'), primary_key=True)
     local_root = Column(String, ForeignKey('root_bindings.local_root'),
-                        primary_key=True)
+                        index=True)
     root_binding = relationship(
         'RootBinding',
         backref=backref("states", cascade="all, delete-orphan"))
@@ -113,7 +114,7 @@ class LastKnownState(Base):
     remote_digest = Column(String, index=True)
 
     # Path from root using unix separator, '/' for the root it-self.
-    path = Column(String, primary_key=True)
+    path = Column(String, index=True)
 
     # Remote reference (instead of path based lookup)
     remote_ref = Column(String, index=True)
