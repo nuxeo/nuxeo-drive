@@ -660,13 +660,15 @@ class Controller(object):
             # create the document
             parent_pair = session.query(LastKnownState).filter_by(
                 local_root=doc_pair.local_root, path=doc_pair.parent_path
-            ).one()
-            parent_ref = parent_pair.remote_ref
-            if parent_ref is None:
+            ).first()
+            if parent_pair is None or parent_pair.remote_ref is None:
                 logging.warn(
                     "Parent folder of %r/%r is not bound to a remote folder",
                     doc_pair.local_root, doc_pair.path)
+                session.delete(doc_pair)
+                session.commit()
                 return
+            parent_ref = parent_pair.remote_ref
             if doc_pair.folderish:
                 remote_ref = remote_client.make_folder(parent_ref, name)
             else:
@@ -683,14 +685,16 @@ class Controller(object):
             parent_pair = session.query(LastKnownState).filter_by(
                 local_root=doc_pair.local_root,
                 remote_ref=remote_info.parent_uid,
-            ).one()
-            parent_path = parent_pair.path
-            if parent_path is None:
+            ).first()
+            if parent_pair is None or parent_pair.path is None:
                 logging.warn(
                     "Parent folder of doc %r (%r:%r) is not bound to a local"
                     " folder",
                     name, doc_pair.remote_repo, doc_pair.remote_ref)
+                session.delete(doc_pair)
+                session.commit()
                 return
+            parent_path = parent_pair.path
             if doc_pair.folderish:
                 path = local_client.make_folder(parent_path, name)
             else:
@@ -810,27 +814,27 @@ class Controller(object):
                and (max_loops is None or loop_count <= max_loops)):
             for rb in session.query(RootBinding).all():
                 has_done_scan = True
-                try:
-                    # the alternative to local full scan is the watchdog
-                    # thread
-                    if full_local_scan or first_pass:
-                        self._scan_local(rb.local_root, session)
-                        has_done_scan = True
+                #try:
+                # the alternative to local full scan is the watchdog
+                # thread
+                if full_local_scan or first_pass:
+                    self._scan_local(rb.local_root, session)
+                    has_done_scan = True
 
-                    if full_remote_scan or first_pass:
-                        self._scan_remote(rb.local_root, session)
-                        has_done_scan = True
-                    else:
-                        self.refresh_remote_from_log(rb.remote_ref)
+                if full_remote_scan or first_pass:
+                    self._scan_remote(rb.local_root, session)
+                    has_done_scan = True
+                else:
+                    self.refresh_remote_from_log(rb.remote_ref)
 
-                    self.synchronize(limit=max_sync_step,
-                                     local_root=rb.local_root,
-                                     fault_tolerant=fault_tolerant)
-                except Exception as e:
-                    # TODO: catch network related errors and log them at debug
-                    # level instead as we expect the daemon to work even in
-                    # offline mode without crashing
-                    logging.error(e)
+                self.synchronize(limit=max_sync_step,
+                                 local_root=rb.local_root,
+                                 fault_tolerant=fault_tolerant)
+                #except IOError as e:
+                #    # TODO: catch network related errors and log them at debug
+                #    # level instead as we expect the daemon to work even in
+                #    # offline mode without crashing
+                #    logging.error(e)
 
             # safety net to ensure that Nuxe Drive won't eat all the CPU, disk
             # and network resources of the machine scanning over an over the

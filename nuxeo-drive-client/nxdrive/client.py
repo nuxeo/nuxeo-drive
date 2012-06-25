@@ -488,11 +488,11 @@ class NuxeoClient(object):
         )
         req = urllib2.Request(self.automation_url + "Blob.Attach",
                               data, headers)
-        try:
-            resp = self.opener.open(req)
-        except Exception, e:
-            self._handle_error(e)
-            raise e
+        #try:
+        resp = self.opener.open(req)
+        #except Exception, e:
+        #    self._handle_error(e)
+        #    raise e
         s = resp.read()
         return s
 

@@ -130,7 +130,7 @@ class CliHandler(object):
 
     def console(self, options):
         try:
-            self.controller.loop()
+            self.controller.loop(fault_tolerant=False)
         except KeyboardInterrupt:
             self.controller.get_session().rollback()
         return 0
