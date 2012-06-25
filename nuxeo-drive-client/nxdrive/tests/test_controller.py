@@ -206,7 +206,7 @@ def test_local_scan():
         (u'/Folder 3', 'children_modified'),
     ])
     assert_equal(ctl.children_states(folder_3_abs), [
-        (u'/Folder 3/File 2.txt', u'unknown'),
+        (u'/Folder 3/File 2.txt', u'locally_modified'),
         (u'/Folder 3/File 3.txt', u'unknown'),
         (u'/Folder 3/Folder 3.1', u'unknown')
     ])
