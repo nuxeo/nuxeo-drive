@@ -252,6 +252,7 @@ class NuxeoClient(object):
         # fetch the root folder ref
         base_folder = base_folder if not None else '/'
         self._base_folder_ref = self.fetch(base_folder)['uid']
+        self._base_folder_path = self.fetch(base_folder)['path']
 
     def fetch_api(self):
         headers = {
@@ -274,6 +275,7 @@ class NuxeoClient(object):
     #
 
     def exists(self, ref):
+        ref = self._check_ref(ref)
         if ref.startswith('/'):
             results = self.query(
                 "SELECT * FROM Document WHERE ecm:path = '%s' LIMIT 1" % ref)
@@ -283,6 +285,7 @@ class NuxeoClient(object):
         return len(results[u'entries']) == 1
 
     def get_children_info(self, ref):
+        ref = self._check_ref(ref)
         # TODO: make the list of document type to synchronize configurable or
         # maybe use a dedicated facet
         types = ['File', 'Workspace', 'Folder', 'SocialFolder']
@@ -303,6 +306,7 @@ class NuxeoClient(object):
         return [self._doc_to_info(d) for d in results]
 
     def get_info(self, ref, raise_if_missing=True):
+        ref = self._check_ref(ref)
         try:
             doc = self.fetch(ref)
         except urllib2.HTTPError as e:
@@ -342,12 +346,20 @@ class NuxeoClient(object):
             doc['path'], folderish, last_update, digest)
 
     def get_content(self, ref):
+        ref = self._check_ref(ref)
         return self.get_blob(ref)
 
     def update_content(self, ref, content, name=None):
+        ref = self._check_ref(ref)
         if name is None:
             name = self.get_info(ref).name
-        self.attach_blob(content, name)
+        self.attach_blob(ref, content, name)
+
+    def _check_ref(self, ref):
+        if (ref.startswith('/')
+            and not ref.startswith(self._base_folder_path + '/')):
+            ref = os.path.join(self._base_folder_path, ref[1:])
+        return ref
 
     def make_folder(self, parent, name):
         # TODO: make it possible to configure context dependent:
@@ -390,6 +402,7 @@ class NuxeoClient(object):
             xpath=xpath, value=value)
 
     def delete(self, ref):
+        ref = self._check_ref(ref)
         return self._execute("Document.Delete", input="doc:" + ref)
 
     def get_children(self, ref):

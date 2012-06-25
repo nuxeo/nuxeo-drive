@@ -291,3 +291,36 @@ def test_binding_synchronization_empty_start():
                  "Some content.")
     assert_equal(local.get_content('/Folder 2/Duplicated File__1.txt'),
                  "Other content.")
+
+    # Let do some local and remote changes concurrently
+    local.delete('/File 5.txt')
+    local.update_content('/Folder 1/File 1.txt', 'aaaa')
+    remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', 'bbbb')
+    remote_client.delete('/Folder 2')
+    remote_client.make_folder('/', 'Folder 3')
+    remote_client.make_file('/Folder 3', 'File 6.txt')
+
+    # Rescan
+    ctl._scan_local(expected_folder, session)
+    ctl._scan_remote(expected_folder, session)
+    assert_equal(ctl.children_states(expected_folder), [
+        (u'/File 5.txt', u'locally_deleted'),
+        (u'/Folder 1', u'children_modified'),
+        (u'/Folder 2', u'children_modified'),  # what do we want for this?
+        # Folder 3 is not yet visible has not sync has happen to give it a
+        # local path yet
+    ])
+    states = ctl.children_states(expected_folder + '/Folder 1')
+    expected_states = [
+        (u'/Folder 1/File 1.txt', 'locally_modified'),
+        (u'/Folder 1/Folder 1.1', 'children_modified'),
+        (u'/Folder 1/Folder 1.2', 'locally_modified'),  # WTF?
+    ]
+    assert_equal(states, expected_states)
+    states = ctl.children_states(expected_folder + '/Folder 2')
+    expected_states = [
+        (u'/Folder 2/Duplicated File.txt', u'remotely_deleted'),
+        (u'/Folder 2/Duplicated File__1.txt', u'remotely_deleted'),
+        (u'/Folder 2/File 4.txt', u'remotely_deleted'),
+    ]
+    assert_equal(states, expected_states)

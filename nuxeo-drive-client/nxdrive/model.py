@@ -244,6 +244,7 @@ class LastKnownState(Base):
                                      'synchronized'):
                 self.update_state(remote_state='deleted')
                 self.remote_digest = None
+            return
 
         if self.remote_ref is None:
             self.remote_ref = remote_info.uid

@@ -449,7 +449,8 @@ class Controller(object):
         """Update the metadata of the descendants of remotely deleted doc"""
         # delete descendants first
         children = session.query(LastKnownState).filter_by(
-            local_root=local_root, remote_parent_ref=doc_pair.parent_uid).all()
+            local_root=local_root,
+            remote_parent_ref=doc_pair.remote_ref).all()
         for child in children:
             self._mark_deleted_remote_recursive(local_root, session, child)
 
@@ -655,9 +656,8 @@ class Controller(object):
                 remote_ref = remote_client.make_file(
                     parent_ref, name,
                     content=local_client.get_content(doc_pair.path))
-            doc_pair.remote_ref = remote_ref
+            doc_pair.update_local(remote_client.get_info(remote_ref))
             doc_pair.update_state('synchronized', 'synchronized')
-            doc_pair.refresh_remote(remote_client)
 
         elif doc_pair.pair_state == 'remotely_created':
             name = remote_info.name
@@ -680,8 +680,8 @@ class Controller(object):
                 path = local_client.make_file(
                     parent_path, name,
                     content=remote_client.get_content(doc_pair.remote_ref))
-            doc_pair.update_state('synchronized', 'synchronized')
             doc_pair.update_local(local_client.get_info(path))
+            doc_pair.update_state('synchronized', 'synchronized')
 
         elif doc_pair.pair_state == 'locally_deleted':
             if doc_pair.path == '/':
