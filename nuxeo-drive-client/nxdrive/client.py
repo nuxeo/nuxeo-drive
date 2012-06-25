@@ -293,6 +293,7 @@ class NuxeoClient(object):
             "SELECT * FROM Document"
             "       WHERE ecm:parentId = '%s'"
             "       AND ecm:primaryType IN ('%s')"
+            "       AND ecm:currentLifeCycleState != 'deleted'"
             "       ORDER BY dc:title, dc:created LIMIT %d"
         ) % (ref, "', '".join(types), MAX_CHILDREN)
 
@@ -490,7 +491,7 @@ class NuxeoClient(object):
         req = urllib2.Request(url, data, headers)
         #try:
         resp = self.opener.open(req)
-        #except Exception, e:
+        #except Exception as e:
         #    self._handle_error(e)
         #    raise e
         s = resp.read()
