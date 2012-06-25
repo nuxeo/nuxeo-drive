@@ -360,3 +360,32 @@ def test_binding_synchronization_empty_start():
                  "bbbb")
     assert_equal(remote_client.get_content('/Folder 3/File 6.txt'),
                  "ffff")
+
+
+@with_integration_env
+def test_synchronization_loop():
+    ctl = Controller(LOCAL_NXDRIVE_CONF_FOLDER)
+    ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
+    ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
+    expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
+
+    assert_equal(ctl.list_pending(), [])
+    assert_equal(ctl.synchronize(), 0)
+
+    # Let's create some document on the client and the server
+    local = LocalClient(expected_folder)
+    local.make_folder('/', 'Folder 3')
+    make_server_tree()
+
+    # Run the full synchronization loop a limited amount of times
+    ctl.loop(full_local_scan=True, full_remote_scan=True, delay=0.010,
+             max_loops=3, fault_tolerant=False)
+
+    # All is synchronized
+    assert_equal(len(ctl.list_pending()), 0)
+    assert_equal(ctl.children_states(expected_folder), [
+        (u'/File 5.txt', u'synchronized'),
+        (u'/Folder 1', u'synchronized'),
+        (u'/Folder 2', u'synchronized'),
+        (u'/Folder 3', u'synchronized'),
+    ])

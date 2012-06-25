@@ -775,11 +775,11 @@ class Controller(object):
                                          session=session)
         return synchronized
 
-    def loop(self, full_local_scan=True, full_remote_scan=True, delta=5,
-             max_sync_step=50):
+    def loop(self, full_local_scan=True, full_remote_scan=True, delay=5,
+             max_sync_step=50, max_loops=None, fault_tolerant=True):
         """Forever loop to scan / refresh states and perform synchronization
 
-        delta is an delay in seconds that ensures that two consecutive
+        delay is an delay in seconds that ensures that two consecutive
         scans won't happen too closely from one another.
         """
         # Instance flag to allow for another thread to interrupt the
@@ -794,7 +794,9 @@ class Controller(object):
         previous_time = time()
         first_pass = True
         session = self.get_session()
-        while self.continue_synchronization:
+        loop_count = 0
+        while (self.continue_synchronization
+               and (max_loops is None or loop_count <= max_loops)):
             for rb in session.query(RootBinding).all():
                 has_done_scan = True
                 try:
@@ -812,7 +814,7 @@ class Controller(object):
 
                     self.synchronize(limit=max_sync_step,
                                      local_root=rb.local_root,
-                                     fault_tolerant=True)
+                                     fault_tolerant=fault_tolerant)
                 except Exception as e:
                     # TODO: catch network related errors and log them at debug
                     # level instead as we expect the daemon to work even in
@@ -824,7 +826,8 @@ class Controller(object):
             # bound folders too often.
             current_time = time()
             spent = current_time - previous_time
-            if spent < delta and has_done_scan:
-                sleep(delta - spent)
+            if spent < delay and has_done_scan:
+                sleep(delay - spent)
             previous_time = current_time
             first_pass = False
+            loop_count += 1
