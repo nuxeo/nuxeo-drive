@@ -486,8 +486,8 @@ class NuxeoClient(object):
             blob_part.as_string(),
             boundary,
         )
-        req = urllib2.Request(self.automation_url + "Blob.Attach",
-                              data, headers)
+        url = self.automation_url.encode('ascii') + "Blob.Attach"
+        req = urllib2.Request(url, data, headers)
         #try:
         resp = self.opener.open(req)
         #except Exception, e:
