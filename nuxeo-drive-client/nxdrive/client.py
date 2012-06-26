@@ -176,17 +176,25 @@ class LocalClient(object):
         children = os.listdir(os_path)
         children.sort()
         for child_name in children:
+            ignore = False
+
             for suffix in self.ignored_suffixes:
                 if child_name.endswith(suffix):
-                    continue
+                    ignore = True
+                    break
+
             for prefix in self.ignored_prefixes:
                 if child_name.startswith(prefix):
-                    continue
-            if ref == '/':
-                child_ref = ref + child_name
-            else:
-                child_ref = ref + '/' + child_name
-            result.append(self.get_info(child_ref))
+                    ignore = True
+                    break
+
+            if not ignore:
+                if ref == '/':
+                    child_ref = ref + child_name
+                else:
+                    child_ref = ref + '/' + child_name
+                result.append(self.get_info(child_ref))
+
         return result
 
     def make_folder(self, parent, name):
@@ -261,7 +269,18 @@ class NuxeoClient(object):
     """Client for the Nuxeo Content Automation HTTP API"""
 
     def __init__(self, server_url, user_id, password,
-                 base_folder='/', repository="default"):
+                 base_folder='/', repository="default",
+                 ignored_prefixes=None, ignored_suffixes=None):
+        if ignored_prefixes is not None:
+            self.ignored_prefixes = ignored_prefixes
+        else:
+            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
+
+        if ignored_suffixes is not None:
+            self.ignored_suffixes = ignored_suffixes
+        else:
+            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
+
         if not server_url.endswith('/'):
             server_url += '/'
         self.server_url = server_url
@@ -336,7 +355,27 @@ class NuxeoClient(object):
             raise RuntimeError("Folder %r on server %r has more than the"
                                "maximum number of children: %d" % (
                                    ref, self.server_url, MAX_CHILDREN))
-        return [self._doc_to_info(d) for d in results]
+
+        # Filter out filenames that would be ignored by the file system client
+        # so as to be consistent.
+        filtered = []
+        for info in [self._doc_to_info(d) for d in results]:
+            ignore = False
+
+            for suffix in self.ignored_suffixes:
+                if info.name.endswith(suffix):
+                    ignore = True
+                    break
+
+            for prefix in self.ignored_prefixes:
+                if info.name.startswith(prefix):
+                    ignore = True
+                    break
+
+            if not ignore:
+                filtered.append(info)
+
+        return filtered
 
     def get_info(self, ref, raise_if_missing=True):
         ref = self._check_ref(ref)
