@@ -220,7 +220,7 @@ class LastKnownState(Base):
 
         if self.path != local_info.path:
             raise ValueError("State %r cannot be mapped to %r/%r" % (
-                self, local_info.base_folder, local_info.path))
+                self, self.local_root, local_info.path))
 
         # Shall we recompute the digest from the current file?
         update_digest = self.local_digest == None
