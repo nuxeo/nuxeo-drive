@@ -109,23 +109,38 @@ class NuxeoDocumentInfo(BaseNuxeoDocumentInfo):
 
 # TODO: add support for the move operations
 
+DEFAULT_IGNORED_PREFIXES = [
+    '.',  # hidden Unix files
+    '~$',  # Windows lock files
+]
+
+DEFAULT_IGNORED_SUFFIXES = [
+    '~',  # editor buffers
+    '.swp',  # vim swap files
+    '.lock',  # some process use file locks
+    '.LOCK',  # other locks
+    '.part',  # partially downloaded files
+]
+
+
 class LocalClient(object):
     """Client API implementation for the local file system"""
 
-    ignored_prefixes = [
-        '.',  # hidden Unix files
-        '~$',  # Windows lock files
-    ]
+    # TODO: initialize the prefixes and sufffix with a dedicated Nuxeo
+    # Automation operations fetched at controller init time.
 
-    ignored_suffixes = [
-        '~',  # editor buffers
-        '.swp',  # vim swap files
-        '.lock',  # some process use file locks
-        '.LOCK',  # other locks
-        '.part',  # partially downloaded files
-    ]
+    def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
+                 ignored_suffixes=None):
+        if ignored_prefixes is not None:
+            self.ignored_prefixes = ignored_prefixes
+        else:
+            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
 
-    def __init__(self, base_folder, digest_func='md5'):
+        if ignored_suffixes is not None:
+            self.ignored_suffixes = ignored_suffixes
+        else:
+            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
+
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
         self.base_folder = base_folder
