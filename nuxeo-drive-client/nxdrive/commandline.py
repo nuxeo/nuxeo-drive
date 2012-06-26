@@ -2,7 +2,13 @@
 import sys
 import argparse
 from getpass import getpass
-
+import traceback
+try:
+    import ipdb
+    debugger = ipdb
+except ImportError:
+    import pdb
+    debugger = pdb
 
 from nxdrive.controller import Controller
 
@@ -20,6 +26,9 @@ def make_cli_parser():
         default="~/.nuxeo-drive",
         help="Folder to store the Nuxeo Drive configuration."
     )
+    parser.add_argument(
+        "--debug", default=False, action="store_true",
+        help="Fire a debugger (ipdb or pdb) one uncaught error.")
 
     subparsers = parser.add_subparsers(
         title='Commands:',
@@ -94,7 +103,7 @@ def make_cli_parser():
         "--delay", default=5.0, type=float,
         help="Delay in seconds between consecutive sync operations.")
     console_parser.add_argument(
-        "--stop-on-error", default=True, action="store_false",
+        "--stop-on-error", default=False, action="store_true",
         help="Stop the process on first unexpected error."
         "Useful for developers and Continuous Integration.")
 
@@ -120,6 +129,16 @@ class CliHandler(object):
     def handle(self, args):
         # use the CLI parser to check that the first args is a valid command
         options = self.parser.parse_args(args)
+        if options.debug:
+            # Install Post-Mortem debugger hook
+
+            def info(type, value, tb):
+                traceback.print_exception(type, value, tb)
+                print
+                debugger.pm()
+
+            sys.excepthook = info
+
         self.controller = Controller(options.nxdrive_home)
 
         handler = getattr(self, options.command, None)
@@ -137,6 +156,7 @@ class CliHandler(object):
         return 0
 
     def console(self, options):
+
         fault_tolerant = not options.stop_on_error
         try:
             self.controller.loop(fault_tolerant=fault_tolerant,
