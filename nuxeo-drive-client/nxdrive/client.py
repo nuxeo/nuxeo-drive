@@ -14,7 +14,6 @@ import random
 import shutil
 import time
 import urllib2
-import urllib
 import re
 
 
@@ -113,6 +112,19 @@ class NuxeoDocumentInfo(BaseNuxeoDocumentInfo):
 class LocalClient(object):
     """Client API implementation for the local file system"""
 
+    ignored_prefixes = [
+        '.',  # hidden Unix files
+        '~$',  # Windows lock files
+    ]
+
+    ignored_suffixes = [
+        '~',  # editor buffers
+        '.swp',  # vim swap files
+        '.lock',  # some process use file locks
+        '.LOCK',  # other locks
+        '.part',  # partially downloaded files
+    ]
+
     def __init__(self, base_folder, digest_func='md5'):
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
@@ -149,14 +161,17 @@ class LocalClient(object):
         children = os.listdir(os_path)
         children.sort()
         for child_name in children:
-            if (not child_name.startswith('.')
-                and not child_name.startswith('~$')):
-				# ignore hidden unix files and windows locks
-                if ref == '/':
-                    child_ref = ref + child_name
-                else:
-                    child_ref = ref + '/' + child_name
-                result.append(self.get_info(child_ref))
+            for suffix in self.ignored_suffixes:
+                if child_name.endswith(suffix):
+                    continue
+            for prefix in self.ignored_prefixes:
+                if child_name.startswith(prefix):
+                    continue
+            if ref == '/':
+                child_ref = ref + child_name
+            else:
+                child_ref = ref + '/' + child_name
+            result.append(self.get_info(child_ref))
         return result
 
     def make_folder(self, parent, name):

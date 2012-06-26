@@ -86,19 +86,27 @@ def make_cli_parser():
     stop_parser = subparsers.add_parser(
         'stop', help='Stop the synchronization daemon')
     stop_parser.set_defaults(command='stop')
-    start_parser = subparsers.add_parser(
+    console_parser = subparsers.add_parser(
         'console',
-        help='Start the synchronization with detaching the process.')
-    start_parser.set_defaults(command='console')
+        help='Start the synchronization without detaching the process.')
+    console_parser.set_defaults(command='console')
+    console_parser.add_argument(
+        "--delay", default=5.0, type=float,
+        help="Delay in seconds between consecutive sync operations.")
+    console_parser.add_argument(
+        "--stop-on-error", default=True, action="store_false",
+        help="Stop the process on first unexpected error."
+        "Useful for developers and Continuous Integration.")
 
-    # Introspect current synchronization status
-    status_parser = subparsers.add_parser(
-        'status',
-        help='Query the synchronization status of files and folders.'
-    )
-    status_parser.set_defaults(command='status')
-    status_parser.add_argument(
-        "files", nargs="*", help='Files to query status on')
+# TODO:rewrite me
+#    # Introspect current synchronization status
+#    status_parser = subparsers.add_parser(
+#        'status',
+#        help='Query the synchronization status of files and folders.'
+#    )
+#    status_parser.set_defaults(command='status')
+#    status_parser.add_argument(
+#        "files", nargs="*", help='Files to query status on')
 
     return parser
 
@@ -129,8 +137,10 @@ class CliHandler(object):
         return 0
 
     def console(self, options):
+        fault_tolerant = not options.stop_on_error
         try:
-            self.controller.loop(fault_tolerant=False)
+            self.controller.loop(fault_tolerant=fault_tolerant,
+                                 delay=options.delay)
         except KeyboardInterrupt:
             self.controller.get_session().rollback()
         return 0
