@@ -401,7 +401,12 @@ class Controller(object):
             return
 
         # detect recently deleted children
-        children_info = client.get_children_info(local_info.path)
+        try:
+            children_info = client.get_children_info(local_info.path)
+        except OSError:
+            # The folder has been deleted in the mean time
+            return
+
         children_path = set(c.path for c in children_info)
 
         q = session.query(LastKnownState).filter_by(

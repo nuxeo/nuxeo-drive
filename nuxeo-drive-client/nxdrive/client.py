@@ -193,7 +193,12 @@ class LocalClient(object):
                     child_ref = ref + child_name
                 else:
                     child_ref = ref + '/' + child_name
-                result.append(self.get_info(child_ref))
+                try:
+                    result.append(self.get_info(child_ref))
+                except (OSError, NotFound):
+                    # the child file has been deleted in the mean time or while
+                    # reading some of its attributes
+                    pass
 
         return result
 
