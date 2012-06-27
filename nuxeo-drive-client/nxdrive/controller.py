@@ -275,15 +275,19 @@ class Controller(object):
 
         # Check the remote root exists and is an editable folder by current
         # user.
-        nxclient = self.nuxeo_client_factory(server_binding.server_url,
-                                             server_binding.remote_user,
-                                             server_binding.remote_password,
-                                             repository=repository,
-                                             base_folder=remote_root)
-        remote_info = nxclient.get_info(remote_root)
+        try:
+            nxclient = self.nuxeo_client_factory(
+                server_binding.server_url,
+                server_binding.remote_user,
+                server_binding.remote_password,
+                repository=repository,
+                base_folder=remote_root)
+            remote_info = nxclient.get_info('/')
+        except NotFound:
+            remote_info = None
         if remote_info is None or not remote_info.folderish:
             raise RuntimeError(
-                'No folder at "%s/%s" visible by "%s" on server "%s"'
+                'No folder at "%s:%s" visible by "%s" on server "%s"'
                 % (repository, remote_root, server_binding.remote_user,
                    server_binding.server_url))
 
