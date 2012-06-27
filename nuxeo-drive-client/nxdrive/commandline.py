@@ -51,9 +51,12 @@ def make_cli_parser():
     bind_server_parser.add_argument("nuxeo_url",
                                     help="URL of the Nuxeo server.")
     bind_server_parser.add_argument(
-        "--roots", nargs="*",
-        help="Path additional synchronization roots (Id Ref or Path for"
+        "--remote-roots", nargs="*", default=[],
+        help="Path synchronization roots (reference or path for"
         " folderish Nuxeo documents such as Workspaces or Folders).")
+    bind_server_parser.add_argument(
+        "--remote-repo", default='default',
+        help="Name of the remote repository.")
 
     # Unlink from a remote Nuxeo server
     unbind_server_parser = subparsers.add_parser(
@@ -194,6 +197,9 @@ class CliHandler(object):
             password = options.password
         self.controller.bind_server(options.local_folder, options.nuxeo_url,
                                     options.username, password)
+        for root in options.remote_roots:
+            self.controller.bind_root(options.local_folder, root,
+                                      repository=options.remote_repo)
         return 0
 
     def unbind_server(self, options):

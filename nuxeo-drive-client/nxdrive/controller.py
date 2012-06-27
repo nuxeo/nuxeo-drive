@@ -309,8 +309,10 @@ class Controller(object):
             if (existing_binding.remote_repo != repository
                 or existing_binding.remote_root != remote_info.uid):
                 raise RuntimeError(
-                    "%r is already bound to %r on %r" % (
+                    "%r is already bound to %r on repo %r of %r" % (
                         local_root,
+                        existing_binding.remote_root,
+                        existing_binding.remote_repo,
                         existing_binding.server_binding.server_url))
         except NoResultFound:
             # Register the new binding itself

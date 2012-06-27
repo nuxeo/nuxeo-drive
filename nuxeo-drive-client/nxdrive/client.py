@@ -506,7 +506,13 @@ class NuxeoClient(object):
     # These ones are special: no 'input' parameter
 
     def fetch(self, ref):
-        return self._execute("Document.Fetch", value=ref)
+        try:
+            return self._execute("Document.Fetch", value=ref)
+        except urllib2.HTTPError as e:
+            if e.code == 404:
+                raise NotFound("Failed to fetch document %r on server %r" % (
+                    ref, self.server_url))
+            raise e
 
     def query(self, query, language=None):
         return self._execute("Document.Query", query=query, language=language)
