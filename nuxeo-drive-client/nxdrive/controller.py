@@ -305,8 +305,6 @@ class Controller(object):
         try:
             existing_binding = session.query(RootBinding).filter_by(
                 local_root=local_root,
-                remote_repo=repository,
-                remote_root=remote_info.uid,
             ).one()
             if (existing_binding.remote_repo != repository
                 or existing_binding.remote_root != remote_info.uid):
