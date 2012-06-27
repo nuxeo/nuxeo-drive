@@ -75,6 +75,8 @@ class FakeNuxeoClient(object):
         }
 
     def get_info(self, ref):
+        if ref == '/' and self.base_folder != '/':
+            return self.get_info(self.base_folder)
         root_info = self.possible_roots.get(ref)
         if root_info is None:
             raise NotFound(ref + ' not found')
