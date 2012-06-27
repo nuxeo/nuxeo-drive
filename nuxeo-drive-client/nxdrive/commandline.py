@@ -107,6 +107,18 @@ def make_cli_parser():
         help="Stop the process on first unexpected error."
         "Useful for developers and Continuous Integration.")
 
+    # embedded test runner base on nose:
+    test_parser = subparsers.add_parser(
+        'test',
+        help='Run the Nuxeo Drive test suite.')
+    test_parser.set_defaults(command='test')
+    test_parser.add_argument(
+        "--with-coverage", default=False, action="store_true",
+        help="Compute coverage report.")
+    test_parser.add_argument(
+        "--with-profile", default=False, action="store_true",
+        help="Compute profiling report.")
+
 # TODO:rewrite me
 #    # Introspect current synchronization status
 #    status_parser = subparsers.add_parser(
@@ -192,6 +204,26 @@ class CliHandler(object):
     def unbind_root(self, options):
         self.controller.unbind_root(options.local_root)
         return 0
+
+    def test(self, options):
+        import nose
+        argv = ['']
+
+        if options.with_coverage:
+            argv += [
+                '--with-coverage',
+                '--cover-package=nxdrive',
+                '--cover-html',
+                '--cover-html-dir=coverage',
+            ]
+
+        if options.with_profile:
+            argv += [
+                '--with-profile',
+                '--profile-restrict=nxdrive',
+            ]
+        argv += ['nxdrive']
+        nose.run(argv=argv)
 
 
 def main(args=None):
