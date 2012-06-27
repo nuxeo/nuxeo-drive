@@ -196,23 +196,25 @@ class Controller(object):
         """Bind a local folder to a remote nuxeo server"""
         session = self.get_session()
         local_folder = os.path.abspath(os.path.expanduser(local_folder))
-        try:
-            server_binding = session.query(ServerBinding).filter(
-                ServerBinding.local_folder == local_folder).one()
-            raise RuntimeError(
-                "%s is already bound to '%s' with user '%s'" % (
-                    local_folder, server_binding.server_url,
-                    server_binding.remote_user))
-        except NoResultFound:
-            # this is expected in most cases
-            pass
 
         # check the connection to the server by issuing an authentication
         # request
         self.nuxeo_client_factory(server_url, username, password)
 
-        session.add(ServerBinding(local_folder, server_url, username,
-                                       password))
+        try:
+            server_binding = session.query(ServerBinding).filter(
+                ServerBinding.local_folder == local_folder).one()
+            if (server_binding.remote_user != username
+                or server_binding.server_url != server_url):
+                raise RuntimeError(
+                    "%s is already bound to '%s' with user '%s'" % (
+                        local_folder, server_binding.server_url,
+                        server_binding.remote_user))
+            if server_binding.remote_password != password:
+                server_binding.remote_password = password
+        except NoResultFound:
+            session.add(ServerBinding(local_folder, server_url, username,
+                                      password))
 
         # Create the local folder to host the synchronized files: this
         # is useless as long as bind_root is not called
@@ -295,21 +297,30 @@ class Controller(object):
         # TODO: shall we handle deduplication for root names too?
         local_root = os.path.join(local_folder,
                                   safe_filename(remote_info.name))
-        if os.path.exists(local_root):
-            raise RuntimeError(
-                'Cannot initialize binding to existing local folder: %s'
-                % local_root)
-
-        os.makedirs(local_root)
+        if not os.path.exists(local_root):
+            os.makedirs(local_root)
         lcclient = LocalClient(local_root)
         local_info = lcclient.get_info('/')
 
-        # Register the binding itself
-        session.add(RootBinding(local_root, repository, remote_root))
+        try:
+            existing_binding = session.query(RootBinding).filter_by(
+                local_root=local_root,
+                remote_repo=repository,
+                remote_root=remote_info.uid,
+            ).one()
+            if (existing_binding.remote_repo != repository
+                or existing_binding.remote_root != remote_info.uid):
+                raise RuntimeError(
+                    "%r is already bound to %r on %r" % (
+                        local_root,
+                        existing_binding.server_binding.server_url))
+        except NoResultFound:
+            # Register the new binding itself
+            session.add(RootBinding(local_root, repository, remote_info.uid))
 
-        # Initialize the metadata info by recursive walk on the remote folder
-        # structure
-        self._recursive_init(lcclient, local_info, nxclient, remote_info)
+            # Initialize the metadata info by recursive walk on the remote
+            # folder structure
+            self._recursive_init(lcclient, local_info, nxclient, remote_info)
         session.commit()
 
     def _recursive_init(self, local_client, local_info, remote_client,

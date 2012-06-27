@@ -38,7 +38,7 @@ class Unauthorized(Exception):
 
     def __str__(self):
         return ("'%s' is not authorized to access '%s' with"
-                "the provided credentials" % (self.user_id, self.server_url))
+                " the provided credentials" % (self.user_id, self.server_url))
 
 
 class NotFound(Exception):

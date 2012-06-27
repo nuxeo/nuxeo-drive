@@ -50,6 +50,10 @@ def make_cli_parser():
         "username", help="User account to connect to Nuxeo")
     bind_server_parser.add_argument("nuxeo_url",
                                     help="URL of the Nuxeo server.")
+    bind_server_parser.add_argument(
+        "--roots", nargs="*",
+        help="Path additional synchronization roots (Id Ref or Path for"
+        " folderish Nuxeo documents such as Workspaces or Folders).")
 
     # Unlink from a remote Nuxeo server
     unbind_server_parser = subparsers.add_parser(
