@@ -134,6 +134,15 @@ def test_get_children_info():
     # not a direct child of TEST_WORKSPACE
     nxclient.make_file(folder_1, 'File 2.txt', content="bar\n")
 
+    # ignored files
+    nxclient.make_file(TEST_WORKSPACE, '.File 2.txt', content="baz\n")
+    nxclient.make_file(TEST_WORKSPACE, '~$File 2.txt', content="baz\n")
+    nxclient.make_file(TEST_WORKSPACE, 'File 2.txt~', content="baz\n")
+    nxclient.make_file(TEST_WORKSPACE, 'File 2.txt.swp', content="baz\n")
+    nxclient.make_file(TEST_WORKSPACE, 'File 2.txt.lock', content="baz\n")
+    nxclient.make_file(TEST_WORKSPACE, 'File 2.txt.LOCK', content="baz\n")
+    nxclient.make_file(TEST_WORKSPACE, 'File 2.txt.part', content="baz\n")
+
     workspace_children = nxclient.get_children_info(TEST_WORKSPACE)
     assert_equal(len(workspace_children), 3)
     assert_equal(workspace_children[0].uid, file_1)
