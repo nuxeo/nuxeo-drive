@@ -314,6 +314,10 @@ class NuxeoClient(object):
         headers = {
             "Authorization": self.auth,
         }
+        base_error_message = (
+            "Failed not connect to Nuxeo Content Automation on server %r"
+            " with user %r"
+        ) % (self.server_url, self.user_id)
         try:
             req = urllib2.Request(self.automation_url, headers=headers)
             response = json.loads(self.opener.open(req).read())
@@ -321,7 +325,9 @@ class NuxeoClient(object):
             if e.code == 401 or e.code == 403:
                 raise Unauthorized(self.server_url, self.user_id)
             else:
-                raise e
+                raise IOError(base_error_message + ": HTTP error %d" % e.code)
+        except Exception as e:
+            raise IOError(base_error_message + ": " + e)
         self.operations = {}
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
