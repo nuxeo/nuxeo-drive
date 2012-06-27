@@ -1,2 +1,3 @@
 SQLAlchemy
 nose
+coverage
