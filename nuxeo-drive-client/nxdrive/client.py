@@ -401,8 +401,13 @@ class NuxeoClient(object):
         """Convert Automation document description to NuxeoDocumentInfo"""
         props = doc['properties']
         folderish = 'Folderish' in doc['facets']
-        last_update = datetime.strptime(doc['lastModified'],
-                                        "%Y-%m-%dT%H:%M:%S.%fZ")
+        try:
+            last_update = datetime.strptime(doc['lastModified'],
+                                            "%Y-%m-%dT%H:%M:%S.%fZ")
+        except ValueError:
+            # no millisecond?
+            last_update = datetime.strptime(doc['lastModified'],
+                                            "%Y-%m-%dT%H:%M:%SZ")
 
         # TODO: support other main files
         if folderish:
