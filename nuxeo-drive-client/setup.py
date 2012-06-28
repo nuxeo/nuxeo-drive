@@ -16,7 +16,10 @@ setup(
     author="Olivier Grisel",
     author_email="ogrisel@nuxeo.com",
     url='http://github.com/nuxeo/nuxeo-drive',
-    packages=['nxdrive'],
+    packages=[
+        'nxdrive',
+        'nxdrive.tests',
+    ],
     scripts=["bin/nxdrive.py"],
     options={
         "bdist_esky": {
