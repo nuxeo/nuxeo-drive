@@ -1,3 +1,4 @@
+import time
 import os
 import hashlib
 import shutil
@@ -288,6 +289,10 @@ def test_binding_synchronization_empty_start():
     assert_equal(local.get_content('/Folder 2/Duplicated File__1.txt'),
                  "Other content.")
 
+    # Wait a bit for file time stamps to increase enough: on most OS the file
+    # modification time resolution is 1s
+    time.sleep(1.0)
+
     # Let do some local and remote changes concurrently
     local.delete('/File 5.txt')
     local.update_content('/Folder 1/File 1.txt', 'aaaa')
@@ -373,6 +378,7 @@ def test_binding_synchronization_empty_start():
 
     # Send some binary data that is not valid in utf-8 or ascii (to test the
     # HTTP / Multipart transform layer).
+    time.sleep(1.0)
     local.update_content('/Folder 1/File 1.txt', "\x80")
     remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', '\x80')
     ctl._scan_local(expected_folder, session)

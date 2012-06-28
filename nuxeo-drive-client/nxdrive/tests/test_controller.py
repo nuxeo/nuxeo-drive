@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime
 from os.path import join
 import tempfile
@@ -183,7 +184,11 @@ def test_local_scan():
         (u'/Folder 3/File 2.txt', u'unknown'),
     ])
 
-    # Let's do some changes
+    # Wait a bit for file time stamps to increase enough: on most OS the file
+    # modification time resolution is 1s
+    time.sleep(1.0)
+
+    # let's do some changes
     client_1.delete('/File 1.txt')
     client_1.make_folder('/Folder 3', 'Folder 3.1')
     client_1.make_file('/Folder 3', 'File 3.txt',
