@@ -667,13 +667,10 @@ class Controller(object):
             # TODO: handle smart versionning policy here (or maybe delegate to
             # a dedicated server-side operation)
             if doc_pair.remote_digest != doc_pair.local_digest:
-                old_name = None
-                if remote_info is not None:
-                    old_name = remote_info.name
                 remote_client.update_content(
                     doc_pair.remote_ref,
                     local_client.get_content(doc_pair.path),
-                    name=old_name,
+                    name=doc_pair.remote_name,
                 )
                 doc_pair.refresh_remote(remote_client)
             doc_pair.update_state('synchronized', 'synchronized')

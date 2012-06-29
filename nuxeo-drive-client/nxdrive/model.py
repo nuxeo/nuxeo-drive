@@ -201,7 +201,7 @@ class LastKnownState(Base):
     def update_local(self, local_info):
         """Update the state from pre-fetched local filesystem info."""
         if local_info is None:
-            if self.local_state in ('unknown', 'created', 'updated',
+            if self.local_state in ('unknown', 'created', 'modified',
                                     'synchronized'):
                 # the file use to exist, it has been deleted
                 self.update_state(local_state='deleted')
@@ -269,7 +269,7 @@ class LastKnownState(Base):
     def update_remote(self, remote_info):
         """Update the state from the pre-fetched remote server info."""
         if remote_info is None:
-            if self.remote_state in ('unknown', 'created', 'updated',
+            if self.remote_state in ('unknown', 'created', 'modified',
                                      'synchronized'):
                 self.update_state(remote_state='deleted')
                 self.remote_digest = None
