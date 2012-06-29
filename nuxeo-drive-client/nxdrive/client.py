@@ -438,7 +438,7 @@ class NuxeoClient(object):
         self.attach_blob(ref, content, name)
 
     def _check_ref(self, ref):
-        if ref.startswith('/'):
+        if ref.startswith('/') and self._base_folder_path != '/':
             ref = self._base_folder_path + ref
         return ref
 
