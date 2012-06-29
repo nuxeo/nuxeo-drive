@@ -677,7 +677,7 @@ class Controller(object):
                 )
                 doc_pair.refresh_remote(remote_client)
             doc_pair.update_state('synchronized', 'synchronized')
-              
+
         elif doc_pair.pair_state == 'remotely_modified':
             try:
                 if doc_pair.remote_digest != doc_pair.local_digest != None:
