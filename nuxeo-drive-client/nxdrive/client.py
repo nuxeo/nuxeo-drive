@@ -432,7 +432,6 @@ class NuxeoClient(object):
         return self.get_blob(ref)
 
     def update_content(self, ref, content, name=None):
-        ref = self._check_ref(ref)
         if name is None:
             name = self.get_info(ref).name
         self.attach_blob(ref, content, name)
