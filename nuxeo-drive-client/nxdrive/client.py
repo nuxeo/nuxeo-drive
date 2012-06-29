@@ -389,13 +389,12 @@ class NuxeoClient(object):
         return filtered
 
     def get_info(self, ref, raise_if_missing=True):
-        ref = self._check_ref(ref)
         if not self.exists(ref):
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
-                    ref, self.server_url))
+                    self._check_ref(ref), self.server_url))
             return None
-        return self._doc_to_info(self.fetch(ref))
+        return self._doc_to_info(self.fetch(self._check_ref(ref)))
 
     def _doc_to_info(self, doc):
         """Convert Automation document description to NuxeoDocumentInfo"""
@@ -439,9 +438,8 @@ class NuxeoClient(object):
         self.attach_blob(ref, content, name)
 
     def _check_ref(self, ref):
-        if (ref.startswith('/')
-            and not ref.startswith(self._base_folder_path + '/')):
-            ref = os.path.join(self._base_folder_path, ref[1:])
+        if ref.startswith('/'):
+            ref = self._base_folder_path + ref
         return ref
 
     def make_folder(self, parent, name):
