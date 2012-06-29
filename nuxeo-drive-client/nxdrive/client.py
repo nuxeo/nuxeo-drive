@@ -434,7 +434,7 @@ class NuxeoClient(object):
     def update_content(self, ref, content, name=None):
         if name is None:
             name = self.get_info(ref).name
-        self.attach_blob(ref, content, name)
+        self.attach_blob(self._check_ref(ref), content, name)
 
     def _check_ref(self, ref):
         if ref.startswith('/') and self._base_folder_path != '/':
