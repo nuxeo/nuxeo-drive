@@ -20,7 +20,7 @@ setup(
         'nxdrive',
         'nxdrive.tests',
     ],
-    scripts=["bin/nxdrive.py"],
+    scripts=["bin/nxdrive"],
     options={
         "bdist_esky": {
             # forcibly include some modules
