@@ -23,3 +23,19 @@ echo "Installing Python from $python_msi"
 msiexec.exe /qn /I $python_msi
 # Add the python interpreter and scripts to the path
 Set-Item -path env:Path -value ($env:Path + ";C:\Python27;C:\Python27\Scripts;")
+
+# Install setuptools and pip
+$url = "http://peak.telecommunity.com/dist/ez_setup.py"
+$ez_setup = "$storagedir\ez_setup.py"
+echo "Downloading Python from $url"
+$webclient.DownloadFile($url, $ez_setup)
+echo "Installing Setuptools from $ez_setup"
+python $ez_setup
+echo "Installing pip"
+easy_install pip
+
+echo "You can now clone the nuxeo-drive repo:"
+echo "git clone https://github.com/nuxeo/nuxeo-drive.git"
+echo ""
+echo "Then install the developer dependencies:"
+echo "pip install -r nuxeo-drive/nuxeo-drive-client/dev-requirements.txt"
