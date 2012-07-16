@@ -16,10 +16,11 @@ from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
 from nxdrive.client import LocalClient
 
-TEST_FOLDER = tempfile.mkdtemp()
+TEST_FOLDER = tempfile.mkdtemp("test_nuxeo_drive_controller_")
 TEST_SYNCED_FOLDER = join(TEST_FOLDER, 'local_folder')
 TEST_CONFIG_FOLDER = join(TEST_FOLDER, 'config')
 
+ctl = None
 
 def setup():
     if os.path.exists(TEST_FOLDER):
@@ -27,9 +28,13 @@ def setup():
     os.makedirs(TEST_FOLDER)
     os.makedirs(TEST_SYNCED_FOLDER)
     os.makedirs(TEST_CONFIG_FOLDER)
+    global ctl
+    ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient)
 
 
 def teardown():
+    if ctl is not None:
+        ctl.get_session().close()
     if os.path.exists(TEST_FOLDER):
         shutil.rmtree(TEST_FOLDER)
 
@@ -92,8 +97,6 @@ class FakeNuxeoClient(object):
 
 @with_setup(setup, teardown)
 def test_bindings():
-    ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient)
-
     # by default no bindings => cannot ask for a status
     assert_raises(NotFound, ctl.children_states, TEST_SYNCED_FOLDER)
 
@@ -143,7 +146,6 @@ def test_bindings():
 
 @with_setup(setup, teardown)
 def test_local_scan():
-    ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient)
     ctl.bind_server(TEST_SYNCED_FOLDER, 'http://example.com/nuxeo',
                     'username', 'secret')
     ctl.bind_root(TEST_SYNCED_FOLDER, 'folder_1-nuxeo-ref')
@@ -227,8 +229,6 @@ def test_local_scan():
 
 @with_setup(setup, teardown)
 def test_binding_deletions():
-    ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient)
-
     # register a couple of bindings
     ctl.bind_server(TEST_SYNCED_FOLDER, 'http://example.com/nuxeo',
                     'username', 'secret')
