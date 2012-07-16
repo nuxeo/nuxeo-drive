@@ -98,12 +98,13 @@ def test_complex_filenames():
     assert_equal(folder_3_info.name, title_with_accents + "__2")
     assert_not_equal(folder_1, folder_3)
 
-    # Create a file with weird chars
+    # Create a long file name with weird chars
     long_filename = u"\xe9" * 50 + u"%$#!*()[]{}+_-=';:&^" + ".doc"
+    escaped_filename = u"\xe9" * 50 + u"%$#!-()[]{}+_-=';:&^" + ".doc"
     file_1 = lcclient.make_file(folder_1, long_filename)
     file_1 = lcclient.get_info(file_1)
-    assert_equal(file_1.name, long_filename)
-    assert_equal(file_1.path, os.path.join(folder_1_info.path, long_filename))
+    assert_equal(file_1.name, escaped_filename)
+    assert_equal(file_1.path, folder_1_info.path + "/" + escaped_filename)
 
     # Create a file with invalid chars
     invalid_filename = u"a/b\\c.doc"

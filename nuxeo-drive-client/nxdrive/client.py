@@ -27,7 +27,7 @@ MAX_CHILDREN = 1000
 
 def safe_filename(name, replacement='-'):
     """Replace invalid character in candidate filename"""
-    return re.sub(r'(/|\\)', replacement, name)
+    return re.sub(r'(/|\\|\*)', replacement, name)
 
 
 class Unauthorized(Exception):
