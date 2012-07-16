@@ -27,7 +27,6 @@ def setup_temp_folder():
     LOCAL_TEST_FOLDER = tempfile.mkdtemp('-nuxeo-drive-tests')
     lcclient = LocalClient(LOCAL_TEST_FOLDER)
     TEST_WORKSPACE = lcclient.make_folder('/', 'Some Workspace')
-    assert_true(lcclient.exists(TEST_WORKSPACE))
 
 
 def teardown_temp_folder():

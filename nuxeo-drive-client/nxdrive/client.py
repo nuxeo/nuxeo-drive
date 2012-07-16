@@ -205,14 +205,18 @@ class LocalClient(object):
     def make_folder(self, parent, name):
         os_path, name = self._abspath_deduped(parent, name)
         os.mkdir(os_path)
-        return os.path.join(parent, name)
+        if parent == "/":
+            return "/" + name
+        return parent + "/" + name
 
     def make_file(self, parent, name, content=None):
         os_path, name = self._abspath_deduped(parent, name)
-        with open(os_path, "wcb") as f:
+        with open(os_path, "wb") as f:
             if content:
                 f.write(content)
-        return os.path.join(parent, name)
+        if parent == "/":
+            return "/" + name
+        return parent + "/" + name
 
     def update_content(self, ref, content):
         with open(self._abspath(ref), "wb") as f:
