@@ -28,12 +28,13 @@ LOCAL_NXDRIVE_FOLDER = None
 LOCAL_NXDRIVE_CONF_FOLDER = None
 
 remote_client = None
-
+ctl = None
 
 def setup_integration_env():
     global NUXEO_URL, USER, PASSWORD
     global remote_client, lcclient, TEST_WORKSPACE, LOCAL_TEST_FOLDER
     global LOCAL_NXDRIVE_FOLDER, LOCAL_NXDRIVE_CONF_FOLDER
+    global ctl
 
     # Check the Nuxeo server test environment
     NUXEO_URL = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
@@ -65,8 +66,12 @@ def setup_integration_env():
         LOCAL_TEST_FOLDER, 'nuxeo-drive-conf')
     os.mkdir(LOCAL_NXDRIVE_CONF_FOLDER)
 
+    ctl = Controller(LOCAL_NXDRIVE_CONF_FOLDER)
+
 
 def teardown_integration_env():
+    if ctl is not None:
+        ctl.get_session().close()
     if remote_client is not None and remote_client.exists(TEST_WORKSPACE):
         remote_client.delete(TEST_WORKSPACE)
 
@@ -103,7 +108,6 @@ def test_binding_initialization_and_first_sync():
     # Create some documents in a Nuxeo workspace and bind this server to a
     # Nuxeo Drive local folder
     make_server_tree()
-    ctl = Controller(LOCAL_NXDRIVE_CONF_FOLDER)
     ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
     ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
 
@@ -242,7 +246,6 @@ def test_binding_initialization_and_first_sync():
 
 @with_integration_env
 def test_binding_synchronization_empty_start():
-    ctl = Controller(LOCAL_NXDRIVE_CONF_FOLDER)
     ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
     ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
     expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
@@ -387,10 +390,8 @@ def test_binding_synchronization_empty_start():
     assert_equal(remote_client.get_content('/Folder 1/File 1.txt'), "\x80")
     assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
 
-
 @with_integration_env
 def test_synchronization_loop():
-    ctl = Controller(LOCAL_NXDRIVE_CONF_FOLDER)
     ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
     ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
     expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
