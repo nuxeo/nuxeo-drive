@@ -40,11 +40,22 @@ setup(
 	options = {
         "build_exe": {
             "packages": [
+                "nxdrive",
+                "nxdrive.tests",
                 "sqlalchemy.dialects.sqlite",
                 "nose",
             ],
-            "excludes": ["ipdb", "clf", "IronPython"],
+            "excludes": [
+                "ipdb",
+                "clf",
+                "IronPython",
+                "pydoc",
+                "tkinter",
+            ],
         },
+        #"bdist_msi": {
+        #    "add-to-path": True,
+        #},
 	},
     long_description=open('README.rst').read(),
 )

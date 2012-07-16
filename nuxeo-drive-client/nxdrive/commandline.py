@@ -217,6 +217,9 @@ class CliHandler(object):
 
     def test(self, options):
         import nose
+        # Monkeypatch nose usage message as it's complicated to include
+        # the missing text resource in the frozen binary package
+        nose.core.TestProgram.usage = lambda cls: ""
         argv = ['']
 
         if options.with_coverage:
@@ -232,7 +235,14 @@ class CliHandler(object):
                 '--with-profile',
                 '--profile-restrict=nxdrive',
             ]
-        argv += ['nxdrive']
+        # List the test modules explicitly as recursive discovery is broken
+        # when the app is frozen.
+        argv += [
+            "nxdrive.tests.test_controller",
+            "nxdrive.tests.test_filesystem_client",
+            "nxdrive.tests.test_integration_nuxeo_client",
+            "nxdrive.tests.test_integration_synchronization",
+        ]
         nose.run(argv=argv)
 
 
