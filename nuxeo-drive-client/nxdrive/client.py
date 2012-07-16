@@ -331,7 +331,7 @@ class NuxeoClient(object):
             else:
                 raise IOError(base_error_message + ": HTTP error %d" % e.code)
         except Exception as e:
-            raise IOError(base_error_message + ": " + e)
+            raise IOError("%s: %r" % (base_error_message, e))
         self.operations = {}
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
