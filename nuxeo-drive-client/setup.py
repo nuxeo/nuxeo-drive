@@ -24,9 +24,12 @@ except ImportError:
     executables = []
     scripts = ["bin/ndrive"]
 
+name = 'nuxeo-drive'
+version = '0.1.0'
+
 setup(
-    name='nuxeo-drive',
-    version='0.1.0',
+    name=name,
+    version=version,
     description="Desktop synchronization client for Nuxeo.",
     author="Olivier Grisel",
     author_email="ogrisel@nuxeo.com",
@@ -53,9 +56,10 @@ setup(
                 "tkinter",
             ],
         },
-        #"bdist_msi": {
+        "bdist_msi": {
         #    "add-to-path": True,
-        #},
+        #    "upgrade-code": name + '--' + version,
+        },
 	},
     long_description=open('README.rst').read(),
 )
