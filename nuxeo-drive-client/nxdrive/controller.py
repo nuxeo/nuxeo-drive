@@ -174,7 +174,7 @@ class Controller(object):
                 folder_path, root_bindings))
         binding = root_bindings[0]
         path = folder_path[len(binding.local_root):]
-        path.replace(os.path.sep, '/')
+        path = path.replace(os.path.sep, '/')
         return binding, path
 
     def get_server_binding(self, local_folder, raise_if_missing=False,
