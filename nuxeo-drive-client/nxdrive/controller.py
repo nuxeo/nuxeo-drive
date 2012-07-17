@@ -505,8 +505,16 @@ class Controller(object):
         root_state = session.query(LastKnownState).filter_by(
             local_root=local_root, path='/').one()
 
-        client = self.get_remote_client(root_state)
-        root_info = client.get_info(root_state.remote_ref)
+        try:
+            client = self.get_remote_client(root_state)
+            root_info = client.get_info(root_state.remote_ref)
+        except NotFound:
+            # remote folder has been deleted, remote the binding
+            logging.debug("Unbinding %r because of remote deletion.",
+                      root_binding)
+            self.unbind_root(local_root, session=session)
+            return
+
         # recursive update
         self._scan_remote_recursive(local_root, session, client,
                                     root_state, root_info)
@@ -873,18 +881,21 @@ class Controller(object):
         loop_count = 0
         while (self.continue_synchronization
                and (max_loops is None or loop_count <= max_loops)):
-            for rb in session.query(RootBinding).all():
-                has_done_scan = True
+            wait_delay = False
+            bindings = session.query(RootBinding).all()
+            if not bindings:
+                wait_delay = True
+            for rb in bindings:
                 try:
                     # the alternative to local full scan is the watchdog
                     # thread
                     if full_local_scan or first_pass:
                         self.scan_local(rb.local_root, session)
-                        has_done_scan = True
+                        wait_delay = True
 
                     if full_remote_scan or first_pass:
                         self.scan_remote(rb.local_root, session)
-                        has_done_scan = True
+                        wait_delay = True
                     else:
                         self.refresh_remote_from_log(rb.remote_ref)
 
@@ -900,7 +911,7 @@ class Controller(object):
             # bound folders too often.
             current_time = time()
             spent = current_time - previous_time
-            if spent < delay and has_done_scan:
+            if spent < delay and wait_delay:
                 sleep(delay - spent)
             previous_time = current_time
             first_pass = False
