@@ -277,6 +277,8 @@ class LocalClient(object):
 class NuxeoClient(object):
     """Client for the Nuxeo Content Automation HTTP API"""
 
+    _error = None
+
     def __init__(self, server_url, user_id, password,
                  base_folder='/', repository="default",
                  ignored_prefixes=None, ignored_suffixes=None):
@@ -467,6 +469,10 @@ class NuxeoClient(object):
         # TODO: which operation can be used to perform a permission check?
         return True
 
+    def make_raise(self, error):
+        """Make next calls to server raise the provided exception"""
+        self._error = error
+
     #
     # Generic Automation features reused from nuxeolib
     #
@@ -590,15 +596,18 @@ class NuxeoClient(object):
         )
         url = self.automation_url.encode('ascii') + "Blob.Attach"
         req = urllib2.Request(url, data, headers)
-        #try:
-        resp = self.opener.open(req)
-        #except Exception as e:
-        #    self._handle_error(e)
-        #    raise e
+        try:
+            resp = self.opener.open(req)
+        except Exception as e:
+            self._log_details(e)
+            raise
         s = resp.read()
         return s
 
     def _execute(self, command, input=None, **params):
+        if self._error is not None:
+            raise self._error
+
         self._check_params(command, input, params)
         headers = {
             "Content-Type": "application/json+nxrequest",
@@ -629,7 +638,7 @@ class NuxeoClient(object):
         try:
             resp = self.opener.open(req)
         except Exception, e:
-            self._handle_error(e)
+            self._log_details(e)
             raise
 
         info = resp.info()
@@ -665,15 +674,14 @@ class NuxeoClient(object):
 
         # TODO: add typechecking
 
-    def _handle_error(self, e):
-        log.error(e)
+    def _log_details(self, e):
         if hasattr(e, "fp"):
             detail = e.fp.read()
             try:
                 exc = json.loads(detail)
-                log.error(exc['message'])
-                log.error(exc['stack'])
+                log.debug(exc['message'])
+                log.debug(exc['stack'])
             except:
                 # Error message should always be a JSON message,
                 # but sometimes it's not
-                log.error(detail)
+                log.debug(detail)

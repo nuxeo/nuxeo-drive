@@ -175,7 +175,7 @@ class LastKnownState(Base):
 
     def __repr__(self):
         return ("LastKnownState<local_root=%r, path=%r, "
-                "remote_name=%r, local_state=%r, remote_name=%r>") % (
+                "remote_name=%r, local_state=%r, remote_state=%r>") % (
                     os.path.basename(self.local_root),
                     self.path, self.remote_name,
                     self.local_state, self.remote_state)

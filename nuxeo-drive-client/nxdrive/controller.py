@@ -5,6 +5,9 @@ from time import sleep
 import os.path
 import logging
 from threading import local
+import urllib2
+import socket
+import httplib
 
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
@@ -24,6 +27,13 @@ try:
     from exceptions import WindowsError
 except ImportError:
     WindowsError = None  # this will never be raised under unix
+
+
+POSSIBLE_NETWORK_ERROR_TYPES = (
+    urllib2.URLError,
+    httplib.HTTPException,
+    socket.error,
+)
 
 
 class Controller(object):
@@ -53,6 +63,7 @@ class Controller(object):
             self.nuxeo_client_factory = NuxeoClient
 
         self._local = local()
+        self._remote_error = None
 
     def get_session(self):
         """Reuse the thread local session for this controller
@@ -633,6 +644,9 @@ class Controller(object):
             remote_client = doc_pair.get_remote_client(
                 self.nuxeo_client_factory)
             cache[doc_pair.local_root] = remote_client
+        # Make it possible to have the remote client simulate any kind of
+        # failure
+        remote_client.make_raise(self._remote_error)
         return remote_client
 
     def synchronize_one(self, doc_pair, session=None):
@@ -861,27 +875,25 @@ class Controller(object):
                and (max_loops is None or loop_count <= max_loops)):
             for rb in session.query(RootBinding).all():
                 has_done_scan = True
-                #try:
-                # the alternative to local full scan is the watchdog
-                # thread
-                if full_local_scan or first_pass:
-                    self.scan_local(rb.local_root, session)
-                    has_done_scan = True
+                try:
+                    # the alternative to local full scan is the watchdog
+                    # thread
+                    if full_local_scan or first_pass:
+                        self.scan_local(rb.local_root, session)
+                        has_done_scan = True
 
-                if full_remote_scan or first_pass:
-                    self.scan_remote(rb.local_root, session)
-                    has_done_scan = True
-                else:
-                    self.refresh_remote_from_log(rb.remote_ref)
+                    if full_remote_scan or first_pass:
+                        self.scan_remote(rb.local_root, session)
+                        has_done_scan = True
+                    else:
+                        self.refresh_remote_from_log(rb.remote_ref)
 
-                self.synchronize(limit=max_sync_step,
-                                 local_root=rb.local_root,
-                                 fault_tolerant=fault_tolerant)
-                #except IOError as e:
-                #    # TODO: catch network related errors and log them at debug
-                #    # level instead as we expect the daemon to work even in
-                #    # offline mode without crashing
-                #    logging.error(e)
+                    self.synchronize(limit=max_sync_step,
+                                     local_root=rb.local_root,
+                                     fault_tolerant=fault_tolerant)
+                except POSSIBLE_NETWORK_ERROR_TYPES as e:
+                    # Ignore expected possible network related errors
+                    logging.debug("Ignoring network error in sync loop: %r", e)
 
             # safety net to ensure that Nuxe Drive won't eat all the CPU, disk
             # and network resources of the machine scanning over an over the
@@ -893,3 +905,7 @@ class Controller(object):
             previous_time = current_time
             first_pass = False
             loop_count += 1
+
+    def make_remote_raise(self, error):
+        """Helper method to simulate network failure for testing"""
+        self._remote_error = error

@@ -1,8 +1,11 @@
-import time
-import os
 import hashlib
+import os
 import shutil
 import tempfile
+import time
+import urllib2
+import socket
+import httplib
 from nose import with_setup
 from nose import SkipTest
 from nose.tools import assert_equal
@@ -460,6 +463,49 @@ def test_synchronization_loop():
     # Run the full synchronization loop a limited amount of times
     ctl.loop(full_local_scan=True, full_remote_scan=True, delay=0.010,
              max_loops=3, fault_tolerant=False)
+
+    # All is synchronized
+    assert_equal(len(ctl.list_pending()), 0)
+    assert_equal(ctl.children_states(expected_folder), [
+        (u'/File 5.txt', u'synchronized'),
+        (u'/Folder 1', u'synchronized'),
+        (u'/Folder 2', u'synchronized'),
+        (u'/Folder 3', u'synchronized'),
+    ])
+
+
+@with_integration_env
+def test_synchronization_offline():
+    ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
+    ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
+    expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
+
+    assert_equal(ctl.list_pending(), [])
+    assert_equal(ctl.synchronize(), 0)
+
+    # Let's create some document on the client and the server
+    local = LocalClient(expected_folder)
+    local.make_folder('/', 'Folder 3')
+    make_server_tree()
+
+    # Find various ways to similate network or server failure
+    errors = [
+        urllib2.URLError('Test error'),
+        socket.error('Test error'),
+        httplib.HTTPException('Test error'),
+    ]
+    for error in errors:
+        ctl.make_remote_raise(error)
+        # Synchronization does not occur but does not fail either
+        ctl.loop(full_local_scan=True, full_remote_scan=True, delay=0,
+                 max_loops=1, fault_tolerant=False)
+        # Only the local change has been detected
+        assert_equal(len(ctl.list_pending()), 1)
+
+    # Reenable network
+    ctl.make_remote_raise(None)
+    ctl.loop(full_local_scan=True, full_remote_scan=True, delay=0,
+             max_loops=1, fault_tolerant=False)
 
     # All is synchronized
     assert_equal(len(ctl.list_pending()), 0)
