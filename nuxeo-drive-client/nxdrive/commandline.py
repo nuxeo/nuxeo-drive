@@ -110,7 +110,9 @@ def make_cli_parser():
         "--delay", default=5.0, type=float,
         help="Delay in seconds between consecutive sync operations.")
     console_parser.add_argument(
-        "--stop-on-error", default=False, action="store_true",
+        # XXX: Make it true by default as the fault tolerant mode is not yet
+        # implemented
+        "--stop-on-error", default=True, action="store_true",
         help="Stop the process on first unexpected error."
         "Useful for developers and Continuous Integration.")
 
