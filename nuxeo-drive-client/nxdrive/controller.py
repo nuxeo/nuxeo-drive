@@ -373,8 +373,11 @@ class Controller(object):
         session.delete(binding)
         session.commit()
 
-    def _scan_local(self, local_root, session):
+    def scan_local(self, local_root, session=None):
         """Recursively scan the bound local folder looking for updates"""
+        if session is None:
+            session = self.get_session()
+
         root_state = session.query(LastKnownState).filter_by(
             local_root=local_root, path='/').one()
 
@@ -483,8 +486,11 @@ class Controller(object):
             self._scan_local_recursive(local_root, session, client,
                                        child_pair, child_info)
 
-    def _scan_remote(self, local_root, session):
+    def scan_remote(self, local_root, session=None):
         """Recursively scan the bound remote folder looking for updates"""
+        if session is None:
+            session = self.get_session()
+
         root_state = session.query(LastKnownState).filter_by(
             local_root=local_root, path='/').one()
 
@@ -648,8 +654,8 @@ class Controller(object):
             remote_info = doc_pair.refresh_remote(remote_client)
 
         # Detect creation
-        if (doc_pair.local_state == 'unknown'
-            and doc_pair.remote_state == 'unknown'):
+        if (doc_pair.local_state != 'deleted'
+            and doc_pair.remote_state != 'deleted'):
             if doc_pair.remote_ref is None and doc_pair.path is not None:
                 doc_pair.update_state(local_state='created')
             if doc_pair.remote_ref is not None and doc_pair.path is None:
@@ -859,11 +865,11 @@ class Controller(object):
                 # the alternative to local full scan is the watchdog
                 # thread
                 if full_local_scan or first_pass:
-                    self._scan_local(rb.local_root, session)
+                    self.scan_local(rb.local_root, session)
                     has_done_scan = True
 
                 if full_remote_scan or first_pass:
-                    self._scan_remote(rb.local_root, session)
+                    self.scan_remote(rb.local_root, session)
                     has_done_scan = True
                 else:
                     self.refresh_remote_from_log(rb.remote_ref)

@@ -263,7 +263,7 @@ def test_binding_synchronization_empty_start():
 
     # Let's scan manually
     session = ctl.get_session()
-    ctl._scan_remote(expected_folder, session)
+    ctl.scan_remote(expected_folder, session)
 
     # Changes on the remote server have been detected...
     assert_equal(len(ctl.list_pending()), 11)
@@ -306,8 +306,8 @@ def test_binding_synchronization_empty_start():
     local.make_folder('/', 'Folder 4')
 
     # Rescan
-    ctl._scan_local(expected_folder, session)
-    ctl._scan_remote(expected_folder, session)
+    ctl.scan_local(expected_folder, session)
+    ctl.scan_remote(expected_folder, session)
     assert_equal(ctl.children_states(expected_folder), [
         (u'/File 5.txt', u'locally_deleted'),
         (u'/Folder 1', u'children_modified'),
@@ -370,8 +370,8 @@ def test_binding_synchronization_empty_start():
                  "ffff")
 
     # Rescan: no change to detect we should reach a fixpoint
-    ctl._scan_local(expected_folder, session)
-    ctl._scan_remote(expected_folder, session)
+    ctl.scan_local(expected_folder, session)
+    ctl.scan_remote(expected_folder, session)
     assert_equal(len(ctl.list_pending()), 0)
     assert_equal(ctl.children_states(expected_folder), [
         (u'/Folder 1', 'synchronized'),
@@ -384,11 +384,64 @@ def test_binding_synchronization_empty_start():
     time.sleep(1.0)
     local.update_content('/Folder 1/File 1.txt', "\x80")
     remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', '\x80')
-    ctl._scan_local(expected_folder, session)
-    ctl._scan_remote(expected_folder, session)
+    ctl.scan_local(expected_folder, session)
+    ctl.scan_remote(expected_folder, session)
     assert_equal(ctl.synchronize(limit=100), 2)
     assert_equal(remote_client.get_content('/Folder 1/File 1.txt'), "\x80")
     assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
+
+
+@with_integration_env
+def test_synchronization_modification_on_created_file():
+    # Regression test: a file is created locally, then modification is detected
+    # before first upload
+    ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
+    ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
+    expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
+    assert_equal(ctl.list_pending(), [])
+
+    # Let's create some document on the client and the server
+    local = LocalClient(expected_folder)
+    local.make_folder('/', 'Folder')
+    local.make_file('/Folder', 'File.txt', content='Some content.')
+
+    # First local scan (assuming the network is offline):
+    ctl.scan_local(expected_folder)
+    assert_equal(len(ctl.list_pending()), 2)
+    assert_equal(ctl.children_states(expected_folder), [
+        (u'/Folder', 'children_modified'),
+    ])
+    assert_equal(ctl.children_states(expected_folder + '/Folder'), [
+        (u'/Folder/File.txt', u'unknown'),
+    ])
+
+    # Wait a bit for file time stamps to increase enough: on most OS the file
+    # modification time resolution is 1s
+    time.sleep(1.0)
+
+    # Let's modify it offline and rescan locally
+    local.update_content('/Folder/File.txt', content='Some content.')
+    ctl.scan_local(expected_folder)
+    assert_equal(len(ctl.list_pending()), 2)
+    assert_equal(ctl.children_states(expected_folder), [
+        (u'/Folder', u'children_modified'),
+    ])
+    assert_equal(ctl.children_states(expected_folder + '/Folder'), [
+        (u'/Folder/File.txt', u'locally_modified'),
+    ])
+
+    # Assume the computer is back online, the synchronization should occur as if
+    # the document was just created and not trigger an update
+    ctl.loop(full_local_scan=True, full_remote_scan=True, delay=0.010,
+             max_loops=1, fault_tolerant=False)
+    assert_equal(len(ctl.list_pending()), 0)
+    assert_equal(ctl.children_states(expected_folder), [
+        (u'/Folder', u'synchronized'),
+    ])
+    assert_equal(ctl.children_states(expected_folder + '/Folder'), [
+        (u'/Folder/File.txt', u'synchronized'),
+    ])
+
 
 @with_integration_env
 def test_synchronization_loop():
