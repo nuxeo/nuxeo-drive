@@ -12,7 +12,10 @@ except ImportError:
 
 from nxdrive.controller import Controller
 
-DEFAULT_NX_DRIVE_FOLDER = '~/Nuxeo Drive'
+if sys.platform == "win32":
+    DEFAULT_NX_DRIVE_FOLDER = '~\\Documents\\Nuxeo Drive'
+else:
+    DEFAULT_NX_DRIVE_FOLDER = '~/Nuxeo Drive'
 
 
 def make_cli_parser():
