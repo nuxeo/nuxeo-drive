@@ -208,7 +208,7 @@ class CliHandler(object):
 
     def bind_root(self, options):
         self.controller.bind_root(options.local_folder, options.remote_root,
-                                  repository=options.remote_root)
+                                  repository=options.remote_repo)
         return 0
 
     def unbind_root(self, options):
