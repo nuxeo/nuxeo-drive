@@ -331,9 +331,12 @@ class NuxeoClient(object):
             if e.code == 401 or e.code == 403:
                 raise Unauthorized(self.server_url, self.user_id)
             else:
-                raise IOError(base_error_message + ": HTTP error %d" % e.code)
+                e.msg = base_error_message + ": HTTP error %d" % e.code
+                raise e
         except Exception as e:
-            raise IOError("%s: %r" % (base_error_message, e))
+            if hasattr(e, 'msg'):
+                e.msg = base_error_message + ": " + e.msg
+            raise
         self.operations = {}
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
