@@ -77,7 +77,7 @@ Linux & MacOSX
 Install pip_ using your favorite package manager and then use it to grab all the
 dev dependencies and tools at once::
 
-    sudo pip install -r dev-requirements
+    sudo pip install -r dev-requirements.txt
 
 To install in "dev" mode, you can then do::
 
