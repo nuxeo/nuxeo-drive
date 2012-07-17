@@ -12,11 +12,11 @@ try:
     if sys.platform == "win32":
         #base = "Win32GUI"
         base = None
-    executables = [Executable("bin/ndrive", base=base)]
-    scripts = []
-    # TODO: investigate with esky to get an auto-updateable version but
-	# then make sure that we can still have .msi and .dmg packages
-	# instead of simple zip files.
+        executables = [Executable("bin/ndrive", base=base)]
+        scripts = []
+        # TODO: investigate with esky to get an auto-updateable version but
+        # then make sure that we can still have .msi and .dmg packages
+        # instead of simple zip files.
 except ImportError:
     print("WARN: Install cx_Freeze if you want to build the "
           " standalone distribution of nxdrive.")
@@ -39,8 +39,8 @@ setup(
         'nxdrive.tests',
     ],
     scripts=scripts,
-	executables=executables,
-	options = {
+    executables=executables,
+    options = {
         "build_exe": {
             "packages": [
                 "nxdrive",
@@ -57,9 +57,9 @@ setup(
             ],
         },
         "bdist_msi": {
-        #    "add-to-path": True,
-        #    "upgrade-code": name + '--' + version,
+            #    "add-to-path": True,
+            #    "upgrade-code": name + '--' + version,
         },
-	},
+    },
     long_description=open('README.rst').read(),
 )
