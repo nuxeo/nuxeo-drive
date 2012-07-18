@@ -91,6 +91,9 @@ To run the tests, install and start a nuxeo server locally, then::
 For building the Mac OSX standalone
 
 
+.. _pip: http://www.pip-installer.org/
+
+
 Windows
 -------
 
