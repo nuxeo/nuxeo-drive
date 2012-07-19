@@ -49,7 +49,8 @@ def setup_integration_env():
 
     parent_path = os.path.dirname(TEST_WORKSPACE_PATH)
     workspace_name = os.path.basename(TEST_WORKSPACE_PATH)
-    root_remote_client = NuxeoClient(NUXEO_URL, USER, PASSWORD)
+    root_remote_client = NuxeoClient(NUXEO_URL, USER, PASSWORD,
+                                     base_folder='/')
     TEST_WORKSPACE = root_remote_client.create(
         parent_path, 'Workspace', name=workspace_name,
         properties={'dc:title': TEST_WORKSPACE_TITLE})[u'uid']

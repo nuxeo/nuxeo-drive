@@ -32,7 +32,7 @@ def setup_integration_server():
     if None in (NUXEO_URL, USER, PASSWORD):
         raise SkipTest("No integration server configuration found in "
                        "environment.")
-    nxclient = NuxeoClient(NUXEO_URL, USER, PASSWORD)
+    nxclient = NuxeoClient(NUXEO_URL, USER, PASSWORD, base_folder='/')
 
     parent_path = os.path.dirname(TEST_WORKSPACE_PATH)
     workspace_name = os.path.basename(TEST_WORKSPACE_PATH)

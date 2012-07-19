@@ -280,7 +280,7 @@ class NuxeoClient(object):
     _error = None
 
     def __init__(self, server_url, user_id, password,
-                 base_folder='/', repository="default",
+                 base_folder=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None):
         if ignored_prefixes is not None:
             self.ignored_prefixes = ignored_prefixes
@@ -312,9 +312,12 @@ class NuxeoClient(object):
         self.fetch_api()
 
         # fetch the root folder ref
-        base_folder = base_folder if not None else '/'
-        self._base_folder_ref = self.fetch(base_folder)['uid']
-        self._base_folder_path = self.fetch(base_folder)['path']
+        if base_folder is not None:
+            base_folder_doc = self.fetch(base_folder)
+            self._base_folder_ref = base_folder_doc['uid']
+            self._base_folder_path = base_folder_doc['path']
+        else:
+            self._base_folder_ref, self._base_folder_path = None, None
 
     def fetch_api(self):
         headers = {
@@ -407,6 +410,9 @@ class NuxeoClient(object):
 
     def _doc_to_info(self, doc):
         """Convert Automation document description to NuxeoDocumentInfo"""
+        if self._base_folder_ref is None:
+            raise RuntimeError("RemoteClient with no base_folder cannot be"
+                               " used to synchronized documents.")
         props = doc['properties']
         folderish = 'Folderish' in doc['facets']
         try:
@@ -446,6 +452,9 @@ class NuxeoClient(object):
         self.attach_blob(self._check_ref(ref), content, name)
 
     def _check_ref(self, ref):
+        if self._base_folder_path is None:
+            raise RuntimeError("Path handling is disabled on a remote client"
+                               " with no base_folder")
         if ref.startswith('/') and self._base_folder_path != '/':
             ref = self._base_folder_path + ref
         return ref
