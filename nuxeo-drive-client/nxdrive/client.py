@@ -4,10 +4,10 @@ from collections import namedtuple
 from datetime import datetime
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
+import logging
 import hashlib
 import base64
 import json
-import logging as log
 import mimetypes
 import os
 import random
@@ -15,6 +15,9 @@ import shutil
 import time
 import urllib2
 import re
+
+
+log = logging.getLogger(__name__)
 
 
 # Make the following an optional binding configuration

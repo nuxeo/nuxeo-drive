@@ -1,7 +1,5 @@
-
-
-import logging
 import os
+import logging
 import datetime
 from sqlalchemy import Column
 from sqlalchemy import DateTime
@@ -23,6 +21,9 @@ try:
     from exceptions import WindowsError
 except ImportError:
     WindowsError = None  # this will never be raised under unix
+
+
+log = logging.getLogger(__name__)
 
 
 # make the declarative base class for the ORM mapping
@@ -247,9 +248,9 @@ class LastKnownState(Base):
             except (IOError, WindowsError):
                 # This can fail when another process is writing the same file
                 # let's postpone digest computation in that case
-                logging.debug("Delaying local digest computation for %r"
-                        " due to possible concurrent file access.",
-                        local_info.filepath)
+                log.debug("Delaying local digest computation for %r"
+                          " due to possible concurrent file access.",
+                          local_info.filepath)
 
         # XXX: shall we store local_folderish and remote_folderish to
         # detect such kind of conflicts instead?

@@ -1,4 +1,5 @@
 """Utilities to operate Nuxeo Drive from the command line"""
+import os
 import sys
 import argparse
 from getpass import getpass
@@ -11,6 +12,7 @@ except ImportError:
     debugger = pdb
 
 from nxdrive.controller import Controller
+from nxdrive.logging_config import configure
 
 if sys.platform == "win32":
     DEFAULT_NX_DRIVE_FOLDER = '~\\Documents\\Nuxeo Drive'
@@ -30,9 +32,24 @@ def make_cli_parser():
         help="Folder to store the Nuxeo Drive configuration."
     )
     parser.add_argument(
+        "--log-level-file",
+        default="INFO",
+        help="Minimum log level for the file log (under NXDRIVE_HOME/logs)."
+    )
+    parser.add_argument(
+        "--log-level-console",
+        default="INFO",
+        help="Minimum log level for the console log."
+    )
+    parser.add_argument(
+        "--log-filename",
+        help=("File used to store the logs, default "
+              "NXDRIVE_HOME/logs/nxaudit.logs")
+    )
+    parser.add_argument(
         "--debug", default=False, action="store_true",
-        help="Fire a debugger (ipdb or pdb) one uncaught error.")
-
+        help="Fire a debugger (ipdb or pdb) one uncaught error."
+    )
     subparsers = parser.add_subparsers(
         title='Commands:',
     )
@@ -163,6 +180,17 @@ class CliHandler(object):
 
             sys.excepthook = info
 
+        filename = options.log_filename
+        if filename is None:
+            filename = os.path.join(
+                options.nxdrive_home, 'logs', 'nxdrive.log')
+
+        configure(
+            filename,
+            file_level=options.log_level_file,
+            console_level=options.log_level_console,
+            process_name=options.command,
+        )
         self.controller = Controller(options.nxdrive_home)
 
         handler = getattr(self, options.command, None)
@@ -182,11 +210,8 @@ class CliHandler(object):
     def console(self, options):
 
         fault_tolerant = not options.stop_on_error
-        try:
-            self.controller.loop(fault_tolerant=fault_tolerant,
-                                 delay=options.delay)
-        except KeyboardInterrupt:
-            self.controller.get_session().rollback()
+        self.controller.loop(fault_tolerant=fault_tolerant,
+                             delay=options.delay)
         return 0
 
     def status(self, options):

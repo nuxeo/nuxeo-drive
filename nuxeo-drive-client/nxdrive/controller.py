@@ -36,6 +36,9 @@ POSSIBLE_NETWORK_ERROR_TYPES = (
 )
 
 
+log = logging.getLogger(__name__)
+
+
 class Controller(object):
     """Manage configuration and perform Nuxeo Drive Operations
 
@@ -475,9 +478,9 @@ class Controller(object):
                 except (IOError, WindowsError):
                     # The file is currently being accessed and we cannot
                     # compute the digest
-                    logging.debug("Cannot perform alignment of %r using"
-                            " digest info due to concurrent file access",
-                            local_info.filepath)
+                    log.debug("Cannot perform alignment of %r using"
+                              " digest info due to concurrent file"
+                              " access", local_info.filepath)
 
             if child_pair is None:
                 # Previous attempt has failed: relax the digest constraint
@@ -510,8 +513,8 @@ class Controller(object):
             root_info = client.get_info(root_state.remote_ref)
         except NotFound:
             # remote folder has been deleted, remote the binding
-            logging.debug("Unbinding %r because of remote deletion.",
-                      root_binding)
+            log.debug("Unbinding %r because of remote deletion.",
+                      local_root)
             self.unbind_root(local_root, session=session)
             return
 
@@ -713,8 +716,9 @@ class Controller(object):
                     doc_pair.refresh_local(local_client)
                 doc_pair.update_state('synchronized', 'synchronized')
             except (IOError, WindowsError):
-                logging.debug("Delaying update for remotely modified "
-                        "content %r due to concurrent file access.", doc_pair)
+                log.debug("Delaying update for remotely modified "
+                          "content %r due to concurrent file access.",
+                          doc_pair)
 
         elif doc_pair.pair_state == 'locally_created':
             name = os.path.basename(doc_pair.path)
@@ -724,7 +728,7 @@ class Controller(object):
                 local_root=doc_pair.local_root, path=doc_pair.parent_path
             ).first()
             if parent_pair is None or parent_pair.remote_ref is None:
-                logging.warn(
+                log.warn(
                     "Parent folder of %r/%r is not bound to a remote folder",
                     doc_pair.local_root, doc_pair.path)
                 # Inconsistent state: delete and let the next scan redetect for
@@ -735,11 +739,13 @@ class Controller(object):
                 return
             parent_ref = parent_pair.remote_ref
             if doc_pair.folderish:
+                log.debug("Creating remote folder '%s'", name)
                 remote_ref = remote_client.make_folder(parent_ref, name)
             else:
                 remote_ref = remote_client.make_file(
                     parent_ref, name,
                     content=local_client.get_content(doc_pair.path))
+                log.debug("Creating remote document '%s'", name)
             doc_pair.update_remote(remote_client.get_info(remote_ref))
             doc_pair.update_state('synchronized', 'synchronized')
 
@@ -752,7 +758,7 @@ class Controller(object):
                 remote_ref=remote_info.parent_uid,
             ).first()
             if parent_pair is None or parent_pair.path is None:
-                logging.warn(
+                log.warn(
                     "Parent folder of doc %r (%r:%r) is not bound to a local"
                     " folder",
                     name, doc_pair.remote_repo, doc_pair.remote_ref)
@@ -765,21 +771,27 @@ class Controller(object):
             parent_path = parent_pair.path
             if doc_pair.folderish:
                 path = local_client.make_folder(parent_path, name)
+                log.debug("Creating local folder '%s' in '%s'", name,
+                          parent_path)
             else:
                 path = local_client.make_file(
                     parent_path, name,
                     content=remote_client.get_content(doc_pair.remote_ref))
+                log.debug("Creating local document '%s' in '%s'", name,
+                          parent_path)
             doc_pair.update_local(local_client.get_info(path))
             doc_pair.update_state('synchronized', 'synchronized')
 
         elif doc_pair.pair_state == 'locally_deleted':
             if doc_pair.path == '/':
+                log.debug("Unbinding local root '%s'", doc_pair.local_root)
                 # Special case: unbind root instead of performing deletion
                 self.unbind_root(doc_pair.local_root, session=session)
             else:
                 if doc_pair.remote_ref is not None:
                     # TODO: handle trash management with a dedicated server
                     # side operations?
+                    log.debug("Deleting remote doc '%s'", doc_pair.remote_ref)
                     remote_client.delete(doc_pair.remote_ref)
                 # XXX: shall we also delete all the subcontent / folder at
                 # once in the medata table?
@@ -789,18 +801,20 @@ class Controller(object):
             if doc_pair.path is not None:
                 try:
                     # TODO: handle OS-specific trash management?
+                    log.debug("Deleting local doc '%s'", doc_pair.path)
                     local_client.delete(doc_pair.path)
                     session.delete(doc_pair)
                     # XXX: shall we also delete all the subcontent / folder at
                     # once in the medata table?
-                except (IOError, WindowsError) as e:
+                except (IOError, WindowsError):
                     # Under Windows deletion can be impossible while another
                     # process is accessing the same file (e.g. word processor)
                     # TODO: be more specific as detecting this case:
                     # shall we restrict to the case e.errno == 13 ?
-                    logging.debug("Deletion of %r/%r delayed due to concurrent"
-                                  "editing of this file by another process.",
-                                  doc_pair.local_root, doc_pair.path)
+                    log.debug(
+                        "Deletion of %r/%r delayed due to concurrent"
+                        "editing of this file by another process.",
+                        doc_pair.local_root, doc_pair.path)
             else:
                 session.delete(doc_pair)
 
@@ -814,8 +828,8 @@ class Controller(object):
                 # Automated conflict resolution based on digest content:
                 doc_pair.update_state('synchronized', 'synchronized')
         else:
-            logging.warn("Unhandled pair_state: %r for %r" %
-                         (doc_pair.pair_state, doc_pair))
+            log.warn("Unhandled pair_state: %r for %r",
+                          doc_pair.pair_state, doc_pair)
 
         # TODO: handle other cases such as moves and lock updates
 
@@ -845,7 +859,8 @@ class Controller(object):
                     self.synchronize_one(doc_pair, session=session)
                     synchronized += 1
                 except Exception as e:
-                    logging.error("Failed to synchronize %r: %r", doc_pair, e)
+                    log.error("Failed to synchronize %r: %r",
+                              doc_pair, e, exc_info=True)
                     # TODO: flag pending and all descendant as failed with a
                     # time stamp and make next_pending ignore recently (e.g.
                     # up to 30s) failed synchronized pairs
@@ -866,6 +881,7 @@ class Controller(object):
         delay is an delay in seconds that ensures that two consecutive
         scans won't happen too closely from one another.
         """
+        log.info("Starting synchronization")
         # Instance flag to allow for another thread to interrupt the
         # synchronization loop cleanly
         self.continue_synchronization = True
@@ -879,43 +895,58 @@ class Controller(object):
         first_pass = True
         session = self.get_session()
         loop_count = 0
-        while (self.continue_synchronization
-               and (max_loops is None or loop_count <= max_loops)):
-            wait_delay = False
-            bindings = session.query(RootBinding).all()
-            if not bindings:
-                wait_delay = True
-            for rb in bindings:
-                try:
-                    # the alternative to local full scan is the watchdog
-                    # thread
-                    if full_local_scan or first_pass:
-                        self.scan_local(rb.local_root, session)
-                        wait_delay = True
+        try:
+            while True:
+                if not self.continue_synchronization:
+                    log.info("Stopping synchronization")
+                    break
+                if (max_loops is not None and loop_count > max_loops):
+                    log.info("Stopping synchronization after %d loops",
+                             loop_count)
+                    break
+                wait_delay = False
+                bindings = session.query(RootBinding).all()
+                if not bindings:
+                    wait_delay = True
+                for rb in bindings:
+                    try:
+                        # the alternative to local full scan is the watchdog
+                        # thread
+                        if full_local_scan or first_pass:
+                            self.scan_local(rb.local_root, session)
+                            wait_delay = True
 
-                    if full_remote_scan or first_pass:
-                        self.scan_remote(rb.local_root, session)
-                        wait_delay = True
-                    else:
-                        self.refresh_remote_from_log(rb.remote_ref)
+                        if full_remote_scan or first_pass:
+                            self.scan_remote(rb.local_root, session)
+                            wait_delay = True
+                        else:
+                            self.refresh_remote_from_log(rb.remote_ref)
 
-                    self.synchronize(limit=max_sync_step,
-                                     local_root=rb.local_root,
-                                     fault_tolerant=fault_tolerant)
-                except POSSIBLE_NETWORK_ERROR_TYPES as e:
-                    # Ignore expected possible network related errors
-                    logging.debug("Ignoring network error in sync loop: %r", e)
+                        self.synchronize(limit=max_sync_step,
+                                         local_root=rb.local_root,
+                                         fault_tolerant=fault_tolerant)
+                    except POSSIBLE_NETWORK_ERROR_TYPES as e:
+                        # Ignore expected possible network related errors
+                        log.debug("Ignoring network error in sync loop: %r",
+                                  e)
+                        # TODO: define a trace level on the loggers
+                        log.debug("Traceback of ignored network error:",
+                                  exc_info=True)
 
-            # safety net to ensure that Nuxe Drive won't eat all the CPU, disk
-            # and network resources of the machine scanning over an over the
-            # bound folders too often.
-            current_time = time()
-            spent = current_time - previous_time
-            if spent < delay and wait_delay:
-                sleep(delay - spent)
-            previous_time = current_time
-            first_pass = False
-            loop_count += 1
+                # safety net to ensure that Nuxe Drive won't eat all the CPU,
+                # disk and network resources of the machine scanning over an
+                # over the bound folders too often.
+                current_time = time()
+                spent = current_time - previous_time
+                if spent < delay and wait_delay:
+                    sleep(delay - spent)
+                previous_time = current_time
+                first_pass = False
+                loop_count += 1
+        except KeyboardInterrupt:
+            self.get_session().rollback()
+            log.info("Interrupted synchronization on user's request.")
+            #log.trace("Synchronization interruption at:", exc_info=True)
 
     def make_remote_raise(self, error):
         """Helper method to simulate network failure for testing"""
