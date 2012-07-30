@@ -403,15 +403,16 @@ class NuxeoClient(object):
 
         return filtered
 
-    def get_info(self, ref, raise_if_missing=True):
+    def get_info(self, ref, raise_if_missing=True, fetch_parent_uid=True):
         if not self.exists(ref):
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
                     self._check_ref(ref), self.server_url))
             return None
-        return self._doc_to_info(self.fetch(self._check_ref(ref)))
+        return self._doc_to_info(self.fetch(self._check_ref(ref)),
+                                 fetch_parent_uid=fetch_parent_uid)
 
-    def _doc_to_info(self, doc):
+    def _doc_to_info(self, doc, fetch_parent_uid=True):
         """Convert Automation document description to NuxeoDocumentInfo"""
         if self._base_folder_ref is None:
             raise RuntimeError("RemoteClient with no base_folder cannot be"
@@ -440,7 +441,10 @@ class NuxeoClient(object):
                 digest = blob.get('digest')
 
         # XXX: we need another roundtrip just to fetch the parent uid...
-        parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
+        if fetch_parent_uid:
+            parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
+        else:
+            parent_uid = None
         return NuxeoDocumentInfo(
             self._base_folder_ref, props['dc:title'], doc['uid'], parent_uid,
             doc['path'], folderish, last_update, digest)

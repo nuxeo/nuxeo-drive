@@ -300,7 +300,7 @@ class Controller(object):
                 server_binding.remote_password,
                 repository=repository,
                 base_folder=remote_root)
-            remote_info = nxclient.get_info('/')
+            remote_info = nxclient.get_info('/', fetch_parent_uid=False)
         except NotFound:
             remote_info = None
         if remote_info is None or not remote_info.folderish:
@@ -518,7 +518,8 @@ class Controller(object):
 
         try:
             client = self.get_remote_client(root_state)
-            root_info = client.get_info(root_state.remote_ref)
+            root_info = client.get_info(root_state.remote_ref,
+                                        fetch_parent_uid=False)
         except NotFound:
             # remote folder has been deleted, remote the binding
             log.debug("Unbinding %r because of remote deletion.",

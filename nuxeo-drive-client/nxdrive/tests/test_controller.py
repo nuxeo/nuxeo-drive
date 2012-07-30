@@ -80,7 +80,7 @@ class FakeNuxeoClient(object):
                 True, datetime.utcnow(), None),
         }
 
-    def get_info(self, ref):
+    def get_info(self, ref, fetch_parent_uid=True):
         if ref == '/' and self.base_folder != '/':
             return self.get_info(self.base_folder)
         root_info = self.possible_roots.get(ref)

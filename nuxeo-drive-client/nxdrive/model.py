@@ -264,7 +264,9 @@ class LastKnownState(Base):
         request.
         """
         client = client if client is not None else self.get_remote_client()
-        remote_info = client.get_info(self.remote_ref, raise_if_missing=False)
+        fetch_parent_uid = self.path != '/'
+        remote_info = client.get_info(self.remote_ref, raise_if_missing=False,
+                                      fetch_parent_uid=fetch_parent_uid)
         self.update_remote(remote_info)
         return remote_info
 
