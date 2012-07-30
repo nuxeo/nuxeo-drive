@@ -221,7 +221,7 @@ class LastKnownState(Base):
                 self.parent_path = None
 
         if self.path != local_info.path:
-            raise ValueError("State %r cannot be mapped to %r/%r" % (
+            raise ValueError("State %r cannot be mapped to '%s%s'" % (
                 self, self.local_root, local_info.path))
 
         # Shall we recompute the digest from the current file?
@@ -303,6 +303,10 @@ class LastKnownState(Base):
             self.remote_path = remote_info.path
 
         # else: nothing to update
+
+    def get_local_abspath(self):
+        relative_path = self.path[1:].replace('/', os.path.sep)
+        return os.path.join(self.local_root, relative_path)
 
 
 class FileEvent(Base):

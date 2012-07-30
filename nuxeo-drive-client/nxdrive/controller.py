@@ -3,7 +3,6 @@
 from time import time
 from time import sleep
 import os.path
-import logging
 from threading import local
 import urllib2
 import socket
@@ -12,11 +11,12 @@ import httplib
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
+from nxdrive.client import NotFound
 from nxdrive.model import get_scoped_session_maker
 from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
-from nxdrive.client import NotFound
+from nxdrive.logging_config import get_logger
 
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import asc
@@ -36,7 +36,7 @@ POSSIBLE_NETWORK_ERROR_TYPES = (
 )
 
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 class Controller(object):
@@ -227,6 +227,8 @@ class Controller(object):
             if server_binding.remote_password != password:
                 server_binding.remote_password = password
         except NoResultFound:
+            log.info("Binding '%s' to '%s' with account '%s'",
+                     local_folder, server_url, username)
             session.add(ServerBinding(local_folder, server_url, username,
                                       password))
 
@@ -245,6 +247,8 @@ class Controller(object):
         local_folder = os.path.abspath(os.path.expanduser(local_folder))
         binding = self.get_server_binding(local_folder, raise_if_missing=True,
                                           session=session)
+        log.info("Unbinding '%s' from '%s' with account '%s'",
+                 local_folder, binding.server_url, binding.remote_user)
         session.delete(binding)
         session.commit()
 
@@ -334,6 +338,9 @@ class Controller(object):
                         existing_binding.server_binding.server_url))
         except NoResultFound:
             # Register the new binding itself
+            log.info("Binding local root '%s' to '%s' (id=%s) on server '%s'",
+                 local_root, remote_info.name, remote_info.uid,
+                     server_binding.server_url)
             session.add(RootBinding(local_root, repository, remote_info.uid))
 
             # Initialize the metadata info by recursive walk on the remote
@@ -384,6 +391,7 @@ class Controller(object):
             session = self.get_session()
         binding = self.get_root_binding(local_root, raise_if_missing=True,
                                         session=session)
+        log.info("Unbinding local root '%s'.", local_root)
         session.delete(binding)
         session.commit()
 
@@ -713,6 +721,7 @@ class Controller(object):
                         doc_pair.path,
                         remote_client.get_content(doc_pair.remote_ref),
                     )
+                    
                     doc_pair.refresh_local(local_client)
                 doc_pair.update_state('synchronized', 'synchronized')
             except (IOError, WindowsError):
@@ -772,13 +781,13 @@ class Controller(object):
             if doc_pair.folderish:
                 path = local_client.make_folder(parent_path, name)
                 log.debug("Creating local folder '%s' in '%s'", name,
-                          parent_path)
+                          parent_pair.get_local_abspath())
             else:
                 path = local_client.make_file(
                     parent_path, name,
                     content=remote_client.get_content(doc_pair.remote_ref))
                 log.debug("Creating local document '%s' in '%s'", name,
-                          parent_path)
+                          parent_pair.get_local_abspath())
             doc_pair.update_local(local_client.get_info(path))
             doc_pair.update_state('synchronized', 'synchronized')
 
@@ -791,7 +800,8 @@ class Controller(object):
                 if doc_pair.remote_ref is not None:
                     # TODO: handle trash management with a dedicated server
                     # side operations?
-                    log.debug("Deleting remote doc '%s'", doc_pair.remote_ref)
+                    log.debug("Deleting remote doc '%s' (%s)",
+                              doc_pair.remote_name, doc_pair.remote_ref)
                     remote_client.delete(doc_pair.remote_ref)
                 # XXX: shall we also delete all the subcontent / folder at
                 # once in the medata table?
@@ -801,7 +811,8 @@ class Controller(object):
             if doc_pair.path is not None:
                 try:
                     # TODO: handle OS-specific trash management?
-                    log.debug("Deleting local doc '%s'", doc_pair.path)
+                    log.debug("Deleting local doc '%s'",
+                              doc_pair.get_local_abspath())
                     local_client.delete(doc_pair.path)
                     session.delete(doc_pair)
                     # XXX: shall we also delete all the subcontent / folder at
@@ -812,9 +823,9 @@ class Controller(object):
                     # TODO: be more specific as detecting this case:
                     # shall we restrict to the case e.errno == 13 ?
                     log.debug(
-                        "Deletion of %r/%r delayed due to concurrent"
+                        "Deletion of '%s' delayed due to concurrent"
                         "editing of this file by another process.",
-                        doc_pair.local_root, doc_pair.path)
+                        doc_pair.get_local_abspath())
             else:
                 session.delete(doc_pair)
 
@@ -929,8 +940,7 @@ class Controller(object):
                         # Ignore expected possible network related errors
                         log.debug("Ignoring network error in sync loop: %r",
                                   e)
-                        # TODO: define a trace level on the loggers
-                        log.debug("Traceback of ignored network error:",
+                        log.trace("Traceback of ignored network error:",
                                   exc_info=True)
 
                 # safety net to ensure that Nuxe Drive won't eat all the CPU,
@@ -947,6 +957,9 @@ class Controller(object):
             self.get_session().rollback()
             log.info("Interrupted synchronization on user's request.")
             #log.trace("Synchronization interruption at:", exc_info=True)
+        except:
+            self.get_session().rollback()
+            raise
 
     def make_remote_raise(self, error):
         """Helper method to simulate network failure for testing"""

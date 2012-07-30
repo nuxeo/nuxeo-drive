@@ -5,6 +5,11 @@ from logging.handlers import RotatingFileHandler
 import os
 
 
+TRACE = 5
+logging.addLevelName(TRACE, 'TRACE')
+logging.TRACE = TRACE
+
+
 def configure(log_filename, file_level='INFO', console_level='INFO',
               process_name="", log_rotate_keep=5,
               log_rotate_max_bytes=1000000):
@@ -49,3 +54,10 @@ def configure(log_filename, file_level='INFO', console_level='INFO',
     # add the handler to the root logger and all descendants
     root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
+
+
+def get_logger(name):
+    logger = logging.getLogger(name)
+    trace = lambda *args, **kwargs: logger.log(TRACE, *args, **kwargs)
+    setattr(logger, 'trace', trace)
+    return logger

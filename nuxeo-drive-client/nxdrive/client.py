@@ -4,7 +4,6 @@ from collections import namedtuple
 from datetime import datetime
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
-import logging
 import hashlib
 import base64
 import json
@@ -15,9 +14,10 @@ import shutil
 import time
 import urllib2
 import re
+from nxdrive.logging_config import get_logger
 
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 # Make the following an optional binding configuration
@@ -610,6 +610,7 @@ class NuxeoClient(object):
             boundary,
         )
         url = self.automation_url.encode('ascii') + "Blob.Attach"
+        log.trace("Calling '%s' for file '%s'", url, filename)
         req = urllib2.Request(url, data, headers)
         try:
             resp = self.opener.open(req)
@@ -649,7 +650,9 @@ class NuxeoClient(object):
         else:
             data = None
 
-        req = urllib2.Request(self.automation_url + command, data, headers)
+        url = self.automation_url + command
+        log.trace("Calling '%s' with json payload: %r", url, data)
+        req = urllib2.Request(url, data, headers)
         try:
             resp = self.opener.open(req)
         except Exception, e:
