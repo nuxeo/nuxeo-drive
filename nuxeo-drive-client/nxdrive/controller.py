@@ -706,6 +706,8 @@ class Controller(object):
             # TODO: handle smart versionning policy here (or maybe delegate to
             # a dedicated server-side operation)
             if doc_pair.remote_digest != doc_pair.local_digest:
+                log.debug("Updating remote document '%s'.",
+                          doc_pair.remote_name)
                 remote_client.update_content(
                     doc_pair.remote_ref,
                     local_client.get_content(doc_pair.path),
@@ -717,11 +719,12 @@ class Controller(object):
         elif doc_pair.pair_state == 'remotely_modified':
             try:
                 if doc_pair.remote_digest != doc_pair.local_digest != None:
+                    log.debug("Updating local file '%s'.",
+                              doc_pair.get_local_abspath())
                     local_client.update_content(
                         doc_pair.path,
                         remote_client.get_content(doc_pair.remote_ref),
                     )
-                    
                     doc_pair.refresh_local(local_client)
                 doc_pair.update_state('synchronized', 'synchronized')
             except (IOError, WindowsError):
@@ -748,13 +751,15 @@ class Controller(object):
                 return
             parent_ref = parent_pair.remote_ref
             if doc_pair.folderish:
-                log.debug("Creating remote folder '%s'", name)
+                log.debug("Creating remote folder '%s' in folder '%s'",
+                          name, parent_pair.remote_name)
                 remote_ref = remote_client.make_folder(parent_ref, name)
             else:
                 remote_ref = remote_client.make_file(
                     parent_ref, name,
                     content=local_client.get_content(doc_pair.path))
-                log.debug("Creating remote document '%s'", name)
+                log.debug("Creating remote document '%s' in folder '%s'",
+                          name, parent_pair.remote_name)
             doc_pair.update_remote(remote_client.get_info(remote_ref))
             doc_pair.update_state('synchronized', 'synchronized')
 
