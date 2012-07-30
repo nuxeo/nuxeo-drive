@@ -717,20 +717,22 @@ class Controller(object):
             doc_pair.update_state('synchronized', 'synchronized')
 
         elif doc_pair.pair_state == 'remotely_modified':
-            try:
-                if doc_pair.remote_digest != doc_pair.local_digest != None:
-                    log.debug("Updating local file '%s'.",
-                              doc_pair.get_local_abspath())
-                    local_client.update_content(
-                        doc_pair.path,
-                        remote_client.get_content(doc_pair.remote_ref),
-                    )
+            if doc_pair.remote_digest != doc_pair.local_digest != None:
+                log.debug("Updating local file '%s'.",
+                          doc_pair.get_local_abspath())
+                content = remote_client.get_content(doc_pair.remote_ref)
+                try:
+                    local_client.update_content(doc_pair.path, content)
                     doc_pair.refresh_local(local_client)
+                    doc_pair.update_state('synchronized', 'synchronized')
+                except (IOError, WindowsError):
+                    log.debug("Delaying update for remotely modified "
+                              "content %r due to concurrent file access.",
+                              doc_pair)
+            else:
+                # digest agree, no need to transfer additional bytes over the
+                # network
                 doc_pair.update_state('synchronized', 'synchronized')
-            except (IOError, WindowsError):
-                log.debug("Delaying update for remotely modified "
-                          "content %r due to concurrent file access.",
-                          doc_pair)
 
         elif doc_pair.pair_state == 'locally_created':
             name = os.path.basename(doc_pair.path)
