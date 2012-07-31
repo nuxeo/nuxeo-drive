@@ -1,3 +1,4 @@
+from time import sleep
 import os
 import hashlib
 from nose import with_setup
@@ -57,6 +58,20 @@ def test_authentication_failure():
         NuxeoClient, nxclient.server_url, 'someone else', 'bad password')
 
 
+def wait_for_deletion(client, doc, retries_left=3, delay=0.300,
+                      use_trash=True):
+    if retries_left <= 0:
+        raise ValueError("Document was")
+    if not client.exists(doc, use_trash=use_trash):
+        # OK: the document has been deleted
+        return
+    # Wait a bit for the sub-folder deletion asynchronous listner to do its
+    # job and then retry
+    sleep(delay)
+    wait_for_deletion(client, doc, retries_left=retries_left - 1,
+                      use_trash=use_trash)
+
+
 @with_integration_server
 def test_make_documents():
     doc_1 = nxclient.make_file(TEST_WORKSPACE, 'Document 1.txt')
@@ -106,6 +121,8 @@ def test_make_documents():
                                content=SOME_TEXT_CONTENT)
     nxclient.delete(folder_1)
     assert_false(nxclient.exists(folder_1))
+    wait_for_deletion(nxclient, doc_3, 5)
+
     assert_false(nxclient.exists(doc_3))
 
     # Test folder deletion (without trash)
@@ -121,7 +138,7 @@ def test_make_documents():
                                content=SOME_TEXT_CONTENT)
     nxclient.delete(folder_1, use_trash=False)
     assert_false(nxclient.exists(folder_1, use_trash=False))
-    assert_false(nxclient.exists(doc_3, use_trash=False))
+    wait_for_deletion(nxclient, doc_3, 5, use_trash=False)
 
 
 @with_integration_server
