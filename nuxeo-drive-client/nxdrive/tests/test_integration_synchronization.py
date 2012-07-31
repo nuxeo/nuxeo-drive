@@ -77,7 +77,7 @@ def teardown_integration_env():
     if ctl is not None:
         ctl.get_session().close()
     if remote_client is not None and remote_client.exists(TEST_WORKSPACE):
-        remote_client.delete(TEST_WORKSPACE)
+        remote_client.delete(TEST_WORKSPACE, use_trash=False)
 
     if os.path.exists(LOCAL_TEST_FOLDER):
         shutil.rmtree(LOCAL_TEST_FOLDER)

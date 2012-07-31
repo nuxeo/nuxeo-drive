@@ -43,7 +43,7 @@ def setup_integration_server():
 
 def teardown_integration_server():
     if nxclient is not None and nxclient.exists(TEST_WORKSPACE):
-        nxclient.delete(TEST_WORKSPACE)
+        nxclient.delete(TEST_WORKSPACE, use_trash=False)
 
 
 with_integration_server = with_setup(
@@ -81,7 +81,19 @@ def test_make_documents():
     nxclient.delete(doc_2)
     assert_true(nxclient.exists(doc_1))
     assert_false(nxclient.exists(doc_2))
+    assert_raises(NotFound, nxclient.get_info, doc_2)
 
+    # the document has been put in the trash by default
+    assert_true(nxclient.exists(doc_2, use_trash=False) is not None)
+
+    # the document is now physically deleted (by calling delete a second time:
+    # the 'delete' transition will no longer be available hence physical
+    # deletion is used as a fallback)
+    nxclient.delete(doc_2)
+    assert_false(nxclient.exists(doc_2, use_trash=False))
+    assert_raises(NotFound, nxclient.get_info, doc_2, use_trash=False)
+
+    # Test folder deletion (with trash)
     folder_1 = nxclient.make_folder(TEST_WORKSPACE, 'A new folder')
     assert_true(nxclient.exists(folder_1))
     folder_1_info = nxclient.get_info(folder_1)
@@ -95,6 +107,21 @@ def test_make_documents():
     nxclient.delete(folder_1)
     assert_false(nxclient.exists(folder_1))
     assert_false(nxclient.exists(doc_3))
+
+    # Test folder deletion (without trash)
+    folder_1 = nxclient.make_folder(TEST_WORKSPACE, 'A new folder')
+    assert_true(nxclient.exists(folder_1))
+    folder_1_info = nxclient.get_info(folder_1)
+    assert_equal(folder_1_info.name, 'A new folder')
+    assert_equal(folder_1_info.uid, folder_1)
+    assert_equal(folder_1_info.get_digest(), None)
+    assert_equal(folder_1_info.folderish, True)
+
+    doc_3 = nxclient.make_file(folder_1, 'Document 3.txt',
+                               content=SOME_TEXT_CONTENT)
+    nxclient.delete(folder_1, use_trash=False)
+    assert_false(nxclient.exists(folder_1, use_trash=False))
+    assert_false(nxclient.exists(doc_3, use_trash=False))
 
 
 @with_integration_server

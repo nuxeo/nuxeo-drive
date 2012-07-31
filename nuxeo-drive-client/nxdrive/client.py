@@ -351,14 +351,18 @@ class NuxeoClient(object):
     # Client API common with the FS API
     #
 
-    def exists(self, ref):
+    def exists(self, ref, use_trash=True):
         ref = self._check_ref(ref)
-        if ref.startswith('/'):
-            results = self.query(
-                "SELECT * FROM Document WHERE ecm:path = '%s' LIMIT 1" % ref)
+        id_prop = 'ecm:path' if ref.startswith('/') else 'ecm:uuid'
+        if use_trash:
+            lifecyle_pred = " AND ecm:currentLifeCycleState != 'deleted'"
         else:
-            results = self.query(
-                "SELECT * FROM Document WHERE ecm:uuid = '%s' LIMIT 1" % ref)
+            lifecyle_pred = ""
+
+        query = ("SELECT * FROM Document WHERE %s = '%s' %s"
+                 " AND ecm:isCheckedInVersion = 0 LIMIT 1") % (
+            id_prop, ref, lifecyle_pred)
+        results = self.query(query)
         return len(results[u'entries']) == 1
 
     def get_children_info(self, ref):
@@ -403,8 +407,9 @@ class NuxeoClient(object):
 
         return filtered
 
-    def get_info(self, ref, raise_if_missing=True, fetch_parent_uid=True):
-        if not self.exists(ref):
+    def get_info(self, ref, raise_if_missing=True, fetch_parent_uid=True,
+                 use_trash=True):
+        if not self.exists(ref, use_trash=use_trash):
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
                     self._check_ref(ref), self.server_url))
@@ -510,9 +515,18 @@ class NuxeoClient(object):
         return self._execute("Document.SetProperty", input="doc:" + ref,
             xpath=xpath, value=value)
 
-    def delete(self, ref):
-        ref = self._check_ref(ref)
-        return self._execute("Document.Delete", input="doc:" + ref)
+    def delete(self, ref, use_trash=True):
+        input = "doc:" + self._check_ref(ref)
+        if use_trash:
+            try:
+                return self._execute("Document.SetLifeCycle", input=input,
+                                     value='delete')
+            except urllib2.HTTPError as e:
+                if e.code == 500:
+                    return self._execute("Document.Delete", input=input)
+                raise
+        else:
+            return self._execute("Document.Delete", input=input)
 
     def get_children(self, ref):
         return self._execute("Document.GetChildren", input="doc:" + ref)
