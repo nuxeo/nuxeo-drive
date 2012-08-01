@@ -104,6 +104,11 @@ administrator")::
 
     powershell.exe C:\path\to\nuxeo-drive-client\tools\windows\nxdrive-setup-dev.ps1
 
+If you get an error message complaining about the lack of signature for
+this script you can disable that security check with the following command:
+
+    Set-ExecutionPolicy Unrestricted
+
 Then you should be able to build the standalone `.msi` installer with::
 
     C:\Python27\python.exe setup.py bdist_msi
