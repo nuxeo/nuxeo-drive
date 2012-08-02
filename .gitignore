@@ -10,3 +10,4 @@ coverage
 .coverage
 build
 dist
+*.zip

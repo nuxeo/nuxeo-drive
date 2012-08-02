@@ -15,13 +15,13 @@ from nxdrive.controller import Controller
 from nxdrive.logging_config import configure
 
 if sys.platform == "win32":
-    if os.path.exists(os.path.expanduser('~\\My Documents')):
+    if os.path.exists(os.path.expanduser(r'~\My Documents')):
         # Compat for Windows XP
-        DEFAULT_NX_DRIVE_FOLDER = '~\\My Documents\\Nuxeo Drive'
+        DEFAULT_NX_DRIVE_FOLDER = r'~\My Documents\Nuxeo Drive'
     else:
         # Default Documents folder with navigation shortcuts in Windows 7
         # and up.
-        DEFAULT_NX_DRIVE_FOLDER = '~\\Documents\\Nuxeo Drive'
+        DEFAULT_NX_DRIVE_FOLDER = r'~\Documents\Nuxeo Drive'
 else:
     DEFAULT_NX_DRIVE_FOLDER = '~/Nuxeo Drive'
 
