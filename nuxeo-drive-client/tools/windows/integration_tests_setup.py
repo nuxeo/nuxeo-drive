@@ -32,6 +32,7 @@ DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
 DEFAULT_ARCHIVE_PATTERN=r"nuxeo-cap-\d\.\d-I\d+_\d+-tomcat\.zip"
 NUXEO_FOLDER='nuxeo-tomcat'
 LESSMSI_FOLDER='lessmsi'
+EXTRACTED_MSI_FOLDER='nxdrive_msi'
 
 
 def parse_args(args=None):
@@ -97,15 +98,20 @@ def setup_nuxeo(nuxeo_archive_url):
     # TODO: start nuxeo
 
 
-def extract_msi(lessmsi_url):
+def extract_msi(lessmsi_url, msi_filename):
     filename = os.path.basename(lessmsi_url)
     lessmsi_folder = filename[:-len('.zip')]
     if not os.path.exists(lessmsi_folder):
         download(lessmsi_url, filename)
         unzip(filename, target=LESSMSI_FOLDER)
 
+    print "Extracting the MSI"
+    lessmsi = os.path.join(LESSMSI_FOLDER, 'lessmsi')
+    cmd = "%s %s %s" % (lessmsi, msi_filename, LESSMSI_FOLDER)
+    os.system(cmd)
+
 
 if __name__ == "__main__":
     options = parse_args()
     setup_nuxeo(options.nuxeo_archive_url)
-    extract_msi(options.lessmsi_url)
+    extract_msi(options.lessmsi_url, options.msi)
