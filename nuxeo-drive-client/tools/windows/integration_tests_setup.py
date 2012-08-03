@@ -17,15 +17,20 @@ Get the help on running this with::
 
 """
 
+import os
 import urllib2
 import argparse
 import re
+import zipfile
+import shutil
+
 
 DEFAULT_MSI = r"dist\nuxeo-drive-0.1.0-win32.msi"
 DEFAULT_NUXEO_ARCHIVE_URL=("http://qa.nuxeo.org/jenkins/job/IT-nuxeo-master-build/"
                            "lastSuccessfulBuild/artifact/archives/")
 DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
 DEFAULT_ARCHIVE_PATTERN=r"nuxeo-cap-\d\.\d-I\d+_\d+-tomcat\.zip"
+NUXEO_FOLDER='nuxeo-tomcat'
 
 
 def parse_args(args=None):
@@ -49,18 +54,44 @@ def setup_nuxeo(nuxeo_archive_url):
     filenames.sort()
     filename = filenames[0]
     file_url = nuxeo_archive_url + filename
-    print "Downloading: " + file_url
-    reader = urllib2.urlopen(file_url)
-    with open(filename, 'wb') as f:
-        while True:
-            b = reader.read(1000 ** 2)
-            if b == '':
-                break
-            f.write(b)
+    if not os.path.exists(filename):
+        print "Downloading %s to %s" % (file_url, filename)
+        reader = urllib2.urlopen(file_url)
+        with open(filename, 'wb') as f:
+            while True:
+                b = reader.read(1000 ** 2)
+                if b == '':
+                    break
+                f.write(b)
+    else:
+        print "Reusing: " + filename
 
-    # TODO: skip wizard
+    print "Unzipping", filename
+    zf = zipfile.ZipFile(filename, 'r')
+    for info in zf.infolist():
+        dirname = os.path.dirname(info.filename)
+        if dirname != '' and not os.path.exists(dirname):
+            os.makedirs(dirname)
+        with open(info.filename, 'wb') as f:
+            f.write(zf.read(info.filename))
+
+    nuxeo_folder = filename[:-len(".zip")]
+    print "Renaming %s to %s" % (nuxeo_folder, NUXEO_FOLDER)
+    if os.path.exists(NUXEO_FOLDER):
+        shutil.rmtree(NUXEO_FOLDER)
+    os.rename(nuxeo_folder, NUXEO_FOLDER)
+    with open(os.path.join(NUXEO_FOLDER, 'bin', 'nuxeo.conf'), 'wb') as f:
+        f.write("\nnuxeo.wizard.done=true\n")
+
+    # TODO: start nuxeo
+
+
+def extract_msi(lessmsi_url):
+    filename = os.path.basename(lessmsi_url)
+    # TODO
 
 
 if __name__ == "__main__":
     options = parse_args()
     setup_nuxeo(options.nuxeo_archive_url)
+    extract_msi(options.lessmsi_url)

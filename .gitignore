@@ -11,3 +11,4 @@ coverage
 build
 dist
 *.zip
+nuxeo-tomcat
