@@ -31,6 +31,7 @@ DEFAULT_NUXEO_ARCHIVE_URL=("http://qa.nuxeo.org/jenkins/job/IT-nuxeo-master-buil
 DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
 DEFAULT_ARCHIVE_PATTERN=r"nuxeo-cap-\d\.\d-I\d+_\d+-tomcat\.zip"
 NUXEO_FOLDER='nuxeo-tomcat'
+LESSMSI_FOLDER='lessmsi'
 
 
 def parse_args(args=None):
@@ -45,6 +46,34 @@ def parse_args(args=None):
     return parser.parse_args(args)
 
 
+def download(url, filename):
+    if not os.path.exists(filename):
+        print "Downloading %s to %s" % (url, filename)
+        headers = {'User-Agent' : 'nxdrive test script'}
+        req = urllib2.Request(url, None, headers)
+        reader = urllib2.urlopen(req)
+        with open(filename, 'wb') as f:
+            while True:
+                b = reader.read(1000 ** 2)
+                if b == '':
+                    break
+                f.write(b)
+
+
+def unzip(filename, target=None):
+    print "Unzipping", filename
+    zf = zipfile.ZipFile(filename, 'r')
+    for info in zf.infolist():
+        filename = info.filename
+        if target is not None:
+            filename = os.path.join(target, filename)
+        dirname = os.path.dirname(filename)
+        if dirname != '' and not os.path.exists(dirname):
+            os.makedirs(dirname)
+        with open(filename, 'wb') as f:
+            f.write(zf.read(info.filename))
+
+
 def setup_nuxeo(nuxeo_archive_url):
     print "Finding latest nuxeo ZIP archive at: " + nuxeo_archive_url
     index_html = urllib2.urlopen(nuxeo_archive_url).read()
@@ -53,27 +82,9 @@ def setup_nuxeo(nuxeo_archive_url):
         raise ValueError("Could not find ZIP archives on " + nuxeo_archive_url)
     filenames.sort()
     filename = filenames[0]
-    file_url = nuxeo_archive_url + filename
-    if not os.path.exists(filename):
-        print "Downloading %s to %s" % (file_url, filename)
-        reader = urllib2.urlopen(file_url)
-        with open(filename, 'wb') as f:
-            while True:
-                b = reader.read(1000 ** 2)
-                if b == '':
-                    break
-                f.write(b)
-    else:
-        print "Reusing: " + filename
-
-    print "Unzipping", filename
-    zf = zipfile.ZipFile(filename, 'r')
-    for info in zf.infolist():
-        dirname = os.path.dirname(info.filename)
-        if dirname != '' and not os.path.exists(dirname):
-            os.makedirs(dirname)
-        with open(info.filename, 'wb') as f:
-            f.write(zf.read(info.filename))
+    url = nuxeo_archive_url + filename
+    download(url, filename)
+    unzip(filename)
 
     nuxeo_folder = filename[:-len(".zip")]
     print "Renaming %s to %s" % (nuxeo_folder, NUXEO_FOLDER)
@@ -88,7 +99,10 @@ def setup_nuxeo(nuxeo_archive_url):
 
 def extract_msi(lessmsi_url):
     filename = os.path.basename(lessmsi_url)
-    # TODO
+    lessmsi_folder = filename[:-len('.zip')]
+    if not os.path.exists(lessmsi_folder):
+        download(lessmsi_url, filename)
+        unzip(filename, target=LESSMSI_FOLDER)
 
 
 if __name__ == "__main__":
