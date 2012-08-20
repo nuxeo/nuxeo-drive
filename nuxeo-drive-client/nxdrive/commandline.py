@@ -279,7 +279,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_nuxeo_client",
             "nxdrive.tests.test_integration_synchronization",
         ]
-        return nose.run(argv=argv)
+        return 0 if nose.run(argv=argv) else 1
 
 
 def main(args=None):
