@@ -18,11 +18,13 @@ Get the help on running this with::
 """
 
 import os
+import sys
 import urllib2
 import argparse
 import re
 import zipfile
 import shutil
+import atexit
 
 
 DEFAULT_MSI = r"dist\nuxeo-drive-0.1.0-win32.msi"
@@ -33,6 +35,13 @@ DEFAULT_ARCHIVE_PATTERN=r"nuxeo-cap-\d\.\d-I\d+_\d+-tomcat\.zip"
 NUXEO_FOLDER='nuxeo-tomcat'
 LESSMSI_FOLDER='lessmsi'
 EXTRACTED_MSI_FOLDER='nxdrive_msi'
+
+
+def execute(cmd):
+    print "> " + cmd
+    code = os.system(cmd)
+    if code != 0:
+        sys.exit(code)
 
 
 def parse_args(args=None):
@@ -76,11 +85,21 @@ def unzip(filename, target=None):
 
 
 def setup_nuxeo(nuxeo_archive_url):
+    try:
+        java_home = os.environ['JAVA_HOME']
+    except KeyError:
+        raise RuntimeError('The JAVA_HOME env variable is required.')
+    java_bin = os.path.join(java_home, 'bin')
+    path = os.environ['PATH']
+    if not java_bin in path:
+        os.environ['PATH'] = path + ";" + java_bin
+
     print "Finding latest nuxeo ZIP archive at: " + nuxeo_archive_url
     index_html = urllib2.urlopen(nuxeo_archive_url).read()
     filenames = re.compile(DEFAULT_ARCHIVE_PATTERN).findall(index_html)
     if not filenames:
-        raise ValueError("Could not find ZIP archives on " + nuxeo_archive_url)
+        raise ValueError("Could not find ZIP archives on "
+                         + nuxeo_archive_url)
     filenames.sort()
     filename = filenames[0]
     url = nuxeo_archive_url + filename
@@ -95,25 +114,37 @@ def setup_nuxeo(nuxeo_archive_url):
     with open(os.path.join(NUXEO_FOLDER, 'bin', 'nuxeo.conf'), 'wb') as f:
         f.write("\nnuxeo.wizard.done=true\n")
 
-    # TODO: start nuxeo
+    print "Starting the Nuxeo server"
+    nuxeoctl = os.path.join(NUXEO_FOLDER, 'bin', 'nuxeoctl')
+    execute(nuxeoctl + " --gui false start")
+
+    # Register a callback to stop the nuxeo server
+    atexit.register(execute, nuxeoctl + " --gui false stop")
 
 
 def extract_msi(lessmsi_url, msi_filename):
     filename = os.path.basename(lessmsi_url)
-    lessmsi_folder = filename[:-len('.zip')]
-    if not os.path.exists(lessmsi_folder):
+    if not os.path.exists(LESSMSI_FOLDER):
         download(lessmsi_url, filename)
         unzip(filename, target=LESSMSI_FOLDER)
 
     print "Extracting the MSI"
     lessmsi = os.path.join(LESSMSI_FOLDER, 'lessmsi')
     if os.path.exists(EXTRACTED_MSI_FOLDER):
-	shutil.rmtree(EXTRACTED_MSI_FOLDER)
-    cmd = "%s /x %s %s" % (lessmsi, msi_filename, EXTRACTED_MSI_FOLDER)
-    os.system(cmd)
+        shutil.rmtree(EXTRACTED_MSI_FOLDER)
+    execute("%s /x %s %s" % (lessmsi, msi_filename, EXTRACTED_MSI_FOLDER))
+
+
+def run_tests():
+    ndrive = os.path.join(EXTRACTED_MSI_FOLDER, 'SourceDir', 'ndrive.exe')
+    os.environ['NXDRIVE_TEST_NUXEO_URL'] = "http://localhost:8080/nuxeo"
+    os.environ['NXDRIVE_TEST_USER'] = "Administrator"
+    os.environ['NXDRIVE_TEST_PASSWORD'] = "Administrator"
+    execute(ndrive + " test")
 
 
 if __name__ == "__main__":
     options = parse_args()
     setup_nuxeo(options.nuxeo_archive_url)
     extract_msi(options.lessmsi_url, options.msi)
+    run_tests()

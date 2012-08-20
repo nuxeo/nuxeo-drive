@@ -273,4 +273,5 @@ def test_binding_deletions():
 
     # check that you cannot unbind non bound roots and servers
     assert_raises(RuntimeError, ctl.unbind_root, folder_2 + '-bis')
-    assert_raises(RuntimeError, ctl.unbind_server, TEST_SYNCED_FOLDER + '-bis')
+    assert_raises(RuntimeError, ctl.unbind_server,
+                  TEST_SYNCED_FOLDER + '-bis')
