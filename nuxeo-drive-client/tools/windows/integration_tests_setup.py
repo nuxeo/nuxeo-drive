@@ -107,7 +107,9 @@ def extract_msi(lessmsi_url, msi_filename):
 
     print "Extracting the MSI"
     lessmsi = os.path.join(LESSMSI_FOLDER, 'lessmsi')
-    cmd = "%s %s %s" % (lessmsi, msi_filename, LESSMSI_FOLDER)
+    if os.path.exists(EXTRACTED_MSI_FOLDER):
+	shutil.rmtree(EXTRACTED_MSI_FOLDER)
+    cmd = "%s /x %s %s" % (lessmsi, msi_filename, EXTRACTED_MSI_FOLDER)
     os.system(cmd)
 
 
