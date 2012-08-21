@@ -41,7 +41,7 @@ def execute(cmd):
     print "> " + cmd
     code = os.system(cmd)
     if code != 0:
-	sys.exit(code)
+        sys.exit(code)
 
 
 def parse_args(args=None):
@@ -86,13 +86,13 @@ def unzip(filename, target=None):
 
 def setup_nuxeo(nuxeo_archive_url):
     try:
-	java_home = os.environ['JAVA_HOME']
+        java_home = os.environ['JAVA_HOME']
     except KeyError:
         raise RuntimeError('The JAVA_HOME env variable is required.')
     java_bin = os.path.join(java_home, 'bin')
     path = os.environ['PATH']
     if not java_bin in path:
-	os.environ['PATH'] = path + ";" + java_bin
+        os.environ['PATH'] = path + ";" + java_bin
 
     print "Kill previous soffice if any to unlock old files"
     execute('taskkill /f /fi "imagename eq soffice.*"')
@@ -134,7 +134,7 @@ def extract_msi(lessmsi_url, msi_filename):
     print "Extracting the MSI"
     lessmsi = os.path.join(LESSMSI_FOLDER, 'lessmsi')
     if os.path.exists(EXTRACTED_MSI_FOLDER):
-	shutil.rmtree(EXTRACTED_MSI_FOLDER)
+        shutil.rmtree(EXTRACTED_MSI_FOLDER)
     execute("%s /x %s %s" % (lessmsi, msi_filename, EXTRACTED_MSI_FOLDER))
 
 

@@ -58,10 +58,10 @@ def test_authentication_failure():
         NuxeoClient, nxclient.server_url, 'someone else', 'bad password')
 
 
-def wait_for_deletion(client, doc, retries_left=3, delay=0.300,
+def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
                       use_trash=True):
     if retries_left <= 0:
-        raise ValueError("Document was")
+        raise ValueError("Document was not deleted before client timeout")
     if not client.exists(doc, use_trash=use_trash):
         # OK: the document has been deleted
         return
@@ -121,7 +121,7 @@ def test_make_documents():
                                content=SOME_TEXT_CONTENT)
     nxclient.delete(folder_1)
     assert_false(nxclient.exists(folder_1))
-    wait_for_deletion(nxclient, doc_3, 5)
+    wait_for_deletion(nxclient, doc_3)
 
     assert_false(nxclient.exists(doc_3))
 
@@ -138,7 +138,7 @@ def test_make_documents():
                                content=SOME_TEXT_CONTENT)
     nxclient.delete(folder_1, use_trash=False)
     assert_false(nxclient.exists(folder_1, use_trash=False))
-    wait_for_deletion(nxclient, doc_3, 5, use_trash=False)
+    wait_for_deletion(nxclient, doc_3, use_trash=False)
 
 
 @with_integration_server
