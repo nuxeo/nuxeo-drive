@@ -94,6 +94,9 @@ def setup_nuxeo(nuxeo_archive_url):
     if not java_bin in path:
 	os.environ['PATH'] = path + ";" + java_bin
 
+    print "Kill previous soffice if any to unlock old files"
+    execute('taskkill /f /fi "imagename eq soffice.*"')
+
     print "Finding latest nuxeo ZIP archive at: " + nuxeo_archive_url
     index_html = urllib2.urlopen(nuxeo_archive_url).read()
     filenames = re.compile(DEFAULT_ARCHIVE_PATTERN).findall(index_html)
