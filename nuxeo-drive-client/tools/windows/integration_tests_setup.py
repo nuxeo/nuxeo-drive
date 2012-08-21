@@ -97,6 +97,9 @@ def setup_nuxeo(nuxeo_archive_url):
     print "Kill previous soffice if any to unlock old files"
     execute('taskkill /f /fi "imagename eq soffice.*"')
 
+    print "Kill any potential rogue instance of ndrive.exe"
+    execute('taskkill /f /fi "imagename eq ndrive.exe"')
+
     print "Finding latest nuxeo ZIP archive at: " + nuxeo_archive_url
     index_html = urllib2.urlopen(nuxeo_archive_url).read()
     filenames = re.compile(DEFAULT_ARCHIVE_PATTERN).findall(index_html)
@@ -110,9 +113,14 @@ def setup_nuxeo(nuxeo_archive_url):
     unzip(filename)
 
     nuxeo_folder = filename[:-len(".zip")]
+    nuxeoctl = os.path.join(NUXEO_FOLDER, 'bin', 'nuxeoctl')
     print "Renaming %s to %s" % (nuxeo_folder, NUXEO_FOLDER)
     if os.path.exists(NUXEO_FOLDER):
+        # stop any previous server process that could have been left running
+        # if jenkins kills this script
+	execute(nuxeoctl + " --gui false stop")
         shutil.rmtree(NUXEO_FOLDER)
+            
     os.rename(nuxeo_folder, NUXEO_FOLDER)
     with open(os.path.join(NUXEO_FOLDER, 'bin', 'nuxeo.conf'), 'wb') as f:
         f.write("\nnuxeo.wizard.done=true\n")
