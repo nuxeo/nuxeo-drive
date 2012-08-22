@@ -13,6 +13,19 @@ as you might loose data!
 .. _`early screencast`: http://lounge.blogs.nuxeo.com/2012/07/nuxeo-drive-desktop-synchronization-client-nuxeo.html
 
 
+Binary download
+===============
+
+A self-contained Windows binary download (`.msi` archive) is automatically
+generated from the master branch of this repository by the Continuous
+Integration server:
+
+  http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/
+
+Under Mac OSX and Linux, you can build the client from the source
+as explained in the :ref:`developers` section.
+
+
 Command line configuration
 ==========================
 
@@ -61,6 +74,8 @@ The backlog_ is handled by Jira.
 
 .. _backlog: https://jira.nuxeo.com/secure/IssueNavigator.jspa?reset=true&jqlQuery=component+%3D+%22Nuxeo+Drive%22+AND+Tags+%3D+%22Backlog%22+ORDER+BY+%22Backlog+priority%22+DESC
 
+
+.. _developers:
 
 Developers
 ==========
