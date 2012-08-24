@@ -3,9 +3,7 @@
 *.swp
 *~
 target
-.classpath
-.project
-.settings
+bin
 coverage
 .coverage
 build
