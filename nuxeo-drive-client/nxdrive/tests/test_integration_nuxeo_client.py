@@ -52,7 +52,7 @@ with_integration_server = with_setup(
 
 
 def check_addon():
-    if not nxclient.is_addon_installed:
+    if not nxclient.is_addon_installed():
         raise SkipTest('Nuxeo Drive server addon is not installed')
 
 
