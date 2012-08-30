@@ -352,9 +352,21 @@ class NuxeoClient(object):
         return 'NuxeoDrive.GetRoots' in self.operations
 
 
-    def get_roots(self):
-       return self._execute("NuxeoDrive.GetRoots")[u'entries']
+    # Nuxeo Drive specific operations
 
+    def get_roots(self):
+        entries = self._execute("NuxeoDrive.GetRoots")[u'entries']
+        return self._filtered_results(entries)
+
+    def register_as_root(self, ref):
+        ref = self._check_ref(ref)
+        return self._execute("NuxeoDrive.SetSynchronization",
+                             input="doc:" + ref, enable=True)
+
+    def unregister_as_root(self, ref):
+        ref = self._check_ref(ref)
+        return self._execute("NuxeoDrive.SetSynchronization",
+                             input="doc:" + ref, enable=False)
 
     #
     # Client API common with the FS API
@@ -387,18 +399,21 @@ class NuxeoClient(object):
             "       ORDER BY dc:title, dc:created LIMIT %d"
         ) % (ref, "', '".join(types), MAX_CHILDREN)
 
-        results = self.query(query)[u'entries']
-        if len(results) == MAX_CHILDREN:
+        entries = self.query(query)[u'entries']
+        if len(entries) == MAX_CHILDREN:
             # TODO: how to best handle this case? A warning and return an empty
             # list, a dedicated exception?
             raise RuntimeError("Folder %r on server %r has more than the"
                                "maximum number of children: %d" % (
                                    ref, self.server_url, MAX_CHILDREN))
 
+        return self._filtered_results(entries)
+
+    def _filtered_results(self, entries):
         # Filter out filenames that would be ignored by the file system client
         # so as to be consistent.
         filtered = []
-        for info in [self._doc_to_info(d) for d in results]:
+        for info in [self._doc_to_info(d) for d in entries]:
             ignore = False
 
             for suffix in self.ignored_suffixes:

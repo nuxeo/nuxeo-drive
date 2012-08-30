@@ -210,3 +210,43 @@ def test_get_children_info():
 def test_get_synchronization_roots_from_server():
     # By default no root is synchronized
     assert_equal(nxclient.get_roots(), [])
+
+    # Register one root explicitly
+    folder_1 = nxclient.make_folder(TEST_WORKSPACE, 'Folder 1')
+    folder_2 = nxclient.make_folder(TEST_WORKSPACE, 'Folder 2')
+    folder_3 = nxclient.make_folder(TEST_WORKSPACE, 'Folder 3')
+    nxclient.register_as_root(folder_1)
+
+    roots = nxclient.get_roots()
+    assert_equal(len(roots), 1)
+    assert_equal(roots[0].name, 'Folder 1')
+
+    # registetration is idem-potent
+    roots = nxclient.get_roots()
+    assert_equal(len(roots), 1)
+    assert_equal(roots[0].name, 'Folder 1')
+
+    nxclient.register_as_root(folder_2)
+    roots = nxclient.get_roots()
+    assert_equal(len(roots), 2)
+    assert_equal(roots[0].name, 'Folder 1')
+    assert_equal(roots[1].name, 'Folder 2')
+
+    nxclient.unregister_as_root(folder_1)
+    roots = nxclient.get_roots()
+    assert_equal(len(roots), 1)
+    assert_equal(roots[0].name, 'Folder 2')
+
+    # register new roots in another order
+    nxclient.register_as_root(folder_3)
+    nxclient.register_as_root(folder_1)
+    roots = nxclient.get_roots()
+    assert_equal(len(roots), 3)
+    assert_equal(roots[0].name, 'Folder 1')
+    assert_equal(roots[1].name, 'Folder 2')
+    assert_equal(roots[2].name, 'Folder 3')
+
+    nxclient.delete(folder_1, use_trash=True)
+    nxclient.delete(folder_3, use_trash=False)
+    nxclient.unregister_as_root(folder_2)
+    assert_equal(nxclient.get_roots(), [])
