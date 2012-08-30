@@ -347,6 +347,15 @@ class NuxeoClient(object):
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
 
+
+    def is_addon_installed(self):
+        return 'NuxeoDrive.GetRoots' in self.operations
+
+
+    def get_roots(self):
+       return self._execute("NuxeoDrive.GetRoots")[u'entries']
+
+
     #
     # Client API common with the FS API
     #
@@ -640,6 +649,8 @@ class NuxeoClient(object):
 
     def _execute(self, command, input=None, **params):
         if self._error is not None:
+            # Simulate a configurable (e.g. network or server) error for the
+            # tests
             raise self._error
 
         self._check_params(command, input, params)
@@ -648,25 +659,22 @@ class NuxeoClient(object):
             "Authorization": self.auth,
             "X-NXDocumentProperties": "*",
         }
-        d = {}
-        if params:
-            d['params'] = {}
-            for k, v in params.items():
-                if v is None:
-                    continue
-                if k == 'properties':
-                    s = ""
-                    for propname, propvalue in v.items():
-                        s += "%s=%s\n" % (propname, propvalue)
-                    d['params'][k] = s.strip()
-                else:
-                    d['params'][k] = v
+        json_struct = {'params': {}}
+        for k, v in params.items():
+            if v is None:
+                continue
+            if k == 'properties':
+                s = ""
+                for propname, propvalue in v.items():
+                    s += "%s=%s\n" % (propname, propvalue)
+                json_struct['params'][k] = s.strip()
+            else:
+                json_struct['params'][k] = v
+
         if input:
-            d['input'] = input
-        if d:
-            data = json.dumps(d)
-        else:
-            data = None
+            json_struct['input'] = input
+
+        data = json.dumps(json_struct)
 
         url = self.automation_url + command
         log.trace("Calling '%s' with json payload: %r", url, data)

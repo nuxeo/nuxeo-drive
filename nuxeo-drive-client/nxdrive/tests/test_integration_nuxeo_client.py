@@ -51,6 +51,14 @@ with_integration_server = with_setup(
     setup_integration_server, teardown_integration_server)
 
 
+def check_addon():
+    if not nxclient.is_addon_installed:
+        raise SkipTest('Nuxeo Drive server addon is not installed')
+
+
+with_addon = with_setup(check_addon)
+
+
 @with_integration_server
 def test_authentication_failure():
     assert_raises(
@@ -195,3 +203,10 @@ def test_get_children_info():
     assert_equal(workspace_children[1].name, 'Folder 1')
     assert_equal(workspace_children[2].uid, folder_2)
     assert_equal(workspace_children[2].name, 'Folder 2')
+
+
+@with_integration_server
+@with_addon
+def test_get_synchronization_roots_from_server():
+    # By default no root is synchronized
+    assert_equal(nxclient.get_roots(), [])
