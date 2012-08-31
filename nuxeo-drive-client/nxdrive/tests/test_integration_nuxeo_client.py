@@ -208,6 +208,9 @@ def test_get_children_info():
 @with_integration_server
 @with_addon
 def test_get_synchronization_roots_from_server():
+    # Check that the list of repositories can be introspected
+    assert_equal(nxclient.get_repository_names(), ['default'])
+
     # By default no root is synchronized
     assert_equal(nxclient.get_roots(), [])
 

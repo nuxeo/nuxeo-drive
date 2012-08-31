@@ -294,12 +294,9 @@ class Controller(object):
         # Check the remote root exists and is an editable folder by current
         # user.
         try:
-            nxclient = self.nuxeo_client_factory(
-                server_binding.server_url,
-                server_binding.remote_user,
-                server_binding.remote_password,
-                repository=repository,
-                base_folder=remote_root)
+            nxclient = self.get_remote_client(server_binding,
+                                              repository=repository,
+                                              base_folder=remote_root)
             remote_info = nxclient.get_info('/', fetch_parent_uid=False)
         except NotFound:
             remote_info = None
@@ -315,10 +312,24 @@ class Controller(object):
                 % (repository, remote_root, server_binding.remote_user,
                    server_binding.server_url))
 
+
+        if nxclient.is_addon_installed():
+            # register the root on the server
+            nxclient.register_as_root(remote_info.uid)
+            self.update_roots(session, server_binding=server_binding,
+                              repository=repository)
+        else:
+            # manual local-only bounding: the server is not aware of any root
+            # config
+            self._local_bind_root(server_binding, remote_info, nxclient,
+                                  session)
+
+    def _local_bind_root(self, server_binding, remote_info, nxclient, session):
         # Check that this workspace does not already exist locally
         # TODO: shall we handle deduplication for root names too?
-        local_root = os.path.join(local_folder,
+        local_root = os.path.join(server_binding.local_folder,
                                   safe_filename(remote_info.name))
+        repository = nxclient.repository
         if not os.path.exists(local_root):
             os.makedirs(local_root)
         lcclient = LocalClient(local_root)
@@ -391,9 +402,82 @@ class Controller(object):
             session = self.get_session()
         binding = self.get_root_binding(local_root, raise_if_missing=True,
                                         session=session)
-        log.info("Unbinding local root '%s'.", local_root)
+
+        nxclient = self.get_remote_client(binding.server_binding,
+                                          repository=binding.remote_repo,
+                                          base_folder=binding.remote_root)
+        if nxclient.is_addon_installed():
+            # register the root on the server
+            nxclient.register_as_root(binding.remote_root)
+            self.update_roots(self, session=session,
+                              server_bindin=server_binding,
+                              repository=repository)
+        else:
+            # manual bounding: the server is not aware
+            self._local_unbind_root(binding, session)
+
+    def _local_unbind_root(self, binding, session):
+        log.info("Unbinding local root '%s'.", binding.local_root)
         session.delete(binding)
         session.commit()
+
+    def update_roots(self, session=None, server_binding=None,
+                     repository=None):
+        """Ensure that the list of bound roots match server-side info
+
+        If a server is not responding it is skipped.
+        """
+        if session is None:
+            session = self.get_session()
+        if server_binding is not None:
+            server_bindings = [server_binding]
+        else:
+            server_bindings = session.query(ServerBinding).all()
+        for sb in server_bindings:
+            try:
+                nxclient = self.get_remote_client(sb)
+                if not nxclient.is_addon_installed():
+                    continue
+                if repository is not None:
+                    repositories = [repository]
+                else:
+                    repositories = nxclient.get_repository_names()
+                for repo in repositories:
+                    nxclient = self.get_remote_client(sb, repository=repo)
+                    remote_roots = nxclient.get_roots()
+                    local_roots = [r for r in sb.roots
+                                   if r.remote_repo == repository]
+                    self._update_roots(sb, session, local_roots, remote_roots,
+                                       repo)
+            except POSSIBLE_NETWORK_ERROR_TYPES as e:
+                # Ignore expected possible network related errors
+                log.debug("Ignoring network error in update roots step: %r",
+                          e)
+                log.trace("Traceback of ignored network error:",
+                          exc_info=True)
+
+    def _update_roots(self, server_binding, session, local_roots,
+                      remote_roots, repository):
+        """Align the roots for a given server and repository"""
+        local_roots_by_id = dict((r.remote_ref, r) for r in local_roots)
+        local_root_ids = set(local_roots_by_id.keys())
+
+        remote_roots_by_id = dict((r.uid, r) for r in remote_roots)
+        remote_root_ids = set(remote_roots_by_id.keys())
+
+        to_remove = local_root_ids - remote_root_ids
+        to_add = remote_root_ids - local_root_ids
+
+        for ref in to_remove:
+            self._local_unbind_root(local_roots_by_id[ref], session)
+
+        for ref in to_add:
+            # get a client with the right base folder
+            rc = self.get_remote_client(server_binding,
+                                        repository=repository,
+                                        base_folder=ref)
+            self._local_bind_root(server_binding, remote_roots_by_id[ref],
+                                  rc, session)
 
     def scan_local(self, local_root, session=None):
         """Recursively scan the bound local folder looking for updates"""
@@ -517,7 +601,7 @@ class Controller(object):
             local_root=local_root, path='/').one()
 
         try:
-            client = self.get_remote_client(root_state)
+            client = self.get_remote_client_from_docpair(root_state)
             root_info = client.get_info(root_state.remote_ref,
                                         fetch_parent_uid=False)
         except NotFound:
@@ -654,20 +738,30 @@ class Controller(object):
                                     session=session)
         return pending[0] if len(pending) > 0 else None
 
-    def get_remote_client(self, doc_pair):
-        """Fetch a client from the cache or create a new instance"""
+    def get_remote_client(self, server_binding, base_folder=None,
+                          repository='default'):
         if not hasattr(self._local, 'remote_clients'):
             self._local.remote_clients = dict()
         cache = self._local.remote_clients
-        remote_client = cache.get(doc_pair.local_root)
+        sb = server_binding
+        cache_key = (sb.server_url, sb.remote_user, base_folder, repository)
+        remote_client = cache.get(cache_key)
         if remote_client is None:
-            remote_client = doc_pair.get_remote_client(
-                self.nuxeo_client_factory)
-            cache[doc_pair.local_root] = remote_client
+            remote_client = self.nuxeo_client_factory(
+                sb.server_url, sb.remote_user, sb.remote_password,
+                base_folder=base_folder, repository=repository)
+            cache[cache_key] = remote_client
         # Make it possible to have the remote client simulate any kind of
         # failure
         remote_client.make_raise(self._remote_error)
         return remote_client
+
+    def get_remote_client_from_docpair(self, doc_pair):
+        """Fetch a client from the cache or create a new instance"""
+        rb = doc_pair.root_binding
+        sb = rb.server_binding
+        return self.get_remote_client(sb, base_folder=rb.remote_root,
+                                      repository=rb.remote_repo)
 
     def synchronize_one(self, doc_pair, session=None):
         """Refresh state a perform network transfer for a pair of documents."""
@@ -675,7 +769,7 @@ class Controller(object):
             session = self.get_session()
         # Find a cached remote client for the server binding of the file to
         # synchronize
-        remote_client = self.get_remote_client(doc_pair)
+        remote_client = self.get_remote_client_from_docpair(doc_pair)
         # local clients are cheap
         local_client = doc_pair.get_local_client()
 
@@ -923,21 +1017,17 @@ class Controller(object):
                     log.info("Stopping synchronization after %d loops",
                              loop_count)
                     break
-                wait_delay = False
+                self.update_roots(session)
                 bindings = session.query(RootBinding).all()
-                if not bindings:
-                    wait_delay = True
                 for rb in bindings:
                     try:
                         # the alternative to local full scan is the watchdog
                         # thread
                         if full_local_scan or first_pass:
                             self.scan_local(rb.local_root, session)
-                            wait_delay = True
 
                         if full_remote_scan or first_pass:
                             self.scan_remote(rb.local_root, session)
-                            wait_delay = True
                         else:
                             self.refresh_remote_from_log(rb.remote_ref)
 
@@ -956,7 +1046,7 @@ class Controller(object):
                 # over the bound folders too often.
                 current_time = time()
                 spent = current_time - previous_time
-                if spent < delay and wait_delay:
+                if spent < delay:
                     sleep(delay - spent)
                 previous_time = current_time
                 first_pass = False

@@ -59,28 +59,30 @@ class FakeNuxeoClient(object):
                 base_folder, 'The Root',
                 'dead-beef-cafe-babe', 'cafe-beef-dead-babe',
                 '/default-domain/root',
-                True, datetime.utcnow(), None),
+                True, datetime.utcnow(), None, 'default'),
             'folder_1-nuxeo-ref':
             NuxeoDocumentInfo(
                 base_folder, 'Folder 1',
                 'folder_1-nuxeo-ref', 'cafe-beef-dead-babe',
                 '/default-domain/root/folder-1',
-                True, datetime.utcnow(), None),
+                True, datetime.utcnow(), None, 'default'),
             'folder_2-nuxeo-ref':
             NuxeoDocumentInfo(
                 base_folder, 'Folder 2',
                 'folder_2-nuxeo-ref', 'cafe-beef-dead-babe',
                 '/default-domain/root/folder-2',
-                True, datetime.utcnow(), None),
+                True, datetime.utcnow(), None, 'default'),
             'folder_3-nuxeo-ref':
             NuxeoDocumentInfo(
                 base_folder, 'Folder 3',
                 'folder_3-nuxeo-ref', 'cafe-beef-dead-babe',
                 '/default-domain/root/folder-3',
-                True, datetime.utcnow(), None),
+                True, datetime.utcnow(), None, 'default'),
         }
 
     def get_info(self, ref, fetch_parent_uid=True):
+        if getattr(self, '_error', None) is not None:
+            raise self._error
         if ref == '/' and self.base_folder != '/':
             return self.get_info(self.base_folder)
         root_info = self.possible_roots.get(ref)
@@ -93,6 +95,12 @@ class FakeNuxeoClient(object):
 
     def get_children_info(self, ref):
         return []
+
+    def make_raise(self, error):
+        self._error = error
+
+    def is_addon_installed(self):
+        return False
 
 
 @with_setup(setup, teardown)

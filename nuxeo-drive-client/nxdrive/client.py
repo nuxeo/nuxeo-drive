@@ -99,6 +99,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'folderish',  # True is can host child documents
     'last_modification_time',  # last update time
     'digest',  # digest of the document
+    'repository',  # server repository name
 ])
 
 
@@ -302,7 +303,7 @@ class NuxeoClient(object):
         self.password = password
         self.base_folder = base_folder
 
-        # TODO: actually use the repository info
+        # TODO: actually use the repository info in the requests
         self.repository = repository
 
         self.auth = 'Basic %s' % base64.b64encode(
@@ -354,9 +355,12 @@ class NuxeoClient(object):
 
     # Nuxeo Drive specific operations
 
+    def get_repository_names(self):
+        return self._execute("GetRepositories")[u'value']
+
     def get_roots(self):
         entries = self._execute("NuxeoDrive.GetRoots")[u'entries']
-        return self._filtered_results(entries)
+        return self._filtered_results(entries, fetch_parent_uid=False)
 
     def register_as_root(self, ref):
         ref = self._check_ref(ref)
@@ -409,11 +413,14 @@ class NuxeoClient(object):
 
         return self._filtered_results(entries)
 
-    def _filtered_results(self, entries):
+    def _filtered_results(self, entries, fetch_parent_uid=True,
+                          parent_uid=None):
         # Filter out filenames that would be ignored by the file system client
         # so as to be consistent.
         filtered = []
-        for info in [self._doc_to_info(d) for d in entries]:
+        for info in [self._doc_to_info(d, fetch_parent_uid=fetch_parent_uid,
+                                       parent_uid=parent_uid)
+                     for d in entries]:
             ignore = False
 
             for suffix in self.ignored_suffixes:
@@ -441,11 +448,8 @@ class NuxeoClient(object):
         return self._doc_to_info(self.fetch(self._check_ref(ref)),
                                  fetch_parent_uid=fetch_parent_uid)
 
-    def _doc_to_info(self, doc, fetch_parent_uid=True):
+    def _doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
         """Convert Automation document description to NuxeoDocumentInfo"""
-        if self._base_folder_ref is None:
-            raise RuntimeError("RemoteClient with no base_folder cannot be"
-                               " used to synchronized documents.")
         props = doc['properties']
         folderish = 'Folderish' in doc['facets']
         try:
@@ -470,13 +474,11 @@ class NuxeoClient(object):
                 digest = blob.get('digest')
 
         # XXX: we need another roundtrip just to fetch the parent uid...
-        if fetch_parent_uid:
+        if parent_uid is None and fetch_parent_uid:
             parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
-        else:
-            parent_uid = None
         return NuxeoDocumentInfo(
             self._base_folder_ref, props['dc:title'], doc['uid'], parent_uid,
-            doc['path'], folderish, last_update, digest)
+            doc['path'], folderish, last_update, digest, self.repository)
 
     def get_content(self, ref):
         ref = self._check_ref(ref)
