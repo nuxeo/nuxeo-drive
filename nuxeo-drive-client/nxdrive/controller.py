@@ -446,7 +446,7 @@ class Controller(object):
                     nxclient = self.get_remote_client(sb, repository=repo)
                     remote_roots = nxclient.get_roots()
                     local_roots = [r for r in sb.roots
-                                   if r.remote_repo == repository]
+                                   if r.remote_repo == repo]
                     self._update_roots(sb, session, local_roots, remote_roots,
                                        repo)
             except POSSIBLE_NETWORK_ERROR_TYPES as e:
@@ -459,7 +459,7 @@ class Controller(object):
     def _update_roots(self, server_binding, session, local_roots,
                       remote_roots, repository):
         """Align the roots for a given server and repository"""
-        local_roots_by_id = dict((r.remote_ref, r) for r in local_roots)
+        local_roots_by_id = dict((r.remote_root, r) for r in local_roots)
         local_root_ids = set(local_roots_by_id.keys())
 
         remote_roots_by_id = dict((r.uid, r) for r in remote_roots)
