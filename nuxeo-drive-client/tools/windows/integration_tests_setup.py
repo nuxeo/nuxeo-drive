@@ -118,9 +118,9 @@ def setup_nuxeo(nuxeo_archive_url):
     if os.path.exists(NUXEO_FOLDER):
         # stop any previous server process that could have been left running
         # if jenkins kills this script
-	execute(nuxeoctl + " --gui false stop")
+        execute(nuxeoctl + " --gui false stop")
         shutil.rmtree(NUXEO_FOLDER)
-            
+
     os.rename(nuxeo_folder, NUXEO_FOLDER)
     with open(os.path.join(NUXEO_FOLDER, 'bin', 'nuxeo.conf'), 'wb') as f:
         f.write("\nnuxeo.wizard.done=true\n")
