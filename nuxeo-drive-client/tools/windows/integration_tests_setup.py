@@ -25,9 +25,10 @@ import re
 import zipfile
 import shutil
 import atexit
+import time
 
 
-DEFAULT_MSI = r"dist\nuxeo-drive-0.1.0-win32.msi"
+DEFAULT_MSI = "dist"
 DEFAULT_NUXEO_ARCHIVE_URL=("http://qa.nuxeo.org/jenkins/job/IT-nuxeo-master-build/"
                            "lastSuccessfulBuild/artifact/archives/")
 DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
@@ -100,6 +101,9 @@ def setup_nuxeo(nuxeo_archive_url):
     print "Kill any potential rogue instance of ndrive.exe"
     execute('taskkill /f /fi "imagename eq ndrive.exe"')
 
+    print "Waiting for any killed process to actually stop"
+    time.sleep(1.0)
+
     print "Finding latest nuxeo ZIP archive at: " + nuxeo_archive_url
     index_html = urllib2.urlopen(nuxeo_archive_url).read()
     filenames = re.compile(DEFAULT_ARCHIVE_PATTERN).findall(index_html)
@@ -134,6 +138,13 @@ def setup_nuxeo(nuxeo_archive_url):
 
 
 def extract_msi(lessmsi_url, msi_filename):
+    if os.path.isdir(msi_filename):
+        files = os.listdir(msi_filename)
+        files = [f for f in files if f.endswith('.msi')]
+        if not files:
+            raise RuntimeError('Could not file msi file in ' + msi_filename)
+        files.sort()
+        msi_filename = os.path.join(msi_filename, files[-1])
     filename = os.path.basename(lessmsi_url)
     if not os.path.exists(LESSMSI_FOLDER):
         download(lessmsi_url, filename)

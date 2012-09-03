@@ -4,6 +4,7 @@
 #
 
 import sys
+from datetime import datetime
 
 from distutils.core import setup
 executables = []
@@ -25,7 +26,18 @@ if '--freeze' in sys.argv:
     # instead of simple zip files.
 
 name = 'nuxeo-drive'
+
 version = '0.1.0'
+if '--dev' in sys.argv:
+    # timestamp the dev artifacts for continuous integration
+    # distutils only accepts "b" + digit
+    sys.argv.remove('--dev')
+    timestamp = datetime.utcnow().isoformat()
+    timestamp = timestamp.replace(":", "")
+    timestamp = timestamp.replace(".", "")
+    timestamp = timestamp.replace("T", "")
+    timestamp = timestamp.replace("-", "")
+    version += "b" + timestamp
 
 setup(
     name=name,
