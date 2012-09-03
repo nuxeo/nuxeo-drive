@@ -9,5 +9,6 @@ coverage
 build
 dist
 *.zip
+*.msi
 nuxeo-tomcat
 lessmsi
