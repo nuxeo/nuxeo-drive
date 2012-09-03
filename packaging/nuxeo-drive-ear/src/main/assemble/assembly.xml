@@ -21,8 +21,8 @@
     <artifact:print output="${outdir}/dependency-tree.log" />
   </target>
 
-  <target name="build" depends="init" description="Build SAMAR EAR">
-    <echo>Building default SAMAR EAR</echo>
+  <target name="build" depends="init" description="Build Nuxeo Drive EAR">
+    <echo>Building default Nuxeo Drive EAR</echo>
     <delete failonerror="false" dir="${nuxeo.ear}" />
     <mkdir dir="${nuxeo.ear}" />
     <antcall target="build-standard" />

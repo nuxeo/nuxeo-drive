@@ -1,5 +1,5 @@
 <package type="addon" name="nuxeo-drive" version="@VERSION@">
-  <title>SAMAR Marketplace Package</title>
+  <title>Nuxeo Drive Marketplace Package</title>
   <vendor>Nuxeo</vendor>
   <installer restart="true" />
   <uninstaller restart="true" />
