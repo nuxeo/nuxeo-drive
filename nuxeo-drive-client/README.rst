@@ -96,15 +96,16 @@ To install in "dev" mode, you can then do::
 
     sudo pip install -e .
 
+You can safely ignore warnings about "Unknown distribution option: 'executables'".
+
+
 To run the tests, install and start a nuxeo server locally, then::
 
     . ./tools/posix/integration_env.sh
     nosetests nxdrive
 
-For building the Mac OSX standalone
-
-
 .. _pip: http://www.pip-installer.org/
+
 
 
 Windows
