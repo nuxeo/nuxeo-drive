@@ -29,8 +29,12 @@ Update Center / Local Packages interface of a Nuxeo server.
 Alternatively, from the command line::
 
   $NUXEO_HOME/bin/nuxeoctl stop
-  $NUXEO_HOME/bin/nuxeoctl mp-install path/to/nuxeo-drive-marketplace-<version>.zip
+  $NUXEO_HOME/bin/nuxeoctl mp-install --nodeps path/to/nuxeo-drive-marketplace-<version>.zip
   $NUXEO_HOME/bin/nuxeoctl start
+
+You can ignore the following warning (to be fixed)::
+
+  Can't copy nuxeo-drive-<version>/install/templates . File missing.
 
 The `.msi` file needs to be installed on the user Windows desktop.
 
