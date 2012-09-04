@@ -180,8 +180,8 @@ def extract_msi(lessmsi_url, msi_filename):
         msi_filename = find_latest(msi_filename, suffix='.msi')
 
     if not os.path.exists(LESSMSI_FOLDER):
-        download(lessmsi_url, filename)
         filename = os.path.basename(lessmsi_url)
+        download(lessmsi_url, filename)
         unzip(filename, target=LESSMSI_FOLDER)
 
     print "Extracting the MSI"
