@@ -157,7 +157,7 @@ def setup_nuxeo(nuxeo_archive_url):
         shutil.rmtree(NUXEO_FOLDER)
 
     os.rename(nuxeo_folder, NUXEO_FOLDER)
-    with open(os.path.join(NUXEO_FOLDER, 'bin', 'nuxeo.conf'), 'wb') as f:
+    with open(os.path.join(NUXEO_FOLDER, 'bin', 'nuxeo.conf'), 'ab') as f:
         f.write("\nnuxeo.wizard.done=true\n")
 
     if sys.platform != 'win32':
