@@ -18,8 +18,8 @@ Download
 
 A Continuous Integration server builds a binary distribution of the
 development version of the addon. The artifacts
-(`nuxeo-drive-marketplace-<version>.zip` for the server and
-`nuxeo-drive-<version>.msi` for the client) can be downloaded from:
+(``nuxeo-drive-marketplace-<version>.zip`` for the server and
+``nuxeo-drive-<version>.msi`` for the client) can be downloaded from:
 
   http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/
 
@@ -36,31 +36,31 @@ You can ignore the following warning (to be fixed)::
 
   Can't copy nuxeo-drive-<version>/install/templates . File missing.
 
-The `.msi` file needs to be installed on the user Windows desktop.
+The ``.msi`` file needs to be installed on the user Windows desktop.
 
 Under Mac OSX and Linux, you can build the client from the source
-as explained in the "Developers" section. `.dmg` and `.deb` binary
-distributions for Mac OSX and Ubuntu/Debian are planned for future
-releases.
+as explained in the "Developers" section. ``.dmg`` and ``.deb``
+binary distributions for Mac OSX and Ubuntu/Debian are planned for
+future releases.
 
 
 Command line configuration
 ==========================
 
 Once Nuxeo Drive is installed on the client desktop (either from a
-ready to use `.msi` binary installer or buy installing from source,
+ready to use ``.msi`` binary installer or buy installing from source,
 see below), the synchronization client can be operated from the
 commandline.
 
-1. Ensure that `ndrive` program is installed in a folder that has been
+1. Ensure that ``ndrive`` program is installed in a folder that has been
    added to the PATH enviroment variable of your OS.
 
 2. Register a binding to a Nuxeo server with your user credentials::
 
      ndrive bind-server nuxeo-username http://server:port/nuxeo --password secret
 
-   This will create a new folder called `Nuxeo Drive` in your home
-   folder under Linux and MacOSX and under the `Documents` folder
+   This will create a new folder called ``Nuxeo Drive`` in your home
+   folder under Linux and MacOSX and under the ``Documents`` folder
    under Windows.
 
 3. Launch the synchronization process (no automatic background mode
@@ -86,13 +86,26 @@ For more options, type::
 Reporting bugs
 ==============
 
-Please enable the DEBUG logs by using the following commandline::
+You can log DEBUG information directly in the console by using the
+following commandline::
 
     ndrive --log-level-console=DEBUG console
 
 Then you can create a new jira_ issue mentionning the version of the Nuxeo
 platform, your operating system name and version (e.g. Windows 7), the steps to
 reproduce the error and a copy of the logs.
+
+For long running sessions, it is better to dump the debug information in a log
+file. This can be done with the following command::
+
+    ndrive --log-level-file=DEBUG console
+
+By default the location of the log file is: ``~/.nuxeo-drive/logs/``
+where ``~`` stands for the location of the user folder. For instance:
+
+- under Windows 7 and 8: ``C:\Users\username\.nuxeo-drive\logs``
+- under Mac OSX: ``/Users/username/.nuxeo-drive/logs``
+- under Ubuntu (and other Linux variants): ``/home/username/.nuxeo-drive/logs``
 
 .. _jira: https://jira.nuxeo.com
 
@@ -168,11 +181,11 @@ command::
 
   Set-ExecutionPolicy Unrestricted
 
-Then you should be able to build the standalone `.msi` installer with::
+Then you should be able to build the standalone ``.msi`` installer with::
 
   C:\Python27\python.exe setup.py bdist_msi
 
-The generated package should then be available in the `dist/` subfolder.
+The generated package should then be available in the ``dist/`` subfolder.
 
 
 Additional resources
