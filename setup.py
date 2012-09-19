@@ -15,6 +15,9 @@ if '--freeze' in sys.argv:
     sys.argv.remove('--freeze')
     from cx_Freeze import setup, Executable
 
+    # build_exe does not seem to take the package_dir info into account
+    sys.path.append('nuxeo-drive-client')
+
     base = None
     if sys.platform == "win32":
         #base = "Win32GUI"
