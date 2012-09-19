@@ -79,12 +79,14 @@ Configuration and usage
 =======================
 
 Once Nuxeo Drive is installed on the client desktop (either from a
-ready to use ``.msi`` binary installer or buy installing from source,
-see below), the synchronization client can be operated from the
-commandline.
+ready to use ``.msi`` Windows binary installer or by installing
+from source with pip_), the synchronization client can be operated
+from the commandline.
 
 1. Ensure that ``ndrive`` program is installed in a folder that has been
    added to the PATH enviroment variable of your OS.
+
+   You can check by typing the ``ndrive --help`` command in a console.
 
 2. Register a binding to a Nuxeo server with your user credentials::
 
