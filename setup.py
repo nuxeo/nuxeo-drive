@@ -8,7 +8,7 @@ from datetime import datetime
 
 from distutils.core import setup
 executables = []
-scripts = ["bin/ndrive"]
+scripts = ["nuxeo-drive-client/bin/ndrive"]
 
 if '--freeze' in sys.argv:
     print "Building standalone executable..."
@@ -19,7 +19,7 @@ if '--freeze' in sys.argv:
     if sys.platform == "win32":
         #base = "Win32GUI"
         base = None
-    executables = [Executable("bin/ndrive", base=base)]
+    executables = [Executable(s, base=base) for s in scripts]
     scripts = []
     # TODO: investigate with esky to get an auto-updateable version but
     # then make sure that we can still have .msi and .dmg packages
@@ -50,6 +50,7 @@ setup(
         'nxdrive',
         'nxdrive.tests',
     ],
+    package_dir={'nxdrive': 'nuxeo-drive-client/nxdrive'},
     scripts=scripts,
     executables=executables,
     options = {

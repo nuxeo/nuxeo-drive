@@ -13,15 +13,22 @@ as you might loose data!
 .. _`early screencast`: http://lounge.blogs.nuxeo.com/2012/07/nuxeo-drive-desktop-synchronization-client-nuxeo.html
 
 
-Download
-========
+Install
+=======
 
-A Continuous Integration server builds a binary distribution of the
-development version of the addon. The artifacts
-(``nuxeo-drive-marketplace-<version>.zip`` for the server and
-``nuxeo-drive-<version>.msi`` for the client) can be downloaded from:
+Installing Nuxeo Drive needs two components: a server addon for Nuxeo and a
+desktop program on the user's computer.
+
+
+Server-side marketplace package
+-------------------------------
+
+Fetch the latest development version of the marketplace package from the
+Continuous Integraton server:
 
   http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/
+
+The filename should be ``nuxeo-drive-marketplace-<version>.zip``.
 
 The marketplace package can be installed using the Admin Center /
 Update Center / Local Packages interface of a Nuxeo server.
@@ -29,23 +36,47 @@ Update Center / Local Packages interface of a Nuxeo server.
 Alternatively, from the command line::
 
   $NUXEO_HOME/bin/nuxeoctl stop
-  $NUXEO_HOME/bin/nuxeoctl mp-install --nodeps path/to/nuxeo-drive-marketplace-<version>.zip
+  $NUXEO_HOME/bin/nuxeoctl mp-install --nodeps nuxeo-drive-marketplace-<version>.zip
   $NUXEO_HOME/bin/nuxeoctl start
 
-You can ignore the following warning (to be fixed)::
 
-  Can't copy nuxeo-drive-<version>/install/templates . File missing.
+Windows Desktop Client
+----------------------
 
-The ``.msi`` file needs to be installed on the user Windows desktop.
+Fetch the latest development version for ``nuxeo-drive-<version>.msi`` windows
+installer from the Continous Integration server at:
 
-Under Mac OSX and Linux, you can build the client from the source
-as explained in the "Developers" section. ``.dmg`` and ``.deb``
-binary distributions for Mac OSX and Ubuntu/Debian are planned for
-future releases.
+  http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/
+
+Once you installed the package (Administrator rights required) put
+the folder holding the ``ndrive.exe`` program in your ``Path``
+environment variable.
 
 
-Command line configuration
-==========================
+Mac OSX Desktop Client
+----------------------
+
+The ``.dmg`` package of the client is not yet available. In the
+mean time you can install it from source::
+
+  sudo easy_install pip
+  sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
+  sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
+
+
+Ubuntu/Debian (and other Linux variants) Client
+-----------------------------------------------
+
+The ``.deb`` package of the client is not yet available. In the mean time you
+can install it from source::
+
+  sudo apt-get install python-pip
+  sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
+  sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
+
+
+Configuration and usage
+=======================
 
 Once Nuxeo Drive is installed on the client desktop (either from a
 ready to use ``.msi`` binary installer or buy installing from source,
@@ -73,6 +104,10 @@ commandline.
    on the double arrows button right of the title of the folder to
    treat this folder as a new synchronization root.
 
+   You can alternatively do this operation from the commandline with::
+
+     ndrive bind-root "/default-domain/workspaces/My Workspace"
+
 5. You can now create office documents and folders locally or inside
    Nuxeo and watch them getting synchronized both ways automatically.
 
@@ -99,6 +134,10 @@ For long running sessions, it is better to dump the debug information in a log
 file. This can be done with the following command::
 
     ndrive --log-level-file=DEBUG console
+
+or even::
+
+    ndrive --log-level-file=TRACE console
 
 By default the location of the log file is: ``~/.nuxeo-drive/logs/``
 where ``~`` stands for the location of the user folder. For instance:
@@ -148,12 +187,16 @@ Nuxeo Drive Client under Linux & MacOSX
 Install pip_ using your favorite package manager and then use it to grab all the
 dev dependencies and tools at once::
 
-  cd nuxeo-drive-client
-  sudo pip install -r dev-requirements.txt
+  sudo pip install -r requirements.txt
 
-To install in "dev" mode, you can then do::
+To install in "editable" mode (aka "develop" mode), you can then do::
 
   sudo pip install -e .
+
+The editable mode makes it possible to edit the python source code
+in the ``nuxeo-drive-client/nxdrive`` folder and test the changes
+by running ``ndrive`` directly without having to re-rerun the ``pip
+install`` command.
 
 You can safely ignore warnings about "Unknown distribution option: 'executables'".
 
@@ -183,7 +226,7 @@ command::
 
 Then you should be able to build the standalone ``.msi`` installer with::
 
-  C:\Python27\python.exe setup.py bdist_msi
+  C:\Python27\python.exe setup.py --freeze bdist_msi
 
 The generated package should then be available in the ``dist/`` subfolder.
 
