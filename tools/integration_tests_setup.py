@@ -42,7 +42,7 @@ import time
 DEFAULT_MARKETPLACE = os.path.join(
     "packaging", "nuxeo-drive-marketplace", "target")
 MARKET_PLACE_PREFIX = "nuxeo-drive-marketplace"
-DEFAULT_MSI = os.path.join(r"nuxeo-drive-client\dist")
+DEFAULT_MSI = os.path.join(r"dist")
 DEFAULT_NUXEO_ARCHIVE_URL=("http://qa.nuxeo.org/jenkins/job/IT-nuxeo-master-build/"
                            "lastSuccessfulBuild/artifact/archives/")
 DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
