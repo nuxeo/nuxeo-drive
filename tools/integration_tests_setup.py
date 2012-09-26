@@ -169,8 +169,8 @@ def setup_nuxeo(nuxeo_archive_url):
         execute(nuxeoctl + " --gui false stop", exit_on_failure=False)
         print "Deleting folder: " + NUXEO_FOLDER
         if sys.platform == 'win32':
-            # work around for long filenames
-            execute('rmdir /sq ' + NUXEO_FOLDER)
+            # work around for long filenames under windows
+            execute('rmdir /s /q ' + NUXEO_FOLDER)
         else:
             shutil.rmtree(NUXEO_FOLDER)
 
