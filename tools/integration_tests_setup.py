@@ -168,7 +168,11 @@ def setup_nuxeo(nuxeo_archive_url):
             execute("chmod +x " + nuxeoctl, exit_on_failure=False)
         execute(nuxeoctl + " --gui false stop", exit_on_failure=False)
         print "Deleting folder: " + NUXEO_FOLDER
-        shutil.rmtree(NUXEO_FOLDER)
+        if sys.platform == 'win32':
+            # work around for long filenames
+            execute('rmdir /sq ' + NUXEO_FOLDER)
+        else:
+            shutil.rmtree(NUXEO_FOLDER)
 
     print "Renaming %s to %s" % (nuxeo_folder, NUXEO_FOLDER)
     os.rename(nuxeo_folder, NUXEO_FOLDER)
