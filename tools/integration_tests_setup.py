@@ -52,10 +52,11 @@ LESSMSI_FOLDER='lessmsi'
 EXTRACTED_MSI_FOLDER='nxdrive_msi'
 
 
-def execute(cmd):
+def execute(cmd, exit_on_failure=True):
     print "> " + cmd
     code = os.system(cmd)
-    if code != 0:
+    if code != 0 and exit_on_failure:
+        print "Command %s returned with code %d" % (cmd, code)
         sys.exit(code)
 
 
@@ -125,37 +126,51 @@ def setup_nuxeo(nuxeo_archive_url):
             os.environ['PATH'] = path + ";" + java_bin
 
         print "Kill previous soffice if any to unlock old files"
-        execute('taskkill /f /fi "imagename eq soffice.*"')
+        execute('taskkill /f /fi "imagename eq soffice.*"',
+                exit_on_failure=False)
 
         print "Kill any potential rogue instance of ndrive.exe"
-        execute('taskkill /f /fi "imagename eq ndrive.exe"')
+        execute('taskkill /f /fi "imagename eq ndrive.exe"',
+                exit_on_failure=False)
 
         print "Waiting for any killed process to actually stop"
         time.sleep(1.0)
 
     print "Finding latest nuxeo ZIP archive at: " + nuxeo_archive_url
     index_html = urllib2.urlopen(nuxeo_archive_url).read()
-    filenames = re.compile(DEFAULT_ARCHIVE_PATTERN).findall(index_html)
+    archive_pattern = re.compile(DEFAULT_ARCHIVE_PATTERN)
+    filenames = archive_pattern.findall(index_html)
     if not filenames:
         raise ValueError("Could not find ZIP archives on "
                          + nuxeo_archive_url)
     filenames.sort()
     filename = filenames[0]
     url = nuxeo_archive_url + filename
+    if not os.path.exists(filename):
+        # the latest version does not exist but old versions might, let's delete
+        # them to save some disk real estate in the workspace hosted on the CI
+        # servers
+        for old_filename in os.listdir('.'):
+            if archive_pattern.match(old_filename):
+                print "Deleting old archive: " + old_filename
+                os.unlink(old_filename)
+
     download(url, filename)
     unzip(filename)
 
     nuxeo_folder = filename[:-len(".zip")]
     nuxeoctl = os.path.join(NUXEO_FOLDER, 'bin', 'nuxeoctl')
-    print "Renaming %s to %s" % (nuxeo_folder, NUXEO_FOLDER)
     if os.path.exists(NUXEO_FOLDER):
+        print "Stopping previous instance of Nuxeo"
         # stop any previous server process that could have been left running
         # if jenkins kills this script
         if sys.platform != 'win32':
-            execute("chmod +x " + nuxeoctl)
-        execute(nuxeoctl + " --gui false stop")
+            execute("chmod +x " + nuxeoctl, exit_on_failure=False)
+        execute(nuxeoctl + " --gui false stop", exit_on_failure=False)
+        print "Deleting folder: " + NUXEO_FOLDER
         shutil.rmtree(NUXEO_FOLDER)
 
+    print "Renaming %s to %s" % (nuxeo_folder, NUXEO_FOLDER)
     os.rename(nuxeo_folder, NUXEO_FOLDER)
     with open(os.path.join(NUXEO_FOLDER, 'bin', 'nuxeo.conf'), 'ab') as f:
         f.write("\nnuxeo.wizard.done=true\n")
