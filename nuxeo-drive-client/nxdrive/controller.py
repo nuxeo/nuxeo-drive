@@ -23,10 +23,11 @@ from sqlalchemy import asc
 from sqlalchemy import not_
 from sqlalchemy import or_
 
+WindowsError = None
 try:
     from exceptions import WindowsError
 except ImportError:
-    WindowsError = None  # this will never be raised under unix
+    pass  # this will never be raised under unix
 
 
 POSSIBLE_NETWORK_ERROR_TYPES = (
@@ -408,10 +409,10 @@ class Controller(object):
                                           base_folder=binding.remote_root)
         if nxclient.is_addon_installed():
             # register the root on the server
-            nxclient.register_as_root(binding.remote_root)
-            self.update_roots(self, session=session,
-                              server_bindin=server_binding,
-                              repository=repository)
+            nxclient.unregister_as_root(binding.remote_root)
+            self.update_roots(session=session,
+                              server_binding=binding.server_binding,
+                              repository=binding.remote_repo)
         else:
             # manual bounding: the server is not aware
             self._local_unbind_root(binding, session)

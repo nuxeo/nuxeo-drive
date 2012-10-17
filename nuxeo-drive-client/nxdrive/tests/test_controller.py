@@ -152,6 +152,7 @@ def test_bindings():
     assert_false(os.path.exists(other_folder))
 
 
+
 @with_setup(setup, teardown)
 def test_local_scan():
     ctl.bind_server(TEST_SYNCED_FOLDER, 'http://example.com/nuxeo',
@@ -233,6 +234,7 @@ def test_local_scan():
     ctl.scan_local(root_1, session)
     assert_equal(ctl.children_states(root_1), [])
     assert_equal(ctl.children_states(folder_3_abs), [])
+
 
 
 @with_setup(setup, teardown)

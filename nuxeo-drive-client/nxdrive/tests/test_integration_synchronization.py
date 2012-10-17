@@ -33,6 +33,7 @@ LOCAL_NXDRIVE_CONF_FOLDER = None
 remote_client = None
 ctl = None
 
+
 def setup_integration_env():
     global NUXEO_URL, USER, PASSWORD
     global remote_client, lcclient, TEST_WORKSPACE, LOCAL_TEST_FOLDER
@@ -243,6 +244,12 @@ def test_binding_initialization_and_first_sync():
                  "Other content.")
 
     # Nothing else left to synchronize
+    assert_equal(ctl.list_pending(), [])
+    assert_equal(ctl.synchronize(), 0)
+    assert_equal(ctl.list_pending(), [])
+
+    # Unbind root and resynchronize: smoke test
+    ctl.unbind_root(expected_folder)
     assert_equal(ctl.list_pending(), [])
     assert_equal(ctl.synchronize(), 0)
     assert_equal(ctl.list_pending(), [])

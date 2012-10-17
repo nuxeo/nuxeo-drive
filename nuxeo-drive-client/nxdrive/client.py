@@ -33,6 +33,7 @@ def safe_filename(name, replacement='-'):
     return re.sub(r'(/|\\|\*)', replacement, name)
 
 
+
 class Unauthorized(Exception):
 
     def __init__(self, server_url, user_id):
@@ -88,6 +89,7 @@ class FileInfo(object):
                     break
                 h.update(buffer)
         return h.hexdigest()
+
 
 
 BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
