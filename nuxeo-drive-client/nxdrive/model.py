@@ -67,13 +67,17 @@ class ServerBinding(Base):
     server_url = Column(String)
     remote_user = Column(String)
     remote_password = Column(String)
+    remote_token = Column(String)
 
     def __init__(self, local_folder, server_url, remote_user,
-                 remote_password):
+                 remote_password=None, remote_token=None):
         self.local_folder = local_folder
         self.server_url = server_url
         self.remote_user = remote_user
+        # Password is only stored if the server does not support token based
+        # auth
         self.remote_password = remote_password
+        self.remote_token = remote_token
 
 
 class RootBinding(Base):

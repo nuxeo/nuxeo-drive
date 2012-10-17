@@ -13,7 +13,9 @@ import random
 import shutil
 import time
 import urllib2
+from urllib import urlencode
 import re
+import sys
 from nxdrive.logging_config import get_logger
 
 
@@ -27,6 +29,13 @@ FOLDER_TYPE = 'Folder'
 BUFFER_SIZE = 1024 ** 2
 MAX_CHILDREN = 1000
 
+DEVICE_NAMES = {
+    'linux2': 'Linux Desktop',
+    'darwin': 'Mac OSX Desktop',
+    'cygwin': 'Windows Desktop',
+    'win32': 'Windows Desktop',
+}
+
 
 def safe_filename(name, replacement='-'):
     """Replace invalid character in candidate filename"""
@@ -36,9 +45,10 @@ def safe_filename(name, replacement='-'):
 
 class Unauthorized(Exception):
 
-    def __init__(self, server_url, user_id):
+    def __init__(self, server_url, user_id, code=403):
         self.server_url = server_url
         self.user_id = user_id
+        self.code = code
 
     def __str__(self):
         return ("'%s' is not authorized to access '%s' with"
@@ -285,7 +295,7 @@ class NuxeoClient(object):
 
     _error = None
 
-    def __init__(self, server_url, user_id, password,
+    def __init__(self, server_url, user_id, password=None, token=None,
                  base_folder=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None):
         if ignored_prefixes is not None:
@@ -301,15 +311,13 @@ class NuxeoClient(object):
         if not server_url.endswith('/'):
             server_url += '/'
         self.server_url = server_url
-        self.user_id = user_id
-        self.password = password
         self.base_folder = base_folder
 
         # TODO: actually use the repository info in the requests
         self.repository = repository
 
-        self.auth = 'Basic %s' % base64.b64encode(
-                self.user_id + ":" + self.password).strip()
+        self.user_id = user_id
+        self._update_auth(password=password, token=token)
 
         cookie_processor = urllib2.HTTPCookieProcessor()
         self.opener = urllib2.build_opener(cookie_processor)
@@ -325,9 +333,63 @@ class NuxeoClient(object):
         else:
             self._base_folder_ref, self._base_folder_path = None, None
 
+    def _update_auth(self, password=None, token=None):
+        """Select the most appropriate authentication heads based on credentials"""
+        if token is not None:
+            self.auth = ('X-Authentication-Token', token)
+        elif password is not None:
+            basic_auth = 'Basic %s' % base64.b64encode(
+                    self.user_id + ":" + password).strip()
+            self.auth = ("Authorization", basic_auth)
+        else:
+            raise ValueError("Either password or token must be provided")
+
+    def request_token(self):
+        """Request and return a new token for the user"""
+
+        # TODO: unhardcode applicationName and permission
+        parameters = {
+            'userName': self.user_id,
+            'applicationName': 'Nuxeo Drive',
+            'permission': 'Write'
+        }
+        device_name = DEVICE_NAMES.get(sys.platform)
+        if device_name:
+            parameters['deviceName'] = device_name
+
+        url = self.server_url + 'authentication/token?'
+        url += urlencode(parameters)
+
+        headers = {
+            self.auth[0]: self.auth[1],
+        }
+        base_error_message = (
+            "Failed not connect to Nuxeo Content Automation on server %r"
+            " with user %r"
+        ) % (self.server_url, self.user_id)
+        try:
+            req = urllib2.Request(url, headers=headers)
+            token = self.opener.open(req).read()
+        except urllib2.HTTPError as e:
+            if e.code == 401 or e.code == 403:
+                raise Unauthorized(self.server_url, self.user_id, e.code)
+            elif e.code == 404:
+                # Token based auth is not supported by this server
+                return None
+            else:
+                e.msg = base_error_message + ": HTTP error %d" % e.code
+                raise e
+        except Exception as e:
+            if hasattr(e, 'msg'):
+                e.msg = base_error_message + ": " + e.msg
+            raise
+        # Use the (potentially re-newed) token from now on
+        self._update_auth(token=token)
+        return token
+
     def fetch_api(self):
         headers = {
-            "Authorization": self.auth,
+            self.auth[0]: self.auth[1],
         }
         base_error_message = (
             "Failed not connect to Nuxeo Content Automation on server %r"
@@ -338,7 +400,7 @@ class NuxeoClient(object):
             response = json.loads(self.opener.open(req).read())
         except urllib2.HTTPError as e:
             if e.code == 401 or e.code == 403:
-                raise Unauthorized(self.server_url, self.user_id)
+                raise Unauthorized(self.server_url, self.user_id, e.code)
             else:
                 e.msg = base_error_message + ": HTTP error %d" % e.code
                 raise e
@@ -636,7 +698,7 @@ class NuxeoClient(object):
                                           random.randint(0, 1000000000))
         headers = {
             "Accept": "application/json+nxentity, */*",
-            "Authorization": self.auth,
+            self.auth[0]: self.auth[1],
             "Content-Type": ('multipart/related;boundary="%s";'
                              'type="application/json+nxrequest";'
                              'start="request"')
@@ -675,7 +737,7 @@ class NuxeoClient(object):
         self._check_params(command, input, params)
         headers = {
             "Content-Type": "application/json+nxrequest",
-            "Authorization": self.auth,
+            self.auth[0]: self.auth[1],
             "X-NXDocumentProperties": "*",
         }
         json_struct = {'params': {}}

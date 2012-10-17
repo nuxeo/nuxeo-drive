@@ -61,9 +61,46 @@ with_addon = with_setup(check_addon)
 
 @with_integration_server
 def test_authentication_failure():
-    assert_raises(
-        Unauthorized,
-        NuxeoClient, nxclient.server_url, 'someone else', 'bad password')
+    assert_raises(Unauthorized, NuxeoClient,
+                  nxclient.server_url, 'someone else', password='bad password')
+    assert_raises(Unauthorized, NuxeoClient,
+                  nxclient.server_url, 'someone else', token='some-bad-token')
+
+
+@with_integration_server
+def test_make_token():
+    token = nxclient.request_token()
+    if token is None:
+        raise SkipTest('nuxeo-platform-login-token is not deployed')
+    assert_true(len(token) > 5)
+    assert_equal(nxclient.auth[0], 'X-Authentication-Token')
+    assert_equal(nxclient.auth[1], token)
+
+    # Requesting token is an idempotent operation
+    token2 = nxclient.request_token()
+    assert_equal(token, token2)
+
+
+    # It's possible to create a new client using the same token
+    nxclient2 = NuxeoClient(nxclient.server_url, nxclient.user_id,
+                            token=token, base_folder='/')
+
+    # Register a root with client 2 and see it with client one
+    folder_1 = nxclient2.make_folder(TEST_WORKSPACE, 'Folder 1')
+    nxclient2.register_as_root(folder_1)
+
+    roots = nxclient.get_roots()
+    assert_equal(len(roots), 1)
+    assert_equal(roots[0].name, 'Folder 1')
+
+    # The root can also been seen with a new client connected using password
+    # based auth
+    password = os.environ.get('NXDRIVE_TEST_PASSWORD')
+    nxclient3 = NuxeoClient(nxclient.server_url, nxclient.user_id,
+                            password=password, base_folder='/')
+    roots = nxclient3.get_roots()
+    assert_equal(len(roots), 1)
+    assert_equal(roots[0].name, 'Folder 1')
 
 
 def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
