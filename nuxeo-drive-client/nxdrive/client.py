@@ -371,7 +371,6 @@ class NuxeoClient(object):
     def request_token(self):
         """Request and return a new token for the user"""
 
-        # TODO: unhardcode applicationName and permission
         parameters = {
             'deviceId': self.device_id,
             'applicationName': self.application_name,
