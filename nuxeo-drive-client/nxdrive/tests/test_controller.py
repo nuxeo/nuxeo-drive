@@ -16,7 +16,7 @@ from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
 from nxdrive.client import LocalClient
 
-TEST_FOLDER = tempfile.mkdtemp("test_nuxeo_drive_controller_")
+TEST_FOLDER = tempfile.mkdtemp(prefix="test_nuxeo_drive_controller_")
 TEST_SYNCED_FOLDER = join(TEST_FOLDER, 'local_folder')
 TEST_CONFIG_FOLDER = join(TEST_FOLDER, 'config')
 
