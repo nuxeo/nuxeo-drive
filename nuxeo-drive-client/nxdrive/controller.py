@@ -232,7 +232,7 @@ class Controller(object):
                                              password)
         token = nxclient.request_token()
         if token is not None:
-            # The server supports token based identification, do not store the
+            # The server supports token based identification: do not store the
             # password in the DB
             password = None
         try:
@@ -244,12 +244,18 @@ class Controller(object):
                     "%s is already bound to '%s' with user '%s'" % (
                         local_folder, server_binding.server_url,
                         server_binding.remote_user))
+
             if token is None and server_binding.remote_password != password:
                 # Update password info if required
                 server_binding.remote_password = password
+
             if token is not None and server_binding.remote_token != token:
                 # Update the token info if required
                 server_binding.remote_token = token
+
+                # Ensure that the password is not stored in the DB
+                if server_binding.remote_password is not None:
+                    server_binding.remote_password = None
 
         except NoResultFound:
             log.info("Binding '%s' to '%s' with account '%s'",
