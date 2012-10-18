@@ -352,6 +352,22 @@ class NuxeoClient(object):
         else:
             raise ValueError("Either password or token must be provided")
 
+    def _get_common_headers(self):
+        """Headers to include in every HTTP requests
+
+        Includes the authentication heads (token based or basic auth if no
+        token).
+
+        Also include an application name header to make it possible for the
+        server to compute access statistics for various client types (e.g.
+        browser vs devices).
+
+        """
+        return {
+            'X-Application-Name': self.application_name,
+            self.auth[0]: self.auth[1],
+        }
+
     def request_token(self):
         """Request and return a new token for the user"""
 
@@ -368,9 +384,7 @@ class NuxeoClient(object):
         url = self.server_url + 'authentication/token?'
         url += urlencode(parameters)
 
-        headers = {
-            self.auth[0]: self.auth[1],
-        }
+        headers = self._get_common_headers()
         base_error_message = (
             "Failed not connect to Nuxeo Content Automation on server %r"
             " with user %r"
@@ -397,9 +411,7 @@ class NuxeoClient(object):
         return token
 
     def fetch_api(self):
-        headers = {
-            self.auth[0]: self.auth[1],
-        }
+        headers = self._get_common_headers()
         base_error_message = (
             "Failed not connect to Nuxeo Content Automation on server %r"
             " with user %r"
@@ -705,12 +717,12 @@ class NuxeoClient(object):
                                           random.randint(0, 1000000000))
         headers = {
             "Accept": "application/json+nxentity, */*",
-            self.auth[0]: self.auth[1],
             "Content-Type": ('multipart/related;boundary="%s";'
                              'type="application/json+nxrequest";'
                              'start="request"')
             % boundary,
         }
+        headers.update(self._get_common_headers())
         data = (
             "--%s\r\n"
             "%s\r\n"
@@ -744,9 +756,9 @@ class NuxeoClient(object):
         self._check_params(command, input, params)
         headers = {
             "Content-Type": "application/json+nxrequest",
-            self.auth[0]: self.auth[1],
             "X-NXDocumentProperties": "*",
         }
+        headers.update(self._get_common_headers())
         json_struct = {'params': {}}
         for k, v in params.items():
             if v is None:
