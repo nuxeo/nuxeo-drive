@@ -29,7 +29,7 @@ FOLDER_TYPE = 'Folder'
 BUFFER_SIZE = 1024 ** 2
 MAX_CHILDREN = 1000
 
-DEVICE_NAMES = {
+DEVICE_DESCRIPTIONS = {
     'linux2': 'Linux Desktop',
     'darwin': 'Mac OSX Desktop',
     'cygwin': 'Windows Desktop',
@@ -295,7 +295,14 @@ class NuxeoClient(object):
 
     _error = None
 
-    def __init__(self, server_url, user_id, password=None, token=None,
+    # Parameters used when negotiating authentication token:
+
+    application_name = 'Nuxeo Drive'
+
+    permission = 'ReadWrite'
+
+    def __init__(self, server_url, user_id, device_id,
+                 password=None, token=None,
                  base_folder=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None):
         if ignored_prefixes is not None:
@@ -317,6 +324,7 @@ class NuxeoClient(object):
         self.repository = repository
 
         self.user_id = user_id
+        self.device_id = device_id
         self._update_auth(password=password, token=token)
 
         cookie_processor = urllib2.HTTPCookieProcessor()
@@ -349,13 +357,13 @@ class NuxeoClient(object):
 
         # TODO: unhardcode applicationName and permission
         parameters = {
-            'userName': self.user_id,
-            'applicationName': 'Nuxeo Drive',
-            'permission': 'Write'
+            'deviceId': self.device_id,
+            'applicationName': self.application_name,
+            'permission': self.permission,
         }
-        device_name = DEVICE_NAMES.get(sys.platform)
-        if device_name:
-            parameters['deviceName'] = device_name
+        device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
+        if device_description:
+            parameters['deviceDescription'] = device_description
 
         url = self.server_url + 'authentication/token?'
         url += urlencode(parameters)
@@ -368,6 +376,7 @@ class NuxeoClient(object):
             " with user %r"
         ) % (self.server_url, self.user_id)
         try:
+            log.trace("Calling '%s' with headers: %r", url, headers)
             req = urllib2.Request(url, headers=headers)
             token = self.opener.open(req).read()
         except urllib2.HTTPError as e:
@@ -412,10 +421,8 @@ class NuxeoClient(object):
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
 
-
     def is_addon_installed(self):
         return 'NuxeoDrive.GetRoots' in self.operations
-
 
     # Nuxeo Drive specific operations
 

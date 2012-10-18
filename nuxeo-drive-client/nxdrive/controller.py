@@ -13,6 +13,7 @@ from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.model import get_scoped_session_maker
+from nxdrive.model import DeviceConfig
 from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
@@ -68,14 +69,27 @@ class Controller(object):
 
         self._local = local()
         self._remote_error = None
+        self.device_id = self.get_device_config().device_id
 
     def get_session(self):
         """Reuse the thread local session for this controller
 
         Using the controller in several thread should be thread safe as long as
-        this method is always call
+        this method is always called to fetch the session instance.
         """
         return self._session_maker()
+
+    def get_device_config(self, session=None):
+        """Fetch the singleton configuration object for this device"""
+        if session is None:
+            session = self.get_session()
+        try:
+            return session.query(DeviceConfig).one()
+        except NoResultFound:
+            device_config = DeviceConfig()  # generate a unique device id
+            session.add(device_config)
+            session.commit()
+            return device_config
 
     def start(self):
         """Start the Nuxeo Drive main daemon if not already started"""
@@ -214,8 +228,13 @@ class Controller(object):
 
         # check the connection to the server by issuing an authentication
         # request
-        self.nuxeo_client_factory(server_url, username, password)
-
+        nxclient = self.nuxeo_client_factory(server_url, username, self.device_id,
+                                             password)
+        token = nxclient.request_token()
+        if token is not None:
+            # The server supports token based identification, do not store the
+            # password in the DB
+            password = None
         try:
             server_binding = session.query(ServerBinding).filter(
                 ServerBinding.local_folder == local_folder).one()
@@ -225,13 +244,19 @@ class Controller(object):
                     "%s is already bound to '%s' with user '%s'" % (
                         local_folder, server_binding.server_url,
                         server_binding.remote_user))
-            if server_binding.remote_password != password:
+            if token is None and server_binding.remote_password != password:
+                # Update password info if required
                 server_binding.remote_password = password
+            if token is not None and server_binding.remote_token != token:
+                # Update the token info if required
+                server_binding.remote_token = token
+
         except NoResultFound:
             log.info("Binding '%s' to '%s' with account '%s'",
                      local_folder, server_url, username)
             session.add(ServerBinding(local_folder, server_url, username,
-                                      password))
+                                      remote_password=password,
+                                      remote_token=token))
 
         # Create the local folder to host the synchronized files: this
         # is useless as long as bind_root is not called
@@ -745,11 +770,14 @@ class Controller(object):
             self._local.remote_clients = dict()
         cache = self._local.remote_clients
         sb = server_binding
-        cache_key = (sb.server_url, sb.remote_user, base_folder, repository)
+        cache_key = (sb.server_url, sb.remote_user, self.device_id, base_folder,
+                     repository)
         remote_client = cache.get(cache_key)
+
         if remote_client is None:
             remote_client = self.nuxeo_client_factory(
-                sb.server_url, sb.remote_user, sb.remote_password,
+                sb.server_url, sb.remote_user, self.device_id,
+                token=sb.remote_token, password=sb.remote_password,
                 base_folder=base_folder, repository=repository)
             cache[cache_key] = remote_client
         # Make it possible to have the remote client simulate any kind of

@@ -42,16 +42,23 @@ def teardown():
 class FakeNuxeoClient(object):
     """Fake / mock client that does not require a real nuxeo instance"""
 
-    def __init__(self, server_url, user_id, password, repository='default',
-                 base_folder=None):
+    def __init__(self, server_url, user_id, device_id, password=None,
+                 token=None, repository='default', base_folder=None):
         self.server_url = server_url
         self.user_id = user_id
+        self.device_id = device_id
         self.password = password
+        self.token = token
         self.base_folder = base_folder
         self.repository = repository
 
-        if user_id != 'username' or password != 'secret':
-            raise Unauthorized(server_url, user_id)
+        if token is None:
+            if user_id != 'username' or password != 'secret':
+                raise Unauthorized(server_url, user_id)
+        else:
+            if (user_id != 'username'
+                or token != (user_id + "-" + device_id)):
+                raise Unauthorized(server_url, user_id)
 
         self.possible_roots = {
             'dead-beef-cafe-babe':
@@ -101,6 +108,10 @@ class FakeNuxeoClient(object):
 
     def is_addon_installed(self):
         return False
+
+    def request_token(self):
+        # Dummy token impl that satisfy the idempotence assumption
+        return self.user_id + "-" + self.device_id
 
 
 @with_setup(setup, teardown)

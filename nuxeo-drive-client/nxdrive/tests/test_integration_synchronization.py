@@ -50,15 +50,15 @@ def setup_integration_env():
 
     parent_path = os.path.dirname(TEST_WORKSPACE_PATH)
     workspace_name = os.path.basename(TEST_WORKSPACE_PATH)
-    root_remote_client = NuxeoClient(NUXEO_URL, USER, PASSWORD,
-                                     base_folder='/')
+    root_remote_client = NuxeoClient(NUXEO_URL, USER, 'test-device',
+                                     PASSWORD, base_folder='/')
     TEST_WORKSPACE = root_remote_client.create(
         parent_path, 'Workspace', name=workspace_name,
         properties={'dc:title': TEST_WORKSPACE_TITLE})[u'uid']
 
     # Client to be use to create remote test documents and folders
-    remote_client = NuxeoClient(NUXEO_URL, USER, PASSWORD,
-                           base_folder=TEST_WORKSPACE)
+    remote_client = NuxeoClient(NUXEO_URL, USER, 'test-device',
+                                PASSWORD, base_folder=TEST_WORKSPACE)
 
     # Check the local filesystem test environment
     LOCAL_TEST_FOLDER = tempfile.mkdtemp('-nuxeo-drive-tests')

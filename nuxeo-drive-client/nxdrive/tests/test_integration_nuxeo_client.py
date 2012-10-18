@@ -33,7 +33,8 @@ def setup_integration_server():
     if None in (NUXEO_URL, USER, PASSWORD):
         raise SkipTest("No integration server configuration found in "
                        "environment.")
-    nxclient = NuxeoClient(NUXEO_URL, USER, PASSWORD, base_folder='/')
+    nxclient = NuxeoClient(NUXEO_URL, USER, 'test-device', PASSWORD,
+                           base_folder='/')
 
     parent_path = os.path.dirname(TEST_WORKSPACE_PATH)
     workspace_name = os.path.basename(TEST_WORKSPACE_PATH)
@@ -62,9 +63,11 @@ with_addon = with_setup(check_addon)
 @with_integration_server
 def test_authentication_failure():
     assert_raises(Unauthorized, NuxeoClient,
-                  nxclient.server_url, 'someone else', password='bad password')
+                  nxclient.server_url, 'someone else', 'test-device',
+                  password='bad password')
     assert_raises(Unauthorized, NuxeoClient,
-                  nxclient.server_url, 'someone else', token='some-bad-token')
+                  nxclient.server_url, 'someone else', 'test-device',
+                  token='some-bad-token')
 
 
 @with_integration_server
@@ -80,10 +83,11 @@ def test_make_token():
     token2 = nxclient.request_token()
     assert_equal(token, token2)
 
-
     # It's possible to create a new client using the same token
     nxclient2 = NuxeoClient(nxclient.server_url, nxclient.user_id,
-                            token=token, base_folder='/')
+                            nxclient.device_id, token=token, base_folder='/')
+    token3 = nxclient.request_token()
+    assert_equal(token, token3)
 
     # Register a root with client 2 and see it with client one
     folder_1 = nxclient2.make_folder(TEST_WORKSPACE, 'Folder 1')
@@ -97,10 +101,16 @@ def test_make_token():
     # based auth
     password = os.environ.get('NXDRIVE_TEST_PASSWORD')
     nxclient3 = NuxeoClient(nxclient.server_url, nxclient.user_id,
-                            password=password, base_folder='/')
+                            nxclient.device_id, password=password, base_folder='/')
     roots = nxclient3.get_roots()
     assert_equal(len(roots), 1)
     assert_equal(roots[0].name, 'Folder 1')
+
+    # Another device using the same user credentials will get a different token
+    nxclient4 = NuxeoClient(nxclient.server_url, nxclient.user_id,
+                            'other-test-device', password=password, base_folder='/')
+    token4 = nxclient4.request_token()
+    assert_not_equal(token, token4)
 
 
 def wait_for_deletion(client, doc, retries_left=10, delay=0.300,

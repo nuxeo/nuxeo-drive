@@ -12,3 +12,4 @@ dist
 *.msi
 nuxeo-tomcat
 lessmsi
+.ropeproject

@@ -1,4 +1,5 @@
 import os
+import uuid
 import logging
 import datetime
 from sqlalchemy import Column
@@ -58,6 +59,19 @@ PAIR_STATES = {
     ('modified', 'modified'): 'conflicted',
     ('created', 'created'): 'conflicted',
 }
+
+
+class DeviceConfig(Base):
+    """Holds Nuxeo Drive configuration parameters
+
+    This is expected to be a single row table.
+    """
+    __tablename__ = 'device_config'
+
+    device_id = Column(String, primary_key=True)
+
+    def __init__(self, device_id=None):
+        self.device_id = uuid.uuid1().hex if device_id is None else device_id
 
 
 class ServerBinding(Base):
