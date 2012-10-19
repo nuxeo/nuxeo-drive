@@ -1,9 +1,16 @@
 """GUI prompt to bind a new server"""
-from PySide import QtGui
 from nxdrive.client import Unauthorized
 
+# Keep QT an optional dependency for now
+QtGui, QDialog = None, None
+try:
+    from PySide import QtGui
+    QDialog = QtGui.QDialog
+except ImportError:
+    pass
 
-class Dialog(QtGui.QDialog):
+
+class Dialog(QDialog):
     """Dialog box to prompt the user for Server Bind credentials"""
 
     def __init__(self, fields_spec, title=None, fields_title=None,
@@ -27,6 +34,7 @@ class Dialog(QtGui.QDialog):
         if title is not None:
             self.setWindowTitle(title)
         self.resize(600, -1)
+        self.accepted = False
 
     def create_authentication_box(self, fields_spec):
         self.authentication_group_box = QtGui.QGroupBox()
@@ -61,6 +69,7 @@ class Dialog(QtGui.QDialog):
                     self.message_area.setText(self.error_message)
                     self.message_area.show()
                 return
+        self.accepted = True
         super(Dialog, self).accept()
 
     def reject(self):
@@ -69,8 +78,12 @@ class Dialog(QtGui.QDialog):
 
 
 def prompt_authentication(controller, local_folder, url=None, username=None,
-                          is_url_readonly=True):
+                          is_url_readonly=False):
     """Prompt a QT dialog to ask for user credentials for binding a server"""
+    if QtGui is None:
+        # Qt / PySide is not installed
+        return False
+
     # TODO: learn how to use QT i18n support to handle translation of labels
     field_specs = [
         {
@@ -91,7 +104,6 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
         },
     ]
     def bind_server(values):
-        print values
         try:
             controller.bind_server(
                 local_folder, values['url'], values['username'],
@@ -111,6 +123,7 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
     except:
         dialog.reject()
         raise
+    return dialog.accepted
 
 if __name__ == '__main__':
     from nxdrive.controller import Controller

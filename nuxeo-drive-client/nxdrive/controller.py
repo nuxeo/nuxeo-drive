@@ -240,6 +240,11 @@ class Controller(object):
                     % local_folder)
             return None
 
+    def list_server_bindings(self, session=None):
+        if session is None:
+            session = self.get_session()
+        return session.query(ServerBinding).all()
+
     def bind_server(self, local_folder, server_url, username, password):
         """Bind a local folder to a remote nuxeo server"""
         session = self.get_session()

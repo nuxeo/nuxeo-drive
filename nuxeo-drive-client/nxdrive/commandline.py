@@ -209,6 +209,14 @@ class CliHandler(object):
     def console(self, options):
 
         fault_tolerant = not options.stop_on_error
+
+        if len(self.controller.list_server_bindings()) == 0:
+            # Launch the GUI to create a binding
+            from nxdrive.gui.authentication import prompt_authentication
+            ok = prompt_authentication(self.controller, DEFAULT_NX_DRIVE_FOLDER)
+            if not ok:
+                sys.exit(0)
+
         self.controller.loop(fault_tolerant=fault_tolerant,
                              delay=options.delay)
         return 0
