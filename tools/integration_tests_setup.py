@@ -52,11 +52,17 @@ LESSMSI_FOLDER='lessmsi'
 EXTRACTED_MSI_FOLDER='nxdrive_msi'
 
 
+def pflush(message):
+    """This is required to have messages in the right order in jenkins"""
+    print message
+    sys.stdout.flush()
+
+
 def execute(cmd, exit_on_failure=True):
-    print "> " + cmd
+    pflush("> " + cmd)
     code = os.system(cmd)
     if code != 0 and exit_on_failure:
-        print "Command %s returned with code %d" % (cmd, code)
+        pflush("Command %s returned with code %d" % (cmd, code))
         sys.exit(code)
 
 
@@ -74,7 +80,7 @@ def parse_args(args=None):
 
 def download(url, filename):
     if not os.path.exists(filename):
-        print "Downloading %s to %s" % (url, filename)
+        pflush("Downloading %s to %s" % (url, filename))
         headers = {'User-Agent' : 'nxdrive test script'}
         req = urllib2.Request(url, None, headers)
         reader = urllib2.urlopen(req)
@@ -87,7 +93,7 @@ def download(url, filename):
 
 
 def unzip(filename, target=None):
-    print "Unzipping", filename
+    pflush("Unzipping " + filename)
     zf = zipfile.ZipFile(filename, 'r')
     for info in zf.infolist():
         filename = info.filename
@@ -125,18 +131,18 @@ def setup_nuxeo(nuxeo_archive_url):
         if not java_bin in path:
             os.environ['PATH'] = path + ";" + java_bin
 
-        print "Kill previous soffice if any to unlock old files"
+        pflush("Kill previous soffice if any to unlock old files")
         execute('taskkill /f /fi "imagename eq soffice.*"',
                 exit_on_failure=False)
 
-        print "Kill any potential rogue instance of ndrive.exe"
+        pflush("Kill any potential rogue instance of ndrive.exe")
         execute('taskkill /f /fi "imagename eq ndrive.exe"',
                 exit_on_failure=False)
 
-        print "Waiting for any killed process to actually stop"
+        pflush("Waiting for any killed process to actually stop")
         time.sleep(1.0)
 
-    print "Finding latest nuxeo ZIP archive at: " + nuxeo_archive_url
+    pflush("Finding latest nuxeo ZIP archive at: " + nuxeo_archive_url)
     index_html = urllib2.urlopen(nuxeo_archive_url).read()
     archive_pattern = re.compile(DEFAULT_ARCHIVE_PATTERN)
     filenames = archive_pattern.findall(index_html)
@@ -152,7 +158,7 @@ def setup_nuxeo(nuxeo_archive_url):
         # servers
         for old_filename in os.listdir('.'):
             if archive_pattern.match(old_filename):
-                print "Deleting old archive: " + old_filename
+                pflush("Deleting old archive: " + old_filename)
                 os.unlink(old_filename)
 
     download(url, filename)
@@ -161,20 +167,20 @@ def setup_nuxeo(nuxeo_archive_url):
     nuxeo_folder = filename[:-len(".zip")]
     nuxeoctl = os.path.join(NUXEO_FOLDER, 'bin', 'nuxeoctl')
     if os.path.exists(NUXEO_FOLDER):
-        print "Stopping previous instance of Nuxeo"
+        pflush("Stopping previous instance of Nuxeo")
         # stop any previous server process that could have been left running
         # if jenkins kills this script
         if sys.platform != 'win32':
             execute("chmod +x " + nuxeoctl, exit_on_failure=False)
         execute(nuxeoctl + " --gui false stop", exit_on_failure=False)
-        print "Deleting folder: " + NUXEO_FOLDER
+        pflush("Deleting folder: " + NUXEO_FOLDER)
         if sys.platform == 'win32':
             # work around for long filenames under windows
             execute('rmdir /s /q ' + NUXEO_FOLDER)
         else:
             shutil.rmtree(NUXEO_FOLDER)
 
-    print "Renaming %s to %s" % (nuxeo_folder, NUXEO_FOLDER)
+    pflush("Renaming %s to %s" % (nuxeo_folder, NUXEO_FOLDER))
     os.rename(nuxeo_folder, NUXEO_FOLDER)
     with open(os.path.join(NUXEO_FOLDER, 'bin', 'nuxeo.conf'), 'ab') as f:
         f.write("\nnuxeo.wizard.done=true\n")
@@ -182,12 +188,12 @@ def setup_nuxeo(nuxeo_archive_url):
     if sys.platform != 'win32':
         execute("chmod +x " + nuxeoctl)
 
-    print "Installing the nuxeo drive marketplace package"
+    pflush("Installing the nuxeo drive marketplace package")
     package = find_latest(DEFAULT_MARKETPLACE, prefix=MARKET_PLACE_PREFIX,
                           suffix=".zip")
     execute(nuxeoctl + " mp-install --accept=true --nodeps " + package)
 
-    print "Starting the Nuxeo server"
+    pflush("Starting the Nuxeo server")
     execute(nuxeoctl + " --gui false start")
 
     # Register a callback to stop the nuxeo server
@@ -203,7 +209,7 @@ def extract_msi(lessmsi_url, msi_filename):
         download(lessmsi_url, filename)
         unzip(filename, target=LESSMSI_FOLDER)
 
-    print "Extracting the MSI"
+    pflush("Extracting the MSI")
     lessmsi = os.path.join(LESSMSI_FOLDER, 'lessmsi')
     if os.path.exists(EXTRACTED_MSI_FOLDER):
         shutil.rmtree(EXTRACTED_MSI_FOLDER)
@@ -233,4 +239,3 @@ if __name__ == "__main__":
         run_tests_from_msi()
     else:
         run_tests_from_source()
-
