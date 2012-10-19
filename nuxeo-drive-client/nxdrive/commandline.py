@@ -256,7 +256,10 @@ class CliHandler(object):
         # Monkeypatch nose usage message as it's complicated to include
         # the missing text resource in the frozen binary package
         nose.core.TestProgram.usage = lambda cls: ""
-        argv = ['']
+        argv = [
+            '',
+            '--verbose',
+        ]
 
         if options.with_coverage:
             argv += [
