@@ -11,11 +11,11 @@ from nose.tools import assert_true
 from nose.tools import assert_false
 from nose.tools import assert_raises
 from nxdrive.controller import Controller
+from nxdrive.controller import WindowsError
 from nxdrive.client import NuxeoDocumentInfo
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
 from nxdrive.client import LocalClient
-from sqlalchemy.pool import NullPool
 
 TEST_FOLDER = tempfile.mkdtemp(prefix="test_nuxeo_drive_controller_")
 TEST_SYNCED_FOLDER = join(TEST_FOLDER, 'local_folder')
@@ -31,15 +31,19 @@ def setup():
     os.makedirs(TEST_CONFIG_FOLDER)
     global ctl
     # Use NullPool to workaround windows lock issues at teardown time
-    ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient,
-                     poolclass=NullPool)
+    ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient)
 
 
 def teardown():
     if ctl is not None:
         ctl.dispose()
     if os.path.exists(TEST_FOLDER):
-        shutil.rmtree(TEST_FOLDER)
+        try:
+            shutil.rmtree(TEST_FOLDER)
+        except WindowsError, e:
+            # Some unknown process is keeping an access on the DB under
+            # windows on some Jenkins slave...
+            print "WARNING:", e
 
 
 class FakeNuxeoClient(object):

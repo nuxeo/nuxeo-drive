@@ -13,7 +13,6 @@ from nose.tools import assert_equal
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 from nxdrive.controller import Controller
-from sqlalchemy.pool import NullPool
 
 
 TEST_WORKSPACE_PATH = '/default-domain/workspaces/test-nxdrive'
@@ -72,7 +71,7 @@ def setup_integration_env():
         LOCAL_TEST_FOLDER, 'nuxeo-drive-conf')
     os.mkdir(LOCAL_NXDRIVE_CONF_FOLDER)
 
-    ctl = Controller(LOCAL_NXDRIVE_CONF_FOLDER, poolclass=NullPool)
+    ctl = Controller(LOCAL_NXDRIVE_CONF_FOLDER)
 
 
 def teardown_integration_env():
