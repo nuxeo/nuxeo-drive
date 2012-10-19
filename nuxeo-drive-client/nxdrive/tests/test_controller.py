@@ -24,8 +24,7 @@ TEST_CONFIG_FOLDER = join(TEST_FOLDER, 'config')
 ctl = None
 
 def setup():
-    if os.path.exists(TEST_FOLDER):
-        shutil.rmtree(TEST_FOLDER)
+    teardown()
     os.makedirs(TEST_FOLDER)
     os.makedirs(TEST_SYNCED_FOLDER)
     os.makedirs(TEST_CONFIG_FOLDER)
