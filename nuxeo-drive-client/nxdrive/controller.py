@@ -1,5 +1,6 @@
 """Main API to perform Nuxeo Drive operations"""
 
+import sys
 from time import time
 from time import sleep
 import os.path
@@ -39,6 +40,23 @@ POSSIBLE_NETWORK_ERROR_TYPES = (
 
 
 log = get_logger(__name__)
+
+
+def default_nuxeo_drive_folder():
+    """Find a reasonable location for the root Nuxeo Drive folder
+
+    This folder is user specific, typically under the home folder.
+    """
+    if sys.platform == "win32":
+        if os.path.exists(os.path.expanduser(r'~\My Documents')):
+            # Compat for Windows XP
+            return r'~\My Documents\Nuxeo Drive'
+        else:
+            # Default Documents folder with navigation shortcuts in Windows 7
+            # and up.
+            return r'~\Documents\Nuxeo Drive'
+    else:
+        return '~/Nuxeo Drive'
 
 
 class Controller(object):
