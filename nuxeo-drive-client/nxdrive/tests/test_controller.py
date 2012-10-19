@@ -15,6 +15,7 @@ from nxdrive.client import NuxeoDocumentInfo
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
 from nxdrive.client import LocalClient
+from sqlalchemy.pool import NullPool
 
 TEST_FOLDER = tempfile.mkdtemp(prefix="test_nuxeo_drive_controller_")
 TEST_SYNCED_FOLDER = join(TEST_FOLDER, 'local_folder')
@@ -29,7 +30,9 @@ def setup():
     os.makedirs(TEST_SYNCED_FOLDER)
     os.makedirs(TEST_CONFIG_FOLDER)
     global ctl
-    ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient)
+    # Use NullPool to workaround windows lock issues at teardown time
+    ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient,
+                     poolclass=NullPool)
 
 
 def teardown():

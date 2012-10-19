@@ -345,7 +345,7 @@ class FileEvent(Base):
             utc_time = datetime.utcnow()
 
 
-def init_db(nxdrive_home, echo=False, scoped_sessions=True):
+def init_db(nxdrive_home, echo=False, scoped_sessions=True, poolclass=None):
     """Return an engine and session maker configured for using nxdrive_home
 
     The database is created in nxdrive_home if missing and the tables
@@ -358,7 +358,8 @@ def init_db(nxdrive_home, echo=False, scoped_sessions=True):
     """
     # We store the DB as SQLite files in the nxdrive_home folder
     dbfile = os.path.join(os.path.abspath(nxdrive_home), 'nxdrive.db')
-    engine = create_engine('sqlite:///' + dbfile, echo=echo)
+    engine = create_engine('sqlite:///' + dbfile, echo=echo,
+                           poolclass=poolclass)
 
     # Ensure that the tables are properly initialized
     Base.metadata.create_all(engine)

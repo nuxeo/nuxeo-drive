@@ -48,7 +48,8 @@ class Controller(object):
     as DB sessions and Nuxeo clients are thread locals.
     """
 
-    def __init__(self, config_folder, nuxeo_client_factory=None, echo=None):
+    def __init__(self, config_folder, nuxeo_client_factory=None, echo=None,
+                 poolclass=None):
         if echo is None:
             echo = os.environ.get('NX_DRIVE_LOG_SQL', None) is not None
         self.config_folder = os.path.expanduser(config_folder)
@@ -58,7 +59,7 @@ class Controller(object):
         # Handle connection to the local Nuxeo Drive configuration and
         # metadata sqlite database.
         self._engine, self._session_maker = init_db(
-            self.config_folder, echo=echo)
+            self.config_folder, echo=echo, poolclass=poolclass)
 
         # make it possible to pass an arbitrary nuxeo client factory
         # for testing
