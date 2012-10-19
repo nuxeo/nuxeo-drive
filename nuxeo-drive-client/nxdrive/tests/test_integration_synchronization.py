@@ -76,7 +76,8 @@ def setup_integration_env():
 
 def teardown_integration_env():
     if ctl is not None:
-        ctl.get_session().close()
+        ctl.dispose()
+
     if remote_client is not None and remote_client.exists(TEST_WORKSPACE):
         remote_client.delete(TEST_WORKSPACE, use_trash=False)
 
