@@ -34,7 +34,7 @@ def setup():
 
 def teardown():
     if ctl is not None:
-        ctl.get_session().close()
+        ctl.dispose()
     if os.path.exists(TEST_FOLDER):
         shutil.rmtree(TEST_FOLDER)
 

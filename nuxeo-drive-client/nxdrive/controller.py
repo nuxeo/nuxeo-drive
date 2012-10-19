@@ -12,7 +12,7 @@ from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
-from nxdrive.model import get_scoped_session_maker
+from nxdrive.model import init_db
 from nxdrive.model import DeviceConfig
 from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
@@ -57,7 +57,7 @@ class Controller(object):
 
         # Handle connection to the local Nuxeo Drive configuration and
         # metadata sqlite database.
-        self._session_maker = get_scoped_session_maker(
+        self._engine, self._session_maker = init_db(
             self.config_folder, echo=echo)
 
         # make it possible to pass an arbitrary nuxeo client factory
@@ -1097,3 +1097,8 @@ class Controller(object):
     def make_remote_raise(self, error):
         """Helper method to simulate network failure for testing"""
         self._remote_error = error
+
+    def dispose(self):
+        """Release all database resources"""
+        self.get_session().close_all()
+        self._engine.pool.dispose()

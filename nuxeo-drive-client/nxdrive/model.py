@@ -345,12 +345,16 @@ class FileEvent(Base):
             utc_time = datetime.utcnow()
 
 
-def get_session_maker(nxdrive_home, echo=False):
-    """Return a session maker configured for using nxdrive_home
+def init_db(nxdrive_home, echo=False, scoped_sessions=True):
+    """Return an engine and session maker configured for using nxdrive_home
 
     The database is created in nxdrive_home if missing and the tables
     are intialized based on the model classes from this module (they
     all inherit the same abstract base class.
+
+    If scoped_sessions is True, sessions built with this maker are reusable
+    thread local singletons.
+
     """
     # We store the DB as SQLite files in the nxdrive_home folder
     dbfile = os.path.join(os.path.abspath(nxdrive_home), 'nxdrive.db')
@@ -358,17 +362,7 @@ def get_session_maker(nxdrive_home, echo=False):
 
     # Ensure that the tables are properly initialized
     Base.metadata.create_all(engine)
-    return sessionmaker(bind=engine)
-
-
-def get_scoped_session_maker(nxdrive_home, echo=False):
-    """Return a session maker configured for using nxdrive_home
-
-    The database is created in nxdrive_home if missing and the tables
-    are intialized based on the model classes from this module (they
-    all inherit the same abstract base class.
-
-    Sessions built with this maker are reusable thread local
-    singletons.
-    """
-    return scoped_session(get_session_maker(nxdrive_home, echo=echo))
+    maker = sessionmaker(bind=engine)
+    if scoped_sessions:
+        maker = scoped_session(maker)
+    return engine, maker
