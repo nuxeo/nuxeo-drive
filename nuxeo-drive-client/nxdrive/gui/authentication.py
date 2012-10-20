@@ -1,5 +1,8 @@
 """GUI prompt to bind a new server"""
 from nxdrive.client import Unauthorized
+from nxdrive.logging_config import get_logger
+
+log = get_logger(__name__)
 
 # Keep QT an optional dependency for now
 QtGui, QDialog = None, None
@@ -7,6 +10,7 @@ try:
     from PySide import QtGui
     QDialog = QtGui.QDialog
 except ImportError:
+    log.warn("QT / PySide is not installed: GUI is disabled")
     pass
 
 
@@ -82,6 +86,8 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
     """Prompt a QT dialog to ask for user credentials for binding a server"""
     if QtGui is None:
         # Qt / PySide is not installed
+        log.error("QT / PySide is not installed:"
+                  " use commandline options for binding a server.")
         return False
 
     # TODO: learn how to use QT i18n support to handle translation of labels

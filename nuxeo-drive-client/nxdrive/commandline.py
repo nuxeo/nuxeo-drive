@@ -17,40 +17,66 @@ from nxdrive.logging_config import configure
 
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
+DEFAULT_DELAY = 5.0
+USAGE = """ndrive [command]
 
+Possible commands:
+- console
+- start
+- stop
+- bind-server
+- unbind-server
+- bind-root
+- unbind-root
 
-def make_cli_parser():
+To get options for a specific command:
+
+  ndrive command --help
+
+"""
+
+def make_cli_parser(add_subparsers=True):
     """Parse commandline arguments using a git-like subcommands scheme"""
 
-    parser = argparse.ArgumentParser(
-        description="Command line interface for Nuxeo Drive operations.")
-
-    parser.add_argument(
+    common_parser = argparse.ArgumentParser(
+        add_help=False,
+    )
+    common_parser.add_argument(
         "--nxdrive-home",
         default="~/.nuxeo-drive",
         help="Folder to store the Nuxeo Drive configuration."
     )
-    parser.add_argument(
+    common_parser.add_argument(
         "--log-level-file",
         default="INFO",
         help="Minimum log level for the file log (under NXDRIVE_HOME/logs)."
     )
-    parser.add_argument(
+    common_parser.add_argument(
         "--log-level-console",
         default="INFO",
         help="Minimum log level for the console log."
     )
-    parser.add_argument(
+    common_parser.add_argument(
         "--log-filename",
         help=("File used to store the logs, default "
               "NXDRIVE_HOME/logs/nxaudit.logs")
     )
-    parser.add_argument(
+    common_parser.add_argument(
         "--debug", default=False, action="store_true",
         help="Fire a debugger (ipdb or pdb) one uncaught error."
     )
+
+    parser = argparse.ArgumentParser(
+        parents=[common_parser],
+        description="Command line interface for Nuxeo Drive operations.",
+        usage=USAGE,
+    )
+
+    if not add_subparsers:
+        return parser
+
     subparsers = parser.add_subparsers(
-        title='Commands:',
+        title='Commands',
     )
 
     # Link to a remote Nuxeo server
@@ -126,7 +152,7 @@ def make_cli_parser():
         help='Start the synchronization without detaching the process.')
     console_parser.set_defaults(command='console')
     console_parser.add_argument(
-        "--delay", default=5.0, type=float,
+        "--delay", default=DEFAULT_DELAY, type=float,
         help="Delay in seconds between consecutive sync operations.")
     console_parser.add_argument(
         # XXX: Make it true by default as the fault tolerant mode is not yet
@@ -163,12 +189,16 @@ def make_cli_parser():
 class CliHandler(object):
     """Command Line Interface handler: parse options and execute operation"""
 
-    def __init__(self):
-        self.parser = make_cli_parser()
-
     def handle(self, args):
         # use the CLI parser to check that the first args is a valid command
-        options = self.parser.parse_args(args)
+        has_command = False
+        for arg in args:
+            if not arg.startswith('-'):
+                has_command = True
+                break
+
+        parser = make_cli_parser(add_subparsers=has_command)
+        options = parser.parse_args(args)
         if options.debug:
             # Install Post-Mortem debugger hook
 
@@ -184,19 +214,24 @@ class CliHandler(object):
             filename = os.path.join(
                 options.nxdrive_home, 'logs', 'nxdrive.log')
 
+        command = getattr(options, 'command', 'default')
         configure(
             filename,
             file_level=options.log_level_file,
             console_level=options.log_level_console,
-            process_name=options.command,
+            process_name=command,
         )
         self.controller = Controller(options.nxdrive_home)
 
-        handler = getattr(self, options.command, None)
+        handler = getattr(self, command, None)
         if handler is None:
             raise NotImplementedError(
                 'No handler implemented for command ' + options.command)
         return handler(options)
+
+    def default(self, options=None):
+        # TODO: use the start method as default once implemented
+        return self.console(options=options)
 
     def start(self, options=None):
         self.controller.start()
@@ -208,7 +243,7 @@ class CliHandler(object):
 
     def console(self, options):
 
-        fault_tolerant = not options.stop_on_error
+        fault_tolerant = not getattr(options, 'stop_on_error', True)
 
         if len(self.controller.list_server_bindings()) == 0:
             # Launch the GUI to create a binding
@@ -218,7 +253,7 @@ class CliHandler(object):
                 sys.exit(0)
 
         self.controller.loop(fault_tolerant=fault_tolerant,
-                             delay=options.delay)
+                             delay=getattr(options, 'delay', DEFAULT_DELAY))
         return 0
 
     def status(self, options):
