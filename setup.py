@@ -64,6 +64,7 @@ setup(
                 "nxdrive.tests",
                 "nxdrive.gui",
                 "PySide.QtGui",
+                "atexit",  # implicitly required by PySide
                 "sqlalchemy.dialects.sqlite",
                 "nose",
             ],
