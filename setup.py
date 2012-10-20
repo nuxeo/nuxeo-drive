@@ -52,6 +52,7 @@ setup(
     packages=[
         'nxdrive',
         'nxdrive.tests',
+        "nxdrive.gui",
     ],
     package_dir={'nxdrive': 'nuxeo-drive-client/nxdrive'},
     scripts=scripts,
@@ -61,6 +62,8 @@ setup(
             "packages": [
                 "nxdrive",
                 "nxdrive.tests",
+                "nxdrive.gui",
+                "PySide.QtGui",
                 "sqlalchemy.dialects.sqlite",
                 "nose",
             ],
