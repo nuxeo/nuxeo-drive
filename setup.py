@@ -46,10 +46,9 @@ if '--freeze' in sys.argv:
     freeze_options = dict(
         executables=executables,
         options={
-            "Buildingld_exe": {
+            "build_exe": {
                 "packages": packages + [
                     "PySide.QtGui",
-                    "PySide.QNetwork",
                     "atexit",  # implicitly required by PySide
                     "sqlalchemy.dialects.sqlite",
                     "nose",
@@ -63,8 +62,8 @@ if '--freeze' in sys.argv:
                 ],
             },
             "bdist_msi": {
-                "add-to-path": True,
-                "upgrade-code": name + '--' + version,
+                "add_to_path": True,
+                "upgrade_code": name + '--' + version,
             },
         },
     )
