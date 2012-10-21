@@ -38,7 +38,7 @@ if '--freeze' in sys.argv:
     # build_exe does not seem to take the package_dir info into account
     sys.path.append('nuxeo-drive-client')
 
-    executables = [Executable('nuxeo-drive-client/bin/ndrive', base=base)]
+    executables = [Executable('nuxeo-drive-client/bin/ndrive', base=None)]
     if sys.platform == "win32":
         # Windows GUI program that can be launched without a cmd console
         executables.append(
