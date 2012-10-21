@@ -81,7 +81,9 @@ def make_cli_parser(add_subparsers=True):
 
     # Link to a remote Nuxeo server
     bind_server_parser = subparsers.add_parser(
-        'bind-server', help='Attach a local folder to a Nuxeo server.')
+        'bind-server', help='Attach a local folder to a Nuxeo server.',
+        parents=[common_parser],
+    )
     bind_server_parser.set_defaults(command='bind_server')
     bind_server_parser.add_argument(
         "--password", help="Password for the Nuxeo account")
@@ -105,7 +107,9 @@ def make_cli_parser(add_subparsers=True):
 
     # Unlink from a remote Nuxeo server
     unbind_server_parser = subparsers.add_parser(
-        'unbind-server', help='Detach from a remote Nuxeo server.')
+        'unbind-server', help='Detach from a remote Nuxeo server.',
+        parents=[common_parser],
+    )
     unbind_server_parser.set_defaults(command='unbind_server')
     unbind_server_parser.add_argument(
         "--local-folder",
@@ -117,7 +121,9 @@ def make_cli_parser(add_subparsers=True):
     # Bind root folders
     bind_root_parser = subparsers.add_parser(
         'bind-root',
-        help='Attach a local folder as a root for synchronization.')
+        help='Attach a local folder as a root for synchronization.',
+        parents=[common_parser],
+    )
     bind_root_parser.set_defaults(command='bind_root')
     bind_root_parser.add_argument(
         "remote_root",
@@ -135,21 +141,29 @@ def make_cli_parser(add_subparsers=True):
 
     # Unlink from a remote Nuxeo root
     unbind_root_parser = subparsers.add_parser(
-        'unbind-root', help='Detach from a remote Nuxeo root.')
+        'unbind-root', help='Detach from a remote Nuxeo root.',
+        parents=[common_parser],
+    )
     unbind_root_parser.set_defaults(command='unbind_root')
     unbind_root_parser.add_argument(
         "local_root", help="Local sub-folder to de-synchronize.")
 
     # Start / Stop the synchronization daemon
     start_parser = subparsers.add_parser(
-        'start', help='Start the synchronization daemon')
+        'start', help='Start the synchronization daemon',
+        parents=[common_parser],
+    )
     start_parser.set_defaults(command='start')
     stop_parser = subparsers.add_parser(
-        'stop', help='Stop the synchronization daemon')
+        'stop', help='Stop the synchronization daemon',
+        parents=[common_parser],
+    )
     stop_parser.set_defaults(command='stop')
     console_parser = subparsers.add_parser(
         'console',
-        help='Start the synchronization without detaching the process.')
+        help='Start the synchronization without detaching the process.',
+        parents=[common_parser],
+    )
     console_parser.set_defaults(command='console')
     console_parser.add_argument(
         "--delay", default=DEFAULT_DELAY, type=float,
@@ -164,7 +178,9 @@ def make_cli_parser(add_subparsers=True):
     # embedded test runner base on nose:
     test_parser = subparsers.add_parser(
         'test',
-        help='Run the Nuxeo Drive test suite.')
+        help='Run the Nuxeo Drive test suite.',
+        parents=[common_parser],
+    )
     test_parser.set_defaults(command='test')
     test_parser.add_argument(
         "--with-coverage", default=False, action="store_true",
@@ -173,16 +189,9 @@ def make_cli_parser(add_subparsers=True):
         "--with-profile", default=False, action="store_true",
         help="Compute profiling report.")
 
-# TODO:rewrite me
-#    # Introspect current synchronization status
-#    status_parser = subparsers.add_parser(
-#        'status',
-#        help='Query the synchronization status of files and folders.'
-#    )
-#    status_parser.set_defaults(command='status')
-#    status_parser.add_argument(
-#        "files", nargs="*", help='Files to query status on')
-
+    # TODO: add a parser for the "status" operation to list the synchronization
+    # status of a given folder content so as to make it possible to display
+    # status icons for individual files using a single DB access
     return parser
 
 
