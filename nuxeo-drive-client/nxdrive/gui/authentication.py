@@ -1,4 +1,5 @@
 """GUI prompt to bind a new server"""
+import os
 from nxdrive.client import Unauthorized
 from nxdrive.logging_config import get_logger
 
@@ -12,6 +13,26 @@ try:
 except ImportError:
     log.warn("QT / PySide is not installed: GUI is disabled")
     pass
+
+
+def find_icon(icon_filename):
+    import nxdrive
+    nxdrive_path = os.path.dirname(nxdrive.__file__)
+    icons_path = os.path.join(nxdrive_path, 'data', 'icons')
+
+    frozen_suffix = os.path.join('library.zip', 'nxdrive')
+    if nxdrive_path.endswith(frozen_suffix):
+        # Frozen distribution of nxdrive, data is out of the zip
+        icons_path = nxdrive_path.replace(frozen_suffix, 'icons')
+
+    if not os.path.exists(icons_path):
+        raise IOError("Could not find the icons folder at: " + icons_path)
+
+    icon_filepath = os.path.join(icons_path, icon_filename)
+    if not os.path.exists(icon_filepath):
+        return None
+
+    return icon_filepath
 
 
 class Dialog(QDialog):
@@ -39,6 +60,12 @@ class Dialog(QDialog):
         self.setLayout(mainLayout)
         if title is not None:
             self.setWindowTitle(title)
+        icon = find_icon('nuxeo_drive_icon_64.png')
+        if icon is not None:
+            if hasattr(QtGui, 'QIcon'):
+                self.setWindowIcon(QtGui.QIcon(icon))
+            else:
+                log.warn('QtGui.QIcon is not available.')
         self.resize(600, -1)
         self.accepted = False
 
