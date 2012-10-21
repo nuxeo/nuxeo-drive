@@ -22,7 +22,13 @@ package_data = {
     'nxdrive.data.icons': ['*.png', '*.svg', '*.ico'],
 }
 script = 'nuxeo-drive-client/bin/ndrive'
-icon = 'nuxeo-drive-client/nxdrive/data/icons/nuxeo_drive_icon_64.ico'
+win_icon = 'nuxeo-drive-client/nxdrive/data/icons/nuxeo_drive_icon_64.ico'
+png_icon = 'nuxeo-drive-client/nxdrive/data/icons/nuxeo_drive_icon_64.png'
+if sys.platform == 'win32':
+    icon = win_icon
+else:
+    icon = png_icon
+
 version = '0.1.0'
 
 if '--dev' in sys.argv:
@@ -91,6 +97,12 @@ if '--freeze' in sys.argv:
             "bdist_msi": {
                 "add_to_path": True,
                 "upgrade_code": '{800B7778-1B71-11E2-9D65-A0FD6088709B}',
+            },
+            #"bdist_app": {
+            #    "bundle_iconfile": "MacOS/icons/nuxeo_drive_icon_64.png",
+            #},
+            "bdist_dmg": {
+                "volume_label": "Nuxeo Drive",
             },
         },
     )
