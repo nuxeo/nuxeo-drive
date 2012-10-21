@@ -5,7 +5,7 @@ from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
 
 # Keep QT an optional dependency for now
-QtGui, QDialog = None, None
+QtGui, QDialog = None, object
 try:
     from PySide import QtGui
     QDialog = QtGui.QDialog
@@ -20,6 +20,8 @@ class Dialog(QDialog):
     def __init__(self, fields_spec, title=None, fields_title=None,
                  callback=None, error_message=None):
         super(Dialog, self).__init__()
+        if QtGui is None:
+            raise RuntimeError("PySide is not installed.")
         self.create_authentication_box(fields_spec)
         self.callback = callback
         self.error_message = error_message

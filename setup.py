@@ -38,19 +38,27 @@ if '--freeze' in sys.argv:
     # build_exe does not seem to take the package_dir info into account
     sys.path.append('nuxeo-drive-client')
 
-    base = None
+    executables = [Executable('nuxeo-drive-client/bin/ndrive', base=base)]
     if sys.platform == "win32":
-        base = "Win32GUI"
-    executables = [Executable(s, base=base) for s in scripts]
+        # Windows GUI program that can be launched without a cmd console
+        executables.append(
+            Executable('nuxeo-drive-client/bin/ndrive',
+                       targetName="ndrivew.exe",
+                       base="Win32GUI"))  # TODO: add an icon
     scripts = []
     freeze_options = dict(
         executables=executables,
         options={
             "build_exe": {
-                "packages": packages + [
+                "includes": [
+                    "PySide",
+                    "PySide.QtCore",
+                    "PySide.QtNetwork",
                     "PySide.QtGui",
                     "atexit",  # implicitly required by PySide
                     "sqlalchemy.dialects.sqlite",
+                ],
+                "packages": packages + [
                     "nose",
                 ],
                 "excludes": [
@@ -63,7 +71,7 @@ if '--freeze' in sys.argv:
             },
             "bdist_msi": {
                 "add_to_path": True,
-                "upgrade_code": name + '--' + version,
+                "upgrade_code": '{800B7778-1B71-11E2-9D65-A0FD6088709B}',
             },
         },
     )
