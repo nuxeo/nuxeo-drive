@@ -48,21 +48,27 @@ installer from the Continous Integration server at:
 
   http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/
 
-Once you installed the package (Administrator rights required) put
-the folder holding the ``ndrive.exe`` program in your ``Path``
-environment variable.
+Once you installed the package (Administrator rights required) the new folder
+holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
+``Path`` environment variable automatically.
+
+All the necessary dependencies (such as the Python interpreter and the QT /
+PySide for the client side user interface) are included in this folder and
+should not impact any alternative version possibly already installed on your
+computer.
 
 
 Mac OSX Desktop Client
 ----------------------
 
-The ``.dmg`` package of the client is not yet available. In the
-mean time you can install it from source::
+The ``.dmg`` package of the client is not yet available. In the mean time you
+can install it from source::
 
   sudo easy_install pip
   sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
   sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
 
+The install QT and PySide for graphical user interface (see below).
 
 Ubuntu/Debian (and other Linux variants) Client
 -----------------------------------------------
@@ -73,6 +79,8 @@ can install it from source::
   sudo apt-get install python-pip
   sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
   sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
+
+The install QT and PySide for graphical user interface (see below).
 
 
 Configuration and usage
@@ -190,15 +198,8 @@ Install pip_ using your favorite package manager and then use it to grab all the
 dev dependencies and tools at once::
 
   sudo pip install -r requirements.txt
-
-To install in "editable" mode (aka "develop" mode), you can then do::
-
-  sudo pip install -e .
-
-The editable mode makes it possible to edit the python source code
-in the ``nuxeo-drive-client/nxdrive`` folder and test the changes
-by running ``ndrive`` directly without having to re-rerun the ``pip
-install`` command.
+  export PYTHONPATH=`pwd`/nuxeo-drive-client
+  export PATH=$PATH:`pwd`/nuxeo-drive-client/bin
 
 You can safely ignore warnings about "Unknown distribution option: 'executables'".
 
@@ -208,6 +209,8 @@ To run the tests, install and start a nuxeo server locally, then::
   nosetests nxdrive
 
 .. _pip: http://www.pip-installer.org/
+
+The install QT and PySide for graphical user interface (see below).
 
 
 Nuxeo Drive Client under Windows
@@ -226,11 +229,42 @@ command::
 
   Set-ExecutionPolicy Unrestricted
 
+The install QT and PySide for graphical user interface (see below).
+
 Then you should be able to build the standalone ``.msi`` installer with::
 
   C:\Python27\python.exe setup.py --freeze bdist_msi
 
 The generated package should then be available in the ``dist/`` subfolder.
+
+
+Installing QT and PySide
+------------------------
+
+The graphical user interface elements of Nuxeo Drive client (such as the
+authentication prompt and the trayicon menu) are built using the PySide library
+that is a Python binding for the QT C++ library for building cross-platform
+interfaces. Both PySide and QT are licensed under the LGPL.
+
+When building/running Nuxeo Drive client from sources (i.e. not using the
+``.msi`` package) you should have those libraries installed on your system.
+
+Under Windows and OSX you can install the binaries (take the latest stable
+version). The Windows binary is named
+``qt-win-opensource-<version>-vs2010.exe`` while the OSX binary is named
+``qt-mac-opensource-<version>.dmg``:
+
+- `QT opensource binaries <http://get.qt.nokia.com/qt/source/>`_
+
+The install the matching version of the PySide binaries (for your version of
+Python, typically 2.7 for now as Python 3.3 is not yet supported).
+
+- `PySide Windows binaries <http://qt-project.org/wiki/PySide_Binaries_Windows>`_
+- `PySide OSX binaries <http://pyside.markus-ullmann.de/>`_
+
+Under Debian / Ubuntu you can install the ``python-pyside`` package directly::
+
+    sudo apt-get install python-pyside
 
 
 Additional resources
