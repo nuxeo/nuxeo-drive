@@ -16,7 +16,10 @@ packages = [
     'nxdrive.tests',
     'nxdrive.gui',
 ]
+script = 'nuxeo-drive-client/bin/ndrive'
+icon = 'nuxeo-drive-client/nxdrive/data/nuxeo_drive_icon_64.ico'
 version = '0.1.0'
+
 if '--dev' in sys.argv:
     # timestamp the dev artifacts for continuous integration
     # distutils only accepts "b" + digit
@@ -38,13 +41,12 @@ if '--freeze' in sys.argv:
     # build_exe does not seem to take the package_dir info into account
     sys.path.append('nuxeo-drive-client')
 
-    executables = [Executable('nuxeo-drive-client/bin/ndrive', base=None)]
+    executables = [Executable(script, base=None, icon=icon)]
     if sys.platform == "win32":
         # Windows GUI program that can be launched without a cmd console
         executables.append(
-            Executable('nuxeo-drive-client/bin/ndrive',
-                       targetName="ndrivew.exe",
-                       base="Win32GUI"))  # TODO: add an icon
+            Executable(script, targetName="ndrivew.exe", base="Win32GUI",
+                       icon=icon))
     scripts = []
     freeze_options = dict(
         executables=executables,
