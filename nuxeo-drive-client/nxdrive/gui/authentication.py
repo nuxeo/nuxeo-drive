@@ -39,13 +39,12 @@ class Dialog(QDialog):
     """Dialog box to prompt the user for Server Bind credentials"""
 
     def __init__(self, fields_spec, title=None, fields_title=None,
-                 callback=None, error_message=None):
+                 callback=None):
         super(Dialog, self).__init__()
         if QtGui is None:
             raise RuntimeError("PySide is not installed.")
         self.create_authentication_box(fields_spec)
         self.callback = callback
-        self.error_message = error_message
         buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok
                                            | QtGui.QDialogButtonBox.Cancel)
         buttonBox.accepted.connect(self.accept)
@@ -95,18 +94,16 @@ class Dialog(QDialog):
     def accept(self):
         if self.callback is not None:
             values = dict((id_, w.text()) for id_, w in self.fields.items())
-            if not self.callback(values):
-                print self.error_message
-                if self.error_message is not None:
-                    self.message_area.setText(self.error_message)
-                    self.message_area.show()
+            ok, error_message = self.callback(values)
+            if not ok:
+                self.message_area.setText(error_message)
+                self.message_area.show()
                 return
         self.accepted = True
         super(Dialog, self).accept()
 
     def reject(self):
         super(Dialog, self).reject()
-
 
 
 def prompt_authentication(controller, local_folder, url=None, username=None,
@@ -139,19 +136,27 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
     ]
     def bind_server(values):
         try:
-            controller.bind_server(
-                local_folder, values['url'], values['username'],
-                values['password'])
-            return True
+            url = values['url']
+            if not url:
+                return False, "The Nuxeo server URL is required."
+            if (not url.startswith("http://")
+                and not url.startswith('https://')):
+                return False, "Not a valid HTTP url."
+            username = values['username']
+            if not username:
+                return False, "A username is required."
+            password = values['password']
+            controller.bind_server(local_folder, url, username, password)
+            return True, None
         except Unauthorized:
-            return False
-        # TODO: catch a new ServerUnreachable catching network isssues and
-        # return a custom message
+            return False, "Invalid credentials"
+        except Exception, e:
+            return False, "Unable to connect to " + url
+        # TODO: catch a new ServerUnreachable catching network isssues
 
     QtGui.QApplication([])
     dialog = Dialog(field_specs, title="Nuxeo Drive - Authentication",
-                    callback=bind_server,
-                    error_message="Invalid credentials.")
+                    callback=bind_server)
     try:
         dialog.exec_()
     except:
