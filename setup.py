@@ -59,10 +59,9 @@ if '--freeze' in sys.argv:
     package_data = {}
     data_home = 'nuxeo-drive-client/nxdrive/data'
     include_files = [
-        (data_home + '/icons/nuxeo_drive_icon_64.png', 'icons/nuxeo_drive_icon_64.png')
-        (data_home + '/icons/nuxeo_drive_icon_48.png', 'icons/nuxeo_drive_icon_48.png')
-        (data_home + '/icons/nuxeo_drive_icon_32.png', 'icons/nuxeo_drive_icon_32.png')
-        (data_home + '/icons/nuxeo_drive_icon_16.png', 'icons/nuxeo_drive_icon_16.png')
+        (data_home + "/icons/nuxeo_drive_icon_%d.png" % i,
+         "icons/nuxeo_drive_icon_%d.png" % i)
+        for i in [16, 32, 48, 64]
     ]
     freeze_options = dict(
         executables=executables,
