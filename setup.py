@@ -15,6 +15,7 @@ packages = [
     'nxdrive',
     'nxdrive.tests',
     'nxdrive.gui',
+    'nxdrive.data',
 ]
 script = 'nuxeo-drive-client/bin/ndrive'
 icon = 'nuxeo-drive-client/nxdrive/data/nuxeo_drive_icon_64.ico'
@@ -91,6 +92,7 @@ setup(
     url='http://github.com/nuxeo/nuxeo-drive',
     packages=packages,
     package_dir={'nxdrive': 'nuxeo-drive-client/nxdrive'},
+    package_data={'nxdrive.data': ['*.png', '*.svg', '*.ico']},
     scripts=scripts,
     long_description=open('README.rst').read(),
     **freeze_options
