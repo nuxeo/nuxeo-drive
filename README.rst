@@ -96,7 +96,19 @@ from the commandline.
 
    You can check by typing the ``ndrive --help`` command in a console.
 
-2. Register a binding to a Nuxeo server with your user credentials::
+2. Launch the synchronization program (no automatic background mode
+   yet, this will come in future versions)::
+
+     ndrive
+
+   Under Windows you can launch ``ndrivew.exe`` instead to avoid
+   keeping the cmd console open while Nuxeo Drive is running instead.
+
+   The first time you run this command a dialog window will open asking for the
+   URL of the Nuxeo server and your user credentials.
+
+   Alternatively you can bind to a Nuxeo server with your user credentials
+   using the following commandline arguments::
 
      ndrive bind-server nuxeo-username http://server:port/nuxeo --password secret
 
@@ -104,23 +116,17 @@ from the commandline.
    folder under Linux and MacOSX and under the ``Documents`` folder
    under Windows.
 
-3. Launch the synchronization process (no automatic background mode
-   yet, this will come in future versions)::
-
-     ndrive console
-
-4. Go to your Nuxeo with your browser, navigate to workspaces or
+3. Go to your Nuxeo with your browser, navigate to workspaces or
    folder where you have permission to create new documents. Click
    on the double arrows button right of the title of the folder to
    treat this folder as a new synchronization root.
 
-   You can alternatively do this operation from the commandline with::
+   Alternatively you can do this operation from the commandline with::
 
      ndrive bind-root "/default-domain/workspaces/My Workspace"
 
-5. You can now create office documents and folders locally or inside
+4. You can now create office documents and folders locally or inside
    Nuxeo and watch them getting synchronized both ways automatically.
-
 
 For more options, type::
 
@@ -134,7 +140,7 @@ Reporting bugs
 You can log DEBUG information directly in the console by using the
 following commandline::
 
-    ndrive --log-level-console=DEBUG console
+    ndrive --log-level-console=DEBUG
 
 Then you can create a new jira_ issue mentionning the version of the Nuxeo
 platform, your operating system name and version (e.g. Windows 7), the steps to
@@ -143,11 +149,11 @@ reproduce the error and a copy of the logs.
 For long running sessions, it is better to dump the debug information in a log
 file. This can be done with the following command::
 
-    ndrive --log-level-file=DEBUG console
+    ndrive --log-level-file=DEBUG
 
 or even::
 
-    ndrive --log-level-file=TRACE console
+    ndrive --log-level-file=TRACE
 
 By default the location of the log file is: ``~/.nuxeo-drive/logs/``
 where ``~`` stands for the location of the user folder. For instance:
