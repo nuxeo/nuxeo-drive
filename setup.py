@@ -16,9 +16,13 @@ packages = [
     'nxdrive.tests',
     'nxdrive.gui',
     'nxdrive.data',
+    'nxdrive.data.icons',
 ]
+package_data = {
+    'nxdrive.data.icons': ['*.png', '*.svg', '*.ico'],
+}
 script = 'nuxeo-drive-client/bin/ndrive'
-icon = 'nuxeo-drive-client/nxdrive/data/nuxeo_drive_icon_64.ico'
+icon = 'nuxeo-drive-client/nxdrive/data/icons/nuxeo_drive_icon_64.ico'
 version = '0.1.0'
 
 if '--dev' in sys.argv:
@@ -49,6 +53,17 @@ if '--freeze' in sys.argv:
             Executable(script, targetName="ndrivew.exe", base="Win32GUI",
                        icon=icon))
     scripts = []
+    # special handling for data files
+    packages.remove('nxdrive.data')
+    packages.remove('nxdrive.data.icons')
+    package_data = {}
+    data_home = 'nuxeo-drive-client/nxdrive/data'
+    include_files = [
+        (data_home + '/icons/nuxeo_drive_icon_64.png', 'icons/nuxeo_drive_icon_64.png')
+        (data_home + '/icons/nuxeo_drive_icon_48.png', 'icons/nuxeo_drive_icon_48.png')
+        (data_home + '/icons/nuxeo_drive_icon_32.png', 'icons/nuxeo_drive_icon_32.png')
+        (data_home + '/icons/nuxeo_drive_icon_16.png', 'icons/nuxeo_drive_icon_16.png')
+    ]
     freeze_options = dict(
         executables=executables,
         options={
@@ -71,6 +86,7 @@ if '--freeze' in sys.argv:
                     "pydoc",
                     "tkinter",
                 ],
+                "include_files": include_files,
             },
             "bdist_msi": {
                 "add_to_path": True,
@@ -92,7 +108,7 @@ setup(
     url='http://github.com/nuxeo/nuxeo-drive',
     packages=packages,
     package_dir={'nxdrive': 'nuxeo-drive-client/nxdrive'},
-    package_data={'nxdrive.data': ['*.png', '*.svg', '*.ico']},
+    package_data=package_data,
     scripts=scripts,
     long_description=open('README.rst').read(),
     **freeze_options
