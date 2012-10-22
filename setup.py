@@ -52,13 +52,13 @@ if '--freeze' in sys.argv:
     sys.path.append('nuxeo-drive-client')
 
     executables = [Executable(script, base=None, icon=icon)]
-    if sys.platform == "win32":
-        from cx_Freeze.windist import bdist_msi  # monkeypatch to add options
 
+    if sys.platform == "win32":
         # Windows GUI program that can be launched without a cmd console
         executables.append(
             Executable(script, targetName="ndrivew.exe", base="Win32GUI",
-                       icon=icon))
+                       icon=icon, shortcutDir="ProgramMenuFolder",
+                       shortcutName="Nuxeo Drive"))
     scripts = []
     # special handling for data files
     packages.remove('nxdrive.data')
