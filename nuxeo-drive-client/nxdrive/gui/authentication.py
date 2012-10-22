@@ -60,10 +60,7 @@ class Dialog(QDialog):
         if title is not None:
             self.setWindowTitle(title)
         icon = find_icon('nuxeo_drive_icon_64.png')
-        if hasattr(QtGui, 'QIcon'):
-            self.setWindowIcon(QtGui.QIcon(icon))
-        else:
-            log.warn('QtGui.QIcon is not available.')
+        self.setWindowIcon(QtGui.QIcon(icon))
         self.resize(600, -1)
         self.accepted = False
 
