@@ -88,13 +88,13 @@ class Dialog(QDialog):
     def clear_message(self, *args, **kwargs):
         self.message_area.setText(None)
 
+    def show_message(self, message):
+        self.message_area.setText(message)
+
     def accept(self):
         if self.callback is not None:
             values = dict((id_, w.text()) for id_, w in self.fields.items())
-            ok, error_message = self.callback(values)
-            if not ok:
-                self.message_area.setText(error_message)
-                self.message_area.show()
+            if not self.callback(values, self):
                 return
         self.accepted = True
         super(Dialog, self).accept()
@@ -131,25 +131,31 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             'is_password': True,
         },
     ]
-    def bind_server(values):
+    def bind_server(values, dialog):
         try:
             url = values['url']
             if not url:
-                return False, "The Nuxeo server URL is required."
+                dialog.show_message("The Nuxeo server URL is required.")
+                return False
             if (not url.startswith("http://")
                 and not url.startswith('https://')):
-                return False, "Not a valid HTTP url."
+                dialog.show_message("Not a valid HTTP url.")
+                return False
             username = values['username']
             if not username:
-                return False, "A username is required."
+                dialog.show_message("A user name is required")
+                return False
             password = values['password']
+            dialog.show_message("Connecting to %s ..." % url)
             controller.bind_server(local_folder, url, username, password)
-            return True, None
+            return True
         except Unauthorized:
-            return False, "Invalid credentials"
-        except Exception, e:
-            return False, "Unable to connect to " + url
-        # TODO: catch a new ServerUnreachable catching network isssues
+            dialog.show_message("Invalid credentials.")
+            return False
+        except:
+            # TODO: catch a new ServerUnreachable catching network isssues
+            dialog.show_message("Unable to connect to " + url)
+            return False
 
     QtGui.QApplication([])
     dialog = Dialog(field_specs, title="Nuxeo Drive - Authentication",
