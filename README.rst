@@ -24,7 +24,7 @@ Server-side marketplace package
 -------------------------------
 
 Fetch the latest development version of the marketplace package
-[nuxeo-drive-marketplace-5.7-SNAPSHOT.zip](http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/lastSuccessfulBuild/artifact/packaging/nuxeo-drive-marketplace/target/nuxeo-drive-marketplace-5.7-SNAPSHOT.zip)
+`nuxeo-drive-marketplace-5.7-SNAPSHOT.zip <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/lastSuccessfulBuild/artifact/packaging/nuxeo-drive-marketplace/target/nuxeo-drive-marketplace-5.7-SNAPSHOT.zip>`_
 from the Continuous Integration server.
 
 The marketplace package can be installed using the Admin Center /
@@ -41,7 +41,7 @@ Windows Desktop Client
 ----------------------
 
 Fetch the latest development version for
-[nuxeo-drive-latest-dev.msi](http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/lastSuccessfulBuild/artifact/dist/nuxeo-drive-lastest-dev.msi)
+`nuxeo-drive-latest-dev.msi <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/lastSuccessfulBuild/artifact/dist/nuxeo-drive-lastest-dev.msi>`_
 windows installer from the Continous Integration.
 
 Once you installed the package (Administrator rights required) the new folder
