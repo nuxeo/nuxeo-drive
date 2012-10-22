@@ -23,12 +23,9 @@ desktop program on the user's computer.
 Server-side marketplace package
 -------------------------------
 
-Fetch the latest development version of the marketplace package from the
-Continuous Integraton server:
-
-  http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/
-
-The filename should be ``nuxeo-drive-marketplace-<version>.zip``.
+Fetch the latest development version of the marketplace package
+[nuxeo-drive-marketplace-5.7-SNAPSHOT.zip](http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/lastSuccessfulBuild/artifact/packaging/nuxeo-drive-marketplace/target/nuxeo-drive-marketplace-5.7-SNAPSHOT.zip)
+from the Continuous Integration server.
 
 The marketplace package can be installed using the Admin Center /
 Update Center / Local Packages interface of a Nuxeo server.
@@ -43,10 +40,9 @@ Alternatively, from the command line::
 Windows Desktop Client
 ----------------------
 
-Fetch the latest development version for ``nuxeo-drive-<version>.msi`` windows
-installer from the Continous Integration server at:
-
-  http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/
+Fetch the latest development version for
+[nuxeo-drive-latest-dev.msi](http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/lastSuccessfulBuild/artifact/dist/nuxeo-drive-lastest-dev.msi)
+windows installer from the Continous Integration.
 
 Once you installed the package (Administrator rights required) the new folder
 holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
