@@ -42,7 +42,7 @@ import time
 DEFAULT_MARKETPLACE = os.path.join(
     "packaging", "nuxeo-drive-marketplace", "target")
 MARKET_PLACE_PREFIX = "nuxeo-drive-marketplace"
-DEFAULT_MSI = os.path.join(r"dist")
+DEFAULT_MSI_FOLDER = os.path.join(r"dist")
 DEFAULT_NUXEO_ARCHIVE_URL=("http://qa.nuxeo.org/jenkins/job/IT-nuxeo-master-build/"
                            "lastSuccessfulBuild/artifact/archives/")
 DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
@@ -70,7 +70,7 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser(
         description="Launch integration tests on Windows")
 
-    parser.add_argument("--msi", default=DEFAULT_MSI)
+    parser.add_argument("--msi-folder", default=DEFAULT_MSI_FOLDER)
     parser.add_argument("--nuxeo-archive-url",
                         default=DEFAULT_NUXEO_ARCHIVE_URL)
     parser.add_argument("--lessmsi-url", default=DEFAULT_LESSMSI_URL)
@@ -115,7 +115,7 @@ def find_latest(folder, prefix=None, suffix=None):
     if not files:
         raise RuntimeError(('Could not find file with prefix "%s"'
                             'and suffix "%s" in "%s"')
-                           % (prefix, suffix, msi_filename))
+                           % (prefix, suffix, folder))
     files.sort()
     return os.path.join(folder, files[-1])
 
@@ -200,9 +200,11 @@ def setup_nuxeo(nuxeo_archive_url):
     atexit.register(execute, nuxeoctl + " --gui false stop")
 
 
-def extract_msi(lessmsi_url, msi_filename):
-    if os.path.isdir(msi_filename):
-        msi_filename = find_latest(msi_filename, suffix='.msi')
+def extract_msi(lessmsi_url, msi_folder):
+    if os.path.isdir(msi_folder):
+        msi_filename = find_latest(msi_folder, suffix='.msi')
+    else:
+        msi_filename = msi_folder
 
     if not os.path.exists(LESSMSI_FOLDER):
         filename = os.path.basename(lessmsi_url)
@@ -214,6 +216,13 @@ def extract_msi(lessmsi_url, msi_filename):
     if os.path.exists(EXTRACTED_MSI_FOLDER):
         shutil.rmtree(EXTRACTED_MSI_FOLDER)
     execute("%s /x %s %s" % (lessmsi, msi_filename, EXTRACTED_MSI_FOLDER))
+
+    msi_latest = os.path.join(msi_folder, 'nuxeo-drive-lastest-dev.msi')
+    if os.path.exists(msi_latest):
+        shutil.rmtree(msi_latest)
+
+    pflush("Copying '%s' to '%s'" % (msi_filename, msi_latest))
+    shutil.copyfile(msi_filename, msi_latest)
 
 
 def set_environment():
@@ -235,7 +244,7 @@ if __name__ == "__main__":
     setup_nuxeo(options.nuxeo_archive_url)
     set_environment()
     if sys.platform == 'win32':
-        extract_msi(options.lessmsi_url, options.msi)
+        extract_msi(options.lessmsi_url, options.msi_folder)
         run_tests_from_msi()
     else:
         run_tests_from_source()
