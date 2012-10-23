@@ -15,7 +15,6 @@ from nxdrive.controller import Controller
 from nxdrive.controller import default_nuxeo_drive_folder
 from nxdrive.logging_config import configure
 
-
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 DEFAULT_DELAY = 5.0
 USAGE = """ndrive [command]
@@ -34,6 +33,67 @@ To get options for a specific command:
   ndrive command --help
 
 """
+
+PROTOCOL_COMMANDS = {
+    'nxdriveedit': 'edit',
+    'nxdrivebind': 'bind_server',
+}
+
+
+NXDRIVE_EDIT_URL_FORM = ('nxdrive://edit/scheme/server[:port]'
+                         '/webappname/nxdoc/reponame/docref')
+
+def parse_protocol_url(url_string):
+    """Parse URL for which nxdrive is registered as a protocol handler
+
+    Return None if url_string is not a supported URL pattern or raise a
+    ValueError is the URL structure is invalid.
+
+    """
+    if "://" not in url_string:
+        return None
+
+    protocol_name, data_string = url_string.split('://', 1)
+    if protocol_name != 'nxdrive':
+        return None
+
+    if '/' not in data_string:
+        raise ValueError("Invalid nxdrive URL: " + url_string)
+
+    command, data_string = data_string.split('/', 1)
+    if command == 'edit':
+        return parse_edit_protocol(data_string)
+    else:
+        raise ValueError("Unsupported command '%s' in " + url_string)
+
+
+def parse_edit_protocol(data_string):
+    """Parse a nxdriveedit:// URL for quick editing of nuxeo documents"""
+    invalid_msg = ('Invalid URL: got nxdrive://edit/%s while expecting %s'
+                   % (data_string, NXDRIVE_EDIT_URL_FORM))
+
+    if '/' not in data_string:
+        raise ValueError(invalid_msg)
+
+    scheme, data_string = data_string.split('/', 1)
+    if scheme not in ('http', 'https'):
+        raise ValueError(
+            invalid_msg + ' : scheme should be http or https')
+
+    if '/nxdoc/' not in data_string:
+        raise ValueError(invalid_msg)
+
+    server_part, doc_part = data_string.split('/nxdoc/', 1)
+    server_url = "%s://%s" % (scheme, server_part)
+
+    components = doc_part.split('/')
+    if len(components) != 2:
+        raise ValueError(invalid_msg)
+
+    repository, docref = components
+    return dict(command='edit', scheme=scheme, server_url=server_url,
+                repository=repository, docref=docref)
+
 
 def make_cli_parser(add_subparsers=True):
     """Parse commandline arguments using a git-like subcommands scheme"""
@@ -203,15 +263,23 @@ class CliHandler(object):
         # https://developer.apple.com/library/mac/documentation/Carbon/Reference/LaunchServicesReference/LaunchServicesReference.pdf
         # TODO reconfigure generated Info.plist
         args = [a for a in args if not a.startswith("-psn_")]
-        # use the CLI parser to check that the first args is a valid command
+
+        # Preprocess the args to detect protocol handler calls and be more
+        # tolerant to missing subcommand
         has_command = False
+        protocol_url = None
+
+        filtered_args = []
         for arg in args:
+            if arg.startswith('nxdrive://'):
+                protocol_url = arg
+                continue
             if not arg.startswith('-'):
                 has_command = True
-                break
+            filtered_args.append(arg)
 
         parser = make_cli_parser(add_subparsers=has_command)
-        options = parser.parse_args(args)
+        options = parser.parse_args(filtered_args)
         if options.debug:
             # Install Post-Mortem debugger hook
 
@@ -226,6 +294,13 @@ class CliHandler(object):
         if filename is None:
             filename = os.path.join(
                 options.nxdrive_home, 'logs', 'nxdrive.log')
+
+        # Merge any protocol info into the other parsed commandline
+        # parameters
+        if protocol_url is not None:
+            protocol_info = parse_protocol_url(protocol_url)
+            for k, v in protocol_info.items():
+                setattr(options, k, v)
 
         command = getattr(options, 'command', 'default')
         configure(
@@ -273,6 +348,10 @@ class CliHandler(object):
         states = self.controller.status(options.files)
         for filename, status in states:
             print status + '\t' + filename
+        return 0
+
+    def edit(self, options):
+        # TODO: implement me!
         return 0
 
     def bind_server(self, options):
