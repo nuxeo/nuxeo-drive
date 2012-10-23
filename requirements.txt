@@ -1,4 +1,4 @@
-SQLAlchemy
+SQLAlchemy >= 0.7.9
 nose
 coverage
 argparse
