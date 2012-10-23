@@ -51,7 +51,7 @@ if '--freeze' in sys.argv:
     # build_exe does not seem to take the package_dir info into account
     sys.path.append('nuxeo-drive-client')
 
-    executables = [Executable(script, base=None, icon=icon)]
+    executables = [Executable(script, base=None)]
 
     if sys.platform == "win32":
         # Windows GUI program that can be launched without a cmd console
@@ -98,9 +98,9 @@ if '--freeze' in sys.argv:
                 "add_to_path": True,
                 "upgrade_code": '{800B7778-1B71-11E2-9D65-A0FD6088709B}',
             },
-            #"bdist_app": {
-            #    "bundle_iconfile": "MacOS/icons/nuxeo_drive_icon_64.png",
-            #},
+#            "bdist_app": {
+#                "bundle_iconfile": "nuxeo-drive-client/nxdrive/data/icons/nuxeo_drive_icon_64.png",
+#            },
             "bdist_dmg": {
                 "volume_label": "Nuxeo Drive",
             },
