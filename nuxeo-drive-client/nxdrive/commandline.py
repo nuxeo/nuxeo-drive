@@ -199,6 +199,10 @@ class CliHandler(object):
     """Command Line Interface handler: parse options and execute operation"""
 
     def handle(self, args):
+        # XXX filter psn argument provided by OSX .app service launcher
+        # https://developer.apple.com/library/mac/documentation/Carbon/Reference/LaunchServicesReference/LaunchServicesReference.pdf
+        # TODO reconfigure generated Info.plist
+        args = [a for a in args if not a.startswith("-psn_")]
         # use the CLI parser to check that the first args is a valid command
         has_command = False
         for arg in args:
