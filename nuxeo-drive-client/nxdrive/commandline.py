@@ -15,6 +15,9 @@ from nxdrive.controller import Controller
 from nxdrive.controller import default_nuxeo_drive_folder
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
+from nxdrive.protocol_handler import parse_protocol_url
+from nxdrive.protocol_handler import register_protocol_handlers
+
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 DEFAULT_DELAY = 5.0
@@ -40,60 +43,6 @@ PROTOCOL_COMMANDS = {
     'nxdrivebind': 'bind_server',
 }
 
-
-NXDRIVE_EDIT_URL_FORM = ('nxdrive://edit/scheme/server[:port]'
-                         '/webappname/nxdoc/reponame/docref')
-
-def parse_protocol_url(url_string):
-    """Parse URL for which nxdrive is registered as a protocol handler
-
-    Return None if url_string is not a supported URL pattern or raise a
-    ValueError is the URL structure is invalid.
-
-    """
-    if "://" not in url_string:
-        return None
-
-    protocol_name, data_string = url_string.split('://', 1)
-    if protocol_name != 'nxdrive':
-        return None
-
-    if '/' not in data_string:
-        raise ValueError("Invalid nxdrive URL: " + url_string)
-
-    command, data_string = data_string.split('/', 1)
-    if command == 'edit':
-        return parse_edit_protocol(data_string)
-    else:
-        raise ValueError("Unsupported command '%s' in " + url_string)
-
-
-def parse_edit_protocol(data_string):
-    """Parse a nxdriveedit:// URL for quick editing of nuxeo documents"""
-    invalid_msg = ('Invalid URL: got nxdrive://edit/%s while expecting %s'
-                   % (data_string, NXDRIVE_EDIT_URL_FORM))
-
-    if '/' not in data_string:
-        raise ValueError(invalid_msg)
-
-    scheme, data_string = data_string.split('/', 1)
-    if scheme not in ('http', 'https'):
-        raise ValueError(
-            invalid_msg + ' : scheme should be http or https')
-
-    if '/nxdoc/' not in data_string:
-        raise ValueError(invalid_msg)
-
-    server_part, doc_part = data_string.split('/nxdoc/', 1)
-    server_url = "%s://%s" % (scheme, server_part)
-
-    components = doc_part.split('/')
-    if len(components) != 2:
-        raise ValueError(invalid_msg)
-
-    repository, docref = components
-    return dict(command='edit', server_url=server_url,
-                repository=repository, docref=docref)
 
 
 def make_cli_parser(add_subparsers=True):
@@ -298,6 +247,7 @@ class CliHandler(object):
             for k, v in protocol_info.items():
                 setattr(options, k, v)
 
+        # Configure the logs
         filename = options.log_filename
         if filename is None:
             filename = os.path.join(
@@ -310,7 +260,14 @@ class CliHandler(object):
             console_level=options.log_level_console,
             process_name=command,
         )
+        # Initialize a controller for this process
         self.controller = Controller(options.nxdrive_home)
+
+        # Register the protocol handlers: required when running for the first
+        # time on Windows and Linux and each time (event listener) on OSX
+        register_protocol_handlers(self.controller)
+
+        # Find the command to execute based on the
         handler = getattr(self, command, None)
         if handler is None:
             raise NotImplementedError(

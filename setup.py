@@ -15,6 +15,7 @@ packages = [
     'nxdrive',
     'nxdrive.tests',
     'nxdrive.gui',
+    'nxdrive.protocol_handler',
     'nxdrive.data',
     'nxdrive.data.icons',
 ]
