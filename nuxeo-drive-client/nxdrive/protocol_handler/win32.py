@@ -25,7 +25,7 @@ def register_protocol_handlers(controller):
                  'skipping protocol handler registration')
         return
 
-    command = '"' + exe_path + '" "%1"'
+    command = '"' + exe_path + '" %1'
     log.debug("Registering 'nxdrive' protocol handler command: %s", command)
     reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
     try:
