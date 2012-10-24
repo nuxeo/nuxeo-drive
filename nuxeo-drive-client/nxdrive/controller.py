@@ -81,7 +81,7 @@ class Controller(object):
         self._engine, self._session_maker = init_db(
             self.config_folder, echo=echo, poolclass=poolclass)
 
-        # make it possible to pass an arbitrary nuxeo client factory
+        # Make it possible to pass an arbitrary nuxeo client factory
         # for testing
         if nuxeo_client_factory is not None:
             self.nuxeo_client_factory = nuxeo_client_factory
@@ -1075,6 +1075,7 @@ class Controller(object):
                     p = psutil.Process(pid)
                     # Check that this is a nxdrive process by looking at the
                     # process name and commandline
+                    # TODO: be more specific using the p.exe attribute
                     if 'ndrive' in p.name:
                         return pid
                     if 'Nuxeo Drive' in p.name:
@@ -1096,7 +1097,6 @@ class Controller(object):
                     log.warn("Failed to remove stalled pid file: %s"
                             " for stopped process %d: %r",
                             pid_filepath, pid, e)
-                    pass
                 return None
         return None
 
@@ -1190,6 +1190,15 @@ class Controller(object):
         except:
             self.get_session().rollback()
             raise
+
+        # Clean pid file
+        pid_filepath = self._get_sync_pid_filepath()
+        try:
+            os.unlink(pid_filepath)
+        except Exception, e:
+            log.warn("Failed to remove stalled pid file: %s"
+                    " for stopped process %d: %r",
+                    pid_filepath, pid, e)
 
     def make_remote_raise(self, error):
         """Helper method to simulate network failure for testing"""
