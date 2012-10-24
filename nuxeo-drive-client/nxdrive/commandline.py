@@ -114,7 +114,7 @@ def make_cli_parser(add_subparsers=True):
     )
     common_parser.add_argument(
         "--log-level-console",
-        default="DEBUG",
+        default="INFO",
         help="Minimum log level for the console log."
     )
     common_parser.add_argument(
