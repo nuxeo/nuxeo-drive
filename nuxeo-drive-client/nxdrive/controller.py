@@ -1123,10 +1123,11 @@ class Controller(object):
 
         # Write the pid of this process
         pid_filepath = self._get_sync_pid_filepath()
+        pid = os.getpid()
         with open(pid_filepath, 'wb') as f:
-            f.write(str(os.getpid()))
+            f.write(str(pid))
 
-        log.info("Starting synchronization")
+        log.info("Starting synchronization (pid=%d)", pid)
         self.continue_synchronization = True
         if not full_local_scan:
             # TODO: ensure that the watchdog thread for incremental state
@@ -1141,7 +1142,7 @@ class Controller(object):
         try:
             while True:
                 if self.should_stop_synchronization():
-                    log.info("Stopping synchronization")
+                    log.info("Stopping synchronization (pid=%d)", pid)
                     break
                 if (max_loops is not None and loop_count > max_loops):
                     log.info("Stopping synchronization after %d loops",
