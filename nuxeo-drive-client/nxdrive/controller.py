@@ -11,6 +11,7 @@ import httplib
 
 import psutil
 
+import nxdrive
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
@@ -70,11 +71,20 @@ class Controller(object):
 
     def __init__(self, config_folder, nuxeo_client_factory=None, echo=None,
                  poolclass=None):
-        if echo is None:
-            echo = os.environ.get('NX_DRIVE_LOG_SQL', None) is not None
-        self.config_folder = os.path.expanduser(config_folder)
+        # Log the installation location for debug
+        nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
+        nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
+        log.debug("nxdrive installed in '%s'", nxdrive_install_folder)
+
+        # Log the configuration location for debug
+        config_folder = os.path.expanduser(config_folder)
+        self.config_folder = os.path.realpath(config_folder)
         if not os.path.exists(self.config_folder):
             os.makedirs(self.config_folder)
+        log.debug("nxdrive configured in '%s'", self.config_folder)
+
+        if echo is None:
+            echo = os.environ.get('NX_DRIVE_LOG_SQL', None) is not None
 
         # Handle connection to the local Nuxeo Drive configuration and
         # metadata sqlite database.
