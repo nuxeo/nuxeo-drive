@@ -1,4 +1,5 @@
 SQLAlchemy >= 0.7.9
+psutil
 nose
 coverage
 argparse

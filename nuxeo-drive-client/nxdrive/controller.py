@@ -9,6 +9,8 @@ import urllib2
 import socket
 import httplib
 
+import psutil
+
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
@@ -79,7 +81,7 @@ class Controller(object):
         self._engine, self._session_maker = init_db(
             self.config_folder, echo=echo, poolclass=poolclass)
 
-        # make it possible to pass an arbitrary nuxeo client factory
+        # Make it possible to pass an arbitrary nuxeo client factory
         # for testing
         if nuxeo_client_factory is not None:
             self.nuxeo_client_factory = nuxeo_client_factory
@@ -118,7 +120,15 @@ class Controller(object):
 
     def stop(self):
         """Stop the Nuxeo Drive daemon"""
-        # TODO
+        pid = self.check_sync_running()
+        if pid is not None:
+            # Create a stop file marker for the running synchronization
+            # process
+            log.info("Telling synchronization process %d to stop." % pid)
+            stop_file = os.path.join(self.config_folder, "stop_%d" % pid)
+            open(stop_file, 'wb').close()
+        else:
+            log.info("No running synchronization process to stop.")
 
     def children_states(self, folder_path, full_states=False):
         """List the status of the children of a folder
@@ -1046,6 +1056,58 @@ class Controller(object):
                                          session=session)
         return synchronized
 
+
+    def _get_sync_pid_filepath(self):
+        return os.path.join(self.config_folder, 'nxdrive.pid')
+
+    def check_sync_running(self):
+        """Check whether another sync process is already runnning
+
+        If nxdrive.pid file already exists and the pid points to a running
+        nxdrive program then return the pid. Return None otherwise.
+
+        """
+        pid_filepath = self._get_sync_pid_filepath()
+        if os.path.exists(pid_filepath):
+            with open(pid_filepath, 'rb') as f:
+                pid = int(f.read().strip())
+                try:
+                    p = psutil.Process(pid)
+                    # Check that this is a nxdrive process by looking at the
+                    # process name and commandline
+                    # TODO: be more specific using the p.exe attribute
+                    if 'ndrive' in p.name:
+                        return pid
+                    if 'Nuxeo Drive' in p.name:
+                        return pid
+                    for component in p.cmdline:
+                        if 'ndrive' in component:
+                            return pid
+                        if 'nxdrive' in component:
+                            return pid
+                except psutil.NoSuchProcess:
+                    pass
+                # This is a pid file pointing to either a stopped process
+                # or a non-nxdrive process: let's delete it if possible
+                try:
+                    os.unlink(pid_filepath)
+                    log.info("Removed old pid file: %s for"
+                            " stopped process %d", pid_filepath, pid)
+                except Exception, e:
+                    log.warn("Failed to remove stalled pid file: %s"
+                            " for stopped process %d: %r",
+                            pid_filepath, pid, e)
+                return None
+        return None
+
+    def should_stop_synchronization(self):
+        """Check whether another process has told the synchronizer to stop"""
+        stop_file = os.path.join(self.config_folder, "stop_%d" % os.getpid())
+        if os.path.exists(stop_file):
+            os.unlink(stop_file)
+            return True
+        return False
+
     def loop(self, full_local_scan=True, full_remote_scan=True, delay=10,
              max_sync_step=50, max_loops=None, fault_tolerant=True):
         """Forever loop to scan / refresh states and perform synchronization
@@ -1053,9 +1115,19 @@ class Controller(object):
         delay is an delay in seconds that ensures that two consecutive
         scans won't happen too closely from one another.
         """
-        log.info("Starting synchronization")
-        # Instance flag to allow for another thread to interrupt the
-        # synchronization loop cleanly
+        pid = self.check_sync_running()
+        if pid is not None:
+            log.warn("Synchronization process with pid %d already running.",
+                    pid)
+            return
+
+        # Write the pid of this process
+        pid_filepath = self._get_sync_pid_filepath()
+        pid = os.getpid()
+        with open(pid_filepath, 'wb') as f:
+            f.write(str(pid))
+
+        log.info("Starting synchronization (pid=%d)", pid)
         self.continue_synchronization = True
         if not full_local_scan:
             # TODO: ensure that the watchdog thread for incremental state
@@ -1069,8 +1141,8 @@ class Controller(object):
         loop_count = 0
         try:
             while True:
-                if not self.continue_synchronization:
-                    log.info("Stopping synchronization")
+                if self.should_stop_synchronization():
+                    log.info("Stopping synchronization (pid=%d)", pid)
                     break
                 if (max_loops is not None and loop_count > max_loops):
                     log.info("Stopping synchronization after %d loops",
@@ -1110,6 +1182,7 @@ class Controller(object):
                 previous_time = current_time
                 first_pass = False
                 loop_count += 1
+
         except KeyboardInterrupt:
             self.get_session().rollback()
             log.info("Interrupted synchronization on user's request.")
@@ -1117,6 +1190,15 @@ class Controller(object):
         except:
             self.get_session().rollback()
             raise
+
+        # Clean pid file
+        pid_filepath = self._get_sync_pid_filepath()
+        try:
+            os.unlink(pid_filepath)
+        except Exception, e:
+            log.warn("Failed to remove stalled pid file: %s"
+                    " for stopped process %d: %r",
+                    pid_filepath, pid, e)
 
     def make_remote_raise(self, error):
         """Helper method to simulate network failure for testing"""
