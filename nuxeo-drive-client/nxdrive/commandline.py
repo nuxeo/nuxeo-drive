@@ -310,7 +310,6 @@ class CliHandler(object):
             process_name=command,
         )
         self.controller = Controller(options.nxdrive_home)
-
         handler = getattr(self, command, None)
         if handler is None:
             raise NotImplementedError(
