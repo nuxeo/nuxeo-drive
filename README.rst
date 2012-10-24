@@ -225,6 +225,10 @@ administrator")::
 
   powershell.exe C:\path\to\nuxeo-drive-client\tools\windows\nxdrive-setup-dev.ps1
 
+Some dependencies such as `psutil` can be tricky to build under windows.  You
+can use a binary installer from `this site
+<http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
+
 If you get an error message complaining about the lack of signature
 for this script you can disable that security check with the following
 command::
