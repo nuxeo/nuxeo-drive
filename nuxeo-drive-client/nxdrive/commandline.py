@@ -14,6 +14,7 @@ except ImportError:
 from nxdrive.controller import Controller
 from nxdrive.controller import default_nuxeo_drive_folder
 from nxdrive.logging_config import configure
+from nxdrive.logging_config import get_logger
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 DEFAULT_DELAY = 5.0
@@ -108,12 +109,12 @@ def make_cli_parser(add_subparsers=True):
     )
     common_parser.add_argument(
         "--log-level-file",
-        default="INFO",
+        default="DEBUG",
         help="Minimum log level for the file log (under NXDRIVE_HOME/logs)."
     )
     common_parser.add_argument(
         "--log-level-console",
-        default="INFO",
+        default="DEBUG",
         help="Minimum log level for the console log."
     )
     common_parser.add_argument(
@@ -314,6 +315,9 @@ class CliHandler(object):
         if handler is None:
             raise NotImplementedError(
                 'No handler implemented for command ' + options.command)
+
+        log = get_logger(__name__)
+        log.debug("Running command '%s' with options %r", command, options)
         return handler(options)
 
     def default(self, options=None):
