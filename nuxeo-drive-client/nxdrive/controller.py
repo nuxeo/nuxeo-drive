@@ -3,6 +3,7 @@
 import sys
 from time import time
 from time import sleep
+import os
 import os.path
 from threading import local
 import urllib2
@@ -1211,7 +1212,20 @@ class Controller(object):
                     pid_filepath, pid, e)
 
     def get_state(self, server_url, remote_repo, remote_ref):
-        return None
+        session = self.get_session()
+        try:
+            states = session.query(LastKnownState).filter_by(
+                remote_ref=remote_ref,
+            ).all()
+            for state in states:
+                rb = state.root_binding
+                sb = rb.server_binding
+                if (sb.server_url == server_url
+                    and rb.remote_repo == remote_repo):
+                    return state
+        except NoResultFound:
+            return None
+
 
     def launch_file_editor(self, server_url, remote_repo, remote_ref):
         """Find the local file if any and start OS editor on it."""
@@ -1224,7 +1238,13 @@ class Controller(object):
             return
 
         # TODO: synchronize this state first
-
+        filepath = state.get_local_abspath()
+        log.debug('Launching editor on %s', filepath)
+        if sys.platform == 'darwin':
+            os.system('open "%s"' % filepath)
+        else:
+            raise NotImplementError('Launching editor on %s is not supported'
+                    % sys.platform)
 
     def make_remote_raise(self, error):
         """Helper method to simulate network failure for testing"""
