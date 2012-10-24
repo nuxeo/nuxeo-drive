@@ -1210,6 +1210,22 @@ class Controller(object):
                     " for stopped process %d: %r",
                     pid_filepath, pid, e)
 
+    def get_state(self, server_url, remote_repo, remote_ref):
+        return None
+
+    def launch_file_editor(self, server_url, remote_repo, remote_ref):
+        """Find the local file if any and start OS editor on it."""
+        state = self.get_state(server_url, remote_repo, remote_ref)
+        if state is None:
+            # TODO: synchronize to a dedicated special root for one time edit
+            # TODO: find a better exception
+            log.warn('Could not find local file for %s/nxdoc/%s/%s'
+                    '/view_documents', server_url, remote_repo, remote_ref)
+            return
+
+        # TODO: synchronize this state first
+
+
     def make_remote_raise(self, error):
         """Helper method to simulate network failure for testing"""
         self._remote_error = error

@@ -91,7 +91,7 @@ def parse_edit_protocol(data_string):
         raise ValueError(invalid_msg)
 
     repository, docref = components
-    return dict(command='edit', scheme=scheme, server_url=server_url,
+    return dict(command='edit', server_url=server_url,
                 repository=repository, docref=docref)
 
 
@@ -350,7 +350,8 @@ class CliHandler(object):
         return 0
 
     def edit(self, options):
-        # TODO: implement me!
+        self.controller.launch_file_editor(
+            options.server_url, options.repository, options.docref)
         return 0
 
     def bind_server(self, options):
