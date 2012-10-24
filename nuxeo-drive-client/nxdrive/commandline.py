@@ -187,7 +187,7 @@ def make_cli_parser(add_subparsers=True):
     bind_root_parser.set_defaults(command='bind_root')
     bind_root_parser.add_argument(
         "remote_root",
-        help="Remote path or id reference of a folder to sychronize.")
+        help="Remote path or id reference of a folder to synchronize.")
     bind_root_parser.add_argument(
         "--local-folder",
         help="Local folder that will host the list of synchronized"
@@ -290,17 +290,17 @@ class CliHandler(object):
 
             sys.excepthook = info
 
-        filename = options.log_filename
-        if filename is None:
-            filename = os.path.join(
-                options.nxdrive_home, 'logs', 'nxdrive.log')
-
         # Merge any protocol info into the other parsed commandline
         # parameters
         if protocol_url is not None:
             protocol_info = parse_protocol_url(protocol_url)
             for k, v in protocol_info.items():
                 setattr(options, k, v)
+
+        filename = options.log_filename
+        if filename is None:
+            filename = os.path.join(
+                options.nxdrive_home, 'logs', 'nxdrive.log')
 
         command = getattr(options, 'command', 'default')
         configure(
