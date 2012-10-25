@@ -53,6 +53,6 @@ def register_protocol_handlers(controller):
     command = '"' + exe_path + '" "%1"'
     command_path = nxdrive_class_path + '\\shell\\open\\command'
     command_attributes = (
-        ('', _winreg.REG_SZ, command)
+        ('', _winreg.REG_SZ, command),
     )
     update_key(reg, command_path, command_attributes)
