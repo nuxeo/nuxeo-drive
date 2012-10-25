@@ -1,4 +1,6 @@
 """URL scheme / protocol event listener for the OSX platform"""
+from nxdrive.logging_config import get_logger
+log = get_logger(__name__)
 
 
 def register_protocol_handlers(controller):
