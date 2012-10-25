@@ -40,19 +40,36 @@ def register_protocol_handlers(controller):
     log.debug("Registering 'nxdrive' protocol handler to: %s", exe_path)
     reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
 
+    # Register Nuxeo Drive as a software as a protocol command provider
+    command = '"' + exe_path + '" "%1"'
+    update_key(
+        reg, 'Software\\Nuxeo Drive',
+        [('', _winreg.REG_SZ, 'Nuxeo Drive')],
+    )
+    # TODO: add an icon for Nuxeo Drive too
+    update_key(
+        reg, 'Software\\Nuxeo Drive\\Protocols\\nxdrive',
+        [('URL Protocol', _winreg.REG_SZ, '')],
+    )
+    # TODO: add an icon for the nxdrive protocol too
+    update_key(
+        reg,
+        'Software\\Nuxeo Drive\\Protocols\\nxdrive\\shell\\open\\command',
+        [('', _winreg.REG_SZ, command)],
+    )
     # Create the nxdrive protocol key
     nxdrive_class_path = 'Software\\Classes\\nxdrive'
-    nxdrive_class_attributes = (
-        ('EditFlags', _winreg.REG_DWORD, 2),
-        ('', _winreg.REG_SZ, 'URL:nxdrive Protocol'),
-        ('URL Protocol', _winreg.REG_SZ, ''),
+    update_key(
+        reg, nxdrive_class_path,
+        [
+            ('EditFlags', _winreg.REG_DWORD, 2),
+            ('', _winreg.REG_SZ, 'URL:nxdrive Protocol'),
+            ('URL Protocol', _winreg.REG_SZ, ''),
+        ],
     )
-    update_key(reg, nxdrive_class_path, nxdrive_class_attributes)
-
     # Create the nxdrive command key
-    command = '"' + exe_path + '" "%1"'
     command_path = nxdrive_class_path + '\\shell\\open\\command'
-    command_attributes = (
-        ('', _winreg.REG_SZ, command),
+    update_key(
+        reg, command_path,
+        [('', _winreg.REG_SZ, command)],
     )
-    update_key(reg, command_path, command_attributes)
