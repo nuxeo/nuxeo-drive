@@ -9,6 +9,7 @@ from threading import local
 import urllib2
 import socket
 import httplib
+import subprocess
 
 import psutil
 
@@ -1212,6 +1213,7 @@ class Controller(object):
                     pid_filepath, pid, e)
 
     def get_state(self, server_url, remote_repo, remote_ref):
+        """Find a pair state for the provided remote document identifiers."""
         session = self.get_session()
         try:
             states = session.query(LastKnownState).filter_by(
@@ -1226,7 +1228,6 @@ class Controller(object):
         except NoResultFound:
             return None
 
-
     def launch_file_editor(self, server_url, remote_repo, remote_ref):
         """Find the local file if any and start OS editor on it."""
         state = self.get_state(server_url, remote_repo, remote_ref)
@@ -1238,13 +1239,20 @@ class Controller(object):
             return
 
         # TODO: synchronize this state first
-        filepath = state.get_local_abspath()
-        log.debug('Launching editor on %s', filepath)
-        if sys.platform == 'darwin':
-            os.system('open "%s"' % filepath)
+
+        # Find the best editor for the file according to the OS configuration
+        file_path = state.get_local_abspath()
+        log.debug('Launching editor on %s', file_path)
+        if sys.platform == 'win32':
+            os.startfile(file_path)
+        elif sys.platform == 'darwin':
+            subprocess.Popen(['open', file_path])
         else:
-            raise NotImplementError('Launching editor on %s is not supported'
-                    % sys.platform)
+            try:
+                subprocess.Popen(['xdg-open', file_path])
+            except OSError:
+                # xdg-open should be supported by recent Gnome, KDE, Xfce
+                log.error("Failed to find and editor for: '%s'", file_path)
 
     def make_remote_raise(self, error):
         """Helper method to simulate network failure for testing"""
