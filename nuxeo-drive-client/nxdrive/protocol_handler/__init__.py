@@ -70,6 +70,9 @@ def register_protocol_handlers(controller):
     if sys.platform == 'win32':
         from nxdrive.protocol_handler.win32 import register_protocol_handlers
         register_protocol_handlers(controller)
+    elif sys.platform == 'darwin':
+        from nxdrive.protocol_handler.darwin import register_protocol_handlers
+        register_protocol_handlers(controller)
     else:
         # TODO: implement me
         log.debug("Protocol handler registration for '%s' not yet implemented",
