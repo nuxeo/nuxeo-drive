@@ -7,9 +7,8 @@ from setuptools import setup
 
 plist = dict(
     CFBundleDisplayName="Nuxeo Drive",
-    #CFBundleName="Nuxeo Drive",
+    CFBundleName="Nuxeo Drive",
     CFBundleIdentifier="org.nuxeo.drive",
-    #LSBackgroundOnly=True,
     LSUIElement=True,
     CFBundleURLTypes=[
         dict(
