@@ -14,6 +14,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
+from sqlalchemy.dialects.sqlite.base import dialect
 
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient

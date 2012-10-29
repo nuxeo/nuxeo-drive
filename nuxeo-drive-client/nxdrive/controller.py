@@ -124,12 +124,6 @@ class Controller(object):
             session.commit()
             return device_config
 
-    def start(self):
-        """Start the Nuxeo Drive main daemon if not already started"""
-        # TODO, see:
-        # https://github.com/mozilla-services/circus/blob/master/circus/
-        # circusd.py#L34
-
     def stop(self):
         """Stop the Nuxeo Drive daemon"""
         pid = self.check_sync_running()

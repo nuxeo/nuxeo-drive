@@ -59,8 +59,8 @@ class Dialog(QDialog):
         self.setLayout(mainLayout)
         if title is not None:
             self.setWindowTitle(title)
-        icon = find_icon('nuxeo_drive_icon_64.png')
-        self.setWindowIcon(QtGui.QIcon(icon))
+        #icon = find_icon('nuxeo_drive_icon_64.png')
+        #self.setWindowIcon(QtGui.QIcon(icon))
         self.resize(600, -1)
         self.accepted = False
 

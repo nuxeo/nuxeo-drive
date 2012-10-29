@@ -12,6 +12,7 @@ except ImportError:
     debugger = pdb
 
 from nxdrive.controller import Controller
+from nxdrive.daemon import daemonize
 from nxdrive.controller import default_nuxeo_drive_folder
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
@@ -42,7 +43,6 @@ PROTOCOL_COMMANDS = {
     'nxdriveedit': 'edit',
     'nxdrivebind': 'bind_server',
 }
-
 
 
 def make_cli_parser(add_subparsers=True):
@@ -253,7 +253,11 @@ class CliHandler(object):
             filename = os.path.join(
                 options.nxdrive_home, 'logs', 'nxdrive.log')
 
-        command = getattr(options, 'command', 'default')
+        command = getattr(options, 'command', 'start')
+        if command == 'start':
+            daemonize()
+            command = 'console'
+
         configure(
             filename,
             file_level=options.log_level_file,
@@ -263,10 +267,6 @@ class CliHandler(object):
         # Initialize a controller for this process
         self.controller = Controller(options.nxdrive_home)
 
-        # Register the protocol handlers: required when running for the first
-        # time on Windows and Linux and each time (event listener) on OSX
-        register_protocol_handlers(self.controller)
-
         # Find the command to execute based on the
         handler = getattr(self, command, None)
         if handler is None:
@@ -275,7 +275,18 @@ class CliHandler(object):
 
         log = get_logger(__name__)
         log.debug("Running command '%s' with options %r", command, options)
-        return handler(options)
+
+        # Register the protocol handlers: required when running for the first
+        # time on Windows and Linux and each time (event listener) on OSX
+        register_protocol_handlers(self.controller)
+        try:
+            return handler(options)
+        except Exception, e:
+            if options.debug:
+                # Make it possible to use the postmortem debugger
+                raise
+            else:
+                log.error("Error executing '%s': %r", command, e)
 
     def default(self, options=None):
         # TODO: use the start method as default once implemented
