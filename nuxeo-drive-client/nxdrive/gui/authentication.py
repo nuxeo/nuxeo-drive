@@ -1,5 +1,6 @@
 """GUI prompt to bind a new server"""
 import os
+import re
 from nxdrive.client import Unauthorized
 from nxdrive.logging_config import get_logger
 
@@ -21,10 +22,17 @@ def find_icon(icon_filename):
     nxdrive_path = os.path.dirname(nxdrive.__file__)
     icons_path = os.path.join(nxdrive_path, 'data', 'icons')
 
-    frozen_suffix = os.path.join('library.zip', 'nxdrive')
-    if nxdrive_path.endswith(frozen_suffix):
+    cxfreeze_suffix = os.path.join('library.zip', 'nxdrive')
+    app_resources = '/Contents/Resources/'
+
+    if app_resources in nxdrive_path:
+        # OSX frozen distribution, bundled as an app
+        icons_path = re.sub(app_resources + ".*", app_resources + 'icons',
+                             nxdrive_path)
+
+    elif nxdrive_path.endswith(cxfreeze_suffix):
         # Frozen distribution of nxdrive, data is out of the zip
-        icons_path = nxdrive_path.replace(frozen_suffix, 'icons')
+        icons_path = nxdrive_path.replace(cxfreeze_suffix, 'icons')
 
     if not os.path.exists(icons_path):
         log.warning("Could not find the icons folder at: %s", icons_path)
