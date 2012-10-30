@@ -273,6 +273,30 @@ Under Debian / Ubuntu you can install the ``python-pyside`` package directly::
     sudo apt-get install python-pyside
 
 
+Generating OS specific packages
+-------------------------------
+
+- To generate the **Windows** ``.msi`` installer, you need to install ``cx_Freeze``
+  as explained above. Then run::
+
+    C:\Python27\python.exe setup.py --freeze bdist_msi
+
+  The generated ``.msi`` file can be found in the ``dist/`` subfolder.
+
+- To generate the OSX `.app` bundle, you need to install ``py2app``::
+
+    pip install py2app:
+
+  Then run::
+
+    python setup.py py2app
+
+  The generated ``.app`` bundle can be found in the ``dist/`` subfolder. You
+  can then generate a ``.dmg`` archive using::
+
+    hdiutil create -srcfolder "dist/Nuxeo Drive.app" "dist/Nuxeo Drive.dmg"
+
+
 Additional resources
 --------------------
 
