@@ -54,7 +54,7 @@ def configure(log_filename, file_level='INFO', console_level='INFO',
     # define the formatter
     # TODO: add filter for process name and update format
     formatter = logging.Formatter(
-        "%(asctime)s %(process)d %(command)-8s %(levelname)-8s %(name)-18s"
+        "%(asctime)s %(process)d %(command)-13s %(levelname)-8s %(name)-18s"
         " %(message)s"
     )
 
