@@ -208,11 +208,15 @@ def make_cli_parser(add_subparsers=True):
 class CliHandler(object):
     """Command Line Interface handler: parse options and execute operation"""
 
-    def handle(self, args):
-        # XXX filter psn argument provided by OSX .app service launcher
+
+    def parse_cli(self, argv):
+        """Parse the command line argument using argparse and protocol URL"""
+        # Filter psn argument provided by OSX .app service launcher
         # https://developer.apple.com/library/mac/documentation/Carbon/Reference/LaunchServicesReference/LaunchServicesReference.pdf
-        # TODO reconfigure generated Info.plist
-        args = [a for a in args if not a.startswith("-psn_")]
+        # When run from the .app bundle generated with py2app with
+        # argv_emulation=True this is already filtered out but we keep it
+        # for running CLI from the source folder in development.
+        argv = [a for a in argv if not a.startswith("-psn_")]
 
         # Preprocess the args to detect protocol handler calls and be more
         # tolerant to missing subcommand
@@ -220,7 +224,7 @@ class CliHandler(object):
         protocol_url = None
 
         filtered_args = []
-        for arg in args:
+        for arg in argv[1:]:
             if arg.startswith('nxdrive://'):
                 protocol_url = arg
                 continue
@@ -247,22 +251,27 @@ class CliHandler(object):
             for k, v in protocol_info.items():
                 setattr(options, k, v)
 
+        return options
+
+    def handle(self, argv):
+        """Daemonize, setup logs and controller and dispatch execution."""
+        options = self.parse_cli(argv)
+        command = getattr(options, 'command', 'start')
+        if command == 'start':
+            daemonize()
+            command = 'console'
+
         # Configure the logs
         filename = options.log_filename
         if filename is None:
             filename = os.path.join(
                 options.nxdrive_home, 'logs', 'nxdrive.log')
 
-        command = getattr(options, 'command', 'start')
-        if command == 'start':
-            daemonize()
-            command = 'console'
-
         configure(
             filename,
             file_level=options.log_level_file,
             console_level=options.log_level_console,
-            process_name=command,
+            command_name=command,
         )
         # Initialize a controller for this process
         self.controller = Controller(options.nxdrive_home)
@@ -274,10 +283,10 @@ class CliHandler(object):
                 'No handler implemented for command ' + options.command)
 
         log = get_logger(__name__)
-        log.debug("Running command '%s' with options %r", command, options)
+        log.debug("Command line: " + ' '.join(argv))
 
-        # Register the protocol handlers: required when running for the first
-        # time on Windows and Linux and each time (event listener) on OSX
+        # Ensure that the protocol handler are registered:
+        # this is useful for the edit / open link in the Nuxeo interface
         register_protocol_handlers(self.controller)
         try:
             return handler(options)
@@ -286,7 +295,8 @@ class CliHandler(object):
                 # Make it possible to use the postmortem debugger
                 raise
             else:
-                log.error("Error executing '%s': %r", command, e)
+                log.error("Error executing '%s': %s", command, e,
+                          exc_info=True)
 
     def default(self, options=None):
         # TODO: use the start method as default once implemented
@@ -385,10 +395,10 @@ class CliHandler(object):
         return 0 if nose.run(argv=argv) else 1
 
 
-def main(args=None):
-    if args is None:
-        args = sys.argv[1:]
-    return CliHandler().handle(args)
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+    return CliHandler().handle(argv)
 
 if __name__ == "__main__":
     sys.exit(main())

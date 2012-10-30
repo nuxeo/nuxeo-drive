@@ -10,9 +10,19 @@ logging.addLevelName(TRACE, 'TRACE')
 logging.TRACE = TRACE
 
 
+# Singleton logging context for each process.
+# Alternatively we could use the setproctitle to handle the command name
+# package and directly change the real process name but this requires to build
+# a compiled extension under Windows...
+
+_logging_context = dict()
+
+
 def configure(log_filename, file_level='INFO', console_level='INFO',
-              process_name="", log_rotate_keep=5,
+              command_name=None, log_rotate_keep=5,
               log_rotate_max_bytes=1000000):
+
+    _logging_context['command'] = command_name
 
     # convert string levels
     if hasattr(file_level, 'upper'):
@@ -44,7 +54,8 @@ def configure(log_filename, file_level='INFO', console_level='INFO',
     # define the formatter
     # TODO: add filter for process name and update format
     formatter = logging.Formatter(
-        "%(asctime)s %(levelname)-8s %(name)-18s %(message)s"
+        "%(asctime)s %(process)d %(command)-8s %(levelname)-8s %(name)-18s"
+        " %(message)s"
     )
 
     # tell the handler to use this format
@@ -57,7 +68,9 @@ def configure(log_filename, file_level='INFO', console_level='INFO',
 
 
 def get_logger(name):
+    global _command_name
     logger = logging.getLogger(name)
+    logger = logging.LoggerAdapter(logger, _logging_context)
     trace = lambda *args, **kwargs: logger.log(TRACE, *args, **kwargs)
     setattr(logger, 'trace', trace)
     return logger
