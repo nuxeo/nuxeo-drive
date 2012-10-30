@@ -2,35 +2,35 @@
 Usage:
     python setup.py py2app
 """
-#from distutils.core import setup
-from setuptools import setup
+import sys
+from distutils.core import setup
+if sys.platform == 'darwin':
+    import py2app  # install the py2app command
 
-plist = dict(
-    CFBundleDisplayName="Nuxeo Drive",
-    CFBundleName="Nuxeo Drive",
-    CFBundleIdentifier="org.nuxeo.drive",
-    LSUIElement=True,
-    CFBundleURLTypes=[
-        dict(
-            CFBundleURLName='Nuxeo Drive URL',
-            CFBundleURLSchemes=['nxdrive'],
-        )
-    ]
-)
 setup(
     app=["nuxeo-drive-client/bin/ndrive.py"],
     data_files=[],
     options=dict(
         py2app=dict(
             argv_emulation=True,
-            plist=plist,
+            plist=dict(
+                CFBundleDisplayName="Nuxeo Drive",
+                CFBundleName="Nuxeo Drive",
+                CFBundleIdentifier="org.nuxeo.drive",
+                LSUIElement=True,  # Do not launch as a Dock application
+                CFBundleURLTypes=[
+                    dict(
+                        CFBundleURLName='Nuxeo Drive URL',
+                        CFBundleURLSchemes=['nxdrive'],
+                        )
+                    ]
+                ),
             includes=[
-                "Foundation",
-                "objc",
                 "PySide",
                 "PySide.QtCore",
                 "PySide.QtNetwork",
                 "PySide.QtGui",
                 "atexit",  # implicitly required by PySide
-                'sqlalchemy.dialects.sqlite']))
+                'sqlalchemy.dialects.sqlite',
+            ]))
 )
