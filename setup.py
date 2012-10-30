@@ -25,10 +25,10 @@ package_data = {
     'nxdrive.data.icons': ['*.png', '*.svg', '*.ico', '*.icns'],
 }
 script = 'nuxeo-drive-client/bin/ndrive'
-win_icon = 'nuxeo-drive-client/nxdrive/data/icons/nuxeo_drive_icon_64.ico'
-png_icon = 'nuxeo-drive-client/nxdrive/data/icons/nuxeo_drive_icon_64.png'
-osx_icon = 'nuxeo-drive-client/nxdrive/data/icons/nuxeo_drive_app_icon_128.icns'
-
+icons_home = 'nuxeo-drive-client/nxdrive/data/icons'
+win_icon = os.path.join(icons_home, 'nuxeo_drive_icon_64.ico')
+png_icon = os.path.join(icons_home, 'nuxeo_drive_icon_64.png')
+osx_icon = os.path.join(icons_home, 'nuxeo_drive_app_icon_128.icns')
 
 if sys.platform == 'win32':
     icon = win_icon
@@ -37,13 +37,11 @@ elif sys.platform == 'darwin':
 else:
     icon = png_icon
 
-icons_home = 'nuxeo-drive-client/nxdrive/data/icons'
 icons_files = []
 for filename in os.listdir(icons_home):
     filepath = os.path.join(icons_home, filename)
     if os.path.isfile(filepath):
         icons_files.append(filepath)
-
 
 version = '0.1.0'
 
