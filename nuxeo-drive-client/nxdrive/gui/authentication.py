@@ -26,11 +26,13 @@ def find_icon(icon_filename):
         icons_path = nxdrive_path.replace(frozen_suffix, 'icons')
 
     if not os.path.exists(icons_path):
-        raise IOError("Could not find the icons folder at: " + icons_path)
+        log.warn("Could not find the icons folder at: %s", icons_path)
+        return None
 
     icon_filepath = os.path.join(icons_path, icon_filename)
     if not os.path.exists(icon_filepath):
-        raise IOError("Could not find icon file: " + icon_filepath)
+        log.warn("Could not find icon file: %s", icon_filepath)
+        return None
 
     return icon_filepath
 
@@ -59,8 +61,9 @@ class Dialog(QDialog):
         self.setLayout(mainLayout)
         if title is not None:
             self.setWindowTitle(title)
-        #icon = find_icon('nuxeo_drive_icon_64.png')
-        #self.setWindowIcon(QtGui.QIcon(icon))
+        icon = find_icon('nuxeo_drive_icon_64.png')
+        if icon is not None:
+            self.setWindowIcon(QtGui.QIcon(icon))
         self.resize(600, -1)
         self.accepted = False
 
