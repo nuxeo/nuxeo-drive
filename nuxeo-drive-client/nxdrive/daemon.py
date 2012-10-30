@@ -85,6 +85,7 @@ def daemonize():
     if os.fork():
         os._exit(0)
 
+    os.chdir('/')
     os.umask(0)
     maxfd = get_maxfd()
     closerange(0, maxfd)

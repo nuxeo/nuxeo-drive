@@ -253,15 +253,8 @@ class CliHandler(object):
 
         return options
 
-    def handle(self, argv):
-        """Daemonize, setup logs and controller and dispatch execution."""
-        options = self.parse_cli(argv)
-        command = getattr(options, 'command', 'start')
-        if command == 'start':
-            daemonize()
-            command = 'console'
-
-        # Configure the logs
+    def _configure_logger(self, options):
+        """Configure the logging framework from the provided options"""
         filename = options.log_filename
         if filename is None:
             filename = os.path.join(
@@ -271,8 +264,18 @@ class CliHandler(object):
             filename,
             file_level=options.log_level_file,
             console_level=options.log_level_console,
-            command_name=command,
+            command_name=options.command,
         )
+
+    def handle(self, argv):
+        """Parse options, setup logs and controller and dispatch execution."""
+        options = self.parse_cli(argv)
+        # 'start' is the default command if None is provided
+        command = options.command = getattr(options, 'command', 'start')
+
+        # Configure the logging frameork
+        self._configure_logger(options)
+
         # Initialize a controller for this process
         self.controller = Controller(options.nxdrive_home)
 
@@ -282,8 +285,8 @@ class CliHandler(object):
             raise NotImplementedError(
                 'No handler implemented for command ' + options.command)
 
-        log = get_logger(__name__)
-        log.debug("Command line: " + ' '.join(argv))
+        self.log = get_logger(__name__)
+        self.log.debug("Command line: " + ' '.join(argv))
 
         # Ensure that the protocol handler are registered:
         # this is useful for the edit / open link in the Nuxeo interface
@@ -295,34 +298,49 @@ class CliHandler(object):
                 # Make it possible to use the postmortem debugger
                 raise
             else:
-                log.error("Error executing '%s': %s", command, e,
+                self.log.error("Error executing '%s': %s", command, e,
                           exc_info=True)
 
     def default(self, options=None):
         # TODO: use the start method as default once implemented
         return self.console(options=options)
 
+    def _prompt_dialog_if_no_bindings(self):
+        if len(self.controller.list_server_bindings()) == 0:
+            # Launch the GUI to create a binding
+            from nxdrive.gui.authentication import prompt_authentication
+            return prompt_authentication(self.controller, DEFAULT_NX_DRIVE_FOLDER)
+        return True
+
     def start(self, options=None):
-        self.controller.start()
+        """Launch the synchronization in a daemonized process (under POSIX)"""
+        if not self._prompt_dialog_if_no_bindings():
+            sys.exit(0)
+
+        # Close DB connections before Daemonization
+        self.controller.dispose()
+        daemonize()
+
+        self.controller = Controller(options.nxdrive_home)
+        self._configure_logger(options)
+        self.log.debug("Synchronization daemon started.")
+
+        fault_tolerant = not getattr(options, 'stop_on_error', True)
+        self.controller.loop(fault_tolerant=fault_tolerant,
+                             delay=getattr(options, 'delay', DEFAULT_DELAY))
+        return 0
+
+    def console(self, options):
+        if not self._prompt_dialog_if_no_bindings():
+            sys.exit(0)
+
+        fault_tolerant = not getattr(options, 'stop_on_error', True)
+        self.controller.loop(fault_tolerant=fault_tolerant,
+                             delay=getattr(options, 'delay', DEFAULT_DELAY))
         return 0
 
     def stop(self, options=None):
         self.controller.stop()
-        return 0
-
-    def console(self, options):
-
-        fault_tolerant = not getattr(options, 'stop_on_error', True)
-
-        if len(self.controller.list_server_bindings()) == 0:
-            # Launch the GUI to create a binding
-            from nxdrive.gui.authentication import prompt_authentication
-            ok = prompt_authentication(self.controller, DEFAULT_NX_DRIVE_FOLDER)
-            if not ok:
-                sys.exit(0)
-
-        self.controller.loop(fault_tolerant=fault_tolerant,
-                             delay=getattr(options, 'delay', DEFAULT_DELAY))
         return 0
 
     def status(self, options):

@@ -10,6 +10,7 @@ QtGui, QDialog = None, object
 try:
     from PySide import QtGui
     QDialog = QtGui.QDialog
+    log.debug("QT / PySide successfully imported")
 except ImportError:
     log.warn("QT / PySide is not installed: GUI is disabled")
     pass
@@ -26,7 +27,7 @@ def find_icon(icon_filename):
         icons_path = nxdrive_path.replace(frozen_suffix, 'icons')
 
     if not os.path.exists(icons_path):
-        log.warn("Could not find the icons folder at: %s", icons_path)
+        log.warning("Could not find the icons folder at: %s", icons_path)
         return None
 
     icon_filepath = os.path.join(icons_path, icon_filename)
@@ -160,6 +161,7 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             dialog.show_message("Unable to connect to " + url)
             return False
 
+    log.debug("Launching QT prompt for server binding.")
     QtGui.QApplication([])
     dialog = Dialog(field_specs, title="Nuxeo Drive - Authentication",
                     callback=bind_server)

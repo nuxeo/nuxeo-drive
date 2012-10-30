@@ -1123,7 +1123,8 @@ class Controller(object):
         """
         pid = self.check_sync_running()
         if pid is not None:
-            log.warn("Synchronization process with pid %d already running.",
+            log.warning(
+                    "Synchronization process with pid %d already running.",
                     pid)
             return
 
