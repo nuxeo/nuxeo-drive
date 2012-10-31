@@ -17,8 +17,12 @@
 https://github.com/mozilla-services/circus/blob/master/circus/circusd.py#L34
 
 """
-import resource
 import os
+try:
+    import resource
+except ImportError:
+    # Do not fail to import under Windows
+    pass
 
 MAXFD = 1024
 
