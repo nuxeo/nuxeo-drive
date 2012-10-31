@@ -201,7 +201,7 @@ dev dependencies and tools at once::
 
   sudo pip install -r requirements.txt
   export PYTHONPATH=`pwd`/nuxeo-drive-client
-  export PATH=$PATH:`pwd`/nuxeo-drive-client/bin
+  export PATH=`pwd`/nuxeo-drive-client/bin:$PATH
 
 You can safely ignore warnings about "Unknown distribution option: 'executables'".
 
