@@ -72,7 +72,7 @@ Ubuntu/Debian (and other Linux variants) Client
 The ``.deb`` package of the client is not yet available. In the mean time you
 can install it from source::
 
-  sudo apt-get install python-pip
+  sudo apt-get install python-pip python-dev
   sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
   sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
 
