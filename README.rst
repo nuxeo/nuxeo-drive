@@ -207,8 +207,8 @@ You can safely ignore warnings about "Unknown distribution option: 'executables'
 
 To run the tests, install and start a nuxeo server locally, then::
 
-  . ./tools/posix/integration_env.sh
-  nosetests nxdrive
+  . nuxeo-drive-client/tools/posix/integration_env.sh
+  nosetests nuxeo-drive-client/nxdrive
 
 .. _pip: http://www.pip-installer.org/
 
