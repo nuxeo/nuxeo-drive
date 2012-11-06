@@ -131,7 +131,7 @@ elif sys.platform == 'darwin':
         options=dict(
             py2app=dict(
                 iconfile=osx_icon,
-                argv_emulation=True,
+                argv_emulation=False,  # We use QT for URL scheme handling
                 plist=dict(
                     CFBundleDisplayName="Nuxeo Drive",
                     CFBundleName="Nuxeo Drive",

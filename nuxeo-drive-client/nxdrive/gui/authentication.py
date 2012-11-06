@@ -1,7 +1,6 @@
 """GUI prompt to bind a new server"""
-import os
-import re
 from nxdrive.client import Unauthorized
+from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)
@@ -15,35 +14,6 @@ try:
 except ImportError:
     log.warn("QT / PySide is not installed: GUI is disabled")
     pass
-
-
-def find_icon(icon_filename):
-    import nxdrive
-    nxdrive_path = os.path.dirname(nxdrive.__file__)
-    icons_path = os.path.join(nxdrive_path, 'data', 'icons')
-
-    cxfreeze_suffix = os.path.join('library.zip', 'nxdrive')
-    app_resources = '/Contents/Resources/'
-
-    if app_resources in nxdrive_path:
-        # OSX frozen distribution, bundled as an app
-        icons_path = re.sub(app_resources + ".*", app_resources + 'icons',
-                             nxdrive_path)
-
-    elif nxdrive_path.endswith(cxfreeze_suffix):
-        # Frozen distribution of nxdrive, data is out of the zip
-        icons_path = nxdrive_path.replace(cxfreeze_suffix, 'icons')
-
-    if not os.path.exists(icons_path):
-        log.warning("Could not find the icons folder at: %s", icons_path)
-        return None
-
-    icon_filepath = os.path.join(icons_path, icon_filename)
-    if not os.path.exists(icon_filepath):
-        log.warn("Could not find icon file: %s", icon_filepath)
-        return None
-
-    return icon_filepath
 
 
 class Dialog(QDialog):
@@ -116,7 +86,7 @@ class Dialog(QDialog):
 
 
 def prompt_authentication(controller, local_folder, url=None, username=None,
-                          is_url_readonly=False):
+                          is_url_readonly=False, app=None):
     """Prompt a QT dialog to ask for user credentials for binding a server"""
     if QtGui is None:
         # Qt / PySide is not installed
@@ -169,8 +139,9 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             dialog.show_message("Unable to connect to " + url)
             return False
 
-    log.debug("Launching QT prompt for server binding.")
-    QtGui.QApplication([])
+    if app is None:
+        log.debug("Launching QT prompt for server binding.")
+        QtGui.QApplication([])
     dialog = Dialog(field_specs, title="Nuxeo Drive - Authentication",
                     callback=bind_server)
     try:
