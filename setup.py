@@ -65,7 +65,7 @@ includes = [
     "sqlalchemy.dialects.sqlite",
 ]
 
-if '--freeze' in sys.argv and sys.platform == 'win32':
+if '--freeze' in sys.argv:
     print "Building standalone executable..."
     sys.argv.remove('--freeze')
     from cx_Freeze import setup, Executable
@@ -86,12 +86,9 @@ if '--freeze' in sys.argv and sys.platform == 'win32':
     packages.remove('nxdrive.data')
     packages.remove('nxdrive.data.icons')
     package_data = {}
-    data_home = 'nuxeo-drive-client/nxdrive/data'
-    include_files = [
-        (data_home + "/icons/nuxeo_drive_icon_%d.png" % i,
-         "icons/nuxeo_drive_icon_%d.png" % i)
-        for i in [16, 32, 48, 64]
-    ]
+    icons_home = 'nuxeo-drive-client/nxdrive/data/icons'
+    include_files = [(os.path.join(icons_home, f), "icons/%s" % f)
+                     for f in os.listdir(icons_home)]
     freeze_options = dict(
         executables=executables,
         options={
