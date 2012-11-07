@@ -922,7 +922,7 @@ class Controller(object):
                 local_root=doc_pair.local_root, path=doc_pair.parent_path
             ).first()
             if parent_pair is None or parent_pair.remote_ref is None:
-                log.warn(
+                log.warning(
                     "Parent folder of %r/%r is not bound to a remote folder",
                     doc_pair.local_root, doc_pair.path)
                 # Inconsistent state: delete and let the next scan redetect for
@@ -954,7 +954,7 @@ class Controller(object):
                 remote_ref=remote_info.parent_uid,
             ).first()
             if parent_pair is None or parent_pair.path is None:
-                log.warn(
+                log.warning(
                     "Parent folder of doc %r (%r:%r) is not bound to a local"
                     " folder",
                     name, doc_pair.remote_repo, doc_pair.remote_ref)
@@ -1026,7 +1026,7 @@ class Controller(object):
                 # Automated conflict resolution based on digest content:
                 doc_pair.update_state('synchronized', 'synchronized')
         else:
-            log.warn("Unhandled pair_state: %r for %r",
+            log.warning("Unhandled pair_state: %r for %r",
                           doc_pair.pair_state, doc_pair)
 
         # TODO: handle other cases such as moves and lock updates
@@ -1109,7 +1109,7 @@ class Controller(object):
                     log.info("Removed old pid file: %s for"
                             " stopped process %d", pid_filepath, pid)
                 except Exception, e:
-                    log.warn("Failed to remove stalled pid file: %s"
+                    log.warning("Failed to remove stalled pid file: %s"
                             " for stopped process %d: %r",
                             pid_filepath, pid, e)
                 return None
@@ -1227,7 +1227,7 @@ class Controller(object):
         try:
             os.unlink(pid_filepath)
         except Exception, e:
-            log.warn("Failed to remove stalled pid file: %s"
+            log.warning("Failed to remove stalled pid file: %s"
                     " for stopped process %d: %r",
                     pid_filepath, pid, e)
 
@@ -1258,7 +1258,7 @@ class Controller(object):
         if state is None:
             # TODO: synchronize to a dedicated special root for one time edit
             # TODO: find a better exception
-            log.warn('Could not find local file for %s/nxdoc/%s/%s'
+            log.warning('Could not find local file for %s/nxdoc/%s/%s'
                     '/view_documents', server_url, remote_repo, remote_ref)
             return
 

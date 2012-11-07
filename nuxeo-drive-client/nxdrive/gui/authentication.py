@@ -12,7 +12,7 @@ try:
     QDialog = QtGui.QDialog
     log.debug("QT / PySide successfully imported")
 except ImportError:
-    log.warn("QT / PySide is not installed: GUI is disabled")
+    log.warning("QT / PySide is not installed: GUI is disabled")
     pass
 
 

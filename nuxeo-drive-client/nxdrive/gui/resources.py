@@ -31,7 +31,7 @@ def find_icon(icon_filename):
 
     icon_filepath = os.path.join(icons_path, icon_filename)
     if not os.path.exists(icon_filepath):
-        log.warn("Could not find icon file: %s", icon_filepath)
+        log.warning("Could not find icon file: %s", icon_filepath)
         return None
 
     return icon_filepath

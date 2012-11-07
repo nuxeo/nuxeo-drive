@@ -19,7 +19,7 @@ try:
     QObject = QtCore.QObject
     log.debug("QT / PySide successfully imported")
 except ImportError:
-    log.warn("QT / PySide is not installed: GUI is disabled")
+    log.warning("QT / PySide is not installed: GUI is disabled")
     pass
 
 
@@ -111,7 +111,7 @@ class Application(QApplication):
         if icon is not None:
             self._tray_icon.setIcon(QtGui.QIcon(icon))
         else:
-            log.warn('Icon not found: %s', icon)
+            log.warning('Icon not found: %s', icon)
 
     def action_quit(self):
         self.set_icon('stopping')

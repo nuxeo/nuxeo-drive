@@ -33,7 +33,7 @@ def register_protocol_handlers(controller):
 
     exe_path = find_exe_path()
     if exe_path is None:
-        log.warn('Not a frozen windows exe: '
+        log.warning('Not a frozen windows exe: '
                  'skipping protocol handler registration')
         return
 

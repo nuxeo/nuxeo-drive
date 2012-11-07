@@ -24,7 +24,7 @@ def register_protocol_handlers(controller):
         from Foundation import NSBundle
         from LaunchServices import LSSetDefaultHandlerForURLScheme
     except ImportError:
-        log.warn("Cannot registed %r scheme: missing OSX Foundation module",
+        log.warning("Cannot registed %r scheme: missing OSX Foundation module",
                  NXDRIVE_SCHEME)
         return
 
