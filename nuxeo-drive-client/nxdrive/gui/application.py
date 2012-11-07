@@ -218,16 +218,3 @@ class Application(QApplication):
                     self.controller.launch_file_editor(
                         info.server_url, info.repository, info.docref)
         return super(Application, self).event(event)
-
-
-#app = QtGui.QApplication(sys.argv)
-#app = URLHandlingApplication(sys.argv)
-
-#event_thread = EventThread()
-#event_thread.start()
-
-with open('/tmp/carbon_events.txt', 'ab') as f:
-    f.write("Launching QT app in main thread\n")
-    f.flush()
-
-
