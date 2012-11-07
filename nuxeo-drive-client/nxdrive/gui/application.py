@@ -225,6 +225,8 @@ class Application(QApplication):
         if self.sync_thread is None or not self.sync_thread.isAlive():
             fault_tolerant = not getattr(self.options, 'stop_on_error', True)
             delay = getattr(self.options, 'delay', 5.0)
+            # Controller and its database session pool should be thread safe,
+            # hence reuse it directly
             self.sync_thread = Thread(target=self.controller.loop,
                                       kwargs={"frontend": self,
                                               "fault_tolerant": fault_tolerant,
@@ -235,10 +237,14 @@ class Application(QApplication):
         """Handle URL scheme events under OSX"""
         if hasattr(event, 'url'):
             url = event.url().toString()
-            info = parse_protocol_url(url)
-            if info is not None:
-                if info.command == 'edit':
-                    # This is a quick operation, no need to fork a QThread
-                    self.controller.launch_file_editor(
-                        info.server_url, info.repository, info.docref)
+            try:
+                info = parse_protocol_url(url)
+                if info is not None:
+                    log.debug("Received nxdrive URL scheme event: %s", url)
+                    if info.get('command') == 'edit':
+                        # This is a quick operation, no need to fork a QThread
+                        self.controller.launch_file_editor(
+                            info['server_url'], info['repository'], info['docref'])
+            except:
+                log.error("Error handling URL event: %s", url, exc_info=True)
         return super(Application, self).event(event)
