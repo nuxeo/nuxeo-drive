@@ -1188,7 +1188,7 @@ class Controller(object):
                         if frontend is not None:
                             n_pending = len(self.list_pending(limit=limit_pending))
                             reached_limit = n_pending == limit_pending
-                            frontend.notify_pending(rb.local_root, n_pending,
+                            frontend.notify_pending(rb.local_folder, n_pending,
                                     or_more=reached_limit)
 
                         self.synchronize(limit=max_sync_step,
@@ -1201,7 +1201,7 @@ class Controller(object):
                         log.trace("Traceback of ignored network error:",
                                   exc_info=True)
                         if frontend is not None:
-                            frontend.notify_offline(rb.local_root)
+                            frontend.notify_offline(rb.local_folder)
 
                 # safety net to ensure that Nuxe Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
@@ -1266,6 +1266,10 @@ class Controller(object):
 
         # Find the best editor for the file according to the OS configuration
         file_path = state.get_local_abspath()
+        self.open_local_file(file_path)
+
+    def open_local_file(self, file_path):
+        """Launch the local operating system program on the given file / folder."""
         log.debug('Launching editor on %s', file_path)
         if sys.platform == 'win32':
             os.startfile(file_path)

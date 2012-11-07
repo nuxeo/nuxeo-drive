@@ -114,22 +114,22 @@ class Application(QApplication):
             log.warning('Icon not found: %s', icon)
 
     def action_quit(self):
-        self.set_icon('stopping')
+        self.communicator.icon.emit('stopping')
         self.state = 'quitting'
-        self.rebuild_menu()
         self.quit_on_stop = True
+        self.communicator.menu.emit()
         if self.sync_thread is not None:
             # Ask the conntroller to stop: the synchronization loop will in turn
             # call notify_sync_stopped and finally handle_stop
             self.controller.stop()
         else:
             # quit directly
-            QtGui.qApp.quit()
+            self.quit()
 
     @QtCore.Slot()
     def handle_stop(self):
         if self.quit_on_stop:
-            QtGui.qApp.quit()
+            self.quit()
 
     def notify_local_folders(self, local_folders):
         """Cleanup unbound server bindings if any"""
@@ -179,10 +179,16 @@ class Application(QApplication):
         tray_icon_menu = QtGui.QMenu()
         # TODO: iterate over current binding info to build server specific menu
         # sections
-        # TODO: open local folders
         # TODO: i18n action labels
 
-        tray_icon_menu.addSeparator()
+        for binding_info in self.binding_info.values():
+            open_folder = lambda: self.controller.open_local_file(
+                binding_info.folder_path)
+            open_folder_action = QtGui.QAction(
+                binding_info.short_name, tray_icon_menu, triggered=open_folder)
+            tray_icon_menu.addAction(open_folder_action)
+            tray_icon_menu.addSeparator()
+
         # TODO: add pause action if in running state
         # TODO: add start action if in paused state
         quit_action = QtGui.QAction("&Quit", tray_icon_menu,
@@ -196,7 +202,7 @@ class Application(QApplication):
         if len(self.controller.list_server_bindings()) == 0:
             if prompt_authentication(
                 self.controller, default_nuxeo_drive_folder(), app=self):
-                self.set_icon('enabled')
+                self.communicator.icon.emit('enabled')
 
         if self.sync_thread is None:
             fault_tolerant = not getattr(self.options, 'stop_on_error', True)
