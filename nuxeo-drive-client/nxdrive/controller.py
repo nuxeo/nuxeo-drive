@@ -1231,10 +1231,10 @@ class Controller(object):
                     " for stopped process %d: %r",
                     pid_filepath, pid, e)
 
-        # Notify frontend
+        # Notify UI frontend to take synchronization stop into account and
+        # potentially quit the app
         if frontend is not None:
             frontend.notify_sync_stopped()
-
 
     def get_state(self, server_url, remote_repo, remote_ref):
         """Find a pair state for the provided remote document identifiers."""
