@@ -115,7 +115,7 @@ class Application(QApplication):
 
     def action_quit(self):
         self.set_icon('stopping')
-        self.state = 'stopping'
+        self.state = 'quitting'
         self.rebuild_menu()
         self.quit_on_stop = True
         if self.sync_thread is not None:
@@ -187,6 +187,8 @@ class Application(QApplication):
         # TODO: add start action if in paused state
         quit_action = QtGui.QAction("&Quit", tray_icon_menu,
                                     triggered=self.action_quit)
+        if self.state == 'quitting':
+            quit_action.setEnabled(False)
         tray_icon_menu.addAction(quit_action)
         self._tray_icon.setContextMenu(tray_icon_menu)
 
