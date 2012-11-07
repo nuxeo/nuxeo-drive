@@ -74,19 +74,22 @@ class Application(QApplication):
         self.controller = controller
         self.options = options
 
-        # This is a windowless application mostly using the system tray
-        self.setQuitOnLastWindowClosed(False)
-        self._setup_systray()
-        self.quit_on_stop = False
-        self.state = 'paused'
-        self.binding_info = {}
-        self.rebuild_menu()
-
-        # Put communication channel in place and start synchronization thread
+        # Put communication channel in place for intra and inter-thread
+        # communication for UI change notifications
         self.communicator = Communicator()
         self.communicator.icon.connect(self.set_icon)
         self.communicator.menu.connect(self.rebuild_menu)
         self.communicator.stop.connect(self.handle_stop)
+
+        # This is a windowless application mostly using the system tray
+        self.setQuitOnLastWindowClosed(False)
+        self.state = 'paused'
+        self.quit_on_stop = False
+        self.binding_info = {}
+        self._setup_systray()
+        self.rebuild_menu()
+
+        # Start long running synchronization thread
         self.start_synchronization_thread()
 
     def get_info(self, local_folder):
@@ -118,7 +121,7 @@ class Application(QApplication):
         self.state = 'quitting'
         self.quit_on_stop = True
         self.communicator.menu.emit()
-        if self.sync_thread is not None:
+        if self.sync_thread is not None and self.sync_thread.isAlive():
             # Ask the conntroller to stop: the synchronization loop will in turn
             # call notify_sync_stopped and finally handle_stop
             self.controller.stop()
@@ -131,6 +134,16 @@ class Application(QApplication):
         if self.quit_on_stop:
             self.quit()
 
+    def update_running_icon(self):
+        if self.state != 'running':
+            self.communicator.icon.emit('disabled')
+            return
+        infos = self.binding_info.values()
+        if len(infos) > 0 and any(i.online for i in infos):
+            self.communicator.icon.emit('enabled')
+        else:
+            self.communicator.icon.emit('disabled')
+
     def notify_local_folders(self, local_folders):
         """Cleanup unbound server bindings if any"""
         refresh = False
@@ -138,40 +151,45 @@ class Application(QApplication):
             if registered_folder not in local_folders:
                 del self.binding_info[registered_folder]
                 refresh = True
+        for local_folder in local_folders:
+            if local_folder not in self.binding_info:
+                self.binding_info[local_folder] = BindingInfo(local_folder)
+                refresh = True
         if refresh:
             self.communicator.menu.emit()
+            self.update_running_icon()
 
     def notify_sync_started(self):
         self.state = 'running'
-        self.communicator.icon.emit('enabled')
         self.communicator.menu.emit()
+        self.update_running_icon()
 
     def notify_sync_stopped(self):
         self.state = 'paused'
         self.sync_thread = None
-        self.communicator.icon.emit('disabled')
+        self.update_running_icon()
         self.communicator.menu.emit()
         self.communicator.stop.emit()
 
     def notify_offline(self, local_folder):
         info = self.get_info(local_folder)
-        info.online = True
-        if (self.state == 'running'
-            and all(not i.online for i in self.binding_info.values())):
-            self.communicator.icon.emit('disabled')
-        self.communicator.menu.emit()
+        if info.online:
+            # Mark binding as offline and update UI
+            info.online = False
+            self.update_running_icon()
+            self.communicator.menu.emit()
 
     def notify_pending(self, local_folder, n_pending, or_more=False):
         info = self.get_info(local_folder)
         info.online = True
-        if (self.state == 'running'
-            and any(i.online for i in self.binding_info.values())):
-            self.communicator.icon.emit('enabled')
-        self.communicator.menu.emit()
+        if not info.online:
+            # Mark binding as online and update UI
+            self.update_running_icon()
+            self.communicator.menu.emit()
 
     def _setup_systray(self):
         self._tray_icon = QtGui.QSystemTrayIcon()
-        self.set_icon('disabled')
+        self.update_running_icon()
         self._tray_icon.show()
 
     @QtCore.Slot()
@@ -204,7 +222,7 @@ class Application(QApplication):
                 self.controller, default_nuxeo_drive_folder(), app=self):
                 self.communicator.icon.emit('enabled')
 
-        if self.sync_thread is None:
+        if self.sync_thread is None or not self.sync_thread.isAlive():
             fault_tolerant = not getattr(self.options, 'stop_on_error', True)
             delay = getattr(self.options, 'delay', 5.0)
             self.sync_thread = Thread(target=self.controller.loop,
