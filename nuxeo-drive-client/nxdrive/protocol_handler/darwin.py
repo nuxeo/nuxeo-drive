@@ -8,19 +8,8 @@ default in case several applications are registered for the nxdrive:// URL
 scheme which is very unlikely.
 
 The fact that the nxedit:// URL is passed as a commandline argument instead of
-a OSX runtime event is permitted by the combination of the following two
-elements:
-
-- daemonizing the synchronization process so that OSX does not treat the
-  background process as a running instance of the .app bundle and hence decides
-  to launch a new instance of the .app instead
-
-- setting `argv_emulation` to `True` in the py2app instrumented setup.py: this
-  will block the launch of the .app program untill the URL scheme event is
-  received (using a ctypes carbon binding included in the generated
-  `.app/Contents/Resources/__boot__.py` file). This event is decoded and the
-  ndrive:// url is injected into the `sys.argv` list before launching the
-  executing the ndrive program itself.
+a OSX runtime event is achieved thanks to the custom QApplication subclass to
+explicitly deal with URL related events unders OSX.
 
 """
 from nxdrive.logging_config import get_logger
@@ -35,7 +24,7 @@ def register_protocol_handlers(controller):
         from Foundation import NSBundle
         from LaunchServices import LSSetDefaultHandlerForURLScheme
     except ImportError:
-        log.warn("Cannot registed %r scheme: missing OSX Foundation module",
+        log.warning("Cannot registed %r scheme: missing OSX Foundation module",
                  NXDRIVE_SCHEME)
         return
 

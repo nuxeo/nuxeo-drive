@@ -24,6 +24,9 @@ DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 DEFAULT_DELAY = 5.0
 USAGE = """ndrive [command]
 
+If no command is provided, the graphical application is started along with a
+synchronization process.
+
 Possible commands:
 - console
 - start
@@ -75,6 +78,15 @@ def make_cli_parser(add_subparsers=True):
         "--debug", default=False, action="store_true",
         help="Fire a debugger (ipdb or pdb) one uncaught error."
     )
+    common_parser.add_argument(
+        "--delay", default=DEFAULT_DELAY, type=float,
+        help="Delay in seconds between consecutive sync operations.")
+    common_parser.add_argument(
+        # XXX: Make it true by default as the fault tolerant mode is not yet
+        # implemented
+        "--stop-on-error", default=True, action="store_true",
+        help="Stop the process on first unexpected error."
+        "Useful for developers and Continuous Integration.")
 
     parser = argparse.ArgumentParser(
         parents=[common_parser],
@@ -160,7 +172,7 @@ def make_cli_parser(add_subparsers=True):
 
     # Start / Stop the synchronization daemon
     start_parser = subparsers.add_parser(
-        'start', help='Start the synchronization daemon',
+        'start', help='Start the synchronization as a GUI-less daemon',
         parents=[common_parser],
     )
     start_parser.set_defaults(command='start')
@@ -171,19 +183,10 @@ def make_cli_parser(add_subparsers=True):
     stop_parser.set_defaults(command='stop')
     console_parser = subparsers.add_parser(
         'console',
-        help='Start the synchronization without detaching the process.',
+        help='Start a GUI-less synchronization without detaching the process.',
         parents=[common_parser],
     )
     console_parser.set_defaults(command='console')
-    console_parser.add_argument(
-        "--delay", default=DEFAULT_DELAY, type=float,
-        help="Delay in seconds between consecutive sync operations.")
-    console_parser.add_argument(
-        # XXX: Make it true by default as the fault tolerant mode is not yet
-        # implemented
-        "--stop-on-error", default=True, action="store_true",
-        help="Stop the process on first unexpected error."
-        "Useful for developers and Continuous Integration.")
 
     # embedded test runner base on nose:
     test_parser = subparsers.add_parser(
@@ -271,7 +274,7 @@ class CliHandler(object):
         """Parse options, setup logs and controller and dispatch execution."""
         options = self.parse_cli(argv)
         # 'start' is the default command if None is provided
-        command = options.command = getattr(options, 'command', 'start')
+        command = options.command = getattr(options, 'command', 'launch')
 
         # Configure the logging frameork
         self._configure_logger(options)
@@ -301,22 +304,15 @@ class CliHandler(object):
                 self.log.error("Error executing '%s': %s", command, e,
                           exc_info=True)
 
-    def default(self, options=None):
+    def launch(self, options=None):
+        """Launch the QT app in the main thread and sync in another thread."""
         # TODO: use the start method as default once implemented
-        return self.console(options=options)
-
-    def _prompt_dialog_if_no_bindings(self):
-        if len(self.controller.list_server_bindings()) == 0:
-            # Launch the GUI to create a binding
-            from nxdrive.gui.authentication import prompt_authentication
-            return prompt_authentication(self.controller, DEFAULT_NX_DRIVE_FOLDER)
-        return True
+        from nxdrive.gui.application import Application
+        app = Application(self.controller, options)
+        app.exec_()
 
     def start(self, options=None):
         """Launch the synchronization in a daemonized process (under POSIX)"""
-        if not self._prompt_dialog_if_no_bindings():
-            sys.exit(0)
-
         # Close DB connections before Daemonization
         self.controller.dispose()
         daemonize()
@@ -331,9 +327,6 @@ class CliHandler(object):
         return 0
 
     def console(self, options):
-        if not self._prompt_dialog_if_no_bindings():
-            sys.exit(0)
-
         fault_tolerant = not getattr(options, 'stop_on_error', True)
         self.controller.loop(fault_tolerant=fault_tolerant,
                              delay=getattr(options, 'delay', DEFAULT_DELAY))

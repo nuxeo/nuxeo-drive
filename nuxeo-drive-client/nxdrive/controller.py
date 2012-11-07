@@ -125,8 +125,16 @@ class Controller(object):
             return device_config
 
     def stop(self):
-        """Stop the Nuxeo Drive daemon"""
-        pid = self.check_sync_running()
+        """Stop the Nuxeo Drive synchronization thread
+
+        As the process asking the synchronization to stop might not be the as
+        the process runnning the synchronization (especially when used from the
+        commandline without the graphical user interface and its tray icon
+        menu) we use a simple empty marker file a cross platform way to pass
+        the stop message between the two.
+
+        """
+        pid = self.check_running(process_name="sync")
         if pid is not None:
             # Create a stop file marker for the running synchronization
             # process
@@ -838,6 +846,8 @@ class Controller(object):
         return self.get_remote_client(sb, base_folder=rb.remote_root,
                                       repository=rb.remote_repo)
 
+    # TODO: move the synchronization related methods in a dedicated class
+
     def synchronize_one(self, doc_pair, session=None):
         """Refresh state a perform network transfer for a pair of documents."""
         if session is None:
@@ -912,7 +922,7 @@ class Controller(object):
                 local_root=doc_pair.local_root, path=doc_pair.parent_path
             ).first()
             if parent_pair is None or parent_pair.remote_ref is None:
-                log.warn(
+                log.warning(
                     "Parent folder of %r/%r is not bound to a remote folder",
                     doc_pair.local_root, doc_pair.path)
                 # Inconsistent state: delete and let the next scan redetect for
@@ -944,7 +954,7 @@ class Controller(object):
                 remote_ref=remote_info.parent_uid,
             ).first()
             if parent_pair is None or parent_pair.path is None:
-                log.warn(
+                log.warning(
                     "Parent folder of doc %r (%r:%r) is not bound to a local"
                     " folder",
                     name, doc_pair.remote_repo, doc_pair.remote_ref)
@@ -1016,7 +1026,7 @@ class Controller(object):
                 # Automated conflict resolution based on digest content:
                 doc_pair.update_state('synchronized', 'synchronized')
         else:
-            log.warn("Unhandled pair_state: %r for %r",
+            log.warning("Unhandled pair_state: %r for %r",
                           doc_pair.pair_state, doc_pair)
 
         # TODO: handle other cases such as moves and lock updates
@@ -1062,18 +1072,17 @@ class Controller(object):
                                          session=session)
         return synchronized
 
+    def _get_sync_pid_filepath(self, process_name="sync"):
+        return os.path.join(self.config_folder, 'nxdrive_%s.pid' % process_name)
 
-    def _get_sync_pid_filepath(self):
-        return os.path.join(self.config_folder, 'nxdrive.pid')
-
-    def check_sync_running(self):
+    def check_running(self, process_name="sync"):
         """Check whether another sync process is already runnning
 
         If nxdrive.pid file already exists and the pid points to a running
         nxdrive program then return the pid. Return None otherwise.
 
         """
-        pid_filepath = self._get_sync_pid_filepath()
+        pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
         if os.path.exists(pid_filepath):
             with open(pid_filepath, 'rb') as f:
                 pid = int(f.read().strip())
@@ -1100,7 +1109,7 @@ class Controller(object):
                     log.info("Removed old pid file: %s for"
                             " stopped process %d", pid_filepath, pid)
                 except Exception, e:
-                    log.warn("Failed to remove stalled pid file: %s"
+                    log.warning("Failed to remove stalled pid file: %s"
                             " for stopped process %d: %r",
                             pid_filepath, pid, e)
                 return None
@@ -1115,13 +1124,16 @@ class Controller(object):
         return False
 
     def loop(self, full_local_scan=True, full_remote_scan=True, delay=10,
-             max_sync_step=50, max_loops=None, fault_tolerant=True):
+             max_sync_step=50, max_loops=None, fault_tolerant=True,
+             frontend=None, limit_pending=100):
         """Forever loop to scan / refresh states and perform synchronization
 
         delay is an delay in seconds that ensures that two consecutive
         scans won't happen too closely from one another.
         """
-        pid = self.check_sync_running()
+        if frontend is not None:
+            frontend.notify_sync_started()
+        pid = self.check_running(process_name="sync")
         if pid is not None:
             log.warning(
                     "Synchronization process with pid %d already running.",
@@ -1129,7 +1141,7 @@ class Controller(object):
             return
 
         # Write the pid of this process
-        pid_filepath = self._get_sync_pid_filepath()
+        pid_filepath = self._get_sync_pid_filepath(process_name="sync")
         pid = os.getpid()
         with open(pid_filepath, 'wb') as f:
             f.write(str(pid))
@@ -1156,6 +1168,11 @@ class Controller(object):
                              loop_count)
                     break
                 self.update_roots(session)
+                if frontend is not None:
+                    local_folders = [sb.local_folder
+                            for sb in session.query(ServerBinding).all()]
+                    frontend.notify_local_folders(local_folders)
+
                 bindings = session.query(RootBinding).all()
                 for rb in bindings:
                     try:
@@ -1168,6 +1185,11 @@ class Controller(object):
                             self.scan_remote(rb.local_root, session)
                         else:
                             self.refresh_remote_from_log(rb.remote_ref)
+                        if frontend is not None:
+                            n_pending = len(self.list_pending(limit=limit_pending))
+                            reached_limit = n_pending == limit_pending
+                            frontend.notify_pending(rb.local_folder, n_pending,
+                                    or_more=reached_limit)
 
                         self.synchronize(limit=max_sync_step,
                                          local_root=rb.local_root,
@@ -1178,6 +1200,8 @@ class Controller(object):
                                   e)
                         log.trace("Traceback of ignored network error:",
                                   exc_info=True)
+                        if frontend is not None:
+                            frontend.notify_offline(rb.local_folder)
 
                 # safety net to ensure that Nuxe Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
@@ -1203,9 +1227,14 @@ class Controller(object):
         try:
             os.unlink(pid_filepath)
         except Exception, e:
-            log.warn("Failed to remove stalled pid file: %s"
+            log.warning("Failed to remove stalled pid file: %s"
                     " for stopped process %d: %r",
                     pid_filepath, pid, e)
+
+        # Notify UI frontend to take synchronization stop into account and
+        # potentially quit the app
+        if frontend is not None:
+            frontend.notify_sync_stopped()
 
     def get_state(self, server_url, remote_repo, remote_ref):
         """Find a pair state for the provided remote document identifiers."""
@@ -1229,7 +1258,7 @@ class Controller(object):
         if state is None:
             # TODO: synchronize to a dedicated special root for one time edit
             # TODO: find a better exception
-            log.warn('Could not find local file for %s/nxdoc/%s/%s'
+            log.warning('Could not find local file for %s/nxdoc/%s/%s'
                     '/view_documents', server_url, remote_repo, remote_ref)
             return
 
@@ -1237,6 +1266,10 @@ class Controller(object):
 
         # Find the best editor for the file according to the OS configuration
         file_path = state.get_local_abspath()
+        self.open_local_file(file_path)
+
+    def open_local_file(self, file_path):
+        """Launch the local operating system program on the given file / folder."""
         log.debug('Launching editor on %s', file_path)
         if sys.platform == 'win32':
             os.startfile(file_path)
