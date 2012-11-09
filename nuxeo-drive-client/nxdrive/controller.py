@@ -276,6 +276,7 @@ class Controller(object):
 
         # check the connection to the server by issuing an authentication
         # request
+        server_url = self._normalize_url(server_url)
         nxclient = self.nuxeo_client_factory(server_url, username, self.device_id,
                                              password)
         token = nxclient.request_token()
@@ -1238,6 +1239,7 @@ class Controller(object):
 
     def get_state(self, server_url, remote_repo, remote_ref):
         """Find a pair state for the provided remote document identifiers."""
+        server_url = self._normalize_url(server_url)
         session = self.get_session()
         try:
             states = session.query(LastKnownState).filter_by(
@@ -1290,3 +1292,10 @@ class Controller(object):
         """Release all database resources"""
         self.get_session().close_all()
         self._engine.pool.dispose()
+
+    def _normalize_url(self, url):
+        """Ensure that user provided url always has a trailing '/'"""
+        if url is None or not url:
+            raise ValueError("Invalid url: %r" % url)
+        if not url.endswith('/'):
+            return url + '/'

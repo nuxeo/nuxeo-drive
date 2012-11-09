@@ -7,6 +7,7 @@ import shutil
 
 from nose.tools import with_setup
 from nose.tools import assert_equal
+from nose.tools import assert_not_equal
 from nose.tools import assert_true
 from nose.tools import assert_false
 from nose.tools import assert_raises
@@ -137,6 +138,16 @@ def test_bindings():
     # register a new server binding
     ctl.bind_server(TEST_SYNCED_FOLDER, 'http://example.com/nuxeo',
                     'username', 'secret')
+
+    server_binding = ctl.get_server_binding(TEST_SYNCED_FOLDER)
+
+    # The URL is normalized to always include a trailing '/'
+    assert_equal(server_binding.server_url, "http://example.com/nuxeo/")
+    assert_equal(server_binding.remote_user, "username")
+    assert_not_equal(server_binding.remote_token, None)
+    # Password is not stored in the database if token auth is implemented
+    assert_equal(server_binding.remote_password, None)
+
     # TODO: implement me: children states of the server folder
     #assert_equal(ctl.children_states(TEST_SYNCED_FOLDER), [])
 
