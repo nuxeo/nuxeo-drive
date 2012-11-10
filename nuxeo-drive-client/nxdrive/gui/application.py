@@ -34,6 +34,7 @@ class Communicator(QObject):
     icon = QtCore.Signal(str)
     menu = QtCore.Signal()
     stop = QtCore.Signal()
+    invalid_token = QtCore.Signal(str)
 
 
 class BindingInfo(object):
@@ -64,6 +65,14 @@ class BindingInfo(object):
         return "%s: %s" % (self.short_name, self.get_status_message())
 
 
+def sync_loop(controller, **kwargs):
+    """Wrapper to log uncaught exception in the sync thread"""
+    try:
+        controller.loop(**kwargs)
+    except Exception, e:
+        log.error("Error in synchronization thread: %s", e, exc_info=True)
+
+
 class Application(QApplication):
     """Main Nuxeo drive application controlled by a system tray icon + menu"""
 
@@ -80,6 +89,7 @@ class Application(QApplication):
         self.communicator.icon.connect(self.set_icon)
         self.communicator.menu.connect(self.rebuild_menu)
         self.communicator.stop.connect(self.handle_stop)
+        self.communicator.invalid_token.connect(self.update_credentials)
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
@@ -171,13 +181,15 @@ class Application(QApplication):
         self.communicator.menu.emit()
         self.communicator.stop.emit()
 
-    def notify_offline(self, local_folder):
+    def notify_offline(self, local_folder, exception):
         info = self.get_info(local_folder)
         if info.online:
             # Mark binding as offline and update UI
             info.online = False
             self.update_running_icon()
             self.communicator.menu.emit()
+        if getattr(exception, 'code', None) == 401:
+            self.communicator.invalid_token.emit(local_folder)
 
     def notify_pending(self, local_folder, n_pending, or_more=False):
         info = self.get_info(local_folder)
@@ -191,6 +203,13 @@ class Application(QApplication):
         self._tray_icon = QtGui.QSystemTrayIcon()
         self.update_running_icon()
         self._tray_icon.show()
+
+    @QtCore.Slot(str)
+    def update_credentials(self, local_folder):
+        sb = self.controller.get_server_binding(local_folder)
+        prompt_authentication(
+            self.controller, local_folder, app=self, is_url_readonly=True,
+            url=sb.server_url, username=sb.remote_user)
 
     @QtCore.Slot()
     def rebuild_menu(self):
@@ -227,7 +246,8 @@ class Application(QApplication):
             delay = getattr(self.options, 'delay', 5.0)
             # Controller and its database session pool should be thread safe,
             # hence reuse it directly
-            self.sync_thread = Thread(target=self.controller.loop,
+            self.sync_thread = Thread(target=sync_loop,
+                                      args=(self.controller,),
                                       kwargs={"frontend": self,
                                               "fault_tolerant": fault_tolerant,
                                               "delay": delay})

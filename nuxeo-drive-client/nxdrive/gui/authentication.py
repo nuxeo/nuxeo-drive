@@ -16,6 +16,9 @@ except ImportError:
     pass
 
 
+is_dialog_open = False
+
+
 class Dialog(QDialog):
     """Dialog box to prompt the user for Server Bind credentials"""
 
@@ -75,7 +78,8 @@ class Dialog(QDialog):
 
     def accept(self):
         if self.callback is not None:
-            values = dict((id_, w.text()) for id_, w in self.fields.items())
+            values = dict((id_, w.text())
+                               for id_, w in self.fields.items())
             if not self.callback(values, self):
                 return
         self.accepted = True
@@ -88,14 +92,20 @@ class Dialog(QDialog):
 def prompt_authentication(controller, local_folder, url=None, username=None,
                           is_url_readonly=False, app=None):
     """Prompt a QT dialog to ask for user credentials for binding a server"""
+    global is_dialog_open
+
     if QtGui is None:
         # Qt / PySide is not installed
         log.error("QT / PySide is not installed:"
                   " use commandline options for binding a server.")
         return False
 
+    if is_dialog_open:
+        # Do not reopen the dialog multiple times
+        return False
+
     # TODO: learn how to use QT i18n support to handle translation of labels
-    field_specs = [
+    fields_spec = [
         {
             'id': 'url',
             'label': 'Nuxeo Server URL:',
@@ -135,20 +145,25 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             dialog.show_message("Invalid credentials.")
             return False
         except:
+            msg = "Unable to connect to " + url
+            log.debug(msg, exc_info=True)
             # TODO: catch a new ServerUnreachable catching network isssues
-            dialog.show_message("Unable to connect to " + url)
+            dialog.show_message(msg)
             return False
 
     if app is None:
         log.debug("Launching QT prompt for server binding.")
         QtGui.QApplication([])
-    dialog = Dialog(field_specs, title="Nuxeo Drive - Authentication",
+    dialog = Dialog(fields_spec, title="Nuxeo Drive - Authentication",
                     callback=bind_server)
+    is_dialog_open = True
     try:
         dialog.exec_()
     except:
         dialog.reject()
         raise
+    finally:
+        is_dialog_open = False
     return dialog.accepted
 
 if __name__ == '__main__':

@@ -18,6 +18,7 @@ from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
+from nxdrive.client import Unauthorized
 from nxdrive.model import init_db
 from nxdrive.model import DeviceConfig
 from nxdrive.model import ServerBinding
@@ -38,7 +39,9 @@ except ImportError:
 
 
 POSSIBLE_NETWORK_ERROR_TYPES = (
+    Unauthorized,
     urllib2.URLError,
+    urllib2.HTTPError,
     httplib.HTTPException,
     socket.error,
 )
@@ -297,8 +300,12 @@ class Controller(object):
             if token is None and server_binding.remote_password != password:
                 # Update password info if required
                 server_binding.remote_password = password
+                log.info("Updating password for user '%s' on server '%s'",
+                        username, server_url)
 
             if token is not None and server_binding.remote_token != token:
+                log.info("Updating token for user '%s' on server '%s'",
+                        username, server_url)
                 # Update the token info if required
                 server_binding.remote_token = token
 
@@ -503,7 +510,7 @@ class Controller(object):
         session.commit()
 
     def update_roots(self, session=None, server_binding=None,
-                     repository=None):
+                     repository=None, frontend=None):
         """Ensure that the list of bound roots match server-side info
 
         If a server is not responding it is skipped.
@@ -532,10 +539,17 @@ class Controller(object):
                                        repo)
             except POSSIBLE_NETWORK_ERROR_TYPES as e:
                 # Ignore expected possible network related errors
-                log.debug("Ignoring network error in update roots step: %r",
-                          e)
+                self._log_offline(e, "update roots")
                 log.trace("Traceback of ignored network error:",
-                          exc_info=True)
+                        exc_info=True)
+                if frontend is not None:
+                    frontend.notify_offline(sb.local_folder, e)
+                self._invalidate_client_cache(sb.server_url)
+
+        if frontend is not None:
+            local_folders = [sb.local_folder
+                    for sb in session.query(ServerBinding).all()]
+            frontend.notify_local_folders(local_folders)
 
     def _update_roots(self, server_binding, session, local_roots,
                       remote_roots, repository):
@@ -819,11 +833,14 @@ class Controller(object):
                                     session=session)
         return pending[0] if len(pending) > 0 else None
 
-    def get_remote_client(self, server_binding, base_folder=None,
-                          repository='default'):
+    def _get_client_cache(self):
         if not hasattr(self._local, 'remote_clients'):
             self._local.remote_clients = dict()
-        cache = self._local.remote_clients
+        return self._local.remote_clients
+
+    def get_remote_client(self, server_binding, base_folder=None,
+                          repository='default'):
+        cache = self._get_client_cache()
         sb = server_binding
         cache_key = (sb.server_url, sb.remote_user, self.device_id, base_folder,
                      repository)
@@ -839,6 +856,12 @@ class Controller(object):
         # failure
         remote_client.make_raise(self._remote_error)
         return remote_client
+
+    def _invalidate_client_cache(self, server_url):
+        cache = self._get_client_cache()
+        for key, client in cache.items():
+            if client.server_url == server_url:
+                del cache[key]
 
     def get_remote_client_from_docpair(self, doc_pair):
         """Fetch a client from the cache or create a new instance"""
@@ -1124,6 +1147,14 @@ class Controller(object):
             return True
         return False
 
+    def _log_offline(self, exception, context):
+        if isinstance(exception, urllib2.HTTPError):
+            msg = ("Client offline in %s: HTTP error with code %d"
+                    % (context, exception.code))
+        else:
+            msg = "Client offline in %s: %s" % (context, exception)
+        log.debug(msg)
+
     def loop(self, full_local_scan=True, full_remote_scan=True, delay=10,
              max_sync_step=50, max_loops=None, fault_tolerant=True,
              frontend=None, limit_pending=100):
@@ -1168,11 +1199,7 @@ class Controller(object):
                     log.info("Stopping synchronization after %d loops",
                              loop_count)
                     break
-                self.update_roots(session)
-                if frontend is not None:
-                    local_folders = [sb.local_folder
-                            for sb in session.query(ServerBinding).all()]
-                    frontend.notify_local_folders(local_folders)
+                self.update_roots(session, frontend=frontend)
 
                 bindings = session.query(RootBinding).all()
                 for rb in bindings:
@@ -1197,12 +1224,20 @@ class Controller(object):
                                          fault_tolerant=fault_tolerant)
                     except POSSIBLE_NETWORK_ERROR_TYPES as e:
                         # Ignore expected possible network related errors
-                        log.debug("Ignoring network error in sync loop: %r",
-                                  e)
+                        self._log_offline(e, "synchronization loop")
                         log.trace("Traceback of ignored network error:",
-                                  exc_info=True)
+                                exc_info=True)
                         if frontend is not None:
-                            frontend.notify_offline(rb.local_folder)
+                            frontend.notify_offline(rb.local_folder, e)
+
+                        # TODO: add a special handling for the invalid
+                        # credentials case and mark the server binding
+                        # with a special flag in the DB to be skipped by
+                        # the synchronization loop until the user decides
+                        # to reenable it in the systray menu with a dedicated
+                        # action instead
+                        self._invalidate_client_cache(
+                                rb.server_binding.server_url)
 
                 # safety net to ensure that Nuxe Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
@@ -1299,3 +1334,4 @@ class Controller(object):
             raise ValueError("Invalid url: %r" % url)
         if not url.endswith('/'):
             return url + '/'
+        return url
