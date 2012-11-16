@@ -3,7 +3,7 @@
 *.swp
 *~
 target
-bin
+*bin
 coverage
 .coverage
 build
