@@ -177,6 +177,16 @@ def setup_nuxeo(nuxeo_archive_url):
         if sys.platform == 'win32':
             # work around for long filenames under windows
             execute('rmdir /s /q ' + NUXEO_FOLDER)
+            deleted = True
+            for i in range(3):
+                if not os.path.exists(NUXEO_FOLDER):
+                    deleted = True
+                    break
+                else:
+                    pflush('Waiting for windows to finish deleting files')
+                    time.sleep(1.0)
+            if not deleted:
+                raise RuntimeError("Failed to delete " + NUXEO_FOLDER)
         else:
             shutil.rmtree(NUXEO_FOLDER)
 
