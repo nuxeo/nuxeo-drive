@@ -17,3 +17,6 @@ MANIFEST
 *.framework
 *.dylib
 .DS_Store
+.classpath
+.project
+.settings
