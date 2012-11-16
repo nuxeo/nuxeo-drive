@@ -177,7 +177,7 @@ def setup_nuxeo(nuxeo_archive_url):
         if sys.platform == 'win32':
             # work around for long filenames under windows
             execute('rmdir /s /q ' + NUXEO_FOLDER)
-            deleted = True
+            deleted = False
             for i in range(3):
                 if not os.path.exists(NUXEO_FOLDER):
                     deleted = True
