@@ -522,6 +522,9 @@ class Controller(object):
         else:
             server_bindings = session.query(ServerBinding).all()
         for sb in server_bindings:
+            if sb.has_invalid_credentials():
+                # Skip servers with missing credentials
+                continue
             try:
                 nxclient = self.get_remote_client(sb)
                 if not nxclient.is_addon_installed():
@@ -1208,6 +1211,10 @@ class Controller(object):
                         # thread
                         if full_local_scan or first_pass:
                             self.scan_local(rb.local_root, session)
+
+                        if rb.server_binding.has_invalid_credentials():
+                            # Skip roots for servers with missing credentials
+                            continue
 
                         if full_remote_scan or first_pass:
                             self.scan_remote(rb.local_root, session)

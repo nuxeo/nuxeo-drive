@@ -14,15 +14,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
-from sqlalchemy.dialects.sqlite.base import dialect
 
 from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 
+WindowsError = None
 try:
     from exceptions import WindowsError
 except ImportError:
-    WindowsError = None  # this will never be raised under unix
+    # This will never be raised under unix
+    pass
 
 
 log = logging.getLogger(__name__)
@@ -93,6 +94,15 @@ class ServerBinding(Base):
         # auth
         self.remote_password = remote_password
         self.remote_token = remote_token
+
+    def invalidate_credentials(self):
+        """Ensure that all stored credentials are zeroed."""
+        self.remote_password = None
+        self.remote_token = None
+
+    def has_invalid_credentials(self):
+        """Check whether at least one credential is active"""
+        return self.remote_password is None and self.remote_token is None
 
 
 class RootBinding(Base):

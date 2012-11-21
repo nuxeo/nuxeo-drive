@@ -34,13 +34,13 @@ class Communicator(QObject):
     icon = QtCore.Signal(str)
     menu = QtCore.Signal()
     stop = QtCore.Signal()
-    invalid_token = QtCore.Signal(str)
+    invalid_credentials = QtCore.Signal(str)
 
 
 class BindingInfo(object):
     """Summarize the state of each server connection"""
 
-    online = True
+    online = False
 
     n_pending = 0
 
@@ -89,7 +89,8 @@ class Application(QApplication):
         self.communicator.icon.connect(self.set_icon_state)
         self.communicator.menu.connect(self.rebuild_menu)
         self.communicator.stop.connect(self.handle_stop)
-        self.communicator.invalid_token.connect(self.update_credentials)
+        self.communicator.invalid_credentials.connect(
+            self.handle_invalid_credentials)
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
@@ -182,6 +183,11 @@ class Application(QApplication):
             self.communicator.menu.emit()
             self.update_running_icon()
 
+    def get_binding_info(self, local_folder):
+        if local_folder not in self.binding_info:
+            self.binding_info[local_folder] = BindingInfo(local_folder)
+        return self.binding_info[local_folder]
+
     def notify_sync_started(self):
         log.debug('Synchronization started')
         self.state = 'running'
@@ -206,9 +212,10 @@ class Application(QApplication):
             info.online = False
             self.update_running_icon()
             self.communicator.menu.emit()
-        if code == '401':
+
+        if code == 401:
             log.debug('Detected invalid credentials for: %s', local_folder)
-            self.communicator.invalid_token.emit(local_folder)
+            self.communicator.invalid_credentials.emit(local_folder)
 
     def notify_pending(self, local_folder, n_pending, or_more=False):
         info = self.get_info(local_folder)
@@ -231,25 +238,49 @@ class Application(QApplication):
         self._tray_icon.show()
 
     @QtCore.Slot(str)
+    def handle_invalid_credentials(self, local_folder):
+        sb = self.controller.get_server_binding(local_folder)
+        sb.invalidate_credentials()
+        self.controller.get_session().commit()
+        self.communicator.menu.emit()
+
     def update_credentials(self, local_folder):
         sb = self.controller.get_server_binding(local_folder)
-        prompt_authentication(
+        if prompt_authentication(
             self.controller, local_folder, app=self, is_url_readonly=True,
-            url=sb.server_url, username=sb.remote_user)
+            url=sb.server_url, username=sb.remote_user):
+            log.debug("Credentials for %s successfully updated.", local_folder)
 
     @QtCore.Slot()
     def rebuild_menu(self):
         tray_icon_menu = QtGui.QMenu()
-        # TODO: iterate over current binding info to build server specific menu
-        # sections
         # TODO: i18n action labels
-
-        for binding_info in self.binding_info.values():
+        for sb in self.controller.list_server_bindings():
+            # Link to open the server binding folder
+            binding_info = self.get_binding_info(sb.local_folder)
             open_folder = lambda: self.controller.open_local_file(
                 binding_info.folder_path)
+            open_folder_msg = "Open %s folder" % binding_info.short_name
             open_folder_action = QtGui.QAction(
-                binding_info.short_name, tray_icon_menu, triggered=open_folder)
+                open_folder_msg, tray_icon_menu, triggered=open_folder)
             tray_icon_menu.addAction(open_folder_action)
+
+            # Link to change to refetch authentication token when expired
+            update_credentials_msg = "Update credentials"
+            if sb.has_invalid_credentials():
+                update_credentials_msg += " (required)"
+            update_credentials_action = QtGui.QAction(
+                update_credentials_msg, tray_icon_menu,
+                triggered=lambda: self.update_credentials(sb.local_folder))
+            tray_icon_menu.addAction(update_credentials_action)
+
+            tray_icon_menu.addSeparator()
+
+        if not self.controller.list_server_bindings():
+            register_server_action = QtGui.QAction(
+                "Register Nuxeo server", tray_icon_menu,
+                triggered=self.register_server)
+            tray_icon_menu.addAction(register_server_action)
             tray_icon_menu.addSeparator()
 
         # TODO: add pause action if in running state
@@ -261,11 +292,13 @@ class Application(QApplication):
         tray_icon_menu.addAction(quit_action)
         self._tray_icon.setContextMenu(tray_icon_menu)
 
+    def register_server(self):
+        return prompt_authentication(
+            self.controller, default_nuxeo_drive_folder(), app=self)
+
     def start_synchronization_thread(self):
         if len(self.controller.list_server_bindings()) == 0:
-            if prompt_authentication(
-                self.controller, default_nuxeo_drive_folder(), app=self):
-                self.communicator.icon.emit('enabled')
+            self.register_server()
 
         if self.sync_thread is None or not self.sync_thread.isAlive():
             fault_tolerant = not getattr(self.options, 'stop_on_error', True)
