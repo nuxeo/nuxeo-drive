@@ -86,7 +86,7 @@ class Application(QApplication):
         # Put communication channel in place for intra and inter-thread
         # communication for UI change notifications
         self.communicator = Communicator()
-        self.communicator.icon.connect(self.set_icon)
+        self.communicator.icon.connect(self.set_icon_state)
         self.communicator.menu.connect(self.rebuild_menu)
         self.communicator.stop.connect(self.handle_stop)
         self.communicator.invalid_token.connect(self.update_credentials)
@@ -110,7 +110,7 @@ class Application(QApplication):
         return info
 
     @QtCore.Slot(str)
-    def set_icon(self, state):
+    def set_icon_state(self, state):
         """Execute systray icon change operations triggered by state change
 
         The synchronization thread can update the state info but cannot
@@ -119,12 +119,23 @@ class Application(QApplication):
         triggered by a signal to allow for message passing between the 2
         threads.
 
+        Return True of the icon has changed state.
+
         """
+        if self.get_icon_state() == state:
+            # Nothing to update
+            return False
         icon = find_icon('nuxeo_drive_systray_icon_%s_18.png' % state)
         if icon is not None:
             self._tray_icon.setIcon(QtGui.QIcon(icon))
         else:
             log.warning('Icon not found: %s', icon)
+        self._icon_state = state
+        log.debug('Updated icon state to: %s', state)
+        return True
+
+    def get_icon_state(self):
+        return getattr(self, '_icon_state', None)
 
     def action_quit(self):
         self.communicator.icon.emit('stopping')
@@ -166,15 +177,19 @@ class Application(QApplication):
                 self.binding_info[local_folder] = BindingInfo(local_folder)
                 refresh = True
         if refresh:
+            log.debug(u'Detected changes in the list of local folders: %s',
+                      u", ".join(local_folders))
             self.communicator.menu.emit()
             self.update_running_icon()
 
     def notify_sync_started(self):
+        log.debug('Synchronization started')
         self.state = 'running'
         self.communicator.menu.emit()
         self.update_running_icon()
 
     def notify_sync_stopped(self):
+        log.debug('Synchronization stopped')
         self.state = 'paused'
         self.sync_thread = None
         self.update_running_icon()
@@ -183,19 +198,30 @@ class Application(QApplication):
 
     def notify_offline(self, local_folder, exception):
         info = self.get_info(local_folder)
+        code = getattr(exception, 'code', None)
         if info.online:
             # Mark binding as offline and update UI
+            log.debug('Switching to offline mode (code = %r) for: %s',
+                      code, local_folder)
             info.online = False
             self.update_running_icon()
             self.communicator.menu.emit()
-        if getattr(exception, 'code', None) == 401:
+        if code == '401':
+            log.debug('Detected invalid credentials for: %s', local_folder)
             self.communicator.invalid_token.emit(local_folder)
 
     def notify_pending(self, local_folder, n_pending, or_more=False):
         info = self.get_info(local_folder)
-        info.online = True
+        if n_pending != info.n_pending:
+            log.debug("%d pending operations for: %s", n_pending, local_folder)
+        # Update pending stats
+        info.n_pending = n_pending
+        info.has_more_pending = or_more
+
         if not info.online:
+            log.debug("Switching to online mode for: %s", local_folder)
             # Mark binding as online and update UI
+            info.online = True
             self.update_running_icon()
             self.communicator.menu.emit()
 

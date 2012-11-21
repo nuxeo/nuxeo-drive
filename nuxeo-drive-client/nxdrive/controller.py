@@ -1153,7 +1153,7 @@ class Controller(object):
                     % (context, exception.code))
         else:
             msg = "Client offline in %s: %s" % (context, exception)
-        log.debug(msg)
+        log.trace(msg)
 
     def loop(self, full_local_scan=True, full_remote_scan=True, delay=10,
              max_sync_step=50, max_loops=None, fault_tolerant=True,
