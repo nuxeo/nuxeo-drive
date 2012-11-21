@@ -166,7 +166,7 @@ Roadmap
 
 The backlog_ is handled by Jira.
 
-.. _backlog: https://jira.nuxeo.com/secure/IssueNavigator.jspa?reset=true&jqlQuery=component+%3D+%22Nuxeo+Drive%22+AND+Tags+%3D+%22Backlog%22+ORDER+BY+%22Backlog+priority%22+DESC
+.. _backlog: https://jira.nuxeo.com/secure/IssueNavigator.jspa?reset=true&jqlQuery=component+%3D+%22Nuxeo+Drive%22+AND+project+%3D+NXP++and+type+%3D+%22User+story%22+and+resolution+%3D+Unresolved+ORDER+BY+%22Backlog+priority%22+DESC
 
 
 Developers
