@@ -285,7 +285,7 @@ Generating OS specific packages
 
 - To generate the OSX `.app` bundle, you need to install ``py2app``::
 
-    pip install py2app:
+    pip install py2app
 
   Then run::
 
