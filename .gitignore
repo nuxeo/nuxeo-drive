@@ -3,7 +3,9 @@
 *.swp
 *~
 target
-*bin
+pojo-bin
+seam-bin
+bin
 coverage
 .coverage
 build

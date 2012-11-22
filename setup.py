@@ -9,7 +9,7 @@ from datetime import datetime
 
 from distutils.core import setup
 
-scripts = ["nuxeo-drive-client/bin/ndrive"]
+scripts = ["nuxeo-drive-client/scripts/ndrive"]
 freeze_options = {}
 
 name = 'nuxeo-drive'
@@ -24,7 +24,7 @@ packages = [
 package_data = {
     'nxdrive.data.icons': ['*.png', '*.svg', '*.ico', '*.icns'],
 }
-script = 'nuxeo-drive-client/bin/ndrive'
+script = 'nuxeo-drive-client/scripts/ndrive'
 icons_home = 'nuxeo-drive-client/nxdrive/data/icons'
 win_icon = os.path.join(icons_home, 'nuxeo_drive_icon_64.ico')
 png_icon = os.path.join(icons_home, 'nuxeo_drive_icon_64.png')
@@ -123,7 +123,7 @@ elif sys.platform == 'darwin':
     import py2app  # install the py2app command
 
     freeze_options = dict(
-        app=["nuxeo-drive-client/bin/ndrive.py"],
+        app=["nuxeo-drive-client/scripts/ndrive.py"],
         data_files=[('icons', icons_files)],
         options=dict(
             py2app=dict(
