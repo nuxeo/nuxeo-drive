@@ -41,7 +41,7 @@ Windows Desktop Client
 ----------------------
 
 Fetch the latest development version for
-``nuxeo-drive-latest-dev.msi``
+``nuxeo-drive-<version>-win32.msi``
 windows installer from the `Continous Integration <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/>`_.
 
 Once you installed the package (Administrator rights required) the new folder
@@ -61,7 +61,7 @@ Mac OSX Desktop Client
 
 Fetch the latest development version for
 `Nuxeo Drive.dmg <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-osx/lastSuccessfulBuild/artifact/dist/Nuxeo%20Drive.dmg>`_
- from the Continous Integration.
+from the Continous Integration.
 
 
 Ubuntu/Debian (and other Linux variants) Client
