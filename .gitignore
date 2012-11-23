@@ -12,6 +12,7 @@ build
 dist
 *.zip
 *.msi
+*.dmg
 nuxeo-tomcat
 lessmsi
 .ropeproject

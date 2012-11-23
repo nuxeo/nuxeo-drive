@@ -51,6 +51,15 @@ NUXEO_FOLDER='nuxeo-tomcat'
 LESSMSI_FOLDER='lessmsi'
 EXTRACTED_MSI_FOLDER='nxdrive_msi'
 
+LINKS_PATTERN = r'\bhref="([^"]+)"'
+
+MSI_PATTERN = r"nuxeo-drive-\d\.\d\..*?\.msi"
+DMG_PATTERN = r"Nuxeo%20Drive\.dmg"
+
+WAR_FOLDER = os.path.join(
+    "nuxeo-drive-server", "nuxeo-drive-jsf", "src", "main",
+    "resources", "web", "nuxeo.war", "nuxeo-drive")
+
 
 def pflush(message):
     """This is required to have messages in the right order in jenkins"""
@@ -68,12 +77,26 @@ def execute(cmd, exit_on_failure=True):
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser(
-        description="Launch integration tests on Windows")
+        description="Integration tests coordinator")
+    subparsers = parser.add_subparsers(title="Commands")
 
-    parser.add_argument("--msi-folder", default=DEFAULT_MSI_FOLDER)
-    parser.add_argument("--nuxeo-archive-url",
+    # Fetch packaging dependencies from other Jenkins jobs
+    fetch_parser = subparsers.add_parser(
+        'fetch', help="Fetch packages from Jenkins pages")
+    fetch_parser.set_defaults(command='fetch')
+
+    fetch_parser.add_argument('--msi-url')
+    fetch_parser.add_argument('--dmg-url')
+
+    # Integration test launcher
+    test_parser = subparsers.add_parser(
+        'test', help="Launch the integration tests")
+    test_parser.set_defaults(command='test')
+
+    test_parser.add_argument("--msi-folder", default=DEFAULT_MSI_FOLDER)
+    test_parser.add_argument("--nuxeo-archive-url",
                         default=DEFAULT_NUXEO_ARCHIVE_URL)
-    parser.add_argument("--lessmsi-url", default=DEFAULT_LESSMSI_URL)
+    test_parser.add_argument("--lessmsi-url", default=DEFAULT_LESSMSI_URL)
 
     return parser.parse_args(args)
 
@@ -120,6 +143,34 @@ def find_latest(folder, prefix=None, suffix=None):
     return os.path.join(folder, files[-1])
 
 
+def find_package_url(archive_page_url, pattern):
+    pflush("Finding latest package at: " + archive_page_url)
+    index_html = urllib2.urlopen(archive_page_url).read()
+    candidates = []
+    archive_pattern = re.compile(pattern)
+    for link in re.compile(LINKS_PATTERN).finditer(index_html):
+        link_url = link.group(1)
+        if "/" in link_url:
+            link_filename = link_url.rsplit("/", 1)[1]
+        else:
+            link_filename = link_url
+        if archive_pattern.match(link_filename):
+            candidates.append(link_url)
+
+    if not candidates:
+        raise ValueError("Could not find packages with pattern %r on %s"
+                         % (pattern, archive_page_url))
+    candidates.sort()
+    archive = candidates[0]
+    if archive.startswith("http"):
+        archive_url = archive
+    else:
+        if not archive_page_url.endswith('/'):
+            archive_page_url += '/'
+        archive_url = archive_page_url + archive
+    return archive_url, archive_url.rsplit('/', 1)[1]
+
+
 def setup_nuxeo(nuxeo_archive_url):
     try:
         java_home = os.environ['JAVA_HOME']
@@ -142,20 +193,14 @@ def setup_nuxeo(nuxeo_archive_url):
         pflush("Waiting for any killed process to actually stop")
         time.sleep(1.0)
 
-    pflush("Finding latest nuxeo ZIP archive at: " + nuxeo_archive_url)
-    index_html = urllib2.urlopen(nuxeo_archive_url).read()
-    archive_pattern = re.compile(DEFAULT_ARCHIVE_PATTERN)
-    filenames = archive_pattern.findall(index_html)
-    if not filenames:
-        raise ValueError("Could not find ZIP archives on "
-                         + nuxeo_archive_url)
-    filenames.sort()
-    filename = filenames[0]
-    url = nuxeo_archive_url + filename
+    url, filename = find_package_url(nuxeo_archive_url,
+                                     DEFAULT_ARCHIVE_PATTERN)
+
     if not os.path.exists(filename):
         # the latest version does not exist but old versions might, let's delete
         # them to save some disk real estate in the workspace hosted on the CI
         # servers
+        archive_pattern = re.compile(DEFAULT_ARCHIVE_PATTERN)
         for old_filename in os.listdir('.'):
             if archive_pattern.match(old_filename):
                 pflush("Deleting old archive: " + old_filename)
@@ -227,13 +272,6 @@ def extract_msi(lessmsi_url, msi_folder):
         shutil.rmtree(EXTRACTED_MSI_FOLDER)
     execute("%s /x %s %s" % (lessmsi, msi_filename, EXTRACTED_MSI_FOLDER))
 
-    msi_latest = os.path.join(msi_folder, 'nuxeo-drive-lastest-dev.msi')
-    if os.path.exists(msi_latest):
-        shutil.rmtree(msi_latest)
-
-    pflush("Copying '%s' to '%s'" % (msi_filename, msi_latest))
-    shutil.copyfile(msi_filename, msi_latest)
-
 
 def set_environment():
     os.environ['NXDRIVE_TEST_NUXEO_URL'] = "http://localhost:8080/nuxeo"
@@ -245,16 +283,33 @@ def run_tests_from_msi():
     ndrive = os.path.join(EXTRACTED_MSI_FOLDER, 'SourceDir', 'ndrive.exe')
     execute(ndrive + " test")
 
+
 def run_tests_from_source():
     execute("cd nuxeo-drive-client && nosetests")
 
 
+def download_package(url, pattern, target_folder):
+    url, filename = find_package_url(url, pattern)
+    filepath = os.path.join(target_folder, urllib2.unquote(filename))
+    download(url, filepath)
+
+
 if __name__ == "__main__":
     options = parse_args()
-    setup_nuxeo(options.nuxeo_archive_url)
-    set_environment()
-    if sys.platform == 'win32':
-        extract_msi(options.lessmsi_url, options.msi_folder)
-        run_tests_from_msi()
-    else:
-        run_tests_from_source()
+
+    if options.command == 'test':
+        setup_nuxeo(options.nuxeo_archive_url)
+        set_environment()
+        if sys.platform == 'win32':
+            extract_msi(options.lessmsi_url, options.msi_folder)
+            run_tests_from_msi()
+        else:
+            run_tests_from_source()
+    elif options.command == 'fetch':
+        if os.path.exists(WAR_FOLDER):
+            shutil.rmtree(WAR_FOLDER)
+        os.makedirs(WAR_FOLDER)
+        if options.msi_url is not None:
+            download_package(options.msi_url, MSI_PATTERN, WAR_FOLDER)
+        if options.dmg_url is not None:
+            download_package(options.dmg_url, DMG_PATTERN, WAR_FOLDER)
