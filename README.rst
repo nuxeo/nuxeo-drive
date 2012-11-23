@@ -24,7 +24,7 @@ Server-side marketplace package
 -------------------------------
 
 Fetch the latest development version of the marketplace package
-`nuxeo-drive-marketplace-5.7-SNAPSHOT.zip <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/lastSuccessfulBuild/artifact/packaging/nuxeo-drive-marketplace/target/nuxeo-drive-marketplace-5.7-SNAPSHOT.zip>`_
+`nuxeo-drive-marketplace-5.7-SNAPSHOT.zip <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/packaging/nuxeo-drive-marketplace/target/nuxeo-drive-marketplace-5.7-SNAPSHOT.zip>`_
 from the Continuous Integration server.
 
 The marketplace package can be installed using the Admin Center /
@@ -41,12 +41,14 @@ Windows Desktop Client
 ----------------------
 
 Fetch the latest development version for
-`nuxeo-drive-latest-dev.msi <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/lastSuccessfulBuild/artifact/dist/nuxeo-drive-lastest-dev.msi>`_
-windows installer from the Continous Integration.
+``nuxeo-drive-latest-dev.msi``
+windows installer from the `Continous Integration <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/>`_.
 
 Once you installed the package (Administrator rights required) the new folder
 holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
 ``Path`` environment variable automatically.
+
+You can start the ``Nuxeo Drive`` program from the "Start..." menu.
 
 All the necessary dependencies (such as the Python interpreter and the QT /
 PySide for the client side user interface) are included in this folder and
@@ -57,14 +59,10 @@ computer.
 Mac OSX Desktop Client
 ----------------------
 
-The ``.dmg`` package of the client is not yet available. In the mean time you
-can install it from source::
+Fetch the latest development version for
+`Nuxeo Drive.dmg <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-osx/lastSuccessfulBuild/artifact/dist/Nuxeo%20Drive.dmg>`_
+ from the Continous Integration.
 
-  sudo easy_install pip
-  sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
-  sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
-
-The install QT and PySide for graphical user interface (see below).
 
 Ubuntu/Debian (and other Linux variants) Client
 -----------------------------------------------
