@@ -274,26 +274,61 @@ Under Debian / Ubuntu you can install the ``python-pyside`` package directly::
 Generating OS specific packages
 -------------------------------
 
-- To generate the **Windows** ``.msi`` installer, you need to install ``cx_Freeze``
-  as explained above. Then run::
+
+.msi package for Windows
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To generate the **Windows** ``.msi`` installer, you need to install ``cx_Freeze``
+as explained above. Then run::
 
     C:\Python27\python.exe setup.py --freeze bdist_msi
 
-  The generated ``.msi`` file can be found in the ``dist/`` subfolder.
+The generated ``.msi`` file can be found in the ``dist/`` subfolder.
 
-- To generate the OSX `.app` bundle, you need to install ``py2app``::
+.app and .dmg packages for OSX
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    pip install py2app
+To generate the standalone OSX `.app` bundle, you need to install a standalone
+version of Python (i.e. not the version that comes pre-installed with OSX). For
+instance using `HomeBrew <http://mxcl.github.com/homebrew/>`_::
 
-  Then run::
+  $ brew install python
 
-    python setup.py py2app
+This will install a new Python interpreter along with ``pip`` under
+``/usr/local/Cellar`` and add publish it using symlinks in ``/usr/local/bin``
+and ``/usr/local/lib/python2.7/``.
 
-  The generated ``.app`` bundle can be found in the ``dist/`` subfolder. You
-  can then generate a ``.dmg`` archive using::
+If you already have another version of pip installed in ``/usr/local/bin`` you
+can force the overwrite the ``/usr/local/bin/pip`` with::
 
-    hdiutil create -srcfolder "dist/Nuxeo Drive.app" "dist/Nuxeo Drive.dmg"
+  $ brew link --overwrite python
 
+Make sure that you are know using your newly installed version of python / pip::
+
+  $ export PATH=/usr/local/bin:$PATH
+  $ which pip
+  /usr/local/bin/pip
+  $ which python
+  /usr/local/bin/python
+
+If you installed PySide from the original binary distribution, you can
+symlink it to the hombrew version of Python::
+
+  $ ln -s /Library/Python/2.7/site-packages/PySide /usr/local/lib/python2.7/site-packages/PySide
+
+Then install ``py2app`` along with the dependencies if ::
+
+  $ pip install py2app
+  $ pip install -r requirements.txt
+
+Then run::
+
+  $ python setup.py py2app
+
+The generated ``.app`` bundle can be found in the ``dist/`` subfolder. You
+can then generate a ``.dmg`` archive using::
+
+  $ hdiutil create -srcfolder "dist/Nuxeo Drive.app" "dist/Nuxeo Drive.dmg"
 
 Additional resources
 --------------------
