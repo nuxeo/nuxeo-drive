@@ -96,7 +96,7 @@ Regular usage
 
 3. In the Nuxeo web interface, mark workspaces and folders for synchronization.
 
-4. It it then possible to go to the local Nuxeo Drive folder by using the menu
+4. It is then possible to go to the local Nuxeo Drive folder by using the menu
    of the system tray icon.
 
 
