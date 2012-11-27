@@ -40,7 +40,10 @@ Alternatively, from the command line::
 Windows Desktop Client
 ----------------------
 
-Fetch the latest development version for
+Once the marketplace package is installed, the windows desktop client package
+can be downloaded from the ``Home > Nuxeo Drive`` tab.
+
+You can also fetch the latest development version for
 ``nuxeo-drive-<version>-win32.msi``
 windows installer from the `Continous Integration <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/>`_.
 
@@ -59,7 +62,10 @@ computer.
 Mac OSX Desktop Client
 ----------------------
 
-Fetch the latest development version for
+Once the marketplace package is installed, the OSX desktop client package
+can be downloaded from the ``Home > Nuxeo Drive`` tab.
+
+You can also fetch the latest development version for
 `Nuxeo Drive.dmg <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-osx/lastSuccessfulBuild/artifact/dist/Nuxeo%20Drive.dmg>`_
 from the Continous Integration.
 
@@ -80,10 +86,24 @@ The install QT and PySide for graphical user interface (see below).
 Configuration and usage
 =======================
 
-Once Nuxeo Drive is installed on the client desktop (either from a
-ready to use ``.msi`` Windows binary installer or by installing
-from source with pip_), the synchronization client can be operated
-from the commandline.
+Regular usage
+-------------
+
+1. Launch the Nuxeo Drive program (e.g. from the start menu under Windows).
+
+2. A new icon should open in the system tray and a popup menu should open asking
+   the user for the URL of the Nuxeo server and credentials.
+
+3. In the Nuxeo web interface, mark workspaces and folders for synchronization.
+
+4. It it then possible to go to the local Nuxeo Drive folder by using the menu
+   of the system tray icon.
+
+
+Command-line usage (advanced)
+----------------------------
+
+The desktop synchronization client can also be operated from the command-line:
 
 1. Ensure that ``ndrive`` program is installed in a folder that has been
    added to the PATH enviroment variable of your OS.
@@ -132,7 +152,7 @@ Reporting bugs
 ==============
 
 You can log DEBUG information directly in the console by using the
-following commandline::
+following command-line::
 
     ndrive --log-level-console=DEBUG
 
@@ -274,7 +294,6 @@ Under Debian / Ubuntu you can install the ``python-pyside`` package directly::
 Generating OS specific packages
 -------------------------------
 
-
 .msi package for Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -288,15 +307,19 @@ The generated ``.msi`` file can be found in the ``dist/`` subfolder.
 .app and .dmg packages for OSX
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To generate the standalone OSX `.app` bundle, you need to install a standalone
-version of Python (i.e. not the version that comes pre-installed with OSX). For
-instance using `HomeBrew <http://mxcl.github.com/homebrew/>`_::
+To generate the standalone OSX `.app` bundle, you **need** to install a
+standalone version of Python (i.e. not the version that comes pre-installed
+with OSX). Otherwise the ``.app`` bundle will be generated in
+``semi-standalone`` mode and will likely not work on other versions of OSX.
+
+To install a standalone version of Python under OSX you can use `HomeBrew
+<http://mxcl.github.com/homebrew/>`_::
 
   $ brew install python
 
 This will install a new Python interpreter along with ``pip`` under
 ``/usr/local/Cellar`` and add publish it using symlinks in ``/usr/local/bin``
-and ``/usr/local/lib/python2.7/``.
+and ``/usr/local/lib/python2.7``.
 
 If you already have another version of pip installed in ``/usr/local/bin`` you
 can force the overwrite the ``/usr/local/bin/pip`` with::
@@ -329,15 +352,3 @@ The generated ``.app`` bundle can be found in the ``dist/`` subfolder. You
 can then generate a ``.dmg`` archive using::
 
   $ hdiutil create -srcfolder "dist/Nuxeo Drive.app" "dist/Nuxeo Drive.dmg"
-
-Additional resources
---------------------
-
-- `Continuous Integration Linux`_
-- `Continuous Integration Windows`_
-- `Coverage Report`_
-
-.. _`Continuous Integration Linux`: http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-linux/
-.. _`Continuous Integration Windows`: http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/
-.. _`Coverage report`: http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-linux/lastSuccessfulBuild/artifact/nuxeo-drive/nuxeo-drive-client/coverage/index.html
-
