@@ -16,7 +16,7 @@ Drive.dmg` package.
 
 ## Background png resolution
 
-The `dmgbackground.svg` file is the source for the png file. Note that inkscape
-has a hardcoded convention of using 90dpi in png exports while OSX expects a
-72dpi png file. Hence the need to rescale the inkscape document size by a 1.25
-ratio.
+The `dmgbackground.svg` file is the source for the png file. Note that Inkscape
+has a hardcoded export convention of using 90dpi in png exports while OSX
+expects a 72dpi png file. Hence the need to rescale the Inkscape document size
+by a 1.25 ratio.

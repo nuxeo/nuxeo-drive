@@ -9,15 +9,15 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="600"
-   height="250"
+   width="750"
+   height="312.5"
    id="svg2"
    version="1.1"
    inkscape:version="0.48.2 r9819"
    sodipodi:docname="dmgbackground.svg"
    inkscape:export-filename="/Users/ogrisel/coding/nuxeo-drive/tools/osx/dmgbackground.png"
-   inkscape:export-xdpi="112.32"
-   inkscape:export-ydpi="112.32">
+   inkscape:export-xdpi="72"
+   inkscape:export-ydpi="72">
   <defs
      id="defs4">
     <inkscape:perspective
@@ -36,7 +36,7 @@
      inkscape:pageopacity="0.12156863"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4"
-     inkscape:cx="318.23367"
+     inkscape:cx="228.59081"
      inkscape:cy="163.5559"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -64,7 +64,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -72,10 +72,10 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(0,-802.36218)">
+     transform="translate(0,-739.86218)">
     <path
        style="fill:#ffffff;fill-opacity:0.56888888;stroke:#ffffff;stroke-width:2.4000001;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:0.6;stroke-dasharray:none"
-       d="m 285,912.48845 0,30 15,0 0,2.47462 15,-17.47462 -15,-17.72716 0,2.72716 z"
+       d="m 360,881.23845 0,30 15,0 0,2.47462 15,-17.47462 -15,-17.72716 0,2.72716 z"
        id="path3811"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccccccc" />
