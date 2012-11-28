@@ -45,8 +45,8 @@ echo '
 	       set arrangement of theViewOptions to not arranged
 	       set icon size of theViewOptions to 128
 	       set background picture of theViewOptions to file ".background:'${BACKGROUND_FILE_NAME}'"
-	       set position of item "'${PACKAGE_NAME}'" of container window to {150, 120}
-	       set position of item "Applications" of container window to {450, 120}
+	       set position of item "'${PACKAGE_NAME}'" of container window to {150, 110}
+	       set position of item "Applications" of container window to {450, 110}
 	       close
 	       open
 	       update without registering applications
