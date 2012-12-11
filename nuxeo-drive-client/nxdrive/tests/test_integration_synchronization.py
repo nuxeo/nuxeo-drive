@@ -116,6 +116,7 @@ def test_binding_initialization_and_first_sync():
     make_server_tree()
     ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
     ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
+    syn = ctl.synchronizer
 
     # The binding operation creates a new local folder with the Workspace name
     # and reproduce the server side structure with folders and empty documents.
@@ -191,7 +192,7 @@ def test_binding_initialization_and_first_sync():
     assert_equal(len(pending), 2)
 
     # Synchronize the first 2 documents:
-    assert_equal(ctl.synchronize(limit=2), 2)
+    assert_equal(syn.synchronize(limit=2), 2)
     pending = ctl.list_pending()
     assert_equal(len(pending), 5)
     assert_equal(pending[0].path, '/Folder 1/Folder 1.1/File 2.txt')
@@ -218,7 +219,7 @@ def test_binding_initialization_and_first_sync():
     assert_equal(states, expected_states)
 
     # synchronize everything else
-    assert_equal(ctl.synchronize(), 5)
+    assert_equal(syn.synchronize(), 5)
     assert_equal(ctl.list_pending(), [])
     states = ctl.children_states(expected_folder)
     expected_states = [
@@ -246,13 +247,13 @@ def test_binding_initialization_and_first_sync():
 
     # Nothing else left to synchronize
     assert_equal(ctl.list_pending(), [])
-    assert_equal(ctl.synchronize(), 0)
+    assert_equal(syn.synchronize(), 0)
     assert_equal(ctl.list_pending(), [])
 
     # Unbind root and resynchronize: smoke test
     ctl.unbind_root(expected_folder)
     assert_equal(ctl.list_pending(), [])
-    assert_equal(ctl.synchronize(), 0)
+    assert_equal(syn.synchronize(), 0)
     assert_equal(ctl.list_pending(), [])
 
 
@@ -260,11 +261,12 @@ def test_binding_initialization_and_first_sync():
 def test_binding_synchronization_empty_start():
     ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
     ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
+    syn = ctl.synchronizer
     expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
 
     # Nothing to synchronize by default
     assert_equal(ctl.list_pending(), [])
-    assert_equal(ctl.synchronize(), 0)
+    assert_equal(syn.synchronize(), 0)
 
     # Let's create some document on the server
     make_server_tree()
@@ -275,7 +277,7 @@ def test_binding_synchronization_empty_start():
 
     # Let's scan manually
     session = ctl.get_session()
-    ctl.scan_remote(expected_folder, session)
+    syn.scan_remote(expected_folder, session)
 
     # Changes on the remote server have been detected...
     assert_equal(len(ctl.list_pending()), 11)
@@ -285,7 +287,7 @@ def test_binding_synchronization_empty_start():
     #assert_equal(ctl.children_states(expected_folder), [])
 
     # Let's perform the synchronization
-    assert_equal(ctl.synchronize(limit=100), 11)
+    assert_equal(syn.synchronize(limit=100), 11)
 
     # We should now be fully synchronized
     assert_equal(len(ctl.list_pending()), 0)
@@ -318,8 +320,8 @@ def test_binding_synchronization_empty_start():
     local.make_folder('/', 'Folder 4')
 
     # Rescan
-    ctl.scan_local(expected_folder, session)
-    ctl.scan_remote(expected_folder, session)
+    syn.scan_local(expected_folder, session)
+    syn.scan_remote(expected_folder, session)
     assert_equal(ctl.children_states(expected_folder), [
         (u'/File 5.txt', u'locally_deleted'),
         (u'/Folder 1', u'children_modified'),
@@ -355,7 +357,7 @@ def test_binding_synchronization_empty_start():
     assert_equal(states, expected_states)
 
     # Perform synchronization
-    assert_equal(ctl.synchronize(limit=100), 10)
+    assert_equal(syn.synchronize(limit=100), 10)
 
     # We should now be fully synchronized again
     assert_equal(len(ctl.list_pending()), 0)
@@ -382,8 +384,8 @@ def test_binding_synchronization_empty_start():
                  "ffff")
 
     # Rescan: no change to detect we should reach a fixpoint
-    ctl.scan_local(expected_folder, session)
-    ctl.scan_remote(expected_folder, session)
+    syn.scan_local(expected_folder, session)
+    syn.scan_remote(expected_folder, session)
     assert_equal(len(ctl.list_pending()), 0)
     assert_equal(ctl.children_states(expected_folder), [
         (u'/Folder 1', 'synchronized'),
@@ -396,9 +398,9 @@ def test_binding_synchronization_empty_start():
     time.sleep(1.0)
     local.update_content('/Folder 1/File 1.txt', "\x80")
     remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', '\x80')
-    ctl.scan_local(expected_folder, session)
-    ctl.scan_remote(expected_folder, session)
-    assert_equal(ctl.synchronize(limit=100), 2)
+    syn.scan_local(expected_folder, session)
+    syn.scan_remote(expected_folder, session)
+    assert_equal(syn.synchronize(limit=100), 2)
     assert_equal(remote_client.get_content('/Folder 1/File 1.txt'), "\x80")
     assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
 
@@ -409,6 +411,7 @@ def test_synchronization_modification_on_created_file():
     # before first upload
     ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
     ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
+    syn = ctl.synchronizer
     expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
     assert_equal(ctl.list_pending(), [])
 
@@ -418,7 +421,7 @@ def test_synchronization_modification_on_created_file():
     local.make_file('/Folder', 'File.txt', content='Some content.')
 
     # First local scan (assuming the network is offline):
-    ctl.scan_local(expected_folder)
+    syn.scan_local(expected_folder)
     assert_equal(len(ctl.list_pending()), 2)
     assert_equal(ctl.children_states(expected_folder), [
         (u'/Folder', 'children_modified'),
@@ -433,7 +436,7 @@ def test_synchronization_modification_on_created_file():
 
     # Let's modify it offline and rescan locally
     local.update_content('/Folder/File.txt', content='Some content.')
-    ctl.scan_local(expected_folder)
+    syn.scan_local(expected_folder)
     assert_equal(len(ctl.list_pending()), 2)
     assert_equal(ctl.children_states(expected_folder), [
         (u'/Folder', u'children_modified'),
@@ -444,7 +447,7 @@ def test_synchronization_modification_on_created_file():
 
     # Assume the computer is back online, the synchronization should occur as if
     # the document was just created and not trigger an update
-    ctl.loop(full_local_scan=True, full_remote_scan=True, delay=0.010,
+    syn.loop(full_local_scan=True, full_remote_scan=True, delay=0.010,
              max_loops=1, fault_tolerant=False)
     assert_equal(len(ctl.list_pending()), 0)
     assert_equal(ctl.children_states(expected_folder), [
@@ -459,10 +462,11 @@ def test_synchronization_modification_on_created_file():
 def test_synchronization_loop():
     ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
     ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
+    syn = ctl.synchronizer
     expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
 
     assert_equal(ctl.list_pending(), [])
-    assert_equal(ctl.synchronize(), 0)
+    assert_equal(syn.synchronize(), 0)
 
     # Let's create some document on the client and the server
     local = LocalClient(expected_folder)
@@ -470,7 +474,7 @@ def test_synchronization_loop():
     make_server_tree()
 
     # Run the full synchronization loop a limited amount of times
-    ctl.loop(full_local_scan=True, full_remote_scan=True, delay=0.010,
+    syn.loop(full_local_scan=True, full_remote_scan=True, delay=0.010,
              max_loops=3, fault_tolerant=False)
 
     # All is synchronized
@@ -487,10 +491,11 @@ def test_synchronization_loop():
 def test_synchronization_offline():
     ctl.bind_server(LOCAL_NXDRIVE_FOLDER, NUXEO_URL, USER, PASSWORD)
     ctl.bind_root(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE)
+    syn = ctl.synchronizer
     expected_folder = os.path.join(LOCAL_NXDRIVE_FOLDER, TEST_WORKSPACE_TITLE)
 
     assert_equal(ctl.list_pending(), [])
-    assert_equal(ctl.synchronize(), 0)
+    assert_equal(syn.synchronize(), 0)
 
     # Let's create some document on the client and the server
     local = LocalClient(expected_folder)
@@ -506,14 +511,14 @@ def test_synchronization_offline():
     for error in errors:
         ctl.make_remote_raise(error)
         # Synchronization does not occur but does not fail either
-        ctl.loop(full_local_scan=True, full_remote_scan=True, delay=0,
+        syn.loop(full_local_scan=True, full_remote_scan=True, delay=0,
                  max_loops=1, fault_tolerant=False)
         # Only the local change has been detected
         assert_equal(len(ctl.list_pending()), 1)
 
     # Reenable network
     ctl.make_remote_raise(None)
-    ctl.loop(full_local_scan=True, full_remote_scan=True, delay=0,
+    syn.loop(full_local_scan=True, full_remote_scan=True, delay=0,
              max_loops=1, fault_tolerant=False)
 
     # All is synchronized

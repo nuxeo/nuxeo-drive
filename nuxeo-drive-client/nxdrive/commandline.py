@@ -322,14 +322,16 @@ class CliHandler(object):
         self.log.debug("Synchronization daemon started.")
 
         fault_tolerant = not getattr(options, 'stop_on_error', True)
-        self.controller.loop(fault_tolerant=fault_tolerant,
-                             delay=getattr(options, 'delay', DEFAULT_DELAY))
+        self.controller.synchronizer.loop(
+            fault_tolerant=fault_tolerant,
+            delay=getattr(options, 'delay', DEFAULT_DELAY))
         return 0
 
     def console(self, options):
         fault_tolerant = not getattr(options, 'stop_on_error', True)
-        self.controller.loop(fault_tolerant=fault_tolerant,
-                             delay=getattr(options, 'delay', DEFAULT_DELAY))
+        self.controller.synchronizer.loop(
+            fault_tolerant=fault_tolerant,
+            delay=getattr(options, 'delay', DEFAULT_DELAY))
         return 0
 
     def stop(self, options=None):

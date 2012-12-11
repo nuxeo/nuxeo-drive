@@ -68,7 +68,7 @@ class BindingInfo(object):
 def sync_loop(controller, **kwargs):
     """Wrapper to log uncaught exception in the sync thread"""
     try:
-        controller.loop(**kwargs)
+        controller.synchronizer.loop(**kwargs)
     except Exception, e:
         log.error("Error in synchronization thread: %s", e, exc_info=True)
 

@@ -12,7 +12,7 @@ from nose.tools import assert_true
 from nose.tools import assert_false
 from nose.tools import assert_raises
 from nxdrive.controller import Controller
-from nxdrive.controller import WindowsError
+from nxdrive.synchronizer import WindowsError
 from nxdrive.client import NuxeoDocumentInfo
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
@@ -187,6 +187,7 @@ def test_local_scan():
                     'username', 'secret')
     ctl.bind_root(TEST_SYNCED_FOLDER, 'folder_1-nuxeo-ref')
     ctl.bind_root(TEST_SYNCED_FOLDER, 'folder_2-nuxeo-ref')
+    syn = ctl.synchronizer
     root_1 = join(TEST_SYNCED_FOLDER, 'Folder 1')
     root_2 = join(TEST_SYNCED_FOLDER, 'Folder 2')
 
@@ -209,11 +210,11 @@ def test_local_scan():
 
     # Scanning the other root will not updated the first root states.
     session = ctl.get_session()
-    ctl.scan_local(root_2, session)
+    syn.scan_local(root_2, session)
     assert_equal(ctl.children_states(root_1), [])
 
     # Scanning root_1 will find the changes
-    ctl.scan_local(root_1, session)
+    syn.scan_local(root_1, session)
     assert_equal(ctl.children_states(root_1), [
         (u'/File 1.txt', u'unknown'),
         (u'/Folder 3', 'children_modified'),
@@ -246,7 +247,7 @@ def test_local_scan():
     ])
 
     # Let's scan again
-    ctl.scan_local(root_1, session)
+    syn.scan_local(root_1, session)
     assert_equal(ctl.children_states(root_1), [
         (u'/Folder 3', 'children_modified'),
     ])
@@ -259,7 +260,7 @@ def test_local_scan():
     # Delete the toplevel folder that has not been synchronised to the
     # server
     client_1.delete('/Folder 3')
-    ctl.scan_local(root_1, session)
+    syn.scan_local(root_1, session)
     assert_equal(ctl.children_states(root_1), [])
     assert_equal(ctl.children_states(folder_3_abs), [])
 
