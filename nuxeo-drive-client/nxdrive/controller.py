@@ -3,7 +3,6 @@
 import os
 import sys
 from threading import local
-import urllib2
 import subprocess
 
 from sqlalchemy.orm.exc import NoResultFound
@@ -116,7 +115,7 @@ class Controller(object):
         the stop message between the two.
 
         """
-        pid = self.check_running(process_name="sync")
+        pid = self.synchronizer.check_running(process_name="sync")
         if pid is not None:
             # Create a stop file marker for the running synchronization
             # process
