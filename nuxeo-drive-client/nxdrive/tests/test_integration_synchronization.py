@@ -76,10 +76,14 @@ def setup_integration_env():
 
 def teardown_integration_env():
     if ctl is not None:
+        ctl.unbind_all()
         ctl.dispose()
 
     if remote_client is not None and remote_client.exists(TEST_WORKSPACE):
         remote_client.delete(TEST_WORKSPACE, use_trash=False)
+
+    if remote_client is not None:
+        remote_client.revoke_token()
 
     if os.path.exists(LOCAL_TEST_FOLDER):
         shutil.rmtree(LOCAL_TEST_FOLDER)

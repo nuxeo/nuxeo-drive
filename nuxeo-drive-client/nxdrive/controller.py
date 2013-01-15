@@ -328,6 +328,15 @@ class Controller(object):
         session.delete(binding)
         session.commit()
 
+    def unbind_all(self):
+        """Unbind all server and revoke all tokens
+
+        This is useful for cleanup in integration test code.
+        """
+        session = self.get_session()
+        for sb in session.query(ServerBinding).all():
+            self.unbind_server(sb.local_folder)
+
     def get_root_binding(self, local_root, raise_if_missing=False,
                          session=None):
         """Find the RootBinding instance for a given local_root
