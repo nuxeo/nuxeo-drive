@@ -368,13 +368,14 @@ class NuxeoClient(object):
             self.auth[0]: self.auth[1],
         }
 
-    def request_token(self):
+    def request_token(self, revoke=False):
         """Request and return a new token for the user"""
 
         parameters = {
             'deviceId': self.device_id,
             'applicationName': self.application_name,
             'permission': self.permission,
+            'revoke': 'true' if revoke else 'false',
         }
         device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
         if device_description:
@@ -406,8 +407,12 @@ class NuxeoClient(object):
                 e.msg = base_error_message + ": " + e.msg
             raise
         # Use the (potentially re-newed) token from now on
-        self._update_auth(token=token)
+        if not revoke:
+            self._update_auth(token=token)
         return token
+
+    def revoke_token(self):
+        self.request_token(revoke=True)
 
     def fetch_api(self):
         headers = self._get_common_headers()

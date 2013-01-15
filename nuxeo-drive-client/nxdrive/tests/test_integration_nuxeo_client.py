@@ -46,6 +46,7 @@ def setup_integration_server():
 def teardown_integration_server():
     if nxclient is not None and nxclient.exists(TEST_WORKSPACE):
         nxclient.delete(TEST_WORKSPACE, use_trash=False)
+        nxclient.revoke_token()
 
 
 with_integration_server = with_setup(
@@ -111,6 +112,10 @@ def test_make_token():
                             'other-test-device', password=password, base_folder='/')
     token4 = nxclient4.request_token()
     assert_not_equal(token, token4)
+
+    # A client can revoke a token explicitly and thus loose credentials
+    nxclient4.revoke_token()
+    assert_raises(IOError, nxclient4.get_roots)
 
 
 def wait_for_deletion(client, doc, retries_left=10, delay=0.300,

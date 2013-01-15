@@ -313,6 +313,16 @@ class Controller(object):
         local_folder = os.path.abspath(os.path.expanduser(local_folder))
         binding = self.get_server_binding(local_folder, raise_if_missing=True,
                                           session=session)
+        if binding.remote_token is not None:
+            nxclient = self.nuxeo_client_factory(
+                    binding.server_url,
+                    binding.remote_user,
+                    self.device_id,
+                    token=binding.remote_token)
+            log.info("Revoking token for '%s' with account '%s'",
+                     binding.server_url, binding.remote_user)
+            nxclient.revoke_token()
+
         log.info("Unbinding '%s' from '%s' with account '%s'",
                  local_folder, binding.server_url, binding.remote_user)
         session.delete(binding)

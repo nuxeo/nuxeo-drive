@@ -120,6 +120,9 @@ class FakeNuxeoClient(object):
         # Dummy token impl that satisfy the idempotence assumption
         return self.user_id + "-" + self.device_id
 
+    def revoke_token(self):
+        pass
+
 
 @with_setup(setup, teardown)
 def test_bindings():
