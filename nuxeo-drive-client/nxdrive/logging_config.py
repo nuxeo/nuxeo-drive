@@ -67,7 +67,6 @@ def configure(log_filename, file_level='INFO', console_level='INFO',
 
 
 def get_logger(name):
-    global _command_name
     logger = logging.getLogger(name)
     trace = lambda *args, **kwargs: logger.log(TRACE, *args, **kwargs)
     setattr(logger, 'trace', trace)
