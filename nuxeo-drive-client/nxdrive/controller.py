@@ -10,7 +10,7 @@ from sqlalchemy import asc
 from sqlalchemy import or_
 
 import nxdrive
-from nxdrive.client import NuxeoClient
+from nxdrive.client import NuxeoClient, Unauthorized
 from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
@@ -314,15 +314,18 @@ class Controller(object):
         binding = self.get_server_binding(local_folder, raise_if_missing=True,
                                           session=session)
         if binding.remote_token is not None:
-            nxclient = self.nuxeo_client_factory(
-                    binding.server_url,
-                    binding.remote_user,
-                    self.device_id,
-                    token=binding.remote_token)
-            log.info("Revoking token for '%s' with account '%s'",
-                     binding.server_url, binding.remote_user)
-            nxclient.revoke_token()
-
+            try:
+                nxclient = self.nuxeo_client_factory(
+                        binding.server_url,
+                        binding.remote_user,
+                        self.device_id,
+                        token=binding.remote_token)
+                log.info("Revoking token for '%s' with account '%s'",
+                         binding.server_url, binding.remote_user)
+                nxclient.revoke_token()
+            except Unauthorized:
+                log.warning("Could not connect to server '%s' to revoke token",
+                            binding.server_url)
         log.info("Unbinding '%s' from '%s' with account '%s'",
                  local_folder, binding.server_url, binding.remote_user)
         session.delete(binding)
