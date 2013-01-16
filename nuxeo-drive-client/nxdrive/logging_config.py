@@ -52,9 +52,8 @@ def configure(log_filename, file_level='INFO', console_level='INFO',
     console_handler.setLevel(console_level)
 
     # define the formatter
-    # TODO: add filter for process name and update format
     formatter = logging.Formatter(
-        "%(asctime)s %(process)d %(thread)d %(command)-13s %(levelname)-8s %(name)-18s"
+        "%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s"
         " %(message)s"
     )
 
@@ -70,7 +69,6 @@ def configure(log_filename, file_level='INFO', console_level='INFO',
 def get_logger(name):
     global _command_name
     logger = logging.getLogger(name)
-    logger = logging.LoggerAdapter(logger, _logging_context)
     trace = lambda *args, **kwargs: logger.log(TRACE, *args, **kwargs)
     setattr(logger, 'trace', trace)
     return logger
