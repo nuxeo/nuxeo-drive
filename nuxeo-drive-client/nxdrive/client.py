@@ -142,7 +142,7 @@ DEFAULT_IGNORED_SUFFIXES = [
 class LocalClient(object):
     """Client API implementation for the local file system"""
 
-    # TODO: initialize the prefixes and sufffix with a dedicated Nuxeo
+    # TODO: initialize the prefixes and suffix with a dedicated Nuxeo
     # Automation operations fetched at controller init time.
 
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,

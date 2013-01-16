@@ -175,7 +175,7 @@ class LastKnownState(Base):
     remote_state = Column(String)
     pair_state = Column(String, index=True)
 
-    # Track move operations to avoid loosing history
+    # Track move operations to avoid losing history
     locally_moved_from = Column(String)
     locally_moved_to = Column(String)
     remotely_moved_from = Column(String)
@@ -240,6 +240,8 @@ class LastKnownState(Base):
             return
 
         if self.path is None:
+            # This state only has a remote info and this is the first time
+            # we update the local info from the file system
             self.path = local_info.path
             if self.path != '/':
                 self.local_name = os.path.basename(local_info.path)
