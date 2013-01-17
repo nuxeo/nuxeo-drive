@@ -79,4 +79,24 @@ class IntegrationTestCase(unittest.TestCase):
             LastKnownState).order_by(LastKnownState.path).all()
         return [(p.path, p.local_state, p.remote_state) for p in pairs]
 
+    def make_server_tree(self):
+        remote_client = self.remote_client
+        # create some folders on the server
+        folder_1 = remote_client.make_folder(self.workspace, 'Folder 1')
+        folder_1_1 = remote_client.make_folder(folder_1, 'Folder 1.1')
+        folder_1_2 = remote_client.make_folder(folder_1, 'Folder 1.2')
+        folder_2 = remote_client.make_folder(self.workspace, 'Folder 2')
+
+        # create some files on the server
+        remote_client.make_file(folder_2, 'Duplicated File.txt',
+                                content="Some content.")
+        remote_client.make_file(folder_2, 'Duplicated File.txt',
+                                content="Other content.")
+
+        remote_client.make_file(folder_1, 'File 1.txt', content="aaa")
+        remote_client.make_file(folder_1_1, 'File 2.txt', content="bbb")
+        remote_client.make_file(folder_1_2, 'File 3.txt', content="ccc")
+        remote_client.make_file(folder_2, 'File 4.txt', content="ddd")
+        remote_client.make_file(self.workspace, 'File 5.txt', content="eee")
+
 
