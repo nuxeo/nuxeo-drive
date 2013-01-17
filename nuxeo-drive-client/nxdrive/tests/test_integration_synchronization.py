@@ -1,89 +1,15 @@
-import unittest
-import hashlib
 import os
-import shutil
-import tempfile
 import time
 import urllib2
 import socket
 import httplib
 from nose.tools import assert_equal
 
-from nxdrive.model import LastKnownState
-from nxdrive.client import NuxeoClient
+from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
-from nxdrive.controller import Controller
 
 
-TEST_WORKSPACE_PATH = '/default-domain/workspaces/test-nxdrive'
-TEST_WORKSPACE_TITLE = 'Nuxeo Drive Tests'
-
-EMPTY_DIGEST = hashlib.md5().hexdigest()
-SOME_TEXT_CONTENT = "Some text content."
-SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
-
-
-def get_all_states(session):
-    """Utility to quickly introspect the current known states"""
-    pairs = session.query(
-        LastKnownState).order_by(LastKnownState.path).all()
-    return [(p.path, p.local_state, p.remote_state) for p in pairs]
-
-
-class TestIntegrationSynchronization(unittest.TestCase):
-
-    def setUp(self):
-        # Check the Nuxeo server test environment
-        self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
-        self.user = os.environ.get('NXDRIVE_TEST_USER')
-        self.password = os.environ.get('NXDRIVE_TEST_PASSWORD')
-        if None in (self.nuxeo_url, self.user, self.password):
-            raise unittest.SkipTest(
-                "No integration server configuration found in environment.")
-
-        parent_path = os.path.dirname(TEST_WORKSPACE_PATH)
-        workspace_name = os.path.basename(TEST_WORKSPACE_PATH)
-        root_remote_client = NuxeoClient(
-            self.nuxeo_url, self.user, 'test-device',
-            self.password, base_folder='/')
-
-        self.workspace = root_remote_client.create(
-            parent_path, 'Workspace', name=workspace_name,
-            properties={'dc:title': TEST_WORKSPACE_TITLE})[u'uid']
-
-        # Client to be use to create remote test documents and folders
-        remote_client = NuxeoClient(self.nuxeo_url, self.user, 'test-device',
-                                    self.password, base_folder=self.workspace)
-
-        # Check the local filesystem test environment
-        self.local_test_folder = tempfile.mkdtemp('-nuxeo-drive-tests')
-
-        self.local_nxdrive_folder = os.path.join(
-            self.local_test_folder, 'Nuxeo Drive')
-        os.mkdir(self.local_nxdrive_folder)
-
-        LOCAL_NXDRIVE_CONF_FOLDER = os.path.join(
-            self.local_test_folder, 'nuxeo-drive-conf')
-        os.mkdir(LOCAL_NXDRIVE_CONF_FOLDER)
-
-        self.ctl = Controller(LOCAL_NXDRIVE_CONF_FOLDER)
-        self.remote_client = remote_client
-
-    def tearDown(self):
-        remote_client = self.remote_client
-        ctl = self.ctl
-        if ctl is not None:
-            ctl.unbind_all()
-            ctl.dispose()
-
-        if remote_client is not None and remote_client.exists(self.workspace):
-            remote_client.delete(self.workspace, use_trash=False)
-
-        if remote_client is not None:
-            remote_client.revoke_token()
-
-        if os.path.exists(self.local_test_folder):
-            shutil.rmtree(self.local_test_folder)
+class TestIntegrationSynchronization(IntegrationTestCase):
 
     def make_server_tree(self):
         remote_client = self.remote_client
@@ -114,12 +40,11 @@ class TestIntegrationSynchronization(unittest.TestCase):
                         self.user, self.password)
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
-        session = ctl.get_session()
 
         # The binding operation creates a new local folder with the Workspace name
         # and scan both sides (server and local independently)
         expected_folder = os.path.join(self.local_nxdrive_folder,
-                                       TEST_WORKSPACE_TITLE)
+                                       self.TEST_WORKSPACE_TITLE)
         local = LocalClient(expected_folder)
         assert_equal(len(local.get_children_info('/')), 0)
 
@@ -129,7 +54,7 @@ class TestIntegrationSynchronization(unittest.TestCase):
         assert_equal(states, [])
 
         # However some (unaligned data has already been scanned)
-        assert_equal(len(get_all_states(session)), 12)
+        assert_equal(len(self.get_all_states()), 12)
 
         # Check the list of files and folders with synchronization pending
         pending = ctl.list_pending()
@@ -227,7 +152,7 @@ class TestIntegrationSynchronization(unittest.TestCase):
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder,
-                                       TEST_WORKSPACE_TITLE)
+                                       self.TEST_WORKSPACE_TITLE)
 
         # Nothing to synchronize by default
         assert_equal(ctl.list_pending(), [])
@@ -378,7 +303,7 @@ class TestIntegrationSynchronization(unittest.TestCase):
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder,
-                                       TEST_WORKSPACE_TITLE)
+                                       self.TEST_WORKSPACE_TITLE)
         assert_equal(ctl.list_pending(), [])
 
         # Let's create some document on the client and the server
@@ -430,7 +355,7 @@ class TestIntegrationSynchronization(unittest.TestCase):
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder,
-                                       TEST_WORKSPACE_TITLE)
+                                       self.TEST_WORKSPACE_TITLE)
 
         assert_equal(ctl.list_pending(), [])
         assert_equal(syn.synchronize(), 0)
@@ -460,7 +385,7 @@ class TestIntegrationSynchronization(unittest.TestCase):
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder,
-                                       TEST_WORKSPACE_TITLE)
+                                       self.TEST_WORKSPACE_TITLE)
 
         assert_equal(ctl.list_pending(), [])
         assert_equal(syn.synchronize(), 0)
@@ -505,10 +430,9 @@ class TestIntegrationSynchronization(unittest.TestCase):
                         self.user, self.password)
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
-        session = ctl.get_session()
 
         expected_folder = os.path.join(self.local_nxdrive_folder,
-                                       TEST_WORKSPACE_TITLE)
+                                       self.TEST_WORKSPACE_TITLE)
 
         assert_equal(ctl.list_pending(), [])
 
@@ -521,7 +445,7 @@ class TestIntegrationSynchronization(unittest.TestCase):
                  max_loops=1, fault_tolerant=False)
         assert_equal(len(ctl.list_pending()), 0)
 
-        assert_equal(get_all_states(session), [
+        assert_equal(self.get_all_states(), [
             (u'/', u'synchronized', u'synchronized'),
             (u'/File 5.txt', u'synchronized', u'synchronized'),
             (u'/Folder 1', u'synchronized', u'synchronized'),
@@ -540,7 +464,7 @@ class TestIntegrationSynchronization(unittest.TestCase):
 
         # Unbind: the state database is emptied
         ctl.unbind_server(self.local_nxdrive_folder)
-        assert_equal(get_all_states(session), [])
+        assert_equal(self.get_all_states(), [])
 
         # Previously synchronized files are still there, untouched
         assert_equal(len(local.get_children_info('/')), 4)
@@ -553,7 +477,7 @@ class TestIntegrationSynchronization(unittest.TestCase):
         # Check that the bind that occurrs right after the bind automatically
         # detects the file alignments and hence everything is synchronized without
         assert_equal(len(ctl.list_pending()), 0)
-        assert_equal(get_all_states(session), [
+        assert_equal(self.get_all_states(), [
             (u'/', u'synchronized', u'synchronized'),
             (u'/File 5.txt', u'synchronized', u'synchronized'),
             (u'/Folder 1', u'synchronized', u'synchronized'),
