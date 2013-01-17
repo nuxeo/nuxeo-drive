@@ -25,6 +25,7 @@ log = get_logger(__name__)
 # Make the following an optional binding configuration
 FILE_TYPE = 'File'
 FOLDER_TYPE = 'Folder'
+DEDUPED_BASENAME_PATTERN = r'^(.*)__(\d{1,3})$'
 
 BUFFER_SIZE = 1024 ** 2
 MAX_CHILDREN = 1000
@@ -267,11 +268,7 @@ class LocalClient(object):
         name = safe_filename(orig_name)
 
         # decompose the name into actionable components
-        if "." in name:
-            name, extension = name.rsplit('.', 1)
-            suffix = "." + extension
-        else:
-            name, suffix = name, ""
+        name, suffix = os.path.splitext(name)
 
         for _ in range(1000):
             os_path = self._abspath(os.path.join(parent, name + suffix))
@@ -279,7 +276,7 @@ class LocalClient(object):
                 return os_path, name + suffix
 
             # the is a duplicated file, try to come with a new name
-            m = re.match(r'(.*)__(\d)', name)
+            m = re.match(DEDUPED_BASENAME_PATTERN, name)
             if m:
                 short_name, increment = m.groups()
                 name = "%s__%d" % (short_name, int(increment) + 1)

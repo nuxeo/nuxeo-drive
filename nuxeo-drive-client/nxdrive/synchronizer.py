@@ -1,4 +1,5 @@
 """Handle synchronization logic."""
+import re
 import os
 import os.path
 from time import time
@@ -10,6 +11,8 @@ import httplib
 from sqlalchemy import not_
 import psutil
 
+from nxdrive.client import DEDUPED_BASENAME_PATTERN
+from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
 from nxdrive.model import ServerBinding
@@ -44,9 +47,44 @@ def _log_offline(exception, context):
     log.trace(msg)
 
 
+def name_match(local_name, remote_name):
+    """Return true if local_name is a possible match with remote_name"""
+    # Nuxeo document titles can have unsafe characters:
+    remote_name = safe_filename(remote_name)
+
+    local_base, local_ext = os.path.splitext(local_name)
+    remote_base, remote_ext = os.path.splitext(remote_name)
+    if remote_ext != local_ext:
+        return False
+
+    m = re.match(DEDUPED_BASENAME_PATTERN, local_base)
+    if m:
+        # The local file name seems to result from a deduplication, let's
+        # ignore the increment data and just consider the base local name
+        local_base, _ = m.groups()
+    return local_base == remote_base
+
+
+def find_first_name_match(name, possible_pairs):
+    """Select the first pair that can match the provided name"""
+
+    for pair in possible_pairs:
+        if pair.local_name is not None and pair.remote_name is not None:
+            # This pair already links a non null local and remote resource
+            log.warning("Possible pair %r has both local and remote info",
+                        pair)
+            continue
+        if pair.local_name is not None:
+            if name_match(pair.local_name, name):
+                return pair
+        elif pair.remote_name is not None:
+            if name_match(name, pair.remote_name):
+                return pair
+    return None
+
+
 class Synchronizer(object):
     """Handle synchronization operations between the client FS and Nuxeo"""
-
 
     def __init__(self, controller):
         self._controller = controller
@@ -128,20 +166,21 @@ class Synchronizer(object):
                 local_root=local_root,
                 path=child_info.path).first()
 
-            if child_pair is None:
+            if child_pair is None and not child_info.folderish:
                 # Try to find an existing remote doc that has not yet been
                 # bound to any local file that would align with both name
                 # and digest
                 try:
                     child_digest = child_info.get_digest()
-                    child_pair = session.query(LastKnownState).filter_by(
+                    possible_pairs = session.query(LastKnownState).filter_by(
                         local_root=local_root,
                         path=None,
                         remote_parent_ref=doc_pair.remote_ref,
-                        remote_name=child_name,
                         folderish=child_info.folderish,
                         remote_digest=child_digest,
-                    ).first()
+                    ).all()
+                    child_pair = find_first_name_match(
+                        child_name, possible_pairs)
                 except (IOError, WindowsError):
                     # The file is currently being accessed and we cannot
                     # compute the digest
@@ -151,13 +190,13 @@ class Synchronizer(object):
 
             if child_pair is None:
                 # Previous attempt has failed: relax the digest constraint
-                child_pair = session.query(LastKnownState).filter_by(
+                possible_pairs = session.query(LastKnownState).filter_by(
                     local_root=local_root,
                     path=None,
                     remote_parent_ref=doc_pair.remote_ref,
-                    remote_name=child_name,
                     folderish=child_info.folderish,
-                ).first()
+                ).all()
+                child_pair = find_first_name_match(child_name, possible_pairs)
 
             if child_pair is None:
                 # Could not find any pair state to align to, create one
@@ -246,28 +285,28 @@ class Synchronizer(object):
                 local_root=local_root,
                 remote_ref=child_info.uid).first()
 
-            if child_pair is None:
+            if child_pair is None and not child_info.folderish:
                 # Try to find an existing local doc that has not yet been
                 # bound to any remote file that would align with both name
                 # and digest
-                child_pair = session.query(LastKnownState).filter_by(
+                possible_pairs = session.query(LastKnownState).filter_by(
                     local_root=local_root,
                     remote_ref=None,
                     parent_path=doc_pair.path,
-                    local_name=child_name,
                     folderish=child_info.folderish,
                     local_digest=child_info.get_digest(),
-                ).first()
+                ).all()
+                child_pair = find_first_name_match(child_name, possible_pairs)
 
             if child_pair is None:
                 # Previous attempt has failed: relax the digest constraint
-                child_pair = session.query(LastKnownState).filter_by(
+                possible_pairs = session.query(LastKnownState).filter_by(
                     local_root=local_root,
                     remote_ref=None,
                     parent_path=doc_pair.path,
-                    local_name=child_name,
                     folderish=child_info.folderish,
-                ).first()
+                ).all()
+                child_pair = find_first_name_match(child_name, possible_pairs)
 
             if child_pair is None:
                 # Could not find any pair state to align to, create one
@@ -446,7 +485,7 @@ class Synchronizer(object):
                 log.warning(
                     "Parent folder of doc %r (%r:%r) is not bound to a local"
                     " folder",
-                    name, doc_pair.remote_repo, doc_pair.remote_ref)
+                    name, doc_pair.root_binding.remote_repo, doc_pair.remote_ref)
                 # Inconsistent state: delete and let the next scan redetect for
                 # now
                 # TODO: how to handle this case in incremental mode?

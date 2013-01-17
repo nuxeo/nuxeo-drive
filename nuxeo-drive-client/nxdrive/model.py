@@ -200,8 +200,17 @@ class LastKnownState(Base):
             self.local_state = local_state
         if remote_state is not None:
             self.remote_state = remote_state
+
+        # Detect heuristically aligned situations
+        if (self.path is not None and self.remote_ref is not None
+            and self.local_state == self.remote_state == 'unknown'):
+            if self.folderish or self.local_digest == self.remote_digest:
+                self.local_state = 'synchronized'
+                self.remote_state = 'synchronized'
+
         pair = (self.local_state, self.remote_state)
         self.pair_state = PAIR_STATES.get(pair, 'unknown')
+
 
     def __repr__(self):
         return ("LastKnownState<local_root=%r, path=%r, "
@@ -239,6 +248,8 @@ class LastKnownState(Base):
                 self.local_digest = None
             return
 
+        local_state = None
+
         if self.path is None:
             # This state only has a remote info and this is the first time
             # we update the local info from the file system
@@ -270,7 +281,7 @@ class LastKnownState(Base):
                 # The time stamp of folderish folder seems to be updated when
                 # children are added under Linux? Is this the same under OSX
                 # and Windows?
-                self.update_state(local_state='modified')
+                local_state = 'modified'
             update_digest = True
 
         if update_digest:
@@ -285,8 +296,7 @@ class LastKnownState(Base):
 
         # XXX: shall we store local_folderish and remote_folderish to
         # detect such kind of conflicts instead?
-
-        # else: nothing to do
+        self.update_state(local_state=local_state)
 
     def refresh_remote(self, client=None):
         """Update the state from the remote server info.
@@ -310,6 +320,7 @@ class LastKnownState(Base):
                 self.remote_digest = None
             return
 
+        remote_state = None
         if self.remote_ref is None:
             self.remote_ref = remote_info.uid
             self.remote_parent_ref = remote_info.parent_uid
@@ -320,22 +331,19 @@ class LastKnownState(Base):
             raise ValueError("State %r cannot be mapped to remote doc %r" % (
                 self, remote_info.name))
 
+        # Use last known modification time to detect updates
         if self.last_remote_updated is None:
             self.last_remote_updated = remote_info.last_modification_time
-            self.remote_digest = remote_info.get_digest()
-            self.folderish = remote_info.folderish
-            self.remote_name = remote_info.name
-            self.remote_path = remote_info.path
-
         elif remote_info.last_modification_time > self.last_remote_updated:
             self.last_remote_updated = remote_info.last_modification_time
-            self.update_state(remote_state='modified')
-            self.remote_digest = remote_info.get_digest()
-            self.folderish = remote_info.folderish
-            self.remote_name = remote_info.name
-            self.remote_path = remote_info.path
+            remote_state = 'modified'
 
-        # else: nothing to update
+        # Update the remaining metadata
+        self.remote_digest = remote_info.get_digest()
+        self.folderish = remote_info.folderish
+        self.remote_name = remote_info.name
+        self.remote_path = remote_info.path
+        self.update_state(remote_state=remote_state)
 
     def get_local_abspath(self):
         relative_path = self.path[1:].replace('/', os.path.sep)
