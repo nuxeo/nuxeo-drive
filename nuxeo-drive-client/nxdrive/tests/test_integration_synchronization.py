@@ -11,12 +11,12 @@ from nxdrive.client import LocalClient
 class TestIntegrationSynchronization(IntegrationTestCase):
 
     def test_binding_initialization_and_first_sync(self):
-        ctl = self.ctl
+        ctl = self.controller_1
         # Create some documents in a Nuxeo workspace and bind this server to a
         # Nuxeo Drive local folder
         self.make_server_tree()
         ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
-                        self.user, self.password)
+                        self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
 
@@ -125,10 +125,10 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(ctl.list_pending(), [])
 
     def test_binding_synchronization_empty_start(self):
-        ctl = self.ctl
-        remote_client = self.remote_client
+        ctl = self.controller_1
+        remote_client = self.remote_client_1
         ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
-                        self.user, self.password)
+                        self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder,
@@ -275,11 +275,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
 
     def test_synchronization_modification_on_created_file(self):
-        ctl = self.ctl
+        ctl = self.controller_1
         # Regression test: a file is created locally, then modification is detected
         # before first upload
         ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
-                        self.user, self.password)
+                        self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder,
@@ -329,9 +329,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ])
 
     def test_synchronization_loop(self):
-        ctl = self.ctl
+        ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
-                        self.user, self.password)
+                        self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder,
@@ -359,9 +359,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ])
 
     def test_synchronization_offline(self):
-        ctl = self.ctl
+        ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
-                        self.user, self.password)
+                        self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder,
@@ -405,9 +405,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
     def test_rebind_without_duplication(self):
         """Check that rebinding an existing folder will not duplicate everything"""
-        ctl = self.ctl
+        ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
-                        self.user, self.password)
+                        self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
         syn = ctl.synchronizer
 
@@ -451,7 +451,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Lets rebind the same folder to the same workspace
         ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
-                        self.user, self.password)
+                        self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder, self.workspace)
 
         # Check that the bind that occurrs right after the bind automatically
