@@ -25,9 +25,11 @@ class IntegrationTestCase(unittest.TestCase):
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD')
 
-        # TODO: use a different user for the actual client
+        # TODO: use different users for the actual clients
         self.user_1 = self.admin_user
         self.password_1 = self.password
+        self.user_2 = self.admin_user
+        self.password_2 = self.password
 
         if None in (self.nuxeo_url, self.admin_user, self.password):
             raise unittest.SkipTest(
@@ -47,41 +49,56 @@ class IntegrationTestCase(unittest.TestCase):
         remote_client_1 = NuxeoClient(self.nuxeo_url, self.user_1, 'test-device-1',
                                     self.password_1, base_folder=self.workspace)
 
+        remote_client_2 = NuxeoClient(self.nuxeo_url, self.user_2, 'test-device-2',
+                                    self.password_2, base_folder=self.workspace)
+
         # Check the local filesystem test environment
-        self.local_test_folder = tempfile.mkdtemp('-nuxeo-drive-tests')
+        self.local_test_folder_1 = tempfile.mkdtemp('-nuxeo-drive-tests-user-1')
+        self.local_test_folder_2 = tempfile.mkdtemp('-nuxeo-drive-tests-user-2')
 
-        self.local_nxdrive_folder = os.path.join(
-            self.local_test_folder, 'Nuxeo Drive')
-        os.mkdir(self.local_nxdrive_folder)
+        self.local_nxdrive_folder_1 = os.path.join(
+            self.local_test_folder_1, 'Nuxeo Drive')
+        os.mkdir(self.local_nxdrive_folder_1)
+        self.local_nxdrive_folder_2 = os.path.join(
+            self.local_test_folder_2, 'Nuxeo Drive')
+        os.mkdir(self.local_nxdrive_folder_2)
 
-        nxdrive_conf_folder = os.path.join(
-            self.local_test_folder, 'nuxeo-drive-conf')
-        os.mkdir(nxdrive_conf_folder)
+        nxdrive_conf_folder_1 = os.path.join(
+            self.local_test_folder_1, 'nuxeo-drive-conf')
+        os.mkdir(nxdrive_conf_folder_1)
 
-        self.controller_1 = Controller(nxdrive_conf_folder)
+        nxdrive_conf_folder_2 = os.path.join(
+            self.local_test_folder_2, 'nuxeo-drive-conf')
+        os.mkdir(nxdrive_conf_folder_2)
+
+        self.controller_1 = Controller(nxdrive_conf_folder_1)
+        self.controller_2 = Controller(nxdrive_conf_folder_2)
         self.remote_client_1 = remote_client_1
+        self.remote_client_2 = remote_client_2
 
     def tearDown(self):
-        remote_client = self.remote_client_1
-        ctl = self.controller_1
-        if ctl is not None:
-            ctl.unbind_all()
-            ctl.dispose()
+        if self.controller_1 is not None:
+            self.controller_1.unbind_all()
+            self.controller_1.dispose()
 
-        if remote_client is not None and remote_client.exists(self.workspace):
-            remote_client.delete(self.workspace, use_trash=False)
+        if (self.remote_client_1 is not None
+            and self.remote_client_1.exists(self.workspace)):
+            self.remote_client_1.delete(self.workspace, use_trash=False)
 
-        if remote_client is not None:
-            remote_client.revoke_token()
+        if self.remote_client_1 is not None:
+            self.remote_client_1.revoke_token()
 
-        if os.path.exists(self.local_test_folder):
-            shutil.rmtree(self.local_test_folder)
+        if os.path.exists(self.local_test_folder_1):
+            shutil.rmtree(self.local_test_folder_1)
+
+        if os.path.exists(self.local_test_folder_2):
+            shutil.rmtree(self.local_test_folder_2)
 
     def get_all_states(self, session=None):
         """Utility to quickly introspect the current known states"""
-        session = session if session is not None else self.controller_1.get_session()
-        pairs = self.controller_1.get_session().query(
-            LastKnownState).order_by(LastKnownState.path).all()
+        if session is None:
+            session = self.controller_1.get_session()
+        pairs = session.query(LastKnownState).order_by(LastKnownState.path).all()
         return [(p.path, p.local_state, p.remote_state) for p in pairs]
 
     def make_server_tree(self):

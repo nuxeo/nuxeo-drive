@@ -15,14 +15,14 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Create some documents in a Nuxeo workspace and bind this server to a
         # Nuxeo Drive local folder
         self.make_server_tree()
-        ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder, self.workspace)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
 
         # The binding operation creates a new local folder with the Workspace name
         # and scan both sides (server and local independently)
-        expected_folder = os.path.join(self.local_nxdrive_folder,
+        expected_folder = os.path.join(self.local_nxdrive_folder_1,
                                        self.TEST_WORKSPACE_TITLE)
         local = LocalClient(expected_folder)
         self.assertEquals(len(local.get_children_info('/')), 0)
@@ -127,11 +127,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
     def test_binding_synchronization_empty_start(self):
         ctl = self.controller_1
         remote_client = self.remote_client_1
-        ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder, self.workspace)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
-        expected_folder = os.path.join(self.local_nxdrive_folder,
+        expected_folder = os.path.join(self.local_nxdrive_folder_1,
                                        self.TEST_WORKSPACE_TITLE)
 
         # Nothing to synchronize by default
@@ -278,11 +278,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl = self.controller_1
         # Regression test: a file is created locally, then modification is detected
         # before first upload
-        ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder, self.workspace)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
-        expected_folder = os.path.join(self.local_nxdrive_folder,
+        expected_folder = os.path.join(self.local_nxdrive_folder_1,
                                        self.TEST_WORKSPACE_TITLE)
         self.assertEquals(ctl.list_pending(), [])
 
@@ -330,11 +330,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
     def test_synchronization_loop(self):
         ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder, self.workspace)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
-        expected_folder = os.path.join(self.local_nxdrive_folder,
+        expected_folder = os.path.join(self.local_nxdrive_folder_1,
                                        self.TEST_WORKSPACE_TITLE)
 
         self.assertEquals(ctl.list_pending(), [])
@@ -360,11 +360,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
     def test_synchronization_offline(self):
         ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder, self.workspace)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
-        expected_folder = os.path.join(self.local_nxdrive_folder,
+        expected_folder = os.path.join(self.local_nxdrive_folder_1,
                                        self.TEST_WORKSPACE_TITLE)
 
         self.assertEquals(ctl.list_pending(), [])
@@ -406,12 +406,12 @@ class TestIntegrationSynchronization(IntegrationTestCase):
     def test_rebind_without_duplication(self):
         """Check that rebinding an existing folder will not duplicate everything"""
         ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder, self.workspace)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
 
-        expected_folder = os.path.join(self.local_nxdrive_folder,
+        expected_folder = os.path.join(self.local_nxdrive_folder_1,
                                        self.TEST_WORKSPACE_TITLE)
 
         self.assertEquals(ctl.list_pending(), [])
@@ -443,16 +443,16 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(len(local.get_children_info('/')), 4)
 
         # Unbind: the state database is emptied
-        ctl.unbind_server(self.local_nxdrive_folder)
+        ctl.unbind_server(self.local_nxdrive_folder_1)
         self.assertEquals(self.get_all_states(), [])
 
         # Previously synchronized files are still there, untouched
         self.assertEquals(len(local.get_children_info('/')), 4)
 
         # Lets rebind the same folder to the same workspace
-        ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder, self.workspace)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Check that the bind that occurrs right after the bind automatically
         # detects the file alignments and hence everything is synchronized without
