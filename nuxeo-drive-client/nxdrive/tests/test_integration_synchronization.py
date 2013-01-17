@@ -260,7 +260,7 @@ def test_binding_synchronization_empty_start():
 
     # ...but nothing is yet visible locally as those files don't exist there
     # yet.
-    #assert_equal(ctl.children_states(expected_folder), [])
+    assert_equal(ctl.children_states(expected_folder), [])
 
     # Let's perform the synchronization
     assert_equal(syn.synchronize(limit=100), 11)
