@@ -3,7 +3,6 @@ import time
 import urllib2
 import socket
 import httplib
-from nose.tools import assert_equal
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -46,76 +45,77 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         expected_folder = os.path.join(self.local_nxdrive_folder,
                                        self.TEST_WORKSPACE_TITLE)
         local = LocalClient(expected_folder)
-        assert_equal(len(local.get_children_info('/')), 0)
+        self.assertEquals(len(local.get_children_info('/')), 0)
 
         # By default only scan happen, hence their is no information on the state
         # of the documents on the local side (they don't exist there yet)
         states = ctl.children_states(expected_folder)
-        assert_equal(states, [])
+        self.assertEquals(states, [])
 
         # However some (unaligned data has already been scanned)
-        assert_equal(len(self.get_all_states()), 12)
+        self.assertEquals(len(self.get_all_states()), 12)
 
         # Check the list of files and folders with synchronization pending
         pending = ctl.list_pending()
-        assert_equal(len(pending), 11)  # the root is already synchronized
-        assert_equal(pending[0].remote_name, 'File 5.txt')
-        assert_equal(pending[1].remote_name, 'Folder 1')
-        assert_equal(pending[2].remote_name, 'File 1.txt')
-        assert_equal(pending[3].remote_name, 'Folder 1.1')
-        assert_equal(pending[4].remote_name, 'File 2.txt')
-        assert_equal(pending[5].remote_name, 'Folder 1.2')
-        assert_equal(pending[6].remote_name, 'File 3.txt')
-        assert_equal(pending[7].remote_name, 'Folder 2')
-        assert_equal(pending[8].remote_name, 'Duplicated File.txt')
-        assert_equal(pending[9].remote_name, 'Duplicated File.txt')
-        assert_equal(pending[10].remote_name, 'File 4.txt')
+        self.assertEquals(len(pending), 11)  # the root is already synchronized
+        self.assertEquals(pending[0].remote_name, 'File 5.txt')
+        self.assertEquals(pending[1].remote_name, 'Folder 1')
+        self.assertEquals(pending[2].remote_name, 'File 1.txt')
+        self.assertEquals(pending[3].remote_name, 'Folder 1.1')
+        self.assertEquals(pending[4].remote_name, 'File 2.txt')
+        self.assertEquals(pending[5].remote_name, 'Folder 1.2')
+        self.assertEquals(pending[6].remote_name, 'File 3.txt')
+        self.assertEquals(pending[7].remote_name, 'Folder 2')
+        self.assertEquals(pending[8].remote_name, 'Duplicated File.txt')
+        self.assertEquals(pending[9].remote_name, 'Duplicated File.txt')
+        self.assertEquals(pending[10].remote_name, 'File 4.txt')
 
         # It is also possible to restrict the list of pending document to a
         # specific root
-        assert_equal(len(ctl.list_pending(local_root=expected_folder)), 11)
+        self.assertEquals(len(ctl.list_pending(local_root=expected_folder)), 11)
 
         # It is also possible to restrict the number of pending tasks
         pending = ctl.list_pending(limit=2)
-        assert_equal(len(pending), 2)
+        self.assertEquals(len(pending), 2)
 
         # Synchronize the first 2 documents:
-        assert_equal(syn.synchronize(limit=2), 2)
+        self.assertEquals(syn.synchronize(limit=2), 2)
         pending = ctl.list_pending()
-        assert_equal(len(pending), 9)
-        assert_equal(pending[0].remote_name, 'File 1.txt')
-        assert_equal(pending[1].remote_name, 'Folder 1.1')
-        assert_equal(pending[2].remote_name, 'File 2.txt')
-        assert_equal(pending[3].remote_name, 'Folder 1.2')
-        assert_equal(pending[4].remote_name, 'File 3.txt')
-        assert_equal(pending[5].remote_name, 'Folder 2')
-        assert_equal(pending[6].remote_name, 'Duplicated File.txt')
-        assert_equal(pending[7].remote_name, 'Duplicated File.txt')
-        assert_equal(pending[8].remote_name, 'File 4.txt')
+        self.assertEquals(len(pending), 9)
+        self.assertEquals(pending[0].remote_name, 'File 1.txt')
+        self.assertEquals(pending[1].remote_name, 'Folder 1.1')
+        self.assertEquals(pending[2].remote_name, 'File 2.txt')
+        self.assertEquals(pending[3].remote_name, 'Folder 1.2')
+        self.assertEquals(pending[4].remote_name, 'File 3.txt')
+        self.assertEquals(pending[5].remote_name, 'Folder 2')
+        self.assertEquals(pending[6].remote_name, 'Duplicated File.txt')
+        self.assertEquals(pending[7].remote_name, 'Duplicated File.txt')
+        self.assertEquals(pending[8].remote_name, 'File 4.txt')
 
         states = ctl.children_states(expected_folder)
         expected_states = [
             (u'/File 5.txt', 'synchronized'),
             (u'/Folder 1', 'children_modified'),
-            (u'/Folder 2', 'children_modified'),
         ]
+        self.assertEquals(states, expected_states)
+
         # The actual content of the file has been updated
-        assert_equal(local.get_content('/File 5.txt'), "eee")
+        self.assertEquals(local.get_content('/File 5.txt'), "eee")
 
         # The content of Folder 1 is still unknown from a local path point of view
         states = ctl.children_states(expected_folder + '/Folder 1')
-        assert_equal(states, [])
+        self.assertEquals(states, [])
 
         # synchronize everything else
-        assert_equal(syn.synchronize(), 9)
-        assert_equal(ctl.list_pending(), [])
+        self.assertEquals(syn.synchronize(), 9)
+        self.assertEquals(ctl.list_pending(), [])
         states = ctl.children_states(expected_folder)
         expected_states = [
             (u'/File 5.txt', 'synchronized'),
             (u'/Folder 1', 'synchronized'),
             (u'/Folder 2', 'synchronized'),
         ]
-        assert_equal(states, expected_states)
+        self.assertEquals(states, expected_states)
 
         states = ctl.children_states(expected_folder + '/Folder 1')
         expected_states = [
@@ -123,26 +123,26 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'/Folder 1/Folder 1.1', 'synchronized'),
             (u'/Folder 1/Folder 1.2', 'synchronized'),
         ]
-        assert_equal(states, expected_states)
-        assert_equal(local.get_content('/Folder 1/File 1.txt'), "aaa")
-        assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbb")
-        assert_equal(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
-        assert_equal(local.get_content('/Folder 2/File 4.txt'), "ddd")
-        assert_equal(local.get_content('/Folder 2/Duplicated File.txt'),
+        self.assertEquals(states, expected_states)
+        self.assertEquals(local.get_content('/Folder 1/File 1.txt'), "aaa")
+        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbb")
+        self.assertEquals(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
+        self.assertEquals(local.get_content('/Folder 2/File 4.txt'), "ddd")
+        self.assertEquals(local.get_content('/Folder 2/Duplicated File.txt'),
                      "Some content.")
-        assert_equal(local.get_content('/Folder 2/Duplicated File__1.txt'),
+        self.assertEquals(local.get_content('/Folder 2/Duplicated File__1.txt'),
                      "Other content.")
 
         # Nothing else left to synchronize
-        assert_equal(ctl.list_pending(), [])
-        assert_equal(syn.synchronize(), 0)
-        assert_equal(ctl.list_pending(), [])
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(syn.synchronize(), 0)
+        self.assertEquals(ctl.list_pending(), [])
 
         # Unbind root and resynchronize: smoke test
         ctl.unbind_root(expected_folder)
-        assert_equal(ctl.list_pending(), [])
-        assert_equal(syn.synchronize(), 0)
-        assert_equal(ctl.list_pending(), [])
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(syn.synchronize(), 0)
+        self.assertEquals(ctl.list_pending(), [])
 
     def test_binding_synchronization_empty_start(self):
         ctl = self.ctl
@@ -155,45 +155,45 @@ class TestIntegrationSynchronization(IntegrationTestCase):
                                        self.TEST_WORKSPACE_TITLE)
 
         # Nothing to synchronize by default
-        assert_equal(ctl.list_pending(), [])
-        assert_equal(syn.synchronize(), 0)
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(syn.synchronize(), 0)
 
         # Let's create some document on the server
         self.make_server_tree()
 
         # By default nothing is detected
-        assert_equal(ctl.list_pending(), [])
-        #assert_equal(ctl.children_states(expected_folder), [])
+        self.assertEquals(ctl.list_pending(), [])
+        #self.assertEquals(ctl.children_states(expected_folder), [])
 
         # Let's scan manually
         session = ctl.get_session()
         syn.scan_remote(expected_folder, session)
 
         # Changes on the remote server have been detected...
-        assert_equal(len(ctl.list_pending()), 11)
+        self.assertEquals(len(ctl.list_pending()), 11)
 
         # ...but nothing is yet visible locally as those files don't exist
         # there yet.
-        assert_equal(ctl.children_states(expected_folder), [])
+        self.assertEquals(ctl.children_states(expected_folder), [])
 
         # Let's perform the synchronization
-        assert_equal(syn.synchronize(limit=100), 11)
+        self.assertEquals(syn.synchronize(limit=100), 11)
 
         # We should now be fully synchronized
-        assert_equal(len(ctl.list_pending()), 0)
-        assert_equal(ctl.children_states(expected_folder), [
+        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.children_states(expected_folder), [
             (u'/File 5.txt', u'synchronized'),
             (u'/Folder 1', u'synchronized'),
             (u'/Folder 2', u'synchronized'),
         ])
         local = LocalClient(expected_folder)
-        assert_equal(local.get_content('/Folder 1/File 1.txt'), "aaa")
-        assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbb")
-        assert_equal(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
-        assert_equal(local.get_content('/Folder 2/File 4.txt'), "ddd")
-        assert_equal(local.get_content('/Folder 2/Duplicated File.txt'),
+        self.assertEquals(local.get_content('/Folder 1/File 1.txt'), "aaa")
+        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbb")
+        self.assertEquals(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
+        self.assertEquals(local.get_content('/Folder 2/File 4.txt'), "ddd")
+        self.assertEquals(local.get_content('/Folder 2/Duplicated File.txt'),
                      "Some content.")
-        assert_equal(local.get_content('/Folder 2/Duplicated File__1.txt'),
+        self.assertEquals(local.get_content('/Folder 2/Duplicated File__1.txt'),
                      "Other content.")
 
         # Wait a bit for file time stamps to increase enough: on most OS the file
@@ -212,7 +212,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Rescan
         syn.scan_local(expected_folder, session)
         syn.scan_remote(expected_folder, session)
-        assert_equal(ctl.children_states(expected_folder), [
+        self.assertEquals(ctl.children_states(expected_folder), [
             (u'/File 5.txt', u'locally_deleted'),
             (u'/Folder 1', u'children_modified'),
             (u'/Folder 2', u'children_modified'),  # what do we want for this?
@@ -222,9 +222,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ])
         # It is possible to fetch the full children states of the root though:
         full_states = ctl.children_states(expected_folder, full_states=True)
-        assert_equal(len(full_states), 5)
-        assert_equal(full_states[0][0].remote_name, 'Folder 3')
-        assert_equal(full_states[0][1], 'children_modified')
+        self.assertEquals(len(full_states), 5)
+        self.assertEquals(full_states[0][0].remote_name, 'Folder 3')
+        self.assertEquals(full_states[0][1], 'children_modified')
 
         states = ctl.children_states(expected_folder + '/Folder 1')
         expected_states = [
@@ -232,26 +232,26 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'/Folder 1/Folder 1.1', 'children_modified'),
             (u'/Folder 1/Folder 1.2', 'synchronized'),
         ]
-        assert_equal(states, expected_states)
+        self.assertEquals(states, expected_states)
         states = ctl.children_states(expected_folder + '/Folder 1/Folder 1.1')
         expected_states = [
             (u'/Folder 1/Folder 1.1/File 2.txt', u'remotely_modified'),
         ]
-        assert_equal(states, expected_states)
+        self.assertEquals(states, expected_states)
         states = ctl.children_states(expected_folder + '/Folder 2')
         expected_states = [
             (u'/Folder 2/Duplicated File.txt', u'remotely_deleted'),
             (u'/Folder 2/Duplicated File__1.txt', u'remotely_deleted'),
             (u'/Folder 2/File 4.txt', u'remotely_deleted'),
         ]
-        assert_equal(states, expected_states)
+        self.assertEquals(states, expected_states)
 
         # Perform synchronization
-        assert_equal(syn.synchronize(limit=100), 10)
+        self.assertEquals(syn.synchronize(limit=100), 10)
 
         # We should now be fully synchronized again
-        assert_equal(len(ctl.list_pending()), 0)
-        assert_equal(ctl.children_states(expected_folder), [
+        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.children_states(expected_folder), [
             (u'/Folder 1', 'synchronized'),
             (u'/Folder 3', 'synchronized'),
             (u'/Folder 4', 'synchronized'),
@@ -262,22 +262,22 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'/Folder 1/Folder 1.1', 'synchronized'),
             (u'/Folder 1/Folder 1.2', 'synchronized'),
         ]
-        assert_equal(states, expected_states)
-        assert_equal(local.get_content('/Folder 1/File 1.txt'), "aaaa")
-        assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
-        assert_equal(local.get_content('/Folder 3/File 6.txt'), "ffff")
-        assert_equal(remote_client.get_content('/Folder 1/File 1.txt'),
+        self.assertEquals(states, expected_states)
+        self.assertEquals(local.get_content('/Folder 1/File 1.txt'), "aaaa")
+        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
+        self.assertEquals(local.get_content('/Folder 3/File 6.txt'), "ffff")
+        self.assertEquals(remote_client.get_content('/Folder 1/File 1.txt'),
                      "aaaa")
-        assert_equal(remote_client.get_content('/Folder 1/Folder 1.1/File 2.txt'),
+        self.assertEquals(remote_client.get_content('/Folder 1/Folder 1.1/File 2.txt'),
                      "bbbb")
-        assert_equal(remote_client.get_content('/Folder 3/File 6.txt'),
+        self.assertEquals(remote_client.get_content('/Folder 3/File 6.txt'),
                      "ffff")
 
         # Rescan: no change to detect we should reach a fixpoint
         syn.scan_local(expected_folder, session)
         syn.scan_remote(expected_folder, session)
-        assert_equal(len(ctl.list_pending()), 0)
-        assert_equal(ctl.children_states(expected_folder), [
+        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.children_states(expected_folder), [
             (u'/Folder 1', 'synchronized'),
             (u'/Folder 3', 'synchronized'),
             (u'/Folder 4', 'synchronized'),
@@ -290,9 +290,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', '\x80')
         syn.scan_local(expected_folder, session)
         syn.scan_remote(expected_folder, session)
-        assert_equal(syn.synchronize(limit=100), 2)
-        assert_equal(remote_client.get_content('/Folder 1/File 1.txt'), "\x80")
-        assert_equal(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
+        self.assertEquals(syn.synchronize(limit=100), 2)
+        self.assertEquals(remote_client.get_content('/Folder 1/File 1.txt'), "\x80")
+        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
 
     def test_synchronization_modification_on_created_file(self):
         ctl = self.ctl
@@ -304,7 +304,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder,
                                        self.TEST_WORKSPACE_TITLE)
-        assert_equal(ctl.list_pending(), [])
+        self.assertEquals(ctl.list_pending(), [])
 
         # Let's create some document on the client and the server
         local = LocalClient(expected_folder)
@@ -313,11 +313,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # First local scan (assuming the network is offline):
         syn.scan_local(expected_folder)
-        assert_equal(len(ctl.list_pending()), 2)
-        assert_equal(ctl.children_states(expected_folder), [
+        self.assertEquals(len(ctl.list_pending()), 2)
+        self.assertEquals(ctl.children_states(expected_folder), [
             (u'/Folder', 'children_modified'),
         ])
-        assert_equal(ctl.children_states(expected_folder + '/Folder'), [
+        self.assertEquals(ctl.children_states(expected_folder + '/Folder'), [
             (u'/Folder/File.txt', u'unknown'),
         ])
 
@@ -328,11 +328,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Let's modify it offline and rescan locally
         local.update_content('/Folder/File.txt', content='Some content.')
         syn.scan_local(expected_folder)
-        assert_equal(len(ctl.list_pending()), 2)
-        assert_equal(ctl.children_states(expected_folder), [
+        self.assertEquals(len(ctl.list_pending()), 2)
+        self.assertEquals(ctl.children_states(expected_folder), [
             (u'/Folder', u'children_modified'),
         ])
-        assert_equal(ctl.children_states(expected_folder + '/Folder'), [
+        self.assertEquals(ctl.children_states(expected_folder + '/Folder'), [
             (u'/Folder/File.txt', u'locally_modified'),
         ])
 
@@ -340,11 +340,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # the document was just created and not trigger an update
         syn.loop(full_local_scan=True, full_remote_scan=True, delay=0.010,
                  max_loops=1, fault_tolerant=False)
-        assert_equal(len(ctl.list_pending()), 0)
-        assert_equal(ctl.children_states(expected_folder), [
+        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.children_states(expected_folder), [
             (u'/Folder', u'synchronized'),
         ])
-        assert_equal(ctl.children_states(expected_folder + '/Folder'), [
+        self.assertEquals(ctl.children_states(expected_folder + '/Folder'), [
             (u'/Folder/File.txt', u'synchronized'),
         ])
 
@@ -357,8 +357,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         expected_folder = os.path.join(self.local_nxdrive_folder,
                                        self.TEST_WORKSPACE_TITLE)
 
-        assert_equal(ctl.list_pending(), [])
-        assert_equal(syn.synchronize(), 0)
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(syn.synchronize(), 0)
 
         # Let's create some document on the client and the server
         local = LocalClient(expected_folder)
@@ -370,8 +370,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
                  max_loops=3, fault_tolerant=False)
 
         # All is synchronized
-        assert_equal(len(ctl.list_pending()), 0)
-        assert_equal(ctl.children_states(expected_folder), [
+        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.children_states(expected_folder), [
             (u'/File 5.txt', u'synchronized'),
             (u'/Folder 1', u'synchronized'),
             (u'/Folder 2', u'synchronized'),
@@ -387,8 +387,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         expected_folder = os.path.join(self.local_nxdrive_folder,
                                        self.TEST_WORKSPACE_TITLE)
 
-        assert_equal(ctl.list_pending(), [])
-        assert_equal(syn.synchronize(), 0)
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(syn.synchronize(), 0)
 
         # Let's create some document on the client and the server
         local = LocalClient(expected_folder)
@@ -407,7 +407,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             syn.loop(full_local_scan=True, full_remote_scan=True, delay=0,
                      max_loops=1, fault_tolerant=False)
             # Only the local change has been detected
-            assert_equal(len(ctl.list_pending()), 1)
+            self.assertEquals(len(ctl.list_pending()), 1)
 
         # Reenable network
         ctl.make_remote_raise(None)
@@ -415,8 +415,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
                  max_loops=1, fault_tolerant=False)
 
         # All is synchronized
-        assert_equal(len(ctl.list_pending()), 0)
-        assert_equal(ctl.children_states(expected_folder), [
+        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.children_states(expected_folder), [
             (u'/File 5.txt', u'synchronized'),
             (u'/Folder 1', u'synchronized'),
             (u'/Folder 2', u'synchronized'),
@@ -434,7 +434,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         expected_folder = os.path.join(self.local_nxdrive_folder,
                                        self.TEST_WORKSPACE_TITLE)
 
-        assert_equal(ctl.list_pending(), [])
+        self.assertEquals(ctl.list_pending(), [])
 
         # Let's create some document on the client and the server
         local = LocalClient(expected_folder)
@@ -443,9 +443,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         syn.loop(full_local_scan=True, full_remote_scan=True, delay=0,
                  max_loops=1, fault_tolerant=False)
-        assert_equal(len(ctl.list_pending()), 0)
+        self.assertEquals(len(ctl.list_pending()), 0)
 
-        assert_equal(self.get_all_states(), [
+        self.assertEquals(self.get_all_states(), [
             (u'/', u'synchronized', u'synchronized'),
             (u'/File 5.txt', u'synchronized', u'synchronized'),
             (u'/Folder 1', u'synchronized', u'synchronized'),
@@ -460,14 +460,14 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'/Folder 2/File 4.txt', u'synchronized', u'synchronized'),
             (u'/Folder 3', u'synchronized', u'synchronized')
         ])
-        assert_equal(len(local.get_children_info('/')), 4)
+        self.assertEquals(len(local.get_children_info('/')), 4)
 
         # Unbind: the state database is emptied
         ctl.unbind_server(self.local_nxdrive_folder)
-        assert_equal(self.get_all_states(), [])
+        self.assertEquals(self.get_all_states(), [])
 
         # Previously synchronized files are still there, untouched
-        assert_equal(len(local.get_children_info('/')), 4)
+        self.assertEquals(len(local.get_children_info('/')), 4)
 
         # Lets rebind the same folder to the same workspace
         ctl.bind_server(self.local_nxdrive_folder, self.nuxeo_url,
@@ -476,8 +476,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Check that the bind that occurrs right after the bind automatically
         # detects the file alignments and hence everything is synchronized without
-        assert_equal(len(ctl.list_pending()), 0)
-        assert_equal(self.get_all_states(), [
+        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(self.get_all_states(), [
             (u'/', u'synchronized', u'synchronized'),
             (u'/File 5.txt', u'synchronized', u'synchronized'),
             (u'/Folder 1', u'synchronized', u'synchronized'),
@@ -492,5 +492,5 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'/Folder 2/File 4.txt', u'synchronized', u'synchronized'),
             (u'/Folder 3', u'synchronized', u'synchronized')
         ])
-        assert_equal(len(ctl.list_pending()), 0)
-        assert_equal(len(local.get_children_info('/')), 4)
+        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(len(local.get_children_info('/')), 4)
