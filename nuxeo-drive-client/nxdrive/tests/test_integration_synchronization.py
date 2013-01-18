@@ -23,7 +23,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # The binding operation creates a new local folder with the Workspace name
         # and scan both sides (server and local independently)
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.TEST_WORKSPACE_TITLE)
+                                       self.workspace_title)
         local = LocalClient(expected_folder)
         self.assertEquals(len(local.get_children_info('/')), 0)
 
@@ -132,7 +132,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.TEST_WORKSPACE_TITLE)
+                                       self.workspace_title)
 
         # Nothing to synchronize by default
         self.assertEquals(ctl.list_pending(), [])
@@ -283,7 +283,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.TEST_WORKSPACE_TITLE)
+                                       self.workspace_title)
         self.assertEquals(ctl.list_pending(), [])
 
         # Let's create some document on the client and the server
@@ -335,7 +335,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.TEST_WORKSPACE_TITLE)
+                                       self.workspace_title)
 
         self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(syn.synchronize(), 0)
@@ -365,7 +365,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.TEST_WORKSPACE_TITLE)
+                                       self.workspace_title)
 
         self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(syn.synchronize(), 0)
@@ -412,7 +412,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         syn = ctl.synchronizer
 
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.TEST_WORKSPACE_TITLE)
+                                       self.workspace_title)
 
         self.assertEquals(ctl.list_pending(), [])
 

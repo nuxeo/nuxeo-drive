@@ -62,20 +62,22 @@ class TestIntegrationNuxeoClient(IntegrationTestCase):
         self.assertEquals(len(roots), 1)
         self.assertEquals(roots[0].name, 'Folder 1')
 
-        # The root can also been seen with a new client connected using password
-        # based auth
-        password = os.environ.get('NXDRIVE_TEST_PASSWORD')
+        # The root can also been seen with a new client connected using
+        # password based auth
         remote_client3 = NuxeoClient(
             remote_client.server_url, remote_client.user_id,
-            remote_client.device_id, password=password, base_folder='/')
+            remote_client.device_id, password=self.password_1,
+            base_folder='/')
         roots = remote_client3.get_roots()
         self.assertEquals(len(roots), 1)
         self.assertEquals(roots[0].name, 'Folder 1')
 
-        # Another device using the same user credentials will get a different token
+        # Another device using the same user credentials will get a different
+        # token
         remote_client4 = NuxeoClient(
             remote_client.server_url, remote_client.user_id,
-            'other-test-device', password=password, base_folder='/')
+            'other-test-device', password=self.password_1,
+            base_folder='/')
         token4 = remote_client4.request_token()
         self.assertNotEquals(token, token4)
 

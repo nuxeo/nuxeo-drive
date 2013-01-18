@@ -440,20 +440,20 @@ class NuxeoClient(object):
     # Nuxeo Drive specific operations
 
     def get_repository_names(self):
-        return self._execute("GetRepositories")[u'value']
+        return self.execute("GetRepositories")[u'value']
 
     def get_roots(self):
-        entries = self._execute("NuxeoDrive.GetRoots")[u'entries']
+        entries = self.execute("NuxeoDrive.GetRoots")[u'entries']
         return self._filtered_results(entries, fetch_parent_uid=False)
 
     def register_as_root(self, ref):
         ref = self._check_ref(ref)
-        return self._execute("NuxeoDrive.SetSynchronization",
+        return self.execute("NuxeoDrive.SetSynchronization",
                              input="doc:" + ref, enable=True)
 
     def unregister_as_root(self, ref):
         ref = self._check_ref(ref)
-        return self._execute("NuxeoDrive.SetSynchronization",
+        return self.execute("NuxeoDrive.SetSynchronization",
                              input="doc:" + ref, enable=False)
 
     #
@@ -614,55 +614,55 @@ class NuxeoClient(object):
     # Document category
 
     def create(self, ref, type, name=None, properties=None):
-        return self._execute("Document.Create", input="doc:" + ref,
+        return self.execute("Document.Create", input="doc:" + ref,
             type=type, name=name, properties=properties)
 
     def update(self, ref, properties=None):
-        return self._execute("Document.Update", input="doc:" + ref,
+        return self.execute("Document.Update", input="doc:" + ref,
             properties=properties)
 
     def set_property(self, ref, xpath, value):
-        return self._execute("Document.SetProperty", input="doc:" + ref,
+        return self.execute("Document.SetProperty", input="doc:" + ref,
             xpath=xpath, value=value)
 
     def delete(self, ref, use_trash=True):
         input = "doc:" + self._check_ref(ref)
         if use_trash:
             try:
-                return self._execute("Document.SetLifeCycle", input=input,
+                return self.execute("Document.SetLifeCycle", input=input,
                                      value='delete')
             except urllib2.HTTPError as e:
                 if e.code == 500:
-                    return self._execute("Document.Delete", input=input)
+                    return self.execute("Document.Delete", input=input)
                 raise
         else:
-            return self._execute("Document.Delete", input=input)
+            return self.execute("Document.Delete", input=input)
 
     def get_children(self, ref):
-        return self._execute("Document.GetChildren", input="doc:" + ref)
+        return self.execute("Document.GetChildren", input="doc:" + ref)
 
     def get_parent(self, ref):
-        return self._execute("Document.GetParent", input="doc:" + ref)
+        return self.execute("Document.GetParent", input="doc:" + ref)
 
     def lock(self, ref):
-        return self._execute("Document.Lock", input="doc:" + ref)
+        return self.execute("Document.Lock", input="doc:" + ref)
 
     def unlock(self, ref):
-        return self._execute("Document.Unlock", input="doc:" + ref)
+        return self.execute("Document.Unlock", input="doc:" + ref)
 
     def move(self, ref, target, name=None):
-        return self._execute("Document.Move", input="doc:" + ref,
+        return self.execute("Document.Move", input="doc:" + ref,
             target=target, name=name)
 
     def copy(self, ref, target, name=None):
-        return self._execute("Document.Copy", input="doc:" + ref,
+        return self.execute("Document.Copy", input="doc:" + ref,
             target=target, name=name)
 
     # These ones are special: no 'input' parameter
 
     def fetch(self, ref):
         try:
-            return self._execute("Document.Fetch", value=ref)
+            return self.execute("Document.Fetch", value=ref)
         except urllib2.HTTPError as e:
             if e.code == 404:
                 raise NotFound("Failed to fetch document %r on server %r" % (
@@ -670,12 +670,12 @@ class NuxeoClient(object):
             raise e
 
     def query(self, query, language=None):
-        return self._execute("Document.Query", query=query, language=language)
+        return self.execute("Document.Query", query=query, language=language)
 
     # Blob category
 
     def get_blob(self, ref):
-        return self._execute("Blob.Get", input="doc:" + ref)
+        return self.execute("Blob.Get", input="doc:" + ref)
 
     def attach_blob(self, ref, blob, filename, **params):
         container = MIMEMultipart("related",
@@ -748,7 +748,7 @@ class NuxeoClient(object):
         s = resp.read()
         return s
 
-    def _execute(self, command, input=None, **params):
+    def execute(self, command, input=None, **params):
         if self._error is not None:
             # Simulate a configurable (e.g. network or server) error for the
             # tests
@@ -789,9 +789,13 @@ class NuxeoClient(object):
         info = resp.info()
         s = resp.read()
 
-        if info.get('content-type', '').startswith("application/json"):
+        content_type = info.get('content-type', '')
+        if content_type.startswith("application/json"):
+            log.trace("Response for '%s' with json payload: %r", url, s)
             return json.loads(s) if s else None
         else:
+            log.trace("Response for '%s' with content-type: %r", url,
+                      content_type)
             return s
 
     def _check_params(self, command, input, params):

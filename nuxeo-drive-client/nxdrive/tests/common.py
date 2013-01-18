@@ -12,8 +12,7 @@ from nxdrive.controller import Controller
 
 class IntegrationTestCase(unittest.TestCase):
 
-    TEST_WORKSPACE_PATH = '/default-domain/workspaces/test-nxdrive'
-    TEST_WORKSPACE_TITLE = 'Nuxeo Drive Tests'
+    TEST_WORKSPACE_PATH = '/default-domain/workspaces/nuxeo-drive-test-workspace'
 
     EMPTY_DIGEST = hashlib.md5().hexdigest()
     SOME_TEXT_CONTENT = "Some text content."
@@ -25,36 +24,39 @@ class IntegrationTestCase(unittest.TestCase):
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD')
 
-        # TODO: use different users for the actual clients
-        self.user_1 = self.admin_user
-        self.password_1 = self.password
-        self.user_2 = self.admin_user
-        self.password_2 = self.password
-
         if None in (self.nuxeo_url, self.admin_user, self.password):
             raise unittest.SkipTest(
                 "No integration server configuration found in environment.")
 
-        parent_path = os.path.dirname(self.TEST_WORKSPACE_PATH)
-        workspace_name = os.path.basename(self.TEST_WORKSPACE_PATH)
         root_remote_client = NuxeoClient(
-            self.nuxeo_url, self.admin_user, 'test-device',
+            self.nuxeo_url, self.admin_user, 'nxdrive-test-administrator-device',
             self.password, base_folder='/')
 
-        self.workspace = root_remote_client.create(
-            parent_path, 'Workspace', name=workspace_name,
-            properties={'dc:title': self.TEST_WORKSPACE_TITLE})[u'uid']
+        # Call the Nuxeo operation to setup the integration test environment
+        credentials = root_remote_client.execute(
+            "NuxeoDrive.SetupIntegrationTests",
+            userNames="user_1, user_2")
+
+        credentials = [c.strip().split(":") for c in credentials.split(",")]
+        self.user_1, self.password_1 = credentials[0]
+        self.user_2, self.password_2 = credentials[1]
+
+        ws_info = root_remote_client.fetch(self.TEST_WORKSPACE_PATH)
+        self.workspace = ws_info['uid']
+        self.workspace_title = ws_info['title']
 
         # Client to be use to create remote test documents and folders
-        remote_client_1 = NuxeoClient(self.nuxeo_url, self.user_1, 'test-device-1',
-                                    self.password_1, base_folder=self.workspace)
+        remote_client_1 = NuxeoClient(
+            self.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
+            self.password_1, base_folder=self.workspace)
 
-        remote_client_2 = NuxeoClient(self.nuxeo_url, self.user_2, 'test-device-2',
-                                    self.password_2, base_folder=self.workspace)
+        remote_client_2 = NuxeoClient(
+            self.nuxeo_url, self.user_2, 'nxdrive-test-device-2',
+            self.password_2, base_folder=self.workspace)
 
         # Check the local filesystem test environment
-        self.local_test_folder_1 = tempfile.mkdtemp('-nuxeo-drive-tests-user-1')
-        self.local_test_folder_2 = tempfile.mkdtemp('-nuxeo-drive-tests-user-2')
+        self.local_test_folder_1 = tempfile.mkdtemp('-nxdrive-tests-user-1')
+        self.local_test_folder_2 = tempfile.mkdtemp('-nxdrive-tests-user-2')
 
         self.local_nxdrive_folder_1 = os.path.join(
             self.local_test_folder_1, 'Nuxeo Drive')
@@ -73,25 +75,25 @@ class IntegrationTestCase(unittest.TestCase):
 
         self.controller_1 = Controller(nxdrive_conf_folder_1)
         self.controller_2 = Controller(nxdrive_conf_folder_2)
+        self.root_remote_client = root_remote_client
         self.remote_client_1 = remote_client_1
         self.remote_client_2 = remote_client_2
 
     def tearDown(self):
-        if self.controller_1 is not None:
-            self.controller_1.unbind_all()
-            self.controller_1.dispose()
+        self.controller_1.unbind_all()
+        self.controller_2.unbind_all()
+        self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
 
-        if (self.remote_client_1 is not None
-            and self.remote_client_1.exists(self.workspace)):
-            self.remote_client_1.delete(self.workspace, use_trash=False)
-
-        if self.remote_client_1 is not None:
-            self.remote_client_1.revoke_token()
+        self.root_remote_client.revoke_token()
+        self.remote_client_1.revoke_token()
+        self.remote_client_2.revoke_token()
 
         if os.path.exists(self.local_test_folder_1):
+            self.controller_1.dispose()
             shutil.rmtree(self.local_test_folder_1)
 
         if os.path.exists(self.local_test_folder_2):
+            self.controller_2.dispose()
             shutil.rmtree(self.local_test_folder_2)
 
     def get_all_states(self, session=None):
@@ -120,5 +122,3 @@ class IntegrationTestCase(unittest.TestCase):
         remote_client.make_file(folder_1_2, 'File 3.txt', content="ccc")
         remote_client.make_file(folder_2, 'File 4.txt', content="ddd")
         remote_client.make_file(self.workspace, 'File 5.txt', content="eee")
-
-
