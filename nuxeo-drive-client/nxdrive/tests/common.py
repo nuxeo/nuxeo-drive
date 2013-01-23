@@ -82,11 +82,11 @@ class IntegrationTestCase(unittest.TestCase):
     def tearDown(self):
         self.controller_1.unbind_all()
         self.controller_2.unbind_all()
+        self.remote_client_1.revoke_token()
+        self.remote_client_2.revoke_token()
         self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
 
         self.root_remote_client.revoke_token()
-        self.remote_client_1.revoke_token()
-        self.remote_client_2.revoke_token()
 
         if os.path.exists(self.local_test_folder_1):
             self.controller_1.dispose()
