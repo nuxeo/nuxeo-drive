@@ -1,4 +1,3 @@
-import os
 from unittest import SkipTest
 from time import sleep
 from nxdrive.client import NuxeoClient
