@@ -1,4 +1,4 @@
-"""Uniform API to access both local and remote resource for synchronization."""
+"""API to access remote resource for synchronization."""
 
 from collections import namedtuple
 from datetime import datetime

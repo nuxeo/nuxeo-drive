@@ -1,4 +1,4 @@
-"""Uniform API to access both local and remote resource for synchronization."""
+"""API to access local resource for synchronization."""
 
 from datetime import datetime
 import hashlib
