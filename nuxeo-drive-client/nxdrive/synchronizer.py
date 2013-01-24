@@ -1,6 +1,5 @@
 """Handle synchronization logic."""
 import re
-import os
 import os.path
 from time import time
 from time import sleep
@@ -362,7 +361,7 @@ class Synchronizer(object):
                     for sb in session.query(ServerBinding).all()]
             frontend.notify_local_folders(local_folders)
 
-    def refresh_remote_folders_from_log(root_binding):
+    def refresh_remote_folders_from_log(self, root_binding):
         """Query the remote server audit log looking for state updates."""
         # TODO
         raise NotImplementedError()

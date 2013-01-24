@@ -1,4 +1,4 @@
-"""API to access local resource for synchronization."""
+"""API to access local resources for synchronization."""
 
 from datetime import datetime
 import hashlib
@@ -13,6 +13,7 @@ from nxdrive.utils import normalized_path
 
 
 log = get_logger(__name__)
+
 
 DEDUPED_BASENAME_PATTERN = r'^(.*)__(\d{1,3})$'
 
