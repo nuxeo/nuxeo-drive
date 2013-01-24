@@ -834,3 +834,9 @@ class NuxeoClient(object):
                 # Error message should always be a JSON message,
                 # but sometimes it's not
                 log.debug(detail)
+
+    def get_changes(self, last_sync_date=None, last_root_definitions=None):
+        return self.execute(
+            'NuxeoDrive.GetChangeSummary',
+            lastSyncDate=last_sync_date,
+            lastSyncActiveRootDefinitions=last_root_definitions)
