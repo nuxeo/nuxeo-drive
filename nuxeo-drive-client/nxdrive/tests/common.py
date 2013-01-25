@@ -8,6 +8,7 @@ import shutil
 from nxdrive.model import LastKnownState
 from nxdrive.client import NuxeoClient
 from nxdrive.controller import Controller
+from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
 
 
 class IntegrationTestCase(unittest.TestCase):
@@ -55,6 +56,16 @@ class IntegrationTestCase(unittest.TestCase):
             self.nuxeo_url, self.user_2, 'nxdrive-test-device-2',
             self.password_2, base_folder=self.workspace)
 
+        # File system client to be used to create remote test documents
+        # and folders
+        remote_file_system_client_1 = RemoteFileSystemClient(
+            self.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
+            self.password_1)
+
+        remote_file_system_client_2 = RemoteFileSystemClient(
+            self.nuxeo_url, self.user_2, 'nxdrive-test-device-2',
+            self.password_2)
+
         # Check the local filesystem test environment
         self.local_test_folder_1 = tempfile.mkdtemp('-nxdrive-tests-user-1')
         self.local_test_folder_2 = tempfile.mkdtemp('-nxdrive-tests-user-2')
@@ -79,12 +90,16 @@ class IntegrationTestCase(unittest.TestCase):
         self.root_remote_client = root_remote_client
         self.remote_document_client_1 = remote_document_client_1
         self.remote_document_client_2 = remote_document_client_2
+        self.remote_file_system_client_1 = remote_file_system_client_1
+        self.remote_file_system_client_2 = remote_file_system_client_2
 
     def tearDown(self):
         self.controller_1.unbind_all()
         self.controller_2.unbind_all()
         self.remote_document_client_1.revoke_token()
         self.remote_document_client_2.revoke_token()
+        # Don't need to revoke tokens for the file system remote clients
+        # since they use the same users as the remote document clients
         self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
 
         self.root_remote_client.revoke_token()
