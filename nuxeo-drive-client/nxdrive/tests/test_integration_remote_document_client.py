@@ -20,20 +20,20 @@ def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
                       use_trash=use_trash)
 
 
-class TestIntegrationNuxeoClient(IntegrationTestCase):
+class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
 
     def test_authentication_failure(self):
         self.assertRaises(Unauthorized, NuxeoClient,
-                      self.remote_client_1.server_url,
+                      self.remote_document_client_1.server_url,
                       'someone else', 'test-device',
                       password='bad password')
         self.assertRaises(Unauthorized, NuxeoClient,
-                      self.remote_client_1.server_url,
+                      self.remote_document_client_1.server_url,
                       'someone else', 'test-device',
                       token='some-bad-token')
 
     def test_make_token(self):
-        remote_client = self.remote_client_1
+        remote_client = self.remote_document_client_1
         token = remote_client.request_token()
         if token is None:
             raise SkipTest('nuxeo-platform-login-token is not deployed')
@@ -86,7 +86,7 @@ class TestIntegrationNuxeoClient(IntegrationTestCase):
 
 
     def test_make_documents(self):
-        remote_client = self.remote_client_1
+        remote_client = self.remote_document_client_1
         doc_1 = remote_client.make_file(self.workspace, 'Document 1.txt')
         self.assertTrue(remote_client.exists(doc_1))
         self.assertEquals(remote_client.get_content(doc_1), "")
@@ -154,7 +154,7 @@ class TestIntegrationNuxeoClient(IntegrationTestCase):
         wait_for_deletion(remote_client, doc_3, use_trash=False)
 
     def test_complex_filenames(self):
-        remote_client = self.remote_client_1
+        remote_client = self.remote_document_client_1
         # create another folder with the same title
         title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
         folder_1 = remote_client.make_folder(self.workspace, title_with_accents)
@@ -176,12 +176,12 @@ class TestIntegrationNuxeoClient(IntegrationTestCase):
         self.assertEquals(file_1.name, long_filename)
 
     def test_missing_document(self):
-        remote_client = self.remote_client_1
+        remote_client = self.remote_document_client_1
         self.assertRaises(NotFound, remote_client.get_info,
                       '/Something Missing')
 
     def test_get_children_info(self):
-        remote_client = self.remote_client_1
+        remote_client = self.remote_document_client_1
         folder_1 = remote_client.make_folder(self.workspace, 'Folder 1')
         folder_2 = remote_client.make_folder(self.workspace, 'Folder 2')
         file_1 = remote_client.make_file(self.workspace, 'File 1.txt',
@@ -216,7 +216,7 @@ class TestIntegrationNuxeoClient(IntegrationTestCase):
         self.assertEquals(workspace_children[2].name, 'Folder 2')
 
     def test_get_synchronization_roots_from_server(self):
-        remote_client = self.remote_client_1
+        remote_client = self.remote_document_client_1
         # Check that the list of repositories can be introspected
         self.assertEquals(remote_client.get_repository_names(), ['default'])
 

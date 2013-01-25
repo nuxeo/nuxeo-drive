@@ -127,7 +127,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
     def test_binding_synchronization_empty_start(self):
         ctl = self.controller_1
-        remote_client = self.remote_client_1
+        remote_client = self.remote_document_client_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)

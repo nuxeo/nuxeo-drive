@@ -45,12 +45,13 @@ class IntegrationTestCase(unittest.TestCase):
         self.workspace = ws_info['uid']
         self.workspace_title = ws_info['title']
 
-        # Client to be use to create remote test documents and folders
-        remote_client_1 = NuxeoClient(
+        # Document client to be used to create remote test documents
+        # and folders
+        remote_document_client_1 = NuxeoClient(
             self.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
             self.password_1, base_folder=self.workspace)
 
-        remote_client_2 = NuxeoClient(
+        remote_document_client_2 = NuxeoClient(
             self.nuxeo_url, self.user_2, 'nxdrive-test-device-2',
             self.password_2, base_folder=self.workspace)
 
@@ -76,14 +77,14 @@ class IntegrationTestCase(unittest.TestCase):
         self.controller_1 = Controller(nxdrive_conf_folder_1)
         self.controller_2 = Controller(nxdrive_conf_folder_2)
         self.root_remote_client = root_remote_client
-        self.remote_client_1 = remote_client_1
-        self.remote_client_2 = remote_client_2
+        self.remote_document_client_1 = remote_document_client_1
+        self.remote_document_client_2 = remote_document_client_2
 
     def tearDown(self):
         self.controller_1.unbind_all()
         self.controller_2.unbind_all()
-        self.remote_client_1.revoke_token()
-        self.remote_client_2.revoke_token()
+        self.remote_document_client_1.revoke_token()
+        self.remote_document_client_2.revoke_token()
         self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
 
         self.root_remote_client.revoke_token()
@@ -104,7 +105,7 @@ class IntegrationTestCase(unittest.TestCase):
         return [(p.path, p.local_state, p.remote_state) for p in pairs]
 
     def make_server_tree(self):
-        remote_client = self.remote_client_1
+        remote_client = self.remote_document_client_1
         # create some folders on the server
         folder_1 = remote_client.make_folder(self.workspace, 'Folder 1')
         folder_1_1 = remote_client.make_folder(folder_1, 'Folder 1.1')
