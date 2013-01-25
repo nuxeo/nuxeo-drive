@@ -188,6 +188,15 @@ def make_cli_parser(add_subparsers=True):
     )
     console_parser.set_defaults(command='console')
 
+    status_parser = subparsers.add_parser(
+        'status',
+        help='Fetch the status info of the children of a given folder.',
+        parents=[common_parser],
+    )
+    status_parser.set_defaults(command='status')
+    status_parser.add_argument(
+        "folder", help="Path to a local Nuxeo Drive folder.")
+
     # embedded test runner base on nose:
     test_parser = subparsers.add_parser(
         'test',
@@ -202,9 +211,6 @@ def make_cli_parser(add_subparsers=True):
         "--with-profile", default=False, action="store_true",
         help="Compute profiling report.")
 
-    # TODO: add a parser for the "status" operation to list the synchronization
-    # status of a given folder content so as to make it possible to display
-    # status icons for individual files using a single DB access
     return parser
 
 
@@ -291,9 +297,10 @@ class CliHandler(object):
         self.log = get_logger(__name__)
         self.log.debug("Command line: " + ' '.join(argv))
 
-        # Ensure that the protocol handler are registered:
-        # this is useful for the edit / open link in the Nuxeo interface
-        register_protocol_handlers(self.controller)
+        if command == 'launch':
+            # Ensure that the protocol handler are registered:
+            # this is useful for the edit / open link in the Nuxeo interface
+            register_protocol_handlers(self.controller)
         try:
             return handler(options)
         except Exception, e:
@@ -339,7 +346,7 @@ class CliHandler(object):
         return 0
 
     def status(self, options):
-        states = self.controller.status(options.files)
+        states = self.controller.children_states(options.folder)
         for filename, status in states:
             print status + '\t' + filename
         return 0
