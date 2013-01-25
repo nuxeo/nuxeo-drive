@@ -56,6 +56,24 @@ class RemoteDocumentClient(BaseAutomationClient):
     Kept here for tests and later extraction of a generic API.
     """
 
+    # Override constructor to initialize base folder
+    # which is specific to RemoteDocumentClient
+    def __init__(self, server_url, user_id, device_id,
+                 password=None, token=None, repository="default",
+                 ignored_prefixes=None, ignored_suffixes=None, base_folder=None):
+        super(RemoteDocumentClient, self).__init__(server_url, user_id, device_id,
+                                                   password, token, repository,
+                                                   ignored_prefixes, ignored_suffixes)
+        # fetch the root folder ref
+        self.base_folder = base_folder
+        if base_folder is not None:
+            base_folder_doc = self.fetch(base_folder)
+            self._base_folder_ref = base_folder_doc['uid']
+            self._base_folder_path = base_folder_doc['path']
+        else:
+            self._base_folder_ref, self._base_folder_path = None, None
+
+
     #
     # API common with the local client API
     #

@@ -45,8 +45,7 @@ class BaseAutomationClient(object):
     permission = 'ReadWrite'
 
     def __init__(self, server_url, user_id, device_id,
-                 password=None, token=None,
-                 base_folder=None, repository="default",
+                 password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None):
         if ignored_prefixes is not None:
             self.ignored_prefixes = ignored_prefixes
@@ -61,7 +60,6 @@ class BaseAutomationClient(object):
         if not server_url.endswith('/'):
             server_url += '/'
         self.server_url = server_url
-        self.base_folder = base_folder
 
         # TODO: actually use the repository info in the requests
         self.repository = repository
@@ -75,14 +73,6 @@ class BaseAutomationClient(object):
         self.automation_url = server_url + 'site/automation/'
 
         self.fetch_api()
-
-        # fetch the root folder ref
-        if base_folder is not None:
-            base_folder_doc = self.fetch(base_folder)
-            self._base_folder_ref = base_folder_doc['uid']
-            self._base_folder_path = base_folder_doc['path']
-        else:
-            self._base_folder_ref, self._base_folder_path = None, None
 
     def make_raise(self, error):
         """Make next calls to server raise the provided exception"""
