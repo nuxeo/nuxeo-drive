@@ -34,6 +34,7 @@ class RemoteFileInfo(BaseRemoteFileInfo):
     path = '/'
     repository = 'default'
 
+    # Consistency with the local client API
     def get_digest(self):
         return self.digest
 

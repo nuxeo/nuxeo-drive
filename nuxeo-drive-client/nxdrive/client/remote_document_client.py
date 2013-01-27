@@ -44,6 +44,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
 class NuxeoDocumentInfo(BaseNuxeoDocumentInfo):
     """Data Transfer Object for doc info on the Remote Nuxeo repository"""
 
+    # Consistency with the local client API
     def get_digest(self):
         return self.digest
 
