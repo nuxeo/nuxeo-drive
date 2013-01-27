@@ -1,7 +1,11 @@
 """API to access a remote file system for synchronization."""
 
 from collections import namedtuple
+from datetime import datetime
+import urllib2
 from nxdrive.logging_config import get_logger
+from nxdrive.client.common import NotFound
+from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.base_automation_client import BaseAutomationClient
 
 
@@ -11,12 +15,14 @@ log = get_logger(__name__)
 # Data transfer objects
 
 BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
-    'name',  # title of the item (not guaranteed to be locally unique)
-    'uid',   # id of the item
-    'parent_uid',  # id of the parent item
-    'folderish',  # True is can host child documents
+    'name',  # title of the file (not guaranteed to be locally unique)
+    'uid',   # id of the file
+    'parent_uid',  # id of the parent file
+    'folderish',  # True is can host children
     'last_modification_time',  # last update time
-    'digest',  # digest of the document
+    'digest',  # digest of the file
+    'digestAlgorithm',  # digest algorithm of the file
+    'download_url', # download URL of the file
 ])
 
 
@@ -42,13 +48,21 @@ class RemoteFileSystemClient(BaseAutomationClient):
     # API common with the local client API
     #
 
-    def get_info(self, file_id, raise_if_missing=True):
-        #TODO
-        pass
+    def get_info(self, fs_item_id, raise_if_missing=True):
+        fs_item = self.get_fs_item(fs_item_id)
+        if fs_item is None:
+            if raise_if_missing:
+                raise NotFound("Could not find '%s' on '%s'" % (
+                    fs_item_id, self.server_url))
+            return None
+        return self._file_to_info(fs_item)
 
-    def get_content(self, file_id):
-        #TODO
-        pass
+    def get_content(self, fs_item_id):
+        # Will raise NotFound if file system item with id fs_item_id
+        # cannot be found
+        fs_item_info = self.get_info(fs_item_id)
+        download_url = self.server_url + fs_item_info.download_url
+        return self._do_get(download_url)
 
     def get_children_info(self, file_id):
         #TODO
@@ -70,10 +84,68 @@ class RemoteFileSystemClient(BaseAutomationClient):
         # TODO
         pass
 
-    def exists(self, file_id, use_trash=True):
-        #TODO
+    def exists(self, fs_item_id):
+        return self.execute("NuxeoDrive.FileSystemItemExists", id=fs_item_id)
+
+    # TODO: probably to be replaced by can_rename, can_update, can_delete, can_create_child
+    def check_writable(self, fs_item_id):
+        # TODO
         pass
 
-    def check_writable(self, file_id):
-        # TODO: which operation can be used to perform a permission check?
-        return True
+    def _file_to_info(self, fs_item):
+        """Convert Automation file system item description to RemoteFileInfo"""
+        folderish = fs_item['folder']
+        # TODO: fix: lastModificationDate is a long value
+#        try:
+#            last_update = datetime.strptime(fs_item['lastModificationDate'],
+#                                            "%Y-%m-%dT%H:%M:%S.%fZ")
+#        except ValueError:
+#            # no millisecond?
+#            last_update = datetime.strptime(fs_item['lastModificationDate'],
+#                                            "%Y-%m-%dT%H:%M:%SZ")
+        last_update = datetime.now()
+
+        if folderish:
+            digest = None
+            digest_algorithm = None
+            download_url = None
+        else:
+            digest = fs_item['digest']
+            digest_algorithm = fs_item['digestAlgorithm']
+            download_url = fs_item['downloadURL']
+
+        return RemoteFileInfo(
+            fs_item['name'], fs_item['id'], fs_item['parentId'],
+            folderish, last_update, digest, digest_algorithm, download_url)
+
+    def _do_get(self, url):
+        if self._error is not None:
+            # Simulate a configurable (e.g. network or server) error for the
+            # tests
+            raise self._error
+
+        headers = self._get_common_headers()
+        base_error_message = (
+            "Failed to connect to Nuxeo server %r with user %r"
+        ) % (self.server_url, self.user_id)
+        try:
+            log.trace("Calling '%s' with headers: %r", url, headers)
+            req = urllib2.Request(url, headers=headers)
+            return self.opener.open(req).read()
+        except urllib2.HTTPError as e:
+            if e.code == 401 or e.code == 403:
+                raise Unauthorized(self.server_url, self.user_id, e.code)
+            else:
+                e.msg = base_error_message + ": HTTP error %d" % e.code
+                raise e
+        except Exception as e:
+            if hasattr(e, 'msg'):
+                e.msg = base_error_message + ": " + e.msg
+            raise
+
+    #
+    # API specific to the remote file system client
+    #
+
+    def get_fs_item(self, fs_item_id):
+        return self.execute("NuxeoDrive.GetFileSystemItem", id=fs_item_id)
