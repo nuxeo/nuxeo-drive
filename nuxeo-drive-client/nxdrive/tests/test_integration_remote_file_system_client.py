@@ -124,5 +124,27 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
     #
 
     def test_get_fs_item(self):
-        # TODO
-        pass
+        remote_document_client = self.remote_document_client_1
+        remote_file_system_client = self.remote_file_system_client_1
+
+        # Check file item
+        file_uid = remote_document_client.make_file(self.workspace,
+            'Document 1.txt', content="Content of doc 1.")
+        fs_item_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + file_uid
+        fs_item = remote_file_system_client.get_fs_item(fs_item_id)
+        self.assertEquals(fs_item['name'], 'Document 1.txt')
+        self.assertEquals(fs_item['id'], fs_item_id)
+        self.assertFalse(fs_item['folder'])
+
+        # Check folder item
+        folder_uid = remote_document_client.make_folder(self.workspace,
+            'Folder 1')
+        fs_item_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + folder_uid
+        fs_item = remote_file_system_client.get_fs_item(fs_item_id)
+        self.assertEquals(fs_item['name'], 'Folder 1')
+        self.assertEquals(fs_item['id'], fs_item_id)
+        self.assertTrue(fs_item['folder'])
+
+        # Check non existing file system item
+        fs_item_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + 'fakeId'
+        self.assertIsNone(remote_file_system_client.get_fs_item(fs_item_id))
