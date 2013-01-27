@@ -1,10 +1,15 @@
 """Common Nuxeo Automation client utilities."""
 
+import sys
 import base64
 import json
 import urllib2
+import mimetypes
+import random
+import time
 from urllib import urlencode
-import sys
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
@@ -136,6 +141,88 @@ class BaseAutomationClient(object):
         try:
             resp = self.opener.open(req)
         except Exception, e:
+            self._log_details(e)
+            raise
+
+        info = resp.info()
+        s = resp.read()
+
+        content_type = info.get('content-type', '')
+        if content_type.startswith("application/json"):
+            log.trace("Response for '%s' with json payload: %r", url, s)
+            return json.loads(s) if s else None
+        else:
+            log.trace("Response for '%s' with content-type: %r", url,
+                      content_type)
+            return s
+
+    def execute_with_blob(self, command, blob, filename, **params):
+        self._check_params(command, None, params)
+
+        container = MIMEMultipart("related",
+                type="application/json+nxrequest",
+                start="request")
+
+        d = {'params': params}
+        json_data = json.dumps(d)
+        json_part = MIMEBase("application", "json+nxrequest")
+        json_part.add_header("Content-ID", "request")
+        json_part.set_payload(json_data)
+        container.attach(json_part)
+
+        ctype, encoding = mimetypes.guess_type(filename)
+        if ctype:
+            maintype, subtype = ctype.split('/', 1)
+        else:
+            maintype, subtype = "application", "binary"
+        blob_part = MIMEBase(maintype, subtype)
+        blob_part.add_header("Content-ID", "input")
+        blob_part.add_header("Content-Transfer-Encoding", "binary")
+        ascii_filename = filename.encode('ascii', 'ignore')
+        #content_disposition = "attachment; filename=" + ascii_filename
+        #quoted_filename = urllib.quote(filename.encode('utf-8'))
+        #content_disposition += "; filename filename*=UTF-8''" \
+        #    + quoted_filename
+        #print content_disposition
+        #blob_part.add_header("Content-Disposition:", content_disposition)
+
+        # XXX: Use ASCCI safe version of the filename for now
+        blob_part.add_header('Content-Disposition', 'attachment',
+                             filename=ascii_filename)
+
+        blob_part.set_payload(blob)
+        container.attach(blob_part)
+
+        # Create data by hand :(
+        boundary = "====Part=%s=%s===" % (str(time.time()).replace('.', '='),
+                                          random.randint(0, 1000000000))
+        headers = {
+            "Accept": "application/json+nxentity, */*",
+            "Content-Type": ('multipart/related;boundary="%s";'
+                             'type="application/json+nxrequest";'
+                             'start="request"')
+            % boundary,
+        }
+        headers.update(self._get_common_headers())
+        data = (
+            "--%s\r\n"
+            "%s\r\n"
+            "--%s\r\n"
+            "%s\r\n"
+            "--%s--"
+        ) % (
+            boundary,
+            json_part.as_string(),
+            boundary,
+            blob_part.as_string(),
+            boundary,
+        )
+        url = self.automation_url.encode('ascii') + command
+        log.trace("Calling '%s' for file '%s'", url, filename)
+        req = urllib2.Request(url, data, headers)
+        try:
+            resp = self.opener.open(req)
+        except Exception as e:
             self._log_details(e)
             raise
 

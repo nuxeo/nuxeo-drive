@@ -293,75 +293,8 @@ class RemoteDocumentClient(BaseAutomationClient):
         return self.execute("Blob.Get", input="doc:" + ref)
 
     def attach_blob(self, ref, blob, filename, **params):
-        container = MIMEMultipart("related",
-                type="application/json+nxrequest",
-                start="request")
-
-        params['document'] = ref
-        d = {'params': params}
-        json_data = json.dumps(d)
-        json_part = MIMEBase("application", "json+nxrequest")
-        json_part.add_header("Content-ID", "request")
-        json_part.set_payload(json_data)
-        container.attach(json_part)
-
-        ctype, encoding = mimetypes.guess_type(filename)
-        if ctype:
-            maintype, subtype = ctype.split('/', 1)
-        else:
-            maintype, subtype = "application", "binary"
-        blob_part = MIMEBase(maintype, subtype)
-        blob_part.add_header("Content-ID", "input")
-        blob_part.add_header("Content-Transfer-Encoding", "binary")
-        ascii_filename = filename.encode('ascii', 'ignore')
-        #content_disposition = "attachment; filename=" + ascii_filename
-        #quoted_filename = urllib.quote(filename.encode('utf-8'))
-        #content_disposition += "; filename filename*=UTF-8''" \
-        #    + quoted_filename
-        #print content_disposition
-        #blob_part.add_header("Content-Disposition:", content_disposition)
-
-        # XXX: Use ASCCI safe version of the filename for now
-        blob_part.add_header('Content-Disposition', 'attachment',
-                             filename=ascii_filename)
-
-        blob_part.set_payload(blob)
-        container.attach(blob_part)
-
-        # Create data by hand :(
-        boundary = "====Part=%s=%s===" % (str(time.time()).replace('.', '='),
-                                          random.randint(0, 1000000000))
-        headers = {
-            "Accept": "application/json+nxentity, */*",
-            "Content-Type": ('multipart/related;boundary="%s";'
-                             'type="application/json+nxrequest";'
-                             'start="request"')
-            % boundary,
-        }
-        headers.update(self._get_common_headers())
-        data = (
-            "--%s\r\n"
-            "%s\r\n"
-            "--%s\r\n"
-            "%s\r\n"
-            "--%s--"
-        ) % (
-            boundary,
-            json_part.as_string(),
-            boundary,
-            blob_part.as_string(),
-            boundary,
-        )
-        url = self.automation_url.encode('ascii') + "Blob.Attach"
-        log.trace("Calling '%s' for file '%s'", url, filename)
-        req = urllib2.Request(url, data, headers)
-        try:
-            resp = self.opener.open(req)
-        except Exception as e:
-            self._log_details(e)
-            raise
-        s = resp.read()
-        return s
+        return self.execute_with_blob("Blob.Attach",
+            blob, filename, document=ref)
 
     #
     # Nuxeo Drive specific operations
