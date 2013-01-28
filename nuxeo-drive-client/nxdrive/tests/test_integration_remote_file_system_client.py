@@ -20,6 +20,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             'Document 1.txt', content="Content of doc 1.")
         fs_item_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + file_uid
         info = remote_file_system_client.get_info(fs_item_id)
+        self.assertIsNotNone(info)
         self.assertEquals(info.name, 'Document 1.txt')
         self.assertEquals(info.uid, fs_item_id)
         self.assertEquals(info.parent_uid,
@@ -38,6 +39,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             'Folder 1')
         fs_item_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + folder_uid
         info = remote_file_system_client.get_info(fs_item_id)
+        self.assertIsNotNone(info)
         self.assertEquals(info.name, 'Folder 1')
         self.assertEquals(info.uid, fs_item_id)
         self.assertEquals(info.parent_uid,
@@ -88,7 +90,9 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         parent_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
         fs_item_id = remote_file_system_client.make_file(parent_id,
             'My new file.odt', "Content of my new file.")
+        self.assertIsNotNone(fs_item_id)
         info = remote_file_system_client.get_info(fs_item_id)
+        self.assertIsNotNone(info)
         self.assertEquals(info.name, 'My new file.odt')
         self.assertFalse(info.folderish)
         digest_algorithm = info.digest_algorithm
@@ -100,7 +104,9 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         # Check Note document creation
         fs_item_id = remote_file_system_client.make_file(parent_id,
             'My new note.txt', "Content of my new note.")
+        self.assertIsNotNone(fs_item_id)
         info = remote_file_system_client.get_info(fs_item_id)
+        self.assertIsNotNone(info)
         self.assertEquals(info.name, 'My new note.txt')
         self.assertFalse(info.folderish)
         # TODO: can synchronization deal with a null digest?
@@ -155,6 +161,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             'Document 1.txt', content="Content of doc 1.")
         fs_item_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + file_uid
         fs_item = remote_file_system_client.get_fs_item(fs_item_id)
+        self.assertIsNotNone(fs_item)
         self.assertEquals(fs_item['name'], 'Document 1.txt')
         self.assertEquals(fs_item['id'], fs_item_id)
         self.assertFalse(fs_item['folder'])
@@ -164,6 +171,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             'Folder 1')
         fs_item_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + folder_uid
         fs_item = remote_file_system_client.get_fs_item(fs_item_id)
+        self.assertIsNotNone(fs_item)
         self.assertEquals(fs_item['name'], 'Folder 1')
         self.assertEquals(fs_item['id'], fs_item_id)
         self.assertTrue(fs_item['folder'])
