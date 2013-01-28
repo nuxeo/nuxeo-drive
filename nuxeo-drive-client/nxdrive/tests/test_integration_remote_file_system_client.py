@@ -82,8 +82,31 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         pass
 
     def test_make_file(self):
-        # TODO
-        pass
+        remote_file_system_client = self.remote_file_system_client_1
+
+        # Check File document creation
+        parent_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
+        fs_item_id = remote_file_system_client.make_file(parent_id,
+            'My new file.odt', "Content of my new file.")
+        info = remote_file_system_client.get_info(fs_item_id)
+        self.assertEquals(info.name, 'My new file.odt')
+        self.assertFalse(info.folderish)
+        digestAlgorithm = info.digestAlgorithm
+        self.assertEquals(digestAlgorithm, 'MD5')
+        # TODO: use digest algorithm to hash content
+        digest = hashlib.md5("Content of my new file.").hexdigest()
+        self.assertEquals(info.digest, digest)
+
+        # Check Note document creation
+        fs_item_id = remote_file_system_client.make_file(parent_id,
+            'My new note.txt', "Content of my new note.")
+        info = remote_file_system_client.get_info(fs_item_id)
+        self.assertEquals(info.name, 'My new note.txt')
+        self.assertFalse(info.folderish)
+        # TODO: can synchronization deal with a null digest?
+        # This is the case for documents holding a StringBlob like Notes.
+        self.assertIsNone(info.digestAlgorithm)
+        self.assertIsNone(info.digest)
 
     def test_update_content(self):
         #TODO

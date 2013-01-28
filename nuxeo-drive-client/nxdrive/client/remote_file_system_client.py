@@ -73,9 +73,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
         # TODO
         pass
 
-    def make_file(self, parent, name, content=None):
-        # TODO
-        pass
+    def make_file(self, parent_id, name, content):
+        fs_item = self.execute_with_blob("NuxeoDrive.CreateFile",
+            content, name, id=parent_id)
+        return fs_item['id']
 
     def update_content(self, file_id, content, name=None):
         #TODO
