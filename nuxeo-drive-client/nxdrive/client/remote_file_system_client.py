@@ -21,7 +21,7 @@ BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
     'folderish',  # True is can host children
     'last_modification_time',  # last update time
     'digest',  # digest of the file
-    'digestAlgorithm',  # digest algorithm of the file
+    'digest_algorithm',  # digest algorithm of the file
     'download_url', # download URL of the file
 ])
 

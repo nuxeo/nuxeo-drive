@@ -25,8 +25,8 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(info.parent_uid,
             DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace)
         self.assertFalse(info.folderish)
-        digestAlgorithm = info.digestAlgorithm
-        self.assertEquals(digestAlgorithm, 'MD5')
+        digest_algorithm = info.digest_algorithm
+        self.assertEquals(digest_algorithm, 'MD5')
         # TODO: use digest algorithm to hash content
         digest = hashlib.md5("Content of doc 1.").hexdigest()
         self.assertEquals(info.digest, digest)
@@ -43,7 +43,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(info.parent_uid,
             DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace)
         self.assertTrue(info.folderish)
-        self.assertIsNone(info.digestAlgorithm)
+        self.assertIsNone(info.digest_algorithm)
         self.assertIsNone(info.digest)
         self.assertIsNone(info.download_url)
 
@@ -91,8 +91,8 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         info = remote_file_system_client.get_info(fs_item_id)
         self.assertEquals(info.name, 'My new file.odt')
         self.assertFalse(info.folderish)
-        digestAlgorithm = info.digestAlgorithm
-        self.assertEquals(digestAlgorithm, 'MD5')
+        digest_algorithm = info.digest_algorithm
+        self.assertEquals(digest_algorithm, 'MD5')
         # TODO: use digest algorithm to hash content
         digest = hashlib.md5("Content of my new file.").hexdigest()
         self.assertEquals(info.digest, digest)
@@ -105,7 +105,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertFalse(info.folderish)
         # TODO: can synchronization deal with a null digest?
         # This is the case for documents holding a StringBlob like Notes.
-        self.assertIsNone(info.digestAlgorithm)
+        self.assertIsNone(info.digest_algorithm)
         self.assertIsNone(info.digest)
 
     def test_update_content(self):
