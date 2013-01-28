@@ -89,7 +89,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def exists(self, fs_item_id):
         return self.execute("NuxeoDrive.FileSystemItemExists", id=fs_item_id)
 
-    # TODO: probably to be replaced by can_rename, can_update, can_delete, can_create_child
+    # TODO: probably to be replaced by
+    # can_rename, can_update, can_delete, can_create_child
     def check_writable(self, fs_item_id):
         # TODO
         pass
