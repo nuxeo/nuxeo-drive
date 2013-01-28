@@ -10,14 +10,13 @@ from nxdrive.client.common import NotFound
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.utils import normalized_path
+from nxdrive.client.common import BUFFER_SIZE
 
 
 log = get_logger(__name__)
 
 
 DEDUPED_BASENAME_PATTERN = r'^(.*)__(\d{1,3})$'
-
-BUFFER_SIZE = 1024 ** 2
 
 
 def safe_filename(name, replacement='-'):

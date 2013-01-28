@@ -17,3 +17,5 @@ DEFAULT_IGNORED_SUFFIXES = [
     '.LOCK',  # other locks
     '.part',  # partially downloaded files
 ]
+
+BUFFER_SIZE = 1024 ** 2
