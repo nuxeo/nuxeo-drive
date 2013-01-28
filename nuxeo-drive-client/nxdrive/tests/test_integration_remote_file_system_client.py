@@ -80,8 +80,19 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         pass
 
     def test_make_folder(self):
-        # TODO
-        pass
+        remote_file_system_client = self.remote_file_system_client_1
+
+        parent_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
+        fs_item_id = remote_file_system_client.make_folder(parent_id,
+            'My new folder')
+        self.assertIsNotNone(fs_item_id)
+        info = remote_file_system_client.get_info(fs_item_id)
+        self.assertIsNotNone(info)
+        self.assertEquals(info.name, 'My new folder')
+        self.assertTrue(info.folderish)
+        self.assertIsNone(info.digest_algorithm)
+        self.assertIsNone(info.digest)
+        self.assertIsNone(info.download_url)
 
     def test_make_file(self):
         remote_file_system_client = self.remote_file_system_client_1
