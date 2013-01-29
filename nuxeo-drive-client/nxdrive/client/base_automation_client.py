@@ -214,6 +214,8 @@ class BaseAutomationClient(object):
             boundary,
             json_part.as_string(),
             boundary,
+            # TODO: we should find a way to stream the content of the blob
+            # to avoid loading it in memory
             blob_part.as_string(),
             boundary,
         )
