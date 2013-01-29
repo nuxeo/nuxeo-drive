@@ -1,6 +1,6 @@
-import hashlib
 from nxdrive.client import NotFound
 from nxdrive.tests.common import IntegrationTestCase
+import hashlib
 
 
 DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX = 'defaultFileSystemItemFactory/default/'
@@ -122,6 +122,34 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(digest_algorithm, 'md5')
         digest = self._get_digest(digest_algorithm, "Content of my new note.")
         self.assertEquals(info.digest, digest)
+
+    def test_make_file_custom_encoding(self):
+        remote_file_system_client = self.remote_file_system_client_1
+
+        # Create content encoded in utf-8 and cp1252
+        unicode_content = u'\xe9' # e acute
+        utf8_encoded = unicode_content.encode('utf-8')
+        utf8_digest = hashlib.md5(utf8_encoded).hexdigest()
+        cp1252_encoded = unicode_content.encode('cp1252')
+
+        # Make files with this content
+        parent_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
+        utf8_fs_id = remote_file_system_client.make_file(parent_id,
+            'My utf-8 file.txt', utf8_encoded)
+        cp1252_fs_id = remote_file_system_client.make_file(parent_id,
+            'My cp1252 file.txt', cp1252_encoded)
+
+        # Check content
+        utf8_content = remote_file_system_client.get_content(utf8_fs_id)
+        self.assertEqual(utf8_content, utf8_encoded)
+        cp1252_content = remote_file_system_client.get_content(cp1252_fs_id)
+        self.assertEqual(cp1252_content, utf8_encoded)
+
+        # Check digest
+        utf8_info = remote_file_system_client.get_info(utf8_fs_id)
+        self.assertEqual(utf8_info.digest, utf8_digest)
+        cp1252_info = remote_file_system_client.get_info(cp1252_fs_id)
+        self.assertEqual(cp1252_info.digest, utf8_digest)
 
     def test_update_content(self):
         #TODO
