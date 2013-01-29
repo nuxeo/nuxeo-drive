@@ -156,7 +156,7 @@ class BaseAutomationClient(object):
                       content_type)
             return s
 
-    def execute_with_blob(self, command, blob, filename, **params):
+    def execute_with_blob(self, command, blob_content, filename, **params):
         self._check_params(command, None, params)
 
         container = MIMEMultipart("related",
@@ -190,7 +190,7 @@ class BaseAutomationClient(object):
         blob_part.add_header('Content-Disposition', 'attachment',
                              filename=ascii_filename)
 
-        blob_part.set_payload(blob)
+        blob_part.set_payload(blob_content)
         container.attach(blob_part)
 
         # Create data by hand :(
