@@ -21,7 +21,7 @@ from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
 from nxdrive.synchronizer import Synchronizer
 from nxdrive.logging_config import get_logger
-
+from nxdrive.utils import normalized_path
 
 
 log = get_logger(__name__)
@@ -130,26 +130,35 @@ class Controller(object):
         else:
             log.info("No running synchronization process to stop.")
 
-    def children_states(self, folder_path, full_states=False):
+    def children_states(self, folder_path):
         """List the status of the children of a folder
 
         The state of the folder is a summary of their descendant rather
         than their own instric synchronization step which is of little
         use for the end user.
 
-        If full is True the full state object is returned instead of just the
-        local path.
         """
         session = self.get_session()
         server_binding = self.get_server_binding(folder_path, session=session)
         if server_binding is not None:
-            # TODO: if folder_path is the top level Nuxeo Drive folder, list
+            # if folder_path is the top level Nuxeo Drive folder, list
             # all the root binding states
-            raise NotImplementedError(
-                "Children States of a server binding is not yet implemented")
+            root_states = []
+            for rb in server_binding.roots:
+                root_state = 'synchronized'
+                for _, child_state in self.children_states(rb.local_root):
+                    if child_state != 'synchronized':
+                        root_state = 'children_modified'
+                        break
+                root_states.append(
+                        (os.path.basename(rb.local_root), root_state))
+            return root_states
 
         # Find the root binding for this absolute path
-        binding, path = self._binding_path(folder_path, session=session)
+        try:
+            binding, path = self._binding_path(folder_path, session=session)
+        except NotFound:
+            return []
 
         try:
             folder_state = session.query(LastKnownState).filter_by(
@@ -161,13 +170,10 @@ class Controller(object):
 
         states = self._pair_states_recursive(binding.local_root, session,
                                              folder_state)
-        if full_states:
-            return [(s, pair_state) for s, pair_state in states
-                    if (s.parent_path == path
-                        or s.remote_parent_ref == folder_state.remote_ref)]
 
-        return [(s.path, pair_state) for s, pair_state in states
-                if s.path is not None and s.parent_path == path]
+        return [(os.path.basename(s.path), pair_state)
+                for s, pair_state in states
+                if s.parent_path == path]
 
     def _pair_states_recursive(self, local_root, session, doc_pair):
         """Recursive call to collect pair state under a given location."""
@@ -211,7 +217,7 @@ class Controller(object):
 
     def _binding_path(self, folder_path, session=None):
         """Find a root binding and relative path for a given FS path"""
-        folder_path = os.path.abspath(folder_path)
+        folder_path = normalized_path(folder_path)
 
         # Check exact root binding match
         binding = self.get_root_binding(folder_path, session=session)
@@ -238,6 +244,7 @@ class Controller(object):
     def get_server_binding(self, local_folder, raise_if_missing=False,
                            session=None):
         """Find the ServerBinding instance for a given local_folder"""
+        local_folder = normalized_path(local_folder)
         if session is None:
             session = self.get_session()
         try:
@@ -258,7 +265,7 @@ class Controller(object):
     def bind_server(self, local_folder, server_url, username, password):
         """Bind a local folder to a remote nuxeo server"""
         session = self.get_session()
-        local_folder = os.path.abspath(os.path.expanduser(local_folder))
+        local_folder = normalized_path(local_folder)
 
         # check the connection to the server by issuing an authentication
         # request
@@ -315,7 +322,7 @@ class Controller(object):
 
         Local files are not deleted"""
         session = self.get_session()
-        local_folder = os.path.abspath(os.path.expanduser(local_folder))
+        local_folder = normalized_path(local_folder)
         binding = self.get_server_binding(local_folder, raise_if_missing=True,
                                           session=session)
 
@@ -359,7 +366,7 @@ class Controller(object):
         It is the responsability of the caller to commit any change in
         the same thread if needed.
         """
-        local_root = os.path.abspath(os.path.expanduser(local_root))
+        local_root = normalized_path(local_root)
         if session is None:
             session = self.get_session()
         try:
@@ -386,7 +393,7 @@ class Controller(object):
         """
         # Check that local_root is a subfolder of bound folder
         session = self.get_session()
-        local_folder = os.path.abspath(os.path.expanduser(local_folder))
+        local_folder = normalized_path(local_folder)
         server_binding = self.get_server_binding(local_folder,
                                                  raise_if_missing=True,
                                                  session=session)
@@ -475,7 +482,7 @@ class Controller(object):
 
     def unbind_root(self, local_root, session=None):
         """Remove binding on a root folder"""
-        local_root = os.path.abspath(os.path.expanduser(local_root))
+        local_root = normalized_path(local_root)
         if session is None:
             session = self.get_session()
         binding = self.get_root_binding(local_root, raise_if_missing=True,

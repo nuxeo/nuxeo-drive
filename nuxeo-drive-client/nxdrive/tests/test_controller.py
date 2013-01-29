@@ -126,14 +126,16 @@ class FakeNuxeoClient(object):
 
 @with_setup(setup, teardown)
 def test_bindings():
-    # by default no bindings => cannot ask for a status
-    assert_raises(NotFound, ctl.children_states, TEST_SYNCED_FOLDER)
+    # by default no bindings => no status information
+    assert_equal(ctl.children_states(TEST_SYNCED_FOLDER), [])
 
     # it is not possible to bind a new root if the local folder is not bound to
     # the server
     remote_repo = 'default'
     remote_root = 'dead-beef-cafe-babe'
     expected_local_root = join(TEST_SYNCED_FOLDER, 'The Root')
+    unnormalized_local_root = join(TEST_SYNCED_FOLDER,
+                                   'The Root', '..', 'The Root')
 
     assert_raises(RuntimeError, ctl.bind_root, TEST_SYNCED_FOLDER,
                   remote_root, repository=remote_repo)
@@ -151,14 +153,17 @@ def test_bindings():
     # Password is not stored in the database if token auth is implemented
     assert_equal(server_binding.remote_password, None)
 
-    # TODO: implement me: children states of the server folder
-    #assert_equal(ctl.children_states(TEST_SYNCED_FOLDER), [])
+    # By defaut, no root registered hence no children
+    assert_equal(ctl.children_states(TEST_SYNCED_FOLDER), [])
 
     ctl.bind_root(TEST_SYNCED_FOLDER, remote_root, repository=remote_repo)
 
     # The local root folder has been created
     assert_true(os.path.exists(expected_local_root))
+    assert_equal(ctl.children_states(TEST_SYNCED_FOLDER),
+                 [(u'The Root', 'synchronized')])
     assert_equal(ctl.children_states(expected_local_root), [])
+    assert_equal(ctl.children_states(unnormalized_local_root), [])
 
     # Registering twice the same root will also raise an integrity constraint
     # error
@@ -219,13 +224,23 @@ def test_local_scan():
     # Scanning root_1 will find the changes
     syn.scan_local(root_1, session)
     assert_equal(ctl.children_states(root_1), [
-        (u'/File 1.txt', u'unknown'),
-        (u'/Folder 3', 'children_modified'),
+        (u'File 1.txt', u'unknown'),
+        (u'Folder 3', 'children_modified'),
     ])
     folder_3_abs = os.path.join(root_1, 'Folder 3')
     assert_equal(ctl.children_states(folder_3_abs), [
-        (u'/Folder 3/File 2.txt', u'unknown'),
+        (u'File 2.txt', u'unknown'),
     ])
+    folder_3_unnormalized = os.path.join(root_1, '.', 'Folder 3')
+    assert_equal(ctl.children_states(folder_3_unnormalized), [
+        (u'File 2.txt', u'unknown'),
+    ])
+
+    # The first root it-self appears as not synced as seen from the top level
+    # folder
+    assert_equal(ctl.children_states(TEST_SYNCED_FOLDER),
+                 [(u'Folder 1', 'children_modified'),
+                  (u'Folder 2', 'synchronized')])
 
     # Wait a bit for file time stamps to increase enough: on most OS the file
     # modification time resolution is 1s
@@ -241,23 +256,23 @@ def test_local_scan():
 
     # If we don't do a rescan, the controller is not aware of the changes
     assert_equal(ctl.children_states(root_1), [
-        (u'/File 1.txt', u'unknown'),
-        (u'/Folder 3', 'children_modified'),
+        (u'File 1.txt', u'unknown'),
+        (u'Folder 3', 'children_modified'),
     ])
     folder_3_abs = os.path.join(root_1, 'Folder 3')
     assert_equal(ctl.children_states(folder_3_abs), [
-        (u'/Folder 3/File 2.txt', u'unknown'),
+        (u'File 2.txt', u'unknown'),
     ])
 
     # Let's scan again
     syn.scan_local(root_1, session)
     assert_equal(ctl.children_states(root_1), [
-        (u'/Folder 3', 'children_modified'),
+        (u'Folder 3', 'children_modified'),
     ])
     assert_equal(ctl.children_states(folder_3_abs), [
-        (u'/Folder 3/File 2.txt', u'locally_modified'),
-        (u'/Folder 3/File 3.txt', u'unknown'),
-        (u'/Folder 3/Folder 3.1', u'unknown')
+        (u'File 2.txt', u'locally_modified'),
+        (u'File 3.txt', u'unknown'),
+        (u'Folder 3.1', u'unknown')
     ])
 
     # Delete the toplevel folder that has not been synchronised to the

@@ -17,6 +17,7 @@ from urllib import urlencode
 import re
 import sys
 from nxdrive.logging_config import get_logger
+from nxdrive.utils import normalized_path
 
 
 log = get_logger(__name__)
@@ -260,7 +261,7 @@ class LocalClient(object):
         if not ref.startswith('/'):
             raise ValueError("LocalClient expects ref starting with '/'")
         path_suffix = ref[1:].replace('/', os.path.sep)
-        return os.path.abspath(os.path.join(self.base_folder, path_suffix))
+        return normalized_path(os.path.join(self.base_folder, path_suffix))
 
     def _abspath_deduped(self, parent, orig_name):
         """Absolute path on the operating system with deduplicated names"""
