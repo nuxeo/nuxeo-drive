@@ -27,9 +27,8 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace)
         self.assertFalse(info.folderish)
         digest_algorithm = info.digest_algorithm
-        self.assertEquals(digest_algorithm, 'MD5')
-        # TODO: use digest algorithm to hash content
-        digest = hashlib.md5("Content of doc 1.").hexdigest()
+        self.assertEquals(digest_algorithm, 'md5')
+        digest = self._get_digest(digest_algorithm, "Content of doc 1.")
         self.assertEquals(info.digest, digest)
         self.assertEquals(info.download_url,
             'nxbigfile/default/' + file_uid + '/blobholder:0/Document%201.txt')
@@ -107,9 +106,8 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(info.name, 'My new file.odt')
         self.assertFalse(info.folderish)
         digest_algorithm = info.digest_algorithm
-        self.assertEquals(digest_algorithm, 'MD5')
-        # TODO: use digest algorithm to hash content
-        digest = hashlib.md5("Content of my new file.").hexdigest()
+        self.assertEquals(digest_algorithm, 'md5')
+        digest = self._get_digest(digest_algorithm, "Content of my new file.")
         self.assertEquals(info.digest, digest)
 
         # Check Note document creation
@@ -120,10 +118,10 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertIsNotNone(info)
         self.assertEquals(info.name, 'My new note.txt')
         self.assertFalse(info.folderish)
-        # TODO: can synchronization deal with a null digest?
-        # This is the case for documents holding a StringBlob like Notes.
-        self.assertIsNone(info.digest_algorithm)
-        self.assertIsNone(info.digest)
+        digest_algorithm = info.digest_algorithm
+        self.assertEquals(digest_algorithm, 'md5')
+        digest = self._get_digest(digest_algorithm, "Content of my new note.")
+        self.assertEquals(info.digest, digest)
 
     def test_update_content(self):
         #TODO
@@ -190,3 +188,9 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         # Check non existing file system item
         fs_item_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + 'fakeId'
         self.assertIsNone(remote_file_system_client.get_fs_item(fs_item_id))
+
+    def _get_digest(self, digest_algorithm, content):
+        hasher = getattr(hashlib, digest_algorithm)
+        if hasher is None:
+            raise RuntimeError('Unknown digest algorithm: %s' % digest_algorithm)
+        return hasher(content).hexdigest()
