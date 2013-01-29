@@ -33,15 +33,20 @@ def default_nuxeo_drive_folder():
     This folder is user specific, typically under the home folder.
     """
     if sys.platform == "win32":
-        if os.path.exists(os.path.expanduser(r'~\My Documents')):
+        # WARNING: it's important to check `Documents` first as under Windows 7
+        # there also exists a `My Documents` folder invisible in the explorer and
+        # cmd / powershell but visible from Python
+        documents = os.path.expanduser(r'~\Documents')
+        my_documents = os.path.expanduser(r'~\My Documents')
+        if os.path.exists(documents):
+            # Regular location for documents under Windows 7 and up
+            return os.path.join(documents, 'Nuxeo Drive')
+        elif os.path.exists(my_documents):
             # Compat for Windows XP
-            return r'~\My Documents\Nuxeo Drive'
-        else:
-            # Default Documents folder with navigation shortcuts in Windows 7
-            # and up.
-            return r'~\Documents\Nuxeo Drive'
-    else:
-        return '~/Nuxeo Drive'
+            return os.path.join(my_documents, 'Nuxeo Drive')
+
+    # Fallback to home folder otherwise
+    return os.path.join(os.path.expanduser('~'), 'Nuxeo Drive')
 
 
 class Controller(object):
