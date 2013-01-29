@@ -59,8 +59,12 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self._file_to_info(fs_item)
 
     def get_content(self, fs_item_id):
-        # Will raise NotFound if file system item with id fs_item_id
-        # cannot be found
+        """Downloads the binary content of a file system item
+
+        Raises NotFound if file system item with id fs_item_id
+        cannot be found
+        """
+
         fs_item_info = self.get_info(fs_item_id)
         download_url = self.server_url + fs_item_info.download_url
         return self._do_get(download_url)
