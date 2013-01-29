@@ -2,14 +2,8 @@
 
 from collections import namedtuple
 from datetime import datetime
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
 import hashlib
-import json
-import mimetypes
 import os
-import random
-import time
 import urllib2
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
