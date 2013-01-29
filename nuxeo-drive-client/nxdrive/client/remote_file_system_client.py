@@ -5,6 +5,7 @@ from datetime import datetime
 import urllib2
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
+from nxdrive.client.common import BUFFER_SIZE
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.base_automation_client import BaseAutomationClient
 
@@ -58,7 +59,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
             return None
         return self._file_to_info(fs_item)
 
-    def get_content(self, fs_item_id):
+    def get_content(self, fs_item_id, file_out=None):
         """Downloads the binary content of a file system item
 
         Raises NotFound if file system item with id fs_item_id
@@ -67,7 +68,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
         fs_item_info = self.get_info(fs_item_id)
         download_url = self.server_url + fs_item_info.download_url
-        return self._do_get(download_url)
+        return self._do_get(download_url, file_out=file_out)
 
     def get_children_info(self, file_id):
         #TODO
@@ -126,7 +127,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
             fs_item['name'], fs_item['id'], fs_item['parentId'],
             folderish, last_update, digest, digest_algorithm, download_url)
 
-    def _do_get(self, url):
+    def _do_get(self, url, file_out=None):
         if self._error is not None:
             # Simulate a configurable (e.g. network or server) error for the
             # tests
@@ -139,7 +140,15 @@ class RemoteFileSystemClient(BaseAutomationClient):
         try:
             log.trace("Calling '%s' with headers: %r", url, headers)
             req = urllib2.Request(url, headers=headers)
-            return self.opener.open(req).read()
+            response = self.opener.open(req)
+            if hasattr(file_out, "write"):
+                while True:
+                    buffer_ = response.read(BUFFER_SIZE)
+                    if buffer_ == '':
+                        break
+                    file_out.write(buffer_)
+            else:
+                return response.read()
         except urllib2.HTTPError as e:
             if e.code == 401 or e.code == 403:
                 raise Unauthorized(self.server_url, self.user_id, e.code)
