@@ -1,3 +1,4 @@
+import os
 import time
 from nxdrive.tests.common import IntegrationTestCase
 
@@ -39,7 +40,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         remote_client = self.remote_document_client_1
         folder_1 = remote_client.make_folder(self.workspace, 'Folder 1')
         folder_2 = remote_client.make_folder(self.workspace, 'Folder 2')
-        folder_2_2 = remote_client.make_folder(folder_2, 'Folder 2.2')
+        remote_client.make_folder(folder_2, 'Folder 2.2')
         time.sleep(1.0)
 
         # Fetch an initial time stamp without any registered roots
@@ -63,3 +64,58 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         self.assertEquals(len(root_defs), 1)
         self.assertTrue(root_defs[0].startswith('default:'))
         self.assertEquals(len(summary['fileSystemChanges']), 1)
+        change = summary['fileSystemChanges'][0]
+        self.assertEquals(change['fileSystemItemName'], u"Folder 1")
+        self.assertEquals(change['repositoryId'], "default")
+        self.assertEquals(change['docUuid'], folder_1)
+
+        # Let's register the second root
+        ctl.bind_root(self.local_nxdrive_folder_1, folder_2)
+        time.sleep(1.0)
+        summary = self.get_changes()
+        self.assertEquals(summary['hasTooManyChanges'], False)
+        root_defs = summary['activeSynchronizationRootDefinitions'].split(',')
+        self.assertEquals(len(root_defs), 2)
+        self.assertTrue(root_defs[0].startswith('default:'))
+        self.assertTrue(root_defs[1].startswith('default:'))
+        self.assertEquals(len(summary['fileSystemChanges']), 1)
+        change = summary['fileSystemChanges'][0]
+        self.assertEquals(change['fileSystemItemName'], u"Folder 2")
+        self.assertEquals(change['repositoryId'], "default")
+        self.assertEquals(change['docUuid'], folder_2)
+
+        # Let's do nothing and refetch the changes
+        summary = self.get_changes()
+        self.assertEquals(summary['hasTooManyChanges'], False)
+        root_defs = summary['activeSynchronizationRootDefinitions'].split(',')
+        self.assertEquals(len(root_defs), 2)
+        self.assertTrue(root_defs[0].startswith('default:'))
+        self.assertTrue(root_defs[1].startswith('default:'))
+        self.assertEquals(len(summary['fileSystemChanges']), 0)
+
+        # Let's unregister both roots at the same time
+        ctl.unbind_root(os.path.join(self.local_nxdrive_folder_1, 'Folder 1'))
+        ctl.unbind_root(os.path.join(self.local_nxdrive_folder_1, 'Folder 2'))
+        time.sleep(1.0)
+        summary = self.get_changes()
+        self.assertEquals(summary['hasTooManyChanges'], False)
+        raw_root_defs = summary['activeSynchronizationRootDefinitions']
+        self.assertEquals(raw_root_defs, '')
+        self.assertEquals(len(summary['fileSystemChanges']), 2)
+        change = summary['fileSystemChanges'][0]
+        self.assertEquals(change['eventId'], u"deleted")
+        self.assertEquals(change['fileSystemItemName'], u"Folder 2")
+        self.assertEquals(change['repositoryId'], "default")
+        self.assertEquals(change['docUuid'], folder_2)
+        change = summary['fileSystemChanges'][1]
+        self.assertEquals(change['eventId'], u"deleted")
+        self.assertEquals(change['fileSystemItemName'], u"Folder 1")
+        self.assertEquals(change['repositoryId'], "default")
+        self.assertEquals(change['docUuid'], folder_1)
+
+        # Let's do nothing and refetch the changes
+        summary = self.get_changes()
+        self.assertEquals(summary['hasTooManyChanges'], False)
+        raw_root_defs = summary['activeSynchronizationRootDefinitions']
+        self.assertEquals(raw_root_defs, '')
+        self.assertEquals(len(summary['fileSystemChanges']), 0)
