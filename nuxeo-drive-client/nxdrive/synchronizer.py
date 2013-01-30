@@ -87,6 +87,30 @@ class Synchronizer(object):
 
     def __init__(self, controller):
         self._controller = controller
+        self._last_sync_date = None
+        self._last_root_definitions = None
+        self._frontend = None
+
+    def register_frontend(self, frontend):
+        self._frontend = frontend
+
+    def get_remote_changes(self, root_binding):
+        """Fetch incremental change summary from the server"""
+        rb = root_binding
+        remote_client = self._controller.get_remote_client(
+            rb.server_binding, repository=rb.remote_repo,
+            base_folder=rb.remote_root)
+
+        summary = remote_client.get_changes(
+            last_sync_date=self._last_sync_date,
+            last_root_definitions=self._last_root_definitions)
+
+        new_root_definitions = summary['activeSynchronizationRootDefinitions']
+        root_changed = new_root_definitions != self._last_root_definitions
+
+        self._last_root_definitions = new_root_definitions
+        self._last_sync_date = summary['syncDate']
+        return summary, root_changed
 
     def get_session(self):
         return self._controller.get_session()
@@ -317,7 +341,7 @@ class Synchronizer(object):
                                         child_pair, child_info)
 
     def update_roots(self, session=None, server_binding=None,
-                     repository=None, frontend=None):
+                     repository=None):
         """Ensure that the list of bound roots match server-side info
 
         If a server is not responding it is skipped.
@@ -352,14 +376,14 @@ class Synchronizer(object):
                 _log_offline(e, "update roots")
                 log.trace("Traceback of ignored network error:",
                         exc_info=True)
-                if frontend is not None:
-                    frontend.notify_offline(sb.local_folder, e)
+                if self._frontend is not None:
+                    self._frontend.notify_offline(sb.local_folder, e)
                 self._controller.invalidate_client_cache(sb.server_url)
 
-        if frontend is not None:
+        if self._frontend is not None:
             local_folders = [sb.local_folder
                     for sb in session.query(ServerBinding).all()]
-            frontend.notify_local_folders(local_folders)
+            self._frontend.notify_local_folders(local_folders)
 
     def refresh_remote_folders_from_log(self, root_binding):
         """Query the remote server audit log looking for state updates."""
@@ -655,14 +679,14 @@ class Synchronizer(object):
 
     def loop(self, full_local_scan=True, full_remote_scan=True, delay=10,
              max_sync_step=50, max_loops=None, fault_tolerant=True,
-             frontend=None, limit_pending=100):
+             limit_pending=100):
         """Forever loop to scan / refresh states and perform synchronization
 
         delay is an delay in seconds that ensures that two consecutive
         scans won't happen too closely from one another.
         """
-        if frontend is not None:
-            frontend.notify_sync_started()
+        if self._frontend is not None:
+            self._frontend.notify_sync_started()
         pid = self.check_running(process_name="sync")
         if pid is not None:
             log.warning(
@@ -697,7 +721,10 @@ class Synchronizer(object):
                     log.info("Stopping synchronization after %d loops",
                              loop_count)
                     break
-                self.update_roots(session, frontend=frontend)
+
+                # TODO: iterate over servers instead to be able to avoid
+                # fetching changes when
+                self.update_roots(session)
 
                 bindings = session.query(RootBinding).all()
                 for rb in bindings:
@@ -712,14 +739,21 @@ class Synchronizer(object):
                             continue
 
                         if full_remote_scan or first_pass:
+                            # Fetch the current server date to be able to
+                            # compute incremental change from just before the
+                            # scan
+                            self.get_remote_changes(rb)
                             self.scan_remote(rb.local_root, session)
                         else:
-                            self.refresh_remote_from_log(rb.remote_ref)
-                        if frontend is not None:
+                            summary, root_changed = self.get_remote_changes(rb)
+
+                            # TODO: implement incremental update
+
+                        if self._frontend is not None:
                             n_pending = len(self._controller.list_pending(
                                 limit=limit_pending))
                             reached_limit = n_pending == limit_pending
-                            frontend.notify_pending(rb.local_folder, n_pending,
+                            self._frontend.notify_pending(rb.local_folder, n_pending,
                                     or_more=reached_limit)
 
                         self.synchronize(limit=max_sync_step,
@@ -730,8 +764,8 @@ class Synchronizer(object):
                         _log_offline(e, "synchronization loop")
                         log.trace("Traceback of ignored network error:",
                                 exc_info=True)
-                        if frontend is not None:
-                            frontend.notify_offline(rb.local_folder, e)
+                        if self._frontend is not None:
+                            self._frontend.notify_offline(rb.local_folder, e)
 
                         # TODO: add a special handling for the invalid
                         # credentials case and mark the server binding
@@ -771,8 +805,8 @@ class Synchronizer(object):
 
         # Notify UI frontend to take synchronization stop into account and
         # potentially quit the app
-        if frontend is not None:
-            frontend.notify_sync_stopped()
+        if self._frontend is not None:
+            self._frontend.notify_sync_stopped()
 
     def get_remote_client(self, server_binding, base_folder=None,
                           repository='default'):

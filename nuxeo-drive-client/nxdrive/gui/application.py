@@ -305,10 +305,10 @@ class Application(QApplication):
             delay = getattr(self.options, 'delay', 5.0)
             # Controller and its database session pool should be thread safe,
             # hence reuse it directly
+            self.controller.synchronizer.register_frontend(self)
             self.sync_thread = Thread(target=sync_loop,
                                       args=(self.controller,),
-                                      kwargs={"frontend": self,
-                                              "fault_tolerant": fault_tolerant,
+                                      kwargs={"fault_tolerant": fault_tolerant,
                                               "delay": delay})
             self.sync_thread.start()
 
