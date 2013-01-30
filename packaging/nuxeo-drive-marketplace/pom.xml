@@ -15,9 +15,23 @@
 
   <build>
     <plugins>
+      <!-- Temporarily allow SNAPSHOT for nuxeo-distribution-tools -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <configuration>
+          <rules>
+            <requirePluginVersions>
+              <unCheckedPluginList>org.nuxeo.build:nuxeo-distribution-tools</unCheckedPluginList>
+            </requirePluginVersions>
+          </rules>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.nuxeo.build</groupId>
         <artifactId>nuxeo-distribution-tools</artifactId>
+        <!-- Waiting for 1.13 release -->
+        <version>1.13-SNAPSHOT</version>
         <configuration>
           <buildFiles>
             <buildFile>${basedir}/src/main/assemble/assembly.xml</buildFile>
