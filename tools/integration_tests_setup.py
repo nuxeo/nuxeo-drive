@@ -37,6 +37,7 @@ import zipfile
 import shutil
 import atexit
 import time
+import fnmatch
 
 
 DEFAULT_MARKETPLACE = os.path.join(
@@ -278,6 +279,14 @@ def set_environment():
     os.environ['NXDRIVE_TEST_USER'] = "Administrator"
     os.environ['NXDRIVE_TEST_PASSWORD'] = "Administrator"
 
+def clean_pyc():
+    for root, dirnames, filenames in os.walk('nuxeo-drive-client'):
+        if '.git' in dirnames:
+            dirnames.remove('.git')
+        for filename in fnmatch.filter(filenames, '*.pyc'):
+            file_path = os.path.join(root, filename)
+            print('Removing .pyc file: %s' % file_path)
+            os.unlink(file_path)
 
 def run_tests_from_msi():
     ndrive = os.path.join(EXTRACTED_MSI_FOLDER, 'SourceDir', 'ndrive.exe')
@@ -300,6 +309,7 @@ if __name__ == "__main__":
     if options.command == 'test':
         setup_nuxeo(options.nuxeo_archive_url)
         set_environment()
+        clean_pyc()
         if sys.platform == 'win32':
             extract_msi(options.lessmsi_url, options.msi_folder)
             run_tests_from_msi()
