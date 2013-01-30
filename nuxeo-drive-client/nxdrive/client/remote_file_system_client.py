@@ -70,7 +70,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         download_url = self.server_url + fs_item_info.download_url
         return self._do_get(download_url, file_out=file_out)
 
-    def get_children_info(self, file_id):
+    def get_children_info(self, fs_item_id):
         #TODO
         pass
 
@@ -84,11 +84,11 @@ class RemoteFileSystemClient(BaseAutomationClient):
             content, name, id=parent_id)
         return fs_item['id']
 
-    def update_content(self, file_id, content, name=None):
+    def update_content(self, fs_item_id, content, name=None):
         #TODO
         pass
 
-    def delete(self, file_id, use_trash=True):
+    def delete(self, fs_item_id):
         # TODO
         pass
 
