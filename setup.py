@@ -15,6 +15,7 @@ freeze_options = {}
 name = 'nuxeo-drive'
 packages = [
     'nxdrive',
+    'nxdrive.client',
     'nxdrive.tests',
     'nxdrive.gui',
     'nxdrive.protocol_handler',
