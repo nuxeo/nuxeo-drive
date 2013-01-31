@@ -221,6 +221,7 @@ class Application(QApplication):
         info = self.get_info(local_folder)
         if n_pending != info.n_pending:
             log.debug("%d pending operations for: %s", n_pending, local_folder)
+            self.communicator.menu.emit()
         # Update pending stats
         info.n_pending = n_pending
         info.has_more_pending = or_more
@@ -264,6 +265,11 @@ class Application(QApplication):
             open_folder_action = QtGui.QAction(
                 open_folder_msg, tray_icon_menu, triggered=open_folder)
             tray_icon_menu.addAction(open_folder_action)
+
+            # Pending status
+            status_action = tray_icon_menu.addAction(
+                binding_info.get_status_message())
+            status_action.setEnabled(False)
 
             # Link to change to refetch authentication token when expired
             update_credentials_msg = "Update credentials"
