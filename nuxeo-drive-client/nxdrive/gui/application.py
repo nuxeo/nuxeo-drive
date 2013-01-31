@@ -307,15 +307,14 @@ class Application(QApplication):
             self.register_server()
 
         if self.sync_thread is None or not self.sync_thread.isAlive():
-            fault_tolerant = not getattr(self.options, 'stop_on_error', True)
             delay = getattr(self.options, 'delay', 5.0)
             # Controller and its database session pool should be thread safe,
             # hence reuse it directly
             self.controller.synchronizer.register_frontend(self)
+            self.controller.synchronizer.delay = delay
+
             self.sync_thread = Thread(target=sync_loop,
-                                      args=(self.controller,),
-                                      kwargs={"fault_tolerant": fault_tolerant,
-                                              "delay": delay})
+                                      args=(self.controller,))
             self.sync_thread.start()
 
     def event(self, event):

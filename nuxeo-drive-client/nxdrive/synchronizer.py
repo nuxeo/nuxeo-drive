@@ -15,7 +15,6 @@ from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
 from nxdrive.model import ServerBinding
-from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
 from nxdrive.logging_config import get_logger
 
@@ -85,40 +84,34 @@ def find_first_name_match(name, possible_pairs):
 class Synchronizer(object):
     """Handle synchronization operations between the client FS and Nuxeo"""
 
+    # delay in seconds that ensures that two consecutive scans won't happen
+    # too closely from one another.
+    # TODO: make this a value returned by the server so that it can tell the
+    # client to slow down when the server cannot keep up with the load
+    delay = 10
+
+    # Number of consecutive sync operations to perform without refreshing
+    # the internal state DB
+    max_sync_step = 10
+
+    # Limit number of pending items to retrieve when computing the list of
+    # operations to perform (useful to display activity stats in the
+    # frontend)
+    limit_pending = 100
+
     def __init__(self, controller):
         self._controller = controller
-        self._last_sync_date = None
-        self._last_root_definitions = None
         self._frontend = None
 
     def register_frontend(self, frontend):
         self._frontend = frontend
-
-    def get_remote_changes(self, root_binding):
-        """Fetch incremental change summary from the server"""
-        rb = root_binding
-        remote_client = self._controller.get_remote_client(
-            rb.server_binding, repository=rb.remote_repo,
-            base_folder=rb.remote_root)
-
-        summary = remote_client.get_changes(
-            last_sync_date=self._last_sync_date,
-            last_root_definitions=self._last_root_definitions)
-
-        new_root_definitions = summary['activeSynchronizationRootDefinitions']
-        root_changed = new_root_definitions != self._last_root_definitions
-
-        self._last_root_definitions = new_root_definitions
-        self._last_sync_date = summary['syncDate']
-        return summary, root_changed
 
     def get_session(self):
         return self._controller.get_session()
 
     def scan_local(self, local_root, session=None):
         """Recursively scan the bound local folder looking for updates"""
-        if session is None:
-            session = self.get_session()
+        session = self.get_session() if session is None else session
 
         root_state = session.query(LastKnownState).filter_by(
             local_root=local_root, path='/').one()
@@ -340,8 +333,7 @@ class Synchronizer(object):
             self._scan_remote_recursive(local_root, session, client,
                                         child_pair, child_info)
 
-    def update_roots(self, session=None, server_binding=None,
-                     repository=None):
+    def update_roots(self, server_binding, session=None, repository=None):
         """Ensure that the list of bound roots match server-side info
 
         If a server is not responding it is skipped.
@@ -356,7 +348,6 @@ class Synchronizer(object):
             if sb.has_invalid_credentials():
                 # Skip servers with missing credentials
                 continue
-            try:
                 nxclient = self.get_remote_client(sb)
                 if not nxclient.is_addon_installed():
                     continue
@@ -371,14 +362,6 @@ class Synchronizer(object):
                                    if r.remote_repo == repo]
                     self._controller.update_server_roots(
                         sb, session, local_roots, remote_roots, repo)
-            except POSSIBLE_NETWORK_ERROR_TYPES as e:
-                # Ignore expected possible network related errors
-                _log_offline(e, "update roots")
-                log.trace("Traceback of ignored network error:",
-                        exc_info=True)
-                if self._frontend is not None:
-                    self._frontend.notify_offline(sb.local_folder, e)
-                self._controller.invalidate_client_cache(sb.server_url)
 
         if self._frontend is not None:
             local_folders = [sb.local_folder
@@ -590,7 +573,7 @@ class Synchronizer(object):
         if len(session.dirty) != 0 or len(session.deleted) != 0:
             session.commit()
 
-    def synchronize(self, limit=None, local_root=None, fault_tolerant=False):
+    def synchronize_root(self, limit=None, local_root=None):
         """Synchronize one file at a time from the pending list.
 
         Fault tolerant mode is meant to be skip problematic documents while not
@@ -607,22 +590,11 @@ class Synchronizer(object):
         doc_pair = self._controller.next_pending(local_root=local_root,
                                                  session=session)
         while doc_pair is not None and (limit is None or synchronized < limit):
-            if fault_tolerant:
-                try:
-                    self.synchronize_one(doc_pair, session=session)
-                    synchronized += 1
-                except Exception as e:
-                    log.error("Failed to synchronize %r: %r",
-                              doc_pair, e, exc_info=True)
-                    # TODO: flag pending and all descendant as failed with a
-                    # time stamp and make next_pending ignore recently (e.g.
-                    # up to 30s) failed synchronized pairs
-                    raise NotImplementedError(
-                        'Fault tolerant synchronization not implemented yet.')
-            else:
-                self.synchronize_one(doc_pair, session=session)
-                synchronized += 1
-
+            # TODO: make it possible to catch unexpected exceptions here so as
+            # to black list the pair of document and ignore it for a while
+            # using a TTL for the blacklist token in the state DB
+            self.synchronize_one(doc_pair, session=session)
+            synchronized += 1
             doc_pair = self._controller.next_pending(local_root=local_root,
                                                      session=session)
         return synchronized
@@ -680,14 +652,8 @@ class Synchronizer(object):
             return True
         return False
 
-    def loop(self, full_local_scan=True, full_remote_scan=True, delay=10,
-             max_sync_step=50, max_loops=None, fault_tolerant=True,
-             limit_pending=100):
-        """Forever loop to scan / refresh states and perform synchronization
-
-        delay is an delay in seconds that ensures that two consecutive
-        scans won't happen too closely from one another.
-        """
+    def loop(self, max_loops=None):
+        """Forever loop to scan / refresh states and perform sync"""
         if self._frontend is not None:
             self._frontend.notify_sync_started()
         pid = self.check_running(process_name="sync")
@@ -705,11 +671,6 @@ class Synchronizer(object):
 
         log.info("Starting synchronization (pid=%d)", pid)
         self.continue_synchronization = True
-        if not full_local_scan:
-            # TODO: ensure that the watchdog thread for incremental state
-            # update is started thread is started (and make sure it's able to
-            # detect new bindings while running)
-            raise NotImplementedError()
 
         previous_time = time()
         first_pass = True
@@ -725,69 +686,22 @@ class Synchronizer(object):
                              loop_count)
                     break
 
-                # TODO: iterate over servers instead to be able to avoid
-                # fetching changes when
-                self.update_roots(session)
-
-                bindings = session.query(RootBinding).all()
-                for rb in bindings:
-                    try:
-                        # the alternative to local full scan is the watchdog
-                        # thread
-                        if full_local_scan or first_pass:
-                            log.debug('Starting local scan for %s', rb.local_root)
-                            self.scan_local(rb.local_root, session)
-
-                        if rb.server_binding.has_invalid_credentials():
-                            # Skip roots for servers with missing credentials
-                            continue
-
-                        if full_remote_scan or first_pass:
-                            # Fetch the current server date to be able to
-                            # compute incremental change from just before the
-                            # scan
-                            self.get_remote_changes(rb)
-                            log.debug('Starting remote scan for %s', rb.local_root)
-                            self.scan_remote(rb.local_root, session)
-                        else:
-                            summary, root_changed = self.get_remote_changes(rb)
-
-                            # TODO: implement incremental update
-
-                        if self._frontend is not None:
-                            n_pending = len(self._controller.list_pending(
-                                limit=limit_pending))
-                            reached_limit = n_pending == limit_pending
-                            self._frontend.notify_pending(rb.local_folder, n_pending,
-                                    or_more=reached_limit)
-
-                        self.synchronize(limit=max_sync_step,
-                                         local_root=rb.local_root,
-                                         fault_tolerant=fault_tolerant)
-                    except POSSIBLE_NETWORK_ERROR_TYPES as e:
-                        # Ignore expected possible network related errors
-                        _log_offline(e, "synchronization loop")
-                        log.trace("Traceback of ignored network error:",
-                                exc_info=True)
-                        if self._frontend is not None:
-                            self._frontend.notify_offline(rb.local_folder, e)
-
-                        # TODO: add a special handling for the invalid
-                        # credentials case and mark the server binding
-                        # with a special flag in the DB to be skipped by
-                        # the synchronization loop until the user decides
-                        # to reenable it in the systray menu with a dedicated
-                        # action instead
-                        self._controller.invalidate_client_cache(
-                            rb.server_binding.server_url)
+                for sb in session.query(ServerBinding).all():
+                    if sb.has_invalid_credentials():
+                        # Let's wait for the user to (re-)enter valid
+                        # credentials
+                        continue
+                    self.update_synchronize_server(sb, first_pass=first_pass,
+                                                   session=session)
 
                 # safety net to ensure that Nuxe Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
                 # over the bound folders too often.
                 current_time = time()
                 spent = current_time - previous_time
-                if spent < delay:
-                    sleep(delay - spent)
+                sleep_time = self.delay - spent
+                if sleep_time > 0:
+                    sleep(sleep_time)
                 previous_time = current_time
                 first_pass = False
                 loop_count += 1
@@ -805,13 +719,85 @@ class Synchronizer(object):
             os.unlink(pid_filepath)
         except Exception, e:
             log.warning("Failed to remove stalled pid file: %s"
-                    " for stopped process %d: %r",
-                    pid_filepath, pid, e)
+                        " for stopped process %d: %r", pid_filepath, pid, e)
 
         # Notify UI frontend to take synchronization stop into account and
         # potentially quit the app
         if self._frontend is not None:
             self._frontend.notify_sync_stopped()
+
+    def _get_remote_changes(self, server_binding, session=None):
+        """Fetch incremental change summary from the server"""
+        remote_client = self.get_remote_client(server_binding)
+
+        summary = remote_client.get_changes(
+            last_sync_date=server_binding.last_sync_date,
+            last_root_definitions=server_binding.last_root_definitions)
+
+        new_root_definitions = summary['activeSynchronizationRootDefinitions']
+        root_changed = new_root_definitions != self._last_root_definitions
+
+        server_binding.last_root_definitions = new_root_definitions
+        server_binding.last_sync_date = summary['syncDate']
+        session.commit()
+        return summary, root_changed
+
+    def _update_remote_states(self, summary, session=None):
+        session = self.get_session() if session is None else session
+
+        refreshed = set()
+        # Fetch all events and consider the most recent first
+        changes = sorted([c['docUuid'] for c in summary['fileSystemChanges']],
+            key=lambda c: c['eventDate'], reverse=True)
+        for change in changes:
+            if change['docUuid'] in refreshed:
+                # A more recent version was already processed
+                continue
+
+    def update_synchronize_server(self, server_binding, session=None,
+                                  full_scan=False):
+        """Do one pass of synchronization for given server binding."""
+        session = self.get_session() if session is None else session
+        try:
+            summary, roots_changed = self._get_remote_changes(
+                server_binding, session=session)
+            if roots_changed:
+                self.update_roots(server_binding=server_binding,
+                                  session=session)
+            if full_scan or summary['hasTooManyChanges']:
+                # Force remote full scan
+                for rb in server_binding.roots:
+                    self.scan_remote(rb.local_root, session)
+            else:
+                # Only update recently changed documents
+                self._update_remote_states(summary, session=session)
+
+            for rb in server_binding.roots:
+                # the alternative to local full scan is the watchdog
+                # thread
+                self.scan_local(rb.local_root, session)
+
+                if self._frontend is not None:
+                    n_pending = len(self._controller.list_pending(
+                        limit=self.limit_pending))
+                    reached_limit = n_pending == self.limit_pending
+                    self._frontend.notify_pending(rb.local_folder, n_pending,
+                            or_more=reached_limit)
+
+                self.synchronize(limit=self.max_sync_step,
+                                 local_root=rb.local_root)
+
+        except POSSIBLE_NETWORK_ERROR_TYPES as e:
+            # Ignore expected possible network related errors
+            _log_offline(e, "synchronization loop")
+            log.trace("Traceback of ignored network error:",
+                      exc_info=True)
+            if self._frontend is not None:
+                self._frontend.notify_offline(
+                    server_binding.local_folder, e)
+
+            self._controller.invalidate_client_cache(
+                server_binding.server_url)
 
     def get_remote_client(self, server_binding, base_folder=None,
                           repository='default'):
