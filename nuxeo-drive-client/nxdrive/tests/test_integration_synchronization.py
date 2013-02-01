@@ -321,6 +321,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Assume the computer is back online, the synchronization should occur as if
         # the document was just created and not trigger an update
+        self.wait()
         syn.loop(delay=0.010, max_loops=1)
         self.assertEquals(len(ctl.list_pending()), 0)
         self.assertEquals(ctl.children_states(expected_folder), [
@@ -348,6 +349,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.make_server_tree()
 
         # Run the full synchronization loop a limited amount of times
+        self.wait()
         syn.loop(delay=0.010, max_loops=3)
 
         # All is synchronized
@@ -382,6 +384,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             socket.error('Test error'),
             httplib.HTTPException('Test error'),
         ]
+        self.wait()
         for error in errors:
             ctl.make_remote_raise(error)
             # Synchronization does not occur but does not fail either
@@ -419,6 +422,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         local = LocalClient(expected_folder)
         local.make_folder('/', 'Folder 3')
         self.make_server_tree()
+        self.wait()
 
         syn.loop(delay=0, max_loops=1)
         self.assertEquals(len(ctl.list_pending()), 0)
