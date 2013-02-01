@@ -778,7 +778,7 @@ class Synchronizer(object):
                     cl = self.get_remote_client_from_docpair(doc_pair)
                     new_info = cl.get_info(remote_ref, raise_if_missing=False)
                     if (old_remote_parent_ref is None
-                        and new_info.parent_uid == old_remote_parent_ref):
+                        or new_info.parent_uid == old_remote_parent_ref):
                         # Perform a regular document update
                         log.debug('Refreshing doc_pair %s', doc_pair.remote_name)
                         doc_pair.update_remote(new_info)
