@@ -21,7 +21,7 @@ def register_startup_win32():
                  'skipping startup application registration')
         return
 
-    log.debug("Registering % application %s to registry key %s",
+    log.debug("Registering '%s' application %s to registry key %s",
         app_name, exe_path, reg_key)
     reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
     update_win32_reg_key(
