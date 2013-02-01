@@ -18,6 +18,7 @@ from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.protocol_handler import register_protocol_handlers
+from nxdrive.startup import register_startup
 
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
@@ -301,6 +302,8 @@ class CliHandler(object):
             # Ensure that the protocol handler are registered:
             # this is useful for the edit / open link in the Nuxeo interface
             register_protocol_handlers(self.controller)
+            # Ensure that ndrive is registered as a startup application
+            register_startup()
         try:
             return handler(options)
         except Exception, e:
