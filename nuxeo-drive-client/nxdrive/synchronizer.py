@@ -834,23 +834,23 @@ class Synchronizer(object):
                     log.warning("Could not match changed document to a "
                                 "local root: %r", child_info)
 
-        # Sort the moved document by path to
-        moved = sorted(moved, key=lambda m: m['path'])
         # TODO: implement the detection of moved documents here
-
-
+        # Sort the moved documents by path to start with the creation of parent
+        # folders if needed
+        # moved = sorted(moved, key=lambda m: m.path)
 
     def update_synchronize_server(self, server_binding, session=None,
                                   full_scan=False):
         """Do one pass of synchronization for given server binding."""
         session = self.get_session() if session is None else session
         try:
+            first_pass = server_binding.last_sync_date is None
             summary, roots_changed = self._get_remote_changes(
                 server_binding, session=session)
             if roots_changed:
                 self.update_roots(server_binding=server_binding,
                                   session=session)
-            if full_scan or summary['hasTooManyChanges']:
+            if full_scan or summary['hasTooManyChanges'] or first_pass:
                 # Force remote full scan
                 for rb in server_binding.roots:
                     self.scan_remote(rb.local_root, session)
