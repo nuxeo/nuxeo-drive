@@ -289,6 +289,9 @@ class BaseAutomationClient(object):
     def revoke_token(self):
         self.request_token(revoke=True)
 
+    def wait(self):
+        self.execute("NuxeoDrive.WaitForAsyncCompletion")
+
     def _update_auth(self, password=None, token=None):
         """Select the most appropriate authentication heads based on credentials"""
         if token is not None:
