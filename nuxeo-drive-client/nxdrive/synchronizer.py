@@ -363,20 +363,20 @@ class Synchronizer(object):
             if sb.has_invalid_credentials():
                 # Skip servers with missing credentials
                 continue
-                nxclient = self.get_remote_client(sb)
-                if not nxclient.is_addon_installed():
-                    continue
-                if repository is not None:
-                    repositories = [repository]
-                else:
-                    repositories = nxclient.get_repository_names()
-                for repo in repositories:
-                    nxclient = self.get_remote_client(sb, repository=repo)
-                    remote_roots = nxclient.get_roots()
-                    local_roots = [r for r in sb.roots
-                                   if r.remote_repo == repo]
-                    self._controller.update_server_roots(
-                        sb, session, local_roots, remote_roots, repo)
+            nxclient = self.get_remote_client(sb)
+            if not nxclient.is_addon_installed():
+                continue
+            if repository is not None:
+                repositories = [repository]
+            else:
+                repositories = nxclient.get_repository_names()
+            for repo in repositories:
+                nxclient = self.get_remote_client(sb, repository=repo)
+                remote_roots = nxclient.get_roots()
+                local_roots = [r for r in sb.roots
+                                if r.remote_repo == repo]
+                self._controller.update_server_roots(
+                    sb, session, local_roots, remote_roots, repo)
 
         if self._frontend is not None:
             local_folders = [sb.local_folder
@@ -581,7 +581,7 @@ class Synchronizer(object):
         if len(session.dirty) != 0 or len(session.deleted) != 0:
             session.commit()
 
-    def synchronize_root(self, limit=None, local_root=None):
+    def synchronize(self, limit=None, local_root=None):
         """Synchronize one file at a time from the pending list.
 
         Fault tolerant mode is meant to be skip problematic documents while not
@@ -660,8 +660,11 @@ class Synchronizer(object):
             return True
         return False
 
-    def loop(self, max_loops=None):
+    def loop(self, max_loops=None, delay=None):
         """Forever loop to scan / refresh states and perform sync"""
+
+        delay = delay if delay is not None else self.delay
+
         if self._frontend is not None:
             self._frontend.notify_sync_started()
         pid = self.check_running(process_name="sync")
@@ -681,7 +684,6 @@ class Synchronizer(object):
         self.continue_synchronization = True
 
         previous_time = time()
-        first_pass = True
         session = self.get_session()
         loop_count = 0
         try:
@@ -699,19 +701,17 @@ class Synchronizer(object):
                         # Let's wait for the user to (re-)enter valid
                         # credentials
                         continue
-                    self.update_synchronize_server(sb, first_pass=first_pass,
-                                                   session=session)
+                    self.update_synchronize_server(sb, session=session)
 
                 # safety net to ensure that Nuxeo Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
                 # over the bound folders too often.
                 current_time = time()
                 spent = current_time - previous_time
-                sleep_time = self.delay - spent
+                sleep_time = delay - spent
                 if sleep_time > 0:
                     sleep(sleep_time)
                 previous_time = current_time
-                first_pass = False
                 loop_count += 1
 
         except KeyboardInterrupt:
@@ -743,7 +743,7 @@ class Synchronizer(object):
             last_root_definitions=server_binding.last_root_definitions)
 
         new_root_definitions = summary['activeSynchronizationRootDefinitions']
-        root_changed = new_root_definitions != self._last_root_definitions
+        root_changed = new_root_definitions != server_binding.last_root_definitions
 
         server_binding.last_root_definitions = new_root_definitions
         server_binding.last_sync_date = summary['syncDate']
