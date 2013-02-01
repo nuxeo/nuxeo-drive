@@ -756,15 +756,15 @@ class Synchronizer(object):
         s_url = server_binding.server_url
 
         # Fetch all events and consider the most recent first
-        changes = sorted([c['docUuid'] for c in summary['fileSystemChanges']],
-            key=lambda c: c['eventDate'], reverse=True)
+        sorted_changes = sorted(summary['fileSystemChanges'],
+                                key=lambda x: x['eventDate'], reverse=True)
 
         root_client = self.get_remote_client(server_binding)
 
         # Scan events and update the inter
         refreshed = set()
         moved = []
-        for change in changes:
+        for change in sorted_changes:
             remote_ref = change['docUuid']
             if remote_ref in refreshed:
                 # A more recent version was already processed
