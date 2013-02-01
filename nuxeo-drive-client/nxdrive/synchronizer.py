@@ -759,7 +759,7 @@ class Synchronizer(object):
         sorted_changes = sorted(summary['fileSystemChanges'],
                                 key=lambda x: x['eventDate'], reverse=True)
 
-        root_client = self.get_remote_client(server_binding)
+        root_client = self.get_remote_client(server_binding, base_folder='/')
 
         # Scan events and update the inter
         refreshed = set()
