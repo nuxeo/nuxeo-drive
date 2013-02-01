@@ -123,6 +123,16 @@ class FakeNuxeoClient(object):
     def revoke_token(self):
         pass
 
+    def register_as_root(self, ref):
+        # Notify the client that the root registration as to be done on the
+        # client side
+        return False
+
+    def unregister_as_root(self, ref):
+        # Notify the client that the root unregistration as to be done on the
+        # client side
+        return False
+
 
 @with_setup(setup, teardown)
 def test_bindings():

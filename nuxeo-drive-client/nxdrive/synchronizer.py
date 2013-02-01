@@ -277,7 +277,7 @@ class Synchronizer(object):
             # No children to align, early stop.
             return
 
-        # detect recently deleted children
+        # Detect recently deleted children
         children_info = client.get_children_info(remote_info.uid)
         children_refs = set(c.uid for c in children_info)
 
@@ -291,55 +291,70 @@ class Synchronizer(object):
         for deleted in q.all():
             self._mark_deleted_remote_recursive(local_root, session, deleted)
 
-        # recursively update children
+        # Recursively update children
         for child_info in children_info:
 
             # TODO: detect whether this is a __digit suffix name and relax the
             # alignment queries accordingly
-            child_name = child_info.name
             child_pair = session.query(LastKnownState).filter_by(
                 local_root=local_root,
                 remote_ref=child_info.uid).first()
 
-            if child_pair is None and not child_info.folderish:
-                # Try to find an existing local doc that has not yet been
-                # bound to any remote file that would align with both name
-                # and digest
-                possible_pairs = session.query(LastKnownState).filter_by(
-                    local_root=local_root,
-                    remote_ref=None,
-                    parent_path=doc_pair.path,
-                    folderish=child_info.folderish,
-                    local_digest=child_info.get_digest(),
-                ).all()
-                child_pair = find_first_name_match(child_name, possible_pairs)
-
             if child_pair is None:
-                # Previous attempt has failed: relax the digest constraint
-                possible_pairs = session.query(LastKnownState).filter_by(
-                    local_root=local_root,
-                    remote_ref=None,
-                    parent_path=doc_pair.path,
-                    folderish=child_info.folderish,
-                ).all()
-                child_pair = find_first_name_match(child_name, possible_pairs)
-
-            if child_pair is None:
-                # Could not find any pair state to align to, create one
-                child_pair = LastKnownState(
-                    local_root, remote_info=child_info)
-                session.add(child_pair)
+                child_pair, _ = self._find_remote_child_match_or_create(
+                    local_root, doc_pair, child_info, session=session)
 
             self._scan_remote_recursive(local_root, session, client,
                                         child_pair, child_info)
+
+    def _find_remote_child_match_or_create(
+        self, local_root, parent_pair, child_info, session=None):
+        """Find a pair_state that can match child_info by name.
+
+        Return a tuple (child_pair, created) where created is a boolean marker
+        that tells that no match was found and that child_pair is newly created
+        from the provided child_info.
+
+        """
+        session = self.get_session() if session is None else session
+        child_name = child_info.name
+        if not child_info.folderish:
+            # Try to find an existing local doc that has not yet been
+            # bound to any remote file that would align with both name
+            # and digest
+            possible_pairs = session.query(LastKnownState).filter_by(
+                local_root=local_root,
+                remote_ref=None,
+                parent_path=parent_pair.path,
+                folderish=child_info.folderish,
+                local_digest=child_info.get_digest(),
+            ).all()
+            child_pair = find_first_name_match(child_name, possible_pairs)
+            if child_pair is not None:
+                return child_pair, False
+
+        # Previous attempt has failed: relax the digest constraint
+        possible_pairs = session.query(LastKnownState).filter_by(
+            local_root=local_root,
+            remote_ref=None,
+            parent_path=parent_pair.path,
+            folderish=child_info.folderish,
+        ).all()
+        child_pair = find_first_name_match(child_name, possible_pairs)
+        if child_pair is not None:
+            return child_pair, False
+
+        # Could not find any pair state to align to, create one
+        child_pair = LastKnownState(local_root, remote_info=child_info)
+        session.add(child_pair)
+        return child_pair, True
 
     def update_roots(self, server_binding, session=None, repository=None):
         """Ensure that the list of bound roots match server-side info
 
         If a server is not responding it is skipped.
         """
-        if session is None:
-            session = self.get_session()
+        session = self.get_session() if session is None else session
         if server_binding is not None:
             server_bindings = [server_binding]
         else:
@@ -368,19 +383,12 @@ class Synchronizer(object):
                     for sb in session.query(ServerBinding).all()]
             self._frontend.notify_local_folders(local_folders)
 
-    def refresh_remote_folders_from_log(self, root_binding):
-        """Query the remote server audit log looking for state updates."""
-        # TODO
-        raise NotImplementedError()
-
     def get_remote_client_from_docpair(self, doc_pair):
         """Fetch a client from the cache or create a new instance"""
         rb = doc_pair.root_binding
         sb = rb.server_binding
         return self.get_remote_client(sb, base_folder=rb.remote_root,
                                       repository=rb.remote_repo)
-
-    # TODO: move the synchronization related methods in a dedicated class
 
     def synchronize_one(self, doc_pair, session=None):
         """Refresh state a perform network transfer for a pair of documents."""
@@ -694,7 +702,7 @@ class Synchronizer(object):
                     self.update_synchronize_server(sb, first_pass=first_pass,
                                                    session=session)
 
-                # safety net to ensure that Nuxe Drive won't eat all the CPU,
+                # safety net to ensure that Nuxeo Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
                 # over the bound folders too often.
                 current_time = time()
@@ -742,17 +750,95 @@ class Synchronizer(object):
         session.commit()
         return summary, root_changed
 
-    def _update_remote_states(self, summary, session=None):
+    def _update_remote_states(self, server_binding, summary, session=None):
+        """Incrementally update the state of documents from a change summary"""
         session = self.get_session() if session is None else session
+        s_url = server_binding.server_url
 
-        refreshed = set()
         # Fetch all events and consider the most recent first
         changes = sorted([c['docUuid'] for c in summary['fileSystemChanges']],
             key=lambda c: c['eventDate'], reverse=True)
+
+        root_client = self.get_remote_client(server_binding)
+
+        # Scan events and update the inter
+        refreshed = set()
+        moved = []
         for change in changes:
-            if change['docUuid'] in refreshed:
+            remote_ref = change['docUuid']
+            if remote_ref in refreshed:
                 # A more recent version was already processed
                 continue
+            doc_pairs = session.query(LastKnownState).filter_by(
+                remote_ref=remote_ref).all()
+            updated = False
+            for doc_pair in doc_pairs:
+                if doc_pair.root_binding.server_binding.server_url == s_url:
+                    old_remote_parent_ref = doc_pair.remote_parent_ref
+                    cl = self.get_remote_client_from_docpair(doc_pair)
+                    new_info = cl.get_info(remote_ref, raise_if_missing=False)
+                    if new_info.parent_uid == old_remote_parent_ref:
+                        # Perform a regular document update
+                        log.debug('Refreshing doc_pair %s', doc_pair.remote_name)
+                        doc_pair.update_remote(new_info)
+                    else:
+                        # This document has been moved: make the existing doc
+                        # pair as remotely deleted and schedule a rescan on the
+                        # new parent to detect the creation
+                        log.debug('Mark doc_pair %s as deleted',
+                                  doc_pair.remote_name)
+                        doc_pair.update_state(remote_state='deleted')
+                        moved.append(new_info)
+
+                    updated = True
+                    refreshed.add(remote_ref)
+                    break
+
+            if not updated:
+                # This can be document creation, try to find the parent pair
+                # XXX: the following code does not support the multi-repository
+                # case correctly but it's not worth implementing it as this
+                # will have soon to be refactored to use the new FileSystemItem
+                # API that deals with multi repo stuff directly on the server
+                # side
+                child_info = root_client.get_info(
+                    remote_ref, raise_if_missing=False)
+                if child_info is None:
+                    # Document must have been deleted since: nothing to do
+                    continue
+
+                created = False
+                parent_pairs = session.query(LastKnownState).filter_by(
+                    remote_ref=child_info.parent_uid).all()
+                for parent_pair in parent_pairs:
+                    rb = parent_pair.root_binding
+                    if (rb.server_binding.server_url != s_url):
+                        continue
+
+                    cl = self.get_remote_client_from_docpair(parent_pair)
+                    child_pair, new_pair = self._find_remote_child_match_or_create(
+                        rb.local_root, parent_pair, child_info, session=session)
+                    log.debug('Marked doc_pair %s as creation',
+                              child_pair.remote_name)
+
+                    if child_pair.folderish and new_pair:
+                        self._scan_remote_recursive(
+                            rb.local_root, session, cl, child_pair,
+                            child_info)
+
+                    created = True
+                    refreshed.add(remote_ref)
+                    break
+
+                if not created:
+                    log.warning("Could not match changed document to a "
+                                "local root: %r", child_info)
+
+        # Sort the moved document by path to
+        moved = sorted(moved, key=lambda m: m['path'])
+        # TODO: implement the detection of moved documents here
+
+
 
     def update_synchronize_server(self, server_binding, session=None,
                                   full_scan=False):
@@ -770,7 +856,8 @@ class Synchronizer(object):
                     self.scan_remote(rb.local_root, session)
             else:
                 # Only update recently changed documents
-                self._update_remote_states(summary, session=session)
+                self._update_remote_states(server_binding, summary,
+                                           session=session)
 
             for rb in server_binding.roots:
                 # the alternative to local full scan is the watchdog

@@ -303,13 +303,15 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def register_as_root(self, ref):
         ref = self._check_ref(ref)
-        return self.execute("NuxeoDrive.SetSynchronization",
-                             input="doc:" + ref, enable=True)
+        self.execute("NuxeoDrive.SetSynchronization", input="doc:" + ref,
+                     enable=True)
+        return True
 
     def unregister_as_root(self, ref):
         ref = self._check_ref(ref)
-        return self.execute("NuxeoDrive.SetSynchronization",
-                             input="doc:" + ref, enable=False)
+        self.execute("NuxeoDrive.SetSynchronization", input="doc:" + ref,
+                     enable=False)
+        return True
 
     def get_changes(self, last_sync_date=None, last_root_definitions=None):
         return self.execute(
