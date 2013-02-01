@@ -569,6 +569,8 @@ class Synchronizer(object):
 
         elif doc_pair.pair_state == 'deleted':
             # No need to store this information any further
+            log.debug('Deleting doc pair %s deleted on both sides',
+                doc_pair.path)
             session.delete(doc_pair)
             session.commit()
 
@@ -576,6 +578,7 @@ class Synchronizer(object):
             if doc_pair.local_digest == doc_pair.remote_digest != None:
                 # Automated conflict resolution based on digest content:
                 doc_pair.update_state('synchronized', 'synchronized')
+            log.debug('Conflict detected for %s', doc_pair.path)
         else:
             log.warning("Unhandled pair_state: %r for %r",
                           doc_pair.pair_state, doc_pair)
@@ -732,6 +735,7 @@ class Synchronizer(object):
                         # the alternative to local full scan is the watchdog
                         # thread
                         if full_local_scan or first_pass:
+                            log.debug('Starting local scan for %s', rb.local_root)
                             self.scan_local(rb.local_root, session)
 
                         if rb.server_binding.has_invalid_credentials():
@@ -743,6 +747,7 @@ class Synchronizer(object):
                             # compute incremental change from just before the
                             # scan
                             self.get_remote_changes(rb)
+                            log.debug('Starting remote scan for %s', rb.local_root)
                             self.scan_remote(rb.local_root, session)
                         else:
                             summary, root_changed = self.get_remote_changes(rb)
