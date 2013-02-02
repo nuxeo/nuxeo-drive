@@ -698,18 +698,23 @@ class Synchronizer(object):
                         # Let's wait for the user to (re-)enter valid
                         # credentials
                         continue
+                    tick = time()
                     self.update_synchronize_server(sb, session=session)
+                    tock = time()
+                    log.debug("Refreshed & synchronized folder %s with %s "
+                              "in %0.3fs", sb.local_folder, sb.server_url,
+                              tock - tick)
 
                 # safety net to ensure that Nuxeo Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
                 # over the bound folders too often.
                 current_time = time()
-                previous_time = current_time
                 spent = current_time - previous_time
                 sleep_time = delay - spent
                 if sleep_time > 0:
                     log.debug("Sleeping %0.3fs", sleep_time)
                     sleep(sleep_time)
+                previous_time = time()
                 loop_count += 1
 
         except KeyboardInterrupt:
