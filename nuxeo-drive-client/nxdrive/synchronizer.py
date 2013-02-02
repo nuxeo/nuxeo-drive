@@ -698,12 +698,7 @@ class Synchronizer(object):
                         # Let's wait for the user to (re-)enter valid
                         # credentials
                         continue
-                    tick = time()
                     self.update_synchronize_server(sb, session=session)
-                    tock = time()
-                    log.debug("Refreshed & synchronized folder %s with %s "
-                              "in %0.3fs", sb.local_folder, sb.server_url,
-                              tock - tick)
 
                 # safety net to ensure that Nuxeo Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
@@ -861,6 +856,7 @@ class Synchronizer(object):
                                   full_scan=False):
         """Do one pass of synchronization for given server binding."""
         session = self.get_session() if session is None else session
+        tick = time()
         try:
             first_pass = server_binding.last_sync_date is None
             summary, roots_changed, checkpoint = self._get_remote_changes(
@@ -893,18 +889,6 @@ class Synchronizer(object):
             # from this point next time
             self._checkpoint(server_binding, checkpoint, session=session)
 
-            # The DB is updated we, can update the UI with the number of
-            # pending tasks
-            if self._frontend is not None:
-                # XXX: this is broken: list pending should be able to count
-                # pending operations on a per-server basis!
-                n_pending = len(self._controller.list_pending(
-                    limit=self.limit_pending))
-                reached_limit = n_pending == self.limit_pending
-                self._frontend.notify_pending(
-                    server_binding.local_folder, n_pending,
-                    or_more=reached_limit)
-
             # XXX: the following is broken: this should be done on a
             # per-server basis as well:
             for rb in server_binding.roots:
@@ -912,8 +896,30 @@ class Synchronizer(object):
                 # thread
                 self.scan_local(rb.local_root, session)
 
-                self.synchronize(limit=self.max_sync_step,
-                                 local_root=rb.local_root)
+            # The DB is updated we, can update the UI with the number of
+            # pending tasks
+            n_pending = len(self._controller.list_pending(
+                limit=self.limit_pending))
+            reached_limit = n_pending == self.limit_pending
+
+            if self._frontend is not None:
+                # XXX: this is broken: list pending should be able to count
+                # pending operations on a per-server basis!
+                self._frontend.notify_pending(
+                    server_binding.local_folder, n_pending,
+                    or_more=reached_limit)
+
+            n_synchronized = 0
+            for rb in server_binding.roots:
+                n_synchronized += self.synchronize(
+                    limit=self.max_sync_step, local_root=rb.local_root)
+
+            tock = time()
+            log.debug("Refreshed & synchronized %03d/%03d"
+                      " in folder %s with %s in %0.3fs",
+                      n_synchronized, n_pending,
+                      server_binding.local_folder,
+                      server_binding.server_url, tock - tick)
 
         except POSSIBLE_NETWORK_ERROR_TYPES as e:
             # Ignore expected possible network related errors
