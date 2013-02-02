@@ -589,17 +589,7 @@ class Synchronizer(object):
             session.commit()
 
     def synchronize(self, limit=None, local_root=None):
-        """Synchronize one file at a time from the pending list.
-
-        Fault tolerant mode is meant to be skip problematic documents while not
-        preventing the rest of the synchronization loop to work on documents
-        that work as expected.
-
-        This mode will probably hide real Nuxeo Drive bugs in the
-        logs. It should thus not be enabled when running tests for the
-        synchronization code but might be useful when running Nuxeo
-        Drive in daemon mode.
-        """
+        """Synchronize one file at a time from the pending list."""
         synchronized = 0
         session = self.get_session()
         doc_pair = self._controller.next_pending(local_root=local_root,
@@ -714,11 +704,12 @@ class Synchronizer(object):
                 # disk and network resources of the machine scanning over an
                 # over the bound folders too often.
                 current_time = time()
+                previous_time = current_time
                 spent = current_time - previous_time
                 sleep_time = delay - spent
                 if sleep_time > 0:
+                    log.debug("Sleeping %0.3fs", sleep_time)
                     sleep(sleep_time)
-                previous_time = current_time
                 loop_count += 1
 
         except KeyboardInterrupt:
@@ -770,9 +761,12 @@ class Synchronizer(object):
         session = self.get_session() if session is None else session
         s_url = server_binding.server_url
 
+
         # Fetch all events and consider the most recent first
         sorted_changes = sorted(summary['fileSystemChanges'],
                                 key=lambda x: x['eventDate'], reverse=True)
+        log.debug("%03d remote changes detected on %s",
+                  len(sorted_changes), server_binding.server_url)
 
         root_client = self.get_remote_client(server_binding, base_folder='/')
 
@@ -839,6 +833,8 @@ class Synchronizer(object):
                               child_pair.remote_name)
 
                     if child_pair.folderish and new_pair:
+                        log.debug('Scanning the content of %s',
+                                  child_pair.remote_name)
                         self._scan_remote_recursive(
                             rb.local_root, session, cl, child_pair,
                             child_info)
@@ -864,30 +860,52 @@ class Synchronizer(object):
             first_pass = server_binding.last_sync_date is None
             summary, roots_changed, checkpoint = self._get_remote_changes(
                 server_binding, session=session)
+
+            # Apparently we are online, otherwise an network related exception
+            # would have been raised and caught below
+            if self._frontend is not None:
+                self._frontend.notify_online(server_binding.local_folder)
+
             if roots_changed:
                 self.update_roots(server_binding=server_binding,
                                   session=session)
             if full_scan or summary['hasTooManyChanges'] or first_pass:
                 # Force remote full scan
+                log.debug("Remote full scan of %s. Reasons: "
+                          "forced: %r, too many changes: %r, first pass: %r",
+                          server_binding.local_folder, full_scan,
+                          summary['hasTooManyChanges'], first_pass)
                 for rb in server_binding.roots:
                     self.scan_remote(rb.local_root, session)
             else:
                 # Only update recently changed documents
                 self._update_remote_states(server_binding, summary,
                                            session=session)
+
+            # If we reach this point it means the the internal DB was
+            # successfully refreshed (no network disruption while collecting
+            # the change data): we can save the new time stamp to start again
+            # from this point next time
             self._checkpoint(server_binding, checkpoint, session=session)
 
+            # The DB is updated we, can update the UI with the number of
+            # pending tasks
+            if self._frontend is not None:
+                # XXX: this is broken: list pending should be able to count
+                # pending operations on a per-server basis!
+                n_pending = len(self._controller.list_pending(
+                    limit=self.limit_pending))
+                reached_limit = n_pending == self.limit_pending
+                self._frontend.notify_pending(
+                    server_binding.local_folder, n_pending,
+                    or_more=reached_limit)
+
+            # XXX: the following is broken: this should be done on a
+            # per-server basis as well:
             for rb in server_binding.roots:
                 # the alternative to local full scan is the watchdog
                 # thread
                 self.scan_local(rb.local_root, session)
-
-                if self._frontend is not None:
-                    n_pending = len(self._controller.list_pending(
-                        limit=self.limit_pending))
-                    reached_limit = n_pending == self.limit_pending
-                    self._frontend.notify_pending(rb.local_folder, n_pending,
-                            or_more=reached_limit)
 
                 self.synchronize(limit=self.max_sync_step,
                                  local_root=rb.local_root)

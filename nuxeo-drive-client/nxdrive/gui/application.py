@@ -202,6 +202,15 @@ class Application(QApplication):
         self.communicator.menu.emit()
         self.communicator.stop.emit()
 
+    def notify_online(self, local_folder):
+        info = self.get_info(local_folder)
+        if not info.online:
+            # Mark binding as offline and update UI
+            log.debug('Switching to online mode for: %s', local_folder)
+            info.online = True
+            self.update_running_icon()
+            self.communicator.menu.emit()
+
     def notify_offline(self, local_folder, exception):
         info = self.get_info(local_folder)
         code = getattr(exception, 'code', None)
