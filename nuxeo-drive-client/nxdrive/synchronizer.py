@@ -743,19 +743,27 @@ class Synchronizer(object):
 
     def _get_remote_changes(self, server_binding, session=None):
         """Fetch incremental change summary from the server"""
+        session = self.get_session() if session is None else session
         remote_client = self.get_remote_client(server_binding)
 
         summary = remote_client.get_changes(
             last_sync_date=server_binding.last_sync_date,
             last_root_definitions=server_binding.last_root_definitions)
 
-        new_root_definitions = summary['activeSynchronizationRootDefinitions']
-        root_changed = new_root_definitions != server_binding.last_root_definitions
+        root_definitions = summary['activeSynchronizationRootDefinitions']
+        sync_date = summary['syncDate']
+        root_changed = root_definitions != server_binding.last_root_definitions
+        checkpoint_data = (sync_date, root_definitions)
 
-        server_binding.last_root_definitions = new_root_definitions
-        server_binding.last_sync_date = summary['syncDate']
+        return summary, root_changed, checkpoint_data
+
+    def _checkpoint(self, server_binding, checkpoint_data, session=None):
+        """Save the incremental change data for the next iteration"""
+        session = self.get_session() if session is None else session
+        sync_date, root_definitions = checkpoint_data
+        server_binding.last_sync_date = sync_date
+        server_binding.last_root_definitions = root_definitions
         session.commit()
-        return summary, root_changed
 
     def _update_remote_states(self, server_binding, summary, session=None):
         """Incrementally update the state of documents from a change summary"""
@@ -854,7 +862,7 @@ class Synchronizer(object):
         session = self.get_session() if session is None else session
         try:
             first_pass = server_binding.last_sync_date is None
-            summary, roots_changed = self._get_remote_changes(
+            summary, roots_changed, checkpoint = self._get_remote_changes(
                 server_binding, session=session)
             if roots_changed:
                 self.update_roots(server_binding=server_binding,
@@ -867,6 +875,7 @@ class Synchronizer(object):
                 # Only update recently changed documents
                 self._update_remote_states(server_binding, summary,
                                            session=session)
+            self._checkpoint(server_binding, checkpoint, session=session)
 
             for rb in server_binding.roots:
                 # the alternative to local full scan is the watchdog
