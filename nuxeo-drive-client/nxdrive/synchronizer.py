@@ -197,6 +197,10 @@ class Synchronizer(object):
                     ).all()
                     child_pair = find_first_name_match(
                         child_name, possible_pairs)
+                    if child_pair is not None:
+                        log.debug("Matched local %s with remote %s with digest",
+                                  child_info.path, child_pair.remote_name)
+
                 except (IOError, WindowsError):
                     # The file is currently being accessed and we cannot
                     # compute the digest
@@ -213,14 +217,17 @@ class Synchronizer(object):
                     folderish=child_info.folderish,
                 ).all()
                 child_pair = find_first_name_match(child_name, possible_pairs)
+                if child_pair is not None:
+                    log.debug("Matched local %s with remote %s by name only",
+                              child_info.path, child_pair.remote_name)
 
             if child_pair is None:
                 # Could not find any pair state to align to, create one
                 child_pair = LastKnownState(local_root, local_info=child_info)
                 session.add(child_pair)
-            else:
-                log.debug("Realigned local %s with remote %s",
-                          child_pair.path, child_pair.remote_name)
+                log.debug("Detected a new non-alignable local file at %s",
+                          child_pair.path)
+
 
             self._scan_local_recursive(local_root, session, client,
                                        child_pair, child_info)
@@ -334,8 +341,8 @@ class Synchronizer(object):
             ).all()
             child_pair = find_first_name_match(child_name, possible_pairs)
             if child_pair is not None:
-                log.debug("Realigned remote %s with local %s",
-                          child_pair.remote_name, child_pair.path)
+                log.debug("Matched remote %s with local %s with digest",
+                          child_info.name, child_pair.path)
                 return child_pair, False
 
         # Previous attempt has failed: relax the digest constraint
@@ -347,8 +354,8 @@ class Synchronizer(object):
         ).all()
         child_pair = find_first_name_match(child_name, possible_pairs)
         if child_pair is not None:
-            log.debug("Realigned remote %s with local %s",
-                      child_pair.remote_name, child_pair.path)
+            log.debug("Matched remote %s with local %s by name only",
+                      child_info.name, child_pair.path)
             return child_pair, False
 
         # Could not find any pair state to align to, create one
@@ -790,7 +797,8 @@ class Synchronizer(object):
                         (old_remote_parent_ref is None
                          or new_info.parent_uid == old_remote_parent_ref)):
                         # Perform a regular document update
-                        log.debug('Refreshing doc_pair %s', doc_pair.remote_name)
+                        log.debug('Refreshing remote state info for doc_pair %s',
+                                  doc_pair.remote_name)
                         doc_pair.update_remote(new_info)
                     else:
                         # This document has been moved: make the existing doc
@@ -827,17 +835,27 @@ class Synchronizer(object):
                         continue
 
                     cl = self.get_remote_client_from_docpair(parent_pair)
+                    # Because of the current root binding context, we need
+                    # XXX: this extra server call will be dropped when we
+                    # switch to the new API
+                    contextual_child_info = cl.get_info(remote_ref,
+                                                        raise_if_missing=False)
+
                     child_pair, new_pair = self._find_remote_child_match_or_create(
-                        rb.local_root, parent_pair, child_info, session=session)
-                    log.debug('Marked doc_pair %s as creation',
-                              child_pair.remote_name)
+                        rb.local_root, parent_pair, contextual_child_info,
+                        session=session)
+                    if new_pair:
+                        log.debug('Marked doc_pair %s as creation',
+                                child_pair.remote_name)
 
                     if child_pair.folderish and new_pair:
-                        log.debug('Scanning the content of %s',
+                        log.debug('Remote recursive scan of the content of %s',
                                   child_pair.remote_name)
                         self._scan_remote_recursive(
                             rb.local_root, session, cl, child_pair,
-                            child_info)
+                            contextual_child_info)
+                    elif not new_pair:
+                        child_pair.update_remote(contextual_child_info)
 
                     created = True
                     refreshed.add(remote_ref)
