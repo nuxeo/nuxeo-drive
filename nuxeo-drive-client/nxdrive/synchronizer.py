@@ -219,8 +219,8 @@ class Synchronizer(object):
                 child_pair = LastKnownState(local_root, local_info=child_info)
                 session.add(child_pair)
             else:
-                log.debug("Realigned %s with %s", child_pair.path,
-                        child_pair.remote_name)
+                log.debug("Realigned local %s with remote %s",
+                          child_pair.path, child_pair.remote_name)
 
             self._scan_local_recursive(local_root, session, client,
                                        child_pair, child_info)
@@ -334,8 +334,8 @@ class Synchronizer(object):
             ).all()
             child_pair = find_first_name_match(child_name, possible_pairs)
             if child_pair is not None:
-                log.debug("Realigned %s with %s", child_pair.path,
-                          child_pair.remote_name)
+                log.debug("Realigned remote %s with local %s",
+                          child_pair.remote_name, child_pair.path)
                 return child_pair, False
 
         # Previous attempt has failed: relax the digest constraint
@@ -347,8 +347,8 @@ class Synchronizer(object):
         ).all()
         child_pair = find_first_name_match(child_name, possible_pairs)
         if child_pair is not None:
-            log.debug("Realigned %s with %s", child_pair.path,
-                      child_pair.remote_name)
+            log.debug("Realigned remote %s with local %s",
+                      child_pair.remote_name, child_pair.path)
             return child_pair, False
 
         # Could not find any pair state to align to, create one
