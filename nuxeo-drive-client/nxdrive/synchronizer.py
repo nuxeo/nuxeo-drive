@@ -874,6 +874,7 @@ class Synchronizer(object):
                                   full_scan=False):
         """Do one pass of synchronization for given server binding."""
         session = self.get_session() if session is None else session
+        local_scan_is_done = False
         tick = time()
         try:
             first_pass = server_binding.last_sync_date is None
@@ -913,6 +914,7 @@ class Synchronizer(object):
                 # the alternative to local full scan is the watchdog
                 # thread
                 self.scan_local(rb.local_root, session)
+            local_scan_is_done = True
 
             # The DB is updated we, can update the UI with the number of
             # pending tasks
@@ -940,16 +942,25 @@ class Synchronizer(object):
                       server_binding.server_url, tock - tick)
 
         except POSSIBLE_NETWORK_ERROR_TYPES as e:
-            # Ignore expected possible network related errors
-            _log_offline(e, "synchronization loop")
-            log.trace("Traceback of ignored network error:",
-                      exc_info=True)
-            if self._frontend is not None:
-                self._frontend.notify_offline(
-                    server_binding.local_folder, e)
+            # Do not fail when expecting possible network related errors
+            self._handle_network_error(server_binding, e)
+            if not local_scan_is_done:
+                # Scan the local folders now to update the local DB even
+                # if the netwrok is done so that the UI (e.g. windows shell
+                # extension can still be right)
+                for rb in server_binding.roots:
+                    self.scan_local(rb.local_root, session)
 
-            self._controller.invalidate_client_cache(
-                server_binding.server_url)
+    def _handle_network_error(self, server_binding, e):
+        _log_offline(e, "synchronization loop")
+        log.trace("Traceback of ignored network error:",
+                  exc_info=True)
+        if self._frontend is not None:
+            self._frontend.notify_offline(
+                server_binding.local_folder, e)
+
+        self._controller.invalidate_client_cache(
+            server_binding.server_url)
 
     def get_remote_client(self, server_binding, base_folder=None,
                           repository='default'):

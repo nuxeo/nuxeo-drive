@@ -377,6 +377,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         local = LocalClient(expected_folder)
         local.make_folder('/', 'Folder 3')
         self.make_server_tree()
+        self.wait()
 
         # Find various ways to similate network or server failure
         errors = [
@@ -384,7 +385,6 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             socket.error('Test error'),
             httplib.HTTPException('Test error'),
         ]
-        self.wait()
         for error in errors:
             ctl.make_remote_raise(error)
             # Synchronization does not occur but does not fail either
