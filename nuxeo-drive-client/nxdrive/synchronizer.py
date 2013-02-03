@@ -692,6 +692,7 @@ class Synchronizer(object):
         loop_count = 0
         try:
             while True:
+                n_synchronized = 0
                 if self.should_stop_synchronization():
                     log.info("Stopping synchronization (pid=%d)", pid)
                     break
@@ -705,7 +706,8 @@ class Synchronizer(object):
                         # Let's wait for the user to (re-)enter valid
                         # credentials
                         continue
-                    self.update_synchronize_server(sb, session=session)
+                    n_synchronized += self.update_synchronize_server(
+                        sb, session=session)
 
                 # safety net to ensure that Nuxeo Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
@@ -713,7 +715,7 @@ class Synchronizer(object):
                 current_time = time()
                 spent = current_time - previous_time
                 sleep_time = delay - spent
-                if sleep_time > 0:
+                if sleep_time > 0 and n_synchronized == 0:
                     log.debug("Sleeping %0.3fs", sleep_time)
                     sleep(sleep_time)
                 previous_time = time()
@@ -876,6 +878,7 @@ class Synchronizer(object):
         session = self.get_session() if session is None else session
         local_scan_is_done = False
         tick = time()
+        n_synchronized = 0
         try:
             first_pass = server_binding.last_sync_date is None
             summary, roots_changed, checkpoint = self._get_remote_changes(
@@ -929,7 +932,6 @@ class Synchronizer(object):
                     server_binding.local_folder, n_pending,
                     or_more=reached_limit)
 
-            n_synchronized = 0
             for rb in server_binding.roots:
                 n_synchronized += self.synchronize(
                     limit=self.max_sync_step, local_root=rb.local_root)
@@ -950,6 +952,8 @@ class Synchronizer(object):
                 # extension can still be right)
                 for rb in server_binding.roots:
                     self.scan_local(rb.local_root, session)
+
+        return n_synchronized
 
     def _handle_network_error(self, server_binding, e):
         _log_offline(e, "synchronization loop")
