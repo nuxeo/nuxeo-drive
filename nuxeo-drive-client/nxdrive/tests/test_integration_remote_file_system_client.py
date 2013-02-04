@@ -79,13 +79,13 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         pass
 
     def test_make_folder(self):
-        remote_file_system_client = self.remote_file_system_client_1
+        remote_client = self.remote_file_system_client_1
 
-        parent_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
-        fs_item_id = remote_file_system_client.make_folder(parent_id,
+        workspace_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
+        fs_item_id = remote_client.make_folder(workspace_id,
             'My new folder')
         self.assertIsNotNone(fs_item_id)
-        info = remote_file_system_client.get_info(fs_item_id)
+        info = remote_client.get_info(fs_item_id)
         self.assertIsNotNone(info)
         self.assertEquals(info.name, 'My new folder')
         self.assertTrue(info.folderish)
@@ -94,14 +94,14 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertIsNone(info.download_url)
 
     def test_make_file(self):
-        remote_file_system_client = self.remote_file_system_client_1
+        remote_client = self.remote_file_system_client_1
 
         # Check File document creation
-        parent_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
-        fs_item_id = remote_file_system_client.make_file(parent_id,
+        workspace_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
+        fs_item_id = remote_client.make_file(workspace_id,
             'My new file.odt', "Content of my new file.")
         self.assertIsNotNone(fs_item_id)
-        info = remote_file_system_client.get_info(fs_item_id)
+        info = remote_client.get_info(fs_item_id)
         self.assertIsNotNone(info)
         self.assertEquals(info.name, 'My new file.odt')
         self.assertFalse(info.folderish)
@@ -111,10 +111,10 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(info.digest, digest)
 
         # Check Note document creation
-        fs_item_id = remote_file_system_client.make_file(parent_id,
+        fs_item_id = remote_client.make_file(workspace_id,
             'My new note.txt', "Content of my new note.")
         self.assertIsNotNone(fs_item_id)
-        info = remote_file_system_client.get_info(fs_item_id)
+        info = remote_client.get_info(fs_item_id)
         self.assertIsNotNone(info)
         self.assertEquals(info.name, 'My new note.txt')
         self.assertFalse(info.folderish)
@@ -124,7 +124,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(info.digest, digest)
 
     def test_make_file_custom_encoding(self):
-        remote_file_system_client = self.remote_file_system_client_1
+        remote_client = self.remote_file_system_client_1
 
         # Create content encoded in utf-8 and cp1252
         unicode_content = u'\xe9' # e acute
@@ -133,22 +133,22 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         cp1252_encoded = unicode_content.encode('cp1252')
 
         # Make files with this content
-        parent_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
-        utf8_fs_id = remote_file_system_client.make_file(parent_id,
+        workspace_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
+        utf8_fs_id = remote_client.make_file(workspace_id,
             'My utf-8 file.txt', utf8_encoded)
-        cp1252_fs_id = remote_file_system_client.make_file(parent_id,
+        cp1252_fs_id = remote_client.make_file(workspace_id,
             'My cp1252 file.txt', cp1252_encoded)
 
         # Check content
-        utf8_content = remote_file_system_client.get_content(utf8_fs_id)
+        utf8_content = remote_client.get_content(utf8_fs_id)
         self.assertEqual(utf8_content, utf8_encoded)
-        cp1252_content = remote_file_system_client.get_content(cp1252_fs_id)
+        cp1252_content = remote_client.get_content(cp1252_fs_id)
         self.assertEqual(cp1252_content, utf8_encoded)
 
         # Check digest
-        utf8_info = remote_file_system_client.get_info(utf8_fs_id)
+        utf8_info = remote_client.get_info(utf8_fs_id)
         self.assertEqual(utf8_info.digest, utf8_digest)
-        cp1252_info = remote_file_system_client.get_info(cp1252_fs_id)
+        cp1252_info = remote_client.get_info(cp1252_fs_id)
         self.assertEqual(cp1252_info.digest, utf8_digest)
 
     def test_update_content(self):
