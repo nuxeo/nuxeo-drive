@@ -5,6 +5,7 @@
   <taskdef resource="org/nuxeo/build/antlib.xml" uri="urn:nuxeo-build" />
   <taskdef resource="org/nuxeo/build/artifact/antlib.xml"
            uri="urn:nuxeo-artifact" />
+  <taskdef resource="net/sf/antcontrib/antlib.xml" />
 
   <target name="build" description="Build Nuxeo Drive Marketplace package">
     <tstamp />
@@ -33,6 +34,29 @@
            dest="${maven.project.build.directory}/marketplace/install">
       <patternset refid="nuxeo-drive.versus.cap" />
     </unzip>
+
+    <!-- Generate install.xml file -->
+    <var name="install.content" value="&lt;install&gt;" />
+    <var name="install.content"
+         value="${install.content}${line.separator}
+  &lt;update file=&quot;${package.root}/install/bundles&quot; todir=&quot;${env.bundles}&quot; /&gt;" />
+    <if>
+      <available file="${maven.project.build.directory}/marketplace/install/lib" />
+      <then>
+        <var name="install.content"
+             value="${install.content}${line.separator}
+  &lt;update file=&quot;${package.root}/install/lib&quot; todir=&quot;${env.lib}&quot; /&gt;" />
+      </then>
+    </if>
+    <var name="install.content"
+         value="${install.content}${line.separator}
+  &lt;copy file=&quot;${package.root}/install/artifacts-drive.properties&quot;${line.separator}
+    todir=&quot;${env.server.home}/sdk&quot; overwrite=&quot;true&quot; /&gt;${line.separator}
+  &lt;copy file=&quot;${package.root}/install/test-artifacts-drive.properties&quot;${line.separator}
+    todir=&quot;${env.server.home}/sdk&quot; overwrite=&quot;true&quot; /&gt;${line.separator}
+&lt;/install&gt;${line.separator}" />
+    <echo file="${maven.project.build.directory}/marketplace/install/install.xml"
+          message="${install.content}" />
 
     <!--
     <echo
