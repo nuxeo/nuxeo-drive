@@ -350,7 +350,7 @@ class BaseAutomationClient(object):
             try:
                 exc = json.loads(detail)
                 log.debug(exc['message'])
-                log.debug(exc['stack'])
+                log.debug(exc['stack'], exc_info=True)
             except:
                 # Error message should always be a JSON message,
                 # but sometimes it's not

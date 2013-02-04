@@ -17,6 +17,8 @@ log = get_logger(__name__)
 
 FILE_TYPE = 'File'
 FOLDER_TYPE = 'Folder'
+DEFAULT_TYPES = ('File', 'Workspace', 'Folder', 'SocialFolder')
+
 
 MAX_CHILDREN = 1000
 
@@ -32,6 +34,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'last_modification_time',  # last update time
     'digest',  # digest of the document
     'repository',  # server repository name
+    'doc_type',  # Nuxeo document type
 ])
 
 
@@ -87,18 +90,15 @@ class RemoteDocumentClient(BaseAutomationClient):
         ref = self._check_ref(ref)
         return self.get_blob(ref)
 
-    def get_children_info(self, ref):
+    def get_children_info(self, ref, types=DEFAULT_TYPES, limit=MAX_CHILDREN):
         ref = self._check_ref(ref)
-        # TODO: make the list of document type to synchronize configurable or
-        # maybe use a dedicated facet
-        types = ['File', 'Workspace', 'Folder', 'SocialFolder']
         query = (
             "SELECT * FROM Document"
             "       WHERE ecm:parentId = '%s'"
             "       AND ecm:primaryType IN ('%s')"
             "       AND ecm:currentLifeCycleState != 'deleted'"
             "       ORDER BY dc:title, dc:created LIMIT %d"
-        ) % (ref, "', '".join(types), MAX_CHILDREN)
+        ) % (ref, "', '".join(types), limit)
 
         entries = self.query(query)[u'entries']
         if len(entries) == MAX_CHILDREN:
@@ -202,7 +202,8 @@ class RemoteDocumentClient(BaseAutomationClient):
             parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
         return NuxeoDocumentInfo(
             self._base_folder_ref, props['dc:title'], doc['uid'], parent_uid,
-            doc['path'], folderish, last_update, digest, self.repository)
+            doc['path'], folderish, last_update, digest, self.repository,
+            doc['type'])
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):

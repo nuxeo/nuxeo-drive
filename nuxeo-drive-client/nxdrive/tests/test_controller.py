@@ -73,25 +73,25 @@ class FakeNuxeoClient(object):
                 base_folder, 'The Root',
                 'dead-beef-cafe-babe', 'cafe-beef-dead-babe',
                 '/default-domain/root',
-                True, datetime.utcnow(), None, 'default'),
+                True, datetime.utcnow(), None, 'default', 'Folder'),
             'folder_1-nuxeo-ref':
             NuxeoDocumentInfo(
                 base_folder, 'Folder 1',
                 'folder_1-nuxeo-ref', 'cafe-beef-dead-babe',
                 '/default-domain/root/folder-1',
-                True, datetime.utcnow(), None, 'default'),
+                True, datetime.utcnow(), None, 'default', 'Folder'),
             'folder_2-nuxeo-ref':
             NuxeoDocumentInfo(
                 base_folder, 'Folder 2',
                 'folder_2-nuxeo-ref', 'cafe-beef-dead-babe',
                 '/default-domain/root/folder-2',
-                True, datetime.utcnow(), None, 'default'),
+                True, datetime.utcnow(), None, 'default', 'Folder'),
             'folder_3-nuxeo-ref':
             NuxeoDocumentInfo(
                 base_folder, 'Folder 3',
                 'folder_3-nuxeo-ref', 'cafe-beef-dead-babe',
                 '/default-domain/root/folder-3',
-                True, datetime.utcnow(), None, 'default'),
+                True, datetime.utcnow(), None, 'default', 'Folder'),
         }
 
     def get_info(self, ref, fetch_parent_uid=True):

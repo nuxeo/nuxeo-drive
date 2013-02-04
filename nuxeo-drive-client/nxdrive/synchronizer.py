@@ -11,6 +11,7 @@ from sqlalchemy import not_
 import psutil
 
 from nxdrive.client import DEDUPED_BASENAME_PATTERN
+from nxdrive.client.remote_document_client import DEFAULT_TYPES
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
@@ -774,8 +775,10 @@ class Synchronizer(object):
         # Fetch all events and consider the most recent first
         sorted_changes = sorted(summary['fileSystemChanges'],
                                 key=lambda x: x['eventDate'], reverse=True)
-        log.debug("%03d remote changes detected on %s",
-                  len(sorted_changes), server_binding.server_url)
+        n_changes = len(sorted_changes)
+        if n_changes > 0:
+            log.debug("%d remote changes detected on %s",
+                    n_changes, server_binding.server_url)
 
         root_client = self.get_remote_client(server_binding, base_folder='/')
 
@@ -795,25 +798,30 @@ class Synchronizer(object):
                     old_remote_parent_ref = doc_pair.remote_parent_ref
                     cl = self.get_remote_client_from_docpair(doc_pair)
                     new_info = cl.get_info(remote_ref, raise_if_missing=False)
-                    if (new_info is not None and
-                        (old_remote_parent_ref is None
-                         or new_info.parent_uid == old_remote_parent_ref)):
+                    if new_info is None:
+                        log.debug("Mark doc_pair '%s' as deleted",
+                                  doc_pair.remote_name)
+                        doc_pair.update_state(remote_state='deleted')
+
+                    elif (old_remote_parent_ref is None
+                          or new_info.parent_uid == old_remote_parent_ref):
                         # Perform a regular document update
-                        log.debug('Refreshing remote state info for doc_pair %s',
+                        log.debug("Refreshing remote state info for doc_pair '%s'",
                                   doc_pair.remote_name)
                         doc_pair.update_remote(new_info)
+
                     else:
-                        # This document has been moved: make the existing doc
-                        # pair as remotely deleted and schedule a rescan on the
-                        # new parent to detect the creation
-                        log.debug('Mark doc_pair %s as deleted',
+                        # This document has been moved: make the
+                        # existing doc pair as remotely deleted and schedule a
+                        # rescan on the new parent to detect the creation
+                        log.debug("Mark doc_pair '%s' as deleted (moved)",
                                   doc_pair.remote_name)
                         doc_pair.update_state(remote_state='deleted')
                         moved.append(new_info)
 
+                    session.commit()
                     updated = True
                     refreshed.add(remote_ref)
-                    break
 
             if not updated:
                 # This can be document creation, try to find the parent pair
@@ -826,6 +834,15 @@ class Synchronizer(object):
                     remote_ref, raise_if_missing=False)
                 if child_info is None:
                     # Document must have been deleted since: nothing to do
+                    continue
+
+                if child_info.doc_type not in DEFAULT_TYPES:
+                    # XXX: right now the list of document types is
+                    # hardcoded in the client: this limitation will be
+                    # dropped as soon as we use the FileSystemItem API
+                    log.debug("Ignoring change on document '%s' "
+                              "with type '%s'",
+                              child_info.name, child_info.doc_type)
                     continue
 
                 created = False
@@ -847,8 +864,8 @@ class Synchronizer(object):
                         rb.local_root, parent_pair, contextual_child_info,
                         session=session)
                     if new_pair:
-                        log.debug('Marked doc_pair %s as creation',
-                                child_pair.remote_name)
+                        log.debug("Marked doc_pair '%s' as creation",
+                                  child_pair.remote_name)
 
                     if child_pair.folderish and new_pair:
                         log.debug('Remote recursive scan of the content of %s',
@@ -877,9 +894,9 @@ class Synchronizer(object):
         """Do one pass of synchronization for given server binding."""
         session = self.get_session() if session is None else session
         local_scan_is_done = False
-        tick = time()
         n_synchronized = 0
         try:
+            tick = time()
             first_pass = server_binding.last_sync_date is None
             summary, roots_changed, checkpoint = self._get_remote_changes(
                 server_binding, session=session)
@@ -910,7 +927,9 @@ class Synchronizer(object):
             # the change data): we can save the new time stamp to start again
             # from this point next time
             self._checkpoint(server_binding, checkpoint, session=session)
+            remote_refresh_duration = time() - tick
 
+            tick = time()
             # XXX: the following is broken: this should be done on a
             # per-server basis as well:
             for rb in server_binding.roots:
@@ -918,7 +937,9 @@ class Synchronizer(object):
                 # thread
                 self.scan_local(rb.local_root, session)
             local_scan_is_done = True
+            local_refresh_duration = time() - tick
 
+            tick = time()
             # The DB is updated we, can update the UI with the number of
             # pending tasks
             n_pending = len(self._controller.list_pending(
@@ -935,13 +956,16 @@ class Synchronizer(object):
             for rb in server_binding.roots:
                 n_synchronized += self.synchronize(
                     limit=self.max_sync_step, local_root=rb.local_root)
+            synchronization_duration = time() - tick
 
-            tock = time()
-            log.debug("Refreshed & synchronized %03d/%03d"
-                      " in folder %s with %s in %0.3fs",
-                      n_synchronized, n_pending,
+            log.debug("[%s] - [%s]: synchronized: %d, pending: %d, "
+                      "local: %0.3fs, remote: %0.3fs sync: %0.3fs",
                       server_binding.local_folder,
-                      server_binding.server_url, tock - tick)
+                      server_binding.server_url,
+                      n_synchronized, n_pending,
+                      local_refresh_duration,
+                      remote_refresh_duration,
+                      synchronization_duration)
 
         except POSSIBLE_NETWORK_ERROR_TYPES as e:
             # Do not fail when expecting possible network related errors

@@ -331,8 +331,9 @@ class LastKnownState(Base):
             self.remote_path = remote_info.path
 
         if self.remote_ref != remote_info.uid:
-            raise ValueError("State %r cannot be mapped to remote doc %r" % (
-                self, remote_info.name))
+            raise ValueError("State %r (%s) cannot be mapped to remote"
+                             " doc %r (%s)" % (
+                self, self.remote_ref, remote_info.name, remote_info.uid))
 
         # Use last known modification time to detect updates
         if self.last_remote_updated is None:
