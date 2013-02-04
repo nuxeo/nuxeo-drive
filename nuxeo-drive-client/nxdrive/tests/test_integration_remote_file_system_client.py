@@ -75,8 +75,39 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             remote_file_system_client.get_content, fs_item_id)
 
     def test_get_children_info(self):
-        # TODO
-        pass
+        remote_client = self.remote_file_system_client_1
+
+        # Create documents
+        workspace_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + self.workspace
+        folder_1_id = remote_client.make_folder(workspace_id,
+            'Folder 1')
+        folder_2_id = remote_client.make_folder(workspace_id,
+            'Folder 2')
+        file_1_id = remote_client.make_file(workspace_id,
+            'File 1', "Content of file 1.")
+        file_2_id = remote_client.make_file(folder_1_id,
+            'File 2', "Content of file 2.")
+
+        # Check workspace children
+        workspace_children = remote_client.get_children_info(workspace_id)
+        self.assertIsNotNone(workspace_children)
+        self.assertEquals(len(workspace_children), 3)
+        self.assertEquals(workspace_children[0].uid, folder_1_id)
+        self.assertEquals(workspace_children[0].name, 'Folder 1')
+        self.assertTrue(workspace_children[0].folderish)
+        self.assertEquals(workspace_children[1].uid, folder_2_id)
+        self.assertEquals(workspace_children[1].name, 'Folder 2')
+        self.assertTrue(workspace_children[1].folderish)
+        self.assertEquals(workspace_children[2].uid, file_1_id)
+        self.assertEquals(workspace_children[2].name, 'File 1')
+        self.assertFalse(workspace_children[2].folderish)
+
+        # Check folder_1 children
+        folder_1_children = remote_client.get_children_info(folder_1_id)
+        self.assertIsNotNone(folder_1_children)
+        self.assertEquals(len(folder_1_children), 1)
+        self.assertEquals(folder_1_children[0].uid, file_2_id)
+        self.assertEquals(folder_1_children[0].name, 'File 2')
 
     def test_make_folder(self):
         remote_client = self.remote_file_system_client_1
