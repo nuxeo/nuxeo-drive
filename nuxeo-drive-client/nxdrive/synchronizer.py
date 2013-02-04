@@ -922,14 +922,15 @@ class Synchronizer(object):
                 self._update_remote_states(server_binding, summary,
                                            session=session)
 
+            remote_refresh_duration = time() - tick
+            tick = time()
+
             # If we reach this point it means the the internal DB was
             # successfully refreshed (no network disruption while collecting
             # the change data): we can save the new time stamp to start again
             # from this point next time
             self._checkpoint(server_binding, checkpoint, session=session)
-            remote_refresh_duration = time() - tick
 
-            tick = time()
             # XXX: the following is broken: this should be done on a
             # per-server basis as well:
             for rb in server_binding.roots:
