@@ -1,26 +1,38 @@
 import os
+import sys
+
+
+WIN32_SUFFIX = os.path.join('library.zip', 'nxdrive')
+OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
+
 
 def normalized_path(path):
     """Return absolute, normalized file path"""
     # XXX: we could os.path.normcase as well under Windows but it might be the
     # source of unexpected troubles so no doing it for now.
+    return os.path.normpath(os.path.abspath(os.path.expanduser(path)))
 
-    # We do not expand the user folder marker `~` as we expect the OS shell to
-    # do it automatically when using the commandline or we do it explicitly
-    # where appropriate
-    return os.path.normpath(os.path.abspath(path))
 
 def find_exe_path():
     """Introspect the Python runtime to find the frozen Windows exe"""
     import nxdrive
-    nxdrive_path = os.path.dirname(nxdrive.__file__)
-    frozen_suffix = os.path.join('library.zip', 'nxdrive')
-    if nxdrive_path.endswith(frozen_suffix):
-        exe_path = nxdrive_path.replace(frozen_suffix, 'ndrivew.exe')
+    nxdrive_path = os.path.realpath(os.path.dirname(nxdrive.__file__))
+
+    # Detect frozen win32 executable under Windows
+    if nxdrive_path.endswith(WIN32_SUFFIX):
+        exe_path = nxdrive_path.replace(WIN32_SUFFIX, 'ndrivew.exe')
         if os.path.exists(exe_path):
             return exe_path
-    # TODO: handle the python.exe + python script as sys.argv[0] case as well
-    return None
+
+    # Detect OSX frozen app
+    if nxdrive_path.endswith(OSX_SUFFIX):
+        exe_path = nxdrive_path.replace(OSX_SUFFIX, "Contents/MacOS/Nuxeo Drive")
+        if os.path.exists(exe_path):
+            return exe_path
+
+    # Fall-back to the regular method that should work both the ndrive script
+    return sys.argv[0]
+
 
 def update_win32_reg_key(reg, path, attributes=()):
     """Helper function to create / set a key with attribute values"""
