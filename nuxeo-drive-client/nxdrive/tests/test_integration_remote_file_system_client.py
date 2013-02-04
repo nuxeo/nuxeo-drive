@@ -183,8 +183,20 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEqual(cp1252_info.digest, utf8_digest)
 
     def test_update_content(self):
-        #TODO
-        pass
+        remote_document_client = self.remote_document_client_1
+        remote_file_system_client = self.remote_file_system_client_1
+
+        # Create file
+        doc_uid = remote_document_client.make_file(self.workspace,
+            'Document 1.txt', content="Content of doc 1.")
+        fs_item_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + doc_uid
+
+        # Check file update
+        updated_fs_item_id = remote_file_system_client.update_content(
+            fs_item_id, "Updated content of doc 1.")
+        self.assertEquals(updated_fs_item_id, fs_item_id)
+        self.assertEquals(remote_file_system_client.get_content(fs_item_id),
+            "Updated content of doc 1.")
 
     def test_delete(self):
         # TODO
