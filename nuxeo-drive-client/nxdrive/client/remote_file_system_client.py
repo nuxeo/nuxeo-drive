@@ -168,3 +168,6 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
     def get_fs_item(self, fs_item_id):
         return self.execute("NuxeoDrive.GetFileSystemItem", id=fs_item_id)
+
+    def get_top_level_children(self):
+        return self.execute("NuxeoDrive.GetTopLevelChildren")

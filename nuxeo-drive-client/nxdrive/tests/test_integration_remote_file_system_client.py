@@ -270,6 +270,29 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
         self.assertIsNone(remote_file_system_client.get_fs_item(fs_item_id))
 
+    def test_get_top_level_children(self):
+        remote_document_client = self.remote_document_client_1
+        remote_file_system_client = self.remote_file_system_client_1
+
+        # No sync roots at first
+        children = remote_file_system_client.get_top_level_children()
+        self.assertEquals(len(children), 0)
+
+        # Create 2 folders and register them as sync roots
+        folder_1_uid = remote_document_client.make_folder(
+            self.workspace, 'Folder 1')
+        folder_2_uid = remote_document_client.make_folder(
+            self.workspace, 'Folder 2')
+        remote_document_client.register_as_root(folder_1_uid)
+        remote_document_client.register_as_root(folder_2_uid)
+        children = remote_file_system_client.get_top_level_children()
+        self.assertEquals(len(children), 2)
+
+        # Unregister one sync root
+        remote_document_client.unregister_as_root(folder_1_uid)
+        children = remote_file_system_client.get_top_level_children()
+        self.assertEquals(len(children), 1)
+
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)
         if hasher is None:
