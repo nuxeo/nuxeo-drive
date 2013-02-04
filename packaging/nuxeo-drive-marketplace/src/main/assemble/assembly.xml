@@ -8,30 +8,30 @@
   <taskdef resource="net/sf/antcontrib/antlib.xml" />
 
   <target name="build" description="Build Nuxeo Drive Marketplace package">
+    <property name="outdir" value="${maven.project.build.directory}" />
     <tstamp />
-    <delete failonerror="false"
-            dir="${maven.project.build.directory}/marketplace" />
-    <mkdir dir="${maven.project.build.directory}/marketplace" />
-    <copy todir="${maven.project.build.directory}/marketplace">
+    <delete failonerror="false" dir="${outdir}/marketplace" />
+    <mkdir dir="${outdir}/marketplace" />
+    <copy todir="${outdir}/marketplace">
       <fileset dir="src/main/resources" />
       <filterset>
         <filter token="VERSION" value="${nuxeo.addons.version}" />
         <filter token="NUXEO_VERSION" value="${nuxeo.addons.version}" />
       </filterset>
     </copy>
-    <copy todir="${maven.project.build.directory}">
+    <copy todir="${outdir}">
       <artifact:resolveFile key="org.nuxeo.ecm.distribution:nuxeo-distribution-cap::zip" />
       <artifact:resolveFile key="org.nuxeo.ecm:nuxeo-drive-ear::zip" />
     </copy>
-    <nx:zipdiff file1="${maven.project.build.directory}/nuxeo-drive-ear-${nuxeo.addons.version}.zip"
-                file2="${maven.project.build.directory}/nuxeo-distribution-cap-${nuxeo.distribution.version}.zip"
-                includesfile="${maven.project.build.directory}/includes"
-                excludesfile="${maven.project.build.directory}/excludesfile"
+    <nx:zipdiff file1="${outdir}/nuxeo-drive-ear-${nuxeo.addons.version}.zip"
+                file2="${outdir}/nuxeo-distribution-cap-${nuxeo.distribution.version}.zip"
+                includesfile="${outdir}/includes"
+                excludesfile="${outdir}/excludesfile"
                 patternsetid="nuxeo-drive.versus.cap"
                 ignoreContentPattern=".*jar$">
     </nx:zipdiff>
-    <unzip src="${maven.project.build.directory}/nuxeo-drive-ear-${nuxeo.addons.version}.zip"
-           dest="${maven.project.build.directory}/marketplace/install">
+    <unzip src="${outdir}/nuxeo-drive-ear-${nuxeo.addons.version}.zip"
+           dest="${outdir}/marketplace/install">
       <patternset refid="nuxeo-drive.versus.cap" />
     </unzip>
 
@@ -41,7 +41,7 @@
          value="${install.content}${line.separator}
   &lt;update file=&quot;${package.root}/install/bundles&quot; todir=&quot;${env.bundles}&quot; /&gt;" />
     <if>
-      <available file="${maven.project.build.directory}/marketplace/install/lib" />
+      <available file="${outdir}/marketplace/install/lib" />
       <then>
         <var name="install.content"
              value="${install.content}${line.separator}
@@ -55,20 +55,20 @@
   &lt;copy file=&quot;${package.root}/install/test-artifacts-drive.properties&quot;${line.separator}
     todir=&quot;${env.server.home}/sdk&quot; overwrite=&quot;true&quot; /&gt;${line.separator}
 &lt;/install&gt;${line.separator}" />
-    <echo file="${maven.project.build.directory}/marketplace/install/install.xml"
+    <echo file="${outdir}/marketplace/install.xml"
           message="${install.content}" />
 
     <!--
     <echo
-      file="${maven.project.build.directory}/marketplace/install/distribution.properties">## ${maven.project.artifactId}
+      file="${outdir}/marketplace/install/distribution.properties">## ${maven.project.artifactId}
       org.nuxeo.distribution.version=${maven.project.version}
       org.nuxeo.distribution.date=${DSTAMP}${TSTAMP}
       org.nuxeo.distribution.package=mp</echo>
     -->
 
-    <zip destfile="${maven.project.build.directory}/${maven.project.artifactId}-${nuxeo.addons.version}.zip"
-         basedir="${maven.project.build.directory}/marketplace" />
-    <artifact:attach file="${maven.project.build.directory}/${maven.project.artifactId}-${nuxeo.addons.version}.zip"
+    <zip destfile="${outdir}/${maven.project.artifactId}-${nuxeo.addons.version}.zip"
+         basedir="${outdir}/marketplace" />
+    <artifact:attach file="${outdir}/${maven.project.artifactId}-${nuxeo.addons.version}.zip"
                      target="${maven.project.groupId}:${maven.project.artifactId}"
                      type="zip" />
   </target>
