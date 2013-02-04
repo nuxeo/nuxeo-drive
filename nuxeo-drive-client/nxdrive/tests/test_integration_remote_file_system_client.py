@@ -273,5 +273,6 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)
         if hasher is None:
-            raise RuntimeError('Unknown digest algorithm: %s' % digest_algorithm)
+            raise RuntimeError('Unknown digest algorithm: %s'
+                % digest_algorithm)
         return hasher(content).hexdigest()
