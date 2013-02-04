@@ -199,8 +199,18 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             "Updated content of doc 1.")
 
     def test_delete(self):
-        # TODO
-        pass
+        remote_document_client = self.remote_document_client_1
+        remote_file_system_client = self.remote_file_system_client_1
+
+        # Create file
+        doc_uid = remote_document_client.make_file(self.workspace,
+            'Document 1.txt', content="Content of doc 1.")
+        fs_item_id = DEFAULT_FILE_SYSTEM_ITEM_ID_PREFIX + doc_uid
+        self.assertTrue(remote_file_system_client.exists(fs_item_id))
+
+        # Delete file
+        remote_file_system_client.delete(fs_item_id)
+        self.assertFalse(remote_file_system_client.exists(fs_item_id))
 
     def test_exists(self):
         remote_document_client = self.remote_document_client_1

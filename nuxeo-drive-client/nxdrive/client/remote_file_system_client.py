@@ -92,8 +92,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return fs_item['id']
 
     def delete(self, fs_item_id):
-        # TODO
-        pass
+        self.execute("NuxeoDrive.Delete", id=fs_item_id)
 
     def exists(self, fs_item_id):
         return self.execute("NuxeoDrive.FileSystemItemExists", id=fs_item_id)
