@@ -50,9 +50,9 @@
     </if>
     <var name="install.content"
          value="${install.content}${line.separator}
-  &lt;copy file=&quot;${package.root}/install/artifacts-drive.properties&quot;${line.separator}
+  &lt;copy file=&quot;${package.root}/install/artifacts-nuxeo-drive.properties&quot;${line.separator}
     todir=&quot;${env.server.home}/sdk&quot; overwrite=&quot;true&quot; /&gt;${line.separator}
-  &lt;copy file=&quot;${package.root}/install/test-artifacts-drive.properties&quot;${line.separator}
+  &lt;copy file=&quot;${package.root}/install/test-artifacts-nuxeo-drive.properties&quot;${line.separator}
     todir=&quot;${env.server.home}/sdk&quot; overwrite=&quot;true&quot; /&gt;${line.separator}
 &lt;/install&gt;${line.separator}" />
     <echo file="${outdir}/marketplace/install.xml"
