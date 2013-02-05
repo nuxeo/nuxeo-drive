@@ -47,7 +47,11 @@ DEFAULT_MSI_FOLDER = os.path.join(r"dist")
 DEFAULT_NUXEO_ARCHIVE_URL=("http://qa.nuxeo.org/jenkins/job/IT-nuxeo-master-build/"
                            "lastSuccessfulBuild/artifact/archives/")
 DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
-DEFAULT_ARCHIVE_PATTERN=r"nuxeo-cap-\d\.\d-I\d+_\d+-tomcat\.zip"
+# The default matches IT builds from master or distribution builds for previous
+# hotfixed releases, for example:
+# nuxeo-cap-5.7-I20130205_0116-tomcat.zip
+# nuxeo-distribution-tomcat-5.6.0-HF10-20130205.111750-7-nuxeo-cap.zip
+DEFAULT_ARCHIVE_PATTERN=r"(nuxeo-cap-\d\.\d-I\d+_\d+-tomcat\.zip|nuxeo-distribution-tomcat-\d\.\d.\d-HF\d+-\d+\.\d+-\d+-nuxeo-cap\.zip)"
 NUXEO_FOLDER='nuxeo-tomcat'
 LESSMSI_FOLDER='lessmsi'
 EXTRACTED_MSI_FOLDER='nxdrive_msi'
