@@ -199,9 +199,9 @@ class LastKnownState(Base):
         self.update_state(local_state=local_state, remote_state=remote_state)
 
     def update_state(self, local_state=None, remote_state=None):
-        if local_state is not None:
+        if local_state is not None and self.local_state != local_state:
             self.local_state = local_state
-        if remote_state is not None:
+        if remote_state is not None and self.remote_state != remote_state:
             self.remote_state = remote_state
 
         # Detect heuristically aligned situations
@@ -212,8 +212,9 @@ class LastKnownState(Base):
                 self.remote_state = 'synchronized'
 
         pair = (self.local_state, self.remote_state)
-        self.pair_state = PAIR_STATES.get(pair, 'unknown')
-
+        pair_state = PAIR_STATES.get(pair, 'unknown')
+        if self.pair_state != pair_state:
+            self.pair_state = pair_state
 
     def __repr__(self):
         return ("LastKnownState<local_root=%r, path=%r, "
