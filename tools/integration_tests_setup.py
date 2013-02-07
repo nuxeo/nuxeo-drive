@@ -2,7 +2,7 @@ r"""Setup the windows machine for Continuous Integration on the MSI package
 
 Steps executed by this script:
 
-    - download the latest nightly build of Nuxeo from Jenkins
+    - unzip the Nuxeo distribution
     - deploy the marketplace package of nuxeo-drive
     - start the server
     - setup test environment variables
@@ -42,13 +42,12 @@ import fnmatch
 
 DEFAULT_MARKETPLACE = os.path.join(
     "packaging", "nuxeo-drive-marketplace", "target")
-MARKET_PLACE_PREFIX = "nuxeo-drive-marketplace"
-DEFAULT_MSI_FOLDER = os.path.join(r"dist")
-DEFAULT_NUXEO_ARCHIVE_URL=("http://qa.nuxeo.org/jenkins/job/IT-nuxeo-master-build/"
-                           "lastSuccessfulBuild/artifact/archives/")
-DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
-DEFAULT_ARCHIVE_PATTERN=r"nuxeo-cap-\d\.\d-I\d+_\d+-tomcat\.zip"
+DEFAULT_ARCHIVE_PREFIX = "nuxeo-distribution-tomcat-"
 NUXEO_FOLDER='nuxeo-tomcat'
+MARKET_PLACE_PREFIX = "nuxeo-drive-marketplace"
+
+DEFAULT_MSI_FOLDER = os.path.join(r"dist")
+DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
 LESSMSI_FOLDER='lessmsi'
 EXTRACTED_MSI_FOLDER='nxdrive_msi'
 
@@ -95,8 +94,6 @@ def parse_args(args=None):
     test_parser.set_defaults(command='test')
 
     test_parser.add_argument("--msi-folder", default=DEFAULT_MSI_FOLDER)
-    test_parser.add_argument("--nuxeo-archive-url",
-                        default=DEFAULT_NUXEO_ARCHIVE_URL)
     test_parser.add_argument("--lessmsi-url", default=DEFAULT_LESSMSI_URL)
 
     return parser.parse_args(args)
@@ -121,6 +118,9 @@ def unzip(filename, target=None):
     zf = zipfile.ZipFile(filename, 'r')
     for info in zf.infolist():
         filename = info.filename
+        # Skip first directory entry
+        if filename.endswith('/'):
+            continue
         if target is not None:
             filename = os.path.join(target, filename)
         dirname = os.path.dirname(filename)
@@ -172,7 +172,7 @@ def find_package_url(archive_page_url, pattern):
     return archive_url, archive_url.rsplit('/', 1)[1]
 
 
-def setup_nuxeo(nuxeo_archive_url):
+def setup_nuxeo():
     try:
         java_home = os.environ['JAVA_HOME']
     except KeyError:
@@ -194,23 +194,12 @@ def setup_nuxeo(nuxeo_archive_url):
         pflush("Waiting for any killed process to actually stop")
         time.sleep(1.0)
 
-    url, filename = find_package_url(nuxeo_archive_url,
-                                     DEFAULT_ARCHIVE_PATTERN)
+    filepath = find_latest(DEFAULT_MARKETPLACE, prefix=DEFAULT_ARCHIVE_PREFIX,
+                          suffix=".zip")
+    unzip(filepath, target='unzip.tmp')
+    nuxeo_folder_name = os.listdir('unzip.tmp')[0]
+    nuxeo_folder_path = os.path.join('unzip.tmp', nuxeo_folder_name)
 
-    if not os.path.exists(filename):
-        # the latest version does not exist but old versions might, let's delete
-        # them to save some disk real estate in the workspace hosted on the CI
-        # servers
-        archive_pattern = re.compile(DEFAULT_ARCHIVE_PATTERN)
-        for old_filename in os.listdir('.'):
-            if archive_pattern.match(old_filename):
-                pflush("Deleting old archive: " + old_filename)
-                os.unlink(old_filename)
-
-    download(url, filename)
-    unzip(filename)
-
-    nuxeo_folder = filename[:-len(".zip")]
     nuxeoctl = os.path.join(NUXEO_FOLDER, 'bin', 'nuxeoctl')
     if os.path.exists(NUXEO_FOLDER):
         pflush("Stopping previous instance of Nuxeo")
@@ -236,8 +225,8 @@ def setup_nuxeo(nuxeo_archive_url):
         else:
             shutil.rmtree(NUXEO_FOLDER)
 
-    pflush("Renaming %s to %s" % (nuxeo_folder, NUXEO_FOLDER))
-    os.rename(nuxeo_folder, NUXEO_FOLDER)
+    pflush("Renaming %s to %s" % (nuxeo_folder_path, NUXEO_FOLDER))
+    os.rename(nuxeo_folder_path, NUXEO_FOLDER)
     with open(os.path.join(NUXEO_FOLDER, 'bin', 'nuxeo.conf'), 'ab') as f:
         f.write("\nnuxeo.wizard.done=true\n")
 
@@ -307,7 +296,7 @@ if __name__ == "__main__":
     options = parse_args()
 
     if options.command == 'test':
-        setup_nuxeo(options.nuxeo_archive_url)
+        setup_nuxeo()
         set_environment()
         clean_pyc()
         if sys.platform == 'win32':

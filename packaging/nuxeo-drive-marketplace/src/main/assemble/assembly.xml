@@ -22,6 +22,7 @@
     <copy todir="${outdir}">
       <artifact:resolveFile key="org.nuxeo.ecm.distribution:nuxeo-distribution-cap::zip" />
       <artifact:resolveFile key="org.nuxeo.ecm:nuxeo-drive-ear::zip" />
+      <artifact:resolveFile key="org.nuxeo.ecm.distribution:nuxeo-distribution-tomcat::zip;nuxeo-cap" />
     </copy>
     <nx:zipdiff file1="${outdir}/nuxeo-drive-ear-${nuxeo.addons.version}.zip"
                 file2="${outdir}/nuxeo-distribution-cap-${nuxeo.distribution.version}.zip"
