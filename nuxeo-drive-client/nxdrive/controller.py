@@ -419,18 +419,14 @@ class Controller(object):
                 % (repository, remote_root, server_binding.remote_user,
                    server_binding.server_url))
 
-
-        if nxclient.is_addon_installed():
-            # register the root on the server
-            nxclient.register_as_root(remote_info.uid)
-            self.synchronizer.update_roots(session,
-                    server_binding=server_binding,
+        # register the root on the server
+        if nxclient.register_as_root(remote_info.uid):
+            self.synchronizer.update_roots(server_binding, session=session,
                     repository=repository)
         else:
-            # manual local-only bounding: the server is not aware of any root
-            # config
+            # For the tests only
             self._local_bind_root(server_binding, remote_info, nxclient,
-                                  session)
+                    session=session)
 
     def _local_bind_root(self, server_binding, remote_info, nxclient, session):
         # Check that this workspace does not already exist locally
@@ -492,11 +488,10 @@ class Controller(object):
                                           repository=binding.remote_repo,
                                           base_folder=binding.remote_root)
         if nxclient.is_addon_installed():
-            # register the root on the server
+            # unregister the root on the server
             nxclient.unregister_as_root(binding.remote_root)
-            self.synchronizer.update_roots(session=session,
-                    server_binding=binding.server_binding,
-                    repository=binding.remote_repo)
+            self.synchronizer.update_roots(binding.server_binding,
+                    session=session, repository=binding.remote_repo)
         else:
             # manual bounding: the server is not aware
             self._local_unbind_root(binding, session)

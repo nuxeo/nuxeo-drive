@@ -18,6 +18,7 @@ from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.protocol_handler import register_protocol_handlers
+from nxdrive.startup import register_startup
 
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
@@ -301,6 +302,8 @@ class CliHandler(object):
             # Ensure that the protocol handler are registered:
             # this is useful for the edit / open link in the Nuxeo interface
             register_protocol_handlers(self.controller)
+            # Ensure that ndrive is registered as a startup application
+            register_startup()
         try:
             return handler(options)
         except Exception, e:
@@ -327,17 +330,12 @@ class CliHandler(object):
         self.controller = Controller(options.nxdrive_home)
         self._configure_logger(options)
         self.log.debug("Synchronization daemon started.")
-
-        fault_tolerant = not getattr(options, 'stop_on_error', True)
         self.controller.synchronizer.loop(
-            fault_tolerant=fault_tolerant,
             delay=getattr(options, 'delay', DEFAULT_DELAY))
         return 0
 
     def console(self, options):
-        fault_tolerant = not getattr(options, 'stop_on_error', True)
         self.controller.synchronizer.loop(
-            fault_tolerant=fault_tolerant,
             delay=getattr(options, 'delay', DEFAULT_DELAY))
         return 0
 
@@ -408,9 +406,12 @@ class CliHandler(object):
         # when the app is frozen.
         argv += [
             "nxdrive.tests.test_controller",
-            "nxdrive.tests.test_filesystem_client",
-            "nxdrive.tests.test_integration_nuxeo_client",
+            "nxdrive.tests.test_integration_local_client",
+            "nxdrive.tests.test_integration_remote_changes",
+            "nxdrive.tests.test_integration_remote_document_client",
+            "nxdrive.tests.test_integration_remote_file_system_client",
             "nxdrive.tests.test_integration_synchronization",
+            "nxdrive.tests.test_synchronizer",
         ]
         return 0 if nose.run(argv=argv) else 1
 

@@ -15,6 +15,7 @@ dist
 *.dmg
 nuxeo-tomcat
 lessmsi
+nxdrive_msi
 .ropeproject
 MANIFEST
 *.framework

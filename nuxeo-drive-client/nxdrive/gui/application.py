@@ -202,6 +202,15 @@ class Application(QApplication):
         self.communicator.menu.emit()
         self.communicator.stop.emit()
 
+    def notify_online(self, local_folder):
+        info = self.get_info(local_folder)
+        if not info.online:
+            # Mark binding as offline and update UI
+            log.debug('Switching to online mode for: %s', local_folder)
+            info.online = True
+            self.update_running_icon()
+            self.communicator.menu.emit()
+
     def notify_offline(self, local_folder, exception):
         info = self.get_info(local_folder)
         code = getattr(exception, 'code', None)
@@ -221,6 +230,7 @@ class Application(QApplication):
         info = self.get_info(local_folder)
         if n_pending != info.n_pending:
             log.debug("%d pending operations for: %s", n_pending, local_folder)
+            self.communicator.menu.emit()
         # Update pending stats
         info.n_pending = n_pending
         info.has_more_pending = or_more
@@ -265,6 +275,11 @@ class Application(QApplication):
                 open_folder_msg, tray_icon_menu, triggered=open_folder)
             tray_icon_menu.addAction(open_folder_action)
 
+            # Pending status
+            status_action = tray_icon_menu.addAction(
+                binding_info.get_status_message())
+            status_action.setEnabled(False)
+
             # Link to change to refetch authentication token when expired
             update_credentials_msg = "Update credentials"
             if sb.has_invalid_credentials():
@@ -301,15 +316,14 @@ class Application(QApplication):
             self.register_server()
 
         if self.sync_thread is None or not self.sync_thread.isAlive():
-            fault_tolerant = not getattr(self.options, 'stop_on_error', True)
             delay = getattr(self.options, 'delay', 5.0)
             # Controller and its database session pool should be thread safe,
             # hence reuse it directly
+            self.controller.synchronizer.register_frontend(self)
+            self.controller.synchronizer.delay = delay
+
             self.sync_thread = Thread(target=sync_loop,
-                                      args=(self.controller,),
-                                      kwargs={"frontend": self,
-                                              "fault_tolerant": fault_tolerant,
-                                              "delay": delay})
+                                      args=(self.controller,))
             self.sync_thread.start()
 
     def event(self, event):

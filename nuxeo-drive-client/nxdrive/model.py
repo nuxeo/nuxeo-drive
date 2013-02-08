@@ -85,6 +85,8 @@ class ServerBinding(Base):
     remote_user = Column(String)
     remote_password = Column(String)
     remote_token = Column(String)
+    last_sync_date = Column(Integer)
+    last_root_definitions = Column(String)
 
     def __init__(self, local_folder, server_url, remote_user,
                  remote_password=None, remote_token=None):
@@ -197,9 +199,9 @@ class LastKnownState(Base):
         self.update_state(local_state=local_state, remote_state=remote_state)
 
     def update_state(self, local_state=None, remote_state=None):
-        if local_state is not None:
+        if local_state is not None and self.local_state != local_state:
             self.local_state = local_state
-        if remote_state is not None:
+        if remote_state is not None and self.remote_state != remote_state:
             self.remote_state = remote_state
 
         # Detect heuristically aligned situations
@@ -210,8 +212,9 @@ class LastKnownState(Base):
                 self.remote_state = 'synchronized'
 
         pair = (self.local_state, self.remote_state)
-        self.pair_state = PAIR_STATES.get(pair, 'unknown')
-
+        pair_state = PAIR_STATES.get(pair, 'unknown')
+        if self.pair_state != pair_state:
+            self.pair_state = pair_state
 
     def __repr__(self):
         return ("LastKnownState<local_root=%r, path=%r, "
@@ -329,8 +332,9 @@ class LastKnownState(Base):
             self.remote_path = remote_info.path
 
         if self.remote_ref != remote_info.uid:
-            raise ValueError("State %r cannot be mapped to remote doc %r" % (
-                self, remote_info.name))
+            raise ValueError("State %r (%s) cannot be mapped to remote"
+                             " doc %r (%s)" % (
+                self, self.remote_ref, remote_info.name, remote_info.uid))
 
         # Use last known modification time to detect updates
         if self.last_remote_updated is None:

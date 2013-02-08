@@ -289,6 +289,9 @@ class BaseAutomationClient(object):
     def revoke_token(self):
         self.request_token(revoke=True)
 
+    def wait(self):
+        self.execute("NuxeoDrive.WaitForAsyncCompletion")
+
     def _update_auth(self, password=None, token=None):
         """Select the most appropriate authentication heads based on credentials"""
         if token is not None:
@@ -347,7 +350,7 @@ class BaseAutomationClient(object):
             try:
                 exc = json.loads(detail)
                 log.debug(exc['message'])
-                log.debug(exc['stack'])
+                log.debug(exc['stack'], exc_info=True)
             except:
                 # Error message should always be a JSON message,
                 # but sometimes it's not

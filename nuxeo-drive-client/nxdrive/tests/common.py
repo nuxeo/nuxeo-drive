@@ -138,3 +138,6 @@ class IntegrationTestCase(unittest.TestCase):
         remote_client.make_file(folder_1_2, 'File 3.txt', content="ccc")
         remote_client.make_file(folder_2, 'File 4.txt', content="ddd")
         remote_client.make_file(self.workspace, 'File 5.txt', content="eee")
+
+    def wait(self):
+        self.root_remote_client.wait()

@@ -19,8 +19,8 @@ _logging_context = dict()
 
 
 def configure(log_filename, file_level='INFO', console_level='INFO',
-              command_name=None, log_rotate_keep=5,
-              log_rotate_max_bytes=1000000):
+              command_name=None, log_rotate_keep=3,
+              log_rotate_max_bytes=100000000):
 
     _logging_context['command'] = command_name
 

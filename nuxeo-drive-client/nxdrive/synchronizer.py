@@ -11,11 +11,11 @@ from sqlalchemy import not_
 import psutil
 
 from nxdrive.client import DEDUPED_BASENAME_PATTERN
+from nxdrive.client.remote_document_client import DEFAULT_TYPES
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
 from nxdrive.model import ServerBinding
-from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
 from nxdrive.logging_config import get_logger
 
@@ -85,16 +85,34 @@ def find_first_name_match(name, possible_pairs):
 class Synchronizer(object):
     """Handle synchronization operations between the client FS and Nuxeo"""
 
+    # delay in seconds that ensures that two consecutive scans won't happen
+    # too closely from one another.
+    # TODO: make this a value returned by the server so that it can tell the
+    # client to slow down when the server cannot keep up with the load
+    delay = 10
+
+    # Number of consecutive sync operations to perform without refreshing
+    # the internal state DB
+    max_sync_step = 10
+
+    # Limit number of pending items to retrieve when computing the list of
+    # operations to perform (useful to display activity stats in the
+    # frontend)
+    limit_pending = 100
+
     def __init__(self, controller):
         self._controller = controller
+        self._frontend = None
+
+    def register_frontend(self, frontend):
+        self._frontend = frontend
 
     def get_session(self):
         return self._controller.get_session()
 
     def scan_local(self, local_root, session=None):
         """Recursively scan the bound local folder looking for updates"""
-        if session is None:
-            session = self.get_session()
+        session = self.get_session() if session is None else session
 
         root_state = session.query(LastKnownState).filter_by(
             local_root=local_root, path='/').one()
@@ -180,6 +198,10 @@ class Synchronizer(object):
                     ).all()
                     child_pair = find_first_name_match(
                         child_name, possible_pairs)
+                    if child_pair is not None:
+                        log.debug("Matched local %s with remote %s with digest",
+                                  child_info.path, child_pair.remote_name)
+
                 except (IOError, WindowsError):
                     # The file is currently being accessed and we cannot
                     # compute the digest
@@ -196,11 +218,17 @@ class Synchronizer(object):
                     folderish=child_info.folderish,
                 ).all()
                 child_pair = find_first_name_match(child_name, possible_pairs)
+                if child_pair is not None:
+                    log.debug("Matched local %s with remote %s by name only",
+                              child_info.path, child_pair.remote_name)
 
             if child_pair is None:
                 # Could not find any pair state to align to, create one
                 child_pair = LastKnownState(local_root, local_info=child_info)
                 session.add(child_pair)
+                log.debug("Detected a new non-alignable local file at %s",
+                          child_pair.path)
+
 
             self._scan_local_recursive(local_root, session, client,
                                        child_pair, child_info)
@@ -260,7 +288,7 @@ class Synchronizer(object):
             # No children to align, early stop.
             return
 
-        # detect recently deleted children
+        # Detect recently deleted children
         children_info = client.get_children_info(remote_info.uid)
         children_refs = set(c.uid for c in children_info)
 
@@ -274,56 +302,74 @@ class Synchronizer(object):
         for deleted in q.all():
             self._mark_deleted_remote_recursive(local_root, session, deleted)
 
-        # recursively update children
+        # Recursively update children
         for child_info in children_info:
 
             # TODO: detect whether this is a __digit suffix name and relax the
             # alignment queries accordingly
-            child_name = child_info.name
             child_pair = session.query(LastKnownState).filter_by(
                 local_root=local_root,
                 remote_ref=child_info.uid).first()
 
-            if child_pair is None and not child_info.folderish:
-                # Try to find an existing local doc that has not yet been
-                # bound to any remote file that would align with both name
-                # and digest
-                possible_pairs = session.query(LastKnownState).filter_by(
-                    local_root=local_root,
-                    remote_ref=None,
-                    parent_path=doc_pair.path,
-                    folderish=child_info.folderish,
-                    local_digest=child_info.get_digest(),
-                ).all()
-                child_pair = find_first_name_match(child_name, possible_pairs)
-
             if child_pair is None:
-                # Previous attempt has failed: relax the digest constraint
-                possible_pairs = session.query(LastKnownState).filter_by(
-                    local_root=local_root,
-                    remote_ref=None,
-                    parent_path=doc_pair.path,
-                    folderish=child_info.folderish,
-                ).all()
-                child_pair = find_first_name_match(child_name, possible_pairs)
-
-            if child_pair is None:
-                # Could not find any pair state to align to, create one
-                child_pair = LastKnownState(
-                    local_root, remote_info=child_info)
-                session.add(child_pair)
+                child_pair, _ = self._find_remote_child_match_or_create(
+                    local_root, doc_pair, child_info, session=session)
 
             self._scan_remote_recursive(local_root, session, client,
                                         child_pair, child_info)
 
-    def update_roots(self, session=None, server_binding=None,
-                     repository=None, frontend=None):
+    def _find_remote_child_match_or_create(
+        self, local_root, parent_pair, child_info, session=None):
+        """Find a pair_state that can match child_info by name.
+
+        Return a tuple (child_pair, created) where created is a boolean marker
+        that tells that no match was found and that child_pair is newly created
+        from the provided child_info.
+
+        """
+        session = self.get_session() if session is None else session
+        child_name = child_info.name
+        if not child_info.folderish:
+            # Try to find an existing local doc that has not yet been
+            # bound to any remote file that would align with both name
+            # and digest
+            possible_pairs = session.query(LastKnownState).filter_by(
+                local_root=local_root,
+                remote_ref=None,
+                parent_path=parent_pair.path,
+                folderish=child_info.folderish,
+                local_digest=child_info.get_digest(),
+            ).all()
+            child_pair = find_first_name_match(child_name, possible_pairs)
+            if child_pair is not None:
+                log.debug("Matched remote %s with local %s with digest",
+                          child_info.name, child_pair.path)
+                return child_pair, False
+
+        # Previous attempt has failed: relax the digest constraint
+        possible_pairs = session.query(LastKnownState).filter_by(
+            local_root=local_root,
+            remote_ref=None,
+            parent_path=parent_pair.path,
+            folderish=child_info.folderish,
+        ).all()
+        child_pair = find_first_name_match(child_name, possible_pairs)
+        if child_pair is not None:
+            log.debug("Matched remote %s with local %s by name only",
+                      child_info.name, child_pair.path)
+            return child_pair, False
+
+        # Could not find any pair state to align to, create one
+        child_pair = LastKnownState(local_root, remote_info=child_info)
+        session.add(child_pair)
+        return child_pair, True
+
+    def update_roots(self, server_binding, session=None, repository=None):
         """Ensure that the list of bound roots match server-side info
 
         If a server is not responding it is skipped.
         """
-        if session is None:
-            session = self.get_session()
+        session = self.get_session() if session is None else session
         if server_binding is not None:
             server_bindings = [server_binding]
         else:
@@ -332,39 +378,25 @@ class Synchronizer(object):
             if sb.has_invalid_credentials():
                 # Skip servers with missing credentials
                 continue
-            try:
-                nxclient = self.get_remote_client(sb)
-                if not nxclient.is_addon_installed():
-                    continue
-                if repository is not None:
-                    repositories = [repository]
-                else:
-                    repositories = nxclient.get_repository_names()
-                for repo in repositories:
-                    nxclient = self.get_remote_client(sb, repository=repo)
-                    remote_roots = nxclient.get_roots()
-                    local_roots = [r for r in sb.roots
-                                   if r.remote_repo == repo]
-                    self._controller.update_server_roots(
-                        sb, session, local_roots, remote_roots, repo)
-            except POSSIBLE_NETWORK_ERROR_TYPES as e:
-                # Ignore expected possible network related errors
-                _log_offline(e, "update roots")
-                log.trace("Traceback of ignored network error:",
-                        exc_info=True)
-                if frontend is not None:
-                    frontend.notify_offline(sb.local_folder, e)
-                self._controller.invalidate_client_cache(sb.server_url)
+            nxclient = self.get_remote_client(sb)
+            if not nxclient.is_addon_installed():
+                continue
+            if repository is not None:
+                repositories = [repository]
+            else:
+                repositories = nxclient.get_repository_names()
+            for repo in repositories:
+                nxclient = self.get_remote_client(sb, repository=repo)
+                remote_roots = nxclient.get_roots()
+                local_roots = [r for r in sb.roots
+                                if r.remote_repo == repo]
+                self._controller.update_server_roots(
+                    sb, session, local_roots, remote_roots, repo)
 
-        if frontend is not None:
+        if self._frontend is not None:
             local_folders = [sb.local_folder
                     for sb in session.query(ServerBinding).all()]
-            frontend.notify_local_folders(local_folders)
-
-    def refresh_remote_folders_from_log(self, root_binding):
-        """Query the remote server audit log looking for state updates."""
-        # TODO
-        raise NotImplementedError()
+            self._frontend.notify_local_folders(local_folders)
 
     def get_remote_client_from_docpair(self, doc_pair):
         """Fetch a client from the cache or create a new instance"""
@@ -372,8 +404,6 @@ class Synchronizer(object):
         sb = rb.server_binding
         return self.get_remote_client(sb, base_folder=rb.remote_root,
                                       repository=rb.remote_repo)
-
-    # TODO: move the synchronization related methods in a dedicated class
 
     def synchronize_one(self, doc_pair, session=None):
         """Refresh state a perform network transfer for a pair of documents."""
@@ -545,6 +575,8 @@ class Synchronizer(object):
 
         elif doc_pair.pair_state == 'deleted':
             # No need to store this information any further
+            log.debug('Deleting doc pair %s deleted on both sides',
+                doc_pair.path)
             session.delete(doc_pair)
             session.commit()
 
@@ -552,6 +584,7 @@ class Synchronizer(object):
             if doc_pair.local_digest == doc_pair.remote_digest != None:
                 # Automated conflict resolution based on digest content:
                 doc_pair.update_state('synchronized', 'synchronized')
+            log.debug('Conflict detected for %s', doc_pair.path)
         else:
             log.warning("Unhandled pair_state: %r for %r",
                           doc_pair.pair_state, doc_pair)
@@ -563,39 +596,18 @@ class Synchronizer(object):
         if len(session.dirty) != 0 or len(session.deleted) != 0:
             session.commit()
 
-    def synchronize(self, limit=None, local_root=None, fault_tolerant=False):
-        """Synchronize one file at a time from the pending list.
-
-        Fault tolerant mode is meant to be skip problematic documents while not
-        preventing the rest of the synchronization loop to work on documents
-        that work as expected.
-
-        This mode will probably hide real Nuxeo Drive bugs in the
-        logs. It should thus not be enabled when running tests for the
-        synchronization code but might be useful when running Nuxeo
-        Drive in daemon mode.
-        """
+    def synchronize(self, limit=None, local_root=None):
+        """Synchronize one file at a time from the pending list."""
         synchronized = 0
         session = self.get_session()
         doc_pair = self._controller.next_pending(local_root=local_root,
                                                  session=session)
         while doc_pair is not None and (limit is None or synchronized < limit):
-            if fault_tolerant:
-                try:
-                    self.synchronize_one(doc_pair, session=session)
-                    synchronized += 1
-                except Exception as e:
-                    log.error("Failed to synchronize %r: %r",
-                              doc_pair, e, exc_info=True)
-                    # TODO: flag pending and all descendant as failed with a
-                    # time stamp and make next_pending ignore recently (e.g.
-                    # up to 30s) failed synchronized pairs
-                    raise NotImplementedError(
-                        'Fault tolerant synchronization not implemented yet.')
-            else:
-                self.synchronize_one(doc_pair, session=session)
-                synchronized += 1
-
+            # TODO: make it possible to catch unexpected exceptions here so as
+            # to black list the pair of document and ignore it for a while
+            # using a TTL for the blacklist token in the state DB
+            self.synchronize_one(doc_pair, session=session)
+            synchronized += 1
             doc_pair = self._controller.next_pending(local_root=local_root,
                                                      session=session)
         return synchronized
@@ -653,16 +665,13 @@ class Synchronizer(object):
             return True
         return False
 
-    def loop(self, full_local_scan=True, full_remote_scan=True, delay=10,
-             max_sync_step=50, max_loops=None, fault_tolerant=True,
-             frontend=None, limit_pending=100):
-        """Forever loop to scan / refresh states and perform synchronization
+    def loop(self, max_loops=None, delay=None):
+        """Forever loop to scan / refresh states and perform sync"""
 
-        delay is an delay in seconds that ensures that two consecutive
-        scans won't happen too closely from one another.
-        """
-        if frontend is not None:
-            frontend.notify_sync_started()
+        delay = delay if delay is not None else self.delay
+
+        if self._frontend is not None:
+            self._frontend.notify_sync_started()
         pid = self.check_running(process_name="sync")
         if pid is not None:
             log.warning(
@@ -678,18 +687,13 @@ class Synchronizer(object):
 
         log.info("Starting synchronization (pid=%d)", pid)
         self.continue_synchronization = True
-        if not full_local_scan:
-            # TODO: ensure that the watchdog thread for incremental state
-            # update is started thread is started (and make sure it's able to
-            # detect new bindings while running)
-            raise NotImplementedError()
 
         previous_time = time()
-        first_pass = True
         session = self.get_session()
         loop_count = 0
         try:
             while True:
+                n_synchronized = 0
                 if self.should_stop_synchronization():
                     log.info("Stopping synchronization (pid=%d)", pid)
                     break
@@ -697,60 +701,25 @@ class Synchronizer(object):
                     log.info("Stopping synchronization after %d loops",
                              loop_count)
                     break
-                self.update_roots(session, frontend=frontend)
 
-                bindings = session.query(RootBinding).all()
-                for rb in bindings:
-                    try:
-                        # the alternative to local full scan is the watchdog
-                        # thread
-                        if full_local_scan or first_pass:
-                            self.scan_local(rb.local_root, session)
+                for sb in session.query(ServerBinding).all():
+                    if sb.has_invalid_credentials():
+                        # Let's wait for the user to (re-)enter valid
+                        # credentials
+                        continue
+                    n_synchronized += self.update_synchronize_server(
+                        sb, session=session)
 
-                        if rb.server_binding.has_invalid_credentials():
-                            # Skip roots for servers with missing credentials
-                            continue
-
-                        if full_remote_scan or first_pass:
-                            self.scan_remote(rb.local_root, session)
-                        else:
-                            self.refresh_remote_from_log(rb.remote_ref)
-                        if frontend is not None:
-                            n_pending = len(self._controller.list_pending(
-                                limit=limit_pending))
-                            reached_limit = n_pending == limit_pending
-                            frontend.notify_pending(rb.local_folder, n_pending,
-                                    or_more=reached_limit)
-
-                        self.synchronize(limit=max_sync_step,
-                                         local_root=rb.local_root,
-                                         fault_tolerant=fault_tolerant)
-                    except POSSIBLE_NETWORK_ERROR_TYPES as e:
-                        # Ignore expected possible network related errors
-                        _log_offline(e, "synchronization loop")
-                        log.trace("Traceback of ignored network error:",
-                                exc_info=True)
-                        if frontend is not None:
-                            frontend.notify_offline(rb.local_folder, e)
-
-                        # TODO: add a special handling for the invalid
-                        # credentials case and mark the server binding
-                        # with a special flag in the DB to be skipped by
-                        # the synchronization loop until the user decides
-                        # to reenable it in the systray menu with a dedicated
-                        # action instead
-                        self._controller.invalidate_client_cache(
-                            rb.server_binding.server_url)
-
-                # safety net to ensure that Nuxe Drive won't eat all the CPU,
+                # safety net to ensure that Nuxeo Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
                 # over the bound folders too often.
                 current_time = time()
                 spent = current_time - previous_time
-                if spent < delay:
-                    sleep(delay - spent)
-                previous_time = current_time
-                first_pass = False
+                sleep_time = delay - spent
+                if sleep_time > 0 and n_synchronized == 0:
+                    log.debug("Sleeping %0.3fs", sleep_time)
+                    sleep(sleep_time)
+                previous_time = time()
                 loop_count += 1
 
         except KeyboardInterrupt:
@@ -766,13 +735,261 @@ class Synchronizer(object):
             os.unlink(pid_filepath)
         except Exception, e:
             log.warning("Failed to remove stalled pid file: %s"
-                    " for stopped process %d: %r",
-                    pid_filepath, pid, e)
+                        " for stopped process %d: %r", pid_filepath, pid, e)
 
         # Notify UI frontend to take synchronization stop into account and
         # potentially quit the app
-        if frontend is not None:
-            frontend.notify_sync_stopped()
+        if self._frontend is not None:
+            self._frontend.notify_sync_stopped()
+
+    def _get_remote_changes(self, server_binding, session=None):
+        """Fetch incremental change summary from the server"""
+        session = self.get_session() if session is None else session
+        remote_client = self.get_remote_client(server_binding)
+
+        summary = remote_client.get_changes(
+            last_sync_date=server_binding.last_sync_date,
+            last_root_definitions=server_binding.last_root_definitions)
+
+        root_definitions = summary['activeSynchronizationRootDefinitions']
+        sync_date = summary['syncDate']
+        root_changed = root_definitions != server_binding.last_root_definitions
+        checkpoint_data = (sync_date, root_definitions)
+
+        return summary, root_changed, checkpoint_data
+
+    def _checkpoint(self, server_binding, checkpoint_data, session=None):
+        """Save the incremental change data for the next iteration"""
+        session = self.get_session() if session is None else session
+        sync_date, root_definitions = checkpoint_data
+        server_binding.last_sync_date = sync_date
+        server_binding.last_root_definitions = root_definitions
+        session.commit()
+
+    def _update_remote_states(self, server_binding, summary, session=None):
+        """Incrementally update the state of documents from a change summary"""
+        session = self.get_session() if session is None else session
+        s_url = server_binding.server_url
+
+
+        # Fetch all events and consider the most recent first
+        sorted_changes = sorted(summary['fileSystemChanges'],
+                                key=lambda x: x['eventDate'], reverse=True)
+        n_changes = len(sorted_changes)
+        if n_changes > 0:
+            log.debug("%d remote changes detected on %s",
+                    n_changes, server_binding.server_url)
+
+        root_client = self.get_remote_client(server_binding, base_folder='/')
+
+        # Scan events and update the inter
+        refreshed = set()
+        moved = []
+        for change in sorted_changes:
+            remote_ref = change['docUuid']
+            if remote_ref in refreshed:
+                # A more recent version was already processed
+                continue
+            doc_pairs = session.query(LastKnownState).filter_by(
+                remote_ref=remote_ref).all()
+            updated = False
+            for doc_pair in doc_pairs:
+                if doc_pair.root_binding.server_binding.server_url == s_url:
+                    old_remote_parent_ref = doc_pair.remote_parent_ref
+                    cl = self.get_remote_client_from_docpair(doc_pair)
+                    new_info = cl.get_info(remote_ref, raise_if_missing=False)
+                    if new_info is None:
+                        log.debug("Mark doc_pair '%s' as deleted",
+                                  doc_pair.remote_name)
+                        doc_pair.update_state(remote_state='deleted')
+
+                    elif (old_remote_parent_ref is None
+                          or new_info.parent_uid == old_remote_parent_ref):
+                        # Perform a regular document update
+                        log.debug("Refreshing remote state info for doc_pair '%s'",
+                                  doc_pair.remote_name)
+                        doc_pair.update_remote(new_info)
+
+                    else:
+                        # This document has been moved: make the
+                        # existing doc pair as remotely deleted and schedule a
+                        # rescan on the new parent to detect the creation
+                        log.debug("Mark doc_pair '%s' as deleted (moved)",
+                                  doc_pair.remote_name)
+                        doc_pair.update_state(remote_state='deleted')
+                        moved.append(new_info)
+
+                    session.commit()
+                    updated = True
+                    refreshed.add(remote_ref)
+
+            if not updated:
+                # This can be document creation, try to find the parent pair
+                # XXX: the following code does not support the multi-repository
+                # case correctly but it's not worth implementing it as this
+                # will have soon to be refactored to use the new FileSystemItem
+                # API that deals with multi repo stuff directly on the server
+                # side
+                child_info = root_client.get_info(
+                    remote_ref, raise_if_missing=False)
+                if child_info is None:
+                    # Document must have been deleted since: nothing to do
+                    continue
+
+                if child_info.doc_type not in DEFAULT_TYPES:
+                    # XXX: right now the list of document types is
+                    # hardcoded in the client: this limitation will be
+                    # dropped as soon as we use the FileSystemItem API
+                    log.debug("Ignoring change on document '%s' "
+                              "with type '%s'",
+                              child_info.name, child_info.doc_type)
+                    continue
+
+                created = False
+                parent_pairs = session.query(LastKnownState).filter_by(
+                    remote_ref=child_info.parent_uid).all()
+                for parent_pair in parent_pairs:
+                    rb = parent_pair.root_binding
+                    if (rb.server_binding.server_url != s_url):
+                        continue
+
+                    cl = self.get_remote_client_from_docpair(parent_pair)
+                    # Because of the current root binding context, we need
+                    # XXX: this extra server call will be dropped when we
+                    # switch to the new API
+                    contextual_child_info = cl.get_info(remote_ref,
+                                                        raise_if_missing=False)
+
+                    child_pair, new_pair = self._find_remote_child_match_or_create(
+                        rb.local_root, parent_pair, contextual_child_info,
+                        session=session)
+                    if new_pair:
+                        log.debug("Marked doc_pair '%s' as creation",
+                                  child_pair.remote_name)
+
+                    if child_pair.folderish and new_pair:
+                        log.debug('Remote recursive scan of the content of %s',
+                                  child_pair.remote_name)
+                        self._scan_remote_recursive(
+                            rb.local_root, session, cl, child_pair,
+                            contextual_child_info)
+                    elif not new_pair:
+                        child_pair.update_remote(contextual_child_info)
+
+                    created = True
+                    refreshed.add(remote_ref)
+                    break
+
+                if not created:
+                    log.warning("Could not match changed document to a "
+                                "local root: %r", child_info)
+
+        # TODO: implement the detection of moved documents here
+        # Sort the moved documents by path to start with the creation of parent
+        # folders if needed
+        # moved = sorted(moved, key=lambda m: m.path)
+
+    def update_synchronize_server(self, server_binding, session=None,
+                                  full_scan=False):
+        """Do one pass of synchronization for given server binding."""
+        session = self.get_session() if session is None else session
+        local_scan_is_done = False
+        n_synchronized = 0
+        try:
+            tick = time()
+            first_pass = server_binding.last_sync_date is None
+            summary, roots_changed, checkpoint = self._get_remote_changes(
+                server_binding, session=session)
+
+            # Apparently we are online, otherwise an network related exception
+            # would have been raised and caught below
+            if self._frontend is not None:
+                self._frontend.notify_online(server_binding.local_folder)
+
+            if roots_changed:
+                self.update_roots(server_binding=server_binding,
+                                  session=session)
+            if full_scan or summary['hasTooManyChanges'] or first_pass:
+                # Force remote full scan
+                log.debug("Remote full scan of %s. Reasons: "
+                          "forced: %r, too many changes: %r, first pass: %r",
+                          server_binding.local_folder, full_scan,
+                          summary['hasTooManyChanges'], first_pass)
+                for rb in server_binding.roots:
+                    self.scan_remote(rb.local_root, session)
+            else:
+                # Only update recently changed documents
+                self._update_remote_states(server_binding, summary,
+                                           session=session)
+
+            remote_refresh_duration = time() - tick
+            tick = time()
+
+            # If we reach this point it means the the internal DB was
+            # successfully refreshed (no network disruption while collecting
+            # the change data): we can save the new time stamp to start again
+            # from this point next time
+            self._checkpoint(server_binding, checkpoint, session=session)
+
+            # XXX: the following is broken: this should be done on a
+            # per-server basis as well:
+            for rb in server_binding.roots:
+                # the alternative to local full scan is the watchdog
+                # thread
+                self.scan_local(rb.local_root, session)
+            local_scan_is_done = True
+            local_refresh_duration = time() - tick
+
+            tick = time()
+            # The DB is updated we, can update the UI with the number of
+            # pending tasks
+            n_pending = len(self._controller.list_pending(
+                limit=self.limit_pending))
+            reached_limit = n_pending == self.limit_pending
+
+            if self._frontend is not None:
+                # XXX: this is broken: list pending should be able to count
+                # pending operations on a per-server basis!
+                self._frontend.notify_pending(
+                    server_binding.local_folder, n_pending,
+                    or_more=reached_limit)
+
+            for rb in server_binding.roots:
+                n_synchronized += self.synchronize(
+                    limit=self.max_sync_step, local_root=rb.local_root)
+            synchronization_duration = time() - tick
+
+            log.debug("[%s] - [%s]: synchronized: %d, pending: %d, "
+                      "local: %0.3fs, remote: %0.3fs sync: %0.3fs",
+                      server_binding.local_folder,
+                      server_binding.server_url,
+                      n_synchronized, n_pending,
+                      local_refresh_duration,
+                      remote_refresh_duration,
+                      synchronization_duration)
+
+        except POSSIBLE_NETWORK_ERROR_TYPES as e:
+            # Do not fail when expecting possible network related errors
+            self._handle_network_error(server_binding, e)
+            if not local_scan_is_done:
+                # Scan the local folders now to update the local DB even
+                # if the netwrok is done so that the UI (e.g. windows shell
+                # extension can still be right)
+                for rb in server_binding.roots:
+                    self.scan_local(rb.local_root, session)
+
+        return n_synchronized
+
+    def _handle_network_error(self, server_binding, e):
+        _log_offline(e, "synchronization loop")
+        log.trace("Traceback of ignored network error:",
+                  exc_info=True)
+        if self._frontend is not None:
+            self._frontend.notify_offline(
+                server_binding.local_folder, e)
+
+        self._controller.invalidate_client_cache(
+            server_binding.server_url)
 
     def get_remote_client(self, server_binding, base_folder=None,
                           repository='default'):
