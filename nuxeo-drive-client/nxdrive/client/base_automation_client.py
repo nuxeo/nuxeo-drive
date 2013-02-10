@@ -51,7 +51,9 @@ class BaseAutomationClient(object):
 
     def __init__(self, server_url, user_id, device_id,
                  password=None, token=None, repository="default",
-                 ignored_prefixes=None, ignored_suffixes=None):
+                 ignored_prefixes=None, ignored_suffixes=None,
+                 timeout=5):
+        self.timeout = timeout
         if ignored_prefixes is not None:
             self.ignored_prefixes = ignored_prefixes
         else:
@@ -91,7 +93,8 @@ class BaseAutomationClient(object):
         ) % (self.server_url, self.user_id)
         try:
             req = urllib2.Request(self.automation_url, headers=headers)
-            response = json.loads(self.opener.open(req).read())
+            response = json.loads(self.opener.open(
+                req, timeout=self.timeout).read())
         except urllib2.HTTPError as e:
             if e.code == 401 or e.code == 403:
                 raise Unauthorized(self.server_url, self.user_id, e.code)
@@ -139,7 +142,7 @@ class BaseAutomationClient(object):
         log.trace("Calling '%s' with json payload: %r", url, data)
         req = urllib2.Request(url, data, headers)
         try:
-            resp = self.opener.open(req)
+            resp = self.opener.open(req, timeout=self.timeout)
         except Exception, e:
             self._log_details(e)
             raise
@@ -223,7 +226,7 @@ class BaseAutomationClient(object):
         log.trace("Calling '%s' for file '%s'", url, filename)
         req = urllib2.Request(url, data, headers)
         try:
-            resp = self.opener.open(req)
+            resp = self.opener.open(req, timeout=self.timeout)
         except Exception as e:
             self._log_details(e)
             raise
@@ -267,7 +270,7 @@ class BaseAutomationClient(object):
         try:
             log.trace("Calling '%s' with headers: %r", url, headers)
             req = urllib2.Request(url, headers=headers)
-            token = self.opener.open(req).read()
+            token = self.opener.open(req, timeout=self.timeout).read()
         except urllib2.HTTPError as e:
             if e.code == 401 or e.code == 403:
                 raise Unauthorized(self.server_url, self.user_id, e.code)
