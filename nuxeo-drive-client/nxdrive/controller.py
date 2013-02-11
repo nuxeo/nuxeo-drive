@@ -20,6 +20,7 @@ from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
 from nxdrive.synchronizer import Synchronizer
+from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import normalized_path
 
@@ -337,9 +338,12 @@ class Controller(object):
                 log.info("Revoking token for '%s' with account '%s'",
                          binding.server_url, binding.remote_user)
                 nxclient.revoke_token()
-            except Unauthorized:
+            except POSSIBLE_NETWORK_ERROR_TYPES as e:
                 log.warning("Could not connect to server '%s' to revoke token",
                             binding.server_url)
+            except Unauthorized:
+                # Token is already revoked
+                pass
 
         # Invalidate client cache
         self.invalidate_client_cache(binding.server_url)

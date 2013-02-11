@@ -395,39 +395,23 @@ class Synchronizer(object):
         session.add(child_pair)
         return child_pair, True
 
-    def update_roots(self, server_binding=None, session=None,
-                     repository=None):
-        """Ensure that the list of bound roots match server-side info
-
-        If a server is not responding it is skipped.
-        XXX: this is not the case in the current implementation.
-        """
+    def update_roots(self, server_binding, session=None, repository=None):
+        """Ensure that the list of bound roots match server-side info"""
         session = self.get_session() if session is None else session
-        if server_binding is not None:
-            server_bindings = [server_binding]
+        nxclient = self.get_remote_client(server_binding)
+        if repository is not None:
+            repositories = [repository]
         else:
-            server_bindings = session.query(ServerBinding).all()
-        for sb in server_bindings:
-            if sb.has_invalid_credentials():
-                # Skip servers with missing credentials
-                continue
-            nxclient = self.get_remote_client(sb)
-            if not nxclient.is_addon_installed():
-                log.warn("Server %s is missing the Nuxeo Drive addon",
-                         sb.server_url)
-                continue
-            if repository is not None:
-                repositories = [repository]
-            else:
-                repositories = nxclient.get_repository_names()
-            for repo in repositories:
-                nxclient = self.get_remote_client(sb, repository=repo)
-                remote_roots = nxclient.get_roots()
-                local_roots = [r for r in sb.roots
-                                if r.remote_repo == repo]
-                self._controller.update_server_roots(
-                    sb, session, local_roots, remote_roots, repo)
+            repositories = nxclient.get_repository_names()
+        for repo in repositories:
+            nxclient = self.get_remote_client(server_binding, repository=repo)
+            remote_roots = nxclient.get_roots()
+            local_roots = [r for r in server_binding.roots
+                            if r.remote_repo == repo]
+            self._controller.update_server_roots(
+                server_binding, session, local_roots, remote_roots, repo)
 
+        # XXX: we should probably move that elsewhere
         if self._frontend is not None:
             local_folders = [sb.local_folder
                     for sb in session.query(ServerBinding).all()]
@@ -940,8 +924,7 @@ class Synchronizer(object):
                 self._frontend.notify_online(server_binding.local_folder)
 
             if roots_changed:
-                self.update_roots(server_binding=server_binding,
-                                  session=session)
+                self.update_roots(server_binding, session=session)
             if full_scan or summary['hasTooManyChanges'] or first_pass:
                 # Force remote full scan
                 log.debug("Remote full scan of %s. Reasons: "
