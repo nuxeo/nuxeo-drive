@@ -991,8 +991,7 @@ class Synchronizer(object):
                 # Scan the local folders now to update the local DB even
                 # if the netwrok is done so that the UI (e.g. windows shell
                 # extension can still be right)
-                for rb in server_binding.roots:
-                    self.scan_local(rb.local_root, session=session)
+                self.scan_local(server_binding, session=session)
             return 0
 
     def _notify_refreshing(self, server_binding):
