@@ -110,27 +110,41 @@ class Synchronizer(object):
     def get_session(self):
         return self._controller.get_session()
 
-    def scan_local(self, local_root, session=None):
+    def scan_local(self, server_binding_or_local_path, from_state=None,
+                   session=None):
         """Recursively scan the bound local folder looking for updates"""
         session = self.get_session() if session is None else session
 
-        root_state = session.query(LastKnownState).filter_by(
-            local_root=local_root, path='/').one()
+        if isinstance(server_binding_or_local_path, basestring):
+            local_path = server_binding_or_local_path
+            state = self._controller.get_state_for_local_path(local_path)
+            server_binding = state.server_binding
+            from_state = state
+        else:
+            server_binding = server_binding_or_local_path
 
-        client = root_state.get_local_client()
-        root_info = client.get_info('/')
-        # recursive update
-        self._scan_local_recursive(local_root, session, client,
-                                   root_state, root_info)
-        session.commit()
+        if from_state is None:
+            root_states = session.query(LastKnownState).filter_by(
+                path='/', local_folder=server_binding.local_folder).all()
+        else:
+            root_states = [from_state]
 
-    def _mark_deleted_local_recursive(self, local_root, session, doc_pair):
+        for root_state in root_states:
+            client = root_state.get_local_client()
+            root_info = client.get_info('/')
+            # recursive update
+            self._scan_local_recursive(session, client, root_state, root_info)
+            session.commit()
+
+    def _mark_deleted_local_recursive(self, session, doc_pair):
         """Update the metadata of the descendants of locally deleted doc"""
         # delete descendants first
         children = session.query(LastKnownState).filter_by(
-            local_root=local_root, parent_path=doc_pair.path).all()
+            local_folder=doc_pair.local_folder,
+            local_root=doc_pair.local_root,
+            parent_path=doc_pair.path).all()
         for child in children:
-            self._mark_deleted_local_recursive(local_root, session, child)
+            self._mark_deleted_local_recursive(session, child)
 
         # update the state of the parent it-self
         if doc_pair.remote_ref is None:
@@ -140,8 +154,7 @@ class Synchronizer(object):
             # mark it for remote deletion
             doc_pair.update_local(None)
 
-    def _scan_local_recursive(self, local_root, session, client,
-                              doc_pair, local_info):
+    def _scan_local_recursive(self, session, client, doc_pair, local_info):
         """Recursively scan the bound local folder looking for updates"""
         if local_info is None:
             raise ValueError("Cannot bind %r to missing local info" %
@@ -164,14 +177,15 @@ class Synchronizer(object):
         children_path = set(c.path for c in children_info)
 
         q = session.query(LastKnownState).filter_by(
-            local_root=local_root,
+            local_folder=doc_pair.local_folder,
+            local_root=doc_pair.local_root,
             parent_path=local_info.path,
         )
         if len(children_path) > 0:
             q = q.filter(not_(LastKnownState.path.in_(children_path)))
 
         for deleted in q.all():
-            self._mark_deleted_local_recursive(local_root, session, deleted)
+            self._mark_deleted_local_recursive(session, deleted)
 
         # recursively update children
         for child_info in children_info:
@@ -180,7 +194,8 @@ class Synchronizer(object):
             # alignment queries accordingly
             child_name = os.path.basename(child_info.path)
             child_pair = session.query(LastKnownState).filter_by(
-                local_root=local_root,
+                local_folder=doc_pair.local_folder,
+                local_root=doc_pair.local_root,
                 path=child_info.path).first()
 
             if child_pair is None and not child_info.folderish:
@@ -190,7 +205,8 @@ class Synchronizer(object):
                 try:
                     child_digest = child_info.get_digest()
                     possible_pairs = session.query(LastKnownState).filter_by(
-                        local_root=local_root,
+                        local_folder=doc_pair.local_folder,
+                        local_root=doc_pair.local_root,
                         path=None,
                         remote_parent_ref=doc_pair.remote_ref,
                         folderish=child_info.folderish,
@@ -212,7 +228,8 @@ class Synchronizer(object):
             if child_pair is None:
                 # Previous attempt has failed: relax the digest constraint
                 possible_pairs = session.query(LastKnownState).filter_by(
-                    local_root=local_root,
+                    local_folder=doc_pair.local_folder,
+                    local_root=doc_pair.local_root,
                     path=None,
                     remote_parent_ref=doc_pair.remote_ref,
                     folderish=child_info.folderish,
@@ -224,47 +241,61 @@ class Synchronizer(object):
 
             if child_pair is None:
                 # Could not find any pair state to align to, create one
-                child_pair = LastKnownState(local_root, local_info=child_info)
+                child_pair = LastKnownState(doc_pair.local_folder,
+                    doc_pair.local_root, local_info=child_info)
                 session.add(child_pair)
                 log.debug("Detected a new non-alignable local file at %s",
                           child_pair.path)
 
 
-            self._scan_local_recursive(local_root, session, client,
-                                       child_pair, child_info)
+            self._scan_local_recursive(session, client, child_pair,
+                                       child_info)
 
-    def scan_remote(self, local_root, session=None):
+    def scan_remote(self, server_binding_or_local_path, from_state=None, session=None):
         """Recursively scan the bound remote folder looking for updates"""
         if session is None:
             session = self.get_session()
 
-        root_state = session.query(LastKnownState).filter_by(
-            local_root=local_root, path='/').one()
+        if isinstance(server_binding_or_local_path, basestring):
+            local_path = server_binding_or_local_path
+            state = self._controller.get_state_for_local_path(local_path)
+            server_binding = state.server_binding
+            from_state = state
+        else:
+            server_binding = server_binding_or_local_path
 
-        try:
-            client = self.get_remote_client_from_docpair(root_state)
-            root_info = client.get_info(root_state.remote_ref,
-                                        fetch_parent_uid=False)
-        except NotFound:
-            # remote folder has been deleted, remote the binding
-            log.debug("Unbinding %r because of remote deletion.",
-                      local_root)
-            self.unbind_root(local_root, session=session)
-            return
+        if from_state is None:
+            root_states = session.query(LastKnownState).filter_by(
+                path='/', local_folder=server_binding.local_folder).all()
+        else:
+            root_states = [from_state]
 
-        # recursive update
-        self._scan_remote_recursive(local_root, session, client,
-                                    root_state, root_info)
-        session.commit()
+        for root_state in root_states:
+            try:
+                client = self.get_remote_client_from_docpair(root_state)
+                root_info = client.get_info(root_state.remote_ref,
+                                            fetch_parent_uid=False)
+            except NotFound:
+                log.debug("Mark %r as remotely deleted.",
+                          root_state)
+                root_state.update_remote(None)
+                session.commit()
+                return
 
-    def _mark_deleted_remote_recursive(self, local_root, session, doc_pair):
+            # recursive update
+            self._scan_remote_recursive(session, client, root_state,
+                                        root_info)
+            session.commit()
+
+    def _mark_deleted_remote_recursive(self, session, doc_pair):
         """Update the metadata of the descendants of remotely deleted doc"""
         # delete descendants first
         children = session.query(LastKnownState).filter_by(
-            local_root=local_root,
+            local_folder=doc_pair.local_folder,
+            local_root=doc_pair.local_root,
             remote_parent_ref=doc_pair.remote_ref).all()
         for child in children:
-            self._mark_deleted_remote_recursive(local_root, session, child)
+            self._mark_deleted_remote_recursive(session, child)
 
         # update the state of the parent it-self
         if doc_pair.path is None:
@@ -274,8 +305,7 @@ class Synchronizer(object):
             # schedule it for local deletion
             doc_pair.update_remote(None)
 
-    def _scan_remote_recursive(self, local_root, session, client,
-                               doc_pair, remote_info):
+    def _scan_remote_recursive(self, session, client, doc_pair, remote_info):
         """Recursively scan the bound remote folder looking for updates"""
         if remote_info is None:
             raise ValueError("Cannot bind %r to missing remote info" %
@@ -293,14 +323,14 @@ class Synchronizer(object):
         children_refs = set(c.uid for c in children_info)
 
         q = session.query(LastKnownState).filter_by(
-            local_root=local_root,
+            local_folder=doc_pair.local_folder,
             remote_parent_ref=remote_info.uid,
         )
         if len(children_refs) > 0:
             q = q.filter(not_(LastKnownState.remote_ref.in_(children_refs)))
 
         for deleted in q.all():
-            self._mark_deleted_remote_recursive(local_root, session, deleted)
+            self._mark_deleted_remote_recursive(session, deleted)
 
         # Recursively update children
         for child_info in children_info:
@@ -308,18 +338,18 @@ class Synchronizer(object):
             # TODO: detect whether this is a __digit suffix name and relax the
             # alignment queries accordingly
             child_pair = session.query(LastKnownState).filter_by(
-                local_root=local_root,
+                local_folder=doc_pair.local_folder,
                 remote_ref=child_info.uid).first()
 
             if child_pair is None:
                 child_pair, _ = self._find_remote_child_match_or_create(
-                    local_root, doc_pair, child_info, session=session)
+                    doc_pair, child_info, session=session)
 
-            self._scan_remote_recursive(local_root, session, client,
-                                        child_pair, child_info)
+            self._scan_remote_recursive(session, client, child_pair,
+                                        child_info)
 
-    def _find_remote_child_match_or_create(
-        self, local_root, parent_pair, child_info, session=None):
+    def _find_remote_child_match_or_create(self, parent_pair, child_info,
+                                           session=None):
         """Find a pair_state that can match child_info by name.
 
         Return a tuple (child_pair, created) where created is a boolean marker
@@ -334,7 +364,7 @@ class Synchronizer(object):
             # bound to any remote file that would align with both name
             # and digest
             possible_pairs = session.query(LastKnownState).filter_by(
-                local_root=local_root,
+                local_folder=parent_pair.local_folder,
                 remote_ref=None,
                 parent_path=parent_pair.path,
                 folderish=child_info.folderish,
@@ -348,7 +378,7 @@ class Synchronizer(object):
 
         # Previous attempt has failed: relax the digest constraint
         possible_pairs = session.query(LastKnownState).filter_by(
-            local_root=local_root,
+            local_folder=parent_pair.local_folder,                                         
             remote_ref=None,
             parent_path=parent_pair.path,
             folderish=child_info.folderish,
@@ -360,14 +390,17 @@ class Synchronizer(object):
             return child_pair, False
 
         # Could not find any pair state to align to, create one
-        child_pair = LastKnownState(local_root, remote_info=child_info)
+        child_pair = LastKnownState(parent_pair.local_folder,
+            parent_pair.local_root, remote_info=child_info)
         session.add(child_pair)
         return child_pair, True
 
-    def update_roots(self, server_binding, session=None, repository=None):
+    def update_roots(self, server_binding=None, session=None,
+                     repository=None):
         """Ensure that the list of bound roots match server-side info
 
         If a server is not responding it is skipped.
+        XXX: this is not the case in the current implementation.
         """
         session = self.get_session() if session is None else session
         if server_binding is not None:
@@ -380,6 +413,8 @@ class Synchronizer(object):
                 continue
             nxclient = self.get_remote_client(sb)
             if not nxclient.is_addon_installed():
+                log.warn("Server %s is missing the Nuxeo Drive addon",
+                         sb.server_url)
                 continue
             if repository is not None:
                 repositories = [repository]
@@ -861,8 +896,7 @@ class Synchronizer(object):
                                                         raise_if_missing=False)
 
                     child_pair, new_pair = self._find_remote_child_match_or_create(
-                        rb.local_root, parent_pair, contextual_child_info,
-                        session=session)
+                        parent_pair, contextual_child_info, session=session)
                     if new_pair:
                         log.debug("Marked doc_pair '%s' as creation",
                                   child_pair.remote_name)
@@ -870,8 +904,7 @@ class Synchronizer(object):
                     if child_pair.folderish and new_pair:
                         log.debug('Remote recursive scan of the content of %s',
                                   child_pair.remote_name)
-                        self._scan_remote_recursive(
-                            rb.local_root, session, cl, child_pair,
+                        self._scan_remote_recursive(session, cl, child_pair,
                             contextual_child_info)
                     elif not new_pair:
                         child_pair.update_remote(contextual_child_info)
@@ -915,8 +948,7 @@ class Synchronizer(object):
                           "forced: %r, too many changes: %r, first pass: %r",
                           server_binding.local_folder, full_scan,
                           summary['hasTooManyChanges'], first_pass)
-                for rb in server_binding.roots:
-                    self.scan_remote(rb.local_root, session)
+                self.scan_remote(server_binding, session=session)
             else:
                 # Only update recently changed documents
                 self._update_remote_states(server_binding, summary,
@@ -931,12 +963,10 @@ class Synchronizer(object):
             # from this point next time
             self._checkpoint(server_binding, checkpoint, session=session)
 
-            # XXX: the following is broken: this should be done on a
-            # per-server basis as well:
-            for rb in server_binding.roots:
-                # the alternative to local full scan is the watchdog
-                # thread
-                self.scan_local(rb.local_root, session)
+            # Scan local folders to detect changes
+            # XXX: OPTIM: use file system monitoring instead
+            self.scan_local(server_binding, session=session)
+
             local_scan_is_done = True
             local_refresh_duration = time() - tick
 
@@ -976,7 +1006,7 @@ class Synchronizer(object):
                 # if the netwrok is done so that the UI (e.g. windows shell
                 # extension can still be right)
                 for rb in server_binding.roots:
-                    self.scan_local(rb.local_root, session)
+                    self.scan_local(rb.local_root, session=session)
 
         return n_synchronized
 

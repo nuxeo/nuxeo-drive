@@ -460,8 +460,9 @@ class Controller(object):
 
             # Initialize the metadata of the root and let the synchronizer
             # scan the folder recursively
-            state = LastKnownState(lcclient.base_folder,
-                    local_info=local_info, remote_info=remote_info)
+            state = LastKnownState(server_binding.local_folder,
+                    lcclient.base_folder, local_info=local_info,
+                    remote_info=remote_info)
             if remote_info.folderish:
                 # Mark as synchronized as there is nothing to download later
                 state.update_state(local_state='synchronized',
@@ -472,8 +473,10 @@ class Controller(object):
                 state.update_state(local_state='synchronized',
                                 remote_state='modified')
             session.add(state)
-            self.synchronizer.scan_local(local_root, session=session)
-            self.synchronizer.scan_remote(local_root, session=session)
+            self.synchronizer.scan_local(server_binding, from_state=state,
+                session=session)
+            self.synchronizer.scan_remote(server_binding, from_state=state,
+                session=session)
             session.commit()
 
     def unbind_root(self, local_root, session=None):
@@ -600,6 +603,13 @@ class Controller(object):
                     return state
         except NoResultFound:
             return None
+
+    def get_state_for_local_path(self, local_path):
+        """Find a DB state from a local filesystem path"""
+        session = self.get_session()
+        rb, path = self._binding_path(local_path, session=session)
+        return session.query(LastKnownState).filter_by(
+            local_root=rb.local_root, path=path).one()
 
     def launch_file_editor(self, server_url, remote_repo, remote_ref):
         """Find the local file if any and start OS editor on it."""

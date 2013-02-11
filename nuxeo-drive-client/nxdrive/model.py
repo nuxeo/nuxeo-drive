@@ -141,6 +141,15 @@ class LastKnownState(Base):
     __tablename__ = 'last_known_states'
 
     id = Column(Integer, Sequence('state_id_seq'), primary_key=True)
+
+    local_folder = Column(String, ForeignKey('server_bindings.local_folder'),
+                          index=True)
+    server_binding = relationship(
+        'ServerBinding',
+        backref=backref("states", cascade="all, delete-orphan"))
+
+    # To be deprecated / merged with local server when we swicth to the
+    # filesystem item API
     local_root = Column(String, ForeignKey('root_bindings.local_root'),
                         index=True)
     root_binding = relationship(
@@ -184,8 +193,10 @@ class LastKnownState(Base):
     remotely_moved_from = Column(String)
     remotely_moved_to = Column(String)
 
-    def __init__(self, local_root, local_info=None, remote_info=None,
-                 local_state='unknown', remote_state='unknown'):
+    def __init__(self, local_folder, local_root, local_info=None,
+                 remote_info=None, local_state='unknown',
+                 remote_state='unknown'):
+        self.local_folder = local_folder
         self.local_root = local_root
         if local_info is None and remote_info is None:
             raise ValueError(
