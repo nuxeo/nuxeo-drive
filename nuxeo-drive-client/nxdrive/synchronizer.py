@@ -264,6 +264,10 @@ class Synchronizer(object):
         else:
             server_binding = server_binding_or_local_path
 
+        # This operation is likely to be long, let's notify the user that update is
+        # ongoing
+        self._notify_refreshing(server_binding)
+
         if from_state is None:
             root_states = session.query(LastKnownState).filter_by(
                 path='/', local_folder=server_binding.local_folder).all()
@@ -722,12 +726,9 @@ class Synchronizer(object):
                     break
 
                 for sb in session.query(ServerBinding).all():
-                    if sb.has_invalid_credentials():
-                        # Let's wait for the user to (re-)enter valid
-                        # credentials
-                        continue
-                    n_synchronized += self.update_synchronize_server(
-                        sb, session=session)
+                    if not sb.has_invalid_credentials():
+                        n_synchronized += self.update_synchronize_server(
+                            sb, session=session)
 
                 # safety net to ensure that Nuxeo Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
@@ -936,6 +937,7 @@ class Synchronizer(object):
                 # Only update recently changed documents
                 self._update_remote_states(server_binding, summary,
                                            session=session)
+                self._notify_pending(server_binding)
 
             remote_refresh_duration = time() - tick
             tick = time()
@@ -956,16 +958,7 @@ class Synchronizer(object):
             tick = time()
             # The DB is updated we, can update the UI with the number of
             # pending tasks
-            n_pending = len(self._controller.list_pending(
-                limit=self.limit_pending))
-            reached_limit = n_pending == self.limit_pending
-
-            if self._frontend is not None:
-                # XXX: this is broken: list pending should be able to count
-                # pending operations on a per-server basis!
-                self._frontend.notify_pending(
-                    server_binding.local_folder, n_pending,
-                    or_more=reached_limit)
+            n_pending = self._notify_pending(server_binding)
 
             for rb in server_binding.roots:
                 n_synchronized += self.synchronize(
@@ -992,6 +985,28 @@ class Synchronizer(object):
                     self.scan_local(rb.local_root, session=session)
 
         return n_synchronized
+
+    def _notify_refreshing(self, server_binding):
+        """Notify the frontend that a remote scan is happening"""
+        if self._frontend is not None:
+            # XXX: this is broken: list pending should be able to count
+            # pending operations on a per-server basis!
+            self._frontend.notify_pending(
+                server_binding.local_folder, -1)
+
+    def _notify_pending(self, server_binding):
+        """Update the statistics of the frontend"""
+        n_pending = len(self._controller.list_pending(
+            limit=self.limit_pending))
+        reached_limit = n_pending == self.limit_pending
+
+        if self._frontend is not None:
+            # XXX: this is broken: list pending should be able to count
+            # pending operations on a per-server basis!
+            self._frontend.notify_pending(
+                server_binding.local_folder, n_pending,
+                or_more=reached_limit)
+        return n_pending
 
     def _handle_network_error(self, server_binding, e):
         _log_offline(e, "synchronization loop")
