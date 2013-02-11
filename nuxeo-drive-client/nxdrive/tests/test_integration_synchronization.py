@@ -52,15 +52,17 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(pending[10].remote_name, 'File 4.txt')
 
         # It is also possible to restrict the list of pending document to a
-        # specific root
-        self.assertEquals(len(ctl.list_pending(local_root=expected_folder)), 11)
+        # specific server binding
+        self.assertEquals(len(ctl.list_pending(
+                          local_folder=self.local_nxdrive_folder_1)), 11)
 
         # It is also possible to restrict the number of pending tasks
         pending = ctl.list_pending(limit=2)
         self.assertEquals(len(pending), 2)
 
         # Synchronize the first 2 documents:
-        self.assertEquals(syn.synchronize(limit=2), 2)
+        self.assertEquals(syn.synchronize(
+            self.local_nxdrive_folder_1, limit=2), 2)
         pending = ctl.list_pending()
         self.assertEquals(len(pending), 9)
         self.assertEquals(pending[0].remote_name, 'File 1.txt')

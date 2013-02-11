@@ -619,20 +619,31 @@ class Synchronizer(object):
         if len(session.dirty) != 0 or len(session.deleted) != 0:
             session.commit()
 
-    def synchronize(self, limit=None, local_root=None):
+    def synchronize(self, local_folder=None, limit=None):
         """Synchronize one file at a time from the pending list."""
         synchronized = 0
         session = self.get_session()
-        doc_pair = self._controller.next_pending(local_root=local_root,
-                                                 session=session)
-        while doc_pair is not None and (limit is None or synchronized < limit):
+
+        while (limit is None or synchronized < limit):
+
+            pending = self._controller.list_pending(
+                local_folder=local_folder, limit=self.limit_pending,
+                session=session)
+
+            or_more = len(pending) == self.limit_pending
+            if self._frontend is not None:
+                self._frontend.notify_pending(
+                    local_folder, len(pending), or_more=or_more)
+
+            if len(pending) == 0:
+                break
+
             # TODO: make it possible to catch unexpected exceptions here so as
             # to black list the pair of document and ignore it for a while
             # using a TTL for the blacklist token in the state DB
-            self.synchronize_one(doc_pair, session=session)
+            self.synchronize_one(pending[0], session=session)
             synchronized += 1
-            doc_pair = self._controller.next_pending(local_root=local_root,
-                                                     session=session)
+
         return synchronized
 
     def _get_sync_pid_filepath(self, process_name="sync"):
@@ -912,7 +923,6 @@ class Synchronizer(object):
         """Do one pass of synchronization for given server binding."""
         session = self.get_session() if session is None else session
         local_scan_is_done = False
-        n_synchronized = 0
         try:
             tick = time()
             first_pass = server_binding.last_sync_date is None
@@ -960,9 +970,8 @@ class Synchronizer(object):
             # pending tasks
             n_pending = self._notify_pending(server_binding)
 
-            for rb in server_binding.roots:
-                n_synchronized += self.synchronize(
-                    limit=self.max_sync_step, local_root=rb.local_root)
+            n_synchronized = self.synchronize(limit=self.max_sync_step,
+                local_folder=server_binding.local_folder)
             synchronization_duration = time() - tick
 
             log.debug("[%s] - [%s]: synchronized: %d, pending: %d, "
@@ -973,6 +982,7 @@ class Synchronizer(object):
                       local_refresh_duration,
                       remote_refresh_duration,
                       synchronization_duration)
+            return n_synchronized
 
         except POSSIBLE_NETWORK_ERROR_TYPES as e:
             # Do not fail when expecting possible network related errors
@@ -983,8 +993,7 @@ class Synchronizer(object):
                 # extension can still be right)
                 for rb in server_binding.roots:
                     self.scan_local(rb.local_root, session=session)
-
-        return n_synchronized
+            return 0
 
     def _notify_refreshing(self, server_binding):
         """Notify the frontend that a remote scan is happening"""
@@ -997,9 +1006,10 @@ class Synchronizer(object):
     def _notify_pending(self, server_binding):
         """Update the statistics of the frontend"""
         n_pending = len(self._controller.list_pending(
-            limit=self.limit_pending))
-        reached_limit = n_pending == self.limit_pending
+                        local_folder=server_binding.local_folder,
+                        limit=self.limit_pending))
 
+        reached_limit = n_pending == self.limit_pending
         if self._frontend is not None:
             # XXX: this is broken: list pending should be able to count
             # pending operations on a per-server basis!

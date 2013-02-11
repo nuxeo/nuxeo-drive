@@ -338,7 +338,7 @@ class Controller(object):
                 log.info("Revoking token for '%s' with account '%s'",
                          binding.server_url, binding.remote_user)
                 nxclient.revoke_token()
-            except POSSIBLE_NETWORK_ERROR_TYPES as e:
+            except POSSIBLE_NETWORK_ERROR_TYPES:
                 log.warning("Could not connect to server '%s' to revoke token",
                             binding.server_url)
             except Unauthorized:
@@ -531,7 +531,7 @@ class Controller(object):
             self._local_bind_root(server_binding, remote_roots_by_id[ref],
                                   rc, session)
 
-    def list_pending(self, limit=100, local_root=None, session=None):
+    def list_pending(self, limit=100, local_folder=None, session=None):
         """List pending files to synchronize, ordered by path
 
         Ordering by path makes it possible to synchronize sub folders content
@@ -539,10 +539,10 @@ class Controller(object):
         """
         if session is None:
             session = self.get_session()
-        if local_root is not None:
+        if local_folder is not None:
             return session.query(LastKnownState).filter(
                 LastKnownState.pair_state != 'synchronized',
-                LastKnownState.local_root == local_root
+                LastKnownState.local_folder == local_folder
             ).order_by(
                 asc(LastKnownState.path),
                 asc(LastKnownState.remote_path),
@@ -555,9 +555,9 @@ class Controller(object):
                 asc(LastKnownState.remote_path),
             ).limit(limit).all()
 
-    def next_pending(self, local_root=None, session=None):
+    def next_pending(self, local_folder=None, session=None):
         """Return the next pending file to synchronize or None"""
-        pending = self.list_pending(limit=1, local_root=local_root,
+        pending = self.list_pending(limit=1, local_folder=local_folder,
                                     session=session)
         return pending[0] if len(pending) > 0 else None
 
