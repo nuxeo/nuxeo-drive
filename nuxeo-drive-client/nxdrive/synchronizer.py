@@ -999,8 +999,7 @@ class Synchronizer(object):
         if self._frontend is not None:
             # XXX: this is broken: list pending should be able to count
             # pending operations on a per-server basis!
-            self._frontend.notify_pending(
-                server_binding.local_folder, -1)
+            self._frontend.notify_pending(server_binding.local_folder, -1)
 
     def _notify_pending(self, server_binding):
         """Update the statistics of the frontend"""
