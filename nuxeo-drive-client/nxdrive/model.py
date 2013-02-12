@@ -108,34 +108,6 @@ class ServerBinding(Base):
         return self.remote_password is None and self.remote_token is None
 
 
-class RootBinding(Base):
-    __tablename__ = 'root_bindings'
-
-    local_root = Column(String, primary_key=True)
-    remote_repo = Column(String)
-    remote_root = Column(String)
-    local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
-
-    server_binding = relationship(
-        'ServerBinding',
-        backref=backref("roots", cascade="all, delete-orphan"))
-
-    def __init__(self, local_root, remote_repo, remote_root):
-        local_root = normalized_path(local_root)
-        self.local_root = local_root
-        self.remote_repo = remote_repo
-        self.remote_root = remote_root
-
-        # expected local folder should be the direct parent of the
-        local_folder = normalized_path(os.path.join(local_root, '..'))
-        self.local_folder = local_folder
-
-    def __repr__(self):
-        return ("RootBinding<local_root=%r, local_folder=%r, remote_repo=%r,"
-                "remote_root=%r>" % (self.local_root, self.local_folder,
-                                     self.remote_repo, self.remote_root))
-
-
 class LastKnownState(Base):
     """Aggregate state aggregated from last collected events."""
     __tablename__ = 'last_known_states'
@@ -148,14 +120,6 @@ class LastKnownState(Base):
         'ServerBinding',
         backref=backref("states", cascade="all, delete-orphan"))
 
-    # To be deprecated / merged with local server when we swicth to the
-    # filesystem item API
-    local_root = Column(String, ForeignKey('root_bindings.local_root'),
-                        index=True)
-    root_binding = relationship(
-        'RootBinding',
-        backref=backref("states", cascade="all, delete-orphan"))
-
     # Timestamps to detect modifications
     last_local_updated = Column(DateTime)
     last_remote_updated = Column(DateTime)
@@ -165,7 +129,7 @@ class LastKnownState(Base):
     remote_digest = Column(String, index=True)
 
     # Path from root using unix separator, '/' for the root it-self.
-    path = Column(String, index=True)
+    local_path = Column(String, index=True)
     remote_path = Column(String)  # for ordering only
 
     # Remote reference (instead of path based lookup)
@@ -197,11 +161,10 @@ class LastKnownState(Base):
     # time
     last_sync_error_date = Column(DateTime)
 
-    def __init__(self, local_folder, local_root, local_info=None,
+    def __init__(self, local_folder, local_info=None,
                  remote_info=None, local_state='unknown',
                  remote_state='unknown'):
         self.local_folder = local_folder
-        self.local_root = local_root
         if local_info is None and remote_info is None:
             raise ValueError(
                 "At least local_info or remote_info should be provided")
@@ -232,10 +195,10 @@ class LastKnownState(Base):
             self.pair_state = pair_state
 
     def __repr__(self):
-        return ("LastKnownState<local_root=%r, path=%r, "
+        return ("LastKnownState<local_folder=%r, local_path=%r, "
                 "remote_name=%r, local_state=%r, remote_state=%r>") % (
-                    os.path.basename(self.local_root),
-                    self.path, self.remote_name,
+                    os.path.basename(self.local_folder),
+                    self.local_path, self.remote_name,
                     self.local_state, self.remote_state)
 
     def get_local_client(self):
@@ -283,7 +246,7 @@ class LastKnownState(Base):
 
         if self.path != local_info.path:
             raise ValueError("State %r cannot be mapped to '%s%s'" % (
-                self, self.local_root, local_info.path))
+                self, self.local_folder, local_info.path))
 
         # Shall we recompute the digest from the current file?
         update_digest = self.local_digest == None

@@ -13,8 +13,9 @@ from sqlalchemy import or_
 
 import nxdrive
 from nxdrive.client import Unauthorized
-from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
+from nxdrive.client import RemoteFileSystemClient
+from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.model import init_db
@@ -60,8 +61,13 @@ class Controller(object):
     as DB sessions and Nuxeo clients are thread locals.
     """
 
-    def __init__(self, config_folder, nuxeo_client_factory=None, echo=None,
-                 poolclass=None):
+    # Used for binding server / roots and managing tokens
+    remote_document_client_factory = RemoteDocumentClient
+
+    # Used for FS synchronization operations
+    remote_fs_client_factory = RemoteFileSystemClient
+
+    def __init__(self, config_folder, echo=None, poolclass=None):
         # Log the installation location for debug
         nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
         nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
@@ -81,13 +87,6 @@ class Controller(object):
         # metadata sqlite database.
         self._engine, self._session_maker = init_db(
             self.config_folder, echo=echo, poolclass=poolclass)
-
-        # Make it possible to pass an arbitrary nuxeo client factory
-        # for testing
-        if nuxeo_client_factory is not None:
-            self.nuxeo_client_factory = nuxeo_client_factory
-        else:
-            self.nuxeo_client_factory = NuxeoClient
 
         self._local = local()
         self._remote_error = None
@@ -219,6 +218,7 @@ class Controller(object):
         # Pre-pend the folder state to the descendants
         return [(doc_pair, pair_state)] + results
 
+    # XXX: deprecated
     def _binding_path(self, folder_path, session=None):
         """Find a root binding and relative path for a given FS path"""
         folder_path = normalized_path(folder_path)
@@ -242,6 +242,33 @@ class Controller(object):
                 folder_path, root_bindings))
         binding = root_bindings[0]
         path = folder_path[len(binding.local_root):]
+        path = path.replace(os.path.sep, '/')
+        return binding, path
+
+    def _server_binding_path(self, local_path, session=None):
+        """Find a server binding and relative path for a given FS path"""
+        local_path = normalized_path(local_path)
+
+        # Check exact binding match
+        binding = self.get_server_binding(local_path, session=session,
+            raise_if_missing=False)
+        if binding is not None:
+            return binding, '/'
+
+        # Check for bindings that are prefix of local_path
+        session = self.get_session()
+        all_bindings = session.query(ServerBinding).all()
+        matching_bindings = [sb for sb in all_bindings
+                             if local_path.startswith(
+                                sb.local_folder + os.path.sep)]
+        if len(matching_bindings) == 0:
+            raise NotFound("Could not find any server binding for "
+                               + local_path)
+        elif len(matching_bindings) > 1:
+            raise RuntimeError("Found more than one binding for %s: %r" % (
+                local_path, matching_bindings))
+        binding = matching_bindings[0]
+        path = local_path[len(binding.local_folder):]
         path = path.replace(os.path.sep, '/')
         return binding, path
 
@@ -274,8 +301,8 @@ class Controller(object):
         # check the connection to the server by issuing an authentication
         # request
         server_url = self._normalize_url(server_url)
-        nxclient = self.nuxeo_client_factory(server_url, username, self.device_id,
-                                             password)
+        nxclient = self.remote_document_client_factory(
+            server_url, username, self.device_id, password)
         token = nxclient.request_token()
         if token is not None:
             # The server supports token based identification: do not store the
@@ -333,7 +360,7 @@ class Controller(object):
         # Revoke token if necessary
         if binding.remote_token is not None:
             try:
-                nxclient = self.nuxeo_client_factory(
+                nxclient = self.remote_document_client_factory(
                         binding.server_url,
                         binding.remote_user,
                         self.device_id,
@@ -427,13 +454,7 @@ class Controller(object):
                    server_binding.server_url))
 
         # register the root on the server
-        if nxclient.register_as_root(remote_info.uid):
-            self.synchronizer.update_roots(server_binding, session=session,
-                    repository=repository)
-        else:
-            # For the tests only
-            self._local_bind_root(server_binding, remote_info, nxclient,
-                    session=session)
+        nxclient.register_as_root(remote_info.uid)
 
     def _local_bind_root(self, server_binding, remote_info, nxclient, session):
         # Check that this workspace does not already exist locally
@@ -486,7 +507,7 @@ class Controller(object):
                 session=session)
             session.commit()
 
-    def unbind_root(self, local_root, session=None):
+    def unbind_root(self, local_path, session=None):
         """Remove binding on a root folder"""
         local_root = normalized_path(local_root)
         if session is None:
@@ -494,45 +515,12 @@ class Controller(object):
         binding = self.get_root_binding(local_root, raise_if_missing=True,
                                         session=session)
 
-        nxclient = self.get_remote_client(binding.server_binding,
-                                          repository=binding.remote_repo,
-                                          base_folder=binding.remote_root)
-        if nxclient.is_addon_installed():
-            # unregister the root on the server
-            nxclient.unregister_as_root(binding.remote_root)
-            self.synchronizer.update_roots(binding.server_binding,
-                    session=session, repository=binding.remote_repo)
-        else:
-            # manual bounding: the server is not aware
-            self._local_unbind_root(binding, session)
+        nxclient = self.get_remote_doc_client(
+            binding.server_binding, repository=binding.remote_repo,
+            base_folder=binding.remote_root)
 
-    def _local_unbind_root(self, binding, session):
-        log.info("Unbinding local root '%s'.", binding.local_root)
-        session.delete(binding)
-        session.commit()
-
-    def update_server_roots(self, server_binding, session, local_roots,
-            remote_roots, repository):
-        """Align the roots for a given server and repository"""
-        local_roots_by_id = dict((r.remote_root, r) for r in local_roots)
-        local_root_ids = set(local_roots_by_id.keys())
-
-        remote_roots_by_id = dict((r.uid, r) for r in remote_roots)
-        remote_root_ids = set(remote_roots_by_id.keys())
-
-        to_remove = local_root_ids - remote_root_ids
-        to_add = remote_root_ids - local_root_ids
-
-        for ref in to_remove:
-            self._local_unbind_root(local_roots_by_id[ref], session)
-
-        for ref in to_add:
-            # get a client with the right base folder
-            rc = self.get_remote_client(server_binding,
-                                        repository=repository,
-                                        base_folder=ref)
-            self._local_bind_root(server_binding, remote_roots_by_id[ref],
-                                  rc, session)
+        # unregister the root on the server
+        nxclient.unregister_as_root(binding.remote_root)
 
     def list_pending(self, limit=100, local_folder=None, ignore_in_error=None,
                      session=None):
@@ -575,24 +563,34 @@ class Controller(object):
             self._local.remote_clients = dict()
         return self._local.remote_clients
 
-    def get_remote_client(self, server_binding, base_folder=None,
-                          repository='default'):
+    def get_remote_fs_client(self, server_binding):
+        """Return a client for the FileSystem abstraction."""
         cache = self._get_client_cache()
         sb = server_binding
-        cache_key = (sb.server_url, sb.remote_user, self.device_id, base_folder,
-                     repository)
+        cache_key = (sb.server_url, sb.remote_user, self.device_id)
         remote_client = cache.get(cache_key)
 
         if remote_client is None:
-            remote_client = self.nuxeo_client_factory(
+            remote_client = self.remote_fs_client_factory(
                 sb.server_url, sb.remote_user, self.device_id,
-                token=sb.remote_token, password=sb.remote_password,
-                base_folder=base_folder, repository=repository)
+                token=sb.remote_token, password=sb.remote_password)
             cache[cache_key] = remote_client
         # Make it possible to have the remote client simulate any kind of
         # failure
         remote_client.make_raise(self._remote_error)
         return remote_client
+
+    def get_remote_doc_client(self, server_binding, repository=repository,
+                              base_folder=remote_root):
+        """Return an instance of Nuxeo Document Client"""
+        return self.remote_document_client_factory(server_binding,
+            repository=repository, base_folder=base_folder)
+
+    def get_remote_client(self, server_binding, repository=repository,
+                          base_folder=remote_root):
+        # Backward compat
+        return self.get_remote_doc_client(server_binding,
+            repository=repository, base_folder=remote_root)
 
     def invalidate_client_cache(self, server_url):
         cache = self._get_client_cache()
