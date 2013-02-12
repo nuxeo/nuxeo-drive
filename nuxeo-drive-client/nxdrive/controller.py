@@ -4,13 +4,16 @@ import os
 import sys
 from threading import local
 import subprocess
+from datetime import datetime
+from datetime import timedelta
 
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import asc
 from sqlalchemy import or_
 
 import nxdrive
-from nxdrive.client import NuxeoClient, Unauthorized
+from nxdrive.client import Unauthorized
+from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
@@ -20,6 +23,7 @@ from nxdrive.model import ServerBinding
 from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
 from nxdrive.synchronizer import Synchronizer
+from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import normalized_path
 
@@ -337,9 +341,12 @@ class Controller(object):
                 log.info("Revoking token for '%s' with account '%s'",
                          binding.server_url, binding.remote_user)
                 nxclient.revoke_token()
-            except Unauthorized:
+            except POSSIBLE_NETWORK_ERROR_TYPES:
                 log.warning("Could not connect to server '%s' to revoke token",
                             binding.server_url)
+            except Unauthorized:
+                # Token is already revoked
+                pass
 
         # Invalidate client cache
         self.invalidate_client_cache(binding.server_url)
@@ -460,8 +467,9 @@ class Controller(object):
 
             # Initialize the metadata of the root and let the synchronizer
             # scan the folder recursively
-            state = LastKnownState(lcclient.base_folder,
-                    local_info=local_info, remote_info=remote_info)
+            state = LastKnownState(server_binding.local_folder,
+                    lcclient.base_folder, local_info=local_info,
+                    remote_info=remote_info)
             if remote_info.folderish:
                 # Mark as synchronized as there is nothing to download later
                 state.update_state(local_state='synchronized',
@@ -472,8 +480,10 @@ class Controller(object):
                 state.update_state(local_state='synchronized',
                                 remote_state='modified')
             session.add(state)
-            self.synchronizer.scan_local(local_root, session=session)
-            self.synchronizer.scan_remote(local_root, session=session)
+            self.synchronizer.scan_local(server_binding, from_state=state,
+                session=session)
+            self.synchronizer.scan_remote(server_binding, from_state=state,
+                session=session)
             session.commit()
 
     def unbind_root(self, local_root, session=None):
@@ -524,33 +534,39 @@ class Controller(object):
             self._local_bind_root(server_binding, remote_roots_by_id[ref],
                                   rc, session)
 
-    def list_pending(self, limit=100, local_root=None, session=None):
+    def list_pending(self, limit=100, local_folder=None, ignore_in_error=None,
+                     session=None):
         """List pending files to synchronize, ordered by path
 
         Ordering by path makes it possible to synchronize sub folders content
         only once the parent folders have already been synchronized.
+
+        If ingore_in_error is not None and is a duration in second, skip pair
+        states states that have recently triggered a synchronization error.
         """
         if session is None:
             session = self.get_session()
-        if local_root is not None:
-            return session.query(LastKnownState).filter(
-                LastKnownState.pair_state != 'synchronized',
-                LastKnownState.local_root == local_root
-            ).order_by(
-                asc(LastKnownState.path),
-                asc(LastKnownState.remote_path),
-            ).limit(limit).all()
-        else:
-            return session.query(LastKnownState).filter(
-                LastKnownState.pair_state != 'synchronized'
-            ).order_by(
-                asc(LastKnownState.path),
-                asc(LastKnownState.remote_path),
-            ).limit(limit).all()
 
-    def next_pending(self, local_root=None, session=None):
+        predicates = [LastKnownState.pair_state != 'synchronized']
+        if local_folder is not None:
+            predicates.append(LastKnownState.local_folder == local_folder)
+
+        if ignore_in_error is not None and ignore_in_error > 0:
+            max_date = datetime.now() - timedelta(seconds=ignore_in_error)
+            predicates.append(or_(
+                LastKnownState.last_sync_error_date == None,
+                LastKnownState.last_sync_error_date < max_date))
+
+        return session.query(LastKnownState).filter(
+            *predicates
+        ).order_by(
+            asc(LastKnownState.path),
+            asc(LastKnownState.remote_path),
+        ).limit(limit).all()
+
+    def next_pending(self, local_folder=None, session=None):
         """Return the next pending file to synchronize or None"""
-        pending = self.list_pending(limit=1, local_root=local_root,
+        pending = self.list_pending(limit=1, local_folder=local_folder,
                                     session=session)
         return pending[0] if len(pending) > 0 else None
 
@@ -600,6 +616,13 @@ class Controller(object):
                     return state
         except NoResultFound:
             return None
+
+    def get_state_for_local_path(self, local_path):
+        """Find a DB state from a local filesystem path"""
+        session = self.get_session()
+        rb, path = self._binding_path(local_path, session=session)
+        return session.query(LastKnownState).filter_by(
+            local_root=rb.local_root, path=path).one()
 
     def launch_file_editor(self, server_url, remote_repo, remote_ref):
         """Find the local file if any and start OS editor on it."""

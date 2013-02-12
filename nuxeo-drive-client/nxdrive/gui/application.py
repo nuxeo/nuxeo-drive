@@ -42,7 +42,7 @@ class BindingInfo(object):
 
     online = False
 
-    n_pending = 0
+    n_pending = -1
 
     has_more_pending = False
 
@@ -53,11 +53,13 @@ class BindingInfo(object):
     def get_status_message(self):
         # TODO: i18n
         if self.online:
-            if self.n_pending != 0:
-                return "%d%s pending operations" % (
+            if self.n_pending > 0:
+                return "%d%s pending operations..." % (
                     self.n_pending, '+' if self.has_more_pending else '')
+            elif self.n_pending == 0:
+                return "Folder up to date"
             else:
-                return "Up-to-date"
+                return "Looking for changes..."
         else:
             return "Offline"
 

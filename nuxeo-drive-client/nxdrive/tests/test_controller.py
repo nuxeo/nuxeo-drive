@@ -228,11 +228,11 @@ def test_local_scan():
 
     # Scanning the other root will not updated the first root states.
     session = ctl.get_session()
-    syn.scan_local(root_2, session)
+    syn.scan_local(root_2, session=session)
     assert_equal(ctl.children_states(root_1), [])
 
     # Scanning root_1 will find the changes
-    syn.scan_local(root_1, session)
+    syn.scan_local(root_1, session=session)
     assert_equal(ctl.children_states(root_1), [
         (u'File 1.txt', u'unknown'),
         (u'Folder 3', 'children_modified'),
@@ -275,7 +275,7 @@ def test_local_scan():
     ])
 
     # Let's scan again
-    syn.scan_local(root_1, session)
+    syn.scan_local(root_1, session=session)
     assert_equal(ctl.children_states(root_1), [
         (u'Folder 3', 'children_modified'),
     ])
@@ -288,7 +288,7 @@ def test_local_scan():
     # Delete the toplevel folder that has not been synchronised to the
     # server
     client_1.delete('/Folder 3')
-    syn.scan_local(root_1, session)
+    syn.scan_local(root_1, session=session)
     assert_equal(ctl.children_states(root_1), [])
     assert_equal(ctl.children_states(folder_3_abs), [])
 
