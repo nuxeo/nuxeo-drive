@@ -4,6 +4,8 @@ import os
 import sys
 from threading import local
 import subprocess
+from datetime import datetime
+from datetime import timedelta
 
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import asc
@@ -531,29 +533,35 @@ class Controller(object):
             self._local_bind_root(server_binding, remote_roots_by_id[ref],
                                   rc, session)
 
-    def list_pending(self, limit=100, local_folder=None, session=None):
+    def list_pending(self, limit=100, local_folder=None, ignore_in_error=None,
+                     session=None):
         """List pending files to synchronize, ordered by path
 
         Ordering by path makes it possible to synchronize sub folders content
         only once the parent folders have already been synchronized.
+
+        If ingore_in_error is not None and is a duration in second, skip pair
+        states states that have recently triggered a synchronization error.
         """
         if session is None:
             session = self.get_session()
+
+        predicates = [LastKnownState.pair_state != 'synchronized']
         if local_folder is not None:
-            return session.query(LastKnownState).filter(
-                LastKnownState.pair_state != 'synchronized',
-                LastKnownState.local_folder == local_folder
-            ).order_by(
-                asc(LastKnownState.path),
-                asc(LastKnownState.remote_path),
-            ).limit(limit).all()
-        else:
-            return session.query(LastKnownState).filter(
-                LastKnownState.pair_state != 'synchronized'
-            ).order_by(
-                asc(LastKnownState.path),
-                asc(LastKnownState.remote_path),
-            ).limit(limit).all()
+            predicates.append(LastKnownState.local_folder == local_folder)
+
+        if ignore_in_error is not None and ignore_in_error > 0:
+            max_date = datetime.now() - timedelta(seconds=ignore_in_error)
+            predicates.append(or_(
+                LastKnownState.last_sync_error_date == None,
+                LastKnownState.last_sync_error_date < max_date))
+
+        return session.query(LastKnownState).filter(
+            *predicates
+        ).order_by(
+            asc(LastKnownState.path),
+            asc(LastKnownState.remote_path),
+        ).limit(limit).all()
 
     def next_pending(self, local_folder=None, session=None):
         """Return the next pending file to synchronize or None"""

@@ -193,6 +193,10 @@ class LastKnownState(Base):
     remotely_moved_from = Column(String)
     remotely_moved_to = Column(String)
 
+    # Log date of sync errors to be able to skip documents in error for some
+    # time
+    last_sync_error_date = Column(DateTime)
+
     def __init__(self, local_folder, local_root, local_info=None,
                  remote_info=None, local_state='unknown',
                  remote_state='unknown'):

@@ -3,6 +3,7 @@ import re
 import os.path
 from time import time
 from time import sleep
+from datetime import datetime
 import urllib2
 import socket
 import httplib
@@ -32,7 +33,6 @@ POSSIBLE_NETWORK_ERROR_TYPES = (
     httplib.HTTPException,
     socket.error,
 )
-
 
 log = get_logger(__name__)
 
@@ -99,6 +99,10 @@ class Synchronizer(object):
     # operations to perform (useful to display activity stats in the
     # frontend)
     limit_pending = 100
+
+    # Log sync error date and skip document pairs in error while syncing up
+    # to a fixed cooldown period
+    error_skip_period = 300  # 5 minutes
 
     def __init__(self, controller):
         self._controller = controller
@@ -628,7 +632,7 @@ class Synchronizer(object):
 
             pending = self._controller.list_pending(
                 local_folder=local_folder, limit=self.limit_pending,
-                session=session)
+                session=session, ignore_in_error=self.error_skip_period)
 
             or_more = len(pending) == self.limit_pending
             if self._frontend is not None:
@@ -641,8 +645,19 @@ class Synchronizer(object):
             # TODO: make it possible to catch unexpected exceptions here so as
             # to black list the pair of document and ignore it for a while
             # using a TTL for the blacklist token in the state DB
-            self.synchronize_one(pending[0], session=session)
-            synchronized += 1
+            pair_state = pending[0]
+            try:
+                self.synchronize_one(pair_state, session=session)
+                synchronized += 1
+            except POSSIBLE_NETWORK_ERROR_TYPES as e:
+                # This is expected and should interrupt the sync process for
+                # this local_folder and should be dealt with in the main loop
+                raise e
+            except Exception as e:
+                # Unexpected exception
+                log.error("Failed to sync %r", pair_state, exc_info=True)
+                pair_state.last_sync_error_date = datetime.now()
+                session.commit()
 
         return synchronized
 
