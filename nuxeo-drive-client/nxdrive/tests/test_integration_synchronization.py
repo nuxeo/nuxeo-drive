@@ -398,10 +398,10 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         session = ctl.get_session()
         file_5 = session.query(LastKnownState).filter_by(
             remote_name='File 5.txt').one()
-        file_5.last_sync_error_date = datetime.now()
+        file_5.last_sync_error_date = datetime.utcnow()
         folder_3 = session.query(LastKnownState).filter_by(
             local_name='Folder 3').one()
-        folder_3.last_sync_error_date = datetime.now()
+        folder_3.last_sync_error_date = datetime.utcnow()
 
         # Run the full synchronization loop a limited amount of times
         self.wait()

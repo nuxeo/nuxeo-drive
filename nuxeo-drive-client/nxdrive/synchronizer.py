@@ -656,7 +656,7 @@ class Synchronizer(object):
             except Exception as e:
                 # Unexpected exception
                 log.error("Failed to sync %r", pair_state, exc_info=True)
-                pair_state.last_sync_error_date = datetime.now()
+                pair_state.last_sync_error_date = datetime.utcnow()
                 session.commit()
 
         return synchronized
