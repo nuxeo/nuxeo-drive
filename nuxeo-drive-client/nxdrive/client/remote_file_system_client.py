@@ -114,7 +114,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
 #            # no millisecond?
 #            last_update = datetime.strptime(fs_item['lastModificationDate'],
 #                                            "%Y-%m-%dT%H:%M:%SZ")
-        last_update = datetime.now()
+        last_update = datetime.utcnow()
 
         if folderish:
             digest = None

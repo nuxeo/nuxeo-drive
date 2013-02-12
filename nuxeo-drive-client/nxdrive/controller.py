@@ -540,7 +540,7 @@ class Controller(object):
             predicates.append(LastKnownState.local_folder == local_folder)
 
         if ignore_in_error is not None and ignore_in_error > 0:
-            max_date = datetime.now() - timedelta(seconds=ignore_in_error)
+            max_date = datetime.utcnow() - timedelta(seconds=ignore_in_error)
             predicates.append(or_(
                 LastKnownState.last_sync_error_date == None,
                 LastKnownState.last_sync_error_date < max_date))
