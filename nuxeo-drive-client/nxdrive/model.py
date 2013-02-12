@@ -206,12 +206,9 @@ class LastKnownState(Base):
 
     def get_remote_client(self, factory=None):
         if factory is None:
-            factory = NuxeoClient
-        rb = self.root_binding
+
         sb = rb.server_binding
-        return factory(
-            sb.server_url, sb.remote_user, sb.remote_password,
-            base_folder=rb.remote_root, repository=rb.remote_repo)
+        return factory(sb.server_url, sb.remote_user, sb.remote_password)
 
     def refresh_local(self, client=None):
         """Update the state from the local filesystem info."""
@@ -337,14 +334,14 @@ class FileEvent(Base):
     __tablename__ = 'fileevents'
 
     id = Column(Integer, Sequence('fileevent_id_seq'), primary_key=True)
-    local_root = Column(String, ForeignKey('root_bindings.local_root'))
+    local_folder = Column(String, ForeignKey('server_bindings.local_root'))
     utc_time = Column(DateTime)
     path = Column(String)
 
-    root_binding = relationship("RootBinding")
+    server_binding = relationship("ServerBinding")
 
-    def __init__(self, local_root, path, utc_time=None):
-        self.local_root = local_root
+    def __init__(self, local_folder, path, utc_time=None):
+        self.local_folder = local_folder
         if utc_time is None:
             utc_time = datetime.utcnow()
 
