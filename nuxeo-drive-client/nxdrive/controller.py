@@ -12,7 +12,8 @@ from sqlalchemy import asc
 from sqlalchemy import or_
 
 import nxdrive
-from nxdrive.client import NuxeoClient, Unauthorized
+from nxdrive.client import Unauthorized
+from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
