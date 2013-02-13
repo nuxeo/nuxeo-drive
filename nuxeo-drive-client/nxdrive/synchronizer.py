@@ -703,7 +703,7 @@ class Synchronizer(object):
                              loop_count)
                     break
 
-                bindings = session.query(ServerBinding).all():
+                bindings = session.query(ServerBinding).all()
                 if self._frontend is not None:
                     local_folders = [sb.local_folder for sb in bindings]
                     self._frontend.notify_local_folders(local_folders)

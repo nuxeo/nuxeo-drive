@@ -462,14 +462,14 @@ class Controller(object):
         remote_client.make_raise(self._remote_error)
         return remote_client
 
-    def get_remote_doc_client(self, server_binding, repository=repository,
-                              base_folder=remote_root):
+    def get_remote_doc_client(self, server_binding, repository='default',
+                              base_folder='/'):
         """Return an instance of Nuxeo Document Client"""
         return self.remote_document_client_factory(server_binding,
             repository=repository, base_folder=base_folder)
 
-    def get_remote_client(self, server_binding, repository=repository,
-                          base_folder=remote_root):
+    def get_remote_client(self, server_binding, repository='default',
+                          base_folder='/'):
         # Backward compat
         return self.get_remote_doc_client(server_binding,
             repository=repository, base_folder=remote_root)

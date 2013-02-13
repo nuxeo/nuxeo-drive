@@ -15,7 +15,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
 
-from nxdrive.client import NuxeoClient
+from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
 from nxdrive.utils import normalized_path
 
@@ -204,11 +204,10 @@ class LastKnownState(Base):
     def get_local_client(self):
         return LocalClient(self.local_folder)
 
-    def get_remote_client(self, factory=None):
-        if factory is None:
-
-        sb = rb.server_binding
-        return factory(sb.server_url, sb.remote_user, sb.remote_password)
+    def get_remote_client(self):
+        sb = self.server_binding
+        return RemoteFileSystemClient(sb.server_url, sb.remote_user,
+             sb.remote_password)
 
     def refresh_local(self, client=None):
         """Update the state from the local filesystem info."""
