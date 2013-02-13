@@ -71,8 +71,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self._do_get(download_url, file_out=file_out)
 
     def get_children_info(self, fs_item_id):
-        #TODO
-        pass
+        children = self.execute("NuxeoDrive.GetChildren", id=fs_item_id)
+        return [self._file_to_info(fs_item) for fs_item in children]
 
     def make_folder(self, parent_id, name):
         fs_item = self.execute("NuxeoDrive.CreateFolder",
@@ -85,12 +85,14 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return fs_item['id']
 
     def update_content(self, fs_item_id, content, name=None):
-        #TODO
-        pass
+        if name is None:
+            name = self.get_info(fs_item_id).name
+        fs_item  = self.execute_with_blob('NuxeoDrive.UpdateFile',
+            content, name, id=fs_item_id)
+        return fs_item['id']
 
     def delete(self, fs_item_id):
-        # TODO
-        pass
+        self.execute("NuxeoDrive.Delete", id=fs_item_id)
 
     def exists(self, fs_item_id):
         return self.execute("NuxeoDrive.FileSystemItemExists", id=fs_item_id)
@@ -112,7 +114,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
 #            # no millisecond?
 #            last_update = datetime.strptime(fs_item['lastModificationDate'],
 #                                            "%Y-%m-%dT%H:%M:%SZ")
-        last_update = datetime.now()
+        last_update = datetime.utcnow()
 
         if folderish:
             digest = None
@@ -166,3 +168,6 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
     def get_fs_item(self, fs_item_id):
         return self.execute("NuxeoDrive.GetFileSystemItem", id=fs_item_id)
+
+    def get_top_level_children(self):
+        return self.execute("NuxeoDrive.GetTopLevelChildren")

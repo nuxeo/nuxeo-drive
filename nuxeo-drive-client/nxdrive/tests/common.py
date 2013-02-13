@@ -29,9 +29,14 @@ class IntegrationTestCase(unittest.TestCase):
             raise unittest.SkipTest(
                 "No integration server configuration found in environment.")
 
+        # Long timeout for the root client that is responsible for the test
+        # environment set: this client is doing the first query on the Nuxeo
+        # server and might need to wait for a long time without failing for
+        # Nuxeo to finish initialize the repo on the first request after
+        # startup
         root_remote_client = NuxeoClient(
             self.nuxeo_url, self.admin_user, 'nxdrive-test-administrator-device',
-            self.password, base_folder='/')
+            self.password, base_folder='/', timeout=60)
 
         # Call the Nuxeo operation to setup the integration test environment
         credentials = root_remote_client.execute(

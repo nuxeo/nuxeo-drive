@@ -3,6 +3,7 @@ import time
 import urllib2
 import socket
 import httplib
+from datetime import datetime
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -52,15 +53,17 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(pending[10].remote_name, 'File 4.txt')
 
         # It is also possible to restrict the list of pending document to a
-        # specific root
-        self.assertEquals(len(ctl.list_pending(local_root=expected_folder)), 11)
+        # specific server binding
+        self.assertEquals(len(ctl.list_pending(
+                          local_folder=self.local_nxdrive_folder_1)), 11)
 
         # It is also possible to restrict the number of pending tasks
         pending = ctl.list_pending(limit=2)
         self.assertEquals(len(pending), 2)
 
         # Synchronize the first 2 documents:
-        self.assertEquals(syn.synchronize(limit=2), 2)
+        self.assertEquals(syn.synchronize(
+            self.local_nxdrive_folder_1, limit=2), 2)
         pending = ctl.list_pending()
         self.assertEquals(len(pending), 9)
         self.assertEquals(pending[0].remote_name, 'File 1.txt')
@@ -353,6 +356,69 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         syn.loop(delay=0.010, max_loops=3)
 
         # All is synchronized
+        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.children_states(expected_folder), [
+            (u'File 5.txt', u'synchronized'),
+            (u'Folder 1', u'synchronized'),
+            (u'Folder 2', u'synchronized'),
+            (u'Folder 3', u'synchronized'),
+        ])
+
+    def test_synchronization_loop_skip_errors(self):
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+        syn = ctl.synchronizer
+        expected_folder = os.path.join(self.local_nxdrive_folder_1,
+                                       self.workspace_title)
+
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(syn.synchronize(), 0)
+
+        # Let's create some document on the client and the server
+        local = LocalClient(expected_folder)
+        local.make_folder('/', 'Folder 3')
+        self.make_server_tree()
+
+        # Detect the files to synchronize but do not perform the
+        # synchronization
+        syn.scan_remote(expected_folder)
+        syn.scan_local(expected_folder)
+        pending = ctl.list_pending()
+        self.assertEquals(len(pending), 12)
+        self.assertEquals(pending[0].remote_name, 'File 5.txt')
+        self.assertEquals(pending[0].pair_state, 'unknown')
+        self.assertEquals(pending[1].remote_name, 'Folder 1')
+        self.assertEquals(pending[1].pair_state, 'unknown')
+        self.assertEquals(pending[11].local_name, 'Folder 3')
+        self.assertEquals(pending[11].pair_state, 'unknown')
+
+        # Simulate synchronization errors
+        session = ctl.get_session()
+        file_5 = session.query(LastKnownState).filter_by(
+            remote_name='File 5.txt').one()
+        file_5.last_sync_error_date = datetime.utcnow()
+        folder_3 = session.query(LastKnownState).filter_by(
+            local_name='Folder 3').one()
+        folder_3.last_sync_error_date = datetime.utcnow()
+
+        # Run the full synchronization loop a limited amount of times
+        self.wait()
+        syn.loop(delay=0, max_loops=3)
+
+        # All errors have been skipped, while the remaining docs have
+        # been synchronized
+        pending = ctl.list_pending()
+        self.assertEquals(len(pending), 2)
+        self.assertEquals(pending[0].remote_name, 'File 5.txt')
+        self.assertEquals(pending[0].pair_state, 'unknown')
+        self.assertEquals(pending[1].local_name, 'Folder 3')
+        self.assertEquals(pending[1].pair_state, 'unknown')
+
+        # Reduce the skip delay to retry the sync on pairs in error
+        syn.error_skip_period = 0.000001
+        syn.loop(delay=0, max_loops=3)
         self.assertEquals(len(ctl.list_pending()), 0)
         self.assertEquals(ctl.children_states(expected_folder), [
             (u'File 5.txt', u'synchronized'),
