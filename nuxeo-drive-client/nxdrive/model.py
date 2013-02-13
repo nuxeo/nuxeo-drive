@@ -183,7 +183,7 @@ class LastKnownState(Base):
             self.remote_state = remote_state
 
         # Detect heuristically aligned situations
-        if (self.path is not None and self.remote_ref is not None
+        if (self.local_path is not None and self.remote_ref is not None
             and self.local_state == self.remote_state == 'unknown'):
             if self.folderish or self.local_digest == self.remote_digest:
                 self.local_state = 'synchronized'
@@ -212,7 +212,7 @@ class LastKnownState(Base):
     def refresh_local(self, client=None):
         """Update the state from the local filesystem info."""
         client = client if client is not None else self.get_local_client()
-        local_info = client.get_info(self.path, raise_if_missing=False)
+        local_info = client.get_info(self.local_path, raise_if_missing=False)
         self.update_local(local_info)
         return local_info
 
@@ -228,11 +228,11 @@ class LastKnownState(Base):
 
         local_state = None
 
-        if self.path is None:
+        if self.local_path is None:
             # This state only has a remote info and this is the first time
             # we update the local info from the file system
-            self.path = local_info.path
-            if self.path != '/':
+            self.local_path = local_info.path
+            if self.local_path != '/':
                 self.local_name = os.path.basename(local_info.path)
                 parent_path, _ = local_info.path.rsplit('/', 1)
                 self.parent_path = '/' if parent_path == '' else parent_path
@@ -240,7 +240,7 @@ class LastKnownState(Base):
                 self.local_name = os.path.basename(self.local_folder)
                 self.parent_path = None
 
-        if self.path != local_info.path:
+        if self.local_path != local_info.path:
             raise ValueError("State %r cannot be mapped to '%s%s'" % (
                 self, self.local_folder, local_info.path))
 
@@ -283,7 +283,7 @@ class LastKnownState(Base):
         request.
         """
         client = client if client is not None else self.get_remote_client()
-        fetch_parent_uid = self.path != '/'
+        fetch_parent_uid = self.local_path != '/'
         remote_info = client.get_info(self.remote_ref, raise_if_missing=False,
                                       fetch_parent_uid=fetch_parent_uid)
         self.update_remote(remote_info)
@@ -325,7 +325,7 @@ class LastKnownState(Base):
         self.update_state(remote_state=remote_state)
 
     def get_local_abspath(self):
-        relative_path = self.path[1:].replace('/', os.path.sep)
+        relative_path = self.local_path[1:].replace('/', os.path.sep)
         return os.path.join(self.local_folder, relative_path)
 
 

@@ -106,6 +106,10 @@ class FakeNuxeoClient(object):
             raise NotFound(ref + ' not found')
         return root_info
 
+    def get_filesystem_root_info(self):
+        toplevel_folder = self.execute("NuxeoDrive.GetTopLevelFolder");
+        return self._file_to_info(toplevel_folder)
+
     def check_writable(self, ref):
         return True
 

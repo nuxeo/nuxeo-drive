@@ -59,6 +59,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
             return None
         return self._file_to_info(fs_item)
 
+    def get_filesystem_root_info(self):
+        toplevel_folder = self.execute("NuxeoDrive.GetTopLevelFolder");
+        return self._file_to_info(toplevel_folder)
+
     def get_content(self, fs_item_id, file_out=None):
         """Downloads the binary content of a file system item
 

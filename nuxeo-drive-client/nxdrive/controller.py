@@ -292,9 +292,23 @@ class Controller(object):
         except NoResultFound:
             log.info("Binding '%s' to '%s' with account '%s'",
                      local_folder, server_url, username)
-            session.add(ServerBinding(local_folder, server_url, username,
-                                      remote_password=password,
-                                      remote_token=token))
+            server_binding = ServerBinding(local_folder, server_url, username,
+                                           remote_password=password,
+                                      remote_token=token)
+            session.add(server_binding)
+
+            # Creating the toplevel state for the server binding
+            local_client = LocalClient(server_binding.local_folder)
+            local_info = local_client.get_info('/')
+
+            remote_client = self.get_remote_fs_client(server_binding)
+            remote_info = remote_client.get_filesystem_root_info()
+
+            state = LastKnownState(server_binding.local_folder,
+                                   local_info=local_info,
+                                   remote_info=remote_info)
+            session.add(state)
+            session.commit()
 
         # Create the local folder to host the synchronized files: this
         # is useless as long as bind_root is not called
@@ -348,61 +362,39 @@ class Controller(object):
         for sb in session.query(ServerBinding).all():
             self.unbind_server(sb.local_folder)
 
-    def bind_root(self, local_folder, remote_root, repository='default'):
+    def bind_root(self, local_folder, remote_ref, repository='default',
+                  session=None):
         """Bind local root to a remote root (folderish document in Nuxeo).
 
-        local_folder must be already bound to an existing Nuxeo server. A
-        new folder will be created under that folder to bind the remote
-        root.
+        local_folder must be already bound to an existing Nuxeo server.
 
-        remote_root must be the IdRef or PathRef of an existing folderish
-        document on the remote server bound to the local folder. The
-        user account must have write access to that folder, otherwise
-        a RuntimeError will be raised.
+        remote_ref must be the IdRef or PathRef of an existing folderish
+        document on the remote server bound to the local folder.
+
         """
-        session = self.get_session()
+        session = self.get_session() if session is None else session
         local_folder = normalized_path(local_folder)
         server_binding = self.get_server_binding(
             local_folder, raise_if_missing=True, session=session)
 
-        # Check the remote root exists and is an editable folder by current
-        # user.
-        try:
-            nxclient = self.get_remote_doc_client(
-                server_binding, repository=repository,
-                base_folder=remote_root)
-            remote_info = nxclient.get_info('/', fetch_parent_uid=False)
-        except NotFound:
-            remote_info = None
-        if remote_info is None or not remote_info.folderish:
-            raise RuntimeError(
-                'No folder at "%s:%s" visible by "%s" on server "%s"'
-                % (repository, remote_root, server_binding.remote_user,
-                   server_binding.server_url))
+        nxclient = self.get_remote_doc_client(server_binding,
+            repository=repository)
 
-        if not nxclient.check_writable(remote_root):
-            raise RuntimeError(
-                'Folder at "%s:%s" is not editable by "%s" on server "%s"'
-                % (repository, remote_root, server_binding.remote_user,
-                   server_binding.server_url))
+        # Register the root on the server
+        nxclient.register_as_root(remote_ref)
 
-        # register the root on the server
-        nxclient.register_as_root(remote_info.uid)
+    def unbind_root(self, local_folder, remote_ref, repository='default',
+                    session=None):
+        """Remove binding to remote folder"""
+        session = self.get_session() if session is None else session
+        server_binding = self.get_server_binding(
+            local_folder, raise_if_missing=True, session=session)
 
-    def unbind_root(self, local_path, session=None):
-        """Remove binding on a root folder"""
-        local_path = normalized_path(local_path)
-        if session is None:
-            session = self.get_session()
+        nxclient = self.get_remote_doc_client(server_binding,
+            repository=repository)
 
-        self_binding
-
-        nxclient = self.get_remote_doc_client(
-            binding.server_binding, repository=binding.remote_repo,
-            base_folder=binding.remote_root)
-
-        # unregister the root on the server
-        nxclient.unregister_as_root(binding.remote_root)
+        # Unregister the root on the server
+        nxclient.unregister_as_root(remote_ref)
 
     def list_pending(self, limit=100, local_folder=None, ignore_in_error=None,
                      session=None):

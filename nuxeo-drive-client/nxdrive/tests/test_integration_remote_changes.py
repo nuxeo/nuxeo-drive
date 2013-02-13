@@ -94,8 +94,8 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         self.assertEquals(len(summary['fileSystemChanges']), 0)
 
         # Let's unregister both roots at the same time
-        ctl.unbind_root(os.path.join(self.local_nxdrive_folder_1, 'Folder 1'))
-        ctl.unbind_root(os.path.join(self.local_nxdrive_folder_1, 'Folder 2'))
+        ctl.unbind_root(self.local_nxdrive_folder_1, folder_1)
+        ctl.unbind_root(self.local_nxdrive_folder_1, folder_2)
         time.sleep(1.0)
         summary = self.get_changes()
         self.assertEquals(summary['hasTooManyChanges'], False)
