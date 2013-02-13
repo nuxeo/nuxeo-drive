@@ -202,7 +202,7 @@ class LastKnownState(Base):
                     self.local_state, self.remote_state)
 
     def get_local_client(self):
-        return LocalClient(self.local_root)
+        return LocalClient(self.local_folder)
 
     def get_remote_client(self, factory=None):
         if factory is None:
@@ -238,7 +238,7 @@ class LastKnownState(Base):
                 parent_path, _ = local_info.path.rsplit('/', 1)
                 self.parent_path = '/' if parent_path == '' else parent_path
             else:
-                self.local_name = os.path.basename(self.local_root)
+                self.local_name = os.path.basename(self.local_folder)
                 self.parent_path = None
 
         if self.path != local_info.path:
@@ -327,14 +327,14 @@ class LastKnownState(Base):
 
     def get_local_abspath(self):
         relative_path = self.path[1:].replace('/', os.path.sep)
-        return os.path.join(self.local_root, relative_path)
+        return os.path.join(self.local_folder, relative_path)
 
 
 class FileEvent(Base):
     __tablename__ = 'fileevents'
 
     id = Column(Integer, Sequence('fileevent_id_seq'), primary_key=True)
-    local_folder = Column(String, ForeignKey('server_bindings.local_root'))
+    local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
     utc_time = Column(DateTime)
     path = Column(String)
 

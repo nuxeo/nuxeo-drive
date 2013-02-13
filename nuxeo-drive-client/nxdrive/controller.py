@@ -21,7 +21,6 @@ from nxdrive.client import NotFound
 from nxdrive.model import init_db
 from nxdrive.model import DeviceConfig
 from nxdrive.model import ServerBinding
-from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
 from nxdrive.synchronizer import Synchronizer
 from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
