@@ -22,35 +22,41 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
 
-        # The binding operation creates a new local folder with the Workspace name
-        # and scan both sides (server and local independently)
+        # The root binding operation does not create the local folder 
+        # yet.
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
                                        self.workspace_title)
-        local = LocalClient(expected_folder)
-        self.assertEquals(len(local.get_children_info('/')), 0)
+        local_client = LocalClient(self.local_nxdrive_folder_1)
+        self.assertFalse(local_client.exists('/' + self.workspace_title))
 
         # By default only scan happen, hence their is no information on the state
         # of the documents on the local side (they don't exist there yet)
         states = ctl.children_states(expected_folder)
         self.assertEquals(states, [])
 
-        # However some (unaligned data has already been scanned)
-        self.assertEquals(len(self.get_all_states()), 12)
+        # Only the root binding is stored in the DB
+        self.assertEquals(len(self.get_all_states()), 1)
+
+        # Trigger some scan manually
+        syn.scan_local(self.local_nxdrive_folder_1)
+        syn.scan_remote(self.local_nxdrive_folder_1)
 
         # Check the list of files and folders with synchronization pending
         pending = ctl.list_pending()
-        self.assertEquals(len(pending), 11)  # the root is already synchronized
-        self.assertEquals(pending[0].remote_name, 'File 5.txt')
-        self.assertEquals(pending[1].remote_name, 'Folder 1')
-        self.assertEquals(pending[2].remote_name, 'File 1.txt')
-        self.assertEquals(pending[3].remote_name, 'Folder 1.1')
-        self.assertEquals(pending[4].remote_name, 'File 2.txt')
-        self.assertEquals(pending[5].remote_name, 'Folder 1.2')
-        self.assertEquals(pending[6].remote_name, 'File 3.txt')
-        self.assertEquals(pending[7].remote_name, 'Folder 2')
-        self.assertEquals(pending[8].remote_name, 'Duplicated File.txt')
+        self.assertEquals(len(pending), 13)
+        self.assertEquals(pending[0].remote_name, self.workspace_title)
+        self.assertEquals(pending[1].remote_name, 'File 5.txt')
+        self.assertEquals(pending[2].remote_name, 'Folder 1')
+        self.assertEquals(pending[3].remote_name, 'File 1.txt')
+        self.assertEquals(pending[4].remote_name, 'Folder 1.1')
+        self.assertEquals(pending[5].remote_name, 'File 2.txt')
+        self.assertEquals(pending[6].remote_name, 'Folder 1.2')
+        self.assertEquals(pending[7].remote_name, 'File 3.txt')
+        self.assertEquals(pending[8].remote_name, 'Folder 2')
         self.assertEquals(pending[9].remote_name, 'Duplicated File.txt')
-        self.assertEquals(pending[10].remote_name, 'File 4.txt')
+        self.assertEquals(pending[10].remote_name, 'Duplicated File.txt')
+        self.assertEquals(pending[11].remote_name, 'File 4.txt')
+        self.assertEquals(pending[12].remote_name, 'Nuxeo Drive')
 
         # It is also possible to restrict the list of pending document to a
         # specific server binding

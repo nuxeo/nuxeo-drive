@@ -422,7 +422,7 @@ class Controller(object):
         return session.query(LastKnownState).filter(
             *predicates
         ).order_by(
-            asc(LastKnownState.path),
+            asc(LastKnownState.local_path),
             asc(LastKnownState.remote_path),
         ).limit(limit).all()
 

@@ -181,7 +181,7 @@ class Synchronizer(object):
             parent_path=local_info.path,
         )
         if len(children_path) > 0:
-            q = q.filter(not_(LastKnownState.path.in_(children_path)))
+            q = q.filter(not_(LastKnownState.local_path.in_(children_path)))
 
         for deleted in q.all():
             self._mark_deleted_local_recursive(session, deleted)
@@ -191,10 +191,10 @@ class Synchronizer(object):
 
             # TODO: detect whether this is a __digit suffix name and relax the
             # alignment queries accordingly
-            child_name = os.path.basename(child_info.path)
+            child_name = os.path.basename(child_info.local_path)
             child_pair = session.query(LastKnownState).filter_by(
                 local_folder=doc_pair.local_folder,
-                path=child_info.path).first()
+                local_path=child_info.local_path).first()
 
             if child_pair is None and not child_info.folderish:
                 # Try to find an existing remote doc that has not yet been
@@ -204,7 +204,7 @@ class Synchronizer(object):
                     child_digest = child_info.get_digest()
                     possible_pairs = session.query(LastKnownState).filter_by(
                         local_folder=doc_pair.local_folder,
-                        path=None,
+                        local_path=None,
                         remote_parent_ref=doc_pair.remote_ref,
                         folderish=child_info.folderish,
                         remote_digest=child_digest,
@@ -226,14 +226,14 @@ class Synchronizer(object):
                 # Previous attempt has failed: relax the digest constraint
                 possible_pairs = session.query(LastKnownState).filter_by(
                     local_folder=doc_pair.local_folder,
-                    path=None,
+                    local_path=None,
                     remote_parent_ref=doc_pair.remote_ref,
                     folderish=child_info.folderish,
                 ).all()
                 child_pair = find_first_name_match(child_name, possible_pairs)
                 if child_pair is not None:
                     log.debug("Matched local %s with remote %s by name only",
-                              child_info.path, child_pair.remote_name)
+                              child_info.local_path, child_pair.remote_name)
 
             if child_pair is None:
                 # Could not find any pair state to align to, create one
@@ -241,7 +241,7 @@ class Synchronizer(object):
                     local_info=child_info)
                 session.add(child_pair)
                 log.debug("Detected a new non-alignable local file at %s",
-                          child_pair.path)
+                          child_pair.local_path)
 
 
             self._scan_local_recursive(session, client, child_pair,
@@ -267,12 +267,11 @@ class Synchronizer(object):
 
         if from_state is None:
             from_state = session.query(LastKnownState).filter_by(
-                path='/', local_folder=server_binding.local_folder).one()
+                local_path='/', local_folder=server_binding.local_folder).one()
 
         try:
             client = self.get_remote_fs_client(from_state.server_binding)
-            remote_info = client.get_info(from_state.remote_ref,
-                                          fetch_parent_uid=False)
+            remote_info = client.get_info(from_state.remote_ref)
         except NotFound:
             log.debug("Mark %r as remotely deleted.", from_state)
             from_state.update_remote(None)
@@ -293,7 +292,7 @@ class Synchronizer(object):
             self._mark_deleted_remote_recursive(session, child)
 
         # update the state of the parent it-self
-        if doc_pair.path is None:
+        if doc_pair.local_path is None:
             # Unbound child metadata can be removed
             session.delete(doc_pair)
         else:
@@ -361,27 +360,27 @@ class Synchronizer(object):
             possible_pairs = session.query(LastKnownState).filter_by(
                 local_folder=parent_pair.local_folder,
                 remote_ref=None,
-                parent_path=parent_pair.path,
+                parent_path=parent_pair.local_path,
                 folderish=child_info.folderish,
                 local_digest=child_info.get_digest(),
             ).all()
             child_pair = find_first_name_match(child_name, possible_pairs)
             if child_pair is not None:
                 log.debug("Matched remote %s with local %s with digest",
-                          child_info.name, child_pair.path)
+                          child_info.name, child_pair.local_path)
                 return child_pair, False
 
         # Previous attempt has failed: relax the digest constraint
         possible_pairs = session.query(LastKnownState).filter_by(
             local_folder=parent_pair.local_folder,                                         
             remote_ref=None,
-            parent_path=parent_pair.path,
+            parent_path=parent_pair.local_path,
             folderish=child_info.folderish,
         ).all()
         child_pair = find_first_name_match(child_name, possible_pairs)
         if child_pair is not None:
             log.debug("Matched remote %s with local %s by name only",
-                      child_info.name, child_pair.path)
+                      child_info.name, child_pair.local_path)
             return child_pair, False
 
         # Could not find any pair state to align to, create one
@@ -403,7 +402,7 @@ class Synchronizer(object):
         # Update the status the collected info of this file to make sure
         # we won't perfom inconsistent operations
 
-        if doc_pair.path is not None:
+        if doc_pair.local_path is not None:
             doc_pair.refresh_local(local_client)
         if doc_pair.remote_ref is not None:
             remote_info = doc_pair.refresh_remote(remote_client)
@@ -411,9 +410,11 @@ class Synchronizer(object):
         # Detect creation
         if (doc_pair.local_state != 'deleted'
             and doc_pair.remote_state != 'deleted'):
-            if doc_pair.remote_ref is None and doc_pair.path is not None:
+            if (doc_pair.remote_ref is None
+                and doc_pair.local_path is not None):
                 doc_pair.update_state(local_state='created')
-            if doc_pair.remote_ref is not None and doc_pair.path is None:
+            if (doc_pair.remote_ref is not None
+                and doc_pair.local_path is None):
                 doc_pair.update_state(remote_state='created')
 
         if len(session.dirty):
@@ -432,7 +433,7 @@ class Synchronizer(object):
                           doc_pair.remote_name)
                 remote_client.update_content(
                     doc_pair.remote_ref,
-                    local_client.get_content(doc_pair.path),
+                    local_client.get_content(doc_pair.local_path),
                     name=doc_pair.remote_name,
                 )
                 doc_pair.refresh_remote(remote_client)
@@ -444,7 +445,7 @@ class Synchronizer(object):
                           doc_pair.get_local_abspath())
                 content = remote_client.get_content(doc_pair.remote_ref)
                 try:
-                    local_client.update_content(doc_pair.path, content)
+                    local_client.update_content(doc_pair.local_path, content)
                     doc_pair.refresh_local(local_client)
                     doc_pair.update_state('synchronized', 'synchronized')
                 except (IOError, WindowsError):
@@ -457,16 +458,17 @@ class Synchronizer(object):
                 doc_pair.update_state('synchronized', 'synchronized')
 
         elif doc_pair.pair_state == 'locally_created':
-            name = os.path.basename(doc_pair.path)
+            name = os.path.basename(doc_pair.local_path)
             # Find the parent pair to find the ref of the remote folder to
             # create the document
             parent_pair = session.query(LastKnownState).filter_by(
-                local_folder=doc_pair.local_folder, path=doc_pair.parent_path
+                local_folder=doc_pair.local_folder,
+                local_path=doc_pair.parent_path
             ).first()
             if parent_pair is None or parent_pair.remote_ref is None:
                 log.warning(
                     "Parent folder of %r%r is not bound to a remote folder",
-                    doc_pair.local_folder, doc_pair.path)
+                    doc_pair.local_folder, doc_pair.local_path)
                 # Inconsistent state: delete and let the next scan redetect for
                 # now
                 # TODO: how to handle this case in incremental mode?
@@ -481,7 +483,7 @@ class Synchronizer(object):
             else:
                 remote_ref = remote_client.make_file(
                     parent_ref, name,
-                    content=local_client.get_content(doc_pair.path))
+                    content=local_client.get_content(doc_pair.local_path))
                 log.debug("Creating remote document '%s' in folder '%s'",
                           name, parent_pair.remote_name)
             doc_pair.update_remote(remote_client.get_info(remote_ref))
@@ -495,7 +497,7 @@ class Synchronizer(object):
                 local_folder=doc_pair.local_folder,
                 remote_ref=remote_info.parent_uid,
             ).first()
-            if parent_pair is None or parent_pair.path is None:
+            if parent_pair is None or parent_pair.local_path is None:
                 log.warning(
                     "Parent folder of doc %r (%r) is not bound to a local"
                     " folder", name, doc_pair.remote_ref)
@@ -505,7 +507,7 @@ class Synchronizer(object):
                 session.delete(doc_pair)
                 session.commit()
                 return
-            parent_path = parent_pair.path
+            parent_path = parent_pair.local_path
             if doc_pair.folderish:
                 path = local_client.make_folder(parent_path, name)
                 log.debug("Creating local folder '%s' in '%s'", name,
@@ -531,12 +533,12 @@ class Synchronizer(object):
             session.delete(doc_pair)
 
         elif doc_pair.pair_state == 'remotely_deleted':
-            if doc_pair.path is not None:
+            if doc_pair.local_path is not None:
                 try:
                     # TODO: handle OS-specific trash management?
                     log.debug("Deleting local doc '%s'",
                               doc_pair.get_local_abspath())
-                    local_client.delete(doc_pair.path)
+                    local_client.delete(doc_pair.local_path)
                     session.delete(doc_pair)
                     # XXX: shall we also delete all the subcontent / folder at
                     # once in the medata table?
@@ -555,7 +557,7 @@ class Synchronizer(object):
         elif doc_pair.pair_state == 'deleted':
             # No need to store this information any further
             log.debug('Deleting doc pair %s deleted on both sides',
-                doc_pair.path)
+                doc_pair.local_path)
             session.delete(doc_pair)
             session.commit()
 
@@ -563,7 +565,7 @@ class Synchronizer(object):
             if doc_pair.local_digest == doc_pair.remote_digest != None:
                 # Automated conflict resolution based on digest content:
                 doc_pair.update_state('synchronized', 'synchronized')
-            log.debug('Conflict detected for %s', doc_pair.path)
+            log.debug('Conflict detected for %s', doc_pair.local_path)
         else:
             log.warning("Unhandled pair_state: %r for %r",
                           doc_pair.pair_state, doc_pair)
