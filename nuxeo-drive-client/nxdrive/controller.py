@@ -61,7 +61,7 @@ class Controller(object):
     """
 
     # Used for binding server / roots and managing tokens
-    remote_document_client_factory = RemoteDocumentClient
+    remote_doc_client_factory = RemoteDocumentClient
 
     # Used for FS synchronization operations
     remote_fs_client_factory = RemoteFileSystemClient
@@ -256,7 +256,7 @@ class Controller(object):
         # check the connection to the server by issuing an authentication
         # request
         server_url = self._normalize_url(server_url)
-        nxclient = self.remote_document_client_factory(
+        nxclient = self.remote_doc_client_factory(
             server_url, username, self.device_id, password)
         token = nxclient.request_token()
         if token is not None:
@@ -315,7 +315,7 @@ class Controller(object):
         # Revoke token if necessary
         if binding.remote_token is not None:
             try:
-                nxclient = self.remote_document_client_factory(
+                nxclient = self.remote_doc_client_factory(
                         binding.server_url,
                         binding.remote_user,
                         self.device_id,
@@ -465,7 +465,10 @@ class Controller(object):
     def get_remote_doc_client(self, server_binding, repository='default',
                               base_folder='/'):
         """Return an instance of Nuxeo Document Client"""
-        return self.remote_document_client_factory(server_binding,
+        sb = server_binding
+        return self.remote_doc_client_factory(
+            sb.server_url, sb.remote_user, self.device_id,
+            token=sb.remote_token, password=sb.remote_password,
             repository=repository, base_folder=base_folder)
 
     def get_remote_client(self, server_binding, repository='default',

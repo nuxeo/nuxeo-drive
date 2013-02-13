@@ -31,7 +31,9 @@ def setup():
     os.makedirs(TEST_CONFIG_FOLDER)
     global ctl
     # Use NullPool to workaround windows lock issues at teardown time
-    ctl = Controller(TEST_CONFIG_FOLDER, nuxeo_client_factory=FakeNuxeoClient)
+    ctl = Controller(TEST_CONFIG_FOLDER)
+    ctl.remote_fs_client_factory = FakeNuxeoClient
+    ctl.remote_doc_client_factory = FakeNuxeoClient
 
 
 def teardown():
@@ -168,17 +170,12 @@ def test_bindings():
 
     ctl.bind_root(TEST_SYNCED_FOLDER, remote_root, repository=remote_repo)
 
-    # The local root folder has been created
-    assert_true(os.path.exists(expected_local_root))
-    assert_equal(ctl.children_states(TEST_SYNCED_FOLDER),
-                 [(u'The Root', 'synchronized')])
+    # The local root folder has not yet been created (the synchronizer will do
+    # later)
+    assert_false(os.path.exists(expected_local_root))
+    assert_equal(ctl.children_states(TEST_SYNCED_FOLDER), [])
     assert_equal(ctl.children_states(expected_local_root), [])
     assert_equal(ctl.children_states(unnormalized_local_root), [])
-
-    # Registering twice the same root will also raise an integrity constraint
-    # error
-    assert_raises(Exception, ctl.bind_root, TEST_SYNCED_FOLDER, remote_root,
-                  repository=remote_root)
 
     # Registering an other server on the same root will yield an error
     assert_raises(RuntimeError, ctl.bind_server, TEST_SYNCED_FOLDER,
