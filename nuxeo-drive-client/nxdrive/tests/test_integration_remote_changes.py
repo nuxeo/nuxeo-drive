@@ -11,7 +11,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         self.last_root_definitions = None
 
     def get_changes(self):
-        remote_client = self.remote_document_client_1
+        remote_client = self.remote_file_system_client_1
         summary = remote_client.get_changes(
             last_sync_date=self.last_sync_date,
             last_root_definitions=self.last_root_definitions)

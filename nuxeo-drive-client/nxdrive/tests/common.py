@@ -6,9 +6,9 @@ import hashlib
 import shutil
 
 from nxdrive.model import LastKnownState
-from nxdrive.client import NuxeoClient
+from nxdrive.client import RemoteDocumentClient
+from nxdrive.client import RemoteFileSystemClient
 from nxdrive.controller import Controller
-from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
 
 
 class IntegrationTestCase(unittest.TestCase):
@@ -34,7 +34,7 @@ class IntegrationTestCase(unittest.TestCase):
         # server and might need to wait for a long time without failing for
         # Nuxeo to finish initialize the repo on the first request after
         # startup
-        root_remote_client = NuxeoClient(
+        root_remote_client = RemoteDocumentClient(
             self.nuxeo_url, self.admin_user, 'nxdrive-test-administrator-device',
             self.password, base_folder='/', timeout=60)
 
@@ -53,11 +53,11 @@ class IntegrationTestCase(unittest.TestCase):
 
         # Document client to be used to create remote test documents
         # and folders
-        remote_document_client_1 = NuxeoClient(
+        remote_document_client_1 = RemoteDocumentClient(
             self.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
             self.password_1, base_folder=self.workspace)
 
-        remote_document_client_2 = NuxeoClient(
+        remote_document_client_2 = RemoteDocumentClient(
             self.nuxeo_url, self.user_2, 'nxdrive-test-device-2',
             self.password_2, base_folder=self.workspace)
 

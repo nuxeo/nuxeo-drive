@@ -545,8 +545,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(ctl.list_pending(), [])
 
         # Let's create some document on the client and the server
-        local = LocalClient(expected_folder)
-        local.make_folder('/', 'Folder 3')
+        local = LocalClient(self.local_nxdrive_folder_1)
+        local.make_folder('/', self.workspace_title)
+        local.make_folder('/' + self.workspace_title, 'Folder 3')
         self.make_server_tree()
         self.wait()
 

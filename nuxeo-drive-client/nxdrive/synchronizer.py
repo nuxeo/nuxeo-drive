@@ -750,7 +750,7 @@ class Synchronizer(object):
     def _get_remote_changes(self, server_binding, session=None):
         """Fetch incremental change summary from the server"""
         session = self.get_session() if session is None else session
-        remote_client = self.get_remote_client(server_binding)
+        remote_client = self.get_remote_fs_client(server_binding)
 
         summary = remote_client.get_changes(
             last_sync_date=server_binding.last_sync_date,
