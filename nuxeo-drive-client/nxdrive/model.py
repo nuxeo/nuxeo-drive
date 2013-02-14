@@ -137,7 +137,7 @@ class LastKnownState(Base):
 
     # Parent path from root / ref for fast children queries,
     # can be None for the root it-self.
-    parent_path = Column(String, index=True)
+    local_parent_path = Column(String, index=True)
     remote_parent_ref = Column(String, index=True)
 
     # Names for fast alignment queries
@@ -234,11 +234,14 @@ class LastKnownState(Base):
             self.local_path = local_info.path
             if self.local_path != '/':
                 self.local_name = os.path.basename(local_info.path)
-                parent_path, _ = local_info.path.rsplit('/', 1)
-                self.parent_path = '/' if parent_path == '' else parent_path
+                local_parent_path, _ = local_info.path.rsplit('/', 1)
+                if local_parent_path == '':
+                    self.local_parent_path = '/'
+                else:
+                    self.local_parent_path = local_parent_path
             else:
                 self.local_name = os.path.basename(self.local_folder)
-                self.parent_path = None
+                self.local_parent_path = None
 
         if self.local_path != local_info.path:
             raise ValueError("State %r cannot be mapped to '%s%s'" % (

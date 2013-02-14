@@ -159,7 +159,7 @@ class Controller(object):
 
         return [(os.path.basename(s.local_path), pair_state)
                 for s, pair_state in states
-                if s.parent_path == path]
+                if s.local_parent_path == path]
 
     def _pair_states_recursive(self, session, doc_pair):
         """Recursive call to collect pair state under a given location."""
@@ -168,11 +168,11 @@ class Controller(object):
 
         if doc_pair.local_path is not None and doc_pair.remote_ref is not None:
             f = or_(
-                LastKnownState.parent_path == doc_pair.local_path,
+                LastKnownState.local_parent_path == doc_pair.local_path,
                 LastKnownState.remote_parent_ref == doc_pair.remote_ref,
             )
         elif doc_pair.local_path is not None:
-            f = LastKnownState.parent_path == doc_pair.local_path
+            f = LastKnownState.local_parent_path == doc_pair.local_path
         elif doc_pair.remote_ref is not None:
             f = LastKnownState.remote_parent_ref == doc_pair.remote_ref
         else:
