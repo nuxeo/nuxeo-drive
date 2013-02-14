@@ -315,9 +315,3 @@ class RemoteDocumentClient(BaseAutomationClient):
         self.execute("NuxeoDrive.SetSynchronization", input="doc:" + ref,
                      enable=False)
         return True
-
-    def get_changes(self, last_sync_date=None, last_root_definitions=None):
-        return self.execute(
-            'NuxeoDrive.GetChangeSummary',
-            lastSyncDate=last_sync_date,
-            lastSyncActiveRootDefinitions=last_root_definitions)

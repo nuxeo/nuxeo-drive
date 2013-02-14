@@ -15,7 +15,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
 
-from nxdrive.client import NuxeoClient
+from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
 from nxdrive.utils import normalized_path
 
@@ -108,34 +108,6 @@ class ServerBinding(Base):
         return self.remote_password is None and self.remote_token is None
 
 
-class RootBinding(Base):
-    __tablename__ = 'root_bindings'
-
-    local_root = Column(String, primary_key=True)
-    remote_repo = Column(String)
-    remote_root = Column(String)
-    local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
-
-    server_binding = relationship(
-        'ServerBinding',
-        backref=backref("roots", cascade="all, delete-orphan"))
-
-    def __init__(self, local_root, remote_repo, remote_root):
-        local_root = normalized_path(local_root)
-        self.local_root = local_root
-        self.remote_repo = remote_repo
-        self.remote_root = remote_root
-
-        # expected local folder should be the direct parent of the
-        local_folder = normalized_path(os.path.join(local_root, '..'))
-        self.local_folder = local_folder
-
-    def __repr__(self):
-        return ("RootBinding<local_root=%r, local_folder=%r, remote_repo=%r,"
-                "remote_root=%r>" % (self.local_root, self.local_folder,
-                                     self.remote_repo, self.remote_root))
-
-
 class LastKnownState(Base):
     """Aggregate state aggregated from last collected events."""
     __tablename__ = 'last_known_states'
@@ -148,14 +120,6 @@ class LastKnownState(Base):
         'ServerBinding',
         backref=backref("states", cascade="all, delete-orphan"))
 
-    # To be deprecated / merged with local server when we swicth to the
-    # filesystem item API
-    local_root = Column(String, ForeignKey('root_bindings.local_root'),
-                        index=True)
-    root_binding = relationship(
-        'RootBinding',
-        backref=backref("states", cascade="all, delete-orphan"))
-
     # Timestamps to detect modifications
     last_local_updated = Column(DateTime)
     last_remote_updated = Column(DateTime)
@@ -165,16 +129,16 @@ class LastKnownState(Base):
     remote_digest = Column(String, index=True)
 
     # Path from root using unix separator, '/' for the root it-self.
-    path = Column(String, index=True)
-    remote_path = Column(String)  # for ordering only
+    local_path = Column(String, index=True)
 
     # Remote reference (instead of path based lookup)
     remote_ref = Column(String, index=True)
 
     # Parent path from root / ref for fast children queries,
     # can be None for the root it-self.
-    parent_path = Column(String, index=True)
+    local_parent_path = Column(String, index=True)
     remote_parent_ref = Column(String, index=True)
+    remote_parent_path = Column(String)  # for ordering only
 
     # Names for fast alignment queries
     local_name = Column(String, index=True)
@@ -197,11 +161,10 @@ class LastKnownState(Base):
     # time
     last_sync_error_date = Column(DateTime)
 
-    def __init__(self, local_folder, local_root, local_info=None,
+    def __init__(self, local_folder, local_info=None,
                  remote_info=None, local_state='unknown',
                  remote_state='unknown'):
         self.local_folder = local_folder
-        self.local_root = local_root
         if local_info is None and remote_info is None:
             raise ValueError(
                 "At least local_info or remote_info should be provided")
@@ -220,7 +183,7 @@ class LastKnownState(Base):
             self.remote_state = remote_state
 
         # Detect heuristically aligned situations
-        if (self.path is not None and self.remote_ref is not None
+        if (self.local_path is not None and self.remote_ref is not None
             and self.local_state == self.remote_state == 'unknown'):
             if self.folderish or self.local_digest == self.remote_digest:
                 self.local_state = 'synchronized'
@@ -232,28 +195,24 @@ class LastKnownState(Base):
             self.pair_state = pair_state
 
     def __repr__(self):
-        return ("LastKnownState<local_root=%r, path=%r, "
+        return ("LastKnownState<local_folder=%r, local_path=%r, "
                 "remote_name=%r, local_state=%r, remote_state=%r>") % (
-                    os.path.basename(self.local_root),
-                    self.path, self.remote_name,
+                    os.path.basename(self.local_folder),
+                    self.local_path, self.remote_name,
                     self.local_state, self.remote_state)
 
     def get_local_client(self):
-        return LocalClient(self.local_root)
+        return LocalClient(self.local_folder)
 
-    def get_remote_client(self, factory=None):
-        if factory is None:
-            factory = NuxeoClient
-        rb = self.root_binding
-        sb = rb.server_binding
-        return factory(
-            sb.server_url, sb.remote_user, sb.remote_password,
-            base_folder=rb.remote_root, repository=rb.remote_repo)
+    def get_remote_client(self):
+        sb = self.server_binding
+        return RemoteFileSystemClient(sb.server_url, sb.remote_user,
+             sb.remote_password)
 
     def refresh_local(self, client=None):
         """Update the state from the local filesystem info."""
         client = client if client is not None else self.get_local_client()
-        local_info = client.get_info(self.path, raise_if_missing=False)
+        local_info = client.get_info(self.local_path, raise_if_missing=False)
         self.update_local(local_info)
         return local_info
 
@@ -269,21 +228,24 @@ class LastKnownState(Base):
 
         local_state = None
 
-        if self.path is None:
+        if self.local_path is None:
             # This state only has a remote info and this is the first time
             # we update the local info from the file system
-            self.path = local_info.path
-            if self.path != '/':
+            self.local_path = local_info.path
+            if self.local_path != '/':
                 self.local_name = os.path.basename(local_info.path)
-                parent_path, _ = local_info.path.rsplit('/', 1)
-                self.parent_path = '/' if parent_path == '' else parent_path
+                local_parent_path, _ = local_info.path.rsplit('/', 1)
+                if local_parent_path == '':
+                    self.local_parent_path = '/'
+                else:
+                    self.local_parent_path = local_parent_path
             else:
-                self.local_name = os.path.basename(self.local_root)
-                self.parent_path = None
+                self.local_name = os.path.basename(self.local_folder)
+                self.local_parent_path = None
 
-        if self.path != local_info.path:
+        if self.local_path != local_info.path:
             raise ValueError("State %r cannot be mapped to '%s%s'" % (
-                self, self.local_root, local_info.path))
+                self, self.local_folder, local_info.path))
 
         # Shall we recompute the digest from the current file?
         update_digest = self.local_digest == None
@@ -324,9 +286,7 @@ class LastKnownState(Base):
         request.
         """
         client = client if client is not None else self.get_remote_client()
-        fetch_parent_uid = self.path != '/'
-        remote_info = client.get_info(self.remote_ref, raise_if_missing=False,
-                                      fetch_parent_uid=fetch_parent_uid)
+        remote_info = client.get_info(self.remote_ref, raise_if_missing=False)
         self.update_remote(remote_info)
         return remote_info
 
@@ -343,8 +303,6 @@ class LastKnownState(Base):
         if self.remote_ref is None:
             self.remote_ref = remote_info.uid
             self.remote_parent_ref = remote_info.parent_uid
-            self.remote_name = remote_info.name
-            self.remote_path = remote_info.path
 
         if self.remote_ref != remote_info.uid:
             raise ValueError("State %r (%s) cannot be mapped to remote"
@@ -362,26 +320,27 @@ class LastKnownState(Base):
         self.remote_digest = remote_info.get_digest()
         self.folderish = remote_info.folderish
         self.remote_name = remote_info.name
-        self.remote_path = remote_info.path
+        suffix_len = len(remote_info.uid) + 1
+        self.remote_parent_path = remote_info.path[:-suffix_len]
         self.update_state(remote_state=remote_state)
 
     def get_local_abspath(self):
-        relative_path = self.path[1:].replace('/', os.path.sep)
-        return os.path.join(self.local_root, relative_path)
+        relative_path = self.local_path[1:].replace('/', os.path.sep)
+        return os.path.join(self.local_folder, relative_path)
 
 
 class FileEvent(Base):
     __tablename__ = 'fileevents'
 
     id = Column(Integer, Sequence('fileevent_id_seq'), primary_key=True)
-    local_root = Column(String, ForeignKey('root_bindings.local_root'))
+    local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
     utc_time = Column(DateTime)
     path = Column(String)
 
-    root_binding = relationship("RootBinding")
+    server_binding = relationship("ServerBinding")
 
-    def __init__(self, local_root, path, utc_time=None):
-        self.local_root = local_root
+    def __init__(self, local_folder, path, utc_time=None):
+        self.local_folder = local_folder
         if utc_time is None:
             utc_time = datetime.utcnow()
 

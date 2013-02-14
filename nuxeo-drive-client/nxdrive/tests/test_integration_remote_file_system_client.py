@@ -4,7 +4,7 @@ import hashlib
 import time
 
 
-FS_ITEM_ID_PREFIX = 'defaultFileSystemItemFactory/default/'
+FS_ITEM_ID_PREFIX = 'defaultFileSystemItemFactory#default#'
 
 class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
 
@@ -33,7 +33,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(digest_algorithm, 'md5')
         digest = self._get_digest(digest_algorithm, "Content of doc 1.")
         self.assertEquals(info.digest, digest)
-        file_uid = fs_item_id.rsplit("/", 1)[1]
+        file_uid = fs_item_id.rsplit("#", 1)[1]
         self.assertEquals(info.download_url,
             'nxbigfile/default/' + file_uid + '/blobholder:0/Document%201.txt')
 
@@ -278,8 +278,8 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             self.workspace_id, 'Folder 1')
         fs_item_2_id = remote_file_system_client.make_folder(
             self.workspace_id, 'Folder 2')
-        folder_1_uid = fs_item_1_id.rsplit("/", 1)[1]
-        folder_2_uid = fs_item_2_id.rsplit("/", 1)[1]
+        folder_1_uid = fs_item_1_id.rsplit("#", 1)[1]
+        folder_2_uid = fs_item_2_id.rsplit("#", 1)[1]
         remote_document_client.register_as_root(folder_1_uid)
         remote_document_client.register_as_root(folder_2_uid)
         children = remote_file_system_client.get_top_level_children()

@@ -50,16 +50,10 @@ def parse_edit_protocol(data_string):
     if '/nxdoc/' not in data_string:
         raise ValueError(invalid_msg)
 
-    server_part, doc_part = data_string.split('/nxdoc/', 1)
+    server_part, doc_uid = data_string.split('/nxdoc/', 1)
     server_url = "%s://%s" % (scheme, server_part)
 
-    components = doc_part.split('/')
-    if len(components) != 2:
-        raise ValueError(invalid_msg)
-
-    repository, docref = components
-    return dict(command='edit', server_url=server_url,
-                repository=repository, docref=docref)
+    return dict(command='edit', server_url=server_url, doc_uid=doc_uid)
 
 
 # Protocol handler registration
