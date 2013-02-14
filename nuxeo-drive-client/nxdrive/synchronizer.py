@@ -113,6 +113,26 @@ class Synchronizer(object):
     def get_session(self):
         return self._controller.get_session()
 
+    def _delete_with_descendant_states(self, session, doc_pair):
+        """Delete the metadata of the descendants of deleted doc"""
+        # delete local and remote descendants first
+        if doc_pair.local_path is not None:
+            local_children = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                local_parent_path=doc_pair.local_path).all()
+            for child in local_children:
+                self._delete_with_descendant_states(session, child)
+
+        if doc_pair.remote_ref is not None:
+            remote_children = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                remote_parent_ref=doc_pair.remote_ref).all()
+            for child in remote_children:
+                self._delete_with_descendant_states(session, child)
+
+        # delete parent folder in the end
+        session.delete(doc_pair)
+
     def scan_local(self, server_binding_or_local_path, from_state=None,
                    session=None):
         """Recursively scan the bound local folder looking for updates"""
@@ -523,14 +543,10 @@ class Synchronizer(object):
 
         elif doc_pair.pair_state == 'locally_deleted':
             if doc_pair.remote_ref is not None:
-                # TODO: handle trash management with a dedicated server
-                # side operations?
                 log.debug("Deleting remote doc '%s' (%s)",
                           doc_pair.remote_name, doc_pair.remote_ref)
                 remote_client.delete(doc_pair.remote_ref)
-            # XXX: shall we also delete all the subcontent / folder at
-            # once in the medata table?
-            session.delete(doc_pair)
+            self._delete_with_descendant_states(session, doc_pair)
 
         elif doc_pair.pair_state == 'remotely_deleted':
             if doc_pair.local_path is not None:
@@ -539,7 +555,7 @@ class Synchronizer(object):
                     log.debug("Deleting local doc '%s'",
                               doc_pair.get_local_abspath())
                     local_client.delete(doc_pair.local_path)
-                    session.delete(doc_pair)
+                    self._delete_with_descendant_states(session, doc_pair)
                     # XXX: shall we also delete all the subcontent / folder at
                     # once in the medata table?
                 except (IOError, WindowsError):
@@ -552,14 +568,13 @@ class Synchronizer(object):
                         "editing of this file by another process.",
                         doc_pair.get_local_abspath())
             else:
-                session.delete(doc_pair)
+                self._delete_with_descendant_states(session, doc_pair)
 
         elif doc_pair.pair_state == 'deleted':
             # No need to store this information any further
             log.debug('Deleting doc pair %s deleted on both sides',
                 doc_pair.local_path)
-            session.delete(doc_pair)
-            session.commit()
+            self._delete_with_descendant_states(session, doc_pair)
 
         elif doc_pair.pair_state == 'conflicted':
             if doc_pair.local_digest == doc_pair.remote_digest != None:

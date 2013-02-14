@@ -282,8 +282,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ]
         self.assertEquals(states, expected_states)
 
-        # Perform synchronization
-        self.assertEquals(syn.synchronize(limit=100), 10)
+        # Perform synchronization: deleted folder content are not
+        # counted in the summary
+        self.assertEquals(syn.synchronize(limit=100), 7)
 
         # We should now be fully synchronized again
         self.assertEquals(len(ctl.list_pending()), 0)
@@ -657,3 +658,63 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Previously synchronized files are still there, untouched
         self.assertEquals(
             len(local.get_children_info('/Nuxeo Drive Test Workspace')), 4)
+
+
+    def test_delete_root_folder(self):
+        """Check that local delete of root maps to unbind_root on the server"""
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+        syn = ctl.synchronizer
+
+        expected_folder = os.path.join(self.local_nxdrive_folder_1,
+                                       self.workspace_title)
+
+        syn.loop(delay=0, max_loops=1)
+        self.assertEquals(ctl.list_pending(), [])
+
+        # The workspace has been synced
+        local = LocalClient(self.local_nxdrive_folder_1)
+        self.assertTrue(local.exists('/' + self.workspace_title))
+
+        # Let's create a subfolder
+        local.make_folder('/' + self.workspace_title, 'Folder 3')
+        syn.loop(delay=0, max_loops=1)
+        self.assertEquals(ctl.list_pending(), [])
+
+        self.assertEquals(self.get_all_states(), [
+            (u'/', u'synchronized', u'synchronized'),
+            (u'/Nuxeo Drive Test Workspace', u'synchronized', u'synchronized'),
+            (u'/Nuxeo Drive Test Workspace/Folder 3', u'synchronized', u'synchronized'),
+        ])
+
+        # Let's delete the root locally
+        local.delete('/' + self.workspace_title)
+        self.assertFalse(local.exists('/' + self.workspace_title))
+        syn.loop(delay=1, max_loops=1)
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(self.get_all_states(), [
+            (u'/', u'synchronized', u'synchronized'),
+        ])
+
+        # On the server this has been mapped to a root unregistration:
+        # the workspace is still there
+        self.assertTrue(self.remote_document_client_1.exists('/'))
+
+        # The subfolder has not been deleted on the server
+        self.assertTrue(self.remote_document_client_1.exists('/Folder 3'))
+
+        # We can rebind the root and fetch back its content
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+        self.wait()
+        
+        syn.loop(delay=0, max_loops=1)
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertTrue(local.exists('/' + self.workspace_title))
+        self.assertTrue(local.exists('/' + self.workspace_title + '/Folder 3'))
+        self.assertEquals(self.get_all_states(), [
+            (u'/', u'synchronized', u'synchronized'),
+            (u'/Nuxeo Drive Test Workspace', u'synchronized', u'synchronized'),
+            (u'/Nuxeo Drive Test Workspace/Folder 3', u'synchronized', u'synchronized'),
+        ])
