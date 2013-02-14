@@ -11,5 +11,5 @@ from nxdrive.client.local_client import safe_filename
 from nxdrive.client.local_client import LocalClient
 
 
-# TODO: backward compatibility with old remote client name, to be removed
+# Backward compatibility with old remote client name, to be removed
 NuxeoClient = RemoteDocumentClient

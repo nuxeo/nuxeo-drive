@@ -351,7 +351,7 @@ class CliHandler(object):
 
     def edit(self, options):
         self.controller.launch_file_editor(
-            options.server_url, options.repository, options.docref)
+            options.server_url, options.doc_uid)
         return 0
 
     def bind_server(self, options):
@@ -405,7 +405,6 @@ class CliHandler(object):
         # List the test modules explicitly as recursive discovery is broken
         # when the app is frozen.
         argv += [
-            "nxdrive.tests.test_controller",
             "nxdrive.tests.test_integration_local_client",
             "nxdrive.tests.test_integration_remote_changes",
             "nxdrive.tests.test_integration_remote_document_client",

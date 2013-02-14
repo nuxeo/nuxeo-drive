@@ -19,6 +19,7 @@ BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
     'name',  # title of the file (not guaranteed to be locally unique)
     'uid',   # id of the file
     'parent_uid',  # id of the parent file
+    'path',  # abstract file system path: useful for ordering folder trees
     'folderish',  # True is can host children
     'last_modification_time',  # last update time
     'digest',  # digest of the file
@@ -32,7 +33,6 @@ class RemoteFileInfo(BaseRemoteFileInfo):
 
     # TODO: backward compatibility, to be removed
     root = '/'
-    path = '/'
     repository = 'default'
 
     # Consistency with the local client API
@@ -58,6 +58,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
                     fs_item_id, self.server_url))
             return None
         return self._file_to_info(fs_item)
+
+    def get_filesystem_root_info(self):
+        toplevel_folder = self.execute("NuxeoDrive.GetTopLevelFolder");
+        return self._file_to_info(toplevel_folder)
 
     def get_content(self, fs_item_id, file_out=None):
         """Downloads the binary content of a file system item
@@ -106,15 +110,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def _file_to_info(self, fs_item):
         """Convert Automation file system item description to RemoteFileInfo"""
         folderish = fs_item['folder']
-        # TODO: fix: lastModificationDate is a long value
-#        try:
-#            last_update = datetime.strptime(fs_item['lastModificationDate'],
-#                                            "%Y-%m-%dT%H:%M:%S.%fZ")
-#        except ValueError:
-#            # no millisecond?
-#            last_update = datetime.strptime(fs_item['lastModificationDate'],
-#                                            "%Y-%m-%dT%H:%M:%SZ")
-        last_update = datetime.utcnow()
+        milliseconds = fs_item['lastModificationDate']
+        last_update = datetime.fromtimestamp(milliseconds // 1000)
 
         if folderish:
             digest = None
@@ -127,7 +124,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
         return RemoteFileInfo(
             fs_item['name'], fs_item['id'], fs_item['parentId'],
-            folderish, last_update, digest, digest_algorithm, download_url)
+            fs_item['path'], folderish, last_update, digest, digest_algorithm,
+            download_url)
 
     def _do_get(self, url, file_out=None):
         if self._error is not None:
@@ -171,3 +169,9 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
     def get_top_level_children(self):
         return self.execute("NuxeoDrive.GetTopLevelChildren")
+
+    def get_changes(self, last_sync_date=None, last_root_definitions=None):
+        return self.execute(
+            'NuxeoDrive.GetChangeSummary',
+            lastSyncDate=last_sync_date,
+            lastSyncActiveRootDefinitions=last_root_definitions)

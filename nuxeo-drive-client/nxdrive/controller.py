@@ -13,14 +13,14 @@ from sqlalchemy import or_
 
 import nxdrive
 from nxdrive.client import Unauthorized
-from nxdrive.client import NuxeoClient
 from nxdrive.client import LocalClient
+from nxdrive.client import RemoteFileSystemClient
+from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.model import init_db
 from nxdrive.model import DeviceConfig
 from nxdrive.model import ServerBinding
-from nxdrive.model import RootBinding
 from nxdrive.model import LastKnownState
 from nxdrive.synchronizer import Synchronizer
 from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
@@ -60,8 +60,13 @@ class Controller(object):
     as DB sessions and Nuxeo clients are thread locals.
     """
 
-    def __init__(self, config_folder, nuxeo_client_factory=None, echo=None,
-                 poolclass=None):
+    # Used for binding server / roots and managing tokens
+    remote_doc_client_factory = RemoteDocumentClient
+
+    # Used for FS synchronization operations
+    remote_fs_client_factory = RemoteFileSystemClient
+
+    def __init__(self, config_folder, echo=None, poolclass=None):
         # Log the installation location for debug
         nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
         nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
@@ -81,13 +86,6 @@ class Controller(object):
         # metadata sqlite database.
         self._engine, self._session_maker = init_db(
             self.config_folder, echo=echo, poolclass=poolclass)
-
-        # Make it possible to pass an arbitrary nuxeo client factory
-        # for testing
-        if nuxeo_client_factory is not None:
-            self.nuxeo_client_factory = nuxeo_client_factory
-        else:
-            self.nuxeo_client_factory = NuxeoClient
 
         self._local = local()
         self._remote_error = None
@@ -143,22 +141,7 @@ class Controller(object):
 
         """
         session = self.get_session()
-        server_binding = self.get_server_binding(folder_path, session=session)
-        if server_binding is not None:
-            # if folder_path is the top level Nuxeo Drive folder, list
-            # all the root binding states
-            root_states = []
-            for rb in server_binding.roots:
-                root_state = 'synchronized'
-                for _, child_state in self.children_states(rb.local_root):
-                    if child_state != 'synchronized':
-                        root_state = 'children_modified'
-                        break
-                root_states.append(
-                        (os.path.basename(rb.local_root), root_state))
-            return root_states
-
-        # Find the root binding for this absolute path
+        # Find the server binding for this absolute path
         try:
             binding, path = self._binding_path(folder_path, session=session)
         except NotFound:
@@ -166,31 +149,30 @@ class Controller(object):
 
         try:
             folder_state = session.query(LastKnownState).filter_by(
-                local_root=binding.local_root,
-                path=path,
+                local_folder=binding.local_folder,
+                local_path=path,
             ).one()
         except NoResultFound:
             return []
 
-        states = self._pair_states_recursive(binding.local_root, session,
-                                             folder_state)
+        states = self._pair_states_recursive(session, folder_state)
 
-        return [(os.path.basename(s.path), pair_state)
+        return [(os.path.basename(s.local_path), pair_state)
                 for s, pair_state in states
-                if s.parent_path == path]
+                if s.local_parent_path == path]
 
-    def _pair_states_recursive(self, local_root, session, doc_pair):
+    def _pair_states_recursive(self, session, doc_pair):
         """Recursive call to collect pair state under a given location."""
         if not doc_pair.folderish:
             return [(doc_pair, doc_pair.pair_state)]
 
-        if doc_pair.path is not None and doc_pair.remote_ref is not None:
+        if doc_pair.local_path is not None and doc_pair.remote_ref is not None:
             f = or_(
-                LastKnownState.parent_path == doc_pair.path,
+                LastKnownState.local_parent_path == doc_pair.local_path,
                 LastKnownState.remote_parent_ref == doc_pair.remote_ref,
             )
-        elif doc_pair.path is not None:
-            f = LastKnownState.parent_path == doc_pair.path
+        elif doc_pair.local_path is not None:
+            f = LastKnownState.local_parent_path == doc_pair.local_path
         elif doc_pair.remote_ref is not None:
             f = LastKnownState.remote_parent_ref == doc_pair.remote_ref
         else:
@@ -198,15 +180,14 @@ class Controller(object):
                              " should be not None." % doc_pair)
 
         children_states = session.query(LastKnownState).filter_by(
-            local_root=local_root).filter(f).order_by(
+            local_folder=doc_pair.local_folder).filter(f).order_by(
                 asc(LastKnownState.local_name),
                 asc(LastKnownState.remote_name),
             ).all()
 
         results = []
         for child_state in children_states:
-            sub_results = self._pair_states_recursive(
-                local_root, session, child_state)
+            sub_results = self._pair_states_recursive(session, child_state)
             results.extend(sub_results)
 
         # A folder stays synchronized (or unknown) only if all the descendants
@@ -219,29 +200,30 @@ class Controller(object):
         # Pre-pend the folder state to the descendants
         return [(doc_pair, pair_state)] + results
 
-    def _binding_path(self, folder_path, session=None):
-        """Find a root binding and relative path for a given FS path"""
-        folder_path = normalized_path(folder_path)
+    def _binding_path(self, local_path, session=None):
+        """Find a server binding and relative path for a given FS path"""
+        local_path = normalized_path(local_path)
 
-        # Check exact root binding match
-        binding = self.get_root_binding(folder_path, session=session)
+        # Check exact binding match
+        binding = self.get_server_binding(local_path, session=session,
+            raise_if_missing=False)
         if binding is not None:
             return binding, '/'
 
-        # Check for root bindings that are prefix of folder_path
+        # Check for bindings that are prefix of local_path
         session = self.get_session()
-        all_root_bindings = session.query(RootBinding).all()
-        root_bindings = [rb for rb in all_root_bindings
-                         if folder_path.startswith(
-                             rb.local_root + os.path.sep)]
-        if len(root_bindings) == 0:
-            raise NotFound("Could not find any root binding for "
-                               + folder_path)
-        elif len(root_bindings) > 1:
+        all_bindings = session.query(ServerBinding).all()
+        matching_bindings = [sb for sb in all_bindings
+                             if local_path.startswith(
+                                sb.local_folder + os.path.sep)]
+        if len(matching_bindings) == 0:
+            raise NotFound("Could not find any server binding for "
+                               + local_path)
+        elif len(matching_bindings) > 1:
             raise RuntimeError("Found more than one binding for %s: %r" % (
-                folder_path, root_bindings))
-        binding = root_bindings[0]
-        path = folder_path[len(binding.local_root):]
+                local_path, matching_bindings))
+        binding = matching_bindings[0]
+        path = local_path[len(binding.local_folder):]
         path = path.replace(os.path.sep, '/')
         return binding, path
 
@@ -270,12 +252,14 @@ class Controller(object):
         """Bind a local folder to a remote nuxeo server"""
         session = self.get_session()
         local_folder = normalized_path(local_folder)
+        if not os.path.exists(local_folder):
+            os.makedirs(local_folder)
 
         # check the connection to the server by issuing an authentication
         # request
         server_url = self._normalize_url(server_url)
-        nxclient = self.nuxeo_client_factory(server_url, username, self.device_id,
-                                             password)
+        nxclient = self.remote_doc_client_factory(
+            server_url, username, self.device_id, password)
         token = nxclient.request_token()
         if token is not None:
             # The server supports token based identification: do not store the
@@ -310,9 +294,25 @@ class Controller(object):
         except NoResultFound:
             log.info("Binding '%s' to '%s' with account '%s'",
                      local_folder, server_url, username)
-            session.add(ServerBinding(local_folder, server_url, username,
-                                      remote_password=password,
-                                      remote_token=token))
+            server_binding = ServerBinding(local_folder, server_url, username,
+                                           remote_password=password,
+                                           remote_token=token)
+            session.add(server_binding)
+
+            # Creating the toplevel state for the server binding
+            local_client = LocalClient(server_binding.local_folder)
+            local_info = local_client.get_info('/')
+
+            remote_client = self.get_remote_fs_client(server_binding)
+            remote_info = remote_client.get_filesystem_root_info()
+
+            state = LastKnownState(server_binding.local_folder,
+                                   local_info=local_info,
+                                   local_state='synchronized',
+                                   remote_info=remote_info,
+                                   remote_state='synchronized')
+            session.add(state)
+            session.commit()
 
         # Create the local folder to host the synchronized files: this
         # is useless as long as bind_root is not called
@@ -333,7 +333,7 @@ class Controller(object):
         # Revoke token if necessary
         if binding.remote_token is not None:
             try:
-                nxclient = self.nuxeo_client_factory(
+                nxclient = self.remote_doc_client_factory(
                         binding.server_url,
                         binding.remote_user,
                         self.device_id,
@@ -366,173 +366,39 @@ class Controller(object):
         for sb in session.query(ServerBinding).all():
             self.unbind_server(sb.local_folder)
 
-    def get_root_binding(self, local_root, raise_if_missing=False,
-                         session=None):
-        """Find the RootBinding instance for a given local_root
-
-        It is the responsability of the caller to commit any change in
-        the same thread if needed.
-        """
-        local_root = normalized_path(local_root)
-        if session is None:
-            session = self.get_session()
-        try:
-            return session.query(RootBinding).filter(
-                RootBinding.local_root == local_root).one()
-        except NoResultFound:
-            if raise_if_missing:
-                raise RuntimeError(
-                    "Folder '%s' is not bound as a root."
-                    % local_root)
-            return None
-
-    def bind_root(self, local_folder, remote_root, repository='default'):
+    def bind_root(self, local_folder, remote_ref, repository='default',
+                  session=None):
         """Bind local root to a remote root (folderish document in Nuxeo).
 
-        local_folder must be already bound to an existing Nuxeo server. A
-        new folder will be created under that folder to bind the remote
-        root.
+        local_folder must be already bound to an existing Nuxeo server.
 
-        remote_root must be the IdRef or PathRef of an existing folderish
-        document on the remote server bound to the local folder. The
-        user account must have write access to that folder, otherwise
-        a RuntimeError will be raised.
+        remote_ref must be the IdRef or PathRef of an existing folderish
+        document on the remote server bound to the local folder.
+
         """
-        # Check that local_root is a subfolder of bound folder
-        session = self.get_session()
+        session = self.get_session() if session is None else session
         local_folder = normalized_path(local_folder)
-        server_binding = self.get_server_binding(local_folder,
-                                                 raise_if_missing=True,
-                                                 session=session)
+        server_binding = self.get_server_binding(
+            local_folder, raise_if_missing=True, session=session)
 
-        # Check the remote root exists and is an editable folder by current
-        # user.
-        try:
-            nxclient = self.get_remote_client(server_binding,
-                                              repository=repository,
-                                              base_folder=remote_root)
-            remote_info = nxclient.get_info('/', fetch_parent_uid=False)
-        except NotFound:
-            remote_info = None
-        if remote_info is None or not remote_info.folderish:
-            raise RuntimeError(
-                'No folder at "%s:%s" visible by "%s" on server "%s"'
-                % (repository, remote_root, server_binding.remote_user,
-                   server_binding.server_url))
+        nxclient = self.get_remote_doc_client(server_binding,
+            repository=repository)
 
-        if not nxclient.check_writable(remote_root):
-            raise RuntimeError(
-                'Folder at "%s:%s" is not editable by "%s" on server "%s"'
-                % (repository, remote_root, server_binding.remote_user,
-                   server_binding.server_url))
+        # Register the root on the server
+        nxclient.register_as_root(remote_ref)
 
-        # register the root on the server
-        if nxclient.register_as_root(remote_info.uid):
-            self.synchronizer.update_roots(server_binding, session=session,
-                    repository=repository)
-        else:
-            # For the tests only
-            self._local_bind_root(server_binding, remote_info, nxclient,
-                    session=session)
+    def unbind_root(self, local_folder, remote_ref, repository='default',
+                    session=None):
+        """Remove binding to remote folder"""
+        session = self.get_session() if session is None else session
+        server_binding = self.get_server_binding(
+            local_folder, raise_if_missing=True, session=session)
 
-    def _local_bind_root(self, server_binding, remote_info, nxclient, session):
-        # Check that this workspace does not already exist locally
-        # TODO: shall we handle deduplication for root names too?
-        local_root = os.path.join(server_binding.local_folder,
-                                  safe_filename(remote_info.name))
-        repository = nxclient.repository
-        if not os.path.exists(local_root):
-            os.makedirs(local_root)
-        lcclient = LocalClient(local_root)
-        local_info = lcclient.get_info('/')
+        nxclient = self.get_remote_doc_client(server_binding,
+            repository=repository)
 
-        try:
-            existing_binding = session.query(RootBinding).filter_by(
-                local_root=local_root,
-            ).one()
-            if (existing_binding.remote_repo != repository
-                or existing_binding.remote_root != remote_info.uid):
-                raise RuntimeError(
-                    "%r is already bound to %r on repo %r of %r" % (
-                        local_root,
-                        existing_binding.remote_root,
-                        existing_binding.remote_repo,
-                        existing_binding.server_binding.server_url))
-        except NoResultFound:
-            # Register the new binding itself
-            log.info("Binding local root '%s' to '%s' (id=%s) on server '%s'",
-                 local_root, remote_info.name, remote_info.uid,
-                     server_binding.server_url)
-            session.add(RootBinding(local_root, repository, remote_info.uid))
-
-            # Initialize the metadata of the root and let the synchronizer
-            # scan the folder recursively
-            state = LastKnownState(server_binding.local_folder,
-                    lcclient.base_folder, local_info=local_info,
-                    remote_info=remote_info)
-            if remote_info.folderish:
-                # Mark as synchronized as there is nothing to download later
-                state.update_state(local_state='synchronized',
-                        remote_state='synchronized')
-            else:
-                # Mark remote as updated to trigger a download of the binary
-                # attachment during the next synchro
-                state.update_state(local_state='synchronized',
-                                remote_state='modified')
-            session.add(state)
-            self.synchronizer.scan_local(server_binding, from_state=state,
-                session=session)
-            self.synchronizer.scan_remote(server_binding, from_state=state,
-                session=session)
-            session.commit()
-
-    def unbind_root(self, local_root, session=None):
-        """Remove binding on a root folder"""
-        local_root = normalized_path(local_root)
-        if session is None:
-            session = self.get_session()
-        binding = self.get_root_binding(local_root, raise_if_missing=True,
-                                        session=session)
-
-        nxclient = self.get_remote_client(binding.server_binding,
-                                          repository=binding.remote_repo,
-                                          base_folder=binding.remote_root)
-        if nxclient.is_addon_installed():
-            # unregister the root on the server
-            nxclient.unregister_as_root(binding.remote_root)
-            self.synchronizer.update_roots(binding.server_binding,
-                    session=session, repository=binding.remote_repo)
-        else:
-            # manual bounding: the server is not aware
-            self._local_unbind_root(binding, session)
-
-    def _local_unbind_root(self, binding, session):
-        log.info("Unbinding local root '%s'.", binding.local_root)
-        session.delete(binding)
-        session.commit()
-
-    def update_server_roots(self, server_binding, session, local_roots,
-            remote_roots, repository):
-        """Align the roots for a given server and repository"""
-        local_roots_by_id = dict((r.remote_root, r) for r in local_roots)
-        local_root_ids = set(local_roots_by_id.keys())
-
-        remote_roots_by_id = dict((r.uid, r) for r in remote_roots)
-        remote_root_ids = set(remote_roots_by_id.keys())
-
-        to_remove = local_root_ids - remote_root_ids
-        to_add = remote_root_ids - local_root_ids
-
-        for ref in to_remove:
-            self._local_unbind_root(local_roots_by_id[ref], session)
-
-        for ref in to_add:
-            # get a client with the right base folder
-            rc = self.get_remote_client(server_binding,
-                                        repository=repository,
-                                        base_folder=ref)
-            self._local_bind_root(server_binding, remote_roots_by_id[ref],
-                                  rc, session)
+        # Unregister the root on the server
+        nxclient.unregister_as_root(remote_ref)
 
     def list_pending(self, limit=100, local_folder=None, ignore_in_error=None,
                      session=None):
@@ -560,8 +426,16 @@ class Controller(object):
         return session.query(LastKnownState).filter(
             *predicates
         ).order_by(
-            asc(LastKnownState.path),
-            asc(LastKnownState.remote_path),
+            # Ensure that newly created local folders will be synchronized
+            # before their children
+            asc(LastKnownState.local_path),
+
+            # Ensure that newly created remote folders will be synchronized
+            # before their children while keeping a fixed named based
+            # deterministic ordering to make the tests readable
+            asc(LastKnownState.remote_parent_path),
+            asc(LastKnownState.remote_name),
+            asc(LastKnownState.remote_ref)
         ).limit(limit).all()
 
     def next_pending(self, local_folder=None, session=None):
@@ -575,24 +449,37 @@ class Controller(object):
             self._local.remote_clients = dict()
         return self._local.remote_clients
 
-    def get_remote_client(self, server_binding, base_folder=None,
-                          repository='default'):
+    def get_remote_fs_client(self, server_binding):
+        """Return a client for the FileSystem abstraction."""
         cache = self._get_client_cache()
         sb = server_binding
-        cache_key = (sb.server_url, sb.remote_user, self.device_id, base_folder,
-                     repository)
+        cache_key = (sb.server_url, sb.remote_user, self.device_id)
         remote_client = cache.get(cache_key)
 
         if remote_client is None:
-            remote_client = self.nuxeo_client_factory(
+            remote_client = self.remote_fs_client_factory(
                 sb.server_url, sb.remote_user, self.device_id,
-                token=sb.remote_token, password=sb.remote_password,
-                base_folder=base_folder, repository=repository)
+                token=sb.remote_token, password=sb.remote_password)
             cache[cache_key] = remote_client
         # Make it possible to have the remote client simulate any kind of
         # failure
         remote_client.make_raise(self._remote_error)
         return remote_client
+
+    def get_remote_doc_client(self, server_binding, repository='default',
+                              base_folder='/'):
+        """Return an instance of Nuxeo Document Client"""
+        sb = server_binding
+        return self.remote_doc_client_factory(
+            sb.server_url, sb.remote_user, self.device_id,
+            token=sb.remote_token, password=sb.remote_password,
+            repository=repository, base_folder=base_folder)
+
+    def get_remote_client(self, server_binding, repository='default',
+                          base_folder='/'):
+        # Backward compat
+        return self.get_remote_doc_client(server_binding,
+            repository=repository, base_folder=remote_root)
 
     def invalidate_client_cache(self, server_url):
         cache = self._get_client_cache()
@@ -600,7 +487,7 @@ class Controller(object):
             if client.server_url == server_url:
                 del cache[key]
 
-    def get_state(self, server_url, remote_repo, remote_ref):
+    def get_state(self, server_url, remote_ref):
         """Find a pair state for the provided remote document identifiers."""
         server_url = self._normalize_url(server_url)
         session = self.get_session()
@@ -609,32 +496,30 @@ class Controller(object):
                 remote_ref=remote_ref,
             ).all()
             for state in states:
-                rb = state.root_binding
-                sb = rb.server_binding
-                if (sb.server_url == server_url
-                    and rb.remote_repo == remote_repo):
+                if (state.server_binding.server_url == server_url):
                     return state
         except NoResultFound:
             return None
 
-    def get_state_for_local_path(self, local_path):
+    def get_state_for_local_path(self, local_os_path):
         """Find a DB state from a local filesystem path"""
         session = self.get_session()
-        rb, path = self._binding_path(local_path, session=session)
+        sb, local_path = self._binding_path(local_os_path, session=session)
         return session.query(LastKnownState).filter_by(
-            local_root=rb.local_root, path=path).one()
+            local_folder=sb.local_folder, local_path=local_path).one()
 
-    def launch_file_editor(self, server_url, remote_repo, remote_ref):
+    def launch_file_editor(self, server_url, remote_ref):
         """Find the local file if any and start OS editor on it."""
+
         state = self.get_state(server_url, remote_repo, remote_ref)
         if state is None:
             # TODO: synchronize to a dedicated special root for one time edit
-            # TODO: find a better exception
-            log.warning('Could not find local file for %s/nxdoc/%s/%s'
-                    '/view_documents', server_url, remote_repo, remote_ref)
+            log.warning('Could not find local file for '
+                        'server_url=%s and remote_ref=%s',
+                        server_url, remote_repo, remote_ref)
             return
 
-        # TODO: synchronize this state first
+        # TODO: check synchronization of this state first
 
         # Find the best editor for the file according to the OS configuration
         file_path = state.get_local_abspath()
