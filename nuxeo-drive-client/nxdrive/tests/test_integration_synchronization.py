@@ -659,7 +659,6 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(
             len(local.get_children_info('/Nuxeo Drive Test Workspace')), 4)
 
-
     def test_delete_root_folder(self):
         """Check that local delete of root maps to unbind_root on the server"""
         ctl = self.controller_1
@@ -684,18 +683,25 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(ctl.list_pending(), [])
 
         self.assertEquals(self.get_all_states(), [
-            (u'/', u'synchronized', u'synchronized'),
-            (u'/Nuxeo Drive Test Workspace', u'synchronized', u'synchronized'),
-            (u'/Nuxeo Drive Test Workspace/Folder 3', u'synchronized', u'synchronized'),
+            (u'/',
+             u'synchronized', u'synchronized'),
+            (u'/Nuxeo Drive Test Workspace',
+             u'synchronized', u'synchronized'),
+            (u'/Nuxeo Drive Test Workspace/Folder 3',
+             u'synchronized', u'synchronized'),
         ])
 
         # Let's delete the root locally
         local.delete('/' + self.workspace_title)
         self.assertFalse(local.exists('/' + self.workspace_title))
+        self.wait()
         syn.loop(delay=1, max_loops=1)
+        self.assertFalse(local.exists('/' + self.workspace_title))
         self.assertEquals(ctl.list_pending(), [])
+
         self.assertEquals(self.get_all_states(), [
-            (u'/', u'synchronized', u'synchronized'),
+            (u'/',
+             u'synchronized', u'synchronized'),
         ])
 
         # On the server this has been mapped to a root unregistration:
@@ -714,7 +720,47 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertTrue(local.exists('/' + self.workspace_title))
         self.assertTrue(local.exists('/' + self.workspace_title + '/Folder 3'))
         self.assertEquals(self.get_all_states(), [
-            (u'/', u'synchronized', u'synchronized'),
-            (u'/Nuxeo Drive Test Workspace', u'synchronized', u'synchronized'),
-            (u'/Nuxeo Drive Test Workspace/Folder 3', u'synchronized', u'synchronized'),
+            (u'/',
+             u'synchronized', u'synchronized'),
+            (u'/Nuxeo Drive Test Workspace',
+             u'synchronized', u'synchronized'),
+            (u'/Nuxeo Drive Test Workspace/Folder 3',
+             u'synchronized', u'synchronized'),
         ])
+
+    def test_create_content_in_readonly_area(self):
+        # XXX: implement permission checks on the client and leverage this
+        # info in the synchronizer to not try to sync unsyncable stuff
+        # and avoid logging errors in that case (just debug info)
+
+        # Let's bind a the server but no root workspace
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        syn = ctl.synchronizer
+        self.wait()
+
+        syn.loop(delay=0.1, max_loops=1)
+        self.assertEquals(ctl.list_pending(), [])
+
+        # Let's create a subfolder of the main readonly folder
+        local = LocalClient(self.local_nxdrive_folder_1)
+        local.make_folder('/', 'Folder 3')
+        syn.loop(delay=0.1, max_loops=1)
+
+        # The remote folder has not been created
+        self.assertEquals(self.get_all_states(), [
+            (u'/',
+             u'synchronized', u'synchronized'),
+            (u'/Folder 3',
+             u'created', u'unknown'),
+        ])
+        self.assertEquals(len(ctl.list_pending()), 1)
+        pending = ctl.list_pending()[0]
+        self.assertEquals(pending.local_name, 'Folder 3')
+
+        # The folder is not synchronized as this folder was black
+        # listed for 5 minutes
+        self.assertEquals(len(ctl.list_pending(ignore_in_error=300)), 0)
+        syn.loop(delay=0.1, max_loops=1)
+        self.assertEquals(len(ctl.list_pending(ignore_in_error=300)), 0)
