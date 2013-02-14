@@ -252,6 +252,8 @@ class Controller(object):
         """Bind a local folder to a remote nuxeo server"""
         session = self.get_session()
         local_folder = normalized_path(local_folder)
+        if not os.path.exists(local_folder):
+            os.makedirs(local_folder)
 
         # check the connection to the server by issuing an authentication
         # request
