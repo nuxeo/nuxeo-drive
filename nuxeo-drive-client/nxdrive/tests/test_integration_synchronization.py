@@ -43,44 +43,51 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Check the list of files and folders with synchronization pending
         pending = ctl.list_pending()
-        self.assertEquals(len(pending), 13)
-        self.assertEquals(pending[0].remote_name, self.workspace_title)
-        self.assertEquals(pending[1].remote_name, 'File 5.txt')
-        self.assertEquals(pending[2].remote_name, 'Folder 1')
-        self.assertEquals(pending[3].remote_name, 'File 1.txt')
-        self.assertEquals(pending[4].remote_name, 'Folder 1.1')
-        self.assertEquals(pending[5].remote_name, 'File 2.txt')
-        self.assertEquals(pending[6].remote_name, 'Folder 1.2')
-        self.assertEquals(pending[7].remote_name, 'File 3.txt')
-        self.assertEquals(pending[8].remote_name, 'Folder 2')
-        self.assertEquals(pending[9].remote_name, 'Duplicated File.txt')
-        self.assertEquals(pending[10].remote_name, 'Duplicated File.txt')
-        self.assertEquals(pending[11].remote_name, 'File 4.txt')
-        self.assertEquals(pending[12].remote_name, 'Nuxeo Drive')
+        self.assertEquals(len(pending), 12)
+        remote_names = [p.remote_name for p in pending]
+        remote_names.sort()
+        self.assertEquals(remote_names, [
+            u'Duplicated File.txt',
+            u'Duplicated File.txt',
+            u'File 1.txt',
+            u'File 2.txt',
+            u'File 3.txt',
+            u'File 4.txt',
+            u'File 5.txt',
+            u'Folder 1',
+            u'Folder 1.1',
+            u'Folder 1.2',
+            u'Folder 2',
+            u'Nuxeo Drive Test Workspace',
+        ])
 
         # It is also possible to restrict the list of pending document to a
         # specific server binding
         self.assertEquals(len(ctl.list_pending(
-                          local_folder=self.local_nxdrive_folder_1)), 11)
+                          local_folder=self.local_nxdrive_folder_1)), 12)
 
         # It is also possible to restrict the number of pending tasks
         pending = ctl.list_pending(limit=2)
         self.assertEquals(len(pending), 2)
 
-        # Synchronize the first 2 documents:
+        # Synchronize the first 2 documents (ordered by hierarchy):
         self.assertEquals(syn.synchronize(
             self.local_nxdrive_folder_1, limit=2), 2)
         pending = ctl.list_pending()
-        self.assertEquals(len(pending), 9)
-        self.assertEquals(pending[0].remote_name, 'File 1.txt')
-        self.assertEquals(pending[1].remote_name, 'Folder 1.1')
-        self.assertEquals(pending[2].remote_name, 'File 2.txt')
-        self.assertEquals(pending[3].remote_name, 'Folder 1.2')
-        self.assertEquals(pending[4].remote_name, 'File 3.txt')
-        self.assertEquals(pending[5].remote_name, 'Folder 2')
-        self.assertEquals(pending[6].remote_name, 'Duplicated File.txt')
-        self.assertEquals(pending[7].remote_name, 'Duplicated File.txt')
-        self.assertEquals(pending[8].remote_name, 'File 4.txt')
+        self.assertEquals(len(pending), 10)
+        remote_names = [p.remote_name for p in pending]
+        remote_names.sort()
+        self.assertEquals(remote_names, [
+            u'Duplicated File.txt',
+            u'Duplicated File.txt',
+            u'File 1.txt',
+            u'File 2.txt',
+            u'File 3.txt',
+            u'File 4.txt',
+            u'File 5.txt',
+            u'Folder 1',
+            u'Folder 1.1',
+            u'Folder 1.2'])
 
         states = ctl.children_states(expected_folder)
         expected_states = [

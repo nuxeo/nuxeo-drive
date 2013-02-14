@@ -166,13 +166,13 @@ class Controller(object):
         if not doc_pair.folderish:
             return [(doc_pair, doc_pair.pair_state)]
 
-        if doc_pair.path is not None and doc_pair.remote_ref is not None:
+        if doc_pair.local_path is not None and doc_pair.remote_ref is not None:
             f = or_(
-                LastKnownState.parent_path == doc_pair.path,
+                LastKnownState.parent_path == doc_pair.local_path,
                 LastKnownState.remote_parent_ref == doc_pair.remote_ref,
             )
-        elif doc_pair.path is not None:
-            f = LastKnownState.parent_path == doc_pair.path
+        elif doc_pair.local_path is not None:
+            f = LastKnownState.parent_path == doc_pair.local_path
         elif doc_pair.remote_ref is not None:
             f = LastKnownState.remote_parent_ref == doc_pair.remote_ref
         else:
@@ -294,7 +294,7 @@ class Controller(object):
                      local_folder, server_url, username)
             server_binding = ServerBinding(local_folder, server_url, username,
                                            remote_password=password,
-                                      remote_token=token)
+                                           remote_token=token)
             session.add(server_binding)
 
             # Creating the toplevel state for the server binding
@@ -306,7 +306,9 @@ class Controller(object):
 
             state = LastKnownState(server_binding.local_folder,
                                    local_info=local_info,
-                                   remote_info=remote_info)
+                                   local_state='synchronized',
+                                   remote_info=remote_info,
+                                   remote_state='synchronized')
             session.add(state)
             session.commit()
 

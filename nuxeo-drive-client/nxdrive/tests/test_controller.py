@@ -107,8 +107,7 @@ class FakeNuxeoClient(object):
         return root_info
 
     def get_filesystem_root_info(self):
-        toplevel_folder = self.execute("NuxeoDrive.GetTopLevelFolder");
-        return self._file_to_info(toplevel_folder)
+        raise NotImplementedError('This mock has to be refactored')
 
     def check_writable(self, ref):
         return True

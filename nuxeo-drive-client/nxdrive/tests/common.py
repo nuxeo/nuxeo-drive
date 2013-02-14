@@ -122,7 +122,7 @@ class IntegrationTestCase(unittest.TestCase):
         if session is None:
             session = self.controller_1.get_session()
         pairs = session.query(LastKnownState).order_by(
-            LastKnownState.local_path).all()
+            LastKnownState.local_path, LastKnownState.remote_path).all()
         return [(p.local_path, p.local_state, p.remote_state) for p in pairs]
 
     def make_server_tree(self):
