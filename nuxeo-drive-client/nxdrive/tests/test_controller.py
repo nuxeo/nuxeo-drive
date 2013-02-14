@@ -139,8 +139,8 @@ class FakeNuxeoClient(object):
         return False
 
 
-@with_setup(setup, teardown)
-def test_bindings():
+#@with_setup(setup, teardown)
+def xxx_test_bindings():
     # by default no bindings => no status information
     assert_equal(ctl.children_states(TEST_SYNCED_FOLDER), [])
 
@@ -199,8 +199,8 @@ def test_bindings():
 
 
 
-@with_setup(setup, teardown)
-def test_local_scan():
+#@with_setup(setup, teardown)
+def xxx_test_local_scan():
     ctl.bind_server(TEST_SYNCED_FOLDER, 'http://example.com/nuxeo',
                     'username', 'secret')
     ctl.bind_root(TEST_SYNCED_FOLDER, 'folder_1-nuxeo-ref')
@@ -294,8 +294,8 @@ def test_local_scan():
 
 
 
-@with_setup(setup, teardown)
-def test_binding_deletions():
+#@with_setup(setup, teardown)
+def xxx_test_binding_deletions():
     # register a couple of bindings
     ctl.bind_server(TEST_SYNCED_FOLDER, 'http://example.com/nuxeo',
                     'username', 'secret')
