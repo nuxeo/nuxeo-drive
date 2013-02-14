@@ -12,7 +12,6 @@ from sqlalchemy import not_
 import psutil
 
 from nxdrive.client import DEDUPED_BASENAME_PATTERN
-from nxdrive.client.remote_document_client import DEFAULT_TYPES
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
