@@ -486,15 +486,12 @@ class Synchronizer(object):
                 local_path=doc_pair.local_parent_path
             ).first()
             if parent_pair is None or parent_pair.remote_ref is None:
-                log.warning(
+                # Illegal state: report the error and let's wait for the
+                # parent folder issue to get resolved first
+                session.commit()
+                raise ValueError(
                     "Parent folder of %r%r is not bound to a remote folder",
                     doc_pair.local_folder, doc_pair.local_path)
-                # Inconsistent state: delete and let the next scan redetect for
-                # now
-                # TODO: how to handle this case in incremental mode?
-                session.delete(doc_pair)
-                session.commit()
-                return
             parent_ref = parent_pair.remote_ref
             if doc_pair.folderish:
                 log.debug("Creating remote folder '%s' in folder '%s'",
@@ -518,15 +515,11 @@ class Synchronizer(object):
                 remote_ref=remote_info.parent_uid,
             ).first()
             if parent_pair is None or parent_pair.local_path is None:
-                log.warning(
+                # Illegal state: report the error and let's wait for the
+                # parent folder issue to get resolved first
+                raise ValueError(
                     "Parent folder of doc %r (%r) is not bound to a local"
                     " folder", name, doc_pair.remote_ref)
-                # Inconsistent state: delete and let the next scan redetect for
-                # now
-                # TODO: how to handle this case in incremental mode?
-                session.delete(doc_pair)
-                session.commit()
-                return
             local_parent_path = parent_pair.local_path
             if doc_pair.folderish:
                 path = local_client.make_folder(local_parent_path, name)
@@ -621,7 +614,12 @@ class Synchronizer(object):
             except POSSIBLE_NETWORK_ERROR_TYPES as e:
                 # This is expected and should interrupt the sync process for
                 # this local_folder and should be dealt with in the main loop
-                raise e
+                if e.code == 500:
+                    log.error("Failed to sync %r", pair_state, exc_info=True)
+                    pair_state.last_sync_error_date = datetime.utcnow()
+                    session.commit()
+                else:
+                    raise e
             except Exception as e:
                 # Unexpected exception
                 log.error("Failed to sync %r", pair_state, exc_info=True)
