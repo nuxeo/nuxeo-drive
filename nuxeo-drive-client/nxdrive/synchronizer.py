@@ -129,7 +129,8 @@ class Synchronizer(object):
 
         if from_state is None:
             from_state = session.query(LastKnownState).filter_by(
-                path='/', local_folder=server_binding.local_folder).one()
+                local_path='/',
+                local_folder=server_binding.local_folder).one()
 
         client = from_state.get_local_client()
         info = client.get_info('/')
@@ -233,7 +234,7 @@ class Synchronizer(object):
                 child_pair = find_first_name_match(child_name, possible_pairs)
                 if child_pair is not None:
                     log.debug("Matched local %s with remote %s by name only",
-                              child_info.local_path, child_pair.remote_name)
+                              child_info.path, child_pair.remote_name)
 
             if child_pair is None:
                 # Could not find any pair state to align to, create one
@@ -790,7 +791,7 @@ class Synchronizer(object):
         refreshed = set()
         moved = []
         for change in sorted_changes:
-            remote_ref = change['docUuid']
+            remote_ref = change['fileSystemItemId']
             if remote_ref in refreshed:
                 # A more recent version was already processed
                 continue
@@ -850,8 +851,9 @@ class Synchronizer(object):
                     if child_pair.folderish and new_pair:
                         log.debug('Remote recursive scan of the content of %s',
                                   child_pair.remote_name)
-                        self._scan_remote_recursive(session, cl, child_pair,
-                            child_info)
+                        self._scan_remote_recursive(
+                            session, client, child_pair, child_info)
+
                     elif not new_pair:
                         child_pair.update_remote(child_info)
 

@@ -320,8 +320,8 @@ class LastKnownState(Base):
         self.remote_digest = remote_info.get_digest()
         self.folderish = remote_info.folderish
         self.remote_name = remote_info.name
-        self.remote_parent_path = remote_info.path[:-len(remote_info.uid) + 1]
-
+        suffix_len = len(remote_info.uid) + 1
+        self.remote_parent_path = remote_info.path[:-suffix_len]
         self.update_state(remote_state=remote_state)
 
     def get_local_abspath(self):
