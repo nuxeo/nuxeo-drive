@@ -142,7 +142,7 @@ class Synchronizer(object):
         # delete descendants first
         children = session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
-            local_parent_path=doc_pair.path).all()
+            local_parent_path=doc_pair.local_path).all()
         for child in children:
             self._mark_deleted_local_recursive(session, child)
 
@@ -191,10 +191,10 @@ class Synchronizer(object):
 
             # TODO: detect whether this is a __digit suffix name and relax the
             # alignment queries accordingly
-            child_name = os.path.basename(child_info.local_path)
+            child_name = os.path.basename(child_info.path)
             child_pair = session.query(LastKnownState).filter_by(
                 local_folder=doc_pair.local_folder,
-                local_path=child_info.local_path).first()
+                local_path=child_info.path).first()
 
             if child_pair is None and not child_info.folderish:
                 # Try to find an existing remote doc that has not yet been

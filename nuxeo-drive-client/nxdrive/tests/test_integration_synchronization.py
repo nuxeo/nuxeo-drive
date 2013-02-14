@@ -154,7 +154,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(ctl.list_pending(), [])
 
         # Unbind root and resynchronize: smoke test
-        ctl.unbind_root(expected_folder)
+        ctl.unbind_root(self.local_nxdrive_folder_1, self.workspace)
         self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(syn.synchronize(), 0)
         self.assertEquals(ctl.list_pending(), [])
@@ -181,18 +181,17 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(ctl.children_states(expected_folder), [])
 
         # Let's scan manually
-        session = ctl.get_session()
-        syn.scan_remote(expected_folder, session)
+        syn.scan_remote(self.local_nxdrive_folder_1)
 
         # Changes on the remote server have been detected...
-        self.assertEquals(len(ctl.list_pending()), 11)
+        self.assertEquals(len(ctl.list_pending()), 12)
 
         # ...but nothing is yet visible locally as those files don't exist
         # there yet.
         self.assertEquals(ctl.children_states(expected_folder), [])
 
         # Let's perform the synchronization
-        self.assertEquals(syn.synchronize(limit=100), 11)
+        self.assertEquals(syn.synchronize(limit=100), 12)
 
         # We should now be fully synchronized
         self.assertEquals(len(ctl.list_pending()), 0)
@@ -201,32 +200,53 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'Folder 1', u'synchronized'),
             (u'Folder 2', u'synchronized'),
         ])
-        local = LocalClient(expected_folder)
-        self.assertEquals(local.get_content('/Folder 1/File 1.txt'), "aaa")
-        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbb")
-        self.assertEquals(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
-        self.assertEquals(local.get_content('/Folder 2/File 4.txt'), "ddd")
-        self.assertEquals(local.get_content('/Folder 2/Duplicated File.txt'),
-                     "Some content.")
-        self.assertEquals(local.get_content('/Folder 2/Duplicated File__1.txt'),
-                     "Other content.")
+        local_client = LocalClient(self.local_nxdrive_folder_1)
+        self.assertEquals(local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 1/File 1.txt'),
+            "aaa")
 
-        # Wait a bit for file time stamps to increase enough: on most OS the file
-        # modification time resolution is 1s
+        self.assertEquals(local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 1/Folder 1.1/File 2.txt'),
+            "bbb")
+
+        self.assertEquals(local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 1/Folder 1.2/File 3.txt'),
+            "ccc")
+
+        self.assertEquals(local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 2/File 4.txt'),
+            "ddd")
+
+        c1 = local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 2/Duplicated File.txt')
+
+        c2 = local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 2/Duplicated File__1.txt')
+
+        self.assertEquals(tuple(sorted((c1, c2))),
+                          ("Other content.", "Some content."))
+
+        # Wait a bit for file time stamps to increase enough: on most OS the
+        # file modification time resolution is 1s
         time.sleep(1.0)
 
         # Let do some local and remote changes concurrently
-        local.delete('/File 5.txt')
-        local.update_content('/Folder 1/File 1.txt', 'aaaa')
-        remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', 'bbbb')
+        local_client.delete('/Nuxeo Drive Test Workspace/File 5.txt')
+        local_client.update_content(
+            '/Nuxeo Drive Test Workspace/Folder 1/File 1.txt', 'aaaa')
+
+        # The remote client use in this test is handling paths relative to
+        # the 'Nuxeo Drive Test Workspace'
+        remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt',
+                                     'bbbb')
         remote_client.delete('/Folder 2')
         f3 = remote_client.make_folder(self.workspace, 'Folder 3')
         remote_client.make_file(f3, 'File 6.txt', content='ffff')
-        local.make_folder('/', 'Folder 4')
+        local_client.make_folder('/Nuxeo Drive Test Workspace', 'Folder 4')
 
         # Rescan
-        syn.scan_local(expected_folder, session)
-        syn.scan_remote(expected_folder, session)
+        syn.scan_local(self.local_nxdrive_folder_1)
+        syn.scan_remote(self.local_nxdrive_folder_1)
         self.assertEquals(ctl.children_states(expected_folder), [
             (u'File 5.txt', u'locally_deleted'),
             (u'Folder 1', u'children_modified'),
@@ -239,9 +259,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # the database though
         session = ctl.get_session()
         f3_state = session.query(LastKnownState).filter_by(
-            remote_ref=f3).one()
-        self.assertEquals(f3_state.remote_name, 'Folder 3')
-        self.assertEquals(f3_state.path, None)
+            remote_name='Folder 3').one()
+        self.assertEquals(f3_state.local_path, None)
 
         states = ctl.children_states(expected_folder + '/Folder 1')
         expected_states = [
@@ -280,19 +299,29 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'Folder 1.2', 'synchronized'),
         ]
         self.assertEquals(states, expected_states)
-        self.assertEquals(local.get_content('/Folder 1/File 1.txt'), "aaaa")
-        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
-        self.assertEquals(local.get_content('/Folder 3/File 6.txt'), "ffff")
-        self.assertEquals(remote_client.get_content('/Folder 1/File 1.txt'),
-                     "aaaa")
-        self.assertEquals(remote_client.get_content('/Folder 1/Folder 1.1/File 2.txt'),
-                     "bbbb")
-        self.assertEquals(remote_client.get_content('/Folder 3/File 6.txt'),
-                     "ffff")
+        local = LocalClient(expected_folder)
+        self.assertEquals(local.get_content(
+            '/Folder 1/File 1.txt'),
+            "aaaa")
+        self.assertEquals(local.get_content(
+            '/Folder 1/Folder 1.1/File 2.txt'),
+            "bbbb")
+        self.assertEquals(local.get_content(
+            '/Folder 3/File 6.txt'),
+            "ffff")
+        self.assertEquals(remote_client.get_content(
+            '/Folder 1/File 1.txt'),
+            "aaaa")
+        self.assertEquals(remote_client.get_content(
+            '/Folder 1/Folder 1.1/File 2.txt'),
+            "bbbb")
+        self.assertEquals(remote_client.get_content(
+            '/Folder 3/File 6.txt'),
+            "ffff")
 
         # Rescan: no change to detect we should reach a fixpoint
-        syn.scan_local(expected_folder, session)
-        syn.scan_remote(expected_folder, session)
+        syn.scan_local(self.local_nxdrive_folder_1)
+        syn.scan_remote(self.local_nxdrive_folder_1)
         self.assertEquals(len(ctl.list_pending()), 0)
         self.assertEquals(ctl.children_states(expected_folder), [
             (u'Folder 1', 'synchronized'),
@@ -305,8 +334,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         time.sleep(1.0)
         local.update_content('/Folder 1/File 1.txt', "\x80")
         remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', '\x80')
-        syn.scan_local(expected_folder, session)
-        syn.scan_remote(expected_folder, session)
+        syn.scan_local(self.local_nxdrive_folder_1)
+        syn.scan_remote(self.local_nxdrive_folder_1)
         self.assertEquals(syn.synchronize(limit=100), 2)
         self.assertEquals(remote_client.get_content('/Folder 1/File 1.txt'), "\x80")
         self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
