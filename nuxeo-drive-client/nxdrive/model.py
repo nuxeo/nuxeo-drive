@@ -130,15 +130,15 @@ class LastKnownState(Base):
 
     # Path from root using unix separator, '/' for the root it-self.
     local_path = Column(String, index=True)
-    remote_path = Column(String)  # for ordering only
 
     # Remote reference (instead of path based lookup)
     remote_ref = Column(String, index=True)
 
     # Parent path from root / ref for fast children queries,
     # can be None for the root it-self.
-    parent_path = Column(String, index=True)
+    local_parent_path = Column(String, index=True)
     remote_parent_ref = Column(String, index=True)
+    remote_parent_path = Column(String)  # for ordering only
 
     # Names for fast alignment queries
     local_name = Column(String, index=True)
@@ -234,11 +234,14 @@ class LastKnownState(Base):
             self.local_path = local_info.path
             if self.local_path != '/':
                 self.local_name = os.path.basename(local_info.path)
-                parent_path, _ = local_info.path.rsplit('/', 1)
-                self.parent_path = '/' if parent_path == '' else parent_path
+                local_parent_path, _ = local_info.path.rsplit('/', 1)
+                if local_parent_path == '':
+                    self.local_parent_path = '/'
+                else:
+                    self.local_parent_path = local_parent_path
             else:
                 self.local_name = os.path.basename(self.local_folder)
-                self.parent_path = None
+                self.local_parent_path = None
 
         if self.local_path != local_info.path:
             raise ValueError("State %r cannot be mapped to '%s%s'" % (
@@ -300,8 +303,6 @@ class LastKnownState(Base):
         if self.remote_ref is None:
             self.remote_ref = remote_info.uid
             self.remote_parent_ref = remote_info.parent_uid
-            self.remote_name = remote_info.name
-            self.remote_path = remote_info.path
 
         if self.remote_ref != remote_info.uid:
             raise ValueError("State %r (%s) cannot be mapped to remote"
@@ -319,7 +320,8 @@ class LastKnownState(Base):
         self.remote_digest = remote_info.get_digest()
         self.folderish = remote_info.folderish
         self.remote_name = remote_info.name
-        self.remote_path = remote_info.path
+        self.remote_parent_path = remote_info.path[:-len(remote_info.uid) + 1]
+
         self.update_state(remote_state=remote_state)
 
     def get_local_abspath(self):

@@ -70,11 +70,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         pending = ctl.list_pending(limit=2)
         self.assertEquals(len(pending), 2)
 
-        # Synchronize the first 2 documents (ordered by hierarchy):
+        # Synchronize the first document (ordered by hierarchy):
         self.assertEquals(syn.synchronize(
-            self.local_nxdrive_folder_1, limit=2), 2)
+            self.local_nxdrive_folder_1, limit=1), 1)
         pending = ctl.list_pending()
-        self.assertEquals(len(pending), 10)
+        self.assertEquals(len(pending), 11)
         remote_names = [p.remote_name for p in pending]
         remote_names.sort()
         self.assertEquals(remote_names, [
@@ -87,24 +87,21 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             u'File 5.txt',
             u'Folder 1',
             u'Folder 1.1',
-            u'Folder 1.2'])
+            u'Folder 1.2',
+            u'Folder 2',
+        ])
+        states = ctl.children_states(self.local_nxdrive_folder_1)
+        self.assertEquals(states, [
+            (u'Nuxeo Drive Test Workspace', u'children_modified'),
+        ])
 
+        # The workspace folder is still unknown from the client point
+        # of view
         states = ctl.children_states(expected_folder)
-        expected_states = [
-            (u'File 5.txt', u'synchronized'),
-            (u'Folder 1', u'children_modified'),
-        ]
-        self.assertEquals(states, expected_states)
-
-        # The actual content of the file has been updated
-        self.assertEquals(local.get_content('/File 5.txt'), "eee")
-
-        # The content of Folder 1 is still unknown from a local path point of view
-        states = ctl.children_states(expected_folder + '/Folder 1')
         self.assertEquals(states, [])
 
         # synchronize everything else
-        self.assertEquals(syn.synchronize(), 9)
+        self.assertEquals(syn.synchronize(), 11)
         self.assertEquals(ctl.list_pending(), [])
         states = ctl.children_states(expected_folder)
         expected_states = [
@@ -114,6 +111,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ]
         self.assertEquals(states, expected_states)
 
+        # The actual content of the file has been updated
+        file_5_content = local_client.get_content(
+            '/Nuxeo Drive Test Workspace/File 5.txt')
+        self.assertEquals(file_5_content, "eee")
+
         states = ctl.children_states(expected_folder + '/Folder 1')
         expected_states = [
             (u'File 1.txt', 'synchronized'),
@@ -121,14 +123,30 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'Folder 1.2', 'synchronized'),
         ]
         self.assertEquals(states, expected_states)
-        self.assertEquals(local.get_content('/Folder 1/File 1.txt'), "aaa")
-        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbb")
-        self.assertEquals(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
-        self.assertEquals(local.get_content('/Folder 2/File 4.txt'), "ddd")
-        self.assertEquals(local.get_content('/Folder 2/Duplicated File.txt'),
-                     "Some content.")
-        self.assertEquals(local.get_content('/Folder 2/Duplicated File__1.txt'),
-                     "Other content.")
+        self.assertEquals(local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 1/File 1.txt'),
+            "aaa")
+
+        self.assertEquals(local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 1/Folder 1.1/File 2.txt'),
+            "bbb")
+
+        self.assertEquals(local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 1/Folder 1.2/File 3.txt'),
+            "ccc")
+
+        self.assertEquals(local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 2/File 4.txt'),
+            "ddd")
+
+        c1 = local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 2/Duplicated File.txt')
+
+        c2 = local_client.get_content(
+            '/Nuxeo Drive Test Workspace/Folder 2/Duplicated File__1.txt')
+
+        self.assertEquals(tuple(sorted((c1, c2))),
+                          ("Other content.", "Some content."))
 
         # Nothing else left to synchronize
         self.assertEquals(ctl.list_pending(), [])

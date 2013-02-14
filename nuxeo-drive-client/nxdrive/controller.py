@@ -159,7 +159,7 @@ class Controller(object):
 
         return [(os.path.basename(s.local_path), pair_state)
                 for s, pair_state in states
-                if s.parent_path == path]
+                if s.local_parent_path == path]
 
     def _pair_states_recursive(self, session, doc_pair):
         """Recursive call to collect pair state under a given location."""
@@ -168,11 +168,11 @@ class Controller(object):
 
         if doc_pair.local_path is not None and doc_pair.remote_ref is not None:
             f = or_(
-                LastKnownState.parent_path == doc_pair.local_path,
+                LastKnownState.local_parent_path == doc_pair.local_path,
                 LastKnownState.remote_parent_ref == doc_pair.remote_ref,
             )
         elif doc_pair.local_path is not None:
-            f = LastKnownState.parent_path == doc_pair.local_path
+            f = LastKnownState.local_parent_path == doc_pair.local_path
         elif doc_pair.remote_ref is not None:
             f = LastKnownState.remote_parent_ref == doc_pair.remote_ref
         else:
@@ -424,8 +424,16 @@ class Controller(object):
         return session.query(LastKnownState).filter(
             *predicates
         ).order_by(
+            # Ensure that newly created local folders will be synchronized
+            # before their children
             asc(LastKnownState.local_path),
-            asc(LastKnownState.remote_path),
+
+            # Ensure that newly created remote folders will be synchronized
+            # before their children while keeping a fixed named based
+            # deterministic ordering to make the tests readable
+            asc(LastKnownState.remote_parent_path),
+            asc(LastKnownState.remote_name),
+            asc(LastKnownState.remote_ref)
         ).limit(limit).all()
 
     def next_pending(self, local_folder=None, session=None):

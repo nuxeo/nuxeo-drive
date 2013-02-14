@@ -142,7 +142,7 @@ class Synchronizer(object):
         # delete descendants first
         children = session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
-            parent_path=doc_pair.path).all()
+            local_parent_path=doc_pair.path).all()
         for child in children:
             self._mark_deleted_local_recursive(session, child)
 
@@ -178,7 +178,7 @@ class Synchronizer(object):
 
         q = session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
-            parent_path=local_info.path,
+            local_parent_path=local_info.path,
         )
         if len(children_path) > 0:
             q = q.filter(not_(LastKnownState.local_path.in_(children_path)))
@@ -360,7 +360,7 @@ class Synchronizer(object):
             possible_pairs = session.query(LastKnownState).filter_by(
                 local_folder=parent_pair.local_folder,
                 remote_ref=None,
-                parent_path=parent_pair.local_path,
+                local_parent_path=parent_pair.local_path,
                 folderish=child_info.folderish,
                 local_digest=child_info.get_digest(),
             ).all()
@@ -374,7 +374,7 @@ class Synchronizer(object):
         possible_pairs = session.query(LastKnownState).filter_by(
             local_folder=parent_pair.local_folder,                                         
             remote_ref=None,
-            parent_path=parent_pair.local_path,
+            local_parent_path=parent_pair.local_path,
             folderish=child_info.folderish,
         ).all()
         child_pair = find_first_name_match(child_name, possible_pairs)
@@ -463,7 +463,7 @@ class Synchronizer(object):
             # create the document
             parent_pair = session.query(LastKnownState).filter_by(
                 local_folder=doc_pair.local_folder,
-                local_path=doc_pair.parent_path
+                local_path=doc_pair.local_parent_path
             ).first()
             if parent_pair is None or parent_pair.remote_ref is None:
                 log.warning(
@@ -507,14 +507,14 @@ class Synchronizer(object):
                 session.delete(doc_pair)
                 session.commit()
                 return
-            parent_path = parent_pair.local_path
+            local_parent_path = parent_pair.local_path
             if doc_pair.folderish:
-                path = local_client.make_folder(parent_path, name)
+                path = local_client.make_folder(local_parent_path, name)
                 log.debug("Creating local folder '%s' in '%s'", name,
                           parent_pair.get_local_abspath())
             else:
                 path = local_client.make_file(
-                    parent_path, name,
+                    local_parent_path, name,
                     content=remote_client.get_content(doc_pair.remote_ref))
                 log.debug("Creating local document '%s' in '%s'", name,
                           parent_pair.get_local_abspath())
