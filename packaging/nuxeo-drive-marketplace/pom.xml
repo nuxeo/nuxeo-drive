@@ -14,9 +14,22 @@
 
   <build>
     <plugins>
+      <!-- Version 1.13 is required for the robust nx:zipdif fix -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <configuration>
+          <rules>
+            <requirePluginVersions>
+              <unCheckedPluginList>org.nuxeo.build:nuxeo-distribution-tools</unCheckedPluginList>
+            </requirePluginVersions>
+          </rules>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.nuxeo.build</groupId>
         <artifactId>nuxeo-distribution-tools</artifactId>
+        <version>1.13</version>
         <configuration>
           <buildFiles>
             <buildFile>${basedir}/src/main/assemble/assembly.xml</buildFile>
