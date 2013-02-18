@@ -230,10 +230,8 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
         self.assertFalse(remote_client.exists(fs_item_id))
 
-    # TODO: probably to be replaced by test_can_rename, test_can_update,
-    # test_can_delete, test_can_create_child
+    # TODO
     def test_check_writable(self):
-        # TODO
         pass
 
     #

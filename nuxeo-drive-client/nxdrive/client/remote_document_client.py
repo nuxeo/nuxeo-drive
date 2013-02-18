@@ -59,10 +59,11 @@ class RemoteDocumentClient(BaseAutomationClient):
     def __init__(self, server_url, user_id, device_id,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
-                base_folder=None, timeout=5):
+                 base_folder=None, timeout=10, blob_timeout=None):
         super(RemoteDocumentClient, self).__init__(
             server_url, user_id, device_id, password, token, repository,
-            ignored_prefixes, ignored_suffixes, timeout=timeout)
+            ignored_prefixes, ignored_suffixes, timeout=timeout,
+            blob_timeout=blob_timeout)
 
         # fetch the root folder ref
         self.base_folder = base_folder
@@ -287,7 +288,8 @@ class RemoteDocumentClient(BaseAutomationClient):
     # Blob category
 
     def get_blob(self, ref):
-        return self.execute("Blob.Get", input="doc:" + ref)
+        return self.execute("Blob.Get", input="doc:" + ref,
+                            timeout=self.blob_timeout)
 
     def attach_blob(self, ref, blob, filename, **params):
         return self.execute_with_blob("Blob.Attach",

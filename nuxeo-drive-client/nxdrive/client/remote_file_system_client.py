@@ -25,6 +25,10 @@ BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
     'digest',  # digest of the file
     'digest_algorithm',  # digest algorithm of the file
     'download_url', # download URL of the file
+    'can_rename', # True is can rename
+    'can_delete', # True is can delete
+    'can_update', # True is can update content
+    'can_create_child', # True is can create child
 ])
 
 
@@ -101,10 +105,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def exists(self, fs_item_id):
         return self.execute("NuxeoDrive.FileSystemItemExists", id=fs_item_id)
 
-    # TODO: probably to be replaced by
-    # can_rename, can_update, can_delete, can_create_child
+    # TODO
     def check_writable(self, fs_item_id):
-        # TODO
         pass
 
     def _file_to_info(self, fs_item):
@@ -117,15 +119,20 @@ class RemoteFileSystemClient(BaseAutomationClient):
             digest = None
             digest_algorithm = None
             download_url = None
+            can_update = False
+            can_create_child = fs_item['canCreateChild']
         else:
             digest = fs_item['digest']
             digest_algorithm = fs_item['digestAlgorithm']
             download_url = fs_item['downloadURL']
+            can_update = fs_item['canUpdate']
+            can_create_child = False
 
         return RemoteFileInfo(
             fs_item['name'], fs_item['id'], fs_item['parentId'],
             fs_item['path'], folderish, last_update, digest, digest_algorithm,
-            download_url)
+            download_url, fs_item['canRename'], fs_item['canDelete'],
+            can_update, can_create_child)
 
     def _do_get(self, url, file_out=None):
         if self._error is not None:
@@ -140,7 +147,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         try:
             log.trace("Calling '%s' with headers: %r", url, headers)
             req = urllib2.Request(url, headers=headers)
-            response = self.opener.open(req)
+            response = self.opener.open(req, timeout=self.blob_timeout)
             if hasattr(file_out, "write"):
                 while True:
                     buffer_ = response.read(BUFFER_SIZE)
