@@ -39,7 +39,15 @@ class Unauthorized(Exception):
 
 
 class BaseAutomationClient(object):
-    """Client for the Nuxeo Content Automation HTTP API"""
+    """Client for the Nuxeo Content Automation HTTP API
+
+    timeout is a short timeout to avoid having calls to fast JSON operations
+    to block and freeze the application in case of network issues.
+
+    blob_timeout is long (or infinite) timeout dedicated to long HTTP
+    requests involving a blob transfer.
+
+    """
 
     # Used for testing network errors
     _error = None
@@ -52,8 +60,9 @@ class BaseAutomationClient(object):
     def __init__(self, server_url, user_id, device_id,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
-                 timeout=5):
+                 timeout=10, blob_timeout=None):
         self.timeout = timeout
+        self.blob_timeout = blob_timeout
         if ignored_prefixes is not None:
             self.ignored_prefixes = ignored_prefixes
         else:
@@ -109,7 +118,7 @@ class BaseAutomationClient(object):
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
 
-    def execute(self, command, input=None, **params):
+    def execute(self, command, input=None, timeout=-1, **params):
         if self._error is not None:
             # Simulate a configurable (e.g. network or server) error for the
             # tests
@@ -141,8 +150,9 @@ class BaseAutomationClient(object):
         url = self.automation_url + command
         log.trace("Calling '%s' with json payload: %r", url, data)
         req = urllib2.Request(url, data, headers)
+        timeout = self.timeout if timeout == -1 else timeout
         try:
-            resp = self.opener.open(req, timeout=self.timeout)
+            resp = self.opener.open(req, timeout=timeout)
         except Exception, e:
             self._log_details(e)
             raise
@@ -226,7 +236,7 @@ class BaseAutomationClient(object):
         log.trace("Calling '%s' for file '%s'", url, filename)
         req = urllib2.Request(url, data, headers)
         try:
-            resp = self.opener.open(req, timeout=self.timeout)
+            resp = self.opener.open(req, timeout=self.blob_timeout)
         except Exception as e:
             self._log_details(e)
             raise

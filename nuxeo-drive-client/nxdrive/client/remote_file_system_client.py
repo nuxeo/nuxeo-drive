@@ -147,7 +147,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         try:
             log.trace("Calling '%s' with headers: %r", url, headers)
             req = urllib2.Request(url, headers=headers)
-            response = self.opener.open(req)
+            response = self.opener.open(req, timeout=self.blob_timeout)
             if hasattr(file_out, "write"):
                 while True:
                     buffer_ = response.read(BUFFER_SIZE)
