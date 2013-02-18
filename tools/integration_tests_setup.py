@@ -38,6 +38,7 @@ import shutil
 import atexit
 import time
 import fnmatch
+import subprocess
 
 
 DEFAULT_MARKETPLACE = os.path.join(
@@ -224,6 +225,14 @@ def setup_nuxeo():
                 raise RuntimeError("Failed to delete " + NUXEO_FOLDER)
         else:
             shutil.rmtree(NUXEO_FOLDER)
+
+    if sys.platform == 'win32':
+        pflush("Kill any remaining process listening on 8080")
+        netstat_out = subprocess.check_output(['netstat', '-aon'])
+        for line in netstat_out.split('\r\n'):
+            if '8080: ' in line:
+                pid = line.rsplit(' ', 1)[1]
+                execute('kill -f %s' % pid, exit_on_failure=False)
 
     pflush("Renaming %s to %s" % (nuxeo_folder_path, NUXEO_FOLDER))
     os.rename(nuxeo_folder_path, NUXEO_FOLDER)
