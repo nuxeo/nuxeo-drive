@@ -230,7 +230,7 @@ def setup_nuxeo():
         pflush("Kill any remaining process listening on 8080")
         netstat_out = subprocess.check_output(['netstat', '-aon'])
         for line in netstat_out.split('\r\n'):
-            if '8080: ' in line:
+            if ':8080 ' in line:
                 pid = line.rsplit(' ', 1)[1]
                 execute('kill -f %s' % pid, exit_on_failure=False)
 
