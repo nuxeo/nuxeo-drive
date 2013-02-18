@@ -614,7 +614,7 @@ class Synchronizer(object):
             except POSSIBLE_NETWORK_ERROR_TYPES as e:
                 # This is expected and should interrupt the sync process for
                 # this local_folder and should be dealt with in the main loop
-                if e.code == 500:
+                if getattr(e, 'code', None) == 500:
                     log.error("Failed to sync %r", pair_state, exc_info=True)
                     pair_state.last_sync_error_date = datetime.utcnow()
                     session.commit()
