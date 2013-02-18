@@ -65,6 +65,13 @@ includes = [
     "atexit",  # implicitly required by PySide
     "sqlalchemy.dialects.sqlite",
 ]
+excludes = [
+    "ipdb",
+    "clf",
+    "IronPython",
+    "pydoc",
+    "tkinter",
+]
 
 if '--freeze' in sys.argv:
     print "Building standalone executable..."
@@ -98,13 +105,7 @@ if '--freeze' in sys.argv:
                 "packages": packages + [
                     "nose",
                 ],
-                "excludes": [
-                    "ipdb",
-                    "clf",
-                    "IronPython",
-                    "pydoc",
-                    "tkinter",
-                ],
+                "excludes": excludes,
                 "include_files": include_files,
             },
             "bdist_msi": {
@@ -143,6 +144,7 @@ elif sys.platform == 'darwin':
                     ]
                 ),
                 includes=includes,
+                excludes=excludes,
             )
         )
     )
