@@ -226,9 +226,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(tuple(sorted((c1, c2))),
                           ("Other content.", "Some content."))
 
-        # Wait a bit for file time stamps to increase enough: on most OS the
-        # file modification time resolution is 1s
-        time.sleep(1.0)
+        # Wait a bit for file time stamps to increase enough: on OSX HFS+ the
+        # file modification time resolution is 1s for instance
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
 
         # Let do some local and remote changes concurrently
         local_client.delete('/Nuxeo Drive Test Workspace/File 5.txt')
@@ -332,7 +332,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Send some binary data that is not valid in utf-8 or ascii (to test the
         # HTTP / Multipart transform layer).
-        time.sleep(1.0)
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/Folder 1/File 1.txt', "\x80")
         remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', '\x80')
         syn.scan_local(self.local_nxdrive_folder_1)
@@ -373,7 +373,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Wait a bit for file time stamps to increase enough: on most OS the file
         # modification time resolution is 1s
-        time.sleep(1.0)
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
 
         # Let's modify it offline and rescan locally
         local.update_content('/Folder/File.txt', content='Some content.')
@@ -662,24 +662,38 @@ class TestIntegrationSynchronization(IntegrationTestCase):
     def test_delete_root_folder(self):
         """Check that local delete of root maps to unbind_root on the server"""
         ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
+        sb = ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                             self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
 
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
                                        self.workspace_title)
 
-        syn.loop(delay=0, max_loops=1)
+        # Let's synchronize the new root
+        self.assertEquals(syn.update_synchronize_server(sb), 1)
+        self.assertEquals(ctl.list_pending(), [])
+
+        self.assertEquals(self.get_all_states(), [
+            (u'/',
+             u'synchronized', u'synchronized'),
+            (u'/Nuxeo Drive Test Workspace',
+             u'synchronized', u'synchronized'),
+        ])
+
+        # Refetching the changes in the server autid log does not see any
+        # change
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(syn.update_synchronize_server(sb), 0)
         self.assertEquals(ctl.list_pending(), [])
 
         # The workspace has been synced
         local = LocalClient(self.local_nxdrive_folder_1)
         self.assertTrue(local.exists('/' + self.workspace_title))
 
-        # Let's create a subfolder
+        # Let's create a subfolder and synchronize it
         local.make_folder('/' + self.workspace_title, 'Folder 3')
-        syn.loop(delay=0, max_loops=1)
+        self.assertEquals(syn.update_synchronize_server(sb), 1)
         self.assertEquals(ctl.list_pending(), [])
 
         self.assertEquals(self.get_all_states(), [
@@ -694,10 +708,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Let's delete the root locally
         local.delete('/' + self.workspace_title)
         self.assertFalse(local.exists('/' + self.workspace_title))
-        self.wait()
-        syn.loop(delay=1, max_loops=1)
-        self.assertFalse(local.exists('/' + self.workspace_title))
-        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(syn.update_synchronize_server(sb), 1)
 
         self.assertEquals(self.get_all_states(), [
             (u'/',
@@ -711,10 +722,25 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # The subfolder has not been deleted on the server
         self.assertTrue(self.remote_document_client_1.exists('/Folder 3'))
 
+        # But the workspace folder is still not there on the client:
+        self.assertFalse(local.exists('/' + self.workspace_title))
+        self.assertEquals(ctl.list_pending(), [])
+
+        # Synchronizing later does not refetch the workspace as it's not
+        # mapped as a sync root.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(syn.update_synchronize_server(sb), 0)
+        self.assertEquals(self.get_all_states(), [
+            (u'/',
+             u'synchronized', u'synchronized'),
+        ])
+        self.assertFalse(local.exists('/' + self.workspace_title))
+
         # We can rebind the root and fetch back its content
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         self.wait()
         
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         syn.loop(delay=0, max_loops=1)
         self.assertEquals(ctl.list_pending(), [])
         self.assertTrue(local.exists('/' + self.workspace_title))

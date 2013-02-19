@@ -312,14 +312,9 @@ class Controller(object):
                                    remote_info=remote_info,
                                    remote_state='synchronized')
             session.add(state)
-            session.commit()
-
-        # Create the local folder to host the synchronized files: this
-        # is useless as long as bind_root is not called
-        if not os.path.exists(local_folder):
-            os.makedirs(local_folder)
 
         session.commit()
+        return server_binding
 
     def unbind_server(self, local_folder):
         """Remove the binding to a Nuxeo server
