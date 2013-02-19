@@ -4,7 +4,7 @@
 
 The `generate-dmg-ds-store.sh` must be run using an active OSX graphical
 sessions. It uses AppleScript to dimension the window to 600 x 250 pixels, put
-the `dmgbackground.png` in the `.backgroun` folder of the module and place the
+the `dmgbackground.png` in the `.background` folder of the module and place the
 icon locations of the `Nuxeo Drive.app` folder and the `Applications` symlink.
 
 Doing so makes OSX update a `.DS_Store` file (binary format). This file can
