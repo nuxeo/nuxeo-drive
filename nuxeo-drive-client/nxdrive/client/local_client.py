@@ -105,7 +105,7 @@ class LocalClient(object):
         path = path.replace(os.path.sep, '/')  # unix style path
         # On unix we could use the inode for file move detection but that won't
         # work on Windows. To reduce complexity of the code and the possibility
-        # to have Windows specific bugs, let's not use the unixe inode at all.
+        # to have Windows specific bugs, let's not use the unix inode at all.
         # uid = str(stat_info.st_ino)
         return FileInfo(self.base_folder, path, folderish, mtime,
                         digest_func=self._digest_func)
