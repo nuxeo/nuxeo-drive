@@ -4,13 +4,7 @@ import hashlib
 import time
 
 
-FS_ITEM_ID_PREFIX = 'defaultFileSystemItemFactory#default#'
-
 class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
-
-    def setUp(self):
-        super(TestIntegrationRemoteFileSystemClient, self).setUp()
-        self.workspace_id = FS_ITEM_ID_PREFIX + self.workspace
 
     #
     # Test the API common with the local client API
@@ -52,7 +46,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertIsNone(info.download_url)
 
         # Check non existing file info
-        fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
+        fs_item_id = self.FS_ITEM_ID_PREFIX + 'fakeId'
         self.assertRaises(NotFound,
             remote_client.get_info, fs_item_id)
         self.assertIsNone(
@@ -74,7 +68,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         # Wait to be sure that the file creation has been committed
         # See https://jira.nuxeo.com/browse/NXP-10964
         time.sleep(1.0)
-        fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
+        fs_item_id = self.FS_ITEM_ID_PREFIX + doc_uid
         self.assertRaises(NotFound,
             remote_client.get_content, fs_item_id)
 
@@ -165,10 +159,9 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         cp1252_encoded = unicode_content.encode('cp1252')
 
         # Make files with this content
-        workspace_id = FS_ITEM_ID_PREFIX + self.workspace
-        utf8_fs_id = remote_client.make_file(workspace_id,
+        utf8_fs_id = remote_client.make_file(self.workspace_id,
             'My utf-8 file.txt', utf8_encoded)
-        cp1252_fs_id = remote_client.make_file(workspace_id,
+        cp1252_fs_id = remote_client.make_file(self.workspace_id,
             'My cp1252 file.txt', cp1252_encoded)
 
         # Check content
@@ -218,7 +211,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(remote_client.exists(fs_item_id))
 
         # Check non existing file system item (non existing document)
-        fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
+        fs_item_id = self.FS_ITEM_ID_PREFIX + 'fakeId'
         self.assertFalse(remote_client.exists(fs_item_id))
 
         # Check non existing file system item (document without content)
@@ -227,7 +220,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         # Wait to be sure that the file creation has been committed
         # See https://jira.nuxeo.com/browse/NXP-10964
         time.sleep(1.0)
-        fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
+        fs_item_id = self.FS_ITEM_ID_PREFIX + doc_uid
         self.assertFalse(remote_client.exists(fs_item_id))
 
     # TODO
@@ -260,7 +253,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(fs_item['folder'])
 
         # Check non existing file system item
-        fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
+        fs_item_id = self.FS_ITEM_ID_PREFIX + 'fakeId'
         self.assertIsNone(remote_client.get_fs_item(fs_item_id))
 
     def test_get_top_level_children(self):

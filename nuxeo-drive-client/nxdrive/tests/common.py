@@ -14,6 +14,7 @@ from nxdrive.controller import Controller
 class IntegrationTestCase(unittest.TestCase):
 
     TEST_WORKSPACE_PATH = '/default-domain/workspaces/nuxeo-drive-test-workspace'
+    FS_ITEM_ID_PREFIX = 'defaultFileSystemItemFactory#default#'
 
     EMPTY_DIGEST = hashlib.md5().hexdigest()
     SOME_TEXT_CONTENT = "Some text content."
@@ -50,6 +51,7 @@ class IntegrationTestCase(unittest.TestCase):
         ws_info = root_remote_client.fetch(self.TEST_WORKSPACE_PATH)
         self.workspace = ws_info['uid']
         self.workspace_title = ws_info['title']
+        self.workspace_id = self.FS_ITEM_ID_PREFIX + self.workspace
 
         # Document client to be used to create remote test documents
         # and folders
