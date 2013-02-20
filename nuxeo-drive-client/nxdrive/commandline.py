@@ -410,6 +410,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_remote_document_client",
             "nxdrive.tests.test_integration_remote_file_system_client",
             "nxdrive.tests.test_integration_synchronization",
+            "nxdrive.tests.test_integration_versioning",
             "nxdrive.tests.test_synchronizer",
         ]
         return 0 if nose.run(argv=argv) else 1
