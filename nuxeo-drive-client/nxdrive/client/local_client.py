@@ -181,6 +181,21 @@ class LocalClient(object):
         os_path = self._abspath(ref)
         return os.access(os_path, os.W_OK)
 
+    def rename(self, ref, new_name):
+        """Rename a local file or folder and return the new local path"""
+        if ref == '/':
+            raise ValueError("Cannot rename the toplevel folder.")
+        source_os_path = self._abspath(ref)
+        parent = ref.rsplit('/', 1)[0]
+        parent = '/' if parent == '' else parent
+        target_os_path, new_name = self._abspath_deduped(parent, new_name)
+        shutil.move(source_os_path, target_os_path)
+        if parent == '/':
+            new_ref = '/' + new_name
+        else:
+            new_ref = parent + "/" + new_name
+        return self.get_info(new_ref)
+
     def _abspath(self, ref):
         """Absolute path on the operating system"""
         if not ref.startswith('/'):

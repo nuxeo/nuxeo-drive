@@ -224,7 +224,6 @@ class LastKnownState(Base):
                                     'synchronized'):
                 # the file use to exist, it has been deleted
                 self.update_state(local_state='deleted')
-                self.local_digest = None
             return
 
         local_state = None
@@ -297,7 +296,6 @@ class LastKnownState(Base):
             if self.remote_state in ('unknown', 'created', 'modified',
                                      'synchronized'):
                 self.update_state(remote_state='deleted')
-                self.remote_digest = None
             return
 
         remote_state = None

@@ -109,6 +109,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def check_writable(self, fs_item_id):
         pass
 
+    def rename(self, fs_item_id, new_name):
+        self.execute("NuxeoDrive.Rename", id=fs_item_id, name=new_name)
+        return self.get_info(fs_item_id)
+
     def _file_to_info(self, fs_item):
         """Convert Automation file system item description to RemoteFileInfo"""
         folderish = fs_item['folder']
