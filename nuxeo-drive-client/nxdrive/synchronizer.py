@@ -410,7 +410,7 @@ class Synchronizer(object):
         return child_pair, True
 
     def synchronize_one(self, doc_pair, session=None):
-        """Refresh state a perform network transfer for a pair of documents."""
+        """Refresh state and perform network transfer for a pair of documents."""
         if session is None:
             session = self.get_session()
         # Find a cached remote client for the server binding of the file to
