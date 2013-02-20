@@ -76,7 +76,7 @@ class TestIntegrationEncoding(IntegrationTestCase):
 
     def _synchronize_and_assert(self, expected_synchronized, wait=False):
         if wait:
-            # Waiting for audit changes to be detected after the 1 second step
+            # Wait for audit changes to be detected after the 1 second step
             time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         n_synchronized = self.syn.update_synchronize_server(self.sb)
         self.assertEqual(n_synchronized, expected_synchronized)

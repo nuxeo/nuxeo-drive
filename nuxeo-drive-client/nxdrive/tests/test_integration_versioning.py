@@ -37,6 +37,10 @@ class TestIntegrationVersioning(IntegrationTestCase):
         self.local_client_1 = LocalClient(sync_root_folder_1)
         self.local_client_2 = LocalClient(sync_root_folder_2)
 
+        # Call the Nuxeo operation to set the versioning delay to 1 second
+        self.root_remote_client.execute(
+            "NuxeoDrive.SetVersioningOptions", delay="1")
+
     def test_versioning(self):
         # Create a file as user 1
         self.local_client_1.make_file('/', 'Test versioning.txt',
@@ -44,8 +48,7 @@ class TestIntegrationVersioning(IntegrationTestCase):
         self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
         doc = self.root_remote_client.fetch(
             self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
-        self.assertEquals(doc['properties']['uid:major_version'], '0')
-        self.assertEquals(doc['properties']['uid:minor_version'], '0')
+        self._assert_version(doc, '0', '0')
 
         # Synchronize it for user 2
         self.assertTrue(self.remote_client_2.exists('/Test versioning.txt'))
@@ -58,13 +61,35 @@ class TestIntegrationVersioning(IntegrationTestCase):
         self._synchronize_and_assert(self.syn_2, self.sb_2, 1)
         doc = self.root_remote_client.fetch(
             self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
-        self.assertEquals(doc['properties']['uid:major_version'], '0')
-        self.assertEquals(doc['properties']['uid:minor_version'], '1')
+        self._assert_version(doc, '0', '1')
+
+        # Update it as user 2 => should NOT be versioned
+        # since the versioning delay (1s) is not passed by
+        self.local_client_2.update_content('/Test versioning.txt',
+            "Content twice modified")
+        self._synchronize_and_assert(self.syn_2, self.sb_2, 1)
+        doc = self.root_remote_client.fetch(
+            self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
+        self._assert_version(doc, '0', '1')
+
+        # Update it as user 2 after 1s => should be versioned
+        # since the versioning delay is passed by
+        time.sleep(1.1)
+        self.local_client_2.update_content('/Test versioning.txt',
+            "Updated again!!")
+        self._synchronize_and_assert(self.syn_2, self.sb_2, 1)
+        doc = self.root_remote_client.fetch(
+            self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
+        self._assert_version(doc, '0', '2')
 
     def _synchronize_and_assert(self, synchronizer, server_binding,
         expected_synchronized, wait=False):
         if wait:
-            # Waiting for audit changes to be detected after the 1 second step
+            # Wait for audit changes to be detected after the 1 second step
             time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         n_synchronized = synchronizer.update_synchronize_server(server_binding)
         self.assertEqual(n_synchronized, expected_synchronized)
+
+    def _assert_version(self, doc, major, minor):
+        self.assertEquals(doc['properties']['uid:major_version'], major)
+        self.assertEquals(doc['properties']['uid:minor_version'], minor)
