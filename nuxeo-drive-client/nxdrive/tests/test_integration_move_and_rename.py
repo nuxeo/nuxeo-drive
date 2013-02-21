@@ -49,12 +49,11 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertFalse(local_client.exists('/Original File 1.txt'))
         self.assertTrue(local_client.exists('/Renamed File 1.txt'))
 
-        # XXX: should be 1 instead of 2
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
-        self.assertFalse(remote_client.exists('/Original File 1.txt'))
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+        self.assertFalse(local_client.exists('/Original File 1.txt'))
         self.assertTrue(local_client.exists('/Renamed File 1.txt'))
-        renamed_doc_uid = remote_client.get_info('/Renamed File 1.txt').uid
-        self.assertEquals(original_doc_uid, renamed_doc_uid)
+        remote_info = remote_client.get_info(original_doc_uid)
+        self.assertEquals(remote_info.name, 'Renamed File 1.txt')
 
     def test_local_rename_folder(self):
         pass

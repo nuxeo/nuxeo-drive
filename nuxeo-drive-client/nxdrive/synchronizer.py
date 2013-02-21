@@ -8,7 +8,7 @@ import urllib2
 import socket
 import httplib
 
-from sqlalchemy import not_
+from sqlalchemy import not_, or_
 import psutil
 
 from nxdrive.client import DEDUPED_BASENAME_PATTERN
@@ -616,17 +616,37 @@ class Synchronizer(object):
         / move operation
         """
         # Detection step
-        if ((doc_pair.local_name == 'Renamed File 1.txt' and doc_pair.pair_state == 'locally_created')
-            or (doc_pair.local_name == 'Original File 1.txt' and doc_pair.pair_state == 'locally_deleted')):
-            import ipdb; ipdb.set_trace()
+
         if doc_pair.pair_state == 'locally_deleted':
             source_doc_pair = doc_pair
             target_doc_pair = None
             wanted_local_state = 'created'
+            if doc_pair.folderish:
+                # TODO: implement me!
+                return False
+            else:
+                # The creation detection might not have occurred yet for the
+                # other pair state
+                candidates = session.query(LastKnownState).filter_by(
+                    local_folder=doc_pair.local_folder,
+                    folderish=0,
+                    local_digest=doc_pair.local_digest,
+                    remote_ref=None).filter(
+                    or_(LastKnownState.local_state == 'created',
+                        LastKnownState.local_state == 'unknown')).all()
         elif doc_pair.pair_state == 'locally_created':
             source_doc_pair = None
             target_doc_pair = doc_pair
             wanted_local_state = 'deleted'
+            if doc_pair.folderish:
+                # TODO: implement me!
+                return False
+            else:
+                candidates = session.query(LastKnownState).filter_by(
+                    local_folder=doc_pair.local_folder,
+                    folderish=0,
+                    local_digest=doc_pair.local_digest,
+                    local_state='deleted').all()
         else:
             # Nothing to do
             return False
@@ -636,11 +656,6 @@ class Synchronizer(object):
             return False
         else:
             # Find a locally_created document with matching digest
-            candidates = session.query(LastKnownState).filter_by(
-                local_folder=doc_pair.local_folder,
-                folderish=0,
-                local_digest=doc_pair.local_digest,
-                local_state=wanted_local_state).all()
             if len(candidates) == 0:
                 # Shall we try to detect move + update sequences based
                 # on same name in another folder?
@@ -648,22 +663,10 @@ class Synchronizer(object):
             if len(candidates) > 1:
                 log.debug("Found %d renaming / move candidates for %s",
                           len(candidates), doc_pair)
-            if doc_pair.pair_state == 'locally_created':
-                for candidate in candidates:
-                    # Check that the candidate is still valid after
-                    # refreshing it
-                    candidate.refresh_local(local_client)
-                    if candidate.local_state == 'locally_deleted':
-                        # This is still valid
-                        target_doc_pair = candidate
+            if doc_pair.pair_state == 'locally_deleted':
+                target_doc_pair = candidates[0]
             else:
-                for candidate in candidates:
-                    # Check that the candidate is still valid after
-                    # refreshing it
-                    candidate.refresh_local(local_client)
-                    if candidate.local_state == 'locally_created':
-                        # This is still valid
-                        source_doc_pair = candidate
+                source_doc_pair = candidates[0]
 
         if source_doc_pair is None or target_doc_pair is None:
             # No candidate found
@@ -695,6 +698,7 @@ class Synchronizer(object):
             target_doc_pair.update_remote(remote_info)
 
         if moved_or_renamed:
+            target_doc_pair.update_state('synchronized', 'synchronized')
             session.delete(source_doc_pair)
             session.commit()
 
