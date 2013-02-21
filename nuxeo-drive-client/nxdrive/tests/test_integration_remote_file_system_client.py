@@ -96,7 +96,9 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(workspace_children[1].name, 'Folder 2')
         self.assertTrue(workspace_children[1].folderish)
         self.assertEquals(workspace_children[2].uid, file_1_id)
-        self.assertEquals(workspace_children[2].name, 'File 1')
+        # the .txt name is added by the server to the title of Note
+        # documents
+        self.assertEquals(workspace_children[2].name, 'File 1.txt')
         self.assertFalse(workspace_children[2].folderish)
 
         # Check folder_1 children
@@ -104,7 +106,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertIsNotNone(folder_1_children)
         self.assertEquals(len(folder_1_children), 1)
         self.assertEquals(folder_1_children[0].uid, file_2_id)
-        self.assertEquals(folder_1_children[0].name, 'File 2')
+        self.assertEquals(folder_1_children[0].name, 'File 2.txt')
 
     def test_make_folder(self):
         remote_client = self.remote_file_system_client_1
