@@ -84,12 +84,12 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
     def make_folder(self, parent_id, name):
         fs_item = self.execute("NuxeoDrive.CreateFolder",
-            id=parent_id, name=name)
+            parentId=parent_id, name=name)
         return fs_item['id']
 
     def make_file(self, parent_id, name, content):
         fs_item = self.execute_with_blob("NuxeoDrive.CreateFile",
-            content, name, id=parent_id)
+            content, name, parentId=parent_id, name=name)
         return fs_item['id']
 
     def update_content(self, fs_item_id, content, name=None):

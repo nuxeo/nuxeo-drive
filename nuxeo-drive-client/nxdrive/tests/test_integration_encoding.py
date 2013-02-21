@@ -25,44 +25,44 @@ class TestIntegrationEncoding(IntegrationTestCase):
         self.local_client = LocalClient(sync_root_folder)
 
     def test_filename_with_accents_from_server(self):
-        # TODO: fix filename with UTF-8 encoded characters
-#        self.remote_client.make_file(self.workspace,
-#            u'Nom avec accents: \xe9, \xe8',
-#            u"Contenu sans accents.")
         self.remote_client.make_file(self.workspace,
-            u'Nom sans accents',
+            u'Nom sans accents.doc',
             u"Contenu sans accents.")
-        self._synchronize_and_assert(1, wait=True)
-#        self.assertEquals(self.local_client.get_content(
-#            u'/Nom avec accents: \xe9, \xe8'),
-#            u"Contenu sans accents.")
+        self.remote_client.make_file(self.workspace,
+            u'Nom avec accents \xe9 \xe8.doc',
+            u"Contenu sans accents.")
+
+        self._synchronize_and_assert(2, wait=True)
+
         self.assertEquals(self.local_client.get_content(
-            u'/Nom sans accents'),
+            u'/Nom sans accents.doc'),
+            u"Contenu sans accents.")
+        self.assertEquals(self.local_client.get_content(
+            u'/Nom avec accents \xe9 \xe8.doc'),
             u"Contenu sans accents.")
 
     def test_content_with_accents_from_server(self):
         self.remote_client.make_file(self.workspace,
-            u'Nom sans accents',
+            u'Nom sans accents.txt',
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
         self._synchronize_and_assert(1, wait=True)
         self.assertEquals(self.local_client.get_content(
-            u'/Nom sans accents'),
+            u'/Nom sans accents.txt'),
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
 
     def test_filename_with_accents_from_client(self):
-        # TODO: fix filename with UTF-8 encoded characters
-#        self.local_client.make_file('/',
-#            u'Nom avec accents: \xe9, \xe8',
-#            u"Contenu sans accents.")
         self.local_client.make_file('/',
-            u'Nom sans accents',
+            u'Avec accents \xe9 \xe8.doc',
             u"Contenu sans accents.")
-        self._synchronize_and_assert(1)
-#        self.assertEquals(self.remote_client.get_content(
-#            u'/Nom avec accents: \xe9, \xe8'),
-#            u"Contenu sans accents.")
+        self.local_client.make_file('/',
+            u'Sans accents.doc',
+            u"Contenu sans accents.")
+        self._synchronize_and_assert(2)
         self.assertEquals(self.remote_client.get_content(
-            u'/Nom sans accents'),
+            u'/Avec accents \xe9 \xe8.doc'),
+            u"Contenu sans accents.")
+        self.assertEquals(self.remote_client.get_content(
+            u'/Sans accents.doc'),
             u"Contenu sans accents.")
 
     def test_content_with_accents_from_client(self):

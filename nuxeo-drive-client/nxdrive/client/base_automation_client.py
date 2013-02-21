@@ -7,6 +7,7 @@ import urllib2
 import mimetypes
 import random
 import time
+import urllib
 from urllib import urlencode
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -187,22 +188,17 @@ class BaseAutomationClient(object):
         if ctype:
             maintype, subtype = ctype.split('/', 1)
         else:
-            maintype, subtype = "application", "binary"
+            maintype, subtype = "application", "octet-stream"
         blob_part = MIMEBase(maintype, subtype)
         blob_part.add_header("Content-ID", "input")
         blob_part.add_header("Content-Transfer-Encoding", "binary")
-        ascii_filename = filename.encode('ascii', 'ignore')
-        #content_disposition = "attachment; filename=" + ascii_filename
-        #quoted_filename = urllib.quote(filename.encode('utf-8'))
-        #content_disposition += "; filename filename*=UTF-8''" \
-        #    + quoted_filename
-        #print content_disposition
-        #blob_part.add_header("Content-Disposition:", content_disposition)
 
-        # XXX: Use ASCCI safe version of the filename for now
-        blob_part.add_header('Content-Disposition', 'attachment',
-                             filename=ascii_filename)
-
+        # Quote UTF-8 filenames eventhough JAX-RS does not seem to be able
+        # to retrieve them as per: https://tools.ietf.org/html/rfc5987
+        quoted_filename = urllib.quote(filename.encode('utf-8'))
+        content_disposition = ("attachment; filename*=UTF-8''%s"
+                                % quoted_filename)
+        blob_part.add_header("Content-Disposition", content_disposition)
         blob_part.set_payload(blob_content)
         container.attach(blob_part)
 
@@ -217,6 +213,13 @@ class BaseAutomationClient(object):
             % boundary,
         }
         headers.update(self._get_common_headers())
+
+        # TODO: find a way to stream the parts without loading them all in
+        # memory as a byte string
+
+        # The code http://atlee.ca/software/poster/ might provide some
+        # guidance to implement this although it cannot be reused directly
+        # as we need tighter control on the headers of the multipart
         data = (
             "--%s\r\n"
             "%s\r\n"
@@ -227,8 +230,6 @@ class BaseAutomationClient(object):
             boundary,
             json_part.as_string(),
             boundary,
-            # TODO: we should find a way to stream the content of the blob
-            # to avoid loading it in memory
             blob_part.as_string(),
             boundary,
         )
