@@ -506,8 +506,8 @@ class Synchronizer(object):
             # parent folder issue to get resolved first
             session.commit()
             raise ValueError(
-                "Parent folder of %r%r is not bound to a remote folder",
-                doc_pair.local_folder, doc_pair.local_path)
+                "Parent folder of %s is not bound to a remote folder"
+                % doc_pair.get_local_abspath())
         parent_ref = parent_pair.remote_ref
         if doc_pair.folderish:
             log.debug("Creating remote folder '%s' in folder '%s'",
