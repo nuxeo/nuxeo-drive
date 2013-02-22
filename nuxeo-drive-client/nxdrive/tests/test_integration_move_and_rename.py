@@ -44,7 +44,9 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
-        original_doc_uid = remote_client.get_info('/Original File 1.txt').uid
+        # Rename /Original File 1.txt to /Renamed File 1.txt
+        original_file_1_uid = remote_client.get_info(
+            '/Original File 1.txt').uid
         local_client.rename('/Original File 1.txt', 'Renamed File 1.txt')
         self.assertFalse(local_client.exists('/Original File 1.txt'))
         self.assertTrue(local_client.exists('/Renamed File 1.txt'))
@@ -52,8 +54,46 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
         self.assertFalse(local_client.exists('/Original File 1.txt'))
         self.assertTrue(local_client.exists('/Renamed File 1.txt'))
-        remote_info = remote_client.get_info(original_doc_uid)
-        self.assertEquals(remote_info.name, 'Renamed File 1.txt')
+        original_file_1_remote_info = remote_client.get_info(
+            original_file_1_uid)
+        self.assertEquals(original_file_1_remote_info.name,
+            'Renamed File 1.txt')
+
+        # Rename 'Renamed File 1.txt' to 'Renamed Again File 1.txt'
+        # and 'Original Duplicate File 1.1.txt' to
+        # 'Renamed Duplicate File 1.1.txt' at the same time as they share
+        # the same digest but do not live in the same folder
+        original_duplicate_1_1_uid = remote_client.get_info(
+            '/Original Folder 1/Original Duplicate File 1.1.txt').uid
+        local_client.rename(
+            '/Original Folder 1/Original Duplicate File 1.1.txt',
+            'Renamed Duplicate File 1.1.txt')
+        self.assertFalse(local_client.exists(
+             '/Original Folder 1/Original Duplicate File 1.1.txt'))
+        self.assertTrue(local_client.exists(
+            '/Original Folder 1/Renamed Duplicate File 1.1.txt'))
+        local_client.rename('/Renamed File 1.txt', 'Renamed Again File 1.txt')
+        self.assertFalse(local_client.exists('/Renamed File 1.txt'))
+        self.assertTrue(local_client.exists('/Renamed Again File 1.txt'))
+
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
+        self.assertFalse(local_client.exists('/Renamed File 1.txt'))
+        self.assertTrue(local_client.exists('/Renamed Again File 1.txt'))
+        self.assertFalse(local_client.exists(
+             '/Original Folder 1/Original Duplicate File 1.1.txt'))
+        self.assertTrue(local_client.exists(
+            '/Original Folder 1/Renamed Duplicate File 1.1.txt'))
+
+        original_file_1_remote_info = remote_client.get_info(
+             original_file_1_uid)
+        self.assertEquals(original_file_1_remote_info.name,
+                          'Renamed Again File 1.txt')
+        original_duplicate_1_1_remote_info = remote_client.get_info(
+             original_duplicate_1_1_uid)
+        self.assertEquals(original_duplicate_1_1_remote_info.name,
+                          'Renamed Duplicate File 1.1.txt')
+
+        # TODO check that parent folders have not changes
 
     def test_local_rename_folder(self):
         pass
