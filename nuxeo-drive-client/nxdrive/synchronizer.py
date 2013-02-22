@@ -449,8 +449,8 @@ class Synchronizer(object):
         sync_handler = getattr(self, handler_name, None)
 
         if sync_handler is None:
-            log.warning("Unhandled pair_state: %r for %r",
-                          doc_pair.pair_state, doc_pair)
+            raise RuntimeError("Unhandled pair_state: %r for %r",
+                               doc_pair.pair_state, doc_pair)
         else:
             sync_handler(doc_pair, session, local_client, remote_client,
                          local_info, remote_info)
@@ -591,8 +591,8 @@ class Synchronizer(object):
     def _synchronize_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         # No need to store this information any further
-        log.debug('Deleting doc pair %s deleted on both sides',
-            doc_pair.get_local_abspath())
+        log.debug('Deleting doc pair %s deleted on both sides' %
+                  doc_pair.get_local_abspath())
         self._delete_with_descendant_states(session, doc_pair)
 
     def _synchronize_conflicted(self, doc_pair, session,
@@ -601,8 +601,9 @@ class Synchronizer(object):
             log.debug('Automated conflict resolution using digest for %s',
                 doc_pair.get_local_abspath())
             doc_pair.update_state('synchronized', 'synchronized')
-        log.warning('Conflict detected for %s', doc_pair.local_path)
-        # TODO: implement me
+        else:
+            raise RuntimeError('Conflict detected for %s' %
+                               doc_pair.local_path)
 
     def _detect_resolve_local_move(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
