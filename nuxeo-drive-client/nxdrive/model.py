@@ -14,6 +14,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
+from sqlalchemy.pool import SingletonThreadPool
 
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
@@ -358,6 +359,10 @@ def init_db(nxdrive_home, echo=False, scoped_sessions=True, poolclass=None):
     """
     # We store the DB as SQLite files in the nxdrive_home folder
     dbfile = os.path.join(normalized_path(nxdrive_home), 'nxdrive.db')
+
+    # SQLite cannot share connections across threads hence it's safer to
+    # enforce this at the connection pool level
+    poolclass = SingletonThreadPool if poolclass is None else poolclass
     engine = create_engine('sqlite:///' + dbfile, echo=echo,
                            poolclass=poolclass)
 

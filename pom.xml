@@ -20,6 +20,7 @@
     <module>nuxeo-drive-server/nuxeo-drive-jsf</module>
     <module>nuxeo-drive-server/nuxeo-drive-core</module>
     <module>nuxeo-drive-server/nuxeo-drive-operations</module>
+    <module>nuxeo-drive-server/nuxeo-drive-hierarchy-permission</module>
   </modules>
 
   <!-- Marketplace Packaging is not triggered by default as it is expensive -->
