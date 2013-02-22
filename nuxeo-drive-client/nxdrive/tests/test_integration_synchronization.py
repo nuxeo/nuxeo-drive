@@ -504,8 +504,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
     def test_synchronization_offline(self):
         ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
+        sb = ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                             self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
@@ -524,6 +524,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         local = LocalClient(expected_folder)
         local.make_folder('/', 'Folder 3')
         self.make_server_tree()
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
 
         # Find various ways to similate network or server failure
