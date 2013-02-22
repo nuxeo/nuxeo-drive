@@ -705,6 +705,8 @@ class Synchronizer(object):
                 # Target has not be concurrently deleted, let's perform the
                 # move
                 moved_or_renamed = True
+                log.debug("Detected and resolving local move event on %s to %s",
+                    source_doc_pair, parent_doc_pair)
                 remote_info = remote_client.move(remote_ref,
                     parent_doc_pair.remote_ref)
                 target_doc_pair.update_remote(remote_info)
@@ -712,8 +714,10 @@ class Synchronizer(object):
         if target_doc_pair.local_name != source_doc_pair.local_name:
             # This is a (also?) a rename operation
             moved_or_renamed = True
-            remote_info = remote_client.rename(remote_ref,
-                                               target_doc_pair.local_name)
+            new_name = target_doc_pair.local_name
+            log.debug("Detected and resolving local rename event on %s to %s",
+                      source_doc_pair, new_name)
+            remote_info = remote_client.rename(remote_ref, new_name)
             target_doc_pair.update_remote(remote_info)
 
         if moved_or_renamed:
