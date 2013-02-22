@@ -84,16 +84,21 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertTrue(local_client.exists(
             '/Original Folder 1/Renamed File 1.1.txt'))
 
-        original_file_1_remote_info = remote_client.get_info(
-             original_file_1_uid)
-        self.assertEquals(original_file_1_remote_info.name,
-                          'Renamed Again File 1.txt')
-        original_1_1_remote_info = remote_client.get_info(
-             original_1_1_uid)
-        self.assertEquals(original_1_1_remote_info.name,
-                          'Renamed File 1.1.txt')
+        file_1_remote_info = remote_client.get_info(original_file_1_uid)
+        self.assertEquals(file_1_remote_info.name, 'Renamed Again File 1.txt')
 
-        # TODO check that parent folders have not changes
+        parent_of_file_1_remote_info = remote_client.get_info(
+            file_1_remote_info.parent_uid)
+        self.assertEquals(parent_of_file_1_remote_info.name,
+            self.workspace_title)
+
+        file_1_1_remote_info = remote_client.get_info(original_1_1_uid)
+        self.assertEquals(file_1_1_remote_info.name, 'Renamed File 1.1.txt')
+
+        parent_of_file_1_1_remote_info = remote_client.get_info(
+            file_1_1_remote_info.parent_uid)
+        self.assertEquals(parent_of_file_1_1_remote_info.name,
+            'Original Folder 1')
 
     def test_local_rename_folder(self):
         pass
