@@ -104,17 +104,42 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertEquals(parent_of_file_1_1_remote_info.name,
             u'Original Folder 1')
 
-    def test_local_rename_folder(self):
-        pass
-
-    def test_local_rename_sync_root_folder(self):
-        pass
-
     def test_local_move_file(self):
-        pass
+        sb, ctl = self.sb_1, self.controller_1
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
 
-    def test_local_move_folder(self):
-        pass
+        # Rename /Original File 1.txt to /Renamed File 1.txt
+        original_file_1_uid = remote_client.get_info(
+            u'/Original File 1.txt').uid
+        local_client.move(u'/Original File 1.txt', u'/Original Folder 1')
+        self.assertFalse(local_client.exists(u'/Original File 1.txt'))
+        self.assertTrue(local_client.exists(
+            u'/Original Folder 1/Original File 1.txt'))
 
-    def test_local_move_sync_root_folder(self):
-        pass
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+        self.assertFalse(local_client.exists(u'/Original File 1.txt'))
+        self.assertTrue(local_client.exists(
+            u'/Original Folder 1/Original File 1.txt'))
+
+        file_1_remote_info = remote_client.get_info(original_file_1_uid)
+        self.assertEquals(file_1_remote_info.name, u'Original File 1.txt')
+        parent_of_file_1_remote_info = remote_client.get_info(
+            file_1_remote_info.parent_uid)
+        self.assertEquals(parent_of_file_1_remote_info.name,
+            u'Original Folder 1')
+
+    # def test_local_move_and_rename_file(self):
+    #     pass
+
+    # def test_local_rename_folder(self):
+    #    pass
+
+    # def test_local_rename_sync_root_folder(self):
+    #    pass
+
+    # def test_local_move_folder(self):
+    #    pass
+
+    # def test_local_move_sync_root_folder(self):
+    #    pass

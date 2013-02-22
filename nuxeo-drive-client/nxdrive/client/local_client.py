@@ -182,7 +182,11 @@ class LocalClient(object):
         return os.access(os_path, os.W_OK)
 
     def rename(self, ref, new_name):
-        """Rename a local file or folder and return the new local path"""
+        """Rename a local file or folder
+
+        Return the actualized info object.
+
+        """
         if ref == '/':
             raise ValueError("Cannot rename the toplevel folder.")
         source_os_path = self._abspath(ref)
@@ -194,6 +198,24 @@ class LocalClient(object):
             new_ref = '/' + new_name
         else:
             new_ref = parent + "/" + new_name
+        return self.get_info(new_ref)
+
+    def move(self, ref, new_parent_ref):
+        """Move a local file or folder into another folder
+
+        Return the actualized info object.
+
+        """
+        if ref == '/':
+            raise ValueError("Cannot move the toplevel folder.")
+        source_os_path = self._abspath(ref)
+        name = ref.rsplit('/', 1)[1]
+        target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
+        shutil.move(source_os_path, target_os_path)
+        if new_parent_ref == '/':
+            new_ref = '/' + new_name
+        else:
+            new_ref = new_parent_ref + "/" + new_name
         return self.get_info(new_ref)
 
     def _abspath(self, ref):

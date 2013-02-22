@@ -687,9 +687,27 @@ class Synchronizer(object):
         if (target_doc_pair.local_parent_path
             != source_doc_pair.local_parent_path):
             # This is (at least?) a move operation
-            #moved_or_renamed = True
-            # TODO: implement me!
-            pass
+
+            # Find the matching target parent folder, assuming it has already
+            # been refreshed and matched in the past
+            parent_doc_pair = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                local_path=target_doc_pair.local_parent_path,
+            ).first()
+
+            if (parent_doc_pair is not None  and
+                parent_doc_pair.remote_ref is not None):
+                # Detect any concurrent deletion of the target remote folder
+                # that would prevent the move
+                parent_doc_pair.refresh_remote(remote_client)
+            if (parent_doc_pair is not None and
+                parent_doc_pair.remote_ref is not None):
+                # Target has not be concurrently deleted, let's perform the
+                # move
+                moved_or_renamed = True
+                remote_info = remote_client.move(remote_ref,
+                    parent_doc_pair.remote_ref)
+                target_doc_pair.update_remote(remote_info)
 
         if target_doc_pair.local_name != source_doc_pair.local_name:
             # This is a (also?) a rename operation
