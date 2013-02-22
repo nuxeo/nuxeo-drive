@@ -419,9 +419,10 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         local = LocalClient(expected_folder)
         local.make_folder('/', 'Folder 3')
         self.make_server_tree()
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        self.wait()
 
         # Run the full synchronization loop a limited amount of times
-        self.wait()
         syn.loop(delay=0.010, max_loops=3)
 
         # All is synchronized
