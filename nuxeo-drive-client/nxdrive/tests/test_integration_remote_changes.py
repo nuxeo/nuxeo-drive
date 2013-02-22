@@ -1,4 +1,3 @@
-import os
 import time
 from nxdrive.tests.common import IntegrationTestCase
 

@@ -558,10 +558,6 @@ class TestIntegrationSynchronization(IntegrationTestCase):
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
-
-        expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.workspace_title)
-
         self.assertEquals(ctl.list_pending(), [])
 
         # Let's create some document on the client and the server
@@ -666,9 +662,6 @@ class TestIntegrationSynchronization(IntegrationTestCase):
                              self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
-
-        expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.workspace_title)
 
         # Let's synchronize the new root
         self.assertEquals(syn.update_synchronize_server(sb), 1)
