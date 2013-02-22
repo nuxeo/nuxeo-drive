@@ -662,6 +662,9 @@ class Synchronizer(object):
                 # on same name in another folder?
                 return False
             if len(candidates) > 1:
+                # TODO: rerank the candidates according to some closeness scores:
+                # name unchanged + very code score
+                # parent id unchanged + good score
                 log.debug("Found %d renaming / move candidates for %s",
                           len(candidates), doc_pair)
             if doc_pair.pair_state == 'locally_deleted':
