@@ -1,5 +1,6 @@
 """API to access remote Nuxeo documents for synchronization."""
 
+import unicodedata
 from collections import namedtuple
 from datetime import datetime
 import hashlib
@@ -203,8 +204,13 @@ class RemoteDocumentClient(BaseAutomationClient):
         # XXX: we need another roundtrip just to fetch the parent uid...
         if parent_uid is None and fetch_parent_uid:
             parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
+
+        # Normalize using NFKC to make the tests more intuitive
+        name = props['dc:title']
+        if name is not None:
+            name = unicodedata.normalize('NFKC', name)
         return NuxeoDocumentInfo(
-            self._base_folder_ref, props['dc:title'], doc['uid'], parent_uid,
+            self._base_folder_ref, name, doc['uid'], parent_uid,
             doc['path'], folderish, last_update, digest, self.repository,
             doc['type'])
 
