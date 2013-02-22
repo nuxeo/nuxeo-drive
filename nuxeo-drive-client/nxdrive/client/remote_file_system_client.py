@@ -1,5 +1,6 @@
 """API to access a remote file system for synchronization."""
 
+import unicodedata
 from collections import namedtuple
 from datetime import datetime
 import urllib2
@@ -109,6 +110,15 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def check_writable(self, fs_item_id):
         pass
 
+    def rename(self, fs_item_id, new_name):
+        self.execute("NuxeoDrive.Rename", id=fs_item_id, name=new_name)
+        return self.get_info(fs_item_id)
+
+    def move(self, fs_item_id, new_parent_id):
+        self.execute("NuxeoDrive.Move", srcId=fs_item_id,
+            destId=new_parent_id)
+        return self.get_info(fs_item_id)
+
     def _file_to_info(self, fs_item):
         """Convert Automation file system item description to RemoteFileInfo"""
         folderish = fs_item['folder']
@@ -128,8 +138,12 @@ class RemoteFileSystemClient(BaseAutomationClient):
             can_update = fs_item['canUpdate']
             can_create_child = False
 
+        # Normalize using NFKC to make the tests more intuitive
+        name = fs_item['name']
+        if name is not None:
+            name = unicodedata.normalize('NFKC', name)
         return RemoteFileInfo(
-            fs_item['name'], fs_item['id'], fs_item['parentId'],
+            name, fs_item['id'], fs_item['parentId'],
             fs_item['path'], folderish, last_update, digest, digest_algorithm,
             download_url, fs_item['canRename'], fs_item['canDelete'],
             can_update, can_create_child)

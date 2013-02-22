@@ -16,7 +16,6 @@ from nxdrive.client import Unauthorized
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteDocumentClient
-from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.model import init_db
 from nxdrive.model import DeviceConfig
@@ -474,7 +473,7 @@ class Controller(object):
                           base_folder='/'):
         # Backward compat
         return self.get_remote_doc_client(server_binding,
-            repository=repository, base_folder=remote_root)
+            repository=repository, base_folder=base_folder)
 
     def invalidate_client_cache(self, server_url):
         cache = self._get_client_cache()
@@ -506,12 +505,11 @@ class Controller(object):
     def launch_file_editor(self, server_url, remote_ref):
         """Find the local file if any and start OS editor on it."""
 
-        state = self.get_state(server_url, remote_repo, remote_ref)
+        state = self.get_state(server_url, remote_ref)
         if state is None:
             # TODO: synchronize to a dedicated special root for one time edit
-            log.warning('Could not find local file for '
-                        'server_url=%s and remote_ref=%s',
-                        server_url, remote_repo, remote_ref)
+            log.warning('Could not find local file for server_url=%s '
+                        'and remote_ref=%s', server_url, remote_ref)
             return
 
         # TODO: check synchronization of this state first

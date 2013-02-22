@@ -8,7 +8,7 @@ import urllib2
 import socket
 import httplib
 
-from sqlalchemy import not_
+from sqlalchemy import not_, or_
 import psutil
 
 from nxdrive.client import DEDUPED_BASENAME_PATTERN
@@ -449,8 +449,8 @@ class Synchronizer(object):
         sync_handler = getattr(self, handler_name, None)
 
         if sync_handler is None:
-            log.warning("Unhandled pair_state: %r for %r",
-                          doc_pair.pair_state, doc_pair)
+            raise RuntimeError("Unhandled pair_state: %r for %r",
+                               doc_pair.pair_state, doc_pair)
         else:
             sync_handler(doc_pair, session, local_client, remote_client,
                          local_info, remote_info)
@@ -494,6 +494,9 @@ class Synchronizer(object):
 
     def _synchronize_locally_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
+        if self._detect_resolve_local_move(doc_pair, session,
+            local_client, remote_client, local_info, remote_info):
+            return
         name = os.path.basename(doc_pair.local_path)
         # Find the parent pair to find the ref of the remote folder to
         # create the document
@@ -553,6 +556,9 @@ class Synchronizer(object):
 
     def _synchronize_locally_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
+        if self._detect_resolve_local_move(doc_pair, session,
+            local_client, remote_client, local_info, remote_info):
+            return
         if doc_pair.remote_ref is not None:
             log.debug("Deleting remote doc '%s' (%s)",
                       doc_pair.remote_name, doc_pair.remote_ref)
@@ -585,8 +591,8 @@ class Synchronizer(object):
     def _synchronize_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         # No need to store this information any further
-        log.debug('Deleting doc pair %s deleted on both sides',
-            doc_pair.get_local_abspath())
+        log.debug('Deleting doc pair %s deleted on both sides' %
+                  doc_pair.get_local_abspath())
         self._delete_with_descendant_states(session, doc_pair)
 
     def _synchronize_conflicted(self, doc_pair, session,
@@ -595,8 +601,134 @@ class Synchronizer(object):
             log.debug('Automated conflict resolution using digest for %s',
                 doc_pair.get_local_abspath())
             doc_pair.update_state('synchronized', 'synchronized')
-        log.warning('Conflict detected for %s', doc_pair.local_path)
-        # TODO: imeplement me 
+        else:
+            raise RuntimeError('Conflict detected for %s' %
+                               doc_pair.local_path)
+
+    def _detect_resolve_local_move(self, doc_pair, session,
+        local_client, remote_client, local_info, remote_info):
+        """Handle local move / renaming if doc_pair is detected as involved
+
+        Detection is based on digest for files and content for folders.
+        Resolution perform the matching remote action and update the local
+        state DB.
+
+        If the doc_pair is not detected as being involved in a rename
+        / move operation
+        """
+        # Detection step
+
+        if doc_pair.pair_state == 'locally_deleted':
+            source_doc_pair = doc_pair
+            target_doc_pair = None
+            wanted_local_state = 'created'
+            if doc_pair.folderish:
+                # TODO: implement me!
+                return False
+            else:
+                # The creation detection might not have occurred yet for the
+                # other pair state
+                candidates = session.query(LastKnownState).filter_by(
+                    local_folder=doc_pair.local_folder,
+                    folderish=0,
+                    local_digest=doc_pair.local_digest,
+                    remote_ref=None).filter(
+                    or_(LastKnownState.local_state == 'created',
+                        LastKnownState.local_state == 'unknown')).all()
+        elif doc_pair.pair_state == 'locally_created':
+            source_doc_pair = None
+            target_doc_pair = doc_pair
+            wanted_local_state = 'deleted'
+            if doc_pair.folderish:
+                # TODO: implement me!
+                return False
+            else:
+                candidates = session.query(LastKnownState).filter_by(
+                    local_folder=doc_pair.local_folder,
+                    folderish=0,
+                    local_digest=doc_pair.local_digest,
+                    local_state='deleted').all()
+        else:
+            # Nothing to do
+            return False
+
+        if doc_pair.folderish:
+            # TODO: implement me!
+            return False
+        else:
+            # Find a locally_created document with matching digest
+            if len(candidates) == 0:
+                # Shall we try to detect move + update sequences based
+                # on same name in another folder?
+                return False
+            if len(candidates) > 1:
+                # TODO: rerank the candidates according to some closeness scores:
+                # name unchanged + very code score
+                # parent id unchanged + good score
+                log.debug("Found %d renaming / move candidates for %s",
+                          len(candidates), doc_pair)
+            if doc_pair.pair_state == 'locally_deleted':
+                target_doc_pair = candidates[0]
+            else:
+                source_doc_pair = candidates[0]
+
+        if source_doc_pair is None or target_doc_pair is None:
+            # No candidate found
+            return False
+
+        # Resolution step
+
+        moved_or_renamed = False
+        remote_ref = source_doc_pair.remote_ref
+
+        # check that the target still exists
+        if not remote_client.exists(remote_ref):
+            # Nothing to do: the regular deleted / created handling will
+            # work in this case.
+            return False
+
+        if (target_doc_pair.local_parent_path
+            != source_doc_pair.local_parent_path):
+            # This is (at least?) a move operation
+
+            # Find the matching target parent folder, assuming it has already
+            # been refreshed and matched in the past
+            parent_doc_pair = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                local_path=target_doc_pair.local_parent_path,
+            ).first()
+
+            if (parent_doc_pair is not None  and
+                parent_doc_pair.remote_ref is not None):
+                # Detect any concurrent deletion of the target remote folder
+                # that would prevent the move
+                parent_doc_pair.refresh_remote(remote_client)
+            if (parent_doc_pair is not None and
+                parent_doc_pair.remote_ref is not None):
+                # Target has not be concurrently deleted, let's perform the
+                # move
+                moved_or_renamed = True
+                log.debug("Detected and resolving local move event on %s to %s",
+                    source_doc_pair, parent_doc_pair)
+                remote_info = remote_client.move(remote_ref,
+                    parent_doc_pair.remote_ref)
+                target_doc_pair.update_remote(remote_info)
+
+        if target_doc_pair.local_name != source_doc_pair.local_name:
+            # This is a (also?) a rename operation
+            moved_or_renamed = True
+            new_name = target_doc_pair.local_name
+            log.debug("Detected and resolving local rename event on %s to %s",
+                      source_doc_pair, new_name)
+            remote_info = remote_client.rename(remote_ref, new_name)
+            target_doc_pair.update_remote(remote_info)
+
+        if moved_or_renamed:
+            target_doc_pair.update_state('synchronized', 'synchronized')
+            session.delete(source_doc_pair)
+            session.commit()
+
+        return moved_or_renamed
 
     def synchronize(self, local_folder=None, limit=None):
         """Synchronize one file at a time from the pending list."""

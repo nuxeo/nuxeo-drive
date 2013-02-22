@@ -419,9 +419,10 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         local = LocalClient(expected_folder)
         local.make_folder('/', 'Folder 3')
         self.make_server_tree()
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        self.wait()
 
         # Run the full synchronization loop a limited amount of times
-        self.wait()
         syn.loop(delay=0.010, max_loops=3)
 
         # All is synchronized
@@ -503,8 +504,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
     def test_synchronization_offline(self):
         ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
+        sb = ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                             self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
@@ -523,6 +524,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         local = LocalClient(expected_folder)
         local.make_folder('/', 'Folder 3')
         self.make_server_tree()
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
 
         # Find various ways to similate network or server failure
@@ -558,10 +560,6 @@ class TestIntegrationSynchronization(IntegrationTestCase):
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
-
-        expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.workspace_title)
-
         self.assertEquals(ctl.list_pending(), [])
 
         # Let's create some document on the client and the server
@@ -666,9 +664,6 @@ class TestIntegrationSynchronization(IntegrationTestCase):
                              self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
-
-        expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.workspace_title)
 
         # Let's synchronize the new root
         self.assertEquals(syn.update_synchronize_server(sb), 1)
