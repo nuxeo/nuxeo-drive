@@ -117,7 +117,7 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         # the document is now physically deleted (by calling delete a second time:
         # the 'delete' transition will no longer be available hence physical
         # deletion is used as a fallback)
-        remote_client.delete(doc_2)
+        remote_client.delete(doc_2, use_trash=False)
         self.assertFalse(remote_client.exists(doc_2, use_trash=False))
         self.assertRaises(NotFound, remote_client.get_info, doc_2, use_trash=False)
 
