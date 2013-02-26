@@ -174,7 +174,7 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
             u'/Original Folder 1/Sub-Folder 1.1').uid
 
         # Rename a non empty folder with some content
-        local_client.rename(u'/Original Folder 1', u'Renamed Folder 1 ')
+        local_client.rename(u'/Original Folder 1', u'Renamed Folder 1 \xe9')
         self.assertFalse(local_client.exists(u'/Original Folder 1'))
         self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
 
