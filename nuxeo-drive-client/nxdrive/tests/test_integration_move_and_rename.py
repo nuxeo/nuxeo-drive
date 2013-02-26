@@ -1,4 +1,5 @@
 import os
+import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -155,6 +156,10 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertEquals(parent_of_file_1_remote_info.name,
             u'Original Folder 1')
 
+        # Nothing left to do
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
+
     def test_local_rename_folder(self):
         sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
@@ -169,12 +174,32 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
             u'/Original Folder 1/Sub-Folder 1.1').uid
 
         # Rename a non empty folder with some content
-        local_client.rename(u'/Original Folder 1', u'Renamed Folder 1 \xe9')
+        local_client.rename(u'/Original Folder 1', u'Renamed Folder 1 ')
+        self.assertFalse(local_client.exists(u'/Original Folder 1'))
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
 
         # Synchronize: only the folder renaming is detected: all
-        # the descendant are automatically realigned
+        # the descendants are automatically realigned
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
+        self.assertTrue(remote_client.exists(u'/Renamed Folder 1 \xe9'))
+        self.assertFalse(remote_client.exists(u'/Original Folder 1'))
+
+        # The server folder has been renamed: the uid stays the same
+        new_folder_1_uid = remote_client.get_info(u'/Renamed Folder 1 \xe9').uid
+        assertEquals(new_folder_1_uid, original_folder_1_uid)
+
+        # The content of the renamed folder is left unchanged
+        new_file_1_1_uid = remote_client.get_info(
+            u'/Renamed Folder 1 \xe9/Original File 1.1.txt').uid
+        assertEquals(new_file_1_1_uid, original_1_1_uid)
+
+        new_sub_folder_1_1_uid = remote_client.get_info(
+            u'/Renamed Folder 1 \xe9/Sub-Folder 1.1').uid
+        assertEquals(new_sub_folder_1_1_uid, original_sub_folder_1_1_uid)
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     # def test_local_move_folder(self):
     #    pass
