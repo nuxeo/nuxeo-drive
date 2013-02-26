@@ -539,7 +539,7 @@ class Synchronizer(object):
             # parent folder issue to get resolved first
             raise ValueError(
                 "Parent folder of doc %r (%r) is not bound to a local"
-                " folder", name, doc_pair.remote_ref)
+                " folder" % (name, doc_pair.remote_ref))
         local_parent_path = parent_pair.local_path
         if doc_pair.folderish:
             path = local_client.make_folder(local_parent_path, name)
