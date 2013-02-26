@@ -1,5 +1,4 @@
 import os
-import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
