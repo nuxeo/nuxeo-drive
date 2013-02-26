@@ -392,7 +392,7 @@ class Synchronizer(object):
 
         # Previous attempt has failed: relax the digest constraint
         possible_pairs = session.query(LastKnownState).filter_by(
-            local_folder=parent_pair.local_folder,                                         
+            local_folder=parent_pair.local_folder,
             remote_ref=None,
             local_parent_path=parent_pair.local_path,
             folderish=child_info.folderish,
@@ -534,7 +534,13 @@ class Synchronizer(object):
             local_folder=doc_pair.local_folder,
             remote_ref=remote_info.parent_uid,
         ).first()
-        if parent_pair is None or parent_pair.local_path is None:
+        if parent_pair is None:
+            # Illegal state: report the error and let's wait for the
+            # parent folder issue to get resolved first
+            raise ValueError(
+                "Could not find parent folder of doc %r (%r)"
+                " folder" % (name, doc_pair.remote_ref))
+        if parent_pair.local_path is None:
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             raise ValueError(
