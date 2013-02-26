@@ -618,6 +618,110 @@ class Synchronizer(object):
             raise RuntimeError('Conflict detected for %s' %
                                doc_pair.local_path)
 
+    def _detect_local_file_move(self, doc_pair, session,
+        local_client, remote_client, local_info, remote_info):
+        """Find local file move or renaming event by introspecting the states
+
+        In case of detection return (source_doc_pair, target_doc_pair).
+        Otherwise, return (None, None)
+        """
+        if doc_pair.pair_state == 'locally_deleted':
+            source_doc_pair = doc_pair
+            target_doc_pair = None
+            wanted_local_state = 'created'
+            # The creation detection might not have occurred yet for the
+            # other pair state: let consider both pairs in states created
+            # and unknonw
+            candidates = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                folderish=0,
+                local_digest=doc_pair.local_digest,
+                remote_ref=None).filter(
+                or_(LastKnownState.local_state == 'created',
+                    LastKnownState.local_state == 'unknown')).all()
+
+        elif doc_pair.pair_state == 'locally_created':
+            source_doc_pair = None
+            target_doc_pair = doc_pair
+            wanted_local_state = 'deleted'
+            candidates = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                folderish=0,
+                local_digest=doc_pair.local_digest,
+                local_state='deleted').all()
+        else:
+            # Nothing to do
+            return None, None
+
+        # Find a locally_created document with matching digest
+        if len(candidates) == 0:
+            # Shall we try to detect move + update sequences based
+            # on same name in another folder?
+            return None, None
+        if len(candidates) > 1:
+            # TODO: rerank the candidates according to some closeness scores:
+            # name unchanged + very good score
+            # parent id unchanged + good score
+            log.debug("Found %d renaming / move candidates for %s",
+                      len(candidates), doc_pair)
+        if doc_pair.pair_state == 'locally_deleted':
+            target_doc_pair = candidates[0]
+        else:
+            source_doc_pair = candidates[0]
+        return source_doc_pair, target_doc_pair
+
+    def _detect_local_folder_rename(self, doc_pair, session,
+        local_client, remote_client, local_info, remote_info):
+        """Find local folder move or renaming event by introspecting the states
+
+        In case of detection return (source_doc_pair, target_doc_pair).
+        Otherwise, return (None, None)
+        """
+        if doc_pair.pair_state == 'locally_deleted':
+            source_doc_pair = doc_pair
+            target_doc_pair = None
+            wanted_local_state = 'created'
+            # The creation detection might not have occurred yet for the
+            # other pair state: let consider both pairs in states created
+            # and unknonw
+            candidates = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                local_parent_path=doc_pair.local_parent_path,
+                folderish=1,
+                remote_ref=None).filter(
+                or_(LastKnownState.local_state == 'created',
+                    LastKnownState.local_state == 'unknown')).all()
+
+        elif doc_pair.pair_state == 'locally_created':
+            source_doc_pair = None
+            target_doc_pair = doc_pair
+            wanted_local_state = 'deleted'
+            candidates = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                local_parent_path=doc_pair.local_parent_path,
+                folderish=1,
+                local_state='deleted').all()
+        else:
+            # Nothing to do
+            return None, None
+
+        # Find a locally_created document with matching digest
+        if len(candidates) == 0:
+            # Shall we try to detect move + update sequences based
+            # on same name in another folder?
+            return None, None
+        if len(candidates) > 1:
+            # TODO: rerank the candidates according to some closeness scores:
+            # name unchanged + very good score
+            # parent id unchanged + good score
+            log.debug("Found %d renaming / move candidates for %s",
+                      len(candidates), doc_pair)
+        if doc_pair.pair_state == 'locally_deleted':
+            target_doc_pair = candidates[0]
+        else:
+            source_doc_pair = candidates[0]
+        return source_doc_pair, target_doc_pair
+
     def _detect_resolve_local_move(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         """Handle local move / renaming if doc_pair is detected as involved
@@ -631,59 +735,14 @@ class Synchronizer(object):
         """
         # Detection step
 
-        if doc_pair.pair_state == 'locally_deleted':
-            source_doc_pair = doc_pair
-            target_doc_pair = None
-            wanted_local_state = 'created'
-            if doc_pair.folderish:
-                # TODO: implement me!
-                return False
-            else:
-                # The creation detection might not have occurred yet for the
-                # other pair state
-                candidates = session.query(LastKnownState).filter_by(
-                    local_folder=doc_pair.local_folder,
-                    folderish=0,
-                    local_digest=doc_pair.local_digest,
-                    remote_ref=None).filter(
-                    or_(LastKnownState.local_state == 'created',
-                        LastKnownState.local_state == 'unknown')).all()
-        elif doc_pair.pair_state == 'locally_created':
-            source_doc_pair = None
-            target_doc_pair = doc_pair
-            wanted_local_state = 'deleted'
-            if doc_pair.folderish:
-                # TODO: implement me!
-                return False
-            else:
-                candidates = session.query(LastKnownState).filter_by(
-                    local_folder=doc_pair.local_folder,
-                    folderish=0,
-                    local_digest=doc_pair.local_digest,
-                    local_state='deleted').all()
-        else:
-            # Nothing to do
-            return False
-
         if doc_pair.folderish:
-            # TODO: implement me!
-            return False
+            source_doc_pair, target_doc_pair = self._detect_local_folder_move(
+                doc_pair, session, local_client, remote_client, local_info,
+                remote_info)
         else:
-            # Find a locally_created document with matching digest
-            if len(candidates) == 0:
-                # Shall we try to detect move + update sequences based
-                # on same name in another folder?
-                return False
-            if len(candidates) > 1:
-                # TODO: rerank the candidates according to some closeness scores:
-                # name unchanged + very code score
-                # parent id unchanged + good score
-                log.debug("Found %d renaming / move candidates for %s",
-                          len(candidates), doc_pair)
-            if doc_pair.pair_state == 'locally_deleted':
-                target_doc_pair = candidates[0]
-            else:
-                source_doc_pair = candidates[0]
+            source_doc_pair, target_doc_pair = self._detect_local_file_move(
+                doc_pair, session, local_client, remote_client, local_info,
+                remote_info)
 
         if source_doc_pair is None or target_doc_pair is None:
             # No candidate found

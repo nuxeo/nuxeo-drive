@@ -156,13 +156,31 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertEquals(parent_of_file_1_remote_info.name,
             u'Original Folder 1')
 
-    # def test_local_rename_folder(self):
+    def test_local_rename_folder(self):
+        sb, ctl = self.sb_1, self.controller_1
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+
+        # Save the uid of some files and folders prior to renaming
+        original_folder_1_uid = remote_client.get_info(
+            u'/Original Folder 1').uid
+        original_file_1_1_uid = remote_client.get_info(
+            u'/Original Folder 1/Original File 1.1.txt').uid
+        original_sub_folder_1_1_uid = remote_client.get_info(
+            u'/Original Folder 1/Sub-Folder 1.1').uid
+
+        # Rename a non empty folder with some content
+        local_client.rename(u'/Original Folder 1', u'Renamed Folder 1 \xe9')
+
+        # Synchronize: only the folder renaming is detected: all
+        # the descendant are automatically realigned
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+
+    # def test_local_move_folder(self):
     #    pass
 
     # def test_local_rename_sync_root_folder(self):
-    #    pass
-
-    # def test_local_move_folder(self):
     #    pass
 
     # def test_local_move_sync_root_folder(self):
