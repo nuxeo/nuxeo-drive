@@ -157,8 +157,8 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
             u'Original Folder 1')
 
         # Nothing left to do
-        self.wait()
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_local_rename_folder(self):
@@ -198,14 +198,42 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertEquals(sub_folder_1_1_info.parent_uid,
             original_folder_1_uid)
 
-        # The next local scan updates the database under the renamed
-        # local folder but everything is realigned with further changes
-        self.wait()
+        # The more things change, the more they remain the same.
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
-        new_remote_name = remote_client.get_info(original_folder_1_uid).name
-        self.assertEquals(new_remote_name, u"Renamed Folder 1 \xe9")
+    def test_local_move_folder(self):
+        sb, ctl = self.sb_1, self.controller_1
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+
+        # Save the uid of some files and folders prior to move
+        original_folder_1_uid = remote_client.get_info(
+            u'/Original Folder 1').uid
+        original_folder_2_uid = remote_client.get_info(
+            u'/Original Folder 2').uid
+        original_file_1_1_uid = remote_client.get_info(
+            u'/Original Folder 1/Original File 1.1.txt').uid
+        original_sub_folder_1_1_uid = remote_client.get_info(
+            u'/Original Folder 1/Sub-Folder 1.1').uid
+
+        # Move a non empty folder with some content
+        local_client.move(u'/Original Folder 1', u'/Original Folder 2')
+        self.assertFalse(local_client.exists(u'/Original Folder 1'))
+        self.assertTrue(local_client.exists(
+            u'/Original Folder 2/Original Folder 1'))
+
+        # Synchronize: only the folder move is detected: all
+        # the descendants are automatically realigned
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+        # The server folder has been moved: the uid stays the same
+        remote_folder_info = remote_client.get_info(original_folder_1_uid)
+
+        # The parent folder is not folder 2
+        self.assertEquals(remote_folder_info.parent_uid,
+            original_folder_2_uid)
 
         # The content of the renamed folder is left unchanged
         file_1_1_info = remote_client.get_info(original_file_1_1_uid)
@@ -218,8 +246,10 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertEquals(sub_folder_1_1_info.parent_uid,
             original_folder_1_uid)
 
-    # def test_local_move_folder(self):
-    #    pass
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     # def test_local_rename_sync_root_folder(self):
     #    pass
