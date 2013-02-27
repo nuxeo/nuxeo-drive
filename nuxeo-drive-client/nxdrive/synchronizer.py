@@ -1066,10 +1066,11 @@ class Synchronizer(object):
             if remote_ref in refreshed:
                 # A more recent version was already processed
                 continue
-            doc_pairs = session.query(LastKnownState).filter_by(
-                remote_ref=remote_ref).all()
+            doc_pair = session.query(LastKnownState).filter_by(
+                local_folder=server_binding.local_folder,
+                remote_ref=remote_ref).first()
             updated = False
-            for doc_pair in doc_pairs:
+            if doc_pair is not None:
                 if doc_pair.server_binding.server_url == s_url:
                     old_remote_parent_ref = doc_pair.remote_parent_ref
                     new_info = client.get_info(
