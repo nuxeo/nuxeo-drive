@@ -114,6 +114,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self._file_to_info(self.execute("NuxeoDrive.Move",
             srcId=fs_item_id, destId=new_parent_id))
 
+    def can_move(self, fs_item_id, new_parent_id):
+        return self.execute("NuxeoDrive.CanMove", srcId=fs_item_id,
+            destId=new_parent_id)
+
     def _file_to_info(self, fs_item):
         """Convert Automation file system item description to RemoteFileInfo"""
         folderish = fs_item['folder']

@@ -322,5 +322,6 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertEquals(folder_1_info.name, u"Original Folder 1")
         self.assertEquals(folder_1_info.parent_uid, self.workspace)
 
+    # TODO: implement me once canDelete is checked in the synchronizer
     # def test_local_move_sync_root_folder(self):
     #    pass

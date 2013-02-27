@@ -806,8 +806,12 @@ class Synchronizer(object):
                 moved_or_renamed = True
                 log.debug("Detected and resolving local move event on %s to %s",
                     source_doc_pair, parent_doc_pair)
-                remote_info = remote_client.move(remote_ref,
-                    parent_doc_pair.remote_ref)
+                target_ref = parent_doc_pair.remote_ref
+                if not remote_client.can_move(remote_ref, target_ref):
+                    log.debug("Move operation unauthorized: fallback to"
+                              " default create / delete behavior if possible")
+                    return False
+                remote_info = remote_client.move(remote_ref, target_ref)
                 target_doc_pair.update_remote(remote_info)
 
         if target_doc_pair.local_name != source_doc_pair.local_name:
