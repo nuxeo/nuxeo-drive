@@ -826,10 +826,14 @@ class Synchronizer(object):
                 self._delete_with_descendant_states(
                     session, source_doc_pair, keep_root=False)
 
-                # Let the next scan realign the local descendants taking
-                # the remote renaming or move into account
-                self._delete_with_descendant_states(
-                    session, target_doc_pair, keep_root=True)
+                # Rescan the remote folder descendants to let them realign
+                # with the local files
+                # TODO: optimize me by updating the local db and reuse the
+                # previous state info instead?
+                remote_folder_info = remote_client.get_info(
+                    target_doc_pair.remote_ref)
+                self._scan_remote_recursive(session, remote_client,
+                    target_doc_pair, remote_folder_info)
             else:
                 session.delete(source_doc_pair)
             session.commit()
