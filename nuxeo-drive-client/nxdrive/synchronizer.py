@@ -1110,7 +1110,7 @@ class Synchronizer(object):
                     child_pair, new_pair = self._find_remote_child_match_or_create(
                         parent_pair, child_info, session=session)
                     if new_pair:
-                        log.debug("Marked doc_pair '%s' as creation",
+                        log.debug("Marked doc_pair '%s' as remote creation",
                                   child_pair.remote_name)
 
                     if child_pair.folderish and new_pair:
