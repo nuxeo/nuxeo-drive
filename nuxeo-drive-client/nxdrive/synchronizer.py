@@ -319,8 +319,13 @@ class Synchronizer(object):
             # schedule it for local deletion
             doc_pair.update_remote(None)
 
-    def _scan_remote_recursive(self, session, client, doc_pair, remote_info):
-        """Recursively scan the bound remote folder looking for updates"""
+    def _scan_remote_recursive(self, session, client, doc_pair, remote_info,
+        force_recursion=True):
+        """Recursively scan the bound remote folder looking for updates
+
+        If force_recursion is True, recursion is done even on
+        non newly created children.
+        """
         if remote_info is None:
             raise ValueError("Cannot bind %r to missing remote info" %
                              doc_pair)
@@ -355,11 +360,13 @@ class Synchronizer(object):
                 local_folder=doc_pair.local_folder,
                 remote_ref=child_info.uid).first()
 
+            new_pair = False
             if child_pair is None:
-                child_pair, _ = self._find_remote_child_match_or_create(
+                child_pair, new_pair = self._find_remote_child_match_or_create(
                     doc_pair, child_info, session=session)
 
-            self._scan_remote_recursive(session, client, child_pair,
+            if new_pair or force_recursion:
+                self._scan_remote_recursive(session, client, child_pair,
                                         child_info)
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info,
@@ -971,12 +978,14 @@ class Synchronizer(object):
                                   doc_pair.remote_name)
                         doc_pair.update_state(remote_state='deleted')
 
-                    elif (old_remote_parent_ref is None
+                    elif (old_remote_parent_ref is None # Top level folder
                           or new_info.parent_uid == old_remote_parent_ref):
-                        # Perform a regular document update
+                        # Perform a regular document update on a document
+                        # that has not moved
                         log.debug("Refreshing remote state info for doc_pair '%s'",
                                   doc_pair.remote_name)
-                        doc_pair.update_remote(new_info)
+                        self._scan_remote_recursive(session, client, doc_pair,
+                            new_info, force_recursion=False)
 
                     else:
                         # This document has been moved: make the
