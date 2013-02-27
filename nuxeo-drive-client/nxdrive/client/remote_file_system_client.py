@@ -36,10 +36,6 @@ BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
 class RemoteFileInfo(BaseRemoteFileInfo):
     """Data Transfer Object for remote file info"""
 
-    # TODO: backward compatibility, to be removed
-    root = '/'
-    repository = 'default'
-
     # Consistency with the local client API
     def get_digest(self):
         return self.digest
