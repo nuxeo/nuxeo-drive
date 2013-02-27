@@ -3,6 +3,7 @@ import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
+from nxdrive.client import RemoteFileSystemClient
 
 
 class TestIntegrationMoveAndRename(IntegrationTestCase):
@@ -301,8 +302,25 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
-    # def test_local_rename_sync_root_folder(self):
-    #    pass
+    def test_local_rename_sync_root_folder(self):
+        sb, ctl = self.sb_1, self.controller_1
+        remote_client = self.remote_document_client_1
+        folder_1_uid = remote_client.get_info(u'/Original Folder 1').uid
+
+        # Create new clients to be able to introspect the test sync root
+        toplevel_local_client = LocalClient(self.local_nxdrive_folder_1)
+
+        toplevel_local_client.rename('/' + self.workspace_title,
+            'Renamed Nuxeo Drive Test Workspace')
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+        workspace_info = remote_client.get_info(self.workspace)
+        self.assertEquals(workspace_info.name,
+            u"Renamed Nuxeo Drive Test Workspace")
+
+        folder_1_info = remote_client.get_info(folder_1_uid)
+        self.assertEquals(folder_1_info.name, u"Original Folder 1")
+        self.assertEquals(folder_1_info.parent_uid, self.workspace)
 
     # def test_local_move_sync_root_folder(self):
     #    pass
