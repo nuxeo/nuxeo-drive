@@ -39,6 +39,10 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
             content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
 
         self.local_client_1.make_folder('/', 'Original Folder 2')
+        self.local_client_1.make_file('/Original Folder 2',
+            u'Original File 3.txt',
+            content=u'Some Content 3'.encode('utf-8'))
+
         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
 
     def test_local_rename_file(self):
@@ -245,6 +249,52 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertEquals(sub_folder_1_1_info.name, u"Sub-Folder 1.1")
         self.assertEquals(sub_folder_1_1_info.parent_uid,
             original_folder_1_uid)
+
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
+
+    def test_concurrent_local_rename_folder(self):
+        sb, ctl = self.sb_1, self.controller_1
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+
+        # Save the uid of some files and folders prior to renaming
+        folder_1_uid = remote_client.get_info(u'/Original Folder 1').uid
+        file_1_1_uid = remote_client.get_info(
+            u'/Original Folder 1/Original File 1.1.txt').uid
+        folder_2_uid = remote_client.get_info(u'/Original Folder 2').uid
+        file_3_uid = remote_client.get_info(
+            u'/Original Folder 2/Original File 3.txt').uid
+
+        # Rename a non empty folders concurrently
+        local_client.rename(u'/Original Folder 1', u'Renamed Folder 1')
+        local_client.rename(u'/Original Folder 2', u'Renamed Folder 2')
+        self.assertFalse(local_client.exists(u'/Original Folder 1'))
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1'))
+        self.assertFalse(local_client.exists(u'/Original Folder 2'))
+        self.assertTrue(local_client.exists(u'/Renamed Folder 2'))
+
+        # Synchronize: only the folder renamings are detected: all
+        # the descendants are automatically realigned
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
+
+        # The server folders have been renamed: the uid stays the same
+        folder_1_info = remote_client.get_info(folder_1_uid)
+        self.assertEquals(folder_1_info.name, u"Renamed Folder 1")
+
+        folder_2_info = remote_client.get_info(folder_2_uid)
+        self.assertEquals(folder_2_info.name, u"Renamed Folder 2")
+
+        # The content of the folder has been left unchanged
+        file_1_1_info = remote_client.get_info(file_1_1_uid)
+        self.assertEquals(file_1_1_info.name, u"Original File 1.1.txt")
+        self.assertEquals(file_1_1_info.parent_uid, folder_1_uid)
+
+        file_3_info = remote_client.get_info(file_3_uid)
+        self.assertEquals(file_3_info.name, u"Original File 3.txt")
+        self.assertEquals(file_3_info.parent_uid, folder_2_uid)
 
         # The more things change, the more they remain the same.
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
