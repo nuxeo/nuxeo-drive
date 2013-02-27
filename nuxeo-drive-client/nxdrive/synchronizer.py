@@ -1019,6 +1019,8 @@ class Synchronizer(object):
 
                     elif not new_pair:
                         child_pair.update_remote(child_info)
+                        log.debug("Updated doc_pair '%s' from remote info",
+                                  child_pair.remote_name)
 
                     created = True
                     refreshed.add(remote_ref)
