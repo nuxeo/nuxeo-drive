@@ -42,11 +42,6 @@ NDRIVE_AGENT_TEMPLATE = """\
 <dict>
   <key>Label</key>
   <string>org.nuxeo.drive.agentlauncher</string>
-  <key>KeepAlive</key>
-  <dict>
-    <key>NetworkState</key>
-    <true/>
-  </dict>
   <key>RunAtLoad</key>
   <true/>
   <key>Program</key>
