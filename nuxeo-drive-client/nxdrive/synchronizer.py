@@ -999,6 +999,11 @@ class Synchronizer(object):
                 previous_time = time()
                 loop_count += 1
 
+                # Force a commit here to refresh the visibility of any
+                # concurrent change in the database for instance if the use
+                # has updated the connection credentials for a server binding.
+                session.commit()
+
         except KeyboardInterrupt:
             self.get_session().rollback()
             log.info("Interrupted synchronization on user's request.")
