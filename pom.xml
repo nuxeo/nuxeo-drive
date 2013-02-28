@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.nuxeo</groupId>
     <artifactId>nuxeo-addons-parent</artifactId>
-    <version>5.7-SNAPSHOT</version>
+    <version>5.7-I20130228_0116</version>
   </parent>
 
   <groupId>org.nuxeo.ecm</groupId>
@@ -13,7 +13,7 @@
   <name>Nuxeo Drive Server Parent</name>
   <description>Parent project for the Java server-side code of Nuxeo Drive</description>
   <properties>
-    <nuxeo.drive.version>5.7-SNAPSHOT</nuxeo.drive.version>
+    <nuxeo.drive.version>5.7-I20130228_0116</nuxeo.drive.version>
   </properties>
 
   <modules>
