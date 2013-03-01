@@ -216,10 +216,14 @@ class Application(QApplication):
     def notify_offline(self, local_folder, exception):
         info = self.get_info(local_folder)
         code = getattr(exception, 'code', None)
+        if code is not None:
+            reason = "Server returned HTTP code %r" % code
+        else:
+            reason = str(exception)
         if info.online:
             # Mark binding as offline and update UI
-            log.debug('Switching to offline mode (code = %r) for: %s',
-                      code, local_folder)
+            log.debug('Switching to offline mode (reason: %s) for: %s',
+                      reason, local_folder)
             info.online = False
             self.update_running_icon()
             self.communicator.menu.emit()

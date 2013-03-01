@@ -585,11 +585,11 @@ class Synchronizer(object):
                       name, parent_pair.remote_name)
             remote_ref = remote_client.make_folder(parent_ref, name)
         else:
+            log.debug("Creating remote document '%s' in folder '%s'",
+                      name, parent_pair.remote_name)
             remote_ref = remote_client.make_file(
                 parent_ref, name,
                 content=local_client.get_content(doc_pair.local_path))
-            log.debug("Creating remote document '%s' in folder '%s'",
-                      name, parent_pair.remote_name)
         doc_pair.update_remote(remote_client.get_info(remote_ref))
         doc_pair.update_state('synchronized', 'synchronized')
 
@@ -616,15 +616,15 @@ class Synchronizer(object):
                 " folder" % (name, doc_pair.remote_ref))
         local_parent_path = parent_pair.local_path
         if doc_pair.folderish:
-            path = local_client.make_folder(local_parent_path, name)
             log.debug("Creating local folder '%s' in '%s'", name,
                       parent_pair.get_local_abspath())
+            path = local_client.make_folder(local_parent_path, name)
         else:
+            log.debug("Creating local document '%s' in '%s'", name,
+                      parent_pair.get_local_abspath())
             path = local_client.make_file(
                 local_parent_path, name,
                 content=remote_client.get_content(doc_pair.remote_ref))
-            log.debug("Creating local document '%s' in '%s'", name,
-                      parent_pair.get_local_abspath())
         doc_pair.update_local(local_client.get_info(path))
         doc_pair.update_state('synchronized', 'synchronized')
 
@@ -871,16 +871,18 @@ class Synchronizer(object):
                 self.synchronize_one(pair_state, session=session)
                 synchronized += 1
             except POSSIBLE_NETWORK_ERROR_TYPES as e:
-                # This is expected and should interrupt the sync process for
-                # this local_folder and should be dealt with in the main loop
                 if getattr(e, 'code', None) == 500:
+                    # This is an unexpected: blacklist doc_pair for
+                    # a cooldown period
                     log.error("Failed to sync %r", pair_state, exc_info=True)
                     pair_state.last_sync_error_date = datetime.utcnow()
                     session.commit()
                 else:
+                    # This is expected and should interrupt the sync process for
+                    # this local_folder and should be dealt with in the main loop
                     raise e
             except Exception as e:
-                # Unexpected exception
+                # Unexpected exception: blacklist for a cooldown period
                 log.error("Failed to sync %r", pair_state, exc_info=True)
                 pair_state.last_sync_error_date = datetime.utcnow()
                 session.commit()
