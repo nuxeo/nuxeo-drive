@@ -305,6 +305,13 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         children = remote_file_system_client.get_top_level_children()
         self.assertEquals(len(children), 1)
 
+    def test_conflicted_item_name(self):
+        remote_file_system_client = self.remote_file_system_client_1
+        new_name = remote_file_system_client.conflicted_name("My File.doc")
+        self.assertTrue(new_name.startswith(
+            "My File (nuxeoDriveTestUser_user_1 - "))
+        self.assertTrue(new_name.endswith(").doc"))
+
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)
         if hasher is None:

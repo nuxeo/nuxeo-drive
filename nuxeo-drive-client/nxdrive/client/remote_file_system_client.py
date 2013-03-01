@@ -4,6 +4,7 @@ import unicodedata
 from collections import namedtuple
 from datetime import datetime
 import urllib2
+import time
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
 from nxdrive.client.common import BUFFER_SIZE
@@ -117,6 +118,13 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def can_move(self, fs_item_id, new_parent_id):
         return self.execute("NuxeoDrive.CanMove", srcId=fs_item_id,
             destId=new_parent_id)
+
+    def conflicted_name(self, original_name, timezone=None):
+        """Generate a new name suitable for conflict deduplication."""
+        if timezone is None:
+            timezone = time.tzname[time.daylight]
+        return self.execute("NuxeoDrive.GenerateConflictedItemName",
+            name=original_name, timezone=timezone)
 
     def _file_to_info(self, fs_item):
         """Convert Automation file system item description to RemoteFileInfo"""
