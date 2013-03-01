@@ -749,6 +749,39 @@ class TestIntegrationSynchronization(IntegrationTestCase):
              u'synchronized', u'synchronized'),
         ])
 
+    def test_conflict_detection_and_renaming(self):
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+        syn = ctl.synchronizer
+        # Fetch the workspace sync root
+        syn.loop(delay=0, max_loops=1)
+        self.assertEquals(ctl.list_pending(), [])
+
+        # Let's create some document on the client and synchronize it.
+        local = LocalClient(self.local_nxdrive_folder_1)
+        local_path = local.make_file('/' + self.workspace_title,
+           'Some File.doc', content="Original content.")
+        syn.loop(delay=0, max_loops=1)
+
+        # Let's modify it concurrently but with the same content (digest)
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        local.update_content(local_path, 'Same new content.')
+
+        remote_2 = self.remote_document_client_2
+        remote_2.update_content('/Some File.doc', 'Same new content.')
+
+        # Let's synchronize and check the conflict handling: automatic
+        # resolution will work for this case/
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn.loop(delay=0, max_loops=1)
+        item_infos = local.get_children_info('/' + self.workspace_title)
+        self.assertEquals(len(item_infos), 1)
+        self.assertEquals(item_infos[0].name, 'Some File.doc')
+        self.assertEquals(local.get_content(local_path), 'Same new content.')
+
     def test_create_content_in_readonly_area(self):
         # XXX: implement permission checks on the client and leverage this
         # info in the synchronizer to not try to sync unsyncable stuff
