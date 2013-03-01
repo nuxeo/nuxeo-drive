@@ -806,8 +806,12 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(local.get_content(version_from_remote.path),
             'Remote new content.')
 
-        self.assertTrue(version_from_local.name.startswith('Some File ('))
-        self.assertTrue(version_from_local.name.endswith(').doc'))
+        self.assertTrue(version_from_local.name.startswith('Some File ('),
+            msg="'%s' was expected to start with 'Some File ('"
+                % version_from_local.name)
+        self.assertTrue(version_from_local.name.endswith(').doc'),
+            msg="'%s' was expected to end with ').doc'"
+                % version_from_local.name)
         self.assertEquals(local.get_content(version_from_local.path),
             'Local new content.')
 
