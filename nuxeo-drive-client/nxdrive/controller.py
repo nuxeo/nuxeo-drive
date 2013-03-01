@@ -461,7 +461,7 @@ class Controller(object):
         return remote_client
 
     def get_remote_doc_client(self, server_binding, repository='default',
-                              base_folder='/'):
+                              base_folder=None):
         """Return an instance of Nuxeo Document Client"""
         sb = server_binding
         return self.remote_doc_client_factory(

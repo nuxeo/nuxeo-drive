@@ -120,11 +120,13 @@ class RemoteDocumentClient(BaseAutomationClient):
         # - Folder under Folder or Workspace
         # This configuration should be provided by a special operation on the
         # server.
+        parent = self._check_ref(parent)
         doc = self.create(parent, doc_type, name=name,
                     properties={'dc:title': name})
         return doc[u'uid']
 
     def make_file(self, parent, name, content=None, doc_type=FILE_TYPE):
+        parent = self._check_ref(parent)
         doc = self.create(parent, FILE_TYPE, name=name,
                           properties={'dc:title': name})
         ref = doc[u'uid']
@@ -169,11 +171,15 @@ class RemoteDocumentClient(BaseAutomationClient):
         return True
 
     def _check_ref(self, ref):
-        if self._base_folder_path is None:
-            raise RuntimeError("Path handling is disabled on a remote client"
-                               " with no base_folder")
-        if ref.startswith('/') and self._base_folder_path != '/':
-            ref = self._base_folder_path + ref
+        if ref.startswith('/'):
+            if self._base_folder_path is None:
+                raise RuntimeError("Path handling is disabled on a remote client"
+                                   " with no base_folder parameter: use idref"
+                                   " instead")
+            elif self._base_folder_path.endswith('/'):
+                ref = self._base_folder_path + ref[1:]
+            else:
+                ref = self._base_folder_path + ref
         return ref
 
     def _doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
