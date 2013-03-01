@@ -4,6 +4,7 @@ import time
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
+from nxdrive.client import RemoteDocumentClient
 
 
 class TestIntegrationMoveAndRename(IntegrationTestCase):
@@ -95,8 +96,10 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
         self.assertEquals(file_1_remote_info.name,
             u'Renamed Again File 1.txt')
 
+        # User 1 does not have the rights to see the parent container
+        # of the test workspace, hence set fetch_parent_uid=False
         parent_of_file_1_remote_info = remote_client.get_info(
-            file_1_remote_info.parent_uid)
+            file_1_remote_info.parent_uid, fetch_parent_uid=False)
         self.assertEquals(parent_of_file_1_remote_info.name,
             self.workspace_title)
 
@@ -304,7 +307,13 @@ class TestIntegrationMoveAndRename(IntegrationTestCase):
 
     def test_local_rename_sync_root_folder(self):
         sb, ctl = self.sb_1, self.controller_1
-        remote_client = self.remote_document_client_1
+        # Use the Administrator to be able to introspect the container of the
+        # test workspace.
+        remote_client = RemoteDocumentClient(
+            self.nuxeo_url, self.admin_user,
+            'nxdrive-test-administrator-device',
+            self.password, base_folder=self.workspace)
+
         folder_1_uid = remote_client.get_info(u'/Original Folder 1').uid
 
         # Create new clients to be able to introspect the test sync root

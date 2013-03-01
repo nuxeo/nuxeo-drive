@@ -61,7 +61,6 @@ class IntegrationTestCase(unittest.TestCase):
         ws_info = root_remote_client.fetch(self.TEST_WORKSPACE_PATH)
         self.workspace = ws_info['uid']
         self.workspace_title = ws_info['title']
-        self.workspace_id = self.FS_ITEM_ID_PREFIX + self.workspace
 
         # Document client to be used to create remote test documents
         # and folders

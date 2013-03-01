@@ -48,13 +48,14 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         # It's possible to create a new client using the same token
         remote_client2 = NuxeoClient(
             remote_client.server_url, remote_client.user_id,
-            remote_client.device_id, token=token, base_folder='/')
+            remote_client.device_id, token=token,
+            base_folder=self.workspace)
 
         token3 = remote_client.request_token()
         self.assertEquals(token, token3)
 
         # Register a root with client 2 and see it with client one
-        folder_1 = remote_client2.make_folder(self.workspace, 'Folder 1')
+        folder_1 = remote_client2.make_folder('/', 'Folder 1')
         remote_client2.register_as_root(folder_1)
 
         roots = remote_client.get_roots()
@@ -66,7 +67,7 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         remote_client3 = NuxeoClient(
             remote_client.server_url, remote_client.user_id,
             remote_client.device_id, password=self.password_1,
-            base_folder='/')
+            base_folder=None)
         roots = remote_client3.get_roots()
         self.assertEquals(len(roots), 1)
         self.assertEquals(roots[0].name, 'Folder 1')
@@ -76,7 +77,7 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         remote_client4 = NuxeoClient(
             remote_client.server_url, remote_client.user_id,
             'other-test-device', password=self.password_1,
-            base_folder='/')
+            base_folder=None)
         token4 = remote_client4.request_token()
         self.assertNotEquals(token, token4)
 

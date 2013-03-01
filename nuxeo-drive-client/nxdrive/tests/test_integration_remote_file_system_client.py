@@ -6,6 +6,20 @@ import time
 
 class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
 
+
+    def setUp(self):
+        super(TestIntegrationRemoteFileSystemClient, self).setUp()
+        # Bind the test workspace as sync root for user 1
+        ctl = self.controller_1
+        remote_document_client = self.remote_document_client_1
+        remote_fs_client = self.remote_file_system_client_1
+        remote_document_client.register_as_root(self.workspace)
+
+        # Fetch the id of the workspace folder item
+        toplevel_folder_info = remote_fs_client.get_filesystem_root_info()
+        self.workspace_id = remote_fs_client.get_children_info(
+            toplevel_folder_info.uid)[0].uid
+
     #
     # Test the API common with the local client API
     #
@@ -262,17 +276,25 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         remote_document_client = self.remote_document_client_1
         remote_file_system_client = self.remote_file_system_client_1
 
-        # No sync roots at first
+        # The workspace is registered as a sync root in the setup
         children = remote_file_system_client.get_top_level_children()
-        self.assertEquals(len(children), 0)
+        self.assertEquals(len(children), 1)
+        self.assertEquals(children[0]['name'], self.workspace_title)
 
-        # Create 2 folders and register them as sync roots
+        # Create 2 remote folders inside the workspace sync root
         fs_item_1_id = remote_file_system_client.make_folder(
             self.workspace_id, 'Folder 1')
         fs_item_2_id = remote_file_system_client.make_folder(
             self.workspace_id, 'Folder 2')
         folder_1_uid = fs_item_1_id.rsplit("#", 1)[1]
         folder_2_uid = fs_item_2_id.rsplit("#", 1)[1]
+
+        # Unregister the workspace
+        remote_document_client.unregister_as_root(self.workspace)
+        children = remote_file_system_client.get_top_level_children()
+        self.assertEquals(len(children), 0)
+
+        # Register the sub folders as new roots
         remote_document_client.register_as_root(folder_1_uid)
         remote_document_client.register_as_root(folder_2_uid)
         children = remote_file_system_client.get_top_level_children()
