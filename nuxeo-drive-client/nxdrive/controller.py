@@ -65,7 +65,7 @@ class Controller(object):
     # Used for FS synchronization operations
     remote_fs_client_factory = RemoteFileSystemClient
 
-    def __init__(self, config_folder, echo=None, poolclass=None):
+    def __init__(self, config_folder, echo=None, poolclass=None, timeout=20):
         # Log the installation location for debug
         nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
         nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
@@ -80,12 +80,12 @@ class Controller(object):
 
         if echo is None:
             echo = os.environ.get('NX_DRIVE_LOG_SQL', None) is not None
+        self.timeout = timeout
 
         # Handle connection to the local Nuxeo Drive configuration and
         # metadata sqlite database.
         self._engine, self._session_maker = init_db(
             self.config_folder, echo=echo, poolclass=poolclass)
-
         self._local = local()
         self._remote_error = None
         self.device_id = self.get_device_config().device_id
@@ -453,7 +453,8 @@ class Controller(object):
         if remote_client is None:
             remote_client = self.remote_fs_client_factory(
                 sb.server_url, sb.remote_user, self.device_id,
-                token=sb.remote_token, password=sb.remote_password)
+                token=sb.remote_token, password=sb.remote_password,
+                timeout=self.timeout)
             cache[cache_key] = remote_client
         # Make it possible to have the remote client simulate any kind of
         # failure
@@ -467,7 +468,8 @@ class Controller(object):
         return self.remote_doc_client_factory(
             sb.server_url, sb.remote_user, self.device_id,
             token=sb.remote_token, password=sb.remote_password,
-            repository=repository, base_folder=base_folder)
+            repository=repository, base_folder=base_folder,
+            timeout=self.timeout)
 
     def get_remote_client(self, server_binding, repository='default',
                           base_folder='/'):
