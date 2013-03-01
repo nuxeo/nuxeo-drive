@@ -782,6 +782,51 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(item_infos[0].name, 'Some File.doc')
         self.assertEquals(local.get_content(local_path), 'Same new content.')
 
+        # Let's trigger another conflict that cannot be resolved
+        # automatically:
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        local.update_content(local_path, 'Local new content.')
+
+        remote_2 = self.remote_document_client_2
+        remote_2.update_content('/Some File.doc', 'Remote new content.')
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        # 2 loops are necessary for full conflict handling
+        syn.loop(delay=0, max_loops=2)
+        item_infos = local.get_children_info('/' + self.workspace_title)
+        self.assertEquals(len(item_infos), 2)
+
+        first, second = item_infos
+        if first.name == 'Some File.doc':
+            version_from_remote, version_from_local = first, second
+        else:
+            version_from_local, version_from_remote = first, second
+
+        self.assertEquals(version_from_remote.name, 'Some File.doc')
+        self.assertEquals(local.get_content(version_from_remote.path),
+            'Remote new content.')
+
+        self.assertTrue(version_from_local.name.startswith('Some File ('))
+        self.assertTrue(version_from_local.name.endswith(').doc'))
+        self.assertEquals(local.get_content(version_from_local.path),
+            'Local new content.')
+
+        # Everything is synchronized
+        all_states = self.get_all_states()
+
+        self.assertEquals(all_states[:2], [
+            (u'/',
+             u'synchronized', u'synchronized'),
+            (u'/Nuxeo Drive Test Workspace',
+             u'synchronized', u'synchronized'),
+        ])
+        # The filename changes with the date
+        self.assertEquals(all_states[2][1:],
+            (u'synchronized', u'synchronized'))
+        self.assertEquals(all_states[3],
+            (u'/Nuxeo Drive Test Workspace/Some File.doc',
+             u'synchronized', u'synchronized'))
+
     def test_create_content_in_readonly_area(self):
         # XXX: implement permission checks on the client and leverage this
         # info in the synchronizer to not try to sync unsyncable stuff
