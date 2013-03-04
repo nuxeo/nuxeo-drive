@@ -102,7 +102,7 @@ class LocalClient(object):
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
         mtime = datetime.fromtimestamp(stat_info.st_mtime)
-        path = '/' + os_path[len(self.base_folder) + 1:]
+        path = '/' + os_path[len(safe_long_path(self.base_folder)) + 1:]
         path = path.replace(os.path.sep, '/')  # unix style path
         # On unix we could use the inode for file move detection but that won't
         # work on Windows. To reduce complexity of the code and the possibility
