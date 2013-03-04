@@ -80,7 +80,7 @@ can install it from source::
   sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
   sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
 
-The install QT and PySide for graphical user interface (see below).
+Then install QT and PySide for graphical user interface (see below).
 
 
 Configuration and usage
@@ -230,7 +230,7 @@ To run the tests, install and start a nuxeo server locally, then::
 
 .. _pip: http://www.pip-installer.org/
 
-The install QT and PySide for graphical user interface (see below).
+Then install QT and PySide for graphical user interface (see below).
 
 
 Nuxeo Drive Client under Windows
@@ -253,7 +253,7 @@ command::
 
   Set-ExecutionPolicy Unrestricted
 
-The install QT and PySide for graphical user interface (see below).
+Then install QT and PySide for graphical user interface (see below).
 
 Then you should be able to build the standalone ``.msi`` installer with::
 
@@ -280,7 +280,7 @@ version). The Windows binary is named
 
 - `QT opensource binaries <http://get.qt.nokia.com/qt/source/>`_
 
-The install the matching version of the PySide binaries (for your version of
+Then install the matching version of the PySide binaries (for your version of
 Python, typically 2.7 for now as Python 3.3 is not yet supported).
 
 - `PySide Windows binaries <http://qt-project.org/wiki/PySide_Binaries_Windows>`_
