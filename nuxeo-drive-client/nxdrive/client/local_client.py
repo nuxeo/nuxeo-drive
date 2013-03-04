@@ -22,7 +22,7 @@ DEDUPED_BASENAME_PATTERN = r'^(.*)__(\d{1,3})$'
 
 def safe_filename(name, replacement='-'):
     """Replace invalid character in candidate filename"""
-    return re.sub(r'(/|\\|\*)', replacement, name)
+    return re.sub(r'(/|\\|\*|:)', replacement, name)
 
 
 # Data transfer objects
@@ -58,7 +58,7 @@ class FileInfo(object):
             raise ValueError('Unknow digest method: ' + self.digest_func)
 
         h = digester()
-        with open(self.filepath, 'rb') as f:
+        with open(safe_long_path(self.filepath), 'rb') as f:
             while True:
                 buffer = f.read(BUFFER_SIZE)
                 if buffer == '':
