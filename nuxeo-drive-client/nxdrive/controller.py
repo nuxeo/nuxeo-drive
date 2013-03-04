@@ -25,6 +25,7 @@ from nxdrive.synchronizer import Synchronizer
 from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import normalized_path
+from nxdrive.utils import safe_long_path
 
 
 log = get_logger(__name__)
@@ -127,7 +128,7 @@ class Controller(object):
             # process
             log.info("Telling synchronization process %d to stop." % pid)
             stop_file = os.path.join(self.config_folder, "stop_%d" % pid)
-            open(stop_file, 'wb').close()
+            open(safe_long_path(stop_file), 'wb').close()
         else:
             log.info("No running synchronization process to stop.")
 
