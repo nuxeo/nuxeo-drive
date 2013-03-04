@@ -7,10 +7,21 @@ OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
 
 
 def normalized_path(path):
-    """Return absolute, normalized file path"""
+    """Return absolute, normalized file path."""
     # XXX: we could os.path.normcase as well under Windows but it might be the
     # source of unexpected troubles so no doing it for now.
     return os.path.normpath(os.path.abspath(os.path.expanduser(path)))
+
+
+def safe_long_path(path):
+    """Utility to prefix path with the long path marker for Windows
+
+    http://msdn.microsoft.com/en-us/library/aa365247.aspx#maxpath
+
+    """
+    if sys.platform == 'win32':
+        path = u"\\\\?\\" + path
+    return path
 
 
 def find_exe_path():

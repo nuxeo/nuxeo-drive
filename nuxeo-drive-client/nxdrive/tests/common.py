@@ -5,6 +5,7 @@ import tempfile
 import hashlib
 import shutil
 
+from nxdrive.utils import safe_long_path
 from nxdrive.model import LastKnownState
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
@@ -122,11 +123,11 @@ class IntegrationTestCase(unittest.TestCase):
 
         if os.path.exists(self.local_test_folder_1):
             self.controller_1.dispose()
-            shutil.rmtree(self.local_test_folder_1)
+            shutil.rmtree(safe_long_path(self.local_test_folder_1))
 
         if os.path.exists(self.local_test_folder_2):
             self.controller_2.dispose()
-            shutil.rmtree(self.local_test_folder_2)
+            shutil.rmtree(safe_long_path(self.local_test_folder_2))
 
     def get_all_states(self, session=None):
         """Utility to quickly introspect the current known states"""

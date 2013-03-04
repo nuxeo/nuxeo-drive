@@ -10,6 +10,7 @@ from nxdrive.client.common import NotFound
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.utils import normalized_path
+from nxdrive.utils import safe_long_path
 from nxdrive.client.common import BUFFER_SIZE
 
 
@@ -223,7 +224,8 @@ class LocalClient(object):
         if not ref.startswith('/'):
             raise ValueError("LocalClient expects ref starting with '/'")
         path_suffix = ref[1:].replace('/', os.path.sep)
-        return normalized_path(os.path.join(self.base_folder, path_suffix))
+        path = normalized_path(os.path.join(self.base_folder, path_suffix))
+        return safe_long_path(path)
 
     def _abspath_deduped(self, parent, orig_name):
         """Absolute path on the operating system with deduplicated names"""

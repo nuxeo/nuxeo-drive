@@ -18,6 +18,7 @@ from nxdrive.client import Unauthorized
 from nxdrive.model import ServerBinding
 from nxdrive.model import LastKnownState
 from nxdrive.logging_config import get_logger
+from nxdrive.utils import safe_long_path
 
 WindowsError = None
 try:
@@ -915,7 +916,7 @@ class Synchronizer(object):
         """
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
         if os.path.exists(pid_filepath):
-            with open(pid_filepath, 'rb') as f:
+            with open(safe_long_path(pid_filepath), 'rb') as f:
                 pid = int(f.read().strip())
                 try:
                     p = psutil.Process(pid)
@@ -972,7 +973,7 @@ class Synchronizer(object):
         # Write the pid of this process
         pid_filepath = self._get_sync_pid_filepath(process_name="sync")
         pid = os.getpid()
-        with open(pid_filepath, 'wb') as f:
+        with open(safe_long_path(pid_filepath), 'wb') as f:
             f.write(str(pid))
 
         log.info("Starting synchronization (pid=%d)", pid)
