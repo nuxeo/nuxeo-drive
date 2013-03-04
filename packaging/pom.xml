@@ -9,7 +9,6 @@
 
   <groupId>org.nuxeo.ecm</groupId>
   <artifactId>nuxeo-drive-packaging-parent</artifactId>
-  <version>5.7-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Nuxeo Drive Marketplace Parent</name>
 
