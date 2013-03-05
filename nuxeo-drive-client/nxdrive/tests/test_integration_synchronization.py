@@ -831,6 +831,52 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'/Nuxeo Drive Test Workspace/Some File.doc',
              u'synchronized', u'synchronized'))
 
+    def test_synchronize_deep_folders(self):
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+        syn = ctl.synchronizer
+
+        # Fetch the workspace sync root
+        syn.loop(delay=0, max_loops=1)
+        self.assertEquals(ctl.list_pending(), [])
+
+        # Create a file deep down in the hierarchy
+        remote = self.remote_document_client_1
+
+        folder = '/'
+        for i in range(10):
+            folder = remote.make_folder(folder, '0123456789' * 3)
+
+        remote.make_file(folder, "File.odt", content="Fake non-zero content.")
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn.loop(delay=0, max_loops=1)
+        self.assertEquals(ctl.list_pending(), [])
+
+        local = LocalClient(self.local_nxdrive_folder_1)
+        expected_folder_path = ('/' + self.workspace_title
+                                + ('/' + '0123456789' * 3) * 10)
+        expected_file_path = expected_folder_path + '/File.odt'
+        self.assertTrue(local.exists(expected_folder_path))
+        self.assertTrue(local.exists(expected_file_path))
+        self.assertEquals(local.get_content(expected_file_path),
+                          "Fake non-zero content.")
+
+        # Delete the nested folder structure on the remote server and synchronize
+        # again
+        remote.delete('/' + '0123456789' * 3)
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn.loop(delay=0, max_loops=1)
+        self.assertEquals(ctl.list_pending(), [])
+
+        self.assertFalse(local.exists(expected_folder_path))
+        self.assertFalse(local.exists(expected_file_path))
+
     def test_create_content_in_readonly_area(self):
         # XXX: implement permission checks on the client and leverage this
         # info in the synchronizer to not try to sync unsyncable stuff
