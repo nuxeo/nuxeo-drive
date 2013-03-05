@@ -142,3 +142,41 @@ def test_get_children_info():
     assert_equal(workspace_children[0].path, file_1)
     assert_equal(workspace_children[1].path, folder_1)
     assert_equal(workspace_children[2].path, folder_2)
+
+
+@with_temp_folder
+def test_deep_folders():
+    # Check that local client can workaround the default windows MAX_PATH limit
+    folder = '/'
+    for i in range(30):
+        folder = lcclient.make_folder(folder, '0123456789')
+
+    # Last Level
+    last_level_folder_info = lcclient.get_info(folder)
+    assert_equal(last_level_folder_info.path, '/0123456789' * 30)
+
+    # Create a nested file
+    deep_file = lcclient.make_file(folder, 'File.txt',
+        content="Some Content.")
+
+    # Check the consistency of  get_children_info and get_info
+    deep_file_info = lcclient.get_info(deep_file)
+    deep_children = lcclient.get_children_info(folder)
+    assert_equal(len(deep_children), 1)
+    deep_child_info = deep_children[0]
+    assert_equal(deep_file_info.name, deep_child_info.name)
+    assert_equal(deep_file_info.path, deep_child_info.path)
+    assert_equal(deep_file_info.get_digest(), deep_child_info.get_digest())
+
+    # Update the file content
+    lcclient.update_content(deep_file, "New Content.")
+    assert_equal(lcclient.get_content(deep_file), "New Content.")
+
+    # Delete the folder
+    lcclient.delete(folder)
+    assert_false(lcclient.exists(folder))
+    assert_false(lcclient.exists(deep_file))
+
+    # Delete the root folder and descendants
+    lcclient.delete('/0123456789')
+    assert_false(lcclient.exists('/0123456789'))
