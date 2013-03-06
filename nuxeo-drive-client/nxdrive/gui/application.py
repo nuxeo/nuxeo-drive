@@ -343,7 +343,7 @@ class Application(QApplication):
                     if info.get('command') == 'edit':
                         # This is a quick operation, no need to fork a QThread
                         self.controller.launch_file_editor(
-                            info['server_url'], info['repository'], info['docref'])
+                            info['server_url'], info['item_id'])
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)
         return super(Application, self).event(event)

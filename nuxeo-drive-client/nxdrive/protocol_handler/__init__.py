@@ -1,5 +1,6 @@
 """Protocol handler registration and parsing utilities"""
 
+import urllib
 import sys
 from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
@@ -47,13 +48,14 @@ def parse_edit_protocol(data_string):
         raise ValueError(
             invalid_msg + ' : scheme should be http or https')
 
-    if '/nxdoc/' not in data_string:
+    if '/fsitem/' not in data_string:
         raise ValueError(invalid_msg)
 
-    server_part, doc_uid = data_string.split('/nxdoc/', 1)
+    server_part, item_id = data_string.split('/fsitem/', 1)
     server_url = "%s://%s" % (scheme, server_part)
 
-    return dict(command='edit', server_url=server_url, doc_uid=doc_uid)
+    item_id = urllib.unquote(item_id)  # unquote # sign
+    return dict(command='edit', server_url=server_url, item_id=item_id)
 
 
 # Protocol handler registration
