@@ -351,7 +351,7 @@ class CliHandler(object):
 
     def edit(self, options):
         self.controller.launch_file_editor(
-            options.server_url, options.doc_uid)
+            options.server_url, options.item_id)
         return 0
 
     def bind_server(self, options):
