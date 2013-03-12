@@ -7,10 +7,10 @@ from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteDocumentClient
 
 
-class TestIntegrationMoveAndRename(IntegrationTestCase):
+class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
     def setUp(self):
-        super(TestIntegrationMoveAndRename, self).setUp()
+        super(TestIntegrationLocalMoveAndRename, self).setUp()
 
         self.sb_1 = self.controller_1.bind_server(
             self.local_nxdrive_folder_1,
