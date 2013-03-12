@@ -680,7 +680,7 @@ class Synchronizer(object):
         else:
             new_local_name = remote_client.conflicted_name(
                 doc_pair.local_name)
-            log.debug('Confict being handled by renaming local "%s" to "%s"',
+            log.debug('Conflict being handled by renaming local "%s" to "%s"',
                       doc_pair.local_name, new_local_name)
 
             # Let's rename the file
@@ -691,7 +691,6 @@ class Synchronizer(object):
             # Let the remote win as if doing a regular creation
             self._synchronize_remotely_created(doc_pair, session,
                 local_client, remote_client, local_info, remote_info)
-
 
     def _detect_local_move_or_rename(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
