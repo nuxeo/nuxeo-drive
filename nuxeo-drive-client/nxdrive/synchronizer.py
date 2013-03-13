@@ -544,22 +544,26 @@ class Synchronizer(object):
 
     def _synchronize_remotely_modified(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
-        if doc_pair.remote_digest != doc_pair.local_digest != None:
-            log.debug("Updating local file '%s'.",
-                      doc_pair.get_local_abspath())
-            content = remote_client.get_content(doc_pair.remote_ref)
-            try:
+        try:
+            if doc_pair.remote_digest != doc_pair.local_digest != None:
+                log.debug("Updating content of local file '%s'.",
+                          doc_pair.get_local_abspath())
+                content = remote_client.get_content(doc_pair.remote_ref)
                 local_client.update_content(doc_pair.local_path, content)
                 doc_pair.refresh_local(local_client)
-                doc_pair.update_state('synchronized', 'synchronized')
-            except (IOError, WindowsError):
-                log.debug("Delaying update for remotely modified "
-                          "content %r due to concurrent file access.",
-                          doc_pair)
-        else:
-            # digest agree, no need to transfer additional bytes over the
-            # network
+            else:
+                # digest agree, no need to transfer additional bytes over the
+                # network, so this is a renaming
+                log.debug("Renaming local file '%s' to '%s'.",
+                          doc_pair.get_local_abspath(), remote_info.name)
+                renamed_info = local_client.rename(doc_pair.local_path,
+                    remote_info.name)
+                doc_pair.refresh_local(local_client, renamed_info.path)
             doc_pair.update_state('synchronized', 'synchronized')
+        except (IOError, WindowsError):
+            log.debug("Delaying update for remotely modified "
+                "content %r due to concurrent file access.",
+                doc_pair)
 
     def _synchronize_locally_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):

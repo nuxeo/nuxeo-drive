@@ -210,10 +210,11 @@ class LastKnownState(Base):
         return RemoteFileSystemClient(sb.server_url, sb.remote_user,
              sb.remote_password)
 
-    def refresh_local(self, client=None):
+    def refresh_local(self, client=None, local_path=None):
         """Update the state from the local filesystem info."""
         client = client if client is not None else self.get_local_client()
-        local_info = client.get_info(self.local_path, raise_if_missing=False)
+        local_path = local_path if local_path is not None else self.local_path
+        local_info = client.get_info(local_path, raise_if_missing=False)
         self.update_local(local_info)
         return local_info
 
@@ -228,9 +229,10 @@ class LastKnownState(Base):
 
         local_state = None
 
-        if self.local_path is None:
-            # This state only has a remote info and this is the first time
-            # we update the local info from the file system
+        if self.local_path is None or self.local_path != local_info.path:
+            # Either this state only has a remote info and this is the
+            # first time we update the local info from the file system,
+            # or it is a renaming
             self.local_path = local_info.path
             if self.local_path != '/':
                 self.local_name = os.path.basename(local_info.path)
@@ -242,10 +244,6 @@ class LastKnownState(Base):
             else:
                 self.local_name = os.path.basename(self.local_folder)
                 self.local_parent_path = None
-
-        if self.local_path != local_info.path:
-            raise ValueError("State %r cannot be mapped to '%s%s'" % (
-                self, self.local_folder, local_info.path))
 
         # Shall we recompute the digest from the current file?
         update_digest = self.local_digest == None
