@@ -880,9 +880,6 @@ class Synchronizer(object):
             if len(pending) == 0:
                 break
 
-            # TODO: make it possible to catch unexpected exceptions here so as
-            # to black list the pair of document and ignore it for a while
-            # using a TTL for the blacklist token in the state DB
             pair_state = pending[0]
             try:
                 self.synchronize_one(pair_state, session=session)
