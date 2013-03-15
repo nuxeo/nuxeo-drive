@@ -20,16 +20,6 @@
     <module>nuxeo-drive-server/nuxeo-drive-hierarchy-permission</module>
   </modules>
 
-  <!-- Marketplace Packaging is not triggered by default as it is expensive -->
-  <profiles>
-    <profile>
-      <id>packaging</id>
-      <modules>
-        <module>packaging</module>
-      </modules>
-    </profile>
-  </profiles>
-
   <repositories>
     <repository>
       <id>public</id>
