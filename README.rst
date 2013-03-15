@@ -24,7 +24,7 @@ Server-side marketplace package
 -------------------------------
 
 Fetch the latest development version of the marketplace package
-`nuxeo-drive-marketplace-5.7-SNAPSHOT.zip <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/packaging/nuxeo-drive-marketplace/target/nuxeo-drive-marketplace-5.7-SNAPSHOT.zip>`_
+`marketplace-1.0-SNAPSHOT.zip <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/marketplace-1.0-SNAPSHOT.zip>`_
 from the Continuous Integration server.
 
 The marketplace package can be installed using the Admin Center /
@@ -33,7 +33,7 @@ Update Center / Local Packages interface of a Nuxeo server.
 Alternatively, from the command line::
 
   $NUXEO_HOME/bin/nuxeoctl stop
-  $NUXEO_HOME/bin/nuxeoctl mp-install --nodeps nuxeo-drive-marketplace-<version>.zip
+  $NUXEO_HOME/bin/nuxeoctl mp-install --nodeps marketplace-<version>.zip
   $NUXEO_HOME/bin/nuxeoctl start
 
 
@@ -204,11 +204,9 @@ Server side Java components
 
 To build the project and run the tests, use maven::
 
-  mvn -Ppackaging install
+  mvn install
 
-The resulting marketplace package can be found in::
-
-  packaging/nuxeo-drive-marketplace/target/nuxeo-drive-marketplace-<version>.zip
+To build the marketplace package see the related `Github repository <https://github.com/nuxeo/marketplace-drive>`_
 
 
 Nuxeo Drive Client under Linux & MacOSX
