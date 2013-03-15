@@ -206,7 +206,7 @@ To build the project and run the tests, use maven::
 
   mvn install
 
-To build the marketplace package see the related `Github repository <https://github.com/nuxeo/marketplace-drive>`_
+To build the marketplace package see the related `Github repository <https://github.com/nuxeo/marketplace-drive>`_.
 
 
 Nuxeo Drive Client under Linux & MacOSX
