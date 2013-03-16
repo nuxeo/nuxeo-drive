@@ -41,11 +41,10 @@ import fnmatch
 import subprocess
 
 
-DEFAULT_MARKETPLACE = os.path.join(
-    "packaging", "nuxeo-drive-marketplace", "target")
+MARKETPLACE_FOLDER = "mp-download.tmp"
 DEFAULT_ARCHIVE_PREFIX = "nuxeo-distribution-tomcat-"
 NUXEO_FOLDER='nuxeo-tomcat'
-MARKET_PLACE_PREFIX = "nuxeo-drive-marketplace"
+MARKET_PLACE_PREFIX = "marketplace-"
 
 DEFAULT_MSI_FOLDER = os.path.join(r"dist")
 DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
@@ -56,6 +55,8 @@ LINKS_PATTERN = r'\bhref="([^"]+)"'
 
 MSI_PATTERN = r"nuxeo-drive-\d\.\d\..*?\.msi"
 DMG_PATTERN = r"Nuxeo%20Drive\.dmg"
+DEFAULT_ARCHIVE_PATTERN = DEFAULT_ARCHIVE_PREFIX + r"\d\.\d.*?\.zip"
+MARKETPLACE_PATTERN = MARKET_PLACE_PREFIX + r"\d\.\d.*?\.zip"
 
 WAR_FOLDER = os.path.join(
     "nuxeo-drive-server", "nuxeo-drive-jsf", "src", "main",
@@ -81,13 +82,20 @@ def parse_args(args=None):
         description="Integration tests coordinator")
     subparsers = parser.add_subparsers(title="Commands")
 
-    # Fetch packaging dependencies from other Jenkins jobs
-    fetch_parser = subparsers.add_parser(
-        'fetch', help="Fetch packages from Jenkins pages")
-    fetch_parser.set_defaults(command='fetch')
+    # Fetch binary dependencies from related Jenkins jobs
+    fetch_binary_parser = subparsers.add_parser(
+        'fetch-binaries', help="Fetch binary packages from Jenkins pages")
+    fetch_binary_parser.set_defaults(command='fetch-binaries')
 
-    fetch_parser.add_argument('--msi-url')
-    fetch_parser.add_argument('--dmg-url')
+    fetch_binary_parser.add_argument('--msi-url')
+    fetch_binary_parser.add_argument('--dmg-url')
+
+    # Fetch marketplace package dependency from related Jenkins job
+    fetch_mp_parser = subparsers.add_parser(
+        'fetch-mp', help="Fetch marketplace package from Jenkins pages")
+    fetch_mp_parser.set_defaults(command='fetch-mp')
+
+    fetch_mp_parser.add_argument('--mp-url')
 
     # Integration test launcher
     test_parser = subparsers.add_parser(
@@ -195,7 +203,7 @@ def setup_nuxeo():
         pflush("Waiting for any killed process to actually stop")
         time.sleep(1.0)
 
-    filepath = find_latest(DEFAULT_MARKETPLACE, prefix=DEFAULT_ARCHIVE_PREFIX,
+    filepath = find_latest(MARKETPLACE_FOLDER, prefix=DEFAULT_ARCHIVE_PREFIX,
                           suffix=".zip")
     unzip(filepath, target='unzip.tmp')
     nuxeo_folder_name = os.listdir('unzip.tmp')[0]
@@ -243,7 +251,7 @@ def setup_nuxeo():
         execute("chmod +x " + nuxeoctl)
 
     pflush("Installing the nuxeo drive marketplace package")
-    package = find_latest(DEFAULT_MARKETPLACE, prefix=MARKET_PLACE_PREFIX,
+    package = find_latest(MARKETPLACE_FOLDER, prefix=MARKET_PLACE_PREFIX,
                           suffix=".zip")
     execute(nuxeoctl + " mp-install --accept=true --nodeps " + package)
 
@@ -313,7 +321,7 @@ if __name__ == "__main__":
             run_tests_from_msi()
         else:
             run_tests_from_source()
-    elif options.command == 'fetch':
+    elif options.command == 'fetch-binaries':
         if os.path.exists(WAR_FOLDER):
             shutil.rmtree(WAR_FOLDER)
         os.makedirs(WAR_FOLDER)
@@ -321,3 +329,12 @@ if __name__ == "__main__":
             download_package(options.msi_url, MSI_PATTERN, WAR_FOLDER)
         if options.dmg_url is not None:
             download_package(options.dmg_url, DMG_PATTERN, WAR_FOLDER)
+    elif options.command == 'fetch-mp':
+        if os.path.exists(MARKETPLACE_FOLDER):
+            shutil.rmtree(MARKETPLACE_FOLDER)
+        os.makedirs(MARKETPLACE_FOLDER)
+        if options.mp_url is not None:
+            # Download Nuxeo Tomcat distribution
+            download_package(options.mp_url, DEFAULT_ARCHIVE_PATTERN, MARKETPLACE_FOLDER)
+            # Download Nuxeo Drive marketplace package
+            download_package(options.mp_url, MARKETPLACE_PATTERN, MARKETPLACE_FOLDER)
