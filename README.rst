@@ -24,7 +24,7 @@ Server-side marketplace package
 -------------------------------
 
 Fetch the latest development version of the marketplace package
-`marketplace-1.0-SNAPSHOT.zip <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/marketplace-1.0-SNAPSHOT.zip>`_
+`marketplace-1.1-SNAPSHOT.zip <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/marketplace-1.1-SNAPSHOT.zip>`_
 from the Continuous Integration server.
 
 The marketplace package can be installed using the Admin Center /
