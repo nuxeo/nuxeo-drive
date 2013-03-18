@@ -892,7 +892,8 @@ class Synchronizer(object):
                 if getattr(e, 'code', None) == 500:
                     # This is an unexpected: blacklist doc_pair for
                     # a cooldown period
-                    log.error("Failed to sync %r", pair_state, exc_info=True)
+                    log.error("Failed to sync %r, blacklisting doc pair for %d seconds",
+                        pair_state, self.error_skip_period, exc_info=True)
                     pair_state.last_sync_error_date = datetime.utcnow()
                     session.commit()
                 else:
@@ -901,7 +902,8 @@ class Synchronizer(object):
                     raise e
             except Exception as e:
                 # Unexpected exception: blacklist for a cooldown period
-                log.error("Failed to sync %r", pair_state, exc_info=True)
+                log.error("Failed to sync %r, blacklisting doc pair for %d seconds",
+                    pair_state, self.error_skip_period, exc_info=True)
                 pair_state.last_sync_error_date = datetime.utcnow()
                 session.commit()
 
