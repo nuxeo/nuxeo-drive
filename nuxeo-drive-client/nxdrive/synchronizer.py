@@ -625,7 +625,7 @@ class Synchronizer(object):
                       parent_pair.get_local_abspath())
             path = local_client.make_folder(local_parent_path, name)
         else:
-            log.debug("Creating local document '%s' in '%s'", name,
+            log.debug("Creating local file '%s' in '%s'", name,
                       parent_pair.get_local_abspath())
             path = local_client.make_file(
                 local_parent_path, name,
@@ -649,7 +649,11 @@ class Synchronizer(object):
         if doc_pair.local_path is not None:
             try:
                 # TODO: handle OS-specific trash management?
-                log.debug("Deleting local doc '%s'",
+                if doc_pair.folderish:
+                    log.debug("Deleting local folder '%s'",
+                          doc_pair.get_local_abspath())
+                else:
+                    log.debug("Deleting local file '%s'",
                           doc_pair.get_local_abspath())
                 local_client.delete(doc_pair.local_path)
                 self._delete_with_descendant_states(session, doc_pair)
