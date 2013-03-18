@@ -639,7 +639,7 @@ class Synchronizer(object):
             local_client, remote_client, local_info, remote_info):
             return
         if doc_pair.remote_ref is not None:
-            log.debug("Deleting remote doc '%s' (%s)",
+            log.debug("Deleting or unregistering remote document '%s' (%s)",
                       doc_pair.remote_name, doc_pair.remote_ref)
             remote_client.delete(doc_pair.remote_ref)
         self._delete_with_descendant_states(session, doc_pair)
