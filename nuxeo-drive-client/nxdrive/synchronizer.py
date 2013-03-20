@@ -701,7 +701,7 @@ class Synchronizer(object):
                 local_client, remote_client, local_info, remote_info)
 
     def _detect_local_move_or_rename(self, doc_pair, session,
-        local_client, remote_client, local_info, remote_info):
+        local_client, local_info, remote_info):
         """Find local move or renaming events by introspecting the states
 
         In case of detection return (source_doc_pair, target_doc_pair).
@@ -786,7 +786,7 @@ class Synchronizer(object):
         # Detection step
 
         source_doc_pair, target_doc_pair = self._detect_local_move_or_rename(
-            doc_pair, session, local_client, remote_client, local_info,
+            doc_pair, session, local_client, local_info,
             remote_info)
 
         if source_doc_pair is None or target_doc_pair is None:
