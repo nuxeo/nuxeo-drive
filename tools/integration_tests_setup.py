@@ -43,13 +43,13 @@ import subprocess
 
 MARKETPLACE_FOLDER = "mp-download.tmp"
 DEFAULT_ARCHIVE_PREFIX = "nuxeo-distribution-tomcat-"
-NUXEO_FOLDER='nuxeo-tomcat'
+NUXEO_FOLDER = 'nuxeo-tomcat'
 MARKET_PLACE_PREFIX = "marketplace-"
 
 DEFAULT_MSI_FOLDER = os.path.join(r"dist")
-DEFAULT_LESSMSI_URL="http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
-LESSMSI_FOLDER='lessmsi'
-EXTRACTED_MSI_FOLDER='nxdrive_msi'
+DEFAULT_LESSMSI_URL = "http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
+LESSMSI_FOLDER = 'lessmsi'
+EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
 
 LINKS_PATTERN = r'\bhref="([^"]+)"'
 
@@ -111,7 +111,7 @@ def parse_args(args=None):
 def download(url, filename):
     if not os.path.exists(filename):
         pflush("Downloading %s to %s" % (url, filename))
-        headers = {'User-Agent' : 'nxdrive test script'}
+        headers = {'User-Agent': 'nxdrive test script'}
         req = urllib2.Request(url, None, headers)
         reader = urllib2.urlopen(req)
         with open(filename, 'wb') as f:
@@ -285,6 +285,7 @@ def set_environment():
     os.environ['NXDRIVE_TEST_USER'] = "Administrator"
     os.environ['NXDRIVE_TEST_PASSWORD'] = "Administrator"
 
+
 def clean_pyc():
     for root, dirnames, filenames in os.walk('nuxeo-drive-client'):
         if '.git' in dirnames:
@@ -293,6 +294,7 @@ def clean_pyc():
             file_path = os.path.join(root, filename)
             print('Removing .pyc file: %s' % file_path)
             os.unlink(file_path)
+
 
 def run_tests_from_msi():
     ndrive = os.path.join(EXTRACTED_MSI_FOLDER, 'SourceDir', 'ndrive.exe')
