@@ -195,6 +195,23 @@ class Synchronizer(object):
         if not keep_root:
             session.delete(doc_pair)
 
+    def _rename_with_descendant_states(self, session, client, doc_pair,
+        updated_path):
+        """Update the metadata of the descendants of renamed doc"""
+        # rename local descendants first
+        if doc_pair.local_path is None:
+            raise ValueError("Cannot apply renaming to %r due to missing local path" %
+                doc_pair)
+        local_children = session.query(LastKnownState).filter_by(
+            local_folder=doc_pair.local_folder,
+            local_parent_path=doc_pair.local_path).all()
+        for child in local_children:
+            child_path = updated_path + '/' + child.local_name
+            self._rename_with_descendant_states(session, client, child,
+                child_path)
+
+        doc_pair.refresh_local(client, updated_path)
+
     def scan_local(self, server_binding_or_local_path, from_state=None,
                    session=None):
         """Recursively scan the bound local folder looking for updates"""
@@ -554,11 +571,15 @@ class Synchronizer(object):
             else:
                 # digest agree, no need to transfer additional bytes over the
                 # network, so this is a renaming
-                log.debug("Renaming local file '%s' to '%s'.",
-                          doc_pair.get_local_abspath(), remote_info.name)
+                file_or_folder = 'folder' if doc_pair.folderish else 'file'
+                log.debug("Renaming local %s '%s' to '%s'.",
+                    file_or_folder, doc_pair.get_local_abspath(),
+                    remote_info.name)
                 renamed_info = local_client.rename(doc_pair.local_path,
                     remote_info.name)
-                doc_pair.refresh_local(local_client, renamed_info.path)
+                if doc_pair.folderish:
+                    self._rename_with_descendant_states(session, local_client,
+                        doc_pair, renamed_info.path)
             doc_pair.update_state('synchronized', 'synchronized')
         except (IOError, WindowsError):
             log.debug("Delaying update for remotely modified "
@@ -649,12 +670,9 @@ class Synchronizer(object):
         if doc_pair.local_path is not None:
             try:
                 # TODO: handle OS-specific trash management?
-                if doc_pair.folderish:
-                    log.debug("Deleting local folder '%s'",
-                          doc_pair.get_local_abspath())
-                else:
-                    log.debug("Deleting local file '%s'",
-                          doc_pair.get_local_abspath())
+                file_or_folder = 'folder' if doc_pair.folderish else 'file'
+                log.debug("Deleting local %s '%s'",
+                    file_or_folder, doc_pair.get_local_abspath())
                 local_client.delete(doc_pair.local_path)
                 self._delete_with_descendant_states(session, doc_pair)
                 # XXX: shall we also delete all the subcontent / folder at

@@ -122,3 +122,43 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
         self.assertEquals(os.path.basename(file_1_1_parent_path),
             u'Original Folder 1')
+
+    def test_remote_rename_folder(self):
+        sb, ctl = self.sb_1, self.controller_1
+        remote_client = self.remote_client_1
+        local_client = self.local_client_1
+
+        # Rename a non empty folder with some content
+        remote_client.rename(self.folder_1_id, u'Renamed Folder 1 \xe9')
+        self.assertEquals(remote_client.get_info(self.folder_1_id).name,
+            u'Renamed Folder 1 \xe9')
+
+        # Synchronize: only the folder renaming is detected: all
+        # the descendants are automatically realigned
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+        # The client folder has been renamed
+        self.assertFalse(local_client.exists(u'/Original Folder 1'))
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
+
+        # The content of the renamed folder is left unchanged
+        self.assertTrue(local_client.exists(
+            u'/Renamed Folder 1 \xe9/Original File 1.1.txt'))
+        file_1_1_local_info = local_client.get_info(
+            u'/Renamed Folder 1 \xe9/Original File 1.1.txt')
+        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
+        self.assertEquals(os.path.basename(file_1_1_parent_path),
+            u'Renamed Folder 1 \xe9')
+
+        self.assertTrue(local_client.exists(
+            u'/Renamed Folder 1 \xe9/Sub-Folder 1.1'))
+        folder_1_1_local_info = local_client.get_info(
+            u'/Renamed Folder 1 \xe9/Sub-Folder 1.1')
+        folder_1_1_parent_path = folder_1_1_local_info.filepath.rsplit('/', 1)[0]
+        self.assertEquals(os.path.basename(folder_1_1_parent_path),
+            u'Renamed Folder 1 \xe9')
+
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
