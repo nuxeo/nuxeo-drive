@@ -3,7 +3,6 @@ import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
-from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteDocumentClient
 
 
