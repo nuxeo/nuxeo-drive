@@ -205,6 +205,62 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
+    def test_concurrent_remote_rename_folder(self):
+        sb, ctl = self.sb_1, self.controller_1
+        remote_client = self.remote_client_1
+        local_client = self.local_client_1
+        session = ctl.get_session()
+
+        # Rename non empty folders concurrently
+        remote_client.rename(self.folder_1_id, u'Renamed Folder 1')
+        self.assertEquals(remote_client.get_info(self.folder_1_id).name,
+            u'Renamed Folder 1')
+        remote_client.rename(self.folder_2_id, u'Renamed Folder 2')
+        self.assertEquals(remote_client.get_info(self.folder_2_id).name,
+            u'Renamed Folder 2')
+
+        # Synchronize: only the folder renaming is detected: all
+        # the descendants are automatically realigned
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
+
+        # The content of the renamed folders is left unchanged
+        # Check child name
+        self.assertTrue(local_client.exists(
+            u'/Renamed Folder 1/Original File 1.1.txt'))
+        file_1_1_local_info = local_client.get_info(
+            u'/Renamed Folder 1/Original File 1.1.txt')
+        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
+        self.assertEquals(file_1_1_parent_path,
+            os.path.join(self.sync_root_folder_1, u'Renamed Folder 1'))
+        # Check child state
+        file_1_1_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Original File 1.1.txt').one()
+        self.assertEquals(file_1_1_state.local_path,
+            os.path.join(self.workspace_pair_local_path,
+            u'Renamed Folder 1/Original File 1.1.txt'))
+        self.assertEquals(file_1_1_state.local_name, u'Original File 1.1.txt')
+
+        # Check child name
+        self.assertTrue(local_client.exists(
+            u'/Renamed Folder 2/Original File 3.txt'))
+        file_3_local_info = local_client.get_info(
+            u'/Renamed Folder 2/Original File 3.txt')
+        file_3_parent_path = file_3_local_info.filepath.rsplit('/', 1)[0]
+        self.assertEquals(file_3_parent_path,
+            os.path.join(self.sync_root_folder_1, u'Renamed Folder 2'))
+        # Check child state
+        file_3_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Original File 3.txt').one()
+        self.assertEquals(file_3_state.local_path,
+            os.path.join(self.workspace_pair_local_path,
+            u'Renamed Folder 2/Original File 3.txt'))
+        self.assertEquals(file_3_state.local_name, u'Original File 3.txt')
+
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
+
     def test_remote_rename_sync_root_folder(self):
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1

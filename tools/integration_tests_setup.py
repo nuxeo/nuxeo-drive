@@ -71,7 +71,13 @@ def pflush(message):
 
 def execute(cmd, exit_on_failure=True):
     pflush("> " + cmd)
-    code = os.system(cmd)
+    exit_status = os.system(cmd)
+
+    # Ignore the first byte of the exit status of the command:
+    # the first byte of the exit status is the signal that killed
+    # the command if any, the second byte is the actual return code
+    # to propagate
+    code = exit_status >> 8
     if code != 0 and exit_on_failure:
         pflush("Command %s returned with code %d" % (cmd, code))
         sys.exit(code)
