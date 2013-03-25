@@ -3,8 +3,6 @@ import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
-from nxdrive.client import RemoteFileSystemClient
-from nxdrive.client import RemoteDocumentClient
 
 
 class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
@@ -36,7 +34,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.local_client_1 = LocalClient(sync_root_folder_1)
         self.remote_client_1 = self.remote_file_system_client_1
 
-        self.workspace_id = 'defaultSyncRootFolderItemFactory#default#' + self.workspace
+        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
+                            + self.workspace)
 
         self.file_1_id = self.remote_client_1.make_file(self.workspace_id,
             u'Original File 1.txt',
