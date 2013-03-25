@@ -71,7 +71,11 @@ def pflush(message):
 
 def execute(cmd, exit_on_failure=True):
     pflush("> " + cmd)
-    code = os.WEXITSTATUS(os.system(cmd))
+    code = os.system(cmd)
+    if hasattr(os, 'WEXITSTATUS'):
+        # Find the exit code in from the POSIX status that also include
+        # the kill signal if any (only under POSIX)
+        code = os.WEXITSTATUS(code)
     if code != 0 and exit_on_failure:
         pflush("Command %s returned with code %d" % (cmd, code))
         sys.exit(code)
