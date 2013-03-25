@@ -342,7 +342,6 @@ class Synchronizer(object):
                 log.debug("Detected a new non-alignable local file at %s",
                           child_pair.local_path)
 
-
             self._scan_local_recursive(session, client, child_pair,
                                        child_info)
 
@@ -577,9 +576,8 @@ class Synchronizer(object):
                     remote_info.name)
                 renamed_info = local_client.rename(doc_pair.local_path,
                     remote_info.name)
-                if doc_pair.folderish:
-                    self._rename_with_descendant_states(session, local_client,
-                        doc_pair, renamed_info.path)
+                self._rename_with_descendant_states(session, local_client,
+                    doc_pair, renamed_info.path)
             doc_pair.update_state('synchronized', 'synchronized')
         except (IOError, WindowsError):
             log.debug("Delaying update for remotely modified "

@@ -262,7 +262,8 @@ def setup_nuxeo():
     execute(nuxeoctl + " --gui false start")
 
     # Register a callback to stop the nuxeo server
-    atexit.register(execute, nuxeoctl + " --gui false stop")
+    atexit.register(execute, nuxeoctl + " --gui false stop",
+                    exit_on_failure=False)
 
 
 def extract_msi(lessmsi_url, msi_folder):
