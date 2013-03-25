@@ -151,6 +151,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = self.local_client_1
+        session = ctl.get_session()
 
         # Rename a non empty folder with some content
         remote_client.rename(self.folder_1_id, u'Renamed Folder 1 \xe9')
@@ -167,21 +168,134 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
 
         # The content of the renamed folder is left unchanged
+        # Check child name
         self.assertTrue(local_client.exists(
             u'/Renamed Folder 1 \xe9/Original File 1.1.txt'))
         file_1_1_local_info = local_client.get_info(
             u'/Renamed Folder 1 \xe9/Original File 1.1.txt')
         file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
-        self.assertEquals(os.path.basename(file_1_1_parent_path),
-            u'Renamed Folder 1 \xe9')
+        self.assertEquals(file_1_1_parent_path,
+            os.path.join(self.sync_root_folder_1, u'Renamed Folder 1 \xe9'))
+        # Check child state
+        file_1_1_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Original File 1.1.txt').one()
+        self.assertEquals(file_1_1_state.local_path,
+            os.path.join(self.workspace_pair_local_path,
+            u'Renamed Folder 1 \xe9/Original File 1.1.txt'))
+        self.assertEquals(file_1_1_state.local_name, u'Original File 1.1.txt')
 
+        # Check child name
         self.assertTrue(local_client.exists(
             u'/Renamed Folder 1 \xe9/Sub-Folder 1.1'))
         folder_1_1_local_info = local_client.get_info(
             u'/Renamed Folder 1 \xe9/Sub-Folder 1.1')
-        folder_1_1_parent_path = folder_1_1_local_info.filepath.rsplit('/', 1)[0]
-        self.assertEquals(os.path.basename(folder_1_1_parent_path),
-            u'Renamed Folder 1 \xe9')
+        folder_1_1_parent_path = (folder_1_1_local_info
+                                  .filepath.rsplit('/', 1)[0])
+        self.assertEquals(folder_1_1_parent_path,
+            os.path.join(self.sync_root_folder_1, u'Renamed Folder 1 \xe9'))
+        # Check child state
+        folder_1_1_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Sub-Folder 1.1').one()
+        self.assertEquals(folder_1_1_state.local_path,
+            os.path.join(self.workspace_pair_local_path,
+            u'Renamed Folder 1 \xe9/Sub-Folder 1.1'))
+        self.assertEquals(folder_1_1_state.local_name, u'Sub-Folder 1.1')
+
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
+
+    def test_remote_rename_sync_root_folder(self):
+        sb, ctl = self.sb_1, self.controller_1
+        remote_client = self.remote_client_1
+        local_client = LocalClient(self.local_nxdrive_folder_1)
+        session = ctl.get_session()
+
+        # Rename a sync root folder
+        remote_client.rename(self.workspace_id,
+            u'Renamed Nuxeo Drive Test Workspace')
+        self.assertEquals(remote_client.get_info(self.workspace_id).name,
+            u'Renamed Nuxeo Drive Test Workspace')
+
+        # Synchronize: only the sync root folder renaming is detected: all
+        # the descendants are automatically realigned
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+        # The client folder has been renamed
+        self.assertFalse(local_client.exists(u'/Nuxeo Drive Test Workspace'))
+        self.assertTrue(local_client.exists(
+            u'/Renamed Nuxeo Drive Test Workspace'))
+
+        renamed_workspace_path = os.path.join(self.local_nxdrive_folder_1,
+            u'Renamed Nuxeo Drive Test Workspace')
+        # The content of the renamed folder is left unchanged
+        # Check child name
+        self.assertTrue(local_client.exists(
+            u'/Renamed Nuxeo Drive Test Workspace/Original File 1.txt'))
+        file_1_local_info = local_client.get_info(
+            u'/Renamed Nuxeo Drive Test Workspace/Original File 1.txt')
+        file_1_parent_path = file_1_local_info.filepath.rsplit('/', 1)[0]
+        self.assertEquals(file_1_parent_path, renamed_workspace_path)
+        # Check child state
+        file_1_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Original File 1.txt').one()
+        self.assertEquals(file_1_state.local_path,
+            os.path.join(u'/Renamed Nuxeo Drive Test Workspace',
+                         u'Original File 1.txt'))
+        self.assertEquals(file_1_state.local_name, u'Original File 1.txt')
+
+        # Check child name
+        self.assertTrue(local_client.exists(
+            u'/Renamed Nuxeo Drive Test Workspace/Original Folder 1'))
+        folder_1_local_info = local_client.get_info(
+            u'/Renamed Nuxeo Drive Test Workspace/Original Folder 1')
+        folder_1_parent_path = folder_1_local_info.filepath.rsplit('/', 1)[0]
+        self.assertEquals(folder_1_parent_path, renamed_workspace_path)
+        # Check child state
+        folder_1_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Original Folder 1').one()
+        self.assertEquals(folder_1_state.local_path,
+            os.path.join(u'/Renamed Nuxeo Drive Test Workspace',
+                         u'Original Folder 1'))
+        self.assertEquals(folder_1_state.local_name, u'Original Folder 1')
+
+        # Check child name
+        self.assertTrue(local_client.exists(
+            u'/Renamed Nuxeo Drive Test Workspace/'
+            u'Original Folder 1/Sub-Folder 1.1'))
+        folder_1_1_local_info = local_client.get_info(
+            u'/Renamed Nuxeo Drive Test Workspace/'
+            u'Original Folder 1/Sub-Folder 1.1')
+        folder_1_1_parent_path = (folder_1_1_local_info
+                                  .filepath.rsplit('/', 1)[0])
+        self.assertEquals(folder_1_1_parent_path,
+            os.path.join(renamed_workspace_path, u'Original Folder 1'))
+        # Check child state
+        folder_1_1_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Sub-Folder 1.1').one()
+        self.assertEquals(folder_1_1_state.local_path,
+            os.path.join(u'/Renamed Nuxeo Drive Test Workspace',
+                         u'Original Folder 1/Sub-Folder 1.1'))
+        self.assertEquals(folder_1_1_state.local_name, u'Sub-Folder 1.1')
+
+        # Check child name
+        self.assertTrue(local_client.exists(
+            u'/Renamed Nuxeo Drive Test Workspace/'
+            u'Original Folder 1/Original File 1.1.txt'))
+        file_1_1_local_info = local_client.get_info(
+            u'/Renamed Nuxeo Drive Test Workspace/'
+            'Original Folder 1/Original File 1.1.txt')
+        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
+        self.assertEquals(file_1_1_parent_path,
+            os.path.join(renamed_workspace_path, u'Original Folder 1'))
+        # Check child state
+        file_1_1_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Original File 1.1.txt').one()
+        self.assertEquals(file_1_1_state.local_path,
+            os.path.join(u'/Renamed Nuxeo Drive Test Workspace',
+                         u'Original Folder 1/Original File 1.1.txt'))
+        self.assertEquals(file_1_1_state.local_name, u'Original File 1.1.txt')
 
         # The more things change, the more they remain the same.
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
