@@ -405,10 +405,13 @@ class CliHandler(object):
         # List the test modules explicitly as recursive discovery is broken
         # when the app is frozen.
         argv += [
+            "nxdrive.tests.test_integration_encoding",
             "nxdrive.tests.test_integration_local_client",
+            "nxdrive.tests.test_integration_local_move_and_rename",
             "nxdrive.tests.test_integration_remote_changes",
             "nxdrive.tests.test_integration_remote_document_client",
             "nxdrive.tests.test_integration_remote_file_system_client",
+            "nxdrive.tests.test_integration_remote_move_and_rename",
             "nxdrive.tests.test_integration_synchronization",
             "nxdrive.tests.test_integration_versioning",
             "nxdrive.tests.test_synchronizer",
