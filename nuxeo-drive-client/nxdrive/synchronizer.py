@@ -342,7 +342,6 @@ class Synchronizer(object):
                 log.debug("Detected a new non-alignable local file at %s",
                           child_pair.local_path)
 
-
             self._scan_local_recursive(session, client, child_pair,
                                        child_info)
 
