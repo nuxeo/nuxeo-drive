@@ -65,6 +65,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             content=u'Some Content 3'.encode('utf-8'))
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
 
     def test_remote_rename_file(self):
@@ -79,6 +80,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'Renamed File 1.txt')
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
         # Check remote file name
@@ -107,6 +109,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'Renamed File 1.1 \xe9.txt')
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
 
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
@@ -148,6 +151,11 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(file_1_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Original Folder 1'))
 
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
+
     def test_remote_move_file(self):
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
@@ -162,6 +170,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             self.folder_1_id)
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
         # Check remote file
@@ -185,6 +194,56 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             os.path.join(self.workspace_pair_local_path,
             u'Original Folder 1/Original File 1.txt'))
         self.assertEquals(file_1_state.local_name, u'Original File 1.txt')
+
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
+
+    def test_remote_move_and_rename_file(self):
+        sb, ctl = self.sb_1, self.controller_1
+        remote_client = self.remote_client_1
+        local_client = self.local_client_1
+        session = ctl.get_session()
+
+        # Rename /Original File 1.txt to /Renamed File 1.txt
+        remote_client.rename(self.file_1_id, u'Renamed File 1 \xe9.txt')
+        remote_client.move(self.file_1_id, self.folder_1_id)
+        self.assertEquals(remote_client.get_info(self.file_1_id).name,
+            u'Renamed File 1 \xe9.txt')
+        self.assertEquals(remote_client.get_info(self.file_1_id).parent_uid,
+            self.folder_1_id)
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+        # Check remote file
+        self.assertEquals(remote_client.get_info(self.file_1_id).name,
+            u'Renamed File 1 \xe9.txt')
+        self.assertEquals(remote_client.get_info(self.file_1_id).parent_uid,
+            self.folder_1_id)
+        # Check local file
+        self.assertFalse(local_client.exists(u'/Original File 1.txt'))
+        self.assertTrue(local_client.exists(
+            u'/Original Folder 1/Renamed File 1 \xe9.txt'))
+        file_1_local_info = local_client.get_info(
+            u'/Original Folder 1/Renamed File 1 \xe9.txt')
+        file_1_parent_path = file_1_local_info.filepath.rsplit('/', 1)[0]
+        self.assertEquals(file_1_parent_path,
+            os.path.join(self.sync_root_folder_1, u'Original Folder 1'))
+        # Check file state
+        file_1_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Renamed File 1 \xe9.txt').one()
+        self.assertEquals(file_1_state.local_path,
+            os.path.join(self.workspace_pair_local_path,
+            u'Original Folder 1/Renamed File 1 \xe9.txt'))
+        self.assertEquals(file_1_state.local_name, u'Renamed File 1 \xe9.txt')
+
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_remote_rename_folder(self):
         sb, ctl = self.sb_1, self.controller_1
@@ -244,7 +303,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         # The more things change, the more they remain the same.
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
-        #import ipdb; ipdb.set_trace()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_concurrent_remote_rename_folder(self):
@@ -264,6 +322,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
 
         # The content of the renamed folders is left unchanged
@@ -301,6 +360,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
 
         # The more things change, the more they remain the same.
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_remote_rename_sync_root_folder(self):
@@ -318,6 +378,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         # Synchronize: only the sync root folder renaming is detected: all
         # the descendants are automatically realigned
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
         # The client folder has been renamed
@@ -397,4 +458,5 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
 
         # The more things change, the more they remain the same.
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)

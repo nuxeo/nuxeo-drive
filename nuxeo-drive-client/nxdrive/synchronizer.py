@@ -587,10 +587,11 @@ class Synchronizer(object):
                 local_client.update_content(doc_pair.local_path, content)
                 doc_pair.refresh_local(local_client)
             else:
-                # digest agree so this is a renaming or a move,
+                # digest agree so this is a renaming and/or a move,
                 # and no need to transfer additional bytes over the network
                 is_move, new_parent_pair = self._is_remote_move(
                     doc_pair, session)
+                is_renaming = doc_pair.remote_name != doc_pair.local_name
                 file_or_folder = 'folder' if doc_pair.folderish else 'file'
                 if is_move:
                     # move
@@ -601,13 +602,17 @@ class Synchronizer(object):
                         doc_pair, doc_pair.remote_parent_path)
                     updated_info = local_client.move(doc_pair.local_path,
                                       new_parent_pair.local_path)
-                else:
+                    # refresh doc pair for the case of a
+                    # simultaneous move and renaming
+                    doc_pair.refresh_local(client=local_client,
+                        local_path=updated_info.path)
+                if is_renaming:
                     # renaming
                     log.debug("Renaming local %s '%s' to '%s'.",
                         file_or_folder, doc_pair.get_local_abspath(),
                         remote_info.name)
-                    updated_info = local_client.rename(doc_pair.local_path,
-                        remote_info.name)
+                    updated_info = local_client.rename(
+                        doc_pair.local_path, remote_info.name)
                 self._local_rename_with_descendant_states(session,
                     local_client, doc_pair, updated_info.path)
             doc_pair.update_state('synchronized', 'synchronized')
