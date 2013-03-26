@@ -258,7 +258,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         # The more things change, the more they remain the same.
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
-        #import ipdb; ipdb.set_trace()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_concurrent_remote_rename_folder(self):
