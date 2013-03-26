@@ -152,6 +152,8 @@ class LastKnownState(Base):
     remote_state = Column(String)
     pair_state = Column(String, index=True)
 
+    # TODO: remove since unused, but might brake
+    # previous Nuxeo Drive client installations
     # Track move operations to avoid losing history
     locally_moved_from = Column(String)
     locally_moved_to = Column(String)
