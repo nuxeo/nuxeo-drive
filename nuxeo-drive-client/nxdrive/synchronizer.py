@@ -200,7 +200,8 @@ class Synchronizer(object):
         """Update the metadata of the descendants of renamed doc"""
         # rename local descendants first
         if doc_pair.local_path is None:
-            raise ValueError("Cannot apply renaming to %r due to missing local path" %
+            raise ValueError("Cannot apply renaming to %r due to"
+                             "missing local path" %
                 doc_pair)
         local_children = session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
@@ -311,7 +312,8 @@ class Synchronizer(object):
                     child_pair = find_first_name_match(
                         child_name, possible_pairs)
                     if child_pair is not None:
-                        log.debug("Matched local %s with remote %s with digest",
+                        log.debug("Matched local %s with remote %s "
+                                  "with digest",
                                   child_info.path, child_pair.remote_name)
 
                 except (IOError, WindowsError):
@@ -495,7 +497,7 @@ class Synchronizer(object):
         return child_pair, True
 
     def synchronize_one(self, doc_pair, session=None):
-        """Refresh state and perform network transfer for a pair of documents."""
+        """Refresh state and perform network transfer for a doc pair."""
         session = self.get_session() if session is None else session
         # Find a cached remote client for the server binding of the file to
         # synchronize
@@ -841,7 +843,8 @@ class Synchronizer(object):
                 # Target has not be concurrently deleted, let's perform the
                 # move
                 moved_or_renamed = True
-                log.debug("Detected and resolving local move event on %s to %s",
+                log.debug("Detected and resolving local move event "
+                          "on %s to %s",
                     source_doc_pair, parent_doc_pair)
                 target_ref = parent_doc_pair.remote_ref
                 if not remote_client.can_move(remote_ref, target_ref):
@@ -908,17 +911,20 @@ class Synchronizer(object):
                 if getattr(e, 'code', None) == 500:
                     # This is an unexpected: blacklist doc_pair for
                     # a cooldown period
-                    log.error("Failed to sync %r, blacklisting doc pair for %d seconds",
+                    log.error("Failed to sync %r, blacklisting doc pair "
+                              "for %d seconds",
                         pair_state, self.error_skip_period, exc_info=True)
                     pair_state.last_sync_error_date = datetime.utcnow()
                     session.commit()
                 else:
-                    # This is expected and should interrupt the sync process for
-                    # this local_folder and should be dealt with in the main loop
+                    # This is expected and should interrupt the sync process
+                    # for this local_folder and should be dealt with
+                    # in the main loop
                     raise e
             except Exception as e:
                 # Unexpected exception: blacklist for a cooldown period
-                log.error("Failed to sync %r, blacklisting doc pair for %d seconds",
+                log.error("Failed to sync %r, blacklisting doc pair "
+                          "for %d seconds",
                     pair_state, self.error_skip_period, exc_info=True)
                 pair_state.last_sync_error_date = datetime.utcnow()
                 session.commit()
@@ -1090,7 +1096,6 @@ class Synchronizer(object):
         session = self.get_session() if session is None else session
         s_url = server_binding.server_url
 
-
         # Fetch all events and consider the most recent first
         sorted_changes = sorted(summary['fileSystemChanges'],
                                 key=lambda x: x['eventDate'], reverse=True)
@@ -1127,7 +1132,8 @@ class Synchronizer(object):
                           or new_info.parent_uid == old_remote_parent_ref):
                         # Perform a regular document update on a document
                         # that has not moved
-                        log.debug("Refreshing remote state info for doc_pair '%s'",
+                        log.debug("Refreshing remote state info"
+                                  " for doc_pair '%s'",
                                   doc_pair.remote_name)
                         self._scan_remote_recursive(session, client, doc_pair,
                             new_info, force_recursion=False)
@@ -1159,8 +1165,9 @@ class Synchronizer(object):
                     if (parent_pair.server_binding.server_url != s_url):
                         continue
 
-                    child_pair, new_pair = self._find_remote_child_match_or_create(
-                        parent_pair, child_info, session=session)
+                    child_pair, new_pair = (self
+                        ._find_remote_child_match_or_create(
+                        parent_pair, child_info, session=session))
                     if new_pair:
                         log.debug("Marked doc_pair '%s' as remote creation",
                                   child_pair.remote_name)
