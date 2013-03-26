@@ -1,5 +1,6 @@
 """API to access local resources for synchronization."""
 
+import unicodedata
 from datetime import datetime
 import hashlib
 import os
@@ -17,12 +18,12 @@ from nxdrive.client.common import BUFFER_SIZE
 log = get_logger(__name__)
 
 
-DEDUPED_BASENAME_PATTERN = r'^(.*)__(\d{1,3})$'
+DEDUPED_BASENAME_PATTERN = ur'^(.*)__(\d{1,3})$'
 
 
-def safe_filename(name, replacement='-'):
+def safe_filename(name, replacement=u'-'):
     """Replace invalid character in candidate filename"""
-    return re.sub(r'(/|\\|\*|:)', replacement, name)
+    return re.sub(ur'(/|\\|\*|:)', replacement, name)
 
 
 # Data transfer objects
@@ -32,6 +33,8 @@ class FileInfo(object):
 
     def __init__(self, root, path, folderish, last_modification_time,
                  digest_func='md5'):
+        root = unicodedata.normalize('NFKC', root)
+        path = unicodedata.normalize('NFKC', path)
         self.root = root  # the sync root folder local path
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
@@ -47,7 +50,7 @@ class FileInfo(object):
         self.name = os.path.basename(path)
 
         self.filepath = os.path.join(
-            root, path[1:].replace('/', os.path.sep))
+            root, path[1:].replace(u'/', os.path.sep))
 
     def get_digest(self):
         """Lazy computation of the digest"""
@@ -102,8 +105,8 @@ class LocalClient(object):
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
         mtime = datetime.fromtimestamp(stat_info.st_mtime)
-        path = '/' + os_path[len(safe_long_path(self.base_folder)) + 1:]
-        path = path.replace(os.path.sep, '/')  # unix style path
+        path = u'/' + os_path[len(safe_long_path(self.base_folder)) + 1:]
+        path = path.replace(os.path.sep, u'/')  # unix style path
         # On unix we could use the inode for file move detection but that won't
         # work on Windows. To reduce complexity of the code and the possibility
         # to have Windows specific bugs, let's not use the unix inode at all.
@@ -133,10 +136,10 @@ class LocalClient(object):
                     break
 
             if not ignore:
-                if ref == '/':
+                if ref == u'/':
                     child_ref = ref + child_name
                 else:
-                    child_ref = ref + '/' + child_name
+                    child_ref = ref + u'/' + child_name
                 try:
                     result.append(self.get_info(child_ref))
                 except (OSError, NotFound):
@@ -149,18 +152,18 @@ class LocalClient(object):
     def make_folder(self, parent, name):
         os_path, name = self._abspath_deduped(parent, name)
         os.mkdir(os_path)
-        if parent == "/":
-            return "/" + name
-        return parent + "/" + name
+        if parent == u"/":
+            return u"/" + name
+        return parent + u"/" + name
 
     def make_file(self, parent, name, content=None):
         os_path, name = self._abspath_deduped(parent, name)
         with open(os_path, "wb") as f:
             if content:
                 f.write(content)
-        if parent == "/":
-            return "/" + name
-        return parent + "/" + name
+        if parent == u"/":
+            return u"/" + name
+        return parent + u"/" + name
 
     def update_content(self, ref, content):
         with open(self._abspath(ref), "wb") as f:
@@ -188,17 +191,17 @@ class LocalClient(object):
         Return the actualized info object.
 
         """
-        if ref == '/':
+        if ref == u'/':
             raise ValueError("Cannot rename the toplevel folder.")
         source_os_path = self._abspath(ref)
-        parent = ref.rsplit('/', 1)[0]
-        parent = '/' if parent == '' else parent
+        parent = ref.rsplit(u'/', 1)[0]
+        parent = u'/' if parent == '' else parent
         target_os_path, new_name = self._abspath_deduped(parent, new_name)
         shutil.move(source_os_path, target_os_path)
-        if parent == '/':
-            new_ref = '/' + new_name
+        if parent == u'/':
+            new_ref = u'/' + new_name
         else:
-            new_ref = parent + "/" + new_name
+            new_ref = parent + u"/" + new_name
         return self.get_info(new_ref)
 
     def move(self, ref, new_parent_ref):
@@ -207,21 +210,21 @@ class LocalClient(object):
         Return the actualized info object.
 
         """
-        if ref == '/':
+        if ref == u'/':
             raise ValueError("Cannot move the toplevel folder.")
         source_os_path = self._abspath(ref)
-        name = ref.rsplit('/', 1)[1]
+        name = ref.rsplit(u'/', 1)[1]
         target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
         shutil.move(source_os_path, target_os_path)
-        if new_parent_ref == '/':
-            new_ref = '/' + new_name
+        if new_parent_ref == u'/':
+            new_ref = u'/' + new_name
         else:
-            new_ref = new_parent_ref + "/" + new_name
+            new_ref = new_parent_ref + u"/" + new_name
         return self.get_info(new_ref)
 
     def _abspath(self, ref):
         """Absolute path on the operating system"""
-        if not ref.startswith('/'):
+        if not ref.startswith(u'/'):
             raise ValueError("LocalClient expects ref starting with '/'")
         path_suffix = ref[1:].replace('/', os.path.sep)
         path = normalized_path(os.path.join(self.base_folder, path_suffix))
@@ -244,9 +247,9 @@ class LocalClient(object):
             m = re.match(DEDUPED_BASENAME_PATTERN, name)
             if m:
                 short_name, increment = m.groups()
-                name = "%s__%d" % (short_name, int(increment) + 1)
+                name = u"%s__%d" % (short_name, int(increment) + 1)
             else:
-                name = name + '__1'
+                name = name + u'__1'
 
         raise ValueError("Failed to de-duplicate '%s' under '%s'" % (
             orig_name, parent))
