@@ -81,9 +81,10 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
-        # Check local file name
+        # Check remote file name
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
             u'Renamed File 1.txt')
+        # Check local file name
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(u'/Renamed File 1.txt'))
         # Check file state
@@ -146,6 +147,44 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_1_parent_path = file_1_1_local_info.filepath.rsplit(u'/', 1)[0]
         self.assertEquals(file_1_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Original Folder 1'))
+
+    def test_remote_move_file(self):
+        sb, ctl = self.sb_1, self.controller_1
+        remote_client = self.remote_client_1
+        local_client = self.local_client_1
+        session = ctl.get_session()
+
+        # Move /Original File 1.txt to /Original Folder 1/Original File 1.txt
+        remote_client.move(self.file_1_id, self.folder_1_id)
+        self.assertEquals(remote_client.get_info(self.file_1_id).name,
+            u'Original File 1.txt')
+        self.assertEquals(remote_client.get_info(self.file_1_id).parent_uid,
+            self.folder_1_id)
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+        # Check remote file
+        self.assertEquals(remote_client.get_info(self.file_1_id).name,
+            u'Original File 1.txt')
+        self.assertEquals(remote_client.get_info(self.file_1_id).parent_uid,
+            self.folder_1_id)
+        # Check local file
+        self.assertFalse(local_client.exists(u'/Original File 1.txt'))
+        self.assertTrue(local_client.exists(
+            u'/Original Folder 1/Original File 1.txt'))
+        file_1_local_info = local_client.get_info(
+            u'/Original Folder 1/Original File 1.txt')
+        file_1_parent_path = file_1_local_info.filepath.rsplit('/', 1)[0]
+        self.assertEquals(file_1_parent_path,
+            os.path.join(self.sync_root_folder_1, u'Original Folder 1'))
+        # Check file state
+        file_1_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Original File 1.txt').one()
+        self.assertEquals(file_1_state.local_path,
+            os.path.join(self.workspace_pair_local_path,
+            u'Original Folder 1/Original File 1.txt'))
+        self.assertEquals(file_1_state.local_name, u'Original File 1.txt')
 
     def test_remote_rename_folder(self):
         sb, ctl = self.sb_1, self.controller_1

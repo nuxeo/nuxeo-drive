@@ -152,6 +152,8 @@ class LastKnownState(Base):
     remote_state = Column(String)
     pair_state = Column(String, index=True)
 
+    # TODO: remove since unused, but might brake
+    # previous Nuxeo Drive client installations
     # Track move operations to avoid losing history
     locally_moved_from = Column(String)
     locally_moved_to = Column(String)
@@ -309,7 +311,9 @@ class LastKnownState(Base):
         # Use last known modification time to detect updates
         if self.last_remote_updated is None:
             self.last_remote_updated = remote_info.last_modification_time
-        elif remote_info.last_modification_time > self.last_remote_updated:
+        elif (remote_info.last_modification_time > self.last_remote_updated
+            or self.remote_parent_ref != remote_info.parent_uid):
+            # Remote update and/or rename and/or move
             self.last_remote_updated = remote_info.last_modification_time
             remote_state = 'modified'
 
@@ -318,6 +322,7 @@ class LastKnownState(Base):
         self.folderish = remote_info.folderish
         self.remote_name = remote_info.name
         suffix_len = len(remote_info.uid) + 1
+        self.remote_parent_ref = remote_info.parent_uid
         self.remote_parent_path = remote_info.path[:-suffix_len]
         self.update_state(remote_state=remote_state)
 
