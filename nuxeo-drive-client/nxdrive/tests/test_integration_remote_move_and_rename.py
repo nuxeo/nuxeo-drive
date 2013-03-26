@@ -151,6 +151,11 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(file_1_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Original Folder 1'))
 
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
+
     def test_remote_move_file(self):
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
@@ -189,6 +194,11 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             os.path.join(self.workspace_pair_local_path,
             u'Original Folder 1/Original File 1.txt'))
         self.assertEquals(file_1_state.local_name, u'Original File 1.txt')
+
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_remote_rename_folder(self):
         sb, ctl = self.sb_1, self.controller_1
