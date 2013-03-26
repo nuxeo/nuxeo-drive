@@ -81,9 +81,10 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
-        # Check local file name
+        # Check remote file name
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
             u'Renamed File 1.txt')
+        # Check local file name
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(u'/Renamed File 1.txt'))
         # Check file state
