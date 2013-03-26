@@ -37,7 +37,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
 
         self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
                             + self.workspace)
-        self.workspace_pair_local_path = '/' + self.workspace_title
+        self.workspace_pair_local_path = u'/' + self.workspace_title
 
         self.file_1_id = self.remote_client_1.make_file(self.workspace_id,
             u'Original File 1.txt',
@@ -138,12 +138,12 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         # that has been performed and not a move
         file_1_local_info = local_client.get_info(
             u'/Renamed Again File 1.txt')
-        file_1_parent_path = file_1_local_info.filepath.rsplit('/', 1)[0]
+        file_1_parent_path = file_1_local_info.filepath.rsplit(u'/', 1)[0]
         self.assertEquals(file_1_parent_path, self.sync_root_folder_1)
 
         file_1_1_local_info = local_client.get_info(
             u'/Original Folder 1/Renamed File 1.1 \xe9.txt')
-        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
+        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit(u'/', 1)[0]
         self.assertEquals(file_1_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Original Folder 1'))
 
@@ -161,6 +161,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
         # The client folder has been renamed
@@ -190,7 +191,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         folder_1_1_local_info = local_client.get_info(
             u'/Renamed Folder 1 \xe9/Sub-Folder 1.1')
         folder_1_1_parent_path = (folder_1_1_local_info
-                                  .filepath.rsplit('/', 1)[0])
+                                  .filepath.rsplit(u'/', 1)[0])
         self.assertEquals(folder_1_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Renamed Folder 1 \xe9'))
         # Check child state
@@ -203,6 +204,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
 
         # The more things change, the more they remain the same.
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        #import ipdb; ipdb.set_trace()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_concurrent_remote_rename_folder(self):
@@ -230,7 +233,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Renamed Folder 1/Original File 1.1.txt'))
         file_1_1_local_info = local_client.get_info(
             u'/Renamed Folder 1/Original File 1.1.txt')
-        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
+        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit(u'/', 1)[0]
         self.assertEquals(file_1_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Renamed Folder 1'))
         # Check child state
@@ -246,7 +249,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Renamed Folder 2/Original File 3.txt'))
         file_3_local_info = local_client.get_info(
             u'/Renamed Folder 2/Original File 3.txt')
-        file_3_parent_path = file_3_local_info.filepath.rsplit('/', 1)[0]
+        file_3_parent_path = file_3_local_info.filepath.rsplit(u'/', 1)[0]
         self.assertEquals(file_3_parent_path,
             os.path.join(self.sync_root_folder_1, u'Renamed Folder 2'))
         # Check child state

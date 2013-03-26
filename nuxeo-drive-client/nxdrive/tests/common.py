@@ -14,11 +14,11 @@ from nxdrive.controller import Controller
 
 class IntegrationTestCase(unittest.TestCase):
 
-    TEST_WORKSPACE_PATH = '/default-domain/workspaces/nuxeo-drive-test-workspace'
-    FS_ITEM_ID_PREFIX = 'defaultFileSystemItemFactory#default#'
+    TEST_WORKSPACE_PATH = u'/default-domain/workspaces/nuxeo-drive-test-workspace'
+    FS_ITEM_ID_PREFIX = u'defaultFileSystemItemFactory#default#'
 
     EMPTY_DIGEST = hashlib.md5().hexdigest()
-    SOME_TEXT_CONTENT = "Some text content."
+    SOME_TEXT_CONTENT = b"Some text content."
     SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 
     # 1s time resolution because of the datetime resolution of MYSQL
@@ -47,59 +47,59 @@ class IntegrationTestCase(unittest.TestCase):
         # Nuxeo to finish initialize the repo on the first request after
         # startup
         root_remote_client = RemoteDocumentClient(
-            self.nuxeo_url, self.admin_user, 'nxdrive-test-administrator-device',
-            self.password, base_folder='/', timeout=60)
+            self.nuxeo_url, self.admin_user, u'nxdrive-test-administrator-device',
+            self.password, base_folder=u'/', timeout=60)
 
         # Call the Nuxeo operation to setup the integration test environment
         credentials = root_remote_client.execute(
             "NuxeoDrive.SetupIntegrationTests",
             userNames="user_1, user_2")
 
-        credentials = [c.strip().split(":") for c in credentials.split(",")]
+        credentials = [c.strip().split(u":") for c in credentials.split(u",")]
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
 
         ws_info = root_remote_client.fetch(self.TEST_WORKSPACE_PATH)
-        self.workspace = ws_info['uid']
-        self.workspace_title = ws_info['title']
+        self.workspace = ws_info[u'uid']
+        self.workspace_title = ws_info[u'title']
 
         # Document client to be used to create remote test documents
         # and folders
         remote_document_client_1 = RemoteDocumentClient(
-            self.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
+            self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.password_1, base_folder=self.workspace)
 
         remote_document_client_2 = RemoteDocumentClient(
-            self.nuxeo_url, self.user_2, 'nxdrive-test-device-2',
+            self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
             self.password_2, base_folder=self.workspace)
 
         # File system client to be used to create remote test documents
         # and folders
         remote_file_system_client_1 = RemoteFileSystemClient(
-            self.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
+            self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.password_1)
 
         remote_file_system_client_2 = RemoteFileSystemClient(
-            self.nuxeo_url, self.user_2, 'nxdrive-test-device-2',
+            self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
             self.password_2)
 
         # Check the local filesystem test environment
-        self.local_test_folder_1 = tempfile.mkdtemp('-nxdrive-tests-user-1')
-        self.local_test_folder_2 = tempfile.mkdtemp('-nxdrive-tests-user-2')
+        self.local_test_folder_1 = tempfile.mkdtemp(u'-nxdrive-tests-user-1')
+        self.local_test_folder_2 = tempfile.mkdtemp(u'-nxdrive-tests-user-2')
 
         self.local_nxdrive_folder_1 = os.path.join(
-            self.local_test_folder_1, 'Nuxeo Drive')
+            self.local_test_folder_1, u'Nuxeo Drive')
         os.mkdir(self.local_nxdrive_folder_1)
         self.local_nxdrive_folder_2 = os.path.join(
-            self.local_test_folder_2, 'Nuxeo Drive')
+            self.local_test_folder_2, u'Nuxeo Drive')
         os.mkdir(self.local_nxdrive_folder_2)
 
         nxdrive_conf_folder_1 = os.path.join(
-            self.local_test_folder_1, 'nuxeo-drive-conf')
+            self.local_test_folder_1, u'nuxeo-drive-conf')
         os.mkdir(nxdrive_conf_folder_1)
 
         nxdrive_conf_folder_2 = os.path.join(
-            self.local_test_folder_2, 'nuxeo-drive-conf')
+            self.local_test_folder_2, u'nuxeo-drive-conf')
         os.mkdir(nxdrive_conf_folder_2)
 
         self.controller_1 = Controller(nxdrive_conf_folder_1)
@@ -117,7 +117,7 @@ class IntegrationTestCase(unittest.TestCase):
         self.remote_document_client_2.revoke_token()
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
-        self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
+        self.root_remote_client.execute(u"NuxeoDrive.TearDownIntegrationTests")
 
         self.root_remote_client.revoke_token()
 
@@ -142,22 +142,22 @@ class IntegrationTestCase(unittest.TestCase):
     def make_server_tree(self):
         remote_client = self.remote_document_client_1
         # create some folders on the server
-        folder_1 = remote_client.make_folder(self.workspace, 'Folder 1')
-        folder_1_1 = remote_client.make_folder(folder_1, 'Folder 1.1')
-        folder_1_2 = remote_client.make_folder(folder_1, 'Folder 1.2')
-        folder_2 = remote_client.make_folder(self.workspace, 'Folder 2')
+        folder_1 = remote_client.make_folder(self.workspace, u'Folder 1')
+        folder_1_1 = remote_client.make_folder(folder_1, u'Folder 1.1')
+        folder_1_2 = remote_client.make_folder(folder_1, u'Folder 1.2')
+        folder_2 = remote_client.make_folder(self.workspace, u'Folder 2')
 
         # create some files on the server
-        remote_client.make_file(folder_2, 'Duplicated File.txt',
-                                content="Some content.")
-        remote_client.make_file(folder_2, 'Duplicated File.txt',
-                                content="Other content.")
+        remote_client.make_file(folder_2, u'Duplicated File.txt',
+                                content=b"Some content.")
+        remote_client.make_file(folder_2, u'Duplicated File.txt',
+                                content=b"Other content.")
 
-        remote_client.make_file(folder_1, 'File 1.txt', content="aaa")
-        remote_client.make_file(folder_1_1, 'File 2.txt', content="bbb")
-        remote_client.make_file(folder_1_2, 'File 3.txt', content="ccc")
-        remote_client.make_file(folder_2, 'File 4.txt', content="ddd")
-        remote_client.make_file(self.workspace, 'File 5.txt', content="eee")
+        remote_client.make_file(folder_1, u'File 1.txt', content=b"aaa")
+        remote_client.make_file(folder_1_1, u'File 2.txt', content=b"bbb")
+        remote_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
+        remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
+        remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
 
     def wait(self):
         self.root_remote_client.wait()
