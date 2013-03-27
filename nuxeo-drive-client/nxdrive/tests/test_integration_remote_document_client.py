@@ -263,3 +263,32 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         remote_client.delete(folder_3, use_trash=False)
         remote_client.unregister_as_root(folder_2)
         self.assertEquals(remote_client.get_roots(), [])
+
+    def test_unregister_nested_roots(self):
+        # Check that registering a parent folder of an existing root
+        # automatically unregister sub folders to avoid synchronization
+        # inconsistencies
+        remote_client = self.remote_document_client_1
+        # Check that the list of repositories can be introspected
+        self.assertEquals(remote_client.get_repository_names(), ['default'])
+
+        # By default no root is synchronized
+        self.assertEquals(remote_client.get_roots(), [])
+        folder = remote_client.make_folder(self.workspace, 'Folder')
+        sub_folder_1 = remote_client.make_folder(folder, 'Sub Folder 1')
+        sub_folder_2 = remote_client.make_folder(folder, 'Sub Folder 2')
+
+        # Register the sub folders as roots
+        remote_client.register_as_root(sub_folder_1)
+        remote_client.register_as_root(sub_folder_2)
+        self.assertEquals(len(remote_client.get_roots()), 2)
+
+        # Register the parent folder as root
+        remote_client.register_as_root(folder)
+        roots = remote_client.get_roots()
+        self.assertEquals(len(roots), 1)
+        self.assertEquals(roots[0].uid, folder)
+
+        # Unregister the parent folder
+        remote_client.unregister_as_root(folder)
+        self.assertEquals(len(remote_client.get_roots()), 0)
