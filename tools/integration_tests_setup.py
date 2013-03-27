@@ -247,7 +247,8 @@ def setup_nuxeo():
         for line in netstat_out.split('\r\n'):
             if ':8080 ' in line:
                 pid = line.rsplit(' ', 1)[1]
-                execute('kill -f %s' % pid, exit_on_failure=False)
+                if pid != '0':
+                    execute('kill -f %s' % pid, exit_on_failure=False)
 
     pflush("Renaming %s to %s" % (nuxeo_folder_path, NUXEO_FOLDER))
     os.rename(nuxeo_folder_path, NUXEO_FOLDER)
