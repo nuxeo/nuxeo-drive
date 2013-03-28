@@ -613,8 +613,9 @@ class Synchronizer(object):
                         remote_info.name)
                     updated_info = local_client.rename(
                         doc_pair.local_path, remote_info.name)
-                self._local_rename_with_descendant_states(session,
-                    local_client, doc_pair, updated_info.path)
+                if is_move or is_renaming:
+                    self._local_rename_with_descendant_states(session,
+                        local_client, doc_pair, updated_info.path)
             doc_pair.update_state('synchronized', 'synchronized')
         except (IOError, WindowsError):
             log.debug("Delaying update for remotely modified "
