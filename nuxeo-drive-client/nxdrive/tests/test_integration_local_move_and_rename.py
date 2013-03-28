@@ -145,7 +145,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         original_file_1_uid = remote_client.get_info(
             u'/Original File 1.txt').uid
 
-        local_client.rename(u'/Original File 1.txt', u'Renamed File 1 \xe9.txt')
+        local_client.rename(u'/Original File 1.txt',
+                            u'Renamed File 1 \xe9.txt')
         local_client.move(u'/Renamed File 1 \xe9.txt', u'/Original Folder 1')
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(

@@ -196,7 +196,7 @@ class Synchronizer(object):
             session.delete(doc_pair)
 
     def _local_rename_with_descendant_states(self, session, client, doc_pair,
-        updated_path):
+        previous_local_path, updated_path):
         """Update the metadata of the descendants of a renamed doc"""
         # rename local descendants first
         if doc_pair.local_path is None:
@@ -205,11 +205,11 @@ class Synchronizer(object):
                 doc_pair)
         local_children = session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
-            local_parent_path=doc_pair.local_path).all()
+            local_parent_path=previous_local_path).all()
         for child in local_children:
             child_path = updated_path + '/' + child.local_name
             self._local_rename_with_descendant_states(session, client, child,
-                child_path)
+                child.local_path, child_path)
 
         doc_pair.refresh_local(client=client, local_path=updated_path)
 
@@ -593,6 +593,7 @@ class Synchronizer(object):
                     doc_pair, session)
                 is_renaming = doc_pair.remote_name != doc_pair.local_name
                 file_or_folder = 'folder' if doc_pair.folderish else 'file'
+                previous_local_path = doc_pair.local_path
                 if is_move:
                     # move
                     log.debug("Moving local %s '%s' to '%s'.",
@@ -615,7 +616,8 @@ class Synchronizer(object):
                         doc_pair.local_path, remote_info.name)
                 if is_move or is_renaming:
                     self._local_rename_with_descendant_states(session,
-                        local_client, doc_pair, updated_info.path)
+                        local_client, doc_pair, previous_local_path,
+                        updated_info.path)
             doc_pair.update_state('synchronized', 'synchronized')
         except (IOError, WindowsError):
             log.debug("Delaying update for remotely modified "
