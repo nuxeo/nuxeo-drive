@@ -2,6 +2,7 @@
 
 import os
 import sys
+from urllib import quote
 from threading import local
 import subprocess
 from datetime import datetime
@@ -254,6 +255,8 @@ class Controller(object):
         local_folder = normalized_path(local_folder)
         if not os.path.exists(local_folder):
             os.makedirs(local_folder)
+
+        self.register_folder_link(local_folder)
 
         # check the connection to the server by issuing an authentication
         # request
@@ -551,3 +554,40 @@ class Controller(object):
         if not url.endswith(u'/'):
             return url + u'/'
         return url
+
+    def register_folder_link(self, folder_path):
+        if sys.platform == 'darwin':
+            self.register_folder_link_darwin(folder_path)
+        # TODO: implement Windows and Linux support here
+
+    def register_folder_link_darwin(self, folder_path):
+        try:
+           from LaunchServices import LSSharedFileListCreate
+           from LaunchServices import kLSSharedFileListFavoriteItems
+           from LaunchServices import LSSharedFileListInsertItemURL
+           from LaunchServices import kLSSharedFileListItemBeforeFirst
+           from LaunchServices import CFURLCreateWithString
+        except ImportError:
+            log.warning("PyObjC package is not installed:"
+                        " skipping favorite link creation")
+            return
+        folder_path = normalized_path(folder_path)
+        folder_name = os.path.basename(folder_path)
+
+        lst = LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems, None)
+        if lst is None:
+            log.warning("Could not fetch the Finder favorite list.")
+            return
+
+        url = CFURLCreateWithString(None, "file://" + quote(folder_path), None)
+        if url is None:
+            log.warning("Could not generate valid favorite URL for: %s",
+                folder_path)
+            return
+
+        # Register the folder as favorite if not already there
+        item = LSSharedFileListInsertItemURL(
+            lst, kLSSharedFileListItemBeforeFirst, folder_name, None, url,
+            {}, [])
+        if item is not None:
+            log.debug("Registered new favorite in Finder for: %s", folder_path)
