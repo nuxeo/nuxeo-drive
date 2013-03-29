@@ -228,6 +228,16 @@ To run the tests, install and start a nuxeo server locally, then::
 
 .. _pip: http://www.pip-installer.org/
 
+Under OS X you can also optionally install ``PyObjC`` to get the
+``LaunchServices`` API for registering the Nuxeo Drive folder in the OS X
+Finder favorite list (a.k.a. "Places")::
+
+  pip install PyObjC
+
+WARNING: this will download many large dependencies and sometimes the remote
+server will timeout on some of them: you might need to re-run this command
+several times to get it all installed.
+
 Then install QT and PySide for graphical user interface (see below).
 
 
