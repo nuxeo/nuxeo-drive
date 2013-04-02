@@ -85,7 +85,6 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         remote_client4.revoke_token()
         self.assertRaises(IOError, remote_client4.get_roots)
 
-
     def test_make_documents(self):
         remote_client = self.remote_document_client_1
         doc_1 = remote_client.make_file(self.workspace, 'Document 1.txt')
@@ -100,7 +99,8 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         doc_2 = remote_client.make_file(self.workspace, 'Document 2.txt',
                                   content=self.SOME_TEXT_CONTENT)
         self.assertTrue(remote_client.exists(doc_2))
-        self.assertEquals(remote_client.get_content(doc_2), self.SOME_TEXT_CONTENT)
+        self.assertEquals(remote_client.get_content(doc_2),
+                          self.SOME_TEXT_CONTENT)
         doc_2_info = remote_client.get_info(doc_2)
         self.assertEquals(doc_2_info.name, 'Document 2.txt')
         self.assertEquals(doc_2_info.uid, doc_2)
@@ -113,14 +113,16 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         self.assertRaises(NotFound, remote_client.get_info, doc_2)
 
         # the document has been put in the trash by default
-        self.assertTrue(remote_client.exists(doc_2, use_trash=False) is not None)
+        self.assertTrue(remote_client.exists(doc_2, use_trash=False)
+                        is not None)
 
-        # the document is now physically deleted (by calling delete a second time:
-        # the 'delete' transition will no longer be available hence physical
-        # deletion is used as a fallback)
+        # the document is now physically deleted (by calling delete
+        # a second time: the 'delete' transition will no longer be available
+        # hence physical deletion is used as a fallback)
         remote_client.delete(doc_2, use_trash=False)
         self.assertFalse(remote_client.exists(doc_2, use_trash=False))
-        self.assertRaises(NotFound, remote_client.get_info, doc_2, use_trash=False)
+        self.assertRaises(NotFound, remote_client.get_info, doc_2,
+                          use_trash=False)
 
         # Test folder deletion (with trash)
         folder_1 = remote_client.make_folder(self.workspace, 'A new folder')
@@ -158,13 +160,15 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         remote_client = self.remote_document_client_1
         # create another folder with the same title
         title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
-        folder_1 = remote_client.make_folder(self.workspace, title_with_accents)
+        folder_1 = remote_client.make_folder(self.workspace,
+                                             title_with_accents)
         folder_1_info = remote_client.get_info(folder_1)
         self.assertEquals(folder_1_info.name, title_with_accents)
 
         # create another folder with the same title
         title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
-        folder_2 = remote_client.make_folder(self.workspace, title_with_accents)
+        folder_2 = remote_client.make_folder(self.workspace,
+                                             title_with_accents)
         folder_2_info = remote_client.get_info(folder_2)
         self.assertEquals(folder_2_info.name, title_with_accents)
         self.assertNotEquals(folder_1, folder_2)
