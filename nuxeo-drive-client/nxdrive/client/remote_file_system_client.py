@@ -26,11 +26,11 @@ BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
     'last_modification_time',  # last update time
     'digest',  # digest of the file
     'digest_algorithm',  # digest algorithm of the file
-    'download_url', # download URL of the file
-    'can_rename', # True is can rename
-    'can_delete', # True is can delete
-    'can_update', # True is can update content
-    'can_create_child', # True is can create child
+    'download_url',  # download URL of the file
+    'can_rename',  # True is can rename
+    'can_delete',  # True is can delete
+    'can_update',  # True is can update content
+    'can_create_child',  # True is can create child
 ])
 
 
@@ -62,7 +62,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self._file_to_info(fs_item)
 
     def get_filesystem_root_info(self):
-        toplevel_folder = self.execute("NuxeoDrive.GetTopLevelFolder");
+        toplevel_folder = self.execute("NuxeoDrive.GetTopLevelFolder")
         return self._file_to_info(toplevel_folder)
 
     def get_content(self, fs_item_id, file_out=None):
@@ -93,7 +93,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def update_content(self, fs_item_id, content, name=None):
         if name is None:
             name = self.get_info(fs_item_id).name
-        fs_item  = self.execute_with_blob('NuxeoDrive.UpdateFile',
+        fs_item = self.execute_with_blob('NuxeoDrive.UpdateFile',
             content, name, id=fs_item_id)
         return fs_item['id']
 
