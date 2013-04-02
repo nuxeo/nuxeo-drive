@@ -75,11 +75,9 @@ class RemoteDocumentClient(BaseAutomationClient):
         else:
             self._base_folder_ref, self._base_folder_path = None, None
 
-
     #
     # API common with the local client API
     #
-
     def get_info(self, ref, raise_if_missing=True, fetch_parent_uid=True,
                  use_trash=True):
         if not self.exists(ref, use_trash=use_trash):
@@ -140,17 +138,17 @@ class RemoteDocumentClient(BaseAutomationClient):
         self.attach_blob(self._check_ref(ref), content, name)
 
     def delete(self, ref, use_trash=True):
-        input = "doc:" + self._check_ref(ref)
+        op_input = "doc:" + self._check_ref(ref)
         if use_trash:
             try:
-                return self.execute("Document.SetLifeCycle", input=input,
+                return self.execute("Document.SetLifeCycle", input=op_input,
                                      value='delete')
             except urllib2.HTTPError as e:
                 if e.code == 500:
-                    return self.execute("Document.Delete", input=input)
+                    return self.execute("Document.Delete", input=op_input)
                 raise
         else:
-            return self.execute("Document.Delete", input=input)
+            return self.execute("Document.Delete", input=op_input)
 
     def exists(self, ref, use_trash=True):
         ref = self._check_ref(ref)
@@ -173,9 +171,9 @@ class RemoteDocumentClient(BaseAutomationClient):
     def _check_ref(self, ref):
         if ref.startswith('/'):
             if self._base_folder_path is None:
-                raise RuntimeError("Path handling is disabled on a remote client"
-                                   " with no base_folder parameter: use idref"
-                                   " instead")
+                raise RuntimeError("Path handling is disabled on a remote"
+                                   " client with no base_folder parameter:"
+                                   " use idref instead")
             elif self._base_folder_path.endswith('/'):
                 ref = self._base_folder_path + ref[1:]
             else:
@@ -251,9 +249,9 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     # Document category
 
-    def create(self, ref, type, name=None, properties=None):
+    def create(self, ref, doc_type, name=None, properties=None):
         return self.execute("Document.Create", input="doc:" + ref,
-            type=type, name=name, properties=properties)
+            type=doc_type, name=name, properties=properties)
 
     def update(self, ref, properties=None):
         return self.execute("Document.Update", input="doc:" + ref,
