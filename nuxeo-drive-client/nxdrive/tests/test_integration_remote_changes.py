@@ -15,7 +15,8 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
             last_sync_date=self.last_sync_date,
             last_root_definitions=self.last_root_definitions)
         self.last_sync_date = summary['syncDate']
-        self.last_root_definitions = summary['activeSynchronizationRootDefinitions']
+        self.last_root_definitions = (
+            summary['activeSynchronizationRootDefinitions'])
         return summary
 
     def test_changes_without_active_roots(self):
@@ -54,8 +55,8 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, folder_1)
 
-        # Would it be this possible to change the service to avoid having to put
-        # this sleep here?
+        # Would it be this possible to change the service to avoid
+        # having to put this sleep here?
         time.sleep(1.0)
         summary = self.get_changes()
         self.assertEquals(summary['hasTooManyChanges'], False)

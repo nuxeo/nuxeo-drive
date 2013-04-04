@@ -14,7 +14,8 @@ from nxdrive.controller import Controller
 
 class IntegrationTestCase(unittest.TestCase):
 
-    TEST_WORKSPACE_PATH = u'/default-domain/workspaces/nuxeo-drive-test-workspace'
+    TEST_WORKSPACE_PATH = (
+        u'/default-domain/workspaces/nuxeo-drive-test-workspace')
     FS_ITEM_ID_PREFIX = u'defaultFileSystemItemFactory#default#'
 
     EMPTY_DIGEST = hashlib.md5().hexdigest()
@@ -47,7 +48,8 @@ class IntegrationTestCase(unittest.TestCase):
         # Nuxeo to finish initialize the repo on the first request after
         # startup
         root_remote_client = RemoteDocumentClient(
-            self.nuxeo_url, self.admin_user, u'nxdrive-test-administrator-device',
+            self.nuxeo_url, self.admin_user,
+            u'nxdrive-test-administrator-device',
             self.password, base_folder=u'/', timeout=60)
 
         # Call the Nuxeo operation to setup the integration test environment
