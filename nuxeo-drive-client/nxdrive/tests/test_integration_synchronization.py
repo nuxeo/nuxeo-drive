@@ -22,15 +22,15 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
 
-        # The root binding operation does not create the local folder 
+        # The root binding operation does not create the local folder
         # yet.
         expected_folder = os.path.join(self.local_nxdrive_folder_1,
                                        self.workspace_title)
         local_client = LocalClient(self.local_nxdrive_folder_1)
         self.assertFalse(local_client.exists('/' + self.workspace_title))
 
-        # By default only scan happen, hence their is no information on the state
-        # of the documents on the local side (they don't exist there yet)
+        # By default only scan happen, hence their is no information on the
+        # state of the documents on the local side (they don't exist there yet)
         states = ctl.children_states(expected_folder)
         self.assertEquals(states, [])
 
@@ -901,21 +901,37 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Let's create a subfolder of the main readonly folder
         local = LocalClient(self.local_nxdrive_folder_1)
         local.make_folder('/', 'Folder 3')
+        local.make_file('/Folder 3', 'File 1.txt', content='Some content.')
+        local.make_folder('/Folder 3', 'Sub Folder 1')
+        local.make_file('/Folder 3/Sub Folder 1', 'File 2.txt',
+                        content='Some other content.')
         syn.loop(delay=0.1, max_loops=1)
 
-        # The remote folder has not been created
+        # No pair has been created, should only have the local root folder one
         self.assertEquals(self.get_all_states(), [
-            (u'/',
+            (u'/', u'synchronized', u'synchronized'),
+            (u'/Folder 3', u'synchronized', u'synchronized'),
+            (u'/Folder 3/File 1.txt', u'synchronized', u'synchronized'),
+            (u'/Folder 3/Sub Folder 1', u'synchronized', u'synchronized'),
+            (u'/Folder 3/Sub Folder 1/File 2.txt',
              u'synchronized', u'synchronized'),
-            (u'/Folder 3',
-             u'created', u'unknown'),
         ])
-        self.assertEquals(len(ctl.list_pending()), 1)
-        pending = ctl.list_pending()[0]
-        self.assertEquals(pending.local_name, 'Folder 3')
+        self.assertEquals(len(ctl.list_pending()), 0)
 
-        # The folder is not synchronized as this folder was black
-        # listed for 5 minutes
-        self.assertEquals(len(ctl.list_pending(ignore_in_error=300)), 0)
+        # Let's create a file in the main readonly folder
+        local.make_file('/', 'A file in a readonly folder.txt',
+            content='Some Content')
         syn.loop(delay=0.1, max_loops=1)
+
+        # No pair has been created, should only have the local folder one
+        self.assertEquals(self.get_all_states(), [
+            (u'/', u'synchronized', u'synchronized'),
+            (u'/A file in a readonly folder.txt',
+             u'synchronized', u'synchronized'),
+            (u'/Folder 3', u'synchronized', u'synchronized'),
+            (u'/Folder 3/File 1.txt', u'synchronized', u'synchronized'),
+            (u'/Folder 3/Sub Folder 1', u'synchronized', u'synchronized'),
+            (u'/Folder 3/Sub Folder 1/File 2.txt',
+             u'synchronized', u'synchronized'),
+        ])
         self.assertEquals(len(ctl.list_pending(ignore_in_error=300)), 0)
