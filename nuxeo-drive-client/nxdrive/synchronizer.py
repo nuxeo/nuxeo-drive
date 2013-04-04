@@ -354,7 +354,15 @@ class Synchronizer(object):
                               child_info.path, child_pair.remote_name)
 
             if child_pair is None:
-                # Could not find any pair state to align to, create one
+                # Could not find any pair state to align to,
+                # create one only if the remote parent accepts child creation
+                if (doc_pair.can_create_child is not None
+                    and not doc_pair.can_create_child):
+                    child_type = 'folder' if child_info.folderish else 'file'
+                    log.warning("""Won't synchronize %s %s created in
+                        local folder %s since it is readonly""",
+                        child_type, child_info.name, doc_pair.local_path)
+                    return
                 child_pair = LastKnownState(doc_pair.local_folder,
                     local_info=child_info)
                 session.add(child_pair)
