@@ -161,10 +161,10 @@ class LastKnownState(Base):
     remotely_moved_to = Column(String)
 
     # Flags for remote write operations
-    can_rename = Column(Integer)
-    can_delete = Column(Integer)
-    can_update = Column(Integer)
-    can_create_child = Column(Integer)
+    remote_can_rename = Column(Integer)
+    remote_can_delete = Column(Integer)
+    remote_can_update = Column(Integer)
+    remote_can_create_child = Column(Integer)
 
     # Log date of sync errors to be able to skip documents in error for some
     # time
@@ -331,10 +331,10 @@ class LastKnownState(Base):
         self.remote_parent_ref = remote_info.parent_uid
         self.remote_parent_path = remote_info.path[:-suffix_len]
         self.update_state(remote_state=remote_state)
-        self.can_rename = remote_info.can_rename
-        self.can_delete = remote_info.can_delete
-        self.can_update = remote_info.can_update
-        self.can_create_child = remote_info.can_create_child
+        self.remote_can_rename = remote_info.can_rename
+        self.remote_can_delete = remote_info.can_delete
+        self.remote_can_update = remote_info.can_update
+        self.remote_can_create_child = remote_info.can_create_child
 
     def get_local_abspath(self):
         relative_path = self.local_path[1:].replace('/', os.path.sep)
