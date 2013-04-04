@@ -6,11 +6,9 @@ import time
 
 class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
 
-
     def setUp(self):
         super(TestIntegrationRemoteFileSystemClient, self).setUp()
         # Bind the test workspace as sync root for user 1
-        ctl = self.controller_1
         remote_document_client = self.remote_document_client_1
         remote_fs_client = self.remote_file_system_client_1
         remote_document_client.register_as_root(self.workspace)
@@ -169,7 +167,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         remote_client = self.remote_file_system_client_1
 
         # Create content encoded in utf-8 and cp1252
-        unicode_content = u'\xe9' # e acute
+        unicode_content = u'\xe9'  # e acute
         utf8_encoded = unicode_content.encode('utf-8')
         utf8_digest = hashlib.md5(utf8_encoded).hexdigest()
         cp1252_encoded = unicode_content.encode('cp1252')

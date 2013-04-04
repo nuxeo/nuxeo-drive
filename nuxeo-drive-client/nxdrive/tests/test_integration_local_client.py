@@ -123,7 +123,8 @@ def test_missing_file():
 def test_get_children_info():
     folder_1 = lcclient.make_folder(TEST_WORKSPACE, u'Folder 1')
     folder_2 = lcclient.make_folder(TEST_WORKSPACE, u'Folder 2')
-    file_1 = lcclient.make_file(TEST_WORKSPACE, u'File 1.txt', content=b"foo\n")
+    file_1 = lcclient.make_file(TEST_WORKSPACE, u'File 1.txt',
+                                content=b"foo\n")
 
     # not a direct child of TEST_WORKSPACE
     lcclient.make_file(folder_1, u'File 2.txt', content=b"bar\n")
@@ -148,7 +149,7 @@ def test_get_children_info():
 def test_deep_folders():
     # Check that local client can workaround the default windows MAX_PATH limit
     folder = '/'
-    for i in range(30):
+    for _i in range(30):
         folder = lcclient.make_folder(folder, u'0123456789')
 
     # Last Level
