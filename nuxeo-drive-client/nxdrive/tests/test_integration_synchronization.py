@@ -29,8 +29,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         local_client = LocalClient(self.local_nxdrive_folder_1)
         self.assertFalse(local_client.exists('/' + self.workspace_title))
 
-        # By default only scan happen, hence their is no information on the state
-        # of the documents on the local side (they don't exist there yet)
+        # By default only scan happen, hence their is no information on the
+        # state of the documents on the local side (they don't exist there yet)
         states = ctl.children_states(expected_folder)
         self.assertEquals(states, [])
 
@@ -905,8 +905,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # No pair has been created, should only have the local root folder one
         self.assertEquals(self.get_all_states(), [
-            (u'/',
-             u'synchronized', u'synchronized'),
+            (u'/', u'synchronized', u'synchronized'),
+            (u'/Folder 3', u'synchronized', u'synchronized'),
         ])
         self.assertEquals(len(ctl.list_pending()), 0)
 
@@ -917,7 +917,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # No pair has been created, should only have the local folder one
         self.assertEquals(self.get_all_states(), [
-            (u'/',
+            (u'/', u'synchronized', u'synchronized'),
+            (u'/A file in a readonly folder.txt',
              u'synchronized', u'synchronized'),
+            (u'/Folder 3', u'synchronized', u'synchronized'),
         ])
         self.assertEquals(len(ctl.list_pending(ignore_in_error=300)), 0)

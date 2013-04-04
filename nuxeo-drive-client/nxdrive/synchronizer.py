@@ -354,15 +354,7 @@ class Synchronizer(object):
                               child_info.path, child_pair.remote_name)
 
             if child_pair is None:
-                # Could not find any pair state to align to,
-                # create one only if the remote parent accepts child creation
-                if (doc_pair.can_create_child is not None
-                    and not doc_pair.can_create_child):
-                    child_type = 'folder' if child_info.folderish else 'file'
-                    log.warning("""Won't synchronize %s %s created in
-                        local folder %s since it is readonly""",
-                        child_type, child_info.name, doc_pair.local_path)
-                    return
+                # Could not find any pair state to align to, create one
                 child_pair = LastKnownState(doc_pair.local_folder,
                     local_info=child_info)
                 session.add(child_pair)
@@ -662,7 +654,8 @@ class Synchronizer(object):
             local_folder=doc_pair.local_folder,
             local_path=doc_pair.local_parent_path
         ).first()
-        if parent_pair is None or parent_pair.remote_ref is None:
+        if parent_pair is None or (parent_pair.remote_can_create_child
+                                   and parent_pair.remote_ref is None):
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             session.commit()
@@ -670,18 +663,29 @@ class Synchronizer(object):
                 "Parent folder of %s is not bound to a remote folder"
                 % doc_pair.get_local_abspath())
         parent_ref = parent_pair.remote_ref
-        if doc_pair.folderish:
-            log.debug("Creating remote folder '%s' in folder '%s'",
-                      name, parent_pair.remote_name)
-            remote_ref = remote_client.make_folder(parent_ref, name)
+        if parent_pair.remote_can_create_child:
+            if doc_pair.folderish:
+                log.debug("Creating remote folder '%s' in folder '%s'",
+                          name, parent_pair.remote_name)
+                remote_ref = remote_client.make_folder(parent_ref, name)
+            else:
+                log.debug("Creating remote document '%s' in folder '%s'",
+                          name, parent_pair.remote_name)
+                remote_ref = remote_client.make_file(
+                    parent_ref, name,
+                    content=local_client.get_content(doc_pair.local_path))
+            doc_pair.update_remote(remote_client.get_info(remote_ref))
+            doc_pair.update_state('synchronized', 'synchronized')
         else:
-            log.debug("Creating remote document '%s' in folder '%s'",
-                      name, parent_pair.remote_name)
-            remote_ref = remote_client.make_file(
-                parent_ref, name,
-                content=local_client.get_content(doc_pair.local_path))
-        doc_pair.update_remote(remote_client.get_info(remote_ref))
-        doc_pair.update_state('synchronized', 'synchronized')
+            child_type = 'folder' if doc_pair.folderish else 'file'
+            log.warning("Won't synchronize %s '%s' created in"
+                        " local folder '%s' since it is readonly",
+                child_type, local_info.name, parent_pair.local_name)
+            if doc_pair.folderish:
+                doc_pair.remote_can_create_child = False
+            # XXX: in the future we might want to introduce a new
+            # 'notsynchronizable'pair state to display a special icon in the UI
+            doc_pair.update_state('synchronized', 'synchronized')
 
     def _synchronize_remotely_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
