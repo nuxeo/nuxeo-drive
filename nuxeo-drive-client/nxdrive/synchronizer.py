@@ -587,37 +587,41 @@ class Synchronizer(object):
                 local_client.update_content(doc_pair.local_path, content)
                 doc_pair.refresh_local(local_client)
             else:
-                # digest agree so this is a renaming and/or a move,
+                # digest agree so this might be a renaming and/or a move,
                 # and no need to transfer additional bytes over the network
                 is_move, new_parent_pair = self._is_remote_move(
                     doc_pair, session)
                 is_renaming = doc_pair.remote_name != doc_pair.local_name
-                file_or_folder = 'folder' if doc_pair.folderish else 'file'
-                previous_local_path = doc_pair.local_path
-                if is_move:
-                    # move
-                    log.debug("Moving local %s '%s' to '%s'.",
-                        file_or_folder, doc_pair.get_local_abspath(),
-                        new_parent_pair.get_local_abspath())
-                    self._update_remote_parent_path_recursive(session,
-                        doc_pair, doc_pair.remote_parent_path)
-                    updated_info = local_client.move(doc_pair.local_path,
-                                      new_parent_pair.local_path)
-                    # refresh doc pair for the case of a
-                    # simultaneous move and renaming
-                    doc_pair.refresh_local(client=local_client,
-                        local_path=updated_info.path)
-                if is_renaming:
-                    # renaming
-                    log.debug("Renaming local %s '%s' to '%s'.",
-                        file_or_folder, doc_pair.get_local_abspath(),
-                        remote_info.name)
-                    updated_info = local_client.rename(
-                        doc_pair.local_path, remote_info.name)
-                if is_move or is_renaming:
-                    self._local_rename_with_descendant_states(session,
-                        local_client, doc_pair, previous_local_path,
-                        updated_info.path)
+                if not is_move and not is_renaming:
+                    log.debug("No local impact of metadata update on"
+                              " document '%s'.", remote_info.name)
+                else:
+                    file_or_folder = 'folder' if doc_pair.folderish else 'file'
+                    previous_local_path = doc_pair.local_path
+                    if is_move:
+                        # move
+                        log.debug("Moving local %s '%s' to '%s'.",
+                            file_or_folder, doc_pair.get_local_abspath(),
+                            new_parent_pair.get_local_abspath())
+                        self._update_remote_parent_path_recursive(session,
+                            doc_pair, doc_pair.remote_parent_path)
+                        updated_info = local_client.move(doc_pair.local_path,
+                                          new_parent_pair.local_path)
+                        # refresh doc pair for the case of a
+                        # simultaneous move and renaming
+                        doc_pair.refresh_local(client=local_client,
+                            local_path=updated_info.path)
+                    if is_renaming:
+                        # renaming
+                        log.debug("Renaming local %s '%s' to '%s'.",
+                            file_or_folder, doc_pair.get_local_abspath(),
+                            remote_info.name)
+                        updated_info = local_client.rename(
+                            doc_pair.local_path, remote_info.name)
+                    if is_move or is_renaming:
+                        self._local_rename_with_descendant_states(session,
+                            local_client, doc_pair, previous_local_path,
+                            updated_info.path)
             doc_pair.update_state('synchronized', 'synchronized')
         except (IOError, WindowsError):
             log.debug("Delaying update for remotely modified "
@@ -628,13 +632,15 @@ class Synchronizer(object):
         local_parent_pair = session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
             local_path=doc_pair.local_parent_path
-        ).one()
+        ).first()
         remote_parent_pair = session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
             remote_ref=doc_pair.remote_parent_ref
-        ).one()
-        return (local_parent_pair.id != remote_parent_pair.id,
-            remote_parent_pair)
+        ).first()
+        return (local_parent_pair is not None
+                and remote_parent_pair is not None
+                and local_parent_pair.id != remote_parent_pair.id,
+                remote_parent_pair)
 
     def _synchronize_locally_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
