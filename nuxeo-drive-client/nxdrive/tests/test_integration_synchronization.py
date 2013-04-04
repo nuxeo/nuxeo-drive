@@ -848,20 +848,23 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Create a file deep down in the hierarchy
         remote = self.remote_document_client_1
 
+        folder_name = '0123456789'
+        folder_depth = 40
         folder = '/'
-        for _ in range(10):
-            folder = remote.make_folder(folder, '0123456789' * 3)
+        for _ in range(folder_depth):
+            folder = remote.make_folder(folder, folder_name)
 
         remote.make_file(folder, "File.odt", content="Fake non-zero content.")
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
-        syn.loop(delay=0, max_loops=1)
+        syn.loop(delay=0, max_loops=5)
         self.assertEquals(ctl.list_pending(), [])
 
         local = LocalClient(self.local_nxdrive_folder_1)
-        expected_folder_path = ('/' + self.workspace_title
-                                + ('/' + '0123456789' * 3) * 10)
+        expected_folder_path = (
+            '/' + self.workspace_title + ('/' + folder_name) * folder_depth)
+
         expected_file_path = expected_folder_path + '/File.odt'
         self.assertTrue(local.exists(expected_folder_path))
         self.assertTrue(local.exists(expected_file_path))
@@ -870,11 +873,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Delete the nested folder structure on the remote server
         # and synchronize again
-        remote.delete('/' + '0123456789' * 3)
+        remote.delete('/' + folder_name)
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
-        syn.loop(delay=0, max_loops=1)
+        syn.loop(delay=0, max_loops=5)
         self.assertEquals(ctl.list_pending(), [])
 
         self.assertFalse(local.exists(expected_folder_path))
