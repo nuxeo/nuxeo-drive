@@ -142,12 +142,12 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         # that has been performed and not a move
         file_1_local_info = local_client.get_info(
             u'/Renamed Again File 1.txt')
-        file_1_parent_path = file_1_local_info.filepath.rsplit(u'/', 1)[0]
+        file_1_parent_path = os.path.dirname(file_1_local_info.filepath)
         self.assertEquals(file_1_parent_path, self.sync_root_folder_1)
 
         file_1_1_local_info = local_client.get_info(
             u'/Original Folder 1/Renamed File 1.1 \xe9.txt')
-        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit(u'/', 1)[0]
+        file_1_1_parent_path = os.path.dirname(file_1_1_local_info.filepath)
         self.assertEquals(file_1_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Original Folder 1'))
 
@@ -184,7 +184,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Original Folder 1/Original File 1.txt'))
         file_1_local_info = local_client.get_info(
             u'/Original Folder 1/Original File 1.txt')
-        file_1_parent_path = file_1_local_info.filepath.rsplit('/', 1)[0]
+        file_1_parent_path = os.path.dirname(file_1_local_info.filepath)
         self.assertEquals(file_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Original Folder 1'))
         # Check file state
@@ -229,7 +229,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Original Folder 1/Renamed File 1 \xe9.txt'))
         file_1_local_info = local_client.get_info(
             u'/Original Folder 1/Renamed File 1 \xe9.txt')
-        file_1_parent_path = file_1_local_info.filepath.rsplit('/', 1)[0]
+        file_1_parent_path = os.path.dirname(file_1_local_info.filepath)
         self.assertEquals(file_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Original Folder 1'))
         # Check file state
@@ -272,7 +272,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Renamed Folder 1 \xe9/Original File 1.1.txt'))
         file_1_1_local_info = local_client.get_info(
             u'/Renamed Folder 1 \xe9/Original File 1.1.txt')
-        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
+        file_1_1_parent_path = os.path.dirname(file_1_1_local_info.filepath)
         self.assertEquals(file_1_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Renamed Folder 1 \xe9'))
         # Check child state
@@ -288,8 +288,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Renamed Folder 1 \xe9/Sub-Folder 1.1'))
         folder_1_1_local_info = local_client.get_info(
             u'/Renamed Folder 1 \xe9/Sub-Folder 1.1')
-        folder_1_1_parent_path = (folder_1_1_local_info
-                                  .filepath.rsplit(u'/', 1)[0])
+        folder_1_1_parent_path = os.path.dirname(
+            folder_1_1_local_info.filepath)
         self.assertEquals(folder_1_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Renamed Folder 1 \xe9'))
         # Check child state
@@ -335,7 +335,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Original Folder 2/Original Folder 1'))
         folder_1_local_info = local_client.get_info(
             u'/Original Folder 2/Original Folder 1')
-        folder_1_parent_path = folder_1_local_info.filepath.rsplit('/', 1)[0]
+        folder_1_parent_path = os.path.dirname(folder_1_local_info.filepath)
         self.assertEquals(folder_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Original Folder 2'))
         # Check folder state
@@ -351,7 +351,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Original Folder 2/Original Folder 1/Original File 1.1.txt'))
         file_1_1_local_info = local_client.get_info(
             u'/Original Folder 2/Original Folder 1/Original File 1.1.txt')
-        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
+        file_1_1_parent_path = os.path.dirname(file_1_1_local_info.filepath)
         self.assertEquals(file_1_1_parent_path,
             os.path.join(self.sync_root_folder_1,
                          u'Original Folder 2/Original Folder 1'))
@@ -368,8 +368,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Original Folder 2/Original Folder 1/Sub-Folder 1.1'))
         folder_1_1_local_info = local_client.get_info(
             u'/Original Folder 2/Original Folder 1/Sub-Folder 1.1')
-        folder_1_1_parent_path = (folder_1_1_local_info
-                                  .filepath.rsplit(u'/', 1)[0])
+        folder_1_1_parent_path = os.path.dirname(
+            folder_1_1_local_info.filepath)
         self.assertEquals(folder_1_1_parent_path,
             os.path.join(self.sync_root_folder_1,
                          u'Original Folder 2/Original Folder 1'))
@@ -412,7 +412,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Renamed Folder 1/Original File 1.1.txt'))
         file_1_1_local_info = local_client.get_info(
             u'/Renamed Folder 1/Original File 1.1.txt')
-        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit(u'/', 1)[0]
+        file_1_1_parent_path = os.path.dirname(file_1_1_local_info.filepath)
         self.assertEquals(file_1_1_parent_path,
             os.path.join(self.sync_root_folder_1, u'Renamed Folder 1'))
         # Check child state
@@ -428,7 +428,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Renamed Folder 2/Original File 3.txt'))
         file_3_local_info = local_client.get_info(
             u'/Renamed Folder 2/Original File 3.txt')
-        file_3_parent_path = file_3_local_info.filepath.rsplit(u'/', 1)[0]
+        file_3_parent_path = os.path.dirname(file_3_local_info.filepath)
         self.assertEquals(file_3_parent_path,
             os.path.join(self.sync_root_folder_1, u'Renamed Folder 2'))
         # Check child state
@@ -475,7 +475,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Renamed Nuxeo Drive Test Workspace/Original File 1.txt'))
         file_1_local_info = local_client.get_info(
             u'/Renamed Nuxeo Drive Test Workspace/Original File 1.txt')
-        file_1_parent_path = file_1_local_info.filepath.rsplit('/', 1)[0]
+        file_1_parent_path = os.path.dirname(file_1_local_info.filepath)
         self.assertEquals(file_1_parent_path, renamed_workspace_path)
         # Check child state
         file_1_state = session.query(LastKnownState).filter_by(
@@ -489,7 +489,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Renamed Nuxeo Drive Test Workspace/Original Folder 1'))
         folder_1_local_info = local_client.get_info(
             u'/Renamed Nuxeo Drive Test Workspace/Original Folder 1')
-        folder_1_parent_path = folder_1_local_info.filepath.rsplit('/', 1)[0]
+        folder_1_parent_path = os.path.dirname(folder_1_local_info.filepath)
         self.assertEquals(folder_1_parent_path, renamed_workspace_path)
         # Check child state
         folder_1_state = session.query(LastKnownState).filter_by(
@@ -505,8 +505,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         folder_1_1_local_info = local_client.get_info(
             u'/Renamed Nuxeo Drive Test Workspace/'
             u'Original Folder 1/Sub-Folder 1.1')
-        folder_1_1_parent_path = (folder_1_1_local_info
-                                  .filepath.rsplit('/', 1)[0])
+        folder_1_1_parent_path = os.path.dirname(
+            folder_1_1_local_info.filepath)
         self.assertEquals(folder_1_1_parent_path,
             os.path.join(renamed_workspace_path, u'Original Folder 1'))
         # Check child state
@@ -524,7 +524,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_1_local_info = local_client.get_info(
             u'/Renamed Nuxeo Drive Test Workspace/'
             'Original Folder 1/Original File 1.1.txt')
-        file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
+        file_1_1_parent_path = os.path.dirname(file_1_1_local_info.filepath)
         self.assertEquals(file_1_1_parent_path,
             os.path.join(renamed_workspace_path, u'Original Folder 1'))
         # Check child state
