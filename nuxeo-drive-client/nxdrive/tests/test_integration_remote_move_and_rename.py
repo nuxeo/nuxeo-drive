@@ -274,7 +274,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Renamed Folder 1 \xe9/Original File 1.1.txt')
         file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
         self.assertEquals(file_1_1_parent_path,
-            self.sync_root_folder_1 + '/' + u'Renamed Folder 1 \xe9')
+            os.path.join(self.sync_root_folder_1, u'Renamed Folder 1 \xe9'))
         # Check child state
         file_1_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Original File 1.1.txt').one()
