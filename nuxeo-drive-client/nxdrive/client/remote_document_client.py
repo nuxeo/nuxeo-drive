@@ -6,6 +6,7 @@ from datetime import datetime
 import hashlib
 import os
 import urllib2
+from nxdrive.client.common import safe_filename
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
 from nxdrive.client.base_automation_client import BaseAutomationClient
@@ -250,6 +251,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     # Document category
 
     def create(self, ref, doc_type, name=None, properties=None):
+        name = name.replace('/', '-')
         return self.execute("Document.Create", input="doc:" + ref,
             type=doc_type, name=name, properties=properties)
 
@@ -302,6 +304,7 @@ class RemoteDocumentClient(BaseAutomationClient):
                             timeout=self.blob_timeout)
 
     def attach_blob(self, ref, blob, filename, **params):
+        filename = safe_filename(filename)
         return self.execute_with_blob("Blob.Attach",
             blob, filename, document=ref)
 
