@@ -6,7 +6,9 @@ import hashlib
 import os
 import shutil
 import re
+
 from nxdrive.logging_config import get_logger
+from nxdrive.client.common import safe_filename
 from nxdrive.client.common import NotFound
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
@@ -19,11 +21,6 @@ log = get_logger(__name__)
 
 
 DEDUPED_BASENAME_PATTERN = ur'^(.*)__(\d{1,3})$'
-
-
-def safe_filename(name, replacement=u'-'):
-    """Replace invalid character in candidate filename"""
-    return re.sub(ur'(/|\\|\*|:)', replacement, name)
 
 
 # Data transfer objects
