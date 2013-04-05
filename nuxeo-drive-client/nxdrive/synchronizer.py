@@ -1287,7 +1287,19 @@ class Synchronizer(object):
 
             # Scan local folders to detect changes
             # XXX: OPTIM: use file system monitoring instead
-            self.scan_local(server_binding, session=session)
+            try:
+                self.scan_local(server_binding, session=session)
+            except NotFound:
+                # The top level folder has been locally deleted, renamed
+                # or moved, unbind the server
+                log.info("[%s] - [%s]: unbinding server because local folder"
+                         " doesn't exist anymore",
+                         server_binding.local_folder,
+                         server_binding.server_url)
+                # LastKnownState table will be deleted on cascade
+                session.delete(server_binding)
+                session.commit()
+                return 1
 
             local_scan_is_done = True
             local_refresh_duration = time() - tick

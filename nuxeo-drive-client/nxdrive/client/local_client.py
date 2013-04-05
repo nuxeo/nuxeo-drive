@@ -191,8 +191,6 @@ class LocalClient(object):
         Return the actualized info object.
 
         """
-        if ref == u'/':
-            raise ValueError("Cannot rename the toplevel folder.")
         source_os_path = self._abspath(ref)
         parent = ref.rsplit(u'/', 1)[0]
         parent = u'/' if parent == '' else parent
