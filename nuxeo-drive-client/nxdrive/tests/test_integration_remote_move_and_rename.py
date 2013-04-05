@@ -93,8 +93,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Renamed File 1.txt').one()
         self.assertEquals(file_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Renamed File 1.txt'))
+            self.workspace_pair_local_path + '/'
+            + u'Renamed File 1.txt')
         self.assertEquals(file_1_state.local_name, u'Renamed File 1.txt')
 
         # Rename 'Renamed File 1.txt' to 'Renamed Again File 1.txt'
@@ -127,14 +127,14 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Renamed Again File 1.txt').one()
         self.assertEquals(file_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Renamed Again File 1.txt'))
+            self.workspace_pair_local_path + '/'
+            + u'Renamed Again File 1.txt')
         self.assertEquals(file_1_state.local_name, u'Renamed Again File 1.txt')
         file_1_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Renamed File 1.1 \xe9.txt').one()
         self.assertEquals(file_1_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Original Folder 1/Renamed File 1.1 \xe9.txt'))
+            self.workspace_pair_local_path + '/'
+            + u'Original Folder 1/Renamed File 1.1 \xe9.txt')
         self.assertEquals(file_1_1_state.local_name,
             u'Renamed File 1.1 \xe9.txt')
 
@@ -191,8 +191,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Original File 1.txt').one()
         self.assertEquals(file_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Original Folder 1/Original File 1.txt'))
+            self.workspace_pair_local_path + '/'
+            + u'Original Folder 1/Original File 1.txt')
         self.assertEquals(file_1_state.local_name, u'Original File 1.txt')
 
         # The more things change, the more they remain the same.
@@ -236,8 +236,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Renamed File 1 \xe9.txt').one()
         self.assertEquals(file_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Original Folder 1/Renamed File 1 \xe9.txt'))
+            self.workspace_pair_local_path + '/'
+            + u'Original Folder 1/Renamed File 1 \xe9.txt')
         self.assertEquals(file_1_state.local_name, u'Renamed File 1 \xe9.txt')
 
         # The more things change, the more they remain the same.
@@ -274,13 +274,13 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'/Renamed Folder 1 \xe9/Original File 1.1.txt')
         file_1_1_parent_path = file_1_1_local_info.filepath.rsplit('/', 1)[0]
         self.assertEquals(file_1_1_parent_path,
-            os.path.join(self.sync_root_folder_1, u'Renamed Folder 1 \xe9'))
+            self.sync_root_folder_1 + '/' + u'Renamed Folder 1 \xe9')
         # Check child state
         file_1_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Original File 1.1.txt').one()
         self.assertEquals(file_1_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Renamed Folder 1 \xe9/Original File 1.1.txt'))
+            self.workspace_pair_local_path + '/'
+            + u'Renamed Folder 1 \xe9/Original File 1.1.txt')
         self.assertEquals(file_1_1_state.local_name, u'Original File 1.1.txt')
 
         # Check child name
@@ -296,8 +296,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         folder_1_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Sub-Folder 1.1').one()
         self.assertEquals(folder_1_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Renamed Folder 1 \xe9/Sub-Folder 1.1'))
+            self.workspace_pair_local_path + '/'
+            + u'Renamed Folder 1 \xe9/Sub-Folder 1.1')
         self.assertEquals(folder_1_1_state.local_name, u'Sub-Folder 1.1')
 
         # The more things change, the more they remain the same.
@@ -342,8 +342,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         folder_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Original Folder 1').one()
         self.assertEquals(folder_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Original Folder 2/Original Folder 1'))
+            self.workspace_pair_local_path + '/'
+            + u'Original Folder 2/Original Folder 1')
         self.assertEquals(folder_1_state.local_name, u'Original Folder 1')
 
         # The content of the renamed folder is left unchanged
@@ -359,8 +359,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Original File 1.1.txt').one()
         self.assertEquals(file_1_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Original Folder 2/Original Folder 1/Original File 1.1.txt'))
+            self.workspace_pair_local_path + '/'
+            + u'Original Folder 2/Original Folder 1/Original File 1.1.txt')
         self.assertEquals(file_1_1_state.local_name, u'Original File 1.1.txt')
 
         # Check child name
@@ -377,8 +377,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         folder_1_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Sub-Folder 1.1').one()
         self.assertEquals(folder_1_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Original Folder 2/Original Folder 1/Sub-Folder 1.1'))
+            self.workspace_pair_local_path + '/'
+            + u'Original Folder 2/Original Folder 1/Sub-Folder 1.1')
         self.assertEquals(folder_1_1_state.local_name, u'Sub-Folder 1.1')
 
         # The more things change, the more they remain the same.
@@ -419,8 +419,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Original File 1.1.txt').one()
         self.assertEquals(file_1_1_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Renamed Folder 1/Original File 1.1.txt'))
+            self.workspace_pair_local_path + '/'
+            + u'Renamed Folder 1/Original File 1.1.txt')
         self.assertEquals(file_1_1_state.local_name, u'Original File 1.1.txt')
 
         # Check child name
@@ -435,8 +435,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_3_state = session.query(LastKnownState).filter_by(
             remote_name=u'Original File 3.txt').one()
         self.assertEquals(file_3_state.local_path,
-            os.path.join(self.workspace_pair_local_path,
-            u'Renamed Folder 2/Original File 3.txt'))
+            self.workspace_pair_local_path + '/'
+            + u'Renamed Folder 2/Original File 3.txt')
         self.assertEquals(file_3_state.local_name, u'Original File 3.txt')
 
         # The more things change, the more they remain the same.
@@ -481,8 +481,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Original File 1.txt').one()
         self.assertEquals(file_1_state.local_path,
-            os.path.join(u'/Renamed Nuxeo Drive Test Workspace',
-                         u'Original File 1.txt'))
+            u'/Renamed Nuxeo Drive Test Workspace/Original File 1.txt')
         self.assertEquals(file_1_state.local_name, u'Original File 1.txt')
 
         # Check child name
@@ -496,8 +495,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         folder_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Original Folder 1').one()
         self.assertEquals(folder_1_state.local_path,
-            os.path.join(u'/Renamed Nuxeo Drive Test Workspace',
-                         u'Original Folder 1'))
+            u'/Renamed Nuxeo Drive Test Workspace/Original Folder 1')
         self.assertEquals(folder_1_state.local_name, u'Original Folder 1')
 
         # Check child name
@@ -515,8 +513,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         folder_1_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Sub-Folder 1.1').one()
         self.assertEquals(folder_1_1_state.local_path,
-            os.path.join(u'/Renamed Nuxeo Drive Test Workspace',
-                         u'Original Folder 1/Sub-Folder 1.1'))
+            u'/Renamed Nuxeo Drive Test Workspace'
+            '/Original Folder 1/Sub-Folder 1.1')
         self.assertEquals(folder_1_1_state.local_name, u'Sub-Folder 1.1')
 
         # Check child name
@@ -533,8 +531,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         file_1_1_state = session.query(LastKnownState).filter_by(
             remote_name=u'Original File 1.1.txt').one()
         self.assertEquals(file_1_1_state.local_path,
-            os.path.join(u'/Renamed Nuxeo Drive Test Workspace',
-                         u'Original Folder 1/Original File 1.1.txt'))
+                          u'/Renamed Nuxeo Drive Test Workspace'
+                          '/Original Folder 1/Original File 1.1.txt')
         self.assertEquals(file_1_1_state.local_name, u'Original File 1.1.txt')
 
         # The more things change, the more they remain the same.
