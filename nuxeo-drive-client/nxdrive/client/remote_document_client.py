@@ -136,7 +136,6 @@ class RemoteDocumentClient(BaseAutomationClient):
     def update_content(self, ref, content, name=None):
         if name is None:
             name = self.get_info(ref).name
-        name = safe_filename(name)
         self.attach_blob(self._check_ref(ref), content, name)
 
     def delete(self, ref, use_trash=True):
@@ -305,7 +304,6 @@ class RemoteDocumentClient(BaseAutomationClient):
                             timeout=self.blob_timeout)
 
     def attach_blob(self, ref, blob, filename, **params):
-        filename = safe_filename(filename)
         return self.execute_with_blob("Blob.Attach",
             blob, filename, document=ref)
 
