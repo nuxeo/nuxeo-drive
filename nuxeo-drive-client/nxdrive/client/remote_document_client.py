@@ -136,6 +136,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     def update_content(self, ref, content, name=None):
         if name is None:
             name = self.get_info(ref).name
+        name = safe_filename(name)
         self.attach_blob(self._check_ref(ref), content, name)
 
     def delete(self, ref, use_trash=True):
@@ -251,7 +252,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     # Document category
 
     def create(self, ref, doc_type, name=None, properties=None):
-        name = name.replace('/', '-')
+        name = safe_filename(name)
         return self.execute("Document.Create", input="doc:" + ref,
             type=doc_type, name=name, properties=properties)
 
