@@ -951,7 +951,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         remote = self.remote_document_client_1
 
         folder = remote.make_folder(self.workspace,
-            u'Folder for 2013/04/01 and forbidden chars: (\\ *)')
+            u'Folder with forbidden chars: / \\ * < > ? "')
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
@@ -959,18 +959,21 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(ctl.list_pending(), [])
         local = LocalClient(
             os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
-        self.assertTrue(local.exists(
-            u"/Folder for 2013-04-01 and forbidden chars- (- -)"))
+        folder_names = [i.name for i in local.get_children_info('/')]
+        self.assertEquals(folder_names, 
+            [u'Folder with forbidden chars- - - - - - - -'])
 
         # create some file on the server
         file_ = remote.make_file(folder,
-            u'File for 2013/04/01 and forbidden chars: (\\ *)')
-
-        # Update the content without passing a name to use dc:title of the doc
-        # as FS item name
-        remote.update_content(file_, content="some content")
+            u'File with forbidden chars: / \\ * < > ? ".doc',
+            content="some content")
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         syn.loop(delay=0, max_loops=1)
         self.assertEquals(ctl.list_pending(), [])
+
+        file_names = [i.name for i in local.get_children_info(
+                      local.get_children_info('/')[0].path)]
+        self.assertEquals(file_names,
+            [u'File with forbidden chars- - - - - - - -.doc'])

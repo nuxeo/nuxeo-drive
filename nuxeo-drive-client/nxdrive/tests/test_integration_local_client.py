@@ -106,8 +106,8 @@ def test_complex_filenames():
     assert_equal(file_1.path, folder_1_info.path + u"/" + long_filename)
 
     # Create a file with invalid chars
-    invalid_filename = u"a/b\\c*d:e.doc"
-    escaped_filename = u"a-b-c-d-e.doc"
+    invalid_filename = u"a/b\\c*d:e<f>g?h\"i|j.doc"
+    escaped_filename = u"a-b-c-d-e-f-g-h-i-j.doc"
     file_2 = lcclient.make_file(folder_1, invalid_filename)
     file_2 = lcclient.get_info(file_2)
     assert_equal(file_2.name, escaped_filename)

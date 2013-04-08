@@ -25,4 +25,4 @@ BUFFER_SIZE = 1024 ** 2
 
 def safe_filename(name, replacement=u'-'):
     """Replace invalid character in candidate filename"""
-    return re.sub(ur'(/|\\|\*|:)', replacement, name)
+    return re.sub(ur'(/|\\|\*|:|\||"|<|>|\?)', replacement, name)
