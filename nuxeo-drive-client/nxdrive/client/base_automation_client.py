@@ -14,6 +14,7 @@ from email.mime.multipart import MIMEMultipart
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
+from nxdrive.client.common import safe_filename
 
 
 log = get_logger(__name__)
@@ -195,6 +196,7 @@ class BaseAutomationClient(object):
 
         # Quote UTF-8 filenames eventhough JAX-RS does not seem to be able
         # to retrieve them as per: https://tools.ietf.org/html/rfc5987
+        filename = safe_filename(filename)
         quoted_filename = urllib.quote(filename.encode('utf-8'))
         content_disposition = ("attachment; filename*=UTF-8''%s"
                                 % quoted_filename)
