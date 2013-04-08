@@ -1,9 +1,9 @@
-from unittest import SkipTest
 from time import sleep
 from nxdrive.client import NuxeoClient
 from nxdrive.client import Unauthorized
 from nxdrive.client import NotFound
 from nxdrive.tests.common import IntegrationTestCase
+from nose import SkipTest
 
 
 def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
