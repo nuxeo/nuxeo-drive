@@ -36,6 +36,11 @@ Alternatively, from the command line::
   $NUXEO_HOME/bin/nuxeoctl mp-install --nodeps marketplace-<version>.zip
   $NUXEO_HOME/bin/nuxeoctl start
 
+Note that the following system parameter needs to be passed to the JVM options::
+
+  -Dmail.mime.decodeparameters=true
+
+If you are working with Nuxeo 5.7 or higher, it is set by default in the ``nuxeo.conf`` file, else you will need to add it.
 
 Windows Desktop Client
 ----------------------
