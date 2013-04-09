@@ -4,6 +4,7 @@ import sys
 import argparse
 from getpass import getpass
 import traceback
+import threading
 try:
     import ipdb
     debugger = ipdb
@@ -419,7 +420,23 @@ class CliHandler(object):
         return 0 if nose.run(argv=argv) else 1
 
 
+def dumpstacks(signal, frame):
+    id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
+    code = []
+    for thread_id, stack in sys._current_frames().items():
+        code.append("\n# Thread: %s(%d)" % (id2name.get(thread_id, ""),
+                                            thread_id))
+        for filename, lineno, name, line in traceback.extract_stack(stack):
+            code.append('File: "%s", line %d, in %s'
+                        % (filename, lineno, name))
+            if line:
+                code.append("  %s" % (line.strip()))
+    print "\n".join(code)
+
+
 def main(argv=None):
+    import signal
+    signal.signal(signal.SIGUSR1, dumpstacks)
     if argv is None:
         argv = sys.argv
     return CliHandler().handle(argv)
