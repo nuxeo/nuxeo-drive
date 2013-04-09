@@ -435,8 +435,11 @@ def dumpstacks(signal, frame):
 
 
 def main(argv=None):
-    import signal
-    signal.signal(signal.SIGUSR1, dumpstacks)
+    # Print thread dump when receiving SIGUSR1,
+    # except under Windows (no SIGUSR1)
+    if sys.platform != 'win32': 
+        import signal
+        signal.signal(signal.SIGUSR1, dumpstacks)
     if argv is None:
         argv = sys.argv
     return CliHandler().handle(argv)
