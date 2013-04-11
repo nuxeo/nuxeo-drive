@@ -8,6 +8,11 @@ OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
 
 def normalized_path(path):
     """Return absolute, normalized file path."""
+    if isinstance(path, bytes):
+        # Assume that the path (e.g. a command line argument) is encoded in
+        # utf-8 when not already decoded explicitly by the caller
+        path = path.decode('utf-8')
+
     # XXX: we could os.path.normcase as well under Windows but it might be the
     # source of unexpected troubles so no doing it for now.
     return os.path.normpath(os.path.abspath(os.path.expanduser(path)))
