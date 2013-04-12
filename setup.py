@@ -6,6 +6,7 @@
 import os
 import sys
 from datetime import datetime
+from nxdrive import _version_
 
 from distutils.core import setup
 
@@ -44,7 +45,8 @@ for filename in os.listdir(icons_home):
     if os.path.isfile(filepath):
         icons_files.append(filepath)
 
-version = '0.1.0'
+old_version = None
+version = _version_
 
 if '--dev' in sys.argv:
     # timestamp the dev artifacts for continuous integration
@@ -55,7 +57,13 @@ if '--dev' in sys.argv:
     timestamp = timestamp.replace(".", "")
     timestamp = timestamp.replace("T", "")
     timestamp = timestamp.replace("-", "")
-    version += "b" + timestamp
+    old_version = version
+    version = version.replace('dev', "b" + timestamp)
+    init_file = os.path.abspath(os.path.join(
+        'nuxeo-drive-client', 'nxdrive', '__init__.py'))
+    with open(init_file, 'wb') as f:
+        f.write("_version_ = '%s'" % version)
+    print "Updated version to " + version
 
 includes = [
     "PySide",
@@ -163,3 +171,8 @@ setup(
     long_description=open('README.rst').read(),
     **freeze_options
 )
+
+if old_version is not None:
+    with open(init_file, 'wb') as f:
+        f.write("_version_ = '%s'" % old_version)
+    print "Restored version to " + old_version
