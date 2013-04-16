@@ -71,7 +71,6 @@ class RemoteFileSystemClient(BaseAutomationClient):
         Raises NotFound if file system item with id fs_item_id
         cannot be found
         """
-
         fs_item_info = self.get_info(fs_item_id)
         download_url = self.server_url + fs_item_info.download_url
         return self._do_get(download_url, file_out=file_out)
