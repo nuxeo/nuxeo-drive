@@ -8,6 +8,8 @@ import subprocess
 from datetime import datetime
 from datetime import timedelta
 
+from cookielib import CookieJar
+
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import asc
 from sqlalchemy import or_
@@ -92,6 +94,10 @@ class Controller(object):
         self._remote_error = None
         self.device_id = self.get_device_config().device_id
         self.synchronizer = Synchronizer(self)
+
+        # Make all the automation client related to this controller
+        # share cookies using threadsafe jar
+        self.cookie_jar = CookieJar()
 
     def get_session(self):
         """Reuse the thread local session for this controller
@@ -458,10 +464,12 @@ class Controller(object):
             remote_client = self.remote_fs_client_factory(
                 sb.server_url, sb.remote_user, self.device_id,
                 token=sb.remote_token, password=sb.remote_password,
-                timeout=self.timeout)
+                timeout=self.timeout, cookie_jar=self.cookie_jar)
             cache[cache_key] = remote_client
         # Make it possible to have the remote client simulate any kind of
-        # failure
+        # failure: this is useful for ensuring that cookies used for load
+        # balancer affinity (e.g. AWSELB) are shared by all the automation
+        # clients managed by a given controller
         remote_client.make_raise(self._remote_error)
         return remote_client
 
@@ -473,7 +481,7 @@ class Controller(object):
             sb.server_url, sb.remote_user, self.device_id,
             token=sb.remote_token, password=sb.remote_password,
             repository=repository, base_folder=base_folder,
-            timeout=self.timeout)
+            timeout=self.timeout, cookie_jar=self.cookie_jar)
 
     def get_remote_client(self, server_binding, repository='default',
                           base_folder=u'/'):

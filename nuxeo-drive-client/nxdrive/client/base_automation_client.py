@@ -62,7 +62,7 @@ class BaseAutomationClient(object):
     def __init__(self, server_url, user_id, device_id,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
-                 timeout=10, blob_timeout=None):
+                 timeout=10, blob_timeout=None, cookie_jar=None):
         self.timeout = timeout
         self.blob_timeout = blob_timeout
         if ignored_prefixes is not None:
@@ -86,7 +86,8 @@ class BaseAutomationClient(object):
         self.device_id = device_id
         self._update_auth(password=password, token=token)
 
-        cookie_processor = urllib2.HTTPCookieProcessor()
+        cookie_processor = urllib2.HTTPCookieProcessor(
+            cookiejar=cookie_jar)
         self.opener = urllib2.build_opener(cookie_processor)
         self.automation_url = server_url + 'site/automation/'
 
@@ -331,6 +332,8 @@ class BaseAutomationClient(object):
 
         """
         return {
+            'X-User-Id': self.user_id,
+            'X-Device-Id': self.device_id,
             'X-Application-Name': self.application_name,
             self.auth[0]: self.auth[1],
         }
