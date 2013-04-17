@@ -86,6 +86,7 @@ class BaseAutomationClient(object):
         self.device_id = device_id
         self._update_auth(password=password, token=token)
 
+        self.cookie_jar = cookie_jar
         cookie_processor = urllib2.HTTPCookieProcessor(
             cookiejar=cookie_jar)
         self.opener = urllib2.build_opener(cookie_processor)
@@ -149,9 +150,10 @@ class BaseAutomationClient(object):
             json_struct['input'] = input
 
         data = json.dumps(json_struct)
-
+        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
         url = self.automation_url + command
-        log.trace("Calling '%s' with json payload: %r", url, data)
+        log.trace("Calling '%s' with cookies %r and json payload: %r",
+            url, cookies,  data)
         req = urllib2.Request(url, data, headers)
         timeout = self.timeout if timeout == -1 else timeout
         try:
@@ -162,14 +164,17 @@ class BaseAutomationClient(object):
 
         info = resp.info()
         s = resp.read()
-
+        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
         content_type = info.get('content-type', '')
         if content_type.startswith("application/json"):
-            log.trace("Response for '%s' with json payload: %r", url, s)
+            log.trace(
+                "Response for '%s' with cookies %r and json payload: %r",
+                url, cookies, s)
             return json.loads(s) if s else None
         else:
-            log.trace("Response for '%s' with content-type: %r", url,
-                      content_type)
+            log.trace(
+                "Response for '%s' with cookies %r  and with content-type: %r",
+                url, cookies, content_type)
             return s
 
     def execute_with_blob(self, command, blob_content, filename, **params):
@@ -237,7 +242,9 @@ class BaseAutomationClient(object):
             boundary,
         )
         url = self.automation_url.encode('ascii') + command
-        log.trace("Calling '%s' for file '%s'", url, filename)
+        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
+        log.trace("Calling '%s' with cookies %r for file '%s'",
+            url, filename)
         req = urllib2.Request(url, data, headers)
         try:
             resp = self.opener.open(req, timeout=self.blob_timeout)
@@ -249,12 +256,14 @@ class BaseAutomationClient(object):
         s = resp.read()
 
         content_type = info.get('content-type', '')
+        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
         if content_type.startswith("application/json"):
-            log.trace("Response for '%s' with json payload: %r", url, s)
+            log.trace("Response for '%s' with cookies %r and json payload: %r",
+                url, cookies, s)
             return json.loads(s) if s else None
         else:
-            log.trace("Response for '%s' with content-type: %r", url,
-                      content_type)
+            log.trace("Response for '%s' with cookies %r and content-type: %r",
+                url, cookies, content_type)
             return s
 
     def is_addon_installed(self):
@@ -281,8 +290,10 @@ class BaseAutomationClient(object):
             "Failed to connect to Nuxeo Content Automation server %r"
             " with user %r"
         ) % (self.server_url, self.user_id)
+        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
         try:
-            log.trace("Calling '%s' with headers: %r", url, headers)
+            log.trace("Calling '%s' with headers: %r and cookies %r",
+                url, headers, cookies)
             req = urllib2.Request(url, headers=headers)
             token = self.opener.open(req, timeout=self.timeout).read()
         except urllib2.HTTPError as e:
@@ -298,6 +309,8 @@ class BaseAutomationClient(object):
             if hasattr(e, 'msg'):
                 e.msg = base_error_message + ": " + e.msg
             raise
+        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
+        log.trace("Got token '%s' with cookies %r", token, cookies)
         # Use the (potentially re-newed) token from now on
         if not revoke:
             self._update_auth(token=token)
