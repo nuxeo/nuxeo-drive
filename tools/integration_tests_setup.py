@@ -91,6 +91,7 @@ def parse_args(args=None):
     parser.set_defaults(command='fetch-binaries')
     parser.add_argument('--msi-url')
     parser.add_argument('--dmg-url')
+    parser.add_argument('--base-folder')
 
     # Fetch Nuxeo distribution from given URL
     parser = subparsers.add_parser(
@@ -344,13 +345,14 @@ if __name__ == "__main__":
         else:
             run_tests_from_source()
     elif options.command == 'fetch-binaries':
-        if os.path.exists(WAR_FOLDER):
-            shutil.rmtree(WAR_FOLDER)
-        os.makedirs(WAR_FOLDER)
+        target_folder = os.path.join(options.base_folder, WAR_FOLDER)
+        if os.path.exists(target_folder):
+            shutil.rmtree(target_folder)
+        os.makedirs(target_folder)
         if options.msi_url is not None:
-            download_package(options.msi_url, MSI_PATTERN, WAR_FOLDER)
+            download_package(options.msi_url, MSI_PATTERN, target_folder)
         if options.dmg_url is not None:
-            download_package(options.dmg_url, DMG_PATTERN, WAR_FOLDER)
+            download_package(options.dmg_url, DMG_PATTERN, target_folder)
     elif options.command == 'fetch-distrib':
         clean_download_dir(MARKETPLACE_FOLDER, DEFAULT_ARCHIVE_PATTERN)
         if options.url is not None:
