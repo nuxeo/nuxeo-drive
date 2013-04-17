@@ -244,7 +244,7 @@ class BaseAutomationClient(object):
         url = self.automation_url.encode('ascii') + command
         cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
         log.trace("Calling '%s' with cookies %r for file '%s'",
-            url, filename)
+            url, cookies, filename)
         req = urllib2.Request(url, data, headers)
         try:
             resp = self.opener.open(req, timeout=self.blob_timeout)
