@@ -753,8 +753,10 @@ class Synchronizer(object):
                 self._delete_with_descendant_states(session, doc_pair,
                     keep_root=not remote_info.can_delete)
             else:
-                log.debug("Marking %s as remotely created as remote document"
-                          " '%s' (%s) can not be deleted since it is readonly",
+                log.debug("Marking %s as remotely created since remote"
+                          " document '%s' (%s) can not be deleted: either"
+                          " it is readonly or it is a virtual folder that"
+                          " doesn't exist in the server hierarchy",
                           doc_pair, doc_pair.remote_name, doc_pair.remote_ref)
                 self._mark_descendant_states_remotely_created(session,
                     doc_pair)
@@ -957,8 +959,10 @@ class Synchronizer(object):
             if remote_info.can_rename:
                 remote_info = remote_client.rename(remote_ref, new_name)
             else:
-                log.debug("Marking %s as synchronized as remote document"
-                          " can not be renamed since it is readonly",
+                log.debug("Marking %s as synchronized since remote document"
+                          " can not be renamed: either it is readonly or it is"
+                          " a virtual folder that doesn't exist"
+                          " in the server hierarchy",
                           target_doc_pair)
             target_doc_pair.update_remote(remote_info)
 
