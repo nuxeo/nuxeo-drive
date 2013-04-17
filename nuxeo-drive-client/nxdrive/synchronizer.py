@@ -195,6 +195,22 @@ class Synchronizer(object):
         if not keep_root:
             session.delete(doc_pair)
 
+    def _mark_descendant_states_remotely_created(self, session, doc_pair,
+        keep_root=None):
+        """Mark the descendant states as remotely created"""
+        # mark local descendant states first
+        if doc_pair.local_path is not None:
+            local_children = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                local_parent_path=doc_pair.local_path).all()
+            for child in local_children:
+                self._mark_descendant_states_remotely_created(session, child)
+
+        # mark parent folder state in the end
+        if not keep_root:
+            doc_pair.reset_local()
+            doc_pair.update_state('unknown', 'created')
+
     def _local_rename_with_descendant_states(self, session, client, doc_pair,
         previous_local_path, updated_path):
         """Update the metadata of the descendants of a renamed doc"""
@@ -729,10 +745,19 @@ class Synchronizer(object):
             local_client, remote_client, local_info, remote_info):
             return
         if doc_pair.remote_ref is not None:
-            log.debug("Deleting or unregistering remote document '%s' (%s)",
-                      doc_pair.remote_name, doc_pair.remote_ref)
-            remote_client.delete(doc_pair.remote_ref)
-        self._delete_with_descendant_states(session, doc_pair)
+            if remote_info.can_delete:
+                log.debug("Deleting or unregistering remote document"
+                          " '%s' (%s)",
+                          doc_pair.remote_name, doc_pair.remote_ref)
+                remote_client.delete(doc_pair.remote_ref)
+                self._delete_with_descendant_states(session, doc_pair,
+                    keep_root=not remote_info.can_delete)
+            else:
+                log.debug("Marking %s as remotely created as remote document"
+                          " '%s' (%s) can not be deleted since it is readonly",
+                          doc_pair, doc_pair.remote_name, doc_pair.remote_ref)
+                self._mark_descendant_states_remotely_created(session,
+                    doc_pair)
 
     def _synchronize_remotely_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
