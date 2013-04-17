@@ -336,6 +336,21 @@ class LastKnownState(Base):
         self.remote_can_update = remote_info.can_update
         self.remote_can_create_child = remote_info.can_create_child
 
+    def reset_local(self):
+        self.local_digest = None
+        self.local_name = None
+        self.local_parent_path = None
+        self.local_path = None
+        self.local_state = 'unknown'
+
+    def reset_remote(self):
+        self.remote_digest = None
+        self.remote_name = None
+        self.remote_parent_path = None
+        self.remote_parent_ref = None
+        self.remote_ref = None
+        self.local_state = 'unknown'
+
     def get_local_abspath(self):
         relative_path = self.local_path[1:].replace('/', os.path.sep)
         return os.path.join(self.local_folder, relative_path)
