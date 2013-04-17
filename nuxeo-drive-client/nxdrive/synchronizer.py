@@ -954,7 +954,12 @@ class Synchronizer(object):
             new_name = target_doc_pair.local_name
             log.debug("Detected and resolving local rename event on %s to %s",
                       source_doc_pair, new_name)
-            remote_info = remote_client.rename(remote_ref, new_name)
+            if remote_info.can_rename:
+                remote_info = remote_client.rename(remote_ref, new_name)
+            else:
+                log.debug("Marking %s as synchronized as remote document"
+                          " can not be renamed since it is readonly",
+                          target_doc_pair)
             target_doc_pair.update_remote(remote_info)
 
         if moved_or_renamed:
