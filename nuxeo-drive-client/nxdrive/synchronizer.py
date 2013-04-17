@@ -684,7 +684,8 @@ class Synchronizer(object):
             if doc_pair.folderish:
                 doc_pair.remote_can_create_child = False
             # XXX: in the future we might want to introduce a new
-            # 'notsynchronizable'pair state to display a special icon in the UI
+            # 'notsynchronizable' pair state to display a special icon
+            # in the UI
             doc_pair.update_state('synchronized', 'synchronized')
 
     def _synchronize_remotely_created(self, doc_pair, session,
