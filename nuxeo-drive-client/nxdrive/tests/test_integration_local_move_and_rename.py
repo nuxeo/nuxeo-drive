@@ -22,9 +22,9 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
 
-        sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
+        self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
                                        self.workspace_title)
-        self.local_client_1 = LocalClient(sync_root_folder_1)
+        self.local_client_1 = LocalClient(self.sync_root_folder_1)
 
         self.local_client_1.make_file('/', u'Original File 1.txt',
             content=u'Some Content 1'.encode('utf-8'))
@@ -387,6 +387,171 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
                           raise_if_missing=True)
         # Check deleted pair state
         self.assertEquals(len(session.query(LastKnownState).all()), 0)
+
+    def test_local_rename_readonly_folder(self):
+        sb, ctl = self.sb_1, self.controller_1
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+        session = ctl.get_session()
+
+        # Check local folder
+        self.assertTrue(local_client.exists(u'/Original Folder 1'))
+        folder_1_state = session.query(LastKnownState).filter_by(
+            local_name=u'Original Folder 1').one()
+        self.assertTrue(folder_1_state.remote_can_rename)
+
+        # Set remote folder as readonly for test user
+        folder_1_path = self.TEST_WORKSPACE_PATH + u'/Original Folder 1'
+        op_input = "doc:" + folder_1_path
+        self.root_remote_client.execute("Document.SetACE",
+            input=op_input,
+            user="nuxeoDriveTestUser_user_1",
+            permission="Write",
+            grant="false")
+
+        # Check can_rename flag in pair state
+        folder_1_state.refresh_remote(
+            client=self.remote_file_system_client_1)
+        self.assertFalse(folder_1_state.remote_can_rename)
+
+        # Rename local folder
+        local_client.rename(u'/Original Folder 1',
+                            u'Renamed Folder 1 \xe9')
+        self.assertFalse(local_client.exists(u'/Original Folder 1'))
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
+
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+        # Check remote folder has not been renamed
+        folder_1_remote_info = remote_client.get_info(
+            u'/Original Folder 1')
+        self.assertEquals(folder_1_remote_info.name,
+            u'Original Folder 1')
+
+        # Check state of local folder and its children
+        folder_1_state = session.query(LastKnownState).filter_by(
+            local_name=u'Renamed Folder 1 \xe9').one()
+        self.assertEquals(folder_1_state.local_name,
+                          u'Renamed Folder 1 \xe9')
+        self.assertEquals(folder_1_state.remote_name,
+                          u'Original Folder 1')
+
+        self.assertTrue(local_client.exists(
+            u'/Renamed Folder 1 \xe9/Original File 1.1.txt'))
+        file_1_1_state = session.query(LastKnownState).filter_by(
+            local_name=u'Original File 1.1.txt').one()
+        self.assertEquals(file_1_1_state.local_name,
+                          u'Original File 1.1.txt')
+        self.assertEquals(file_1_1_state.remote_name,
+                          u'Original File 1.1.txt')
+
+        self.assertTrue(local_client.exists(
+            u'/Renamed Folder 1 \xe9/Sub-Folder 1.1'))
+        folder_1_1_state = session.query(LastKnownState).filter_by(
+            local_name=u'Sub-Folder 1.1').one()
+        self.assertEquals(folder_1_1_state.local_name,
+                          u'Sub-Folder 1.1')
+        self.assertEquals(folder_1_1_state.remote_name,
+                          u'Sub-Folder 1.1')
+
+        self.assertTrue(local_client.exists(
+            u'/Renamed Folder 1 \xe9/Sub-Folder 1.2'))
+        folder_1_2_state = session.query(LastKnownState).filter_by(
+            local_name=u'Sub-Folder 1.2').one()
+        self.assertEquals(folder_1_2_state.local_name,
+                          u'Sub-Folder 1.2')
+        self.assertEquals(folder_1_2_state.remote_name,
+                          u'Sub-Folder 1.2')
+
+    def test_local_delete_readonly_folder(self):
+        sb, ctl = self.sb_1, self.controller_1
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+        session = ctl.get_session()
+
+        # Check local folder
+        self.assertTrue(local_client.exists(u'/Original Folder 1'))
+        folder_1_state = session.query(LastKnownState).filter_by(
+            local_name=u'Original Folder 1').one()
+        self.assertTrue(folder_1_state.remote_can_delete)
+
+        # Set remote folder as readonly for test user
+        folder_1_path = self.TEST_WORKSPACE_PATH + u'/Original Folder 1'
+        op_input = "doc:" + folder_1_path
+        self.root_remote_client.execute("Document.SetACE",
+            input=op_input,
+            user="nuxeoDriveTestUser_user_1",
+            permission="Write",
+            grant="false")
+
+        # Check can_delete flag in pair state
+        folder_1_state.refresh_remote(
+            client=self.remote_file_system_client_1)
+        self.assertFalse(folder_1_state.remote_can_delete)
+
+        # Delete local folder
+        local_client.delete(u'/Original Folder 1')
+        self.assertRaises(NotFound,
+                          local_client.get_info, u'/Original Folder 1')
+
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 5)
+
+        # Check remote folder and its children have not been deleted
+        folder_1_remote_info = remote_client.get_info(
+            u'/Original Folder 1')
+        self.assertEquals(folder_1_remote_info.name,
+            u'Original Folder 1')
+
+        file_1_1_remote_info = remote_client.get_info(
+            u'/Original Folder 1/Original File 1.1.txt')
+        self.assertEquals(file_1_1_remote_info.name,
+            u'Original File 1.1.txt')
+
+        folder_1_1_remote_info = remote_client.get_info(
+            u'/Original Folder 1/Sub-Folder 1.1')
+        self.assertEquals(folder_1_1_remote_info.name,
+            u'Sub-Folder 1.1')
+
+        folder_1_2_remote_info = remote_client.get_info(
+            u'/Original Folder 1/Sub-Folder 1.2')
+        self.assertEquals(folder_1_2_remote_info.name,
+            u'Sub-Folder 1.2')
+
+        # Check local folder and its children have been re-created
+        self.assertTrue(local_client.exists(u'/Original Folder 1'))
+        folder_1_state = session.query(LastKnownState).filter_by(
+            local_name=u'Original Folder 1').one()
+        self.assertEquals(folder_1_state.local_name,
+                          u'Original Folder 1')
+        self.assertEquals(folder_1_state.remote_name,
+                          u'Original Folder 1')
+
+        self.assertTrue(local_client.exists(
+            u'/Original Folder 1/Original File 1.1.txt'))
+        file_1_1_state = session.query(LastKnownState).filter_by(
+            local_name=u'Original File 1.1.txt').one()
+        self.assertEquals(file_1_1_state.local_name,
+                          u'Original File 1.1.txt')
+        self.assertEquals(file_1_1_state.remote_name,
+                          u'Original File 1.1.txt')
+
+        self.assertTrue(local_client.exists(
+            u'/Original Folder 1/Sub-Folder 1.1'))
+        folder_1_1_state = session.query(LastKnownState).filter_by(
+            local_name=u'Sub-Folder 1.1').one()
+        self.assertEquals(folder_1_1_state.local_name,
+                          u'Sub-Folder 1.1')
+        self.assertEquals(folder_1_1_state.remote_name,
+                          u'Sub-Folder 1.1')
+
+        self.assertTrue(local_client.exists(
+            u'/Original Folder 1/Sub-Folder 1.2'))
+        folder_1_2_state = session.query(LastKnownState).filter_by(
+            local_name=u'Sub-Folder 1.2').one()
+        self.assertEquals(folder_1_2_state.local_name,
+                          u'Sub-Folder 1.2')
+        self.assertEquals(folder_1_2_state.remote_name,
+                          u'Sub-Folder 1.2')
 
     # TODO: implement me once canDelete is checked in the synchronizer
     # def test_local_move_sync_root_folder(self):
