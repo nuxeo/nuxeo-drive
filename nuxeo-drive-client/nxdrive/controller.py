@@ -430,16 +430,16 @@ class Controller(object):
         return session.query(LastKnownState).filter(
             *predicates
         ).order_by(
-            # Ensure that newly created local folders will be synchronized
-            # before their children
-            asc(LastKnownState.local_path),
-
             # Ensure that newly created remote folders will be synchronized
             # before their children while keeping a fixed named based
             # deterministic ordering to make the tests readable
             asc(LastKnownState.remote_parent_path),
             asc(LastKnownState.remote_name),
-            asc(LastKnownState.remote_ref)
+            asc(LastKnownState.remote_ref),
+
+            # Ensure that newly created local folders will be synchronized
+            # before their children
+            asc(LastKnownState.local_path)
         ).limit(limit).all()
 
     def next_pending(self, local_folder=None, session=None):
