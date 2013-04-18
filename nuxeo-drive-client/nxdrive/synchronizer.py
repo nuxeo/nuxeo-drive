@@ -914,8 +914,10 @@ class Synchronizer(object):
         moved_or_renamed = False
         remote_ref = source_doc_pair.remote_ref
 
+        remote_info = remote_client.get_info(remote_ref,
+                                             raise_if_missing=False)
         # check that the target still exists
-        if not remote_client.exists(remote_ref):
+        if remote_info is None:
             # Nothing to do: the regular deleted / created handling will
             # work in this case.
             return False
