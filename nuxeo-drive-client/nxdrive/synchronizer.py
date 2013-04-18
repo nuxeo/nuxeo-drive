@@ -730,6 +730,9 @@ class Synchronizer(object):
             log.debug("Creating local folder '%s' in '%s'", name,
                       parent_pair.get_local_abspath())
             path = local_client.make_folder(local_parent_path, name)
+            log.debug('Remote recursive scan of the content of %s', name)
+            self._scan_remote_recursive(session, remote_client, doc_pair,
+                                        remote_info, force_recursion=False)
         else:
             log.debug("Creating local file '%s' in '%s'", name,
                       parent_pair.get_local_abspath())
