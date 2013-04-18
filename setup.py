@@ -62,7 +62,7 @@ if '--dev' in sys.argv:
     old_version = version
     version = version.replace('-dev', "b" + timestamp)
     with open(init_file, 'wb') as f:
-        f.write("_version_ = '%s'" % version)
+        f.write("__version__ = '%s'" % version)
     print "Updated version to " + version
 
 includes = [
@@ -174,5 +174,5 @@ setup(
 
 if old_version is not None:
     with open(init_file, 'wb') as f:
-        f.write("_version_ = '%s'" % old_version)
+        f.write("__version__ = '%s'" % old_version)
     print "Restored version to " + old_version

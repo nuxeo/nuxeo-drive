@@ -20,7 +20,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.protocol_handler import register_protocol_handlers
 from nxdrive.startup import register_startup
-from nxdrive import _version_
+from nxdrive import __version__
 
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
@@ -91,7 +91,7 @@ def make_cli_parser(add_subparsers=True):
         help="Stop the process on first unexpected error."
         "Useful for developers and Continuous Integration.")
     common_parser.add_argument(
-        "-v", "--version", action="version", version=_version_,
+        "-v", "--version", action="version", version=__version__,
         help="Print the current version of the Nuxeo Drive client."
     )
     parser = argparse.ArgumentParser(
