@@ -464,12 +464,12 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         syn.scan_local(self.local_nxdrive_folder_1)
         pending = ctl.list_pending()
         self.assertEquals(len(pending), 12)
-        self.assertEquals(pending[0].remote_name, 'File 5.txt')
+        self.assertEquals(pending[0].local_name, 'Folder 3')
         self.assertEquals(pending[0].pair_state, 'unknown')
-        self.assertEquals(pending[1].remote_name, 'Folder 1')
+        self.assertEquals(pending[1].remote_name, 'File 5.txt')
         self.assertEquals(pending[1].pair_state, 'unknown')
-        self.assertEquals(pending[11].local_name, 'Folder 3')
-        self.assertEquals(pending[11].pair_state, 'unknown')
+        self.assertEquals(pending[2].remote_name, 'Folder 1')
+        self.assertEquals(pending[2].pair_state, 'unknown')
 
         # Simulate synchronization errors
         session = ctl.get_session()
@@ -488,9 +488,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # been synchronized
         pending = ctl.list_pending()
         self.assertEquals(len(pending), 2)
-        self.assertEquals(pending[0].remote_name, 'File 5.txt')
+        self.assertEquals(pending[0].local_name, 'Folder 3')
         self.assertEquals(pending[0].pair_state, 'unknown')
-        self.assertEquals(pending[1].local_name, 'Folder 3')
+        self.assertEquals(pending[1].remote_name, 'File 5.txt')
         self.assertEquals(pending[1].pair_state, 'unknown')
 
         # Reduce the skip delay to retry the sync on pairs in error
