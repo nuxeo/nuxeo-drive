@@ -661,7 +661,7 @@ class Synchronizer(object):
     def _synchronize_locally_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         if self._detect_resolve_local_move(doc_pair, session,
-            local_client, remote_client, local_info, remote_info):
+            local_client, remote_client, local_info):
             return
         name = os.path.basename(doc_pair.local_path)
         # Find the parent pair to find the ref of the remote folder to
@@ -745,7 +745,7 @@ class Synchronizer(object):
     def _synchronize_locally_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         if self._detect_resolve_local_move(doc_pair, session,
-            local_client, remote_client, local_info, remote_info):
+            local_client, remote_client, local_info):
             return
         if doc_pair.remote_ref is not None:
             if remote_info.can_delete:
@@ -890,7 +890,7 @@ class Synchronizer(object):
         return source_doc_pair, target_doc_pair
 
     def _detect_resolve_local_move(self, doc_pair, session,
-        local_client, remote_client, local_info, remote_info):
+        local_client, remote_client, local_info):
         """Handle local move / renaming if doc_pair is detected as involved
 
         Detection is based on digest for files and content for folders.
