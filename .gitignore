@@ -12,8 +12,6 @@ coverage
 build
 dist
 *.zip
-*.msi
-*.dmg
 nuxeo-tomcat
 lessmsi
 nxdrive_msi

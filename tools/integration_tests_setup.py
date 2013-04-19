@@ -58,8 +58,8 @@ DMG_PATTERN = r"Nuxeo%20Drive\.dmg"
 DEFAULT_ARCHIVE_PATTERN = DEFAULT_ARCHIVE_PREFIX + r"\d\.\d.*?-nuxeo-cap\.zip"
 MARKETPLACE_PATTERN = MARKET_PLACE_PREFIX + r"\d\.\d.*?\.zip"
 
-WAR_FOLDER = os.path.join("src", "main",
-    "resources", "web", "nuxeo.war", "nuxeo-drive")
+WAR_FOLDER = os.path.join("target", "classes",
+    "web", "nuxeo.war", "nuxeo-drive")
 
 
 def pflush(message):
