@@ -484,7 +484,7 @@ class Controller(object):
             timeout=self.timeout, cookie_jar=self.cookie_jar)
 
     def get_remote_client(self, server_binding, repository='default',
-                          base_folder=u'/'):
+                          base_folder=None):
         # Backward compat
         return self.get_remote_doc_client(server_binding,
             repository=repository, base_folder=base_folder)
