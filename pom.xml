@@ -1,24 +1,55 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>org.nuxeo</groupId>
     <artifactId>nuxeo-addons-parent</artifactId>
-    <version>5.6.0-HF16-SNAPSHOT</version>
+    <version>5.6.0-HF15</version>
   </parent>
 
   <groupId>org.nuxeo.ecm</groupId>
   <artifactId>nuxeo-drive-server</artifactId>
+  <version>5.6.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Nuxeo Drive Server Parent</name>
   <description>Parent project for the Java server-side code of Nuxeo Drive</description>
 
+  <properties>
+    <nuxeo.drive.version>5.6.0-SNAPSHOT</nuxeo.drive.version>
+  </properties>
+
   <modules>
-    <module>nuxeo-drive-server/nuxeo-drive-jsf</module>
     <module>nuxeo-drive-server/nuxeo-drive-core</module>
+    <module>nuxeo-drive-server/nuxeo-drive-jsf</module>
     <module>nuxeo-drive-server/nuxeo-drive-operations</module>
     <module>nuxeo-drive-server/nuxeo-drive-hierarchy-permission</module>
   </modules>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.nuxeo.ecm</groupId>
+        <artifactId>nuxeo-drive-core</artifactId>
+        <version>${nuxeo.drive.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.nuxeo.ecm</groupId>
+        <artifactId>nuxeo-drive-jsf</artifactId>
+        <version>${nuxeo.drive.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.nuxeo.ecm</groupId>
+        <artifactId>nuxeo-drive-operations</artifactId>
+        <version>${nuxeo.drive.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.nuxeo.ecm</groupId>
+        <artifactId>nuxeo-drive-hierarchy-permission</artifactId>
+        <version>${nuxeo.drive.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <!-- Used for multi-database tests -->
   <profiles>
