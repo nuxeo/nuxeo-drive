@@ -63,9 +63,10 @@ if '--dev' in sys.argv:
     # distutils imposes a max 3 levels integer version
     # (+ prerelease markers which are not allowed in a
     # msi package version). On the other hand,
-    # msi imposes the a.b.c or a.b.c.d format where
-    # a, b, c and d are all 32 bits integers
-    version = version.replace('-dev', "." + timestamp[:12])
+    # msi imposes the a.b.c.0 or a.b.c.d format where
+    # a, b, c and d are all 16 bits integers
+    version = version.replace('-dev', ".%s.%s" % (
+        timestamp[0:4], timestamp[4:8]))
     with open(init_file, 'wb') as f:
         f.write("__version__ = '%s'" % version)
     print "Updated version to " + version
