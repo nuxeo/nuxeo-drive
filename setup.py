@@ -60,7 +60,7 @@ if '--dev' in sys.argv:
     timestamp = timestamp.replace("T", "")
     timestamp = timestamp.replace("-", "")
     old_version = version
-    version = version.replace('-dev', "b" + timestamp)
+    version = version.replace('-dev', "." + timestamp)
     with open(init_file, 'wb') as f:
         f.write("__version__ = '%s'" % version)
     print "Updated version to " + version
