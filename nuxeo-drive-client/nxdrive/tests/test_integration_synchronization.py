@@ -449,6 +449,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(syn.synchronize(), 0)
 
         # Perform first scan and sync
+        self.wait()
         syn.loop(delay=0, max_loops=3)
         self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(syn.synchronize(), 0)
@@ -457,6 +458,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         local = LocalClient(expected_folder)
         local.make_folder('/', 'Folder 3')
         self.make_server_tree()
+        self.wait()
 
         # Detect the files to synchronize but do not perform the
         # synchronization
@@ -479,9 +481,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         folder_3 = session.query(LastKnownState).filter_by(
             local_name='Folder 3').one()
         folder_3.last_sync_error_date = datetime.utcnow()
+        session.commit()
 
         # Run the full synchronization loop a limited amount of times
-        self.wait()
         syn.loop(delay=0, max_loops=3)
 
         # All errors have been skipped, while the remaining docs have
