@@ -59,11 +59,11 @@ class RemoteFileSystemClient(BaseAutomationClient):
                 raise NotFound("Could not find '%s' on '%s'" % (
                     fs_item_id, self.server_url))
             return None
-        return self._file_to_info(fs_item)
+        return self.file_to_info(fs_item)
 
     def get_filesystem_root_info(self):
         toplevel_folder = self.execute("NuxeoDrive.GetTopLevelFolder")
-        return self._file_to_info(toplevel_folder)
+        return self.file_to_info(toplevel_folder)
 
     def get_content(self, fs_item_id, file_out=None):
         """Downloads the binary content of a file system item
@@ -77,7 +77,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
     def get_children_info(self, fs_item_id):
         children = self.execute("NuxeoDrive.GetChildren", id=fs_item_id)
-        return [self._file_to_info(fs_item) for fs_item in children]
+        return [self.file_to_info(fs_item) for fs_item in children]
 
     def make_folder(self, parent_id, name):
         fs_item = self.execute("NuxeoDrive.CreateFolder",
@@ -107,11 +107,11 @@ class RemoteFileSystemClient(BaseAutomationClient):
         pass
 
     def rename(self, fs_item_id, new_name):
-        return self._file_to_info(self.execute("NuxeoDrive.Rename",
+        return self.file_to_info(self.execute("NuxeoDrive.Rename",
             id=fs_item_id, name=new_name))
 
     def move(self, fs_item_id, new_parent_id):
-        return self._file_to_info(self.execute("NuxeoDrive.Move",
+        return self.file_to_info(self.execute("NuxeoDrive.Move",
             srcId=fs_item_id, destId=new_parent_id))
 
     def can_move(self, fs_item_id, new_parent_id):
@@ -125,7 +125,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self.execute("NuxeoDrive.GenerateConflictedItemName",
             name=original_name, timezone=timezone)
 
-    def _file_to_info(self, fs_item):
+    def file_to_info(self, fs_item):
         """Convert Automation file system item description to RemoteFileInfo"""
         folderish = fs_item['folder']
         milliseconds = fs_item['lastModificationDate']
