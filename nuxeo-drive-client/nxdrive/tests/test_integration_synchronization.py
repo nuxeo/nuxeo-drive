@@ -194,7 +194,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(syn.synchronize(limit=100), 12)
 
         # We should now be fully synchronized
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(ctl.children_states(expected_folder), [
             (u'File 5.txt', u'synchronized'),
             (u'Folder 1', u'synchronized'),
@@ -287,7 +287,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(syn.synchronize(limit=100), 7)
 
         # We should now be fully synchronized again
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(ctl.children_states(expected_folder), [
             (u'Folder 1', 'synchronized'),
             (u'Folder 3', 'synchronized'),
@@ -323,7 +323,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Rescan: no change to detect we should reach a fixpoint
         syn.scan_local(self.local_nxdrive_folder_1)
         syn.scan_remote(self.local_nxdrive_folder_1)
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(ctl.children_states(expected_folder), [
             (u'Folder 1', 'synchronized'),
             (u'Folder 3', 'synchronized'),
@@ -392,7 +392,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # as if the document was just created and not trigger an update
         self.wait()
         syn.loop(delay=0.010, max_loops=1)
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(ctl.children_states(expected_folder), [
             (u'Folder', u'synchronized'),
         ])
@@ -428,7 +428,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         syn.loop(delay=0.010, max_loops=3)
 
         # All is synchronized
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(ctl.children_states(expected_folder), [
             (u'File 5.txt', u'synchronized'),
             (u'Folder 1', u'synchronized'),
@@ -496,7 +496,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Reduce the skip delay to retry the sync on pairs in error
         syn.error_skip_period = 0.000001
         syn.loop(delay=0, max_loops=3)
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(ctl.children_states(expected_folder), [
             (u'File 5.txt', u'synchronized'),
             (u'Folder 1', u'synchronized'),
@@ -547,7 +547,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         syn.loop(delay=0, max_loops=1)
 
         # All is synchronized
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
         self.assertEquals(ctl.children_states(expected_folder), [
             (u'File 5.txt', u'synchronized'),
             (u'Folder 1', u'synchronized'),
@@ -572,7 +572,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.wait()
 
         syn.loop(delay=0, max_loops=3)
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
 
         self.assertEquals(self.get_all_states(), [
             (u'/',
@@ -620,7 +620,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn.loop(delay=0, max_loops=3)
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
 
         # Check that the sync that occurs right after the bind automatically
         # detects the file alignments and hence everything is synchronized
@@ -655,7 +655,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'/Nuxeo Drive Test Workspace/Folder 3',
              u'synchronized', u'synchronized')
         ])
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
         # Previously synchronized files are still there, untouched
         self.assertEquals(
             len(local.get_children_info('/Nuxeo Drive Test Workspace')), 4)
@@ -916,7 +916,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'/Folder 3/Sub Folder 1/File 2.txt',
              u'synchronized', u'synchronized'),
         ])
-        self.assertEquals(len(ctl.list_pending()), 0)
+        self.assertEquals(ctl.list_pending(), [])
 
         # Let's create a file in the main readonly folder
         local.make_file('/', 'A file in a readonly folder.txt',
