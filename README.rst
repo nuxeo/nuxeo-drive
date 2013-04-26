@@ -9,6 +9,10 @@ Watch this `screencast`_ to get 6 min overview of this project.
 
 .. _`screencast`: http://www.nuxeo.com/blog/development/2013/04/nuxeo-drive-desktop-synchronization/
 
+The documentation is here available here:
+
+  http://doc.nuxeo.com/display/USERDOC56/Nuxeo+Drive
+
 
 Install
 =======
@@ -72,7 +76,7 @@ Once the marketplace package is installed, the OSX desktop client package
 can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
-`Nuxeo Drive.
+`Nuxeo Drive.dmg
 <https://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-dmg/lastSuccessfulBuild/artifact/dist/Nuxeo%20Drive.dmg>`_
 from the Continous Integration.
 
