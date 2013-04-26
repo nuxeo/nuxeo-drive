@@ -5,12 +5,9 @@ Nuxeo Drive - Desktop synchronization client for Nuxeo
 This is an ongoing development project for desktop synchronization
 of local folders with remote Nuxeo workspaces.
 
-Watch this `early screencast`_ to get 2 min overview of this project.
+Watch this `screencast`_ to get 6 min overview of this project.
 
-WARNING: The status is EARLY ALPHA. Don't run on a production server
-as you might loose data!
-
-.. _`early screencast`: http://lounge.blogs.nuxeo.com/2012/07/nuxeo-drive-desktop-synchronization-client-nuxeo.html
+.. _`screencast`: http://www.nuxeo.com/blog/development/2013/04/nuxeo-drive-desktop-synchronization/
 
 
 Install
@@ -23,9 +20,13 @@ desktop program on the user's computer.
 Server-side marketplace package
 -------------------------------
 
-Fetch the latest development version of the marketplace package
+**Stable releases for Nuxeo Drive** are available as a marketplace package from Nuxeo Connect:
+
+  https://connect.nuxeo.com/nuxeo/site/marketplace/package/nuxeo-drive
+
+You can also fetch the **latest development version** of the marketplace package for the Nuxeo master branch
 `marketplace-1.1-SNAPSHOT.zip <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/marketplace-1.1-SNAPSHOT.zip>`_
-from the Continuous Integration server.
+from the Continuous Integration server (use at your own risk).
 
 The marketplace package can be installed using the Admin Center /
 Update Center / Local Packages interface of a Nuxeo server.
@@ -50,7 +51,7 @@ can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
 ``nuxeo-drive-<version>-win32.msi``
-windows installer from the `Continous Integration <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-windows/>`_.
+windows installer from the `Continous Integration <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-msi/>`_.
 
 Once you installed the package (Administrator rights required) the new folder
 holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
@@ -71,7 +72,8 @@ Once the marketplace package is installed, the OSX desktop client package
 can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
-`Nuxeo Drive.dmg <http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-osx/lastSuccessfulBuild/artifact/dist/Nuxeo%20Drive.dmg>`_
+`Nuxeo Drive.
+<https://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-dmg/lastSuccessfulBuild/artifact/dist/Nuxeo%20Drive.dmg>`_
 from the Continous Integration.
 
 
