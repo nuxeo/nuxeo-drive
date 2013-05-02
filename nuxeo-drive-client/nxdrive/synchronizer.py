@@ -1223,16 +1223,18 @@ class Synchronizer(object):
             doc_pair = session.query(LastKnownState).filter_by(
                 local_folder=server_binding.local_folder,
                 remote_ref=remote_ref).first()
+            fs_item = change.get('fileSystemItem')
+            new_info = client.file_to_info(fs_item) if fs_item else None
+
             updated = False
             if doc_pair is not None:
                 if doc_pair.server_binding.server_url == s_url:
-                    fs_item = change.get('fileSystemItem') 
+
                     if fs_item is None:
                         log.debug("Mark doc_pair '%s' as deleted",
                                   doc_pair.remote_name)
                         doc_pair.update_state(remote_state='deleted')
                     else:
-                        new_info = client.file_to_info(fs_item)
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved
                         log.debug("Refreshing remote state info"
@@ -1245,23 +1247,18 @@ class Synchronizer(object):
                     updated = True
                     refreshed.add(remote_ref)
 
-            if not updated:
-                child_info = client.get_info(
-                    remote_ref, raise_if_missing=False)
-                if child_info is None:
-                    # Document must have been deleted since: nothing to do
-                    continue
-
+            if new_info and not updated:
+                # Handle new document creations
                 created = False
                 parent_pairs = session.query(LastKnownState).filter_by(
-                    remote_ref=child_info.parent_uid).all()
+                    remote_ref=new_info.parent_uid).all()
                 for parent_pair in parent_pairs:
                     if (parent_pair.server_binding.server_url != s_url):
                         continue
 
                     child_pair, new_pair = (self
                         ._find_remote_child_match_or_create(
-                        parent_pair, child_info, session=session))
+                        parent_pair, new_info, session=session))
                     if new_pair:
                         log.debug("Marked doc_pair '%s' as remote creation",
                                   child_pair.remote_name)
@@ -1270,10 +1267,10 @@ class Synchronizer(object):
                         log.debug('Remote recursive scan of the content of %s',
                                   child_pair.remote_name)
                         self._scan_remote_recursive(
-                            session, client, child_pair, child_info)
+                            session, client, child_pair, new_info)
 
                     elif not new_pair:
-                        child_pair.update_remote(child_info)
+                        child_pair.update_remote(new_info)
                         log.debug("Updated doc_pair '%s' from remote info",
                                   child_pair.remote_name)
 
@@ -1283,7 +1280,7 @@ class Synchronizer(object):
 
                 if not created:
                     log.warning("Could not match changed document to a "
-                                "bound local folder: %r", child_info)
+                                "bound local folder: %r", new_info)
 
     def update_synchronize_server(self, server_binding, session=None,
                                   full_scan=False):
