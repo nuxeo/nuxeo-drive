@@ -53,7 +53,7 @@ EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
 
 LINKS_PATTERN = r'\bhref="([^"]+)"'
 
-MSI_PATTERN = r"nuxeo-drive-\d\.\d\..*?\.msi"
+MSI_PATTERN = r"nuxeo-drive-.*\.msi"
 DMG_PATTERN = r"Nuxeo%20Drive\.dmg"
 DEFAULT_ARCHIVE_PATTERN = DEFAULT_ARCHIVE_PREFIX + r"\d\.\d.*?-nuxeo-cap\.zip"
 MARKETPLACE_PATTERN = MARKET_PLACE_PREFIX + r"\d\.\d.*?\.zip"
