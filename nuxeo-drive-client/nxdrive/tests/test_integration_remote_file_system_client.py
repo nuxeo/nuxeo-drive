@@ -291,7 +291,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         # Unregister the workspace
         remote_document_client.unregister_as_root(self.workspace)
         children = remote_file_system_client.get_top_level_children()
-        self.assertEquals(len(children), 0)
+        self.assertEquals(children, [])
 
         # Register the sub folders as new roots
         remote_document_client.register_as_root(folder_1_uid)
