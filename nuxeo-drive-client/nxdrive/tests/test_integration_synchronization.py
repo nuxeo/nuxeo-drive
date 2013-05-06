@@ -909,7 +909,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
                         content='Some other content.')
         syn.loop(delay=0.1, max_loops=1)
 
-        # No pair has been created, should only have the local root folder one
+        # Pairs have been created for the subfolder and its content,
+        # marked as synchronized
         self.assertEquals(self.get_all_states(), [
             (u'/', u'synchronized', u'synchronized'),
             (u'/Folder 3', u'synchronized', u'synchronized'),
@@ -925,7 +926,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             content='Some Content')
         syn.loop(delay=0.1, max_loops=1)
 
-        # No pair has been created, should only have the local folder one
+        # A pair has been created, marked as synchronized
         self.assertEquals(self.get_all_states(), [
             (u'/', u'synchronized', u'synchronized'),
             (u'/A file in a readonly folder.txt',
