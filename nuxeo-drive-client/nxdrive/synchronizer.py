@@ -540,7 +540,6 @@ class Synchronizer(object):
 
         # Update the status the collected info of this file to make sure
         # we won't perfom inconsistent operations
-
         local_info = remote_info = None
         if doc_pair.local_path is not None:
             local_info = doc_pair.refresh_local(local_client)
