@@ -1010,7 +1010,17 @@ class Synchronizer(object):
             if len(pending) == 0:
                 break
 
-            pair_state = pending[0]
+            # Look first for a pending pair state with local_path not None,
+            # fall back on first one
+            pending_iterator = 0
+            while (pending[pending_iterator].local_path is None
+                   and len(pending) > pending_iterator + 1):
+                pending_iterator += 1
+            if (pending[pending_iterator].local_path is None
+                and len(pending) == pending_iterator + 1):
+                pending_iterator = 0
+            pair_state = pending[pending_iterator]
+
             try:
                 self.synchronize_one(pair_state, session=session)
                 synchronized += 1
