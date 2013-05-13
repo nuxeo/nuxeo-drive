@@ -1010,7 +1010,12 @@ class Synchronizer(object):
                 break
 
             # Look first for a pending pair state with local_path not None,
-            # fall back on first one
+            # fall back on first one. This is needed in the case where a
+            # document is remotely deleted then created with the same name
+            # in the same folder within the same change summary: deletion
+            # (local_path not None) needs to be handled before creation
+            # (local_path None), otherwise the deduplication suffix will
+            # be added. See https://jira.nuxeo.com/browse/NXP-11517
             pending_iterator = 0
             while (pending[pending_iterator].local_path is None
                    and len(pending) > pending_iterator + 1):
