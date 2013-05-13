@@ -305,7 +305,7 @@ version). The Windows binary is named
 ``qt-win-opensource-<version>-vs2010.exe`` while the OSX binary is named
 ``qt-mac-opensource-<version>.dmg``:
 
-- `QT opensource binaries <http://get.qt.nokia.com/qt/source/>`_
+- `QT opensource binaries <http://qt-project.org/downloads>`_
 
 Then install the matching version of the PySide binaries (for your version of
 Python, typically 2.7 for now as Python 3.3 is not yet supported).
