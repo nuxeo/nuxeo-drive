@@ -37,8 +37,11 @@ To build the marketplace package see the related
 Nuxeo Drive Client under Linux & MacOSX
 ---------------------------------------
 
-Install pip_ using your favorite package manager and then use it to grab all the
-dev dependencies and tools at once::
+**Under OS X**: before installing Python packages, you should probably start by
+installing your own non-system version of Python 2.7 using homebrew as explained
+in a dedicated section below.
+
+Use pip_ to grab all the dev dependencies and tools at once::
 
   sudo pip install -r requirements.txt
 
@@ -135,6 +138,12 @@ of the PySide website:
 
   http://qt-project.org/wiki/PySide_Binaries_MacOSX
 
+If you installed a standlone version of Python with homebrew (recommended), you
+can symlink the binary install of PySide to the ``site-packages`` folder of the
+homebre Python::
+
+  ln -s /Library/Python/2.7/site-packages/PySide /usr/local/lib/python2.7/site-packages/PySide
+
 **Alternatively** you can install PySide and QT from source using homebrew
 with::
 
@@ -171,7 +180,7 @@ Under Debian / Ubuntu
 
 You can install the ``python-pyside`` package directly::
 
-    sudo apt-get install python-pyside
+  sudo apt-get install python-pyside
 
 
 Generating OS specific packages
@@ -183,7 +192,7 @@ Generating OS specific packages
 To generate the **Windows** ``.msi`` installer, you need to install ``cx_Freeze``
 as explained above. Then run::
 
-    C:\Python27\python.exe setup.py --freeze bdist_msi
+  C:\Python27\python.exe setup.py --freeze bdist_msi
 
 The generated ``.msi`` file can be found in the ``dist/`` subfolder.
 
@@ -195,10 +204,31 @@ standalone version of Python (i.e. not the version that comes pre-installed
 with OSX). Otherwise the ``.app`` bundle will be generated in
 ``semi-standalone`` mode and will likely not work on other versions of OSX.
 
+To install you a standalone version of Python with homebrew see the dedicated
+section below first.
+
+Then install ``py2app`` along with the dependencies if ::
+
+  pip install py2app
+  pip install -r requirements.txt
+
+Then run::
+
+  python setup.py py2app
+
+The generated ``.app`` bundle can be found in the ``dist/`` subfolder. You
+can then generate a ``.dmg`` archive using::
+
+  hdiutil create -srcfolder "dist/Nuxeo Drive.app" "dist/Nuxeo Drive.dmg"
+
+
+Installing a standalone Python interpreter on Mac OSX
+------------------------------------------------------
+
 To install a standalone version of Python under OSX you can use `HomeBrew
 <http://mxcl.github.com/homebrew/>`_::
 
-  $ brew install python
+  brew install python
 
 This will install a new Python interpreter along with ``pip`` under
 ``/usr/local/Cellar`` and add publish it using symlinks in ``/usr/local/bin``
@@ -207,7 +237,7 @@ and ``/usr/local/lib/python2.7``.
 If you already have another version of pip installed in ``/usr/local/bin`` you
 can force the overwrite the ``/usr/local/bin/pip`` with::
 
-  $ brew link --overwrite python
+  brew link --overwrite python
 
 Make sure that you are know using your newly installed version of python / pip::
 
@@ -217,21 +247,3 @@ Make sure that you are know using your newly installed version of python / pip::
   $ which python
   /usr/local/bin/python
 
-If you installed PySide from the original binary distribution, you can
-symlink it to the hombrew version of Python::
-
-  $ ln -s /Library/Python/2.7/site-packages/PySide /usr/local/lib/python2.7/site-packages/PySide
-
-Then install ``py2app`` along with the dependencies if ::
-
-  $ pip install py2app
-  $ pip install -r requirements.txt
-
-Then run::
-
-  $ python setup.py py2app
-
-The generated ``.app`` bundle can be found in the ``dist/`` subfolder. You
-can then generate a ``.dmg`` archive using::
-
-  $ hdiutil create -srcfolder "dist/Nuxeo Drive.app" "dist/Nuxeo Drive.dmg"
