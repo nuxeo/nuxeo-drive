@@ -95,11 +95,11 @@ command::
 
 Then install QT and PySide for graphical user interface (see below).
 
-Then you should be able to build the standalone ``.msi`` installer with::
+You can then run the integration tests against a Nuxeo instance running
+``localhost:8080`` with:
 
-  C:\Python27\python.exe setup.py --freeze bdist_msi
-
-The generated package should then be available in the ``dist/`` subfolder.
+  . nuxeo-drive-client/tools/windows/integration_env.ps1
+  nosetests nuxeo-drive-client/nxdrive
 
 
 Installing QT and PySide
