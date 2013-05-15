@@ -87,11 +87,9 @@ Ubuntu/Debian (and other Linux variants) Client
 The ``.deb`` package of the client is not yet available. In the mean time you
 can install it from source::
 
-  sudo apt-get install python-pip python-dev
+  sudo apt-get install python-pip python-dev python-pyside
   sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
   sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
-
-Then install QT and PySide for graphical user interface (see below).
 
 
 Configuration and usage
@@ -206,176 +204,9 @@ The backlog_ is handled by Jira.
 .. _backlog: https://jira.nuxeo.com/secure/IssueNavigator.jspa?reset=true&jqlQuery=component+%3D+%22Nuxeo+Drive%22+AND+project+%3D+NXP++and+type+%3D+%22User+story%22+and+resolution+%3D+Unresolved+ORDER+BY+%22Backlog+priority%22+DESC
 
 
-Developers
-==========
+Developing on Nuxeo Drive
+=========================
 
-The projects comes into two parts: the addon deployed on the Nuxeo
-server, written in Java and the client written in Python.
-
-Nuxeo Drive Client is a Python daemon that looks for changes
-on the local machine filesystem in a specific folder and on a
-remote workspace on the Nuxeo server using the Content Automation
-HTTP API and propagate those changes one way of the other.
-
-
-Server side Java components
----------------------------
-
-To build the project and run the tests, use maven::
-
-  mvn install
-
-To build the marketplace package see the related `Github repository <https://github.com/nuxeo/marketplace-drive>`_.
-
-
-Nuxeo Drive Client under Linux & MacOSX
----------------------------------------
-
-Install pip_ using your favorite package manager and then use it to grab all the
-dev dependencies and tools at once::
-
-  sudo pip install -r requirements.txt
-  export PYTHONPATH=`pwd`/nuxeo-drive-client
-  export PATH=`pwd`/nuxeo-drive-client/bin:$PATH
-
-You can safely ignore warnings about "Unknown distribution option: 'executables'".
-
-To run the tests, install and start a nuxeo server locally, then::
-
-  . nuxeo-drive-client/tools/posix/integration_env.sh
-  nosetests nuxeo-drive-client/nxdrive
-
-.. _pip: http://www.pip-installer.org/
-
-Under OS X you can also optionally install ``PyObjC`` to get the
-``LaunchServices`` API for registering the Nuxeo Drive folder in the OS X
-Finder favorite list (a.k.a. "Places")::
-
-  pip install PyObjC
-
-WARNING: this will download many large dependencies and sometimes the remote
-server will timeout on some of them: you might need to re-run this command
-several times to get it all installed.
-
-Then install QT and PySide for graphical user interface (see below).
-
-
-Nuxeo Drive Client under Windows
---------------------------------
-
-To setup a build environment under Windows you can run the powershell
-script with the administration rights (right click on the powershell
-icon in the programs menu to get the opportunity to "Run as
-administrator")::
-
-  powershell.exe C:\path\to\nuxeo-drive-client\tools\windows\nxdrive-setup-dev.ps1
-
-Some dependencies such as `psutil` can be tricky to build under windows.  You
-can use a binary installer from `this site
-<http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
-
-If you get an error message complaining about the lack of signature
-for this script you can disable that security check with the following
-command::
-
-  Set-ExecutionPolicy Unrestricted
-
-Then install QT and PySide for graphical user interface (see below).
-
-Then you should be able to build the standalone ``.msi`` installer with::
-
-  C:\Python27\python.exe setup.py --freeze bdist_msi
-
-The generated package should then be available in the ``dist/`` subfolder.
-
-
-Installing QT and PySide
-------------------------
-
-The graphical user interface elements of Nuxeo Drive client (such as the
-authentication prompt and the trayicon menu) are built using the PySide library
-that is a Python binding for the QT C++ library for building cross-platform
-interfaces. Both PySide and QT are licensed under the LGPL.
-
-When building/running Nuxeo Drive client from sources (i.e. not using the
-``.msi`` package) you should have those libraries installed on your system.
-
-Under Windows and OSX you can install the binaries (take the latest stable
-version). The Windows binary is named
-``qt-win-opensource-<version>-vs2010.exe`` while the OSX binary is named
-``qt-mac-opensource-<version>.dmg``:
-
-- `QT opensource binaries <http://get.qt.nokia.com/qt/source/>`_
-
-Then install the matching version of the PySide binaries (for your version of
-Python, typically 2.7 for now as Python 3.3 is not yet supported).
-
-- `PySide Windows binaries <http://qt-project.org/wiki/PySide_Binaries_Windows>`_
-- `PySide OSX binaries <http://pyside.markus-ullmann.de/>`_
-
-Under Debian / Ubuntu you can install the ``python-pyside`` package directly::
-
-    sudo apt-get install python-pyside
-
-
-Generating OS specific packages
--------------------------------
-
-.msi package for Windows
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-To generate the **Windows** ``.msi`` installer, you need to install ``cx_Freeze``
-as explained above. Then run::
-
-    C:\Python27\python.exe setup.py --freeze bdist_msi
-
-The generated ``.msi`` file can be found in the ``dist/`` subfolder.
-
-.app and .dmg packages for OSX
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-To generate the standalone OSX `.app` bundle, you **need** to install a
-standalone version of Python (i.e. not the version that comes pre-installed
-with OSX). Otherwise the ``.app`` bundle will be generated in
-``semi-standalone`` mode and will likely not work on other versions of OSX.
-
-To install a standalone version of Python under OSX you can use `HomeBrew
-<http://mxcl.github.com/homebrew/>`_::
-
-  $ brew install python
-
-This will install a new Python interpreter along with ``pip`` under
-``/usr/local/Cellar`` and add publish it using symlinks in ``/usr/local/bin``
-and ``/usr/local/lib/python2.7``.
-
-If you already have another version of pip installed in ``/usr/local/bin`` you
-can force the overwrite the ``/usr/local/bin/pip`` with::
-
-  $ brew link --overwrite python
-
-Make sure that you are know using your newly installed version of python / pip::
-
-  $ export PATH=/usr/local/bin:$PATH
-  $ which pip
-  /usr/local/bin/pip
-  $ which python
-  /usr/local/bin/python
-
-If you installed PySide from the original binary distribution, you can
-symlink it to the hombrew version of Python::
-
-  $ ln -s /Library/Python/2.7/site-packages/PySide /usr/local/lib/python2.7/site-packages/PySide
-
-Then install ``py2app`` along with the dependencies if ::
-
-  $ pip install py2app
-  $ pip install -r requirements.txt
-
-Then run::
-
-  $ python setup.py py2app
-
-The generated ``.app`` bundle can be found in the ``dist/`` subfolder. You
-can then generate a ``.dmg`` archive using::
-
-  $ hdiutil create -srcfolder "dist/Nuxeo Drive.app" "dist/Nuxeo Drive.dmg"
+See the `contributors guide
+<https://github.com/nuxeo/nuxeo-drive/blob/master/DEVELOPERS.rst>`_
+if you wish to actually contribute to the Nuxeo Drive code base.
