@@ -303,6 +303,8 @@ class CliHandler(object):
         self.log = get_logger(__name__)
         self.log.debug("Command line: " + ' '.join(argv))
 
+        self._install_faulthandler()
+
         if command == 'launch':
             # Ensure that the protocol handler are registered:
             # this is useful for the edit / open link in the Nuxeo interface
@@ -423,6 +425,16 @@ class CliHandler(object):
             "nxdrive.tests.test_synchronizer",
         ]
         return 0 if nose.run(argv=argv) else 1
+
+    def _install_faulthandler(self):
+        """Utility to help debug segfaults"""
+        try:
+            # Use faulthandler to print python tracebacks in case of segfaults
+            import faulthandler
+            self.log.debug("Enabling faulthandler to trace segfaults")
+            faulthandler.enable()
+        except ImportError:
+            self.log.debug("faulthandler is not available: skipped")
 
 
 def dumpstacks(signal, frame):
