@@ -1,4 +1,3 @@
-
 Developping Nuxeo Drive
 =======================
 
@@ -100,6 +99,15 @@ You can then run the integration tests against a Nuxeo instance running
 
   . nuxeo-drive-client/tools/windows/integration_env.ps1
   nosetests nuxeo-drive-client/nxdrive
+
+You can optionnally install the binary package for the faulthandler module
+that helps diagnostic segmentation faults by dumping the tracebacks of the
+Python threads on ``stderr``:
+
+  http://www.lfd.uci.edu/~gohlke/pythonlibs/#faulthandler
+
+Using the binary package is a good workaround if you fail to build it with
+pip and getting the error: ``error: Unable to find vcvarsall.bat``
 
 
 Installing QT and PySide
