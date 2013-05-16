@@ -141,46 +141,30 @@ and 64 bit), be careful to install both the 32 bit version of Python and PySide.
 Under Mac OSX
 ~~~~~~~~~~~~~
 
-Under OSX you can either install the binaries by following the instruction
-of the PySide website:
+Under OSX you can either install the binaries by following the instructions
+of the official PySide website:
 
   http://qt-project.org/wiki/PySide_Binaries_MacOSX
 
-If you installed a standlone version of Python with homebrew (recommended), you
-can symlink the binary install of PySide to the ``site-packages`` folder of the
-homebre Python::
+If you installed a standalone version of Python with homebrew (recommended), you
+might need to symlink the binary install of PySide to the ``site-packages``
+folder of the homebre Python::
 
   ln -s /Library/Python/2.7/site-packages/PySide /usr/local/lib/python2.7/site-packages/PySide
 
-**Alternatively** you can install PySide and QT from source using homebrew
-with::
+**Known issue**: the py2app frozen build of ``.app`` is not portable if you
+install PySide with HomeBrew directly as documented in `NXP-11552
+<https://jira.nuxeo.com/browse/NXP-11552>`_.
 
-  brew install pyside
+So if you have any portability issues with QT / PySide under OS X you can
+uninstall any previous version of QT and PySide from your system with::
 
-If this fails to build, here are some intructions to help solve any common
-build issues for PySide and QT under OSX:
-
-- first uninstall any previous install of PySide and QT on your machine::
-
-    sudo pip uninstall PySide
     brew uninstall pyside shiboken qt
+    sudo pip uninstall PySide
     sudo python /Developer/Tools/uninstall-qt.py
 
-- then update brew to get the latest recipes::
-
-    brew update
-
-- then fix all the issues reported by ``brew doctor``::
-
-    brew doctor
-
-In particular make sure to have an up-to-date the version of the Command Line
-Tools package to match XCode's version using the "Downloads" tab of the
-Preferences menu of XCode.
-
-- finally re-running the the pyside build should now work::
-
-    brew install pyside
+and then re-install them using from the binary packages of the qt-project.org
+website as described above.
 
 
 Under Debian / Ubuntu
