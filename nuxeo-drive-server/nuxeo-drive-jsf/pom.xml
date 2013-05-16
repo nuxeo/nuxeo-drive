@@ -1,11 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.nuxeo.ecm</groupId>
     <artifactId>nuxeo-drive-server</artifactId>
-    <version>5.6.0-SNAPSHOT</version>
+    <version>5.6.0-HF17</version>
   </parent>
 
   <groupId>org.nuxeo.ecm</groupId>
@@ -92,13 +90,13 @@
             <phase>generate-resources</phase>
             <configuration>
               <tasks unless="nofetch">
-                <exec executable="python" error="target/fetch.err">
+                <exec error="target/fetch.err" executable="python">
                   <!-- <env key="PYTHONPATH" path="src/main/python" /> -->
-                  <arg value="../../tools/integration_tests_setup.py" />
-                  <arg value="fetch-binaries" />
-                  <arg value="--msi-url=${msi.url}" />
-                  <arg value="--dmg-url=${dmg.url}" />
-                  <arg value="--base-folder=." />
+                  <arg value="../../tools/integration_tests_setup.py"></arg>
+                  <arg value="fetch-binaries"></arg>
+                  <arg value="--msi-url=${msi.url}"></arg>
+                  <arg value="--dmg-url=${dmg.url}"></arg>
+                  <arg value="--base-folder=."></arg>
                 </exec>
               </tasks>
             </configuration>
