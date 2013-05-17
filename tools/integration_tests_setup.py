@@ -53,13 +53,8 @@ EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
 
 LINKS_PATTERN = r'\bhref="([^"]+)"'
 
-MSI_PATTERN = r"nuxeo-drive-.*\.msi"
-DMG_PATTERN = r"Nuxeo%20Drive\.dmg"
 DEFAULT_ARCHIVE_PATTERN = DEFAULT_ARCHIVE_PREFIX + r"\d\.\d.*?-nuxeo-cap\.zip"
 MARKETPLACE_PATTERN = MARKET_PLACE_PREFIX + r"\d\.\d.*?\.zip"
-
-WAR_FOLDER = os.path.join("target", "classes",
-    "web", "nuxeo.war", "nuxeo-drive")
 
 
 def pflush(message):
@@ -84,14 +79,6 @@ def parse_args(args=None):
     main_parser = argparse.ArgumentParser(
         description="Integration tests coordinator")
     subparsers = main_parser.add_subparsers(title="Commands")
-
-    # Fetch binary dependencies from related Jenkins jobs
-    parser = subparsers.add_parser(
-        'fetch-binaries', help="Fetch binary packages from Jenkins pages")
-    parser.set_defaults(command='fetch-binaries')
-    parser.add_argument('--msi-url')
-    parser.add_argument('--dmg-url')
-    parser.add_argument('--base-folder')
 
     # Fetch Nuxeo distribution from given URL
     parser = subparsers.add_parser(
@@ -344,15 +331,6 @@ if __name__ == "__main__":
             run_tests_from_msi()
         else:
             run_tests_from_source()
-    elif options.command == 'fetch-binaries':
-        target_folder = os.path.join(options.base_folder, WAR_FOLDER)
-        if os.path.exists(target_folder):
-            shutil.rmtree(target_folder)
-        os.makedirs(target_folder)
-        if options.msi_url is not None:
-            download_package(options.msi_url, MSI_PATTERN, target_folder)
-        if options.dmg_url is not None:
-            download_package(options.dmg_url, DMG_PATTERN, target_folder)
     elif options.command == 'fetch-distrib':
         clean_download_dir(MARKETPLACE_FOLDER, DEFAULT_ARCHIVE_PATTERN)
         if options.url is not None:
