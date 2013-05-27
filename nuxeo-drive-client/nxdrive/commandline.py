@@ -303,7 +303,7 @@ class CliHandler(object):
         self.log = get_logger(__name__)
         self.log.debug("Command line: " + ' '.join(argv))
 
-        self._install_faulthandler()
+        self._install_faulthandler(options)
 
         if command == 'launch':
             # Ensure that the protocol handler are registered:
@@ -426,13 +426,17 @@ class CliHandler(object):
         ]
         return 0 if nose.run(argv=argv) else 1
 
-    def _install_faulthandler(self):
+    def _install_faulthandler(self, options):
         """Utility to help debug segfaults"""
         try:
             # Use faulthandler to print python tracebacks in case of segfaults
             import faulthandler
-            self.log.debug("Enabling faulthandler to trace segfaults")
-            faulthandler.enable()
+            segfault_filename = os.path.join(
+                options.nxdrive_home, 'logs', 'segfault.log')
+            segfault_file = open(os.path.expanduser(segfault_filename), 'w')
+            self.log.debug("Enabling faulthandler to trace segfaults in %s",
+                           segfault_filename)
+            faulthandler.enable(file=segfault_file)
         except ImportError:
             self.log.debug("faulthandler is not available: skipped")
 
