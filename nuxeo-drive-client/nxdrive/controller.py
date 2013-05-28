@@ -41,8 +41,8 @@ def default_nuxeo_drive_folder():
     """
     if sys.platform == "win32":
         # WARNING: it's important to check `Documents` first as under Windows 7
-        # there also exists a `My Documents` folder invisible in the explorer and
-        # cmd / powershell but visible from Python
+        # there also exists a `My Documents` folder invisible in the explorer
+        # and cmd / powershell but visible from Python
         documents = os.path.expanduser(ur'~\Documents')
         my_documents = os.path.expanduser(ur'~\My Documents')
         if os.path.exists(documents):
@@ -122,9 +122,9 @@ class Controller(object):
     def stop(self):
         """Stop the Nuxeo Drive synchronization thread
 
-        As the process asking the synchronization to stop might not be the as
-        the process runnning the synchronization (especially when used from the
-        commandline without the graphical user interface and its tray icon
+        As the process asking the synchronization to stop might not be the same
+        as the process running the synchronization (especially when used from
+        the commandline without the graphical user interface and its tray icon
         menu) we use a simple empty marker file a cross platform way to pass
         the stop message between the two.
 
@@ -533,7 +533,7 @@ class Controller(object):
         self.open_local_file(file_path)
 
     def open_local_file(self, file_path):
-        """Launch the local operating system program on the given file / folder."""
+        """Launch the local OS program on the given file / folder."""
         log.debug('Launching editor on %s', file_path)
         if sys.platform == 'win32':
             os.startfile(file_path)
@@ -570,11 +570,11 @@ class Controller(object):
 
     def register_folder_link_darwin(self, folder_path):
         try:
-           from LaunchServices import LSSharedFileListCreate
-           from LaunchServices import kLSSharedFileListFavoriteItems
-           from LaunchServices import LSSharedFileListInsertItemURL
-           from LaunchServices import kLSSharedFileListItemBeforeFirst
-           from LaunchServices import CFURLCreateWithString
+            from LaunchServices import LSSharedFileListCreate
+            from LaunchServices import kLSSharedFileListFavoriteItems
+            from LaunchServices import LSSharedFileListInsertItemURL
+            from LaunchServices import kLSSharedFileListItemBeforeFirst
+            from LaunchServices import CFURLCreateWithString
         except ImportError:
             log.warning("PyObjC package is not installed:"
                         " skipping favorite link creation")
@@ -582,7 +582,8 @@ class Controller(object):
         folder_path = normalized_path(folder_path)
         folder_name = os.path.basename(folder_path)
 
-        lst = LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems, None)
+        lst = LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems,
+                                     None)
         if lst is None:
             log.warning("Could not fetch the Finder favorite list.")
             return
