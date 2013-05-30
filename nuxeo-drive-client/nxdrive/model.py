@@ -261,7 +261,7 @@ class LastKnownState(Base):
             self.folderish = local_info.folderish
             update_digest = True
 
-        elif local_info.last_modification_time > self.last_local_updated:
+        elif local_info.last_modification_time != self.last_local_updated:
             self.last_local_updated = local_info.last_modification_time
             self.folderish = local_info.folderish
             if not self.folderish:
