@@ -42,7 +42,9 @@ class TestIntegrationWindows(IntegrationTestCase):
         self.assertTrue(remote.exists('/test.odt'))
         self.assertEquals(remote.get_content('/test.odt'), 'Updated content.')
 
-        # Copy the oldest file to the root workspace and synchronize it
+        # Copy the oldest file to the root workspace and synchronize it.
+        # First wait a bit for file time stamps to increase enough.
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         copyfile(os.path.join(self.local_test_folder_1, 'test.odt'),
                  os.path.join(sync_root, 'test.odt'))
         syn.loop(delay=0.1, max_loops=1)
