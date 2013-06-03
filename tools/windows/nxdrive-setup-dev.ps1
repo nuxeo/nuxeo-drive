@@ -27,7 +27,7 @@ Set-Item -path env:Path -value ($env:Path + ";C:\Python27;C:\Python27\Scripts;")
 # Install setuptools and pip
 $url = "http://peak.telecommunity.com/dist/ez_setup.py"
 $ez_setup = "$storagedir\ez_setup.py"
-echo "Downloading Python from $url"
+echo "Downloading Setuptools from $url"
 $webclient.DownloadFile($url, $ez_setup)
 echo "Installing Setuptools from $ez_setup"
 python $ez_setup

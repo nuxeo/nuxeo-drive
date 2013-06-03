@@ -281,8 +281,9 @@ class RemoteDocumentClient(BaseAutomationClient):
             target=target, name=name)
 
     def copy(self, ref, target, name=None):
-        return self.execute("Document.Copy", input="doc:" + ref,
-            target=target, name=name)
+        return self.execute("Document.Copy",
+                            input="doc:" + self._check_ref(ref),
+                            target=self._check_ref(target), name=name)
 
     # These ones are special: no 'input' parameter
 
