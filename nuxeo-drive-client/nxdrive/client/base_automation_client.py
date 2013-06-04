@@ -122,13 +122,13 @@ class BaseAutomationClient(object):
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
 
-    def execute(self, command, input=None, timeout=-1, **params):
+    def execute(self, command, op_input=None, timeout=-1, **params):
         if self._error is not None:
             # Simulate a configurable (e.g. network or server) error for the
             # tests
             raise self._error
 
-        self._check_params(command, input, params)
+        self._check_params(command, params)
         headers = {
             "Content-Type": "application/json+nxrequest",
             "X-NXDocumentProperties": "*",
@@ -146,8 +146,8 @@ class BaseAutomationClient(object):
             else:
                 json_struct['params'][k] = v
 
-        if input:
-            json_struct['input'] = input
+        if op_input:
+            json_struct['input'] = op_input
 
         data = json.dumps(json_struct)
         cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
@@ -178,7 +178,7 @@ class BaseAutomationClient(object):
             return s
 
     def execute_with_blob(self, command, blob_content, filename, **params):
-        self._check_params(command, None, params)
+        self._check_params(command, params)
 
         container = MIMEMultipart("related",
                 type="application/json+nxrequest",
@@ -191,7 +191,7 @@ class BaseAutomationClient(object):
         json_part.set_payload(json_data)
         container.attach(json_part)
 
-        ctype, encoding = mimetypes.guess_type(filename)
+        ctype, _ = mimetypes.guess_type(filename)
         if ctype:
             maintype, subtype = ctype.split('/', 1)
         else:
@@ -323,7 +323,7 @@ class BaseAutomationClient(object):
         self.execute("NuxeoDrive.WaitForAsyncCompletion")
 
     def _update_auth(self, password=None, token=None):
-        """Select the most appropriate authentication heads based on credentials"""
+        """Select the most appropriate auth headers based on credentials"""
         if token is not None:
             self.auth = ('X-Authentication-Token', token)
         elif password is not None:
@@ -351,7 +351,7 @@ class BaseAutomationClient(object):
             self.auth[0]: self.auth[1],
         }
 
-    def _check_params(self, command, input, params):
+    def _check_params(self, command, params):
         if command not in self.operations:
             raise ValueError("'%s' is not a registered operations." % command)
         method = self.operations[command]

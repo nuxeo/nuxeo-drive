@@ -404,7 +404,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         folder_1_path = self.TEST_WORKSPACE_PATH + u'/Original Folder 1'
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
-            input=op_input,
+            op_input=op_input,
             user="nuxeoDriveTestUser_user_1",
             permission="Write",
             grant="false")
@@ -479,7 +479,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         folder_1_path = self.TEST_WORKSPACE_PATH + u'/Original Folder 1'
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
-            input=op_input,
+            op_input=op_input,
             user="nuxeoDriveTestUser_user_1",
             permission="Write",
             grant="false")

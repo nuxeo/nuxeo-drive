@@ -143,14 +143,14 @@ class RemoteDocumentClient(BaseAutomationClient):
         op_input = "doc:" + self._check_ref(ref)
         if use_trash:
             try:
-                return self.execute("Document.SetLifeCycle", input=op_input,
+                return self.execute("Document.SetLifeCycle", op_input=op_input,
                                      value='delete')
             except urllib2.HTTPError as e:
                 if e.code == 500:
-                    return self.execute("Document.Delete", input=op_input)
+                    return self.execute("Document.Delete", op_input=op_input)
                 raise
         else:
-            return self.execute("Document.Delete", input=op_input)
+            return self.execute("Document.Delete", op_input=op_input)
 
     def exists(self, ref, use_trash=True):
         ref = self._check_ref(ref)
@@ -253,39 +253,39 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def create(self, ref, doc_type, name=None, properties=None):
         name = safe_filename(name)
-        return self.execute("Document.Create", input="doc:" + ref,
+        return self.execute("Document.Create", op_input="doc:" + ref,
             type=doc_type, name=name, properties=properties)
 
     def update(self, ref, properties=None):
-        return self.execute("Document.Update", input="doc:" + ref,
+        return self.execute("Document.Update", op_input="doc:" + ref,
             properties=properties)
 
     def set_property(self, ref, xpath, value):
-        return self.execute("Document.SetProperty", input="doc:" + ref,
+        return self.execute("Document.SetProperty", op_input="doc:" + ref,
             xpath=xpath, value=value)
 
     def get_children(self, ref):
-        return self.execute("Document.GetChildren", input="doc:" + ref)
+        return self.execute("Document.GetChildren", op_input="doc:" + ref)
 
     def get_parent(self, ref):
-        return self.execute("Document.GetParent", input="doc:" + ref)
+        return self.execute("Document.GetParent", op_input="doc:" + ref)
 
     def lock(self, ref):
-        return self.execute("Document.Lock", input="doc:" + ref)
+        return self.execute("Document.Lock", op_input="doc:" + ref)
 
     def unlock(self, ref):
-        return self.execute("Document.Unlock", input="doc:" + ref)
+        return self.execute("Document.Unlock", op_input="doc:" + ref)
 
     def move(self, ref, target, name=None):
-        return self.execute("Document.Move", input="doc:" + ref,
+        return self.execute("Document.Move", op_input="doc:" + ref,
             target=target, name=name)
 
     def copy(self, ref, target, name=None):
         return self.execute("Document.Copy",
-                            input="doc:" + self._check_ref(ref),
+                            op_input="doc:" + self._check_ref(ref),
                             target=self._check_ref(target), name=name)
 
-    # These ones are special: no 'input' parameter
+    # These ones are special: no 'op_input' parameter
 
     def fetch(self, ref):
         try:
@@ -302,7 +302,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     # Blob category
 
     def get_blob(self, ref):
-        return self.execute("Blob.Get", input="doc:" + ref,
+        return self.execute("Blob.Get", op_input="doc:" + ref,
                             timeout=self.blob_timeout)
 
     def attach_blob(self, ref, blob, filename, **params):
@@ -322,12 +322,12 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def register_as_root(self, ref):
         ref = self._check_ref(ref)
-        self.execute("NuxeoDrive.SetSynchronization", input="doc:" + ref,
+        self.execute("NuxeoDrive.SetSynchronization", op_input="doc:" + ref,
                      enable=True)
         return True
 
     def unregister_as_root(self, ref):
         ref = self._check_ref(ref)
-        self.execute("NuxeoDrive.SetSynchronization", input="doc:" + ref,
+        self.execute("NuxeoDrive.SetSynchronization", op_input="doc:" + ref,
                      enable=False)
         return True
