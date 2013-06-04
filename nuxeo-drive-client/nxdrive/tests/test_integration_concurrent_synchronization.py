@@ -10,7 +10,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
     def create_docs(self, remote_client, parent, number,
         name_pattern=None, delay=1):
         return remote_client.execute("NuxeoDrive.CreateTestDocuments",
-           input="doc:" + parent, namePattern=name_pattern,
+           op_input="doc:" + parent, namePattern=name_pattern,
            number=number, delay=int(delay * 1000))
 
     def test_find_changes_with_many_doc_creations(self):
