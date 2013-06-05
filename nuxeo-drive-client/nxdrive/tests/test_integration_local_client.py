@@ -181,3 +181,23 @@ def test_deep_folders():
     # Delete the root folder and descendants
     lcclient.delete(u'/0123456789')
     assert_false(lcclient.exists(u'/0123456789'))
+
+
+@with_temp_folder
+def test_get_new_file():
+    path, os_path, name = lcclient.get_new_file(TEST_WORKSPACE,
+                                                u'Document 1.txt')
+    assert_equal(path, '/Some Workspace/Document 1.txt')
+    assert_true(os_path.endswith(
+                    os.path.join('-nuxeo-drive-tests', 'Some Workspace',
+                        'Document 1.txt')))
+    assert_equal(name, 'Document 1.txt')
+    assert_false(lcclient.exists(path))
+    assert_false(os.path.exists(os_path))
+
+
+@with_temp_folder
+def test_get_path():
+    abs_path = os.path.join(
+                        LOCAL_TEST_FOLDER, 'Some Workspace', 'Test doc.txt')
+    assert_equal(lcclient.get_path(abs_path), '/Some Workspace/Test doc.txt')
