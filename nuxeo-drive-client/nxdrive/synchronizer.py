@@ -598,8 +598,12 @@ class Synchronizer(object):
             if doc_pair.remote_digest != doc_pair.local_digest != None:
                 log.debug("Updating content of local file '%s'.",
                           doc_pair.get_local_abspath())
-                content = remote_client.get_content(doc_pair.remote_ref)
-                local_client.update_content(doc_pair.local_path, content)
+                tmp_file = remote_client.get_content_in_tmp_file(
+                                            doc_pair.remote_ref,
+                                            doc_pair.local_path)
+                # Delete original file and rename tmp file
+                local_client.delete(doc_pair.local_path)
+                local_client.rename(tmp_file, doc_pair.local_path)
                 doc_pair.refresh_local(local_client)
             else:
                 # digest agree so this might be a renaming and/or a move,
@@ -735,9 +739,11 @@ class Synchronizer(object):
         else:
             log.debug("Creating local file '%s' in '%s'", name,
                       parent_pair.get_local_abspath())
-            path = local_client.make_file(
-                local_parent_path, name,
-                content=remote_client.get_content(doc_pair.remote_ref))
+            path = local_client.make_file(local_parent_path, name)
+            tmp_file = remote_client.get_content_in_tmp_file(
+                                            doc_pair.remote_ref, path)
+            # Rename tmp file
+            local_client.rename(tmp_file, path)
         doc_pair.update_local(local_client.get_info(path))
         doc_pair.update_state('synchronized', 'synchronized')
 

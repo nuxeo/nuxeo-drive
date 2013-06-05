@@ -5,6 +5,7 @@ from collections import namedtuple
 from datetime import datetime
 import urllib2
 import time
+import os
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
 from nxdrive.client.common import BUFFER_SIZE
@@ -14,6 +15,8 @@ from nxdrive.client.base_automation_client import BaseAutomationClient
 
 log = get_logger(__name__)
 
+DOWNLOAD_TMP_FILE_PREFIX = '.'
+DOWNLOAD_TMP_FILE_SUFFIX = '.part'
 
 # Data transfer objects
 
@@ -65,15 +68,33 @@ class RemoteFileSystemClient(BaseAutomationClient):
         toplevel_folder = self.execute("NuxeoDrive.GetTopLevelFolder")
         return self.file_to_info(toplevel_folder)
 
-    def get_content(self, fs_item_id, file_out=None):
-        """Downloads the binary content of a file system item
+    def get_content(self, fs_item_id):
+        """Downloads and returns the binary content of a file system item
+
+        Beware that the content is loaded in memory.
 
         Raises NotFound if file system item with id fs_item_id
         cannot be found
         """
         fs_item_info = self.get_info(fs_item_id)
         download_url = self.server_url + fs_item_info.download_url
-        return self._do_get(download_url, file_out=file_out)
+        content, _ = self._do_get(download_url)
+        return content
+
+    def get_content_in_tmp_file(self, fs_item_id, file_path):
+        """Downloads the binary content of a file system item to a tmp file
+
+        Raises NotFound if file system item with id fs_item_id
+        cannot be found
+        """
+        fs_item_info = self.get_info(fs_item_id)
+        download_url = self.server_url + fs_item_info.download_url
+        file_dir = os.path.dirname(file_path)
+        file_name = os.path.basename(file_path)
+        file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
+                                + DOWNLOAD_TMP_FILE_SUFFIX)
+        _, tmp_file = self._do_get(download_url, file_out=file_out)
+        return tmp_file
 
     def get_children_info(self, fs_item_id):
         children = self.execute("NuxeoDrive.GetChildren", id=fs_item_id)
@@ -168,14 +189,17 @@ class RemoteFileSystemClient(BaseAutomationClient):
             log.trace("Calling '%s' with headers: %r", url, headers)
             req = urllib2.Request(url, headers=headers)
             response = self.opener.open(req, timeout=self.blob_timeout)
-            if hasattr(file_out, "write"):
-                while True:
-                    buffer_ = response.read(BUFFER_SIZE)
-                    if buffer_ == '':
-                        break
-                    file_out.write(buffer_)
+
+            if file_out is not None:
+                with open(file_out, "wb") as f:
+                    while True:
+                        buffer_ = response.read(BUFFER_SIZE)
+                        if buffer_ == '':
+                            break
+                        f.write(buffer_)
+                return None, file_out
             else:
-                return response.read()
+                return response.read(), None
         except urllib2.HTTPError as e:
             if e.code == 401 or e.code == 403:
                 raise Unauthorized(self.server_url, self.user_id, e.code)
