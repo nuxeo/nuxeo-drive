@@ -60,10 +60,10 @@ class FileInfo(object):
         h = digester()
         with open(safe_long_path(self.filepath), 'rb') as f:
             while True:
-                buffer = f.read(BUFFER_SIZE)
-                if buffer == '':
+                buffer_ = f.read(BUFFER_SIZE)
+                if buffer_ == '':
                     break
-                h.update(buffer)
+                h.update(buffer_)
         return h.hexdigest()
 
 
