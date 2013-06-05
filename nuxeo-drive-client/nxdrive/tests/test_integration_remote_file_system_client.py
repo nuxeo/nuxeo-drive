@@ -2,6 +2,7 @@ from nxdrive.client import NotFound
 from nxdrive.tests.common import IntegrationTestCase
 import hashlib
 import time
+import os
 
 
 class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
@@ -77,12 +78,20 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         # Check file without content
         doc_uid = self.remote_document_client_1.make_file(self.workspace,
             'Document 2.txt')
-        # Wait to be sure that the file creation has been committed
-        # See https://jira.nuxeo.com/browse/NXP-10964
-        time.sleep(1.0)
         fs_item_id = self.FS_ITEM_ID_PREFIX + doc_uid
         self.assertRaises(NotFound,
             remote_client.get_content, fs_item_id)
+
+    def test_get_content_in_tmp_file(self):
+        remote_client = self.remote_file_system_client_1
+
+        fs_item_id = remote_client.make_file(self.workspace_id,
+            'Document 1.txt', "Content of doc 1.")
+        file_path = os.path.join(self.local_test_folder_1, 'Document 1.txt')
+        tmp_file = remote_client.get_content_in_tmp_file(fs_item_id, file_path)
+        self.assertTrue(os.path.exists(tmp_file))
+        self.assertEquals(os.path.basename(tmp_file), '.Document 1.txt.part')
+        self.assertEqual(open(tmp_file).read(), "Content of doc 1.")
 
     def test_get_children_info(self):
         remote_client = self.remote_file_system_client_1

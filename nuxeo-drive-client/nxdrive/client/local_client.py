@@ -60,10 +60,10 @@ class FileInfo(object):
         h = digester()
         with open(safe_long_path(self.filepath), 'rb') as f:
             while True:
-                buffer = f.read(BUFFER_SIZE)
-                if buffer == '':
+                buffer_ = f.read(BUFFER_SIZE)
+                if buffer_ == '':
                     break
-                h.update(buffer)
+                h.update(buffer_)
         return h.hexdigest()
 
 
@@ -162,6 +162,14 @@ class LocalClient(object):
             return u"/" + name
         return parent + u"/" + name
 
+    def get_new_file(self, parent, name):
+        os_path, name = self._abspath_deduped(parent, name)
+        if parent == u"/":
+            path = u"/" + name
+        else:
+            path = parent + u"/" + name
+        return path, os_path, name
+
     def update_content(self, ref, content):
         with open(self._abspath(ref), "wb") as f:
             f.write(content)
@@ -216,6 +224,10 @@ class LocalClient(object):
         else:
             new_ref = new_parent_ref + u"/" + new_name
         return self.get_info(new_ref)
+
+    def get_path(self, abspath):
+        """Relative path to the local client from an absolute OS path"""
+        return abspath.split(self.base_folder, 1)[1]
 
     def _abspath(self, ref):
         """Absolute path on the operating system"""
