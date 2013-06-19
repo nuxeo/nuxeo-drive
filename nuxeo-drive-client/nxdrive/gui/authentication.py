@@ -9,11 +9,11 @@ log = get_logger(__name__)
 # Keep QT an optional dependency for now
 QtGui, QDialog = None, object
 try:
-    from PySide import QtGui
+    from PyQt4 import QtGui
     QDialog = QtGui.QDialog
-    log.debug("QT / PySide successfully imported")
+    log.debug("QT / PyQt4 successfully imported")
 except ImportError:
-    log.warning("QT / PySide is not installed: GUI is disabled")
+    log.warning("QT / PyQt4 is not installed: GUI is disabled")
     pass
 
 
