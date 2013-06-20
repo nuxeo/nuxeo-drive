@@ -27,7 +27,7 @@ class Dialog(QDialog):
                  callback=None):
         super(Dialog, self).__init__()
         if QtGui is None:
-            raise RuntimeError("PySide is not installed.")
+            raise RuntimeError("PyQt4 is not installed.")
         self.create_authentication_box(fields_spec)
         self.callback = callback
         buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok
@@ -96,8 +96,8 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
     global is_dialog_open
 
     if QtGui is None:
-        # Qt / PySide is not installed
-        log.error("QT / PySide is not installed:"
+        # Qt / PyQt4 is not installed
+        log.error("QT / PyQt4 is not installed:"
                   " use commandline options for binding a server.")
         return False
 
