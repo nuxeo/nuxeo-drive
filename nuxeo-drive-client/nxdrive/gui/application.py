@@ -146,7 +146,7 @@ class Application(QApplication):
         self.quit_on_stop = True
         self.communicator.menu.emit()
         if self.sync_thread is not None and self.sync_thread.isAlive():
-            # Ask the conntroller to stop: the synchronization loop will in turn
+            # Ask the controller to stop: the synchronization loop will in turn
             # call notify_sync_stopped and finally handle_stop
             self.controller.stop()
         else:
