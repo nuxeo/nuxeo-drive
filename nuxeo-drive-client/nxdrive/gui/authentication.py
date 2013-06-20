@@ -131,6 +131,7 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             if not url:
                 dialog.show_message("The Nuxeo server URL is required.")
                 return False
+            url = str(url)
             if (not url.startswith("http://")
                 and not url.startswith('https://')):
                 dialog.show_message("Not a valid HTTP url.")
@@ -139,7 +140,8 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             if not username:
                 dialog.show_message("A user name is required")
                 return False
-            password = values['password']
+            username = str(username)
+            password = str(values['password'])
             dialog.show_message("Connecting to %s ..." % url)
             controller.bind_server(local_folder, url, username, password)
             return True
