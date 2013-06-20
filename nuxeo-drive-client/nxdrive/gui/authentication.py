@@ -72,7 +72,7 @@ class Dialog(QDialog):
         self.authentication_group_box.setLayout(layout)
 
     def clear_message(self, *args, **kwargs):
-        self.message_area.setText(None)
+        self.message_area.clear()
 
     def show_message(self, message):
         self.message_area.setText(message)

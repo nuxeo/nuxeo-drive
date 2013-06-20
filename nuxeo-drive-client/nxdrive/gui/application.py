@@ -255,7 +255,7 @@ class Application(QApplication):
 
     @QtCore.pyqtSlot(str)
     def handle_invalid_credentials(self, local_folder):
-        sb = self.controller.get_server_binding(local_folder)
+        sb = self.controller.get_server_binding(str(local_folder))
         sb.invalidate_credentials()
         self.controller.get_session().commit()
         self.communicator.menu.emit()
