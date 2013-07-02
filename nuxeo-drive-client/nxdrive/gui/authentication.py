@@ -123,6 +123,7 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             'is_password': True,
         },
     ]
+
     def bind_server(values, dialog):
         try:
             url = values['url']

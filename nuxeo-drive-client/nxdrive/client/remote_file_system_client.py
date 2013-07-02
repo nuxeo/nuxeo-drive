@@ -69,7 +69,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self.file_to_info(toplevel_folder)
 
     def get_content(self, fs_item_id):
-        """Downloads and returns the binary content of a file system item
+        """Download and return the binary content of a file system item
 
         Beware that the content is loaded in memory.
 
@@ -81,8 +81,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
         content, _ = self._do_get(download_url)
         return content
 
-    def get_content_in_tmp_file(self, fs_item_id, file_path):
-        """Downloads the binary content of a file system item to a tmp file
+    def stream_content(self, fs_item_id, file_path):
+        """Stream the binary content of a file system item to a tmp file
 
         Raises NotFound if file system item with id fs_item_id
         cannot be found
@@ -106,16 +106,38 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return fs_item['id']
 
     def make_file(self, parent_id, name, content):
+        """Create a document with the given name and content
+
+        Beware that the whole content is loaded in memory when calling this.
+        """
         fs_item = self.execute_with_blob("NuxeoDrive.CreateFile",
             content, name, parentId=parent_id, name=name)
         return fs_item['id']
 
+    def stream_file(self, parent_id, name, file_path):
+        """Create a document by streaming the file with the given path"""
+        # TODO: handle exception?
+        fs_item = self.execute_with_blob_streaming("NuxeoDrive.CreateFile",
+            file_path, name, parentId=parent_id, name=name)
+        return fs_item['id']
+
     def update_content(self, fs_item_id, content, name=None):
+        """Update a document with the given content
+
+        Beware that the whole content is loaded in memory when calling this.
+        """
         if name is None:
             name = self.get_info(fs_item_id).name
-        fs_item = self.execute_with_blob('NuxeoDrive.UpdateFile',
+        self.execute_with_blob('NuxeoDrive.UpdateFile',
             content, name, id=fs_item_id)
-        return fs_item['id']
+
+    def stream_update(self, fs_item_id, file_path, name=None):
+        """Update a document by streaming the file with the given path"""
+        if name is None:
+            name = self.get_info(fs_item_id).name
+        # TODO: handle exception?
+        self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
+            file_path, name, id=fs_item_id)
 
     def delete(self, fs_item_id):
         self.execute("NuxeoDrive.Delete", id=fs_item_id)

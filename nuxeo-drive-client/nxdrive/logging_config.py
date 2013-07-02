@@ -46,7 +46,6 @@ def configure(log_filename, file_level='INFO', console_level='INFO',
         backupCount=log_rotate_keep)
     file_handler.setLevel(file_level)
 
-
     # define a Handler which writes INFO messages or higher to the sys.stderr
     console_handler = logging.StreamHandler()
     console_handler.setLevel(console_level)

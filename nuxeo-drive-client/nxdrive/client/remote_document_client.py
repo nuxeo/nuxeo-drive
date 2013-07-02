@@ -37,6 +37,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'digest',  # digest of the document
     'repository',  # server repository name
     'doc_type',  # Nuxeo document type
+    # TODO: add filename?
 ])
 
 
@@ -91,8 +92,15 @@ class RemoteDocumentClient(BaseAutomationClient):
                                  fetch_parent_uid=fetch_parent_uid)
 
     def get_content(self, ref):
+        """Download and return the binary content of a document
+
+        Beware that the content is loaded in memory.
+        """
         ref = self._check_ref(ref)
         return self.get_blob(ref)
+
+    # TODO: allow getting content by streaming the response to an output file
+    # See RemoteFileSystemClient.stream_content
 
     def get_children_info(self, ref, types=DEFAULT_TYPES, limit=MAX_CHILDREN):
         ref = self._check_ref(ref)
@@ -126,18 +134,44 @@ class RemoteDocumentClient(BaseAutomationClient):
         return doc[u'uid']
 
     def make_file(self, parent, name, content=None, doc_type=FILE_TYPE):
+        """Create a document of the given type with the given name and content
+
+        Beware that the whole content is loaded in memory when calling this.
+        """
         parent = self._check_ref(parent)
-        doc = self.create(parent, FILE_TYPE, name=name,
+        doc = self.create(parent, doc_type, name=name,
                           properties={'dc:title': name})
         ref = doc[u'uid']
         if content is not None:
             self.attach_blob(ref, content, name)
         return ref
 
+    def stream_file(self, parent, name, file_path, filename,
+                    doc_type=FILE_TYPE):
+        """Create a document by streaming the file with the given path"""
+        ref = self.make_file(parent, name, doc_type=doc_type)
+        # TODO: handle exception?
+        self.execute_with_blob_streaming("Blob.Attach", file_path, filename,
+                                         document=ref)
+        return ref
+
     def update_content(self, ref, content, name=None):
+        """Update a document with the given content
+
+        Beware that the whole content is loaded in memory when calling this.
+        """
         if name is None:
             name = self.get_info(ref).name
         self.attach_blob(self._check_ref(ref), content, name)
+
+    def stream_update(self, ref, file_path, name=None):
+        """Update a document by streaming the file with the given path"""
+        if name is None:
+            name = self.get_info(ref).name
+        ref = self._check_ref(ref)
+        # TODO: handle exception?
+        self.execute_with_blob_streaming("Blob.Attach", file_path, name,
+                                         document=ref)
 
     def delete(self, ref, use_trash=True):
         op_input = "doc:" + self._check_ref(ref)

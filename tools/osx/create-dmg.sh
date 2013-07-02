@@ -1,7 +1,6 @@
 #! /bin/bash
 
 VOLUME_NAME="Nuxeo Drive"
-DMG_SIZE=50m
 SCRIPT_LOCATION="`dirname \"$0\"`"
 SRC_FOLDER_TEMP="$SCRIPT_LOCATION/dmg_src_folder.tmp"
 DMG_TEMP="$SCRIPT_LOCATION/nuxeo-drive.tmp.dmg"
@@ -10,6 +9,7 @@ GENERATED_DS_STORE="$SCRIPT_LOCATION/generated_DS_Store"
 
 PACKAGE_PATH="$SCRIPT_LOCATION/../../dist/Nuxeo Drive.app"
 DMG_PATH="$SCRIPT_LOCATION/../../dist/Nuxeo Drive.dmg"
+DMG_SIZE=$(($(du -sm "$PACKAGE_PATH" | cut -d$'\t' -f1,1)+20))m
 
 rm -rf "$SRC_FOLDER_TEMP" "$DMG_TEMP"
 mkdir "$SRC_FOLDER_TEMP"

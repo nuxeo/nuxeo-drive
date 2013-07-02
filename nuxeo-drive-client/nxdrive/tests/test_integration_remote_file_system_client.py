@@ -82,13 +82,13 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertRaises(NotFound,
             remote_client.get_content, fs_item_id)
 
-    def test_get_content_in_tmp_file(self):
+    def test_stream_content(self):
         remote_client = self.remote_file_system_client_1
 
         fs_item_id = remote_client.make_file(self.workspace_id,
             'Document 1.txt', "Content of doc 1.")
         file_path = os.path.join(self.local_test_folder_1, 'Document 1.txt')
-        tmp_file = remote_client.get_content_in_tmp_file(fs_item_id, file_path)
+        tmp_file = remote_client.stream_content(fs_item_id, file_path)
         self.assertTrue(os.path.exists(tmp_file))
         self.assertEquals(os.path.basename(tmp_file), '.Document 1.txt.part')
         self.assertEqual(open(tmp_file).read(), "Content of doc 1.")
@@ -207,9 +207,8 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             'Document 1.txt', "Content of doc 1.")
 
         # Check file update
-        updated_fs_item_id = remote_client.update_content(
+        remote_client.update_content(
             fs_item_id, "Updated content of doc 1.")
-        self.assertEquals(updated_fs_item_id, fs_item_id)
         self.assertEquals(remote_client.get_content(fs_item_id),
             "Updated content of doc 1.")
 
@@ -319,6 +318,27 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(new_name.startswith(
             "My File (nuxeoDriveTestUser_user_1 - "))
         self.assertTrue(new_name.endswith(").doc"))
+
+    def test_streaming_upload(self):
+        remote_client = self.remote_file_system_client_1
+
+        # Create a document by streaming the file
+        filename = 'File name.txt'
+        file_path = self.create_tmp_file(filename, "Some content.")
+        fs_item_id = remote_client.stream_file(self.workspace_id,
+                                            filename, file_path)
+        self.assertTrue(remote_client.exists(fs_item_id))
+        self.assertEquals(remote_client.get_content(fs_item_id),
+                          "Some content.")
+
+        # Update a document by streaming the new file
+        filename = 'New file name.txt'
+        file_path = self.create_tmp_file(filename, "Other content.")
+        remote_client.stream_update(fs_item_id,
+                                              file_path, name=filename)
+        self.assertTrue(remote_client.exists(fs_item_id))
+        self.assertEquals(remote_client.get_content(fs_item_id),
+                          "Other content.")
 
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)
