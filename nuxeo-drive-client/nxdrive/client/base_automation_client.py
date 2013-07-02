@@ -133,6 +133,7 @@ class BaseAutomationClient(object):
             self._check_params(command, params)
         headers = {
             "Content-Type": "application/json+nxrequest",
+            "Accept": "application/json+nxentity, */*",
             "X-NXDocumentProperties": "*",
         }
         if void_op:
