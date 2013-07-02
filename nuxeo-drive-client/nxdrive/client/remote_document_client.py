@@ -139,7 +139,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         Beware that the whole content is loaded in memory when calling this.
         """
         parent = self._check_ref(parent)
-        doc = self.create(parent, FILE_TYPE, name=name,
+        doc = self.create(parent, doc_type, name=name,
                           properties={'dc:title': name})
         ref = doc[u'uid']
         if content is not None:
