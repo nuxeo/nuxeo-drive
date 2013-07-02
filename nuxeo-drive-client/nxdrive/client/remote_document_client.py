@@ -37,6 +37,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'digest',  # digest of the document
     'repository',  # server repository name
     'doc_type',  # Nuxeo document type
+    # TODO: add filename?
 ])
 
 
@@ -97,6 +98,9 @@ class RemoteDocumentClient(BaseAutomationClient):
         """
         ref = self._check_ref(ref)
         return self.get_blob(ref)
+
+    # TODO: allow getting content by streaming the response to an output file
+    # See RemoteFileSystemClient.stream_content
 
     def get_children_info(self, ref, types=DEFAULT_TYPES, limit=MAX_CHILDREN):
         ref = self._check_ref(ref)
