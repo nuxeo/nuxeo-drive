@@ -561,9 +561,6 @@ class Synchronizer(object):
             # processes as file transfer can take a long time
             session.commit()
 
-        # TODO: refactor blob access API to avoid loading content in memory
-        # as python strings
-
         handler_name = '_synchronize_' + doc_pair.pair_state
         sync_handler = getattr(self, handler_name, None)
 

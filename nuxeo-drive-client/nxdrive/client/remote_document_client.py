@@ -150,7 +150,6 @@ class RemoteDocumentClient(BaseAutomationClient):
                     doc_type=FILE_TYPE):
         """Create a document by streaming the file with the given path"""
         ref = self.make_file(parent, name, doc_type=doc_type)
-        # TODO: handle exception?
         self.execute_with_blob_streaming("Blob.Attach", file_path, filename,
                                          document=ref)
         return ref
@@ -169,7 +168,6 @@ class RemoteDocumentClient(BaseAutomationClient):
         if name is None:
             name = self.get_info(ref).name
         ref = self._check_ref(ref)
-        # TODO: handle exception?
         self.execute_with_blob_streaming("Blob.Attach", file_path, name,
                                          document=ref)
 

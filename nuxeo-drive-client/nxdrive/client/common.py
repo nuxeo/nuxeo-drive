@@ -6,8 +6,6 @@ import re
 class NotFound(Exception):
     pass
 
-# TODO: add support for the move operations
-
 DEFAULT_IGNORED_PREFIXES = [
     '.',  # hidden Unix files
     '~$',  # Windows lock files
