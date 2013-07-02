@@ -69,7 +69,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self.file_to_info(toplevel_folder)
 
     def get_content(self, fs_item_id):
-        """Downloads and returns the binary content of a file system item
+        """Download and return the binary content of a file system item
 
         Beware that the content is loaded in memory.
 

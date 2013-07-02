@@ -104,7 +104,7 @@ class BaseAutomationClient(object):
     def fetch_api(self):
         headers = self._get_common_headers()
         base_error_message = (
-            "Failed not connect to Nuxeo Content Automation on server %r"
+            "Failed to connect to Nuxeo Content Automation on server %r"
             " with user %r"
         ) % (self.server_url, self.user_id)
         try:
