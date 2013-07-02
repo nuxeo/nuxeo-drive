@@ -106,11 +106,19 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return fs_item['id']
 
     def make_file(self, parent_id, name, content):
+        """Create a document with the given name and content
+
+        Beware that the whole content is loaded in memory when calling this.
+        """
         fs_item = self.execute_with_blob("NuxeoDrive.CreateFile",
             content, name, parentId=parent_id, name=name)
         return fs_item['id']
 
     def update_content(self, fs_item_id, content, name=None):
+        """Update a document with the given content
+
+        Beware that the whole content is loaded in memory when calling this.
+        """
         if name is None:
             name = self.get_info(fs_item_id).name
         fs_item = self.execute_with_blob('NuxeoDrive.UpdateFile',

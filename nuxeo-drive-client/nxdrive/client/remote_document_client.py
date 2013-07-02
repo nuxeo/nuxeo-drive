@@ -91,6 +91,10 @@ class RemoteDocumentClient(BaseAutomationClient):
                                  fetch_parent_uid=fetch_parent_uid)
 
     def get_content(self, ref):
+        """Download and return the binary content of a document
+
+        Beware that the content is loaded in memory.
+        """
         ref = self._check_ref(ref)
         return self.get_blob(ref)
 
@@ -126,6 +130,10 @@ class RemoteDocumentClient(BaseAutomationClient):
         return doc[u'uid']
 
     def make_file(self, parent, name, content=None, doc_type=FILE_TYPE):
+        """Create a document of the given type with the given name and content
+
+        Beware that the whole content is loaded in memory when calling this.
+        """
         parent = self._check_ref(parent)
         doc = self.create(parent, FILE_TYPE, name=name,
                           properties={'dc:title': name})
@@ -135,6 +143,10 @@ class RemoteDocumentClient(BaseAutomationClient):
         return ref
 
     def update_content(self, ref, content, name=None):
+        """Update a document with the given content
+
+        Beware that the whole content is loaded in memory when calling this.
+        """
         if name is None:
             name = self.get_info(ref).name
         self.attach_blob(self._check_ref(ref), content, name)

@@ -183,6 +183,10 @@ class BaseAutomationClient(object):
             return s
 
     def execute_with_blob(self, command, blob_content, filename, **params):
+        """Execute an Automation operation with a blob input
+
+        Beware that the whole content is loaded in memory when calling this.
+        """
         self._check_params(command, params)
 
         container = MIMEMultipart("related",
