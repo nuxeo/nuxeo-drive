@@ -121,17 +121,22 @@ class BaseAutomationClient(object):
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
 
-    def execute(self, command, op_input=None, timeout=-1, **params):
+    def execute(self, command, op_input=None, timeout=-1,
+                check_params=True, void_op=False, **params):
+        """Execute an Automation operation"""
         if self._error is not None:
             # Simulate a configurable (e.g. network or server) error for the
             # tests
             raise self._error
 
-        self._check_params(command, params)
+        if check_params:
+            self._check_params(command, params)
         headers = {
             "Content-Type": "application/json+nxrequest",
             "X-NXDocumentProperties": "*",
         }
+        if void_op:
+            headers.update({"X-NXVoidOperation": "true"})
         headers.update(self._get_common_headers())
         json_struct = {'params': {}}
         for k, v in params.items():
