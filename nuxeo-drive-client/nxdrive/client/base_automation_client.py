@@ -213,7 +213,7 @@ class BaseAutomationClient(object):
         blob_part.add_header("Content-ID", "input")
         blob_part.add_header("Content-Transfer-Encoding", "binary")
 
-        # Quote UTF-8 filenames eventhough JAX-RS does not seem to be able
+        # Quote UTF-8 filenames even though JAX-RS does not seem to be able
         # to retrieve them as per: https://tools.ietf.org/html/rfc5987
         filename = safe_filename(filename)
         quoted_filename = urllib2.quote(filename.encode('utf-8'))
@@ -279,13 +279,13 @@ class BaseAutomationClient(object):
 
         Upload is streamed.
         """
-        # TODO: handle exception while streaming upload
         batch_id = self._generate_unique_id()
         upload_result = self.upload(batch_id, file_path, filename)
         if upload_result['uploaded'] == 'true':
             return self.execute_batch(command, batch_id, '0', **params)
-        # TODO
-        raise
+        else:
+            raise ValueError("Bad response from batch upload with id '%s'"
+                             " and file path '%s'" % (batch_id, file_path))
 
     def upload(self, batch_id, file_path, filename, file_index=0):
         """Upload a file through an Automation batch
@@ -300,20 +300,14 @@ class BaseAutomationClient(object):
             mime_type = ctype
         else:
             mime_type = "application/octet-stream"
-        # TODO: need UTF-8 quoted filename?
-        # Quote UTF-8 filenames eventhough JAX-RS does not seem to be able
+        # Quote UTF-8 filenames even though JAX-RS does not seem to be able
         # to retrieve them as per: https://tools.ietf.org/html/rfc5987
         filename = safe_filename(filename)
         quoted_filename = urllib2.quote(filename.encode('utf-8'))
-#       content_disposition = ("attachment; filename*=UTF-8''%s"
-#                                 % quoted_filename)
-        # TODO
-#         "Content-Transfer-Encoding", "binary" (blob_part)
-#         "Content-Disposition", content_disposition (blob_part)
         headers = {
             "X-Batch-Id": batch_id,
             "X-File-Idx": file_index,
-            "X-File-Name": quoted_filename,  # use quoted_filename?
+            "X-File-Name": quoted_filename,
             "X-File-Size": file_size,
             "X-File-Type": mime_type,
             "Content-Type": "binary/octet-stream",
@@ -331,7 +325,7 @@ class BaseAutomationClient(object):
         # Execute request
         cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
         log.trace("Calling '%s' with cookies %r and headers %r for file '%s'",
-            url, cookies, headers, quoted_filename)  # TODO: file_path?
+            url, cookies, headers, file_path)
         req = urllib2.Request(url, data, headers)
         try:
             # Build streaming opener
