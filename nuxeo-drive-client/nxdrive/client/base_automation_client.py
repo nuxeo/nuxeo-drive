@@ -7,7 +7,6 @@ import urllib2
 import mimetypes
 import random
 import time
-import urllib
 from urllib import urlencode
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -203,7 +202,7 @@ class BaseAutomationClient(object):
         # Quote UTF-8 filenames eventhough JAX-RS does not seem to be able
         # to retrieve them as per: https://tools.ietf.org/html/rfc5987
         filename = safe_filename(filename)
-        quoted_filename = urllib.quote(filename.encode('utf-8'))
+        quoted_filename = urllib2.quote(filename.encode('utf-8'))
         content_disposition = ("attachment; filename*=UTF-8''%s"
                                 % quoted_filename)
         blob_part.add_header("Content-Disposition", content_disposition)
