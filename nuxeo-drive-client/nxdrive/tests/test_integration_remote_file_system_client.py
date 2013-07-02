@@ -207,9 +207,8 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             'Document 1.txt', "Content of doc 1.")
 
         # Check file update
-        updated_fs_item_id = remote_client.update_content(
+        remote_client.update_content(
             fs_item_id, "Updated content of doc 1.")
-        self.assertEquals(updated_fs_item_id, fs_item_id)
         self.assertEquals(remote_client.get_content(fs_item_id),
             "Updated content of doc 1.")
 

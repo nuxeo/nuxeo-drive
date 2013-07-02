@@ -121,9 +121,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
         """
         if name is None:
             name = self.get_info(fs_item_id).name
-        fs_item = self.execute_with_blob('NuxeoDrive.UpdateFile',
+        self.execute_with_blob('NuxeoDrive.UpdateFile',
             content, name, id=fs_item_id)
-        return fs_item['id']
 
     def delete(self, fs_item_id):
         self.execute("NuxeoDrive.Delete", id=fs_item_id)
