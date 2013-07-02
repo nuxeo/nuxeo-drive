@@ -82,13 +82,13 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertRaises(NotFound,
             remote_client.get_content, fs_item_id)
 
-    def test_get_content_in_tmp_file(self):
+    def test_stream_content(self):
         remote_client = self.remote_file_system_client_1
 
         fs_item_id = remote_client.make_file(self.workspace_id,
             'Document 1.txt', "Content of doc 1.")
         file_path = os.path.join(self.local_test_folder_1, 'Document 1.txt')
-        tmp_file = remote_client.get_content_in_tmp_file(fs_item_id, file_path)
+        tmp_file = remote_client.stream_content(fs_item_id, file_path)
         self.assertTrue(os.path.exists(tmp_file))
         self.assertEquals(os.path.basename(tmp_file), '.Document 1.txt.part')
         self.assertEqual(open(tmp_file).read(), "Content of doc 1.")

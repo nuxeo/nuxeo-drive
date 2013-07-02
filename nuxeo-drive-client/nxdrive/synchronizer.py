@@ -599,7 +599,7 @@ class Synchronizer(object):
                 log.debug("Updating content of local file '%s'.",
                           doc_pair.get_local_abspath())
                 os_path = local_client.get_info(doc_pair.local_path).filepath
-                tmp_file = remote_client.get_content_in_tmp_file(
+                tmp_file = remote_client.stream_content(
                                             doc_pair.remote_ref, os_path)
                 # Delete original file and rename tmp file
                 local_client.delete(doc_pair.local_path)
@@ -741,7 +741,7 @@ class Synchronizer(object):
                                                             name)
             log.debug("Creating local file '%s' in '%s'", name,
                       parent_pair.get_local_abspath())
-            tmp_file = remote_client.get_content_in_tmp_file(
+            tmp_file = remote_client.stream_content(
                                             doc_pair.remote_ref, os_path)
             # Rename tmp file
             local_client.rename(local_client.get_path(tmp_file), name)
