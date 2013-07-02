@@ -296,3 +296,21 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         # Unregister the parent folder
         remote_client.unregister_as_root(folder)
         self.assertEquals(len(remote_client.get_roots()), 0)
+
+    def test_streaming_upload(self):
+        remote_client = self.remote_document_client_1
+
+        # Create a document by streaming the file
+        filename = 'File name.txt'
+        file_path = self.create_tmp_file(filename, "Some content.")
+        doc_ref = remote_client.stream_file(self.workspace,
+                                  'Streamed file', file_path, filename)
+        self.assertTrue(remote_client.exists(doc_ref))
+        self.assertEquals(remote_client.get_content(doc_ref), "Some content.")
+
+        # Update a document by streaming the new file
+        filename = 'New file name.txt'
+        file_path = self.create_tmp_file(filename, "Other content.")
+        remote_client.stream_update(doc_ref, file_path, name=filename)
+        self.assertTrue(remote_client.exists(doc_ref))
+        self.assertEquals(remote_client.get_content(doc_ref), "Other content.")

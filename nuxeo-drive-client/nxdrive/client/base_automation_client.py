@@ -7,9 +7,11 @@ import urllib2
 import mimetypes
 import random
 import time
+import os
 from urllib import urlencode
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
+from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
@@ -86,10 +88,12 @@ class BaseAutomationClient(object):
         self._update_auth(password=password, token=token)
 
         self.cookie_jar = cookie_jar
-        cookie_processor = urllib2.HTTPCookieProcessor(
+        self.cookie_processor = urllib2.HTTPCookieProcessor(
             cookiejar=cookie_jar)
-        self.opener = urllib2.build_opener(cookie_processor)
+        self.opener = urllib2.build_opener(self.cookie_processor)
         self.automation_url = server_url + 'site/automation/'
+        self.batch_upload_url = 'batch/upload'
+        self.batch_execute_url = 'batch/execute'
 
         self.fetch_api()
 
@@ -231,12 +235,6 @@ class BaseAutomationClient(object):
         }
         headers.update(self._get_common_headers())
 
-        # TODO: find a way to stream the parts without loading them all in
-        # memory as a byte string
-
-        # The code http://atlee.ca/software/poster/ might provide some
-        # guidance to implement this although it cannot be reused directly
-        # as we need tighter control on the headers of the multipart
         data = (
             "--%s\r\n"
             "%s\r\n"
@@ -274,6 +272,101 @@ class BaseAutomationClient(object):
             log.trace("Response for '%s' with cookies %r and content-type: %r",
                 url, cookies, content_type)
             return s
+
+    def execute_with_blob_streaming(self, command, file_path, filename,
+                                    **params):
+        """Execute an Automation operation using a batch upload as an input
+
+        Upload is streamed.
+        """
+        # TODO: handle exception while streaming upload
+        batch_id = self._generate_unique_id()
+        upload_result = self.upload(batch_id, file_path, filename)
+        if upload_result['uploaded'] == 'true':
+            return self.execute_batch(command, batch_id, '0', **params)
+        # TODO
+        raise
+
+    def upload(self, batch_id, file_path, filename, file_index=0):
+        """Upload a file through an Automation batch
+
+        Uses poster.httpstreaming to stream the upload
+        and not load the whole file in memory.
+        """
+        # HTTP headers
+        file_size = os.path.getsize(file_path)
+        ctype, _ = mimetypes.guess_type(filename)
+        if ctype:
+            mime_type = ctype
+        else:
+            mime_type = "application/octet-stream"
+        # TODO: need UTF-8 quoted filename?
+        # Quote UTF-8 filenames eventhough JAX-RS does not seem to be able
+        # to retrieve them as per: https://tools.ietf.org/html/rfc5987
+        filename = safe_filename(filename)
+        quoted_filename = urllib2.quote(filename.encode('utf-8'))
+#       content_disposition = ("attachment; filename*=UTF-8''%s"
+#                                 % quoted_filename)
+        # TODO
+#         "Content-Transfer-Encoding", "binary" (blob_part)
+#         "Content-Disposition", content_disposition (blob_part)
+        headers = {
+            "X-Batch-Id": batch_id,
+            "X-File-Idx": file_index,
+            "X-File-Name": quoted_filename,  # use quoted_filename?
+            "X-File-Size": file_size,
+            "X-File-Type": mime_type,
+            "Content-Type": "binary/octet-stream",
+            "Content-Length": file_size,
+        }
+        headers.update(self._get_common_headers())
+
+        # Request data
+        input_file = open(file_path, 'r')
+        data = self._read_data(input_file)
+
+        # Request URL
+        url = self.automation_url.encode('ascii') + self.batch_upload_url
+
+        # Execute request
+        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
+        log.trace("Calling '%s' with cookies %r and headers %r for file '%s'",
+            url, cookies, headers, quoted_filename)  # TODO: file_path?
+        req = urllib2.Request(url, data, headers)
+        try:
+            # Build streaming opener
+            streaming_opener = urllib2.build_opener(*get_handlers())
+            streaming_opener.add_handler(self.cookie_processor)
+            # TODO: use long timeout? TD
+            resp = streaming_opener.open(req, timeout=self.blob_timeout)
+        except Exception as e:
+            self._log_details(e)
+            raise
+
+        info = resp.info()
+        s = resp.read()
+
+        content_type = info.get('content-type', '')
+        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
+        # TODO: either we have real JSON, either a string, but we should know
+        # this
+        if content_type.startswith("application/json"):
+            log.trace("Response for '%s' with cookies %r and json payload: %r",
+                url, cookies, s)
+            try:
+                return json.loads(s) if s else None
+            except:
+                return s
+        else:
+            log.trace("Response for '%s' with cookies %r and content-type: %r",
+                url, cookies, content_type)
+            return s
+
+    def execute_batch(self, op_id, batch_id, file_idx, **params):
+        """Execute a file upload Automation batch"""
+        return self.execute(self.batch_execute_url,
+                     operationId=op_id, batchId=batch_id, fileIdx=file_idx,
+                     check_params=False, **params)
 
     def is_addon_installed(self):
         return 'NuxeoDrive.GetRoots' in self.operations
@@ -396,3 +489,15 @@ class BaseAutomationClient(object):
                 # Error message should always be a JSON message,
                 # but sometimes it's not
                 log.debug(detail)
+
+    def _generate_unique_id(self):
+        """Generate a unique id based on a timestamp and a random integer"""
+
+        return str(time.time()) + '_' + str(random.randint(0, 1000000000))
+
+    def _read_data(self, file_object):
+        while True:
+            r = file_object.read(64 * 1024)
+            if not r:
+                break
+            yield r

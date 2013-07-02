@@ -319,6 +319,27 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             "My File (nuxeoDriveTestUser_user_1 - "))
         self.assertTrue(new_name.endswith(").doc"))
 
+    def test_streaming_upload(self):
+        remote_client = self.remote_file_system_client_1
+
+        # Create a document by streaming the file
+        filename = 'File name.txt'
+        file_path = self.create_tmp_file(filename, "Some content.")
+        fs_item_id = remote_client.stream_file(self.workspace_id,
+                                            filename, file_path)
+        self.assertTrue(remote_client.exists(fs_item_id))
+        self.assertEquals(remote_client.get_content(fs_item_id),
+                          "Some content.")
+
+        # Update a document by streaming the new file
+        filename = 'New file name.txt'
+        file_path = self.create_tmp_file(filename, "Other content.")
+        remote_client.stream_update(fs_item_id,
+                                              file_path, name=filename)
+        self.assertTrue(remote_client.exists(fs_item_id))
+        self.assertEquals(remote_client.get_content(fs_item_id),
+                          "Other content.")
+
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)
         if hasher is None:

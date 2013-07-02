@@ -114,6 +114,13 @@ class RemoteFileSystemClient(BaseAutomationClient):
             content, name, parentId=parent_id, name=name)
         return fs_item['id']
 
+    def stream_file(self, parent_id, name, file_path):
+        """Create a document by streaming the file with the given path"""
+        # TODO: handle exception?
+        fs_item = self.execute_with_blob_streaming("NuxeoDrive.CreateFile",
+            file_path, name, parentId=parent_id, name=name)
+        return fs_item['id']
+
     def update_content(self, fs_item_id, content, name=None):
         """Update a document with the given content
 
@@ -123,6 +130,14 @@ class RemoteFileSystemClient(BaseAutomationClient):
             name = self.get_info(fs_item_id).name
         self.execute_with_blob('NuxeoDrive.UpdateFile',
             content, name, id=fs_item_id)
+
+    def stream_update(self, fs_item_id, file_path, name=None):
+        """Update a document by streaming the file with the given path"""
+        if name is None:
+            name = self.get_info(fs_item_id).name
+        # TODO: handle exception?
+        self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
+            file_path, name, id=fs_item_id)
 
     def delete(self, fs_item_id):
         self.execute("NuxeoDrive.Delete", id=fs_item_id)

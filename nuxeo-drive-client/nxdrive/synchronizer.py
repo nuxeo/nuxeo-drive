@@ -584,9 +584,9 @@ class Synchronizer(object):
         if doc_pair.remote_digest != doc_pair.local_digest:
             log.debug("Updating remote document '%s'.",
                       doc_pair.remote_name)
-            remote_client.update_content(
+            remote_client.stream_update(
                 doc_pair.remote_ref,
-                local_client.get_content(doc_pair.local_path),
+                doc_pair.get_local_abspath(),
                 name=doc_pair.remote_name,
             )
             doc_pair.refresh_remote(remote_client)
@@ -691,9 +691,8 @@ class Synchronizer(object):
             else:
                 log.debug("Creating remote document '%s' in folder '%s'",
                           name, parent_pair.remote_name)
-                remote_ref = remote_client.make_file(
-                    parent_ref, name,
-                    content=local_client.get_content(doc_pair.local_path))
+                remote_ref = remote_client.stream_file(
+                    parent_ref, name, doc_pair.get_local_abspath())
             doc_pair.update_remote(remote_client.get_info(remote_ref))
             doc_pair.update_state('synchronized', 'synchronized')
         else:

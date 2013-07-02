@@ -161,5 +161,11 @@ class IntegrationTestCase(unittest.TestCase):
         remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
 
+    def create_tmp_file(self, filename, content):
+        file_path = os.path.join(self.local_test_folder_1, filename)
+        with open(file_path, "wb") as f:
+            f.write(content)
+        return file_path
+
     def wait(self):
         self.root_remote_client.wait()

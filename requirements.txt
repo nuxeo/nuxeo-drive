@@ -4,3 +4,4 @@ nose >= 1.2.1
 coverage
 argparse
 faulthandler
+poster >= 0.8.1
