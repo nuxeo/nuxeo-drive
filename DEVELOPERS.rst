@@ -44,18 +44,19 @@ Use pip_ to grab all the dev dependencies and tools at once::
 
   sudo pip install -r requirements.txt
 
-You can then put the following in your ``.bashrc`` to be able to run the Nuxeo
-Drive client from your source folder::
+To run the Nuxeo Drive client from your source folder use the following settings::
 
   export PYTHONPATH=`pwd`/nuxeo-drive-client
-  export PATH=`pwd`/nuxeo-drive-client/bin:$PATH
+  export PATH=`pwd`/nuxeo-drive-client/scripts:$PATH
+
+You can persist this settings in your ``.bashrc``.
 
 You can safely ignore warnings about "Unknown distribution option: 'executables'".
 
 To run the tests, install and start a nuxeo server locally, then::
 
-  . nuxeo-drive-client/tools/posix/integration_env.sh
-  nosetests nuxeo-drive-client/nxdrive
+  . ./tools/posix/integration_env.sh
+  cd nuxeo-drive-client; nosetests nxdrive
 
 .. _pip: http://www.pip-installer.org/
 
