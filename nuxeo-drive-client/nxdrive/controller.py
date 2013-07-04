@@ -270,7 +270,8 @@ class Controller(object):
         # request
         server_url = self._normalize_url(server_url)
         nxclient = self.remote_doc_client_factory(
-            server_url, username, self.device_id, password)
+            server_url, username, self.device_id, password=password,
+            timeout=self.handshake_timeout)
         token = nxclient.request_token()
         if token is not None:
             # The server supports token based identification: do not store the
