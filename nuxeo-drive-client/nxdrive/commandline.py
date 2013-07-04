@@ -228,7 +228,6 @@ def make_cli_parser(add_subparsers=True):
 class CliHandler(object):
     """Command Line Interface handler: parse options and execute operation"""
 
-
     def parse_cli(self, argv):
         """Parse the command line argument using argparse and protocol URL"""
         # Filter psn argument provided by OSX .app service launcher
