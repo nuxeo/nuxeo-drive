@@ -2,6 +2,7 @@
 from nxdrive.client import Unauthorized
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
+import socket
 
 log = get_logger(__name__)
 
@@ -145,10 +146,14 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
         except Unauthorized:
             dialog.show_message("Invalid credentials.")
             return False
+        except socket.timeout:
+            dialog.show_message("Connection timed out, please check"
+                                " your Internet connection and retry.")
+            return False
         except:
             msg = "Unable to connect to " + url
             log.debug(msg, exc_info=True)
-            # TODO: catch a new ServerUnreachable catching network isssues
+            # TODO: catch a new ServerUnreachable catching network issues
             dialog.show_message(msg)
             return False
 
