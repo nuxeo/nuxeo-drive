@@ -331,7 +331,6 @@ class BaseAutomationClient(object):
             # Build streaming opener
             streaming_opener = urllib2.build_opener(*get_handlers())
             streaming_opener.add_handler(self.cookie_processor)
-            # TODO: use long timeout? TD
             resp = streaming_opener.open(req, timeout=self.blob_timeout)
         except Exception as e:
             self._log_details(e)

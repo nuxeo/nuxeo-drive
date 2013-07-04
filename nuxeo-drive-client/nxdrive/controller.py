@@ -69,7 +69,8 @@ class Controller(object):
     # Used for FS synchronization operations
     remote_fs_client_factory = RemoteFileSystemClient
 
-    def __init__(self, config_folder, echo=None, poolclass=None, timeout=20):
+    def __init__(self, config_folder, echo=None, poolclass=None,
+                 handshake_timeout=60, timeout=20):
         # Log the installation location for debug
         nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
         nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
@@ -84,6 +85,7 @@ class Controller(object):
 
         if echo is None:
             echo = os.environ.get('NX_DRIVE_LOG_SQL', None) is not None
+        self.handshake_timeout = handshake_timeout
         self.timeout = timeout
 
         # Handle connection to the local Nuxeo Drive configuration and
@@ -268,7 +270,8 @@ class Controller(object):
         # request
         server_url = self._normalize_url(server_url)
         nxclient = self.remote_doc_client_factory(
-            server_url, username, self.device_id, password)
+            server_url, username, self.device_id, password=password,
+            timeout=self.handshake_timeout)
         token = nxclient.request_token()
         if token is not None:
             # The server supports token based identification: do not store the
@@ -341,7 +344,8 @@ class Controller(object):
                         binding.server_url,
                         binding.remote_user,
                         self.device_id,
-                        token=binding.remote_token)
+                        token=binding.remote_token,
+                        timeout=self.timeout)
                 log.info("Revoking token for '%s' with account '%s'",
                          binding.server_url, binding.remote_user)
                 nxclient.revoke_token()
