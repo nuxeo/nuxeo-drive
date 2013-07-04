@@ -323,10 +323,12 @@ class Application(QApplication):
 
         if self.sync_thread is None or not self.sync_thread.isAlive():
             delay = getattr(self.options, 'delay', 5.0)
+            max_sync_step = getattr(self.options, 'max_sync_step', 10)
             # Controller and its database session pool should be thread safe,
             # hence reuse it directly
             self.controller.synchronizer.register_frontend(self)
             self.controller.synchronizer.delay = delay
+            self.controller.synchronizer.max_sync_step = max_sync_step
 
             self.sync_thread = Thread(target=sync_loop,
                                       args=(self.controller,))
