@@ -25,6 +25,9 @@ from nxdrive import __version__
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 DEFAULT_DELAY = 5.0
+DEFAULT_MAX_SYNC_STEP = 10
+DEFAULT_HANDSHAKE_TIMEOUT = 60
+DEFAULT_TIMEOUT = 20
 USAGE = """ndrive [command]
 
 If no command is provided, the graphical application is started along with a
@@ -84,6 +87,16 @@ def make_cli_parser(add_subparsers=True):
     common_parser.add_argument(
         "--delay", default=DEFAULT_DELAY, type=float,
         help="Delay in seconds between consecutive sync operations.")
+    common_parser.add_argument(
+        "--max-sync-step", default=DEFAULT_MAX_SYNC_STEP, type=int,
+        help="Number of consecutive sync operations to perform"
+        " without refreshing the internal state DB.")
+    common_parser.add_argument(
+        "--handshake-timeout", default=DEFAULT_HANDSHAKE_TIMEOUT, type=int,
+        help="HTTP request timeout in seconds for the handshake.")
+    common_parser.add_argument(
+        "--timeout", default=DEFAULT_TIMEOUT, type=int,
+        help="HTTP request timeout in seconds for the sync Automation calls.")
     common_parser.add_argument(
         # XXX: Make it true by default as the fault tolerant mode is not yet
         # implemented
@@ -223,7 +236,6 @@ def make_cli_parser(add_subparsers=True):
 class CliHandler(object):
     """Command Line Interface handler: parse options and execute operation"""
 
-
     def parse_cli(self, argv):
         """Parse the command line argument using argparse and protocol URL"""
         # Filter psn argument provided by OSX .app service launcher
@@ -252,8 +264,8 @@ class CliHandler(object):
         if options.debug:
             # Install Post-Mortem debugger hook
 
-            def info(type, value, tb):
-                traceback.print_exception(type, value, tb)
+            def info(etype, value, tb):
+                traceback.print_exception(etype, value, tb)
                 print
                 debugger.pm()
 
@@ -292,7 +304,9 @@ class CliHandler(object):
         self._configure_logger(options)
 
         # Initialize a controller for this process
-        self.controller = Controller(options.nxdrive_home)
+        self.controller = Controller(options.nxdrive_home,
+                            handshake_timeout=options.handshake_timeout,
+                            timeout=options.timeout)
 
         # Find the command to execute based on the
         handler = getattr(self, command, None)
@@ -334,16 +348,22 @@ class CliHandler(object):
         self.controller.dispose()
         daemonize()
 
-        self.controller = Controller(options.nxdrive_home)
+        self.controller = Controller(options.nxdrive_home,
+                            handshake_timeout=options.handshake_timeout,
+                            timeout=options.timeout)
         self._configure_logger(options)
         self.log.debug("Synchronization daemon started.")
         self.controller.synchronizer.loop(
-            delay=getattr(options, 'delay', DEFAULT_DELAY))
+            delay=getattr(options, 'delay', DEFAULT_DELAY),
+            max_sync_step=getattr(options, 'max_sync_step',
+                                  DEFAULT_MAX_SYNC_STEP))
         return 0
 
     def console(self, options):
         self.controller.synchronizer.loop(
-            delay=getattr(options, 'delay', DEFAULT_DELAY))
+            delay=getattr(options, 'delay', DEFAULT_DELAY),
+            max_sync_step=getattr(options, 'max_sync_step',
+                                  DEFAULT_MAX_SYNC_STEP))
         return 0
 
     def stop(self, options=None):
@@ -460,7 +480,7 @@ def dumpstacks(signal, frame):
 def main(argv=None):
     # Print thread dump when receiving SIGUSR1,
     # except under Windows (no SIGUSR1)
-    if sys.platform != 'win32': 
+    if sys.platform != 'win32':
         import signal
         signal.signal(signal.SIGUSR1, dumpstacks)
     if argv is None:

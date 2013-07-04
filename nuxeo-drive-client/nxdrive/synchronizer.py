@@ -144,14 +144,14 @@ def find_first_name_match(name, possible_pairs):
 class Synchronizer(object):
     """Handle synchronization operations between the client FS and Nuxeo"""
 
-    # delay in seconds that ensures that two consecutive scans won't happen
-    # too closely from one another.
+    # Default delay in seconds that ensures that two consecutive scans
+    # won't happen too closely from one another.
     # TODO: make this a value returned by the server so that it can tell the
     # client to slow down when the server cannot keep up with the load
-    delay = 10
+    delay = 5
 
-    # Number of consecutive sync operations to perform without refreshing
-    # the internal state DB
+    # Default number of consecutive sync operations to perform
+    # without refreshing the internal state DB.
     max_sync_step = 10
 
     # Limit number of pending items to retrieve when computing the list of
@@ -1109,7 +1109,7 @@ class Synchronizer(object):
             return True
         return False
 
-    def loop(self, max_loops=None, delay=None):
+    def loop(self, max_loops=None, delay=None, max_sync_step=None):
         """Forever loop to scan / refresh states and perform sync"""
 
         delay = delay if delay is not None else self.delay
@@ -1154,7 +1154,7 @@ class Synchronizer(object):
                 for sb in bindings:
                     if not sb.has_invalid_credentials():
                         n_synchronized += self.update_synchronize_server(
-                            sb, session=session)
+                            sb, session=session, max_sync_step=max_sync_step)
 
                 # safety net to ensure that Nuxeo Drive won't eat all the CPU,
                 # disk and network resources of the machine scanning over an
@@ -1301,9 +1301,11 @@ class Synchronizer(object):
                                 "bound local folder: %r", new_info)
 
     def update_synchronize_server(self, server_binding, session=None,
-                                  full_scan=False):
+                                  full_scan=False, max_sync_step=None):
         """Do one pass of synchronization for given server binding."""
         session = self.get_session() if session is None else session
+        max_sync_step = (max_sync_step if max_sync_step is not None
+                          else self.max_sync_step)
         local_scan_is_done = False
         try:
             tick = time()
@@ -1362,7 +1364,7 @@ class Synchronizer(object):
             # pending tasks
             n_pending = self._notify_pending(server_binding)
 
-            n_synchronized = self.synchronize(limit=self.max_sync_step,
+            n_synchronized = self.synchronize(limit=max_sync_step,
                 local_folder=server_binding.local_folder)
             synchronization_duration = time() - tick
 
