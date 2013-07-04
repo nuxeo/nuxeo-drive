@@ -344,7 +344,8 @@ class Controller(object):
                         binding.server_url,
                         binding.remote_user,
                         self.device_id,
-                        token=binding.remote_token)
+                        token=binding.remote_token,
+                        timeout=self.timeout)
                 log.info("Revoking token for '%s' with account '%s'",
                          binding.server_url, binding.remote_user)
                 nxclient.revoke_token()
