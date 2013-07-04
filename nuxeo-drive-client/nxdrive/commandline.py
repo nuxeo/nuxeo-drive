@@ -26,6 +26,8 @@ from nxdrive import __version__
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 DEFAULT_DELAY = 5.0
 DEFAULT_MAX_SYNC_STEP = 10
+DEFAULT_HANDSHAKE_TIMEOUT = 60
+DEFAULT_TIMEOUT = 20
 USAGE = """ndrive [command]
 
 If no command is provided, the graphical application is started along with a
@@ -89,6 +91,12 @@ def make_cli_parser(add_subparsers=True):
         "--max-sync-step", default=DEFAULT_MAX_SYNC_STEP, type=int,
         help="Number of consecutive sync operations to perform"
         " without refreshing the internal state DB.")
+    common_parser.add_argument(
+        "--handshake-timeout", default=DEFAULT_HANDSHAKE_TIMEOUT, type=int,
+        help="HTTP request timeout in seconds for the handshake.")
+    common_parser.add_argument(
+        "--timeout", default=DEFAULT_TIMEOUT, type=int,
+        help="HTTP request timeout in seconds for the sync Automation calls.")
     common_parser.add_argument(
         # XXX: Make it true by default as the fault tolerant mode is not yet
         # implemented
@@ -296,7 +304,9 @@ class CliHandler(object):
         self._configure_logger(options)
 
         # Initialize a controller for this process
-        self.controller = Controller(options.nxdrive_home)
+        self.controller = Controller(options.nxdrive_home,
+                            handshake_timeout=options.handshake_timeout,
+                            timeout=options.timeout)
 
         # Find the command to execute based on the
         handler = getattr(self, command, None)
@@ -338,7 +348,9 @@ class CliHandler(object):
         self.controller.dispose()
         daemonize()
 
-        self.controller = Controller(options.nxdrive_home)
+        self.controller = Controller(options.nxdrive_home,
+                            handshake_timeout=options.handshake_timeout,
+                            timeout=options.timeout)
         self._configure_logger(options)
         self.log.debug("Synchronization daemon started.")
         self.controller.synchronizer.loop(
