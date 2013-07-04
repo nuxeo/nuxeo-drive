@@ -144,11 +144,11 @@ def find_first_name_match(name, possible_pairs):
 class Synchronizer(object):
     """Handle synchronization operations between the client FS and Nuxeo"""
 
-    # delay in seconds that ensures that two consecutive scans won't happen
-    # too closely from one another.
+    # Default delay in seconds that ensures that two consecutive scans
+    # won't happen too closely from one another.
     # TODO: make this a value returned by the server so that it can tell the
     # client to slow down when the server cannot keep up with the load
-    delay = 10
+    delay = 5
 
     # Default number of consecutive sync operations to perform
     # without refreshing the internal state DB.
