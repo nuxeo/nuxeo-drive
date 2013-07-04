@@ -252,8 +252,8 @@ class CliHandler(object):
         if options.debug:
             # Install Post-Mortem debugger hook
 
-            def info(type, value, tb):
-                traceback.print_exception(type, value, tb)
+            def info(etype, value, tb):
+                traceback.print_exception(etype, value, tb)
                 print
                 debugger.pm()
 
@@ -460,7 +460,7 @@ def dumpstacks(signal, frame):
 def main(argv=None):
     # Print thread dump when receiving SIGUSR1,
     # except under Windows (no SIGUSR1)
-    if sys.platform != 'win32': 
+    if sys.platform != 'win32':
         import signal
         signal.signal(signal.SIGUSR1, dumpstacks)
     if argv is None:
