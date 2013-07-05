@@ -108,10 +108,11 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def make_file(self, parent_id, name, content):
         """Create a document with the given name and content
 
-        Beware that the whole content is loaded in memory when calling this.
+        Creates a temporary file from the content then streams it.
         """
-        fs_item = self.execute_with_blob("NuxeoDrive.CreateFile",
-            content, name, parentId=parent_id, name=name)
+        file_path = self.make_tmp_file(content)
+        fs_item = self.execute_with_blob_streaming("NuxeoDrive.CreateFile",
+            file_path, name, parentId=parent_id, name=name)
         return fs_item['id']
 
     def stream_file(self, parent_id, name, file_path):
@@ -123,12 +124,13 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def update_content(self, fs_item_id, content, name=None):
         """Update a document with the given content
 
-        Beware that the whole content is loaded in memory when calling this.
+        Creates a temporary file from the content then streams it.
         """
         if name is None:
             name = self.get_info(fs_item_id).name
-        self.execute_with_blob('NuxeoDrive.UpdateFile',
-            content, name, id=fs_item_id)
+        file_path = self.make_tmp_file(content)
+        self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
+            file_path, name, id=fs_item_id)
 
     def stream_update(self, fs_item_id, file_path, name=None):
         """Update a document by streaming the file with the given path"""

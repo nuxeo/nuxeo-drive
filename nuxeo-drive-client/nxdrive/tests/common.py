@@ -67,23 +67,26 @@ class IntegrationTestCase(unittest.TestCase):
 
         # Document client to be used to create remote test documents
         # and folders
+        self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads')
         remote_document_client_1 = RemoteDocumentClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-            self.password_1, base_folder=self.workspace)
+            self.password_1, base_folder=self.workspace,
+            upload_tmp_dir=self.upload_tmp_dir)
 
         remote_document_client_2 = RemoteDocumentClient(
             self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-            self.password_2, base_folder=self.workspace)
+            self.password_2, base_folder=self.workspace,
+            upload_tmp_dir=self.upload_tmp_dir)
 
         # File system client to be used to create remote test documents
         # and folders
         remote_file_system_client_1 = RemoteFileSystemClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-            self.password_1)
+            self.password_1, upload_tmp_dir=self.upload_tmp_dir)
 
         remote_file_system_client_2 = RemoteFileSystemClient(
             self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-            self.password_2)
+            self.password_2, upload_tmp_dir=self.upload_tmp_dir)
 
         # Check the local filesystem test environment
         self.local_test_folder_1 = tempfile.mkdtemp(u'-nxdrive-tests-user-1')
@@ -123,6 +126,9 @@ class IntegrationTestCase(unittest.TestCase):
 
         self.root_remote_client.revoke_token()
 
+        if os.path.exists(self.upload_tmp_dir):
+            shutil.rmtree(safe_long_path(self.upload_tmp_dir))
+
         if os.path.exists(self.local_test_folder_1):
             self.controller_1.dispose()
             shutil.rmtree(safe_long_path(self.local_test_folder_1))
@@ -160,12 +166,6 @@ class IntegrationTestCase(unittest.TestCase):
         remote_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
         remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
-
-    def create_tmp_file(self, filename, content):
-        file_path = os.path.join(self.local_test_folder_1, filename)
-        with open(file_path, "wb") as f:
-            f.write(content)
-        return file_path
 
     def wait(self):
         self.root_remote_client.wait()

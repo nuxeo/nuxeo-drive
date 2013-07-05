@@ -8,6 +8,7 @@ import mimetypes
 import random
 import time
 import os
+import tempfile
 from urllib import urlencode
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -63,7 +64,8 @@ class BaseAutomationClient(object):
     def __init__(self, server_url, user_id, device_id,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
-                 timeout=10, blob_timeout=None, cookie_jar=None):
+                 timeout=10, blob_timeout=None, cookie_jar=None,
+                 upload_tmp_dir=None):
         self.timeout = timeout
         self.blob_timeout = blob_timeout
         if ignored_prefixes is not None:
@@ -75,6 +77,9 @@ class BaseAutomationClient(object):
             self.ignored_suffixes = ignored_suffixes
         else:
             self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
+
+        self.upload_tmp_dir = (upload_tmp_dir if upload_tmp_dir is not None
+                               else tempfile.gettempdir())
 
         if not server_url.endswith('/'):
             server_url += '/'
@@ -416,6 +421,13 @@ class BaseAutomationClient(object):
 
     def wait(self):
         self.execute("NuxeoDrive.WaitForAsyncCompletion")
+
+    def make_tmp_file(self, content):
+        _, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
+                                   dir=self.upload_tmp_dir)
+        with open(path, "wb") as f:
+            f.write(content)
+        return path
 
     def _update_auth(self, password=None, token=None):
         """Select the most appropriate auth headers based on credentials"""
