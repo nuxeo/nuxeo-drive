@@ -63,11 +63,12 @@ class RemoteDocumentClient(BaseAutomationClient):
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
                  base_folder=None, timeout=10, blob_timeout=None,
-                 cookie_jar=None):
+                 cookie_jar=None, upload_tmp_dir=None):
         super(RemoteDocumentClient, self).__init__(
             server_url, user_id, device_id, password, token, repository,
             ignored_prefixes, ignored_suffixes, timeout=timeout,
-            blob_timeout=blob_timeout, cookie_jar=cookie_jar)
+            blob_timeout=blob_timeout, cookie_jar=cookie_jar,
+            upload_tmp_dir=upload_tmp_dir)
 
         # fetch the root folder ref
         self.base_folder = base_folder
@@ -136,7 +137,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     def make_file(self, parent, name, content=None, doc_type=FILE_TYPE):
         """Create a document of the given type with the given name and content
 
-        Beware that the whole content is loaded in memory when calling this.
+        Creates a temporary file from the content then streams it.
         """
         parent = self._check_ref(parent)
         doc = self.create(parent, doc_type, name=name,
@@ -157,7 +158,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     def update_content(self, ref, content, name=None):
         """Update a document with the given content
 
-        Beware that the whole content is loaded in memory when calling this.
+        Creates a temporary file from the content then streams it.
         """
         if name is None:
             name = self.get_info(ref).name
@@ -337,9 +338,10 @@ class RemoteDocumentClient(BaseAutomationClient):
         return self.execute("Blob.Get", op_input="doc:" + ref,
                             timeout=self.blob_timeout)
 
-    def attach_blob(self, ref, blob, filename, **params):
-        return self.execute_with_blob("Blob.Attach",
-            blob, filename, document=ref)
+    def attach_blob(self, ref, blob, filename):
+        file_path = self.make_tmp_file(blob)
+        return self.execute_with_blob_streaming("Blob.Attach",
+            file_path, filename, document=ref)
 
     #
     # Nuxeo Drive specific operations

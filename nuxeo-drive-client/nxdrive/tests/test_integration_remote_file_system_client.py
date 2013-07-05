@@ -323,19 +323,17 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         remote_client = self.remote_file_system_client_1
 
         # Create a document by streaming the file
-        filename = 'File name.txt'
-        file_path = self.create_tmp_file(filename, "Some content.")
+        file_path = remote_client.make_tmp_file("Some content.")
         fs_item_id = remote_client.stream_file(self.workspace_id,
-                                            filename, file_path)
+                                            'File name.txt', file_path)
         self.assertTrue(remote_client.exists(fs_item_id))
         self.assertEquals(remote_client.get_content(fs_item_id),
                           "Some content.")
 
         # Update a document by streaming the new file
-        filename = 'New file name.txt'
-        file_path = self.create_tmp_file(filename, "Other content.")
-        remote_client.stream_update(fs_item_id,
-                                              file_path, name=filename)
+        file_path = remote_client.make_tmp_file("Other content.")
+        remote_client.stream_update(fs_item_id, file_path,
+                                    name='New file name.txt')
         self.assertTrue(remote_client.exists(fs_item_id))
         self.assertEquals(remote_client.get_content(fs_item_id),
                           "Other content.")
