@@ -81,7 +81,7 @@ script with the administration rights (right click on the powershell
 icon in the programs menu to get the opportunity to "Run as
 administrator")::
 
-  powershell.exe C:\path\to\nuxeo-drive-client\tools\windows\nxdrive-setup-dev.ps1
+  powershell.exe C:\path\to\tools\windows\nxdrive-setup-dev.ps1
 
 Some dependencies such as `psutil` can be tricky to build under windows.  You
 can use a binary installer from `this site
@@ -96,10 +96,10 @@ command::
 Then install QT and PySide for graphical user interface (see below).
 
 You can then run the integration tests against a Nuxeo instance running
-``localhost:8080`` with:
+``localhost:8080`` with::
 
-  . nuxeo-drive-client/tools/windows/integration_env.ps1
-  nosetests nuxeo-drive-client/nxdrive
+  .\tools\windows\integration_env.ps1
+  cd nuxeo-drive-client; nosetests nxdrive
 
 You can optionnally install the binary package for the faulthandler module
 that helps diagnostic segmentation faults by dumping the tracebacks of the
