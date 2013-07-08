@@ -29,6 +29,8 @@ DEVICE_DESCRIPTIONS = {
     'win32': 'Windows Desktop',
 }
 
+DEFAULT_STREAMING_BUFFER_SIZE = 4096
+
 
 class Unauthorized(Exception):
 
@@ -322,7 +324,11 @@ class BaseAutomationClient(object):
 
         # Request data
         input_file = open(file_path, 'r')
-        fs_block_size = os.fstatvfs(input_file.fileno()).f_bsize
+        # Use file system block size if available for streaming buffer
+        if sys.platform != 'win32':
+            fs_block_size = os.fstatvfs(input_file.fileno()).f_bsize
+        else:
+            fs_block_size = DEFAULT_STREAMING_BUFFER_SIZE
         log.trace("Using file system block size"
                   " for the streaming upload buffer: %u bytes", fs_block_size)
         data = self._read_data(input_file, fs_block_size)
@@ -343,6 +349,8 @@ class BaseAutomationClient(object):
         except Exception as e:
             self._log_details(e)
             raise
+        finally:
+            input_file.close()
 
         info = resp.info()
         s = resp.read()
@@ -426,10 +434,11 @@ class BaseAutomationClient(object):
         self.execute("NuxeoDrive.WaitForAsyncCompletion")
 
     def make_tmp_file(self, content):
-        _, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
+        fd, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
                                    dir=self.upload_tmp_dir)
         with open(path, "wb") as f:
             f.write(content)
+        os.close(fd)
         return path
 
     def _update_auth(self, password=None, token=None):
