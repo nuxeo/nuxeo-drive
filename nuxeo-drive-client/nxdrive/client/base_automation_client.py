@@ -29,6 +29,8 @@ DEVICE_DESCRIPTIONS = {
     'win32': 'Windows Desktop',
 }
 
+DEFAULT_STREAMING_BUFFER_SIZE = 4096
+
 
 class Unauthorized(Exception):
 
@@ -322,7 +324,11 @@ class BaseAutomationClient(object):
 
         # Request data
         input_file = open(file_path, 'r')
-        fs_block_size = os.fstatvfs(input_file.fileno()).f_bsize
+        # Use file system block size if available for streaming buffer
+        if sys.platform != 'win32':
+            fs_block_size = os.fstatvfs(input_file.fileno()).f_bsize
+        else:
+            fs_block_size = DEFAULT_STREAMING_BUFFER_SIZE
         log.trace("Using file system block size"
                   " for the streaming upload buffer: %u bytes", fs_block_size)
         data = self._read_data(input_file, fs_block_size)
