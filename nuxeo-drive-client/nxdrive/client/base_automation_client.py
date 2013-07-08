@@ -432,10 +432,11 @@ class BaseAutomationClient(object):
         self.execute("NuxeoDrive.WaitForAsyncCompletion")
 
     def make_tmp_file(self, content):
-        _, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
+        fd, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
                                    dir=self.upload_tmp_dir)
         with open(path, "wb") as f:
             f.write(content)
+        os.close(fd)
         return path
 
     def _update_auth(self, password=None, token=None):
