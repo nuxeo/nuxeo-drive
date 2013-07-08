@@ -322,7 +322,10 @@ class BaseAutomationClient(object):
 
         # Request data
         input_file = open(file_path, 'r')
-        data = self._read_data(input_file)
+        fs_block_size = os.fstatvfs(input_file.fileno()).f_bsize
+        log.trace("Using file system block size"
+                  " for the streaming upload buffer: %u bytes", fs_block_size)
+        data = self._read_data(input_file, fs_block_size)
 
         # Request URL
         url = self.automation_url.encode('ascii') + self.batch_upload_url
@@ -500,9 +503,9 @@ class BaseAutomationClient(object):
 
         return str(time.time()) + '_' + str(random.randint(0, 1000000000))
 
-    def _read_data(self, file_object):
+    def _read_data(self, file_object, buffer_size):
         while True:
-            r = file_object.read(64 * 1024)
+            r = file_object.read(buffer_size)
             if not r:
                 break
             yield r
