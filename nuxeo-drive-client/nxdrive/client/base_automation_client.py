@@ -349,6 +349,8 @@ class BaseAutomationClient(object):
         except Exception as e:
             self._log_details(e)
             raise
+        finally:
+            input_file.close()
 
         info = resp.info()
         s = resp.read()
