@@ -526,6 +526,7 @@ class Synchronizer(object):
         # Could not find any pair state to align to, create one
         child_pair = LastKnownState(parent_pair.local_folder,
             remote_info=child_info)
+        log.trace("Created new pair %r", child_pair)
         session.add(child_pair)
         return child_pair, True
 
