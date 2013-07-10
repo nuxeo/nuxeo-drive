@@ -19,6 +19,7 @@ from sqlalchemy.pool import SingletonThreadPool
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
 from nxdrive.utils import normalized_path
+from nxdrive.logging_config import get_logger
 
 WindowsError = None
 try:
@@ -28,7 +29,7 @@ except ImportError:
     pass
 
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 # make the declarative base class for the ORM mapping
@@ -202,13 +203,20 @@ class LastKnownState(Base):
         pair_state = PAIR_STATES.get(pair, 'unknown')
         if self.pair_state != pair_state:
             self.pair_state = pair_state
+            log.trace("Updated state for LastKnownState<"
+                      "local_folder=%r, local_path=%r, remote_name=%r,"
+                      " local_state=%r, remote_state=%r, pair_state=%r>",
+                      self.local_folder, self.local_path, self.remote_name,
+                      self.local_state, self.remote_state, self.pair_state)
 
     def __repr__(self):
         return ("LastKnownState<local_folder=%r, local_path=%r, "
-                "remote_name=%r, local_state=%r, remote_state=%r>") % (
+                "remote_name=%r, local_state=%r, remote_state=%r, "
+                "pair_state=%r>") % (
                     os.path.basename(self.local_folder),
                     self.local_path, self.remote_name,
-                    self.local_state, self.remote_state)
+                    self.local_state, self.remote_state,
+                    self.pair_state)
 
     def get_local_client(self):
         return LocalClient(self.local_folder)
@@ -317,11 +325,17 @@ class LastKnownState(Base):
         # Use last known modification time to detect updates
         if self.last_remote_updated is None:
             self.last_remote_updated = remote_info.last_modification_time
+            log.trace("last_remote_updated is None for doc %s, set it to %s",
+                      self.remote_name, remote_info.last_modification_time)
         elif (remote_info.last_modification_time > self.last_remote_updated
             or self.remote_parent_ref != remote_info.parent_uid):
             # Remote update and/or rename and/or move
             self.last_remote_updated = remote_info.last_modification_time
             remote_state = 'modified'
+            log.trace("Doc %s has been either modified, renamed and/or moved,"
+                      " set last_remote_updated to %s"
+                      " and remote_state to 'modified'",
+                      self.remote_name, remote_info.last_modification_time)
 
         # Update the remaining metadata
         self.remote_digest = remote_info.get_digest()
