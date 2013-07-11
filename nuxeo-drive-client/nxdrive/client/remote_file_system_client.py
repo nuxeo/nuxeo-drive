@@ -4,7 +4,7 @@ import unicodedata
 from collections import namedtuple
 from datetime import datetime
 import urllib2
-import time
+import tzlocal
 import os
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
@@ -164,7 +164,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def conflicted_name(self, original_name, timezone=None):
         """Generate a new name suitable for conflict deduplication."""
         if timezone is None:
-            timezone = time.tzname[time.daylight]
+            timezone = str(tzlocal.get_localzone())
         return self.execute("NuxeoDrive.GenerateConflictedItemName",
             name=original_name, timezone=timezone)
 
