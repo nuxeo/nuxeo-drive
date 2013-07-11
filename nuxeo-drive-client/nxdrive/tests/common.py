@@ -99,16 +99,16 @@ class IntegrationTestCase(unittest.TestCase):
             self.local_test_folder_2, u'Nuxeo Drive')
         os.mkdir(self.local_nxdrive_folder_2)
 
-        nxdrive_conf_folder_1 = os.path.join(
+        self.nxdrive_conf_folder_1 = os.path.join(
             self.local_test_folder_1, u'nuxeo-drive-conf')
-        os.mkdir(nxdrive_conf_folder_1)
+        os.mkdir(self.nxdrive_conf_folder_1)
 
-        nxdrive_conf_folder_2 = os.path.join(
+        self.nxdrive_conf_folder_2 = os.path.join(
             self.local_test_folder_2, u'nuxeo-drive-conf')
-        os.mkdir(nxdrive_conf_folder_2)
+        os.mkdir(self.nxdrive_conf_folder_2)
 
-        self.controller_1 = Controller(nxdrive_conf_folder_1)
-        self.controller_2 = Controller(nxdrive_conf_folder_2)
+        self.controller_1 = Controller(self.nxdrive_conf_folder_1)
+        self.controller_2 = Controller(self.nxdrive_conf_folder_2)
         self.root_remote_client = root_remote_client
         self.remote_document_client_1 = remote_document_client_1
         self.remote_document_client_2 = remote_document_client_2
