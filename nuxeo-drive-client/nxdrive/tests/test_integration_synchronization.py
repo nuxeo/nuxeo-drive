@@ -8,6 +8,7 @@ from datetime import datetime
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.model import LastKnownState
+from nxdrive.controller import Controller
 
 
 class TestIntegrationSynchronization(IntegrationTestCase):
@@ -837,7 +838,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
              u'synchronized', u'synchronized'))
 
     def test_synchronize_deep_folders(self):
-        ctl = self.controller_1
+        # Increase Automation execution timeout for NuxeoDrive.GetChangeSummary
+        # because of the recursive parent FileSystemItem adaptation
+        ctl = Controller(self.nxdrive_conf_folder_1, timeout=40)
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)

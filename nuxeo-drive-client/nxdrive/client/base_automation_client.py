@@ -165,6 +165,7 @@ class BaseAutomationClient(object):
         if op_input:
             json_struct['input'] = op_input
 
+        log.trace("Dumping JSON structure: %s", json_struct)
         data = json.dumps(json_struct)
         cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
         url = self.automation_url + command

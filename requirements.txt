@@ -5,3 +5,4 @@ coverage
 argparse
 faulthandler
 poster >= 0.8.1
+tzlocal >= 1.0
