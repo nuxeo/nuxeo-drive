@@ -4,7 +4,6 @@ import unicodedata
 from collections import namedtuple
 from datetime import datetime
 import urllib2
-import tzlocal
 import os
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
