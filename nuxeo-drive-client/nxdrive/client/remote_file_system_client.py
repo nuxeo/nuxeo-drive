@@ -161,12 +161,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self.execute("NuxeoDrive.CanMove", srcId=fs_item_id,
             destId=new_parent_id)
 
-    def conflicted_name(self, original_name, timezone=None):
+    def conflicted_name(self, original_name):
         """Generate a new name suitable for conflict deduplication."""
-        if timezone is None:
-            timezone = str(tzlocal.get_localzone())
         return self.execute("NuxeoDrive.GenerateConflictedItemName",
-            name=original_name, timezone=timezone)
+            name=original_name)
 
     def file_to_info(self, fs_item):
         """Convert Automation file system item description to RemoteFileInfo"""
