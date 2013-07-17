@@ -109,13 +109,17 @@ class BaseAutomationClient(object):
         self._error = error
 
     def fetch_api(self):
-        headers = self._get_common_headers()
         base_error_message = (
-            "Failed to connect to Nuxeo Content Automation on server %r"
-            " with user %r"
+            "Failed to connect to Nuxeo Automation server %s"
+            " with user %s"
         ) % (self.server_url, self.user_id)
+        url = self.automation_url
+        headers = self._get_common_headers()
+        cookies = self._get_cookies()
+        log.trace("Calling %s with headers %r and cookies %r",
+            url, headers, cookies)
+        req = urllib2.Request(url, headers=headers)
         try:
-            req = urllib2.Request(self.automation_url, headers=headers)
             response = json.loads(self.opener.open(
                 req, timeout=self.timeout).read())
         except urllib2.HTTPError as e:
@@ -139,9 +143,10 @@ class BaseAutomationClient(object):
             # Simulate a configurable (e.g. network or server) error for the
             # tests
             raise self._error
-
         if check_params:
             self._check_params(command, params)
+
+        url = self.automation_url + command
         headers = {
             "Content-Type": "application/json+nxrequest",
             "Accept": "application/json+nxentity, */*",
@@ -150,6 +155,7 @@ class BaseAutomationClient(object):
         if void_op:
             headers.update({"X-NXVoidOperation": "true"})
         headers.update(self._get_common_headers())
+
         json_struct = {'params': {}}
         for k, v in params.items():
             if v is None:
@@ -161,38 +167,24 @@ class BaseAutomationClient(object):
                 json_struct['params'][k] = s.strip()
             else:
                 json_struct['params'][k] = v
-
         if op_input:
             json_struct['input'] = op_input
-
         log.trace("Dumping JSON structure: %s", json_struct)
         data = json.dumps(json_struct)
-        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
-        url = self.automation_url + command
-        log.trace("Calling '%s' with cookies %r and json payload: %r",
-            url, cookies,  data)
+
+        cookies = self._get_cookies()
+        log.trace("Calling %s with headers %r, cookies %r"
+                  " and JSON payload %r",
+            url, headers, cookies,  data)
         req = urllib2.Request(url, data, headers)
         timeout = self.timeout if timeout == -1 else timeout
         try:
             resp = self.opener.open(req, timeout=timeout)
-        except Exception, e:
+        except Exception as e:
             self._log_details(e)
             raise
 
-        info = resp.info()
-        s = resp.read()
-        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
-        content_type = info.get('content-type', '')
-        if content_type.startswith("application/json"):
-            log.trace(
-                "Response for '%s' with cookies %r and json payload: %r",
-                url, cookies, s)
-            return json.loads(s) if s else None
-        else:
-            log.trace(
-                "Response for '%s' with cookies %r  and with content-type: %r",
-                url, cookies, content_type)
-            return s
+        return self._read_response(resp, url)
 
     def execute_with_blob(self, command, blob_content, filename, **params):
         """Execute an Automation operation with a blob input
@@ -200,6 +192,19 @@ class BaseAutomationClient(object):
         Beware that the whole content is loaded in memory when calling this.
         """
         self._check_params(command, params)
+        url = self.automation_url.encode('ascii') + command
+
+        # Create data by hand :(
+        boundary = "====Part=%s=%s===" % (str(time.time()).replace('.', '='),
+                                          random.randint(0, 1000000000))
+        headers = {
+            "Accept": "application/json+nxentity, */*",
+            "Content-Type": ('multipart/related;boundary="%s";'
+                             'type="application/json+nxrequest";'
+                             'start="request"')
+            % boundary,
+        }
+        headers.update(self._get_common_headers())
 
         container = MIMEMultipart("related",
                 type="application/json+nxrequest",
@@ -231,18 +236,6 @@ class BaseAutomationClient(object):
         blob_part.set_payload(blob_content)
         container.attach(blob_part)
 
-        # Create data by hand :(
-        boundary = "====Part=%s=%s===" % (str(time.time()).replace('.', '='),
-                                          random.randint(0, 1000000000))
-        headers = {
-            "Accept": "application/json+nxentity, */*",
-            "Content-Type": ('multipart/related;boundary="%s";'
-                             'type="application/json+nxrequest";'
-                             'start="request"')
-            % boundary,
-        }
-        headers.update(self._get_common_headers())
-
         data = (
             "--%s\r\n"
             "%s\r\n"
@@ -256,10 +249,10 @@ class BaseAutomationClient(object):
             blob_part.as_string(),
             boundary,
         )
-        url = self.automation_url.encode('ascii') + command
-        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
-        log.trace("Calling '%s' with cookies %r for file '%s'",
-            url, cookies, filename)
+
+        cookies = self._get_cookies()
+        log.trace("Calling %s with headers %r and cookies %r for file %s",
+            url, headers, cookies, filename)
         req = urllib2.Request(url, data, headers)
         try:
             resp = self.opener.open(req, timeout=self.blob_timeout)
@@ -267,19 +260,7 @@ class BaseAutomationClient(object):
             self._log_details(e)
             raise
 
-        info = resp.info()
-        s = resp.read()
-
-        content_type = info.get('content-type', '')
-        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
-        if content_type.startswith("application/json"):
-            log.trace("Response for '%s' with cookies %r and json payload: %r",
-                url, cookies, s)
-            return json.loads(s) if s else None
-        else:
-            log.trace("Response for '%s' with cookies %r and content-type: %r",
-                url, cookies, content_type)
-            return s
+        return self._read_response(resp, url)
 
     def execute_with_blob_streaming(self, command, file_path, filename,
                                     **params):
@@ -301,6 +282,9 @@ class BaseAutomationClient(object):
         Uses poster.httpstreaming to stream the upload
         and not load the whole file in memory.
         """
+        # Request URL
+        url = self.automation_url.encode('ascii') + self.batch_upload_url
+
         # HTTP headers
         file_size = os.path.getsize(file_path)
         ctype, _ = mimetypes.guess_type(filename)
@@ -334,13 +318,10 @@ class BaseAutomationClient(object):
                   " for the streaming upload buffer: %u bytes", fs_block_size)
         data = self._read_data(input_file, fs_block_size)
 
-        # Request URL
-        url = self.automation_url.encode('ascii') + self.batch_upload_url
-
         # Execute request
-        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
-        log.trace("Calling '%s' with cookies %r and headers %r for file '%s'",
-            url, cookies, headers, file_path)
+        cookies = self._get_cookies()
+        log.trace("Calling %s with headers %r and cookies %r for file %s",
+            url, headers, cookies, file_path)
         req = urllib2.Request(url, data, headers)
         try:
             # Build streaming opener
@@ -353,24 +334,7 @@ class BaseAutomationClient(object):
         finally:
             input_file.close()
 
-        info = resp.info()
-        s = resp.read()
-
-        content_type = info.get('content-type', '')
-        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
-        # TODO: either we have real JSON, either a string, but we should know
-        # this
-        if content_type.startswith("application/json"):
-            log.trace("Response for '%s' with cookies %r and json payload: %r",
-                url, cookies, s)
-            try:
-                return json.loads(s) if s else None
-            except:
-                return s
-        else:
-            log.trace("Response for '%s' with cookies %r and content-type: %r",
-                url, cookies, content_type)
-            return s
+        return self._read_response(resp, url)
 
     def execute_batch(self, op_id, batch_id, file_idx, **params):
         """Execute a file upload Automation batch"""
@@ -383,6 +347,10 @@ class BaseAutomationClient(object):
 
     def request_token(self, revoke=False):
         """Request and return a new token for the user"""
+        base_error_message = (
+            "Failed to connect to Nuxeo server %s with user %s"
+            " to acquire a token"
+        ) % (self.server_url, self.user_id)
 
         parameters = {
             'deviceId': self.device_id,
@@ -393,20 +361,15 @@ class BaseAutomationClient(object):
         device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
         if device_description:
             parameters['deviceDescription'] = device_description
-
         url = self.server_url + 'authentication/token?'
         url += urlencode(parameters)
 
         headers = self._get_common_headers()
-        base_error_message = (
-            "Failed to connect to Nuxeo Content Automation server %r"
-            " with user %r"
-        ) % (self.server_url, self.user_id)
-        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
-        try:
-            log.trace("Calling '%s' with headers: %r and cookies %r",
+        cookies = self._get_cookies()
+        log.trace("Calling %s with headers %r and cookies %r",
                 url, headers, cookies)
-            req = urllib2.Request(url, headers=headers)
+        req = urllib2.Request(url, headers=headers)
+        try:
             token = self.opener.open(req, timeout=self.timeout).read()
         except urllib2.HTTPError as e:
             if e.code == 401 or e.code == 403:
@@ -421,7 +384,7 @@ class BaseAutomationClient(object):
             if hasattr(e, 'msg'):
                 e.msg = base_error_message + ": " + e.msg
             raise
-        cookies = list(self.cookie_jar) if self.cookie_jar is not None else []
+        cookies = self._get_cookies()
         log.trace("Got token '%s' with cookies %r", token, cookies)
         # Use the (potentially re-newed) token from now on
         if not revoke:
@@ -471,6 +434,9 @@ class BaseAutomationClient(object):
             self.auth[0]: self.auth[1],
         }
 
+    def _get_cookies(self):
+        return list(self.cookie_jar) if self.cookie_jar is not None else []
+
     def _check_params(self, command, params):
         if command not in self.operations:
             raise ValueError("'%s' is not a registered operations." % command)
@@ -495,6 +461,20 @@ class BaseAutomationClient(object):
                         param, command))
 
         # TODO: add typechecking
+
+    def _read_response(self, response, url):
+        info = response.info()
+        s = response.read()
+        content_type = info.get('content-type', '')
+        cookies = self._get_cookies()
+        if content_type.startswith("application/json"):
+            log.trace("Response for '%s' with cookies %r and JSON payload: %r",
+                url, cookies, s)
+            return json.loads(s) if s else None
+        else:
+            log.trace("Response for '%s' with cookies %r and content-type: %r",
+                url, cookies, content_type)
+            return s
 
     def _log_details(self, e):
         if hasattr(e, "fp"):
