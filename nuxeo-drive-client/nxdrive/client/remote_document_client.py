@@ -185,6 +185,9 @@ class RemoteDocumentClient(BaseAutomationClient):
         else:
             return self.execute("Document.Delete", op_input=op_input)
 
+    def delete_content(self, ref, xpath=None):
+        return self.delete_blob(self._check_ref(ref), xpath=xpath)
+
     def exists(self, ref, use_trash=True):
         ref = self._check_ref(ref)
         id_prop = 'ecm:path' if ref.startswith('/') else 'ecm:uuid'
@@ -342,6 +345,9 @@ class RemoteDocumentClient(BaseAutomationClient):
         file_path = self.make_tmp_file(blob)
         return self.execute_with_blob_streaming("Blob.Attach",
             file_path, filename, document=ref)
+
+    def delete_blob(self, ref, xpath=None):
+        return self.execute("Blob.Remove", op_input="doc:" + ref, xpath=xpath)
 
     #
     # Nuxeo Drive specific operations
