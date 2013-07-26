@@ -90,8 +90,8 @@ class Dialog(QDialog):
         super(Dialog, self).reject()
 
 
-def prompt_authentication(controller, local_folder, url=None, username=None,
-                          is_url_readonly=False, app=None):
+def prompt_authentication(controller, local_folder, is_url_readonly=False,
+                          url=None, username=None, app=None):
     """Prompt a QT dialog to ask for user credentials for binding a server"""
     global is_dialog_open
 

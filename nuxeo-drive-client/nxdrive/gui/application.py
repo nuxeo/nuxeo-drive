@@ -264,8 +264,8 @@ class Application(QApplication):
     def update_credentials(self, local_folder):
         sb = self.controller.get_server_binding(local_folder)
         if prompt_authentication(
-            self.controller, local_folder, app=self, is_url_readonly=True,
-            url=sb.server_url, username=sb.remote_user):
+            self.controller, local_folder, is_url_readonly=True,
+            url=sb.server_url, username=sb.remote_user, app=self):
             log.debug("Credentials for %s successfully updated.", local_folder)
 
     @QtCore.pyqtSlot()

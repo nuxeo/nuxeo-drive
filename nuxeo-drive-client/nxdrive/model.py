@@ -473,7 +473,7 @@ def init_db(nxdrive_home, echo=False, scoped_sessions=True, poolclass=None):
     """Return an engine and session maker configured for using nxdrive_home
 
     The database is created in nxdrive_home if missing and the tables
-    are intialized based on the model classes from this module (they
+    are initialized based on the model classes from this module (they
     all inherit the same abstract base class.
 
     If scoped_sessions is True, sessions built with this maker are reusable
