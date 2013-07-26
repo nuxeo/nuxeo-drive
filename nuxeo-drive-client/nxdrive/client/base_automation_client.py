@@ -432,6 +432,7 @@ class BaseAutomationClient(object):
             'X-Device-Id': self.device_id,
             'X-Application-Name': self.application_name,
             self.auth[0]: self.auth[1],
+            'Cache-Control': 'no-cache',
         }
 
     def _get_cookies(self):
