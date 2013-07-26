@@ -9,6 +9,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import Sequence
 from sqlalchemy import String
+from sqlalchemy import Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import backref
 from sqlalchemy.ext.declarative import declarative_base
@@ -76,8 +77,30 @@ class DeviceConfig(Base):
 
     device_id = Column(String, primary_key=True)
 
+    # HTTP proxy settings
+    # Possible values for proxy_config: none, auto, manual
+    proxy_config = Column(String, default='system')
+    proxy_type = Column(String)
+    proxy_server = Column(String)
+    proxy_port = Column(String)
+    proxy_authenticated = Column(Boolean)
+    proxy_username = Column(String)
+    proxy_password = Column(String)
+    proxy_exceptions = Column(String)
+
     def __init__(self, device_id=None):
         self.device_id = uuid.uuid1().hex if device_id is None else device_id
+
+    def __repr__(self):
+        return ("DeviceConfig<device_id=%s, proxy_config=%s, proxy_type=%s, "
+                "proxy_server=%s, proxy_port=%s, proxy_authenticated=%r, "
+                "proxy_username=%s, proxy_password=%s, "
+                "proxy_exceptions=%s>") % (
+                    self.device_id, self.proxy_config, self.proxy_type,
+                    self.proxy_server, self.proxy_port,
+                    self.proxy_authenticated,
+                    self.proxy_username, self.proxy_password,
+                    self.proxy_exceptions)
 
 
 class ServerBinding(Base):
