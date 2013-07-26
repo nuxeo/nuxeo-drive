@@ -158,6 +158,24 @@ class Controller(object):
                 proxy_exceptions = None
             return proxies, proxy_exceptions
 
+    def set_proxy_settings(self, config, proxy_type=None,
+            server=None, port=None,
+            authenticated=None, username=None, password=None,
+            exceptions=None):
+        session = self.get_session()
+        device_config = session.query(DeviceConfig).one()
+
+        device_config.proxy_config = config
+        device_config.proxy_type = proxy_type
+        device_config.proxy_server = server
+        device_config.proxy_port = port
+        device_config.proxy_authenticated = authenticated
+        device_config.proxy_username = username
+        device_config.proxy_password = password
+        device_config.proxy_exceptions = exceptions
+
+        session.commit()
+
     def stop(self):
         """Stop the Nuxeo Drive synchronization thread
 

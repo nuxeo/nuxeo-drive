@@ -6,6 +6,7 @@ from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.authentication import prompt_authentication
+from nxdrive.gui.proxy_settings import prompt_proxy_settings
 from nxdrive.controller import default_nuxeo_drive_folder
 
 log = get_logger(__name__)
@@ -304,6 +305,13 @@ class Application(QApplication):
             tray_icon_menu.addAction(register_server_action)
             tray_icon_menu.addSeparator()
 
+        # HTTP proxy settings
+        proxy_settings_action = QtGui.QAction("&Proxy settings",
+                                    tray_icon_menu,
+                                    triggered=self.proxy_settings)
+        tray_icon_menu.addAction(proxy_settings_action)
+        tray_icon_menu.addSeparator()
+
         # TODO: add pause action if in running state
         # TODO: add start action if in paused state
         quit_action = QtGui.QAction("&Quit", tray_icon_menu,
@@ -316,6 +324,18 @@ class Application(QApplication):
     def register_server(self):
         return prompt_authentication(
             self.controller, default_nuxeo_drive_folder(), app=self)
+
+    def proxy_settings(self):
+        device = self.controller.get_device_config()
+        if prompt_proxy_settings(
+            self.controller, app=self,
+            config=device.proxy_config, proxy_type=device.proxy_type,
+            server=device.proxy_server, port=device.proxy_port,
+            authenticated=device.proxy_authenticated,
+            username=device.proxy_username,
+            password=device.proxy_password,
+            exceptions=device.proxy_exceptions):
+            log.trace("Proxy settings successfully updated: %r", device)
 
     def start_synchronization_thread(self):
         if len(self.controller.list_server_bindings()) == 0:
