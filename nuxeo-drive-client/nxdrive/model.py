@@ -18,7 +18,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.pool import SingletonThreadPool
 
-from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
 from nxdrive.utils import normalized_path
 from nxdrive.logging_config import get_logger
@@ -248,11 +247,6 @@ class LastKnownState(Base):
     def get_local_client(self):
         return LocalClient(self.local_folder)
 
-    def get_remote_client(self):
-        sb = self.server_binding
-        return RemoteFileSystemClient(sb.server_url, sb.remote_user,
-             sb.remote_password)
-
     @staticmethod
     def select_remote_refs(session, refs, page_size):
         """Mark remote refs as selected"""
@@ -363,13 +357,8 @@ class LastKnownState(Base):
         # detect such kind of conflicts instead?
         self.update_state(local_state=local_state)
 
-    def refresh_remote(self, client=None):
-        """Update the state from the remote server info.
-
-        Can reuse an existing client to spare some redundant client init HTTP
-        request.
-        """
-        client = client if client is not None else self.get_remote_client()
+    def refresh_remote(self, client):
+        """Update the state from the remote server info."""
         remote_info = client.get_info(self.remote_ref, raise_if_missing=False)
         self.update_remote(remote_info)
         return remote_info
