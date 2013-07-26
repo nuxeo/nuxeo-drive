@@ -94,7 +94,14 @@ class Controller(object):
             self.config_folder, echo=echo, poolclass=poolclass)
         self._local = local()
         self._remote_error = None
-        self.device_id = self.get_device_config().device_id
+
+        device_config = self.get_device_config()
+        self.device_id = device_config.device_id
+
+        # HTTP proxy settings
+        self.proxies, self.proxy_exceptions = (
+            self.get_proxy_settings(device_config))
+
         self.synchronizer = Synchronizer(self, page_size=page_size)
 
         # Make all the automation client related to this controller
@@ -120,6 +127,36 @@ class Controller(object):
             session.add(device_config)
             session.commit()
             return device_config
+
+    def get_proxy_settings(self, device_config):
+        """Return a pair containing proxy strings and exceptions list"""
+        if device_config.proxy_config == 'none':
+            # No proxy, return an empty dictionary to disable
+            # default proxy detection
+            return {}, None
+        elif device_config.proxy_config == 'system':
+            # System proxy, return None to use default proxy detection
+            return None, None
+        else:
+            # Manual proxy settings, build proxy string and exceptions list
+            if device_config.proxy_authenticated:
+                proxy_string = ("%s://%s:%s@%s:%s") % (
+                                    device_config.proxy_type,
+                                    device_config.proxy_username,
+                                    device_config.proxy_password,
+                                    device_config.proxy_server,
+                                    device_config.proxy_port)
+            else:
+                proxy_string = ("%s://%s:%s") % (
+                                    device_config.proxy_type,
+                                    device_config.proxy_server,
+                                    device_config.proxy_port)
+            proxies = {device_config.proxy_type: proxy_string}
+            if device_config.proxy_exceptions is not None:
+                proxy_exceptions = device_config.proxy_exceptions.split(',')
+            else:
+                proxy_exceptions = None
+            return proxies, proxy_exceptions
 
     def stop(self):
         """Stop the Nuxeo Drive synchronization thread
@@ -270,8 +307,9 @@ class Controller(object):
         # request
         server_url = self._normalize_url(server_url)
         nxclient = self.remote_doc_client_factory(
-            server_url, username, self.device_id, password=password,
-            timeout=self.handshake_timeout)
+            server_url, username, self.device_id,
+            proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
+            password=password, timeout=self.handshake_timeout)
         token = nxclient.request_token()
         if token is not None:
             # The server supports token based identification: do not store the
@@ -344,6 +382,8 @@ class Controller(object):
                         binding.server_url,
                         binding.remote_user,
                         self.device_id,
+                        proxies=self.proxies,
+                        proxy_exceptions=self.proxy_exceptions,
                         token=binding.remote_token,
                         timeout=self.timeout)
                 log.info("Revoking token for '%s' with account '%s'",
@@ -467,7 +507,8 @@ class Controller(object):
         if remote_client is None:
             remote_client = self.remote_fs_client_factory(
                 sb.server_url, sb.remote_user, self.device_id,
-                token=sb.remote_token, password=sb.remote_password,
+                proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
+                password=sb.remote_password, token=sb.remote_token,
                 timeout=self.timeout, cookie_jar=self.cookie_jar)
             cache[cache_key] = remote_client
         # Make it possible to have the remote client simulate any kind of
@@ -483,7 +524,8 @@ class Controller(object):
         sb = server_binding
         return self.remote_doc_client_factory(
             sb.server_url, sb.remote_user, self.device_id,
-            token=sb.remote_token, password=sb.remote_password,
+            proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
+            password=sb.remote_password, token=sb.remote_token,
             repository=repository, base_folder=base_folder,
             timeout=self.timeout, cookie_jar=self.cookie_jar)
 

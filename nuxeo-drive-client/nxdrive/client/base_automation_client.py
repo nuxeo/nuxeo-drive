@@ -55,7 +55,23 @@ class BaseAutomationClient(object):
     blob_timeout is long (or infinite) timeout dedicated to long HTTP
     requests involving a blob transfer.
 
+    Supports HTTP proxies.
+    If proxies is given, it must be a dictionary mapping protocol names to
+    URLs of proxies.
+    If proxies is None, uses default proxy detection:
+    read the list of proxies from the environment variables <PROTOCOL>_PROXY;
+    if no proxy environment variables are set, then in a Windows environment
+    proxy settings are obtained from the registry's Internet Settings section,
+    and in a Mac OS X environment proxy information is retrieved from the
+    OS X System Configuration Framework.
+    To disable autodetected proxy pass an empty dictionary.
     """
+    # TODO: handle system proxy detection under Linux,
+    # see https://jira.nuxeo.com/browse/NXP-12068
+
+    # TODO: handle authenticated proxy, dealing with
+    # "407 Proxy Authentication Required",
+    # see https://jira.nuxeo.com/browse/NXP-12091
 
     # Used for testing network errors
     _error = None
@@ -66,6 +82,7 @@ class BaseAutomationClient(object):
     permission = 'ReadWrite'
 
     def __init__(self, server_url, user_id, device_id,
+                 proxies=None, proxy_exceptions=None,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
                  timeout=20, blob_timeout=None, cookie_jar=None,
@@ -97,10 +114,31 @@ class BaseAutomationClient(object):
         self._update_auth(password=password, token=token)
 
         self.cookie_jar = cookie_jar
-        self.cookie_processor = urllib2.HTTPCookieProcessor(
+        cookie_processor = urllib2.HTTPCookieProcessor(
             cookiejar=cookie_jar)
-        self.opener = urllib2.build_opener(self.cookie_processor)
 
+        # Set proxy handler
+        if proxies is None:
+            # No proxies specified, use default proxy detection
+            proxyHandler = urllib2.ProxyHandler()
+        else:
+            # Use specified proxies (can be empty to disable default detection)
+            if proxies:
+                if proxy_exceptions is not None:
+                    for exception in proxy_exceptions:
+                        if exception in server_url:
+                            # Server URL is in proxy exceptions,
+                            # don't use any proxy
+                            proxies = {}
+            proxyHandler = urllib2.ProxyHandler(proxies)
+
+        # Build URL openers
+        self.opener = urllib2.build_opener(cookie_processor, proxyHandler)
+        self.streaming_opener = urllib2.build_opener(cookie_processor,
+                                                     proxyHandler,
+                                                     *get_handlers())
+
+        # Set Proxy flag
         self.is_proxy = False
         for handler in self.opener.handlers:
             if isinstance(handler, ProxyHandler):
@@ -353,10 +391,7 @@ class BaseAutomationClient(object):
             url, headers, cookies, file_path)
         req = urllib2.Request(url, data, headers)
         try:
-            # Build streaming opener
-            streaming_opener = urllib2.build_opener(*get_handlers())
-            streaming_opener.add_handler(self.cookie_processor)
-            resp = streaming_opener.open(req, timeout=self.blob_timeout)
+            resp = self.streaming_opener.open(req, timeout=self.blob_timeout)
         except Exception as e:
             self._log_details(e)
             raise
