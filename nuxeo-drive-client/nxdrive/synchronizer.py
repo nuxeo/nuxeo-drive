@@ -1413,7 +1413,10 @@ class Synchronizer(object):
 
     def _handle_network_error(self, server_binding, e):
         _log_offline(e, "synchronization loop")
-        log.trace("Traceback of ignored network error:",
+        msg = "Traceback of ignored network error: "
+        if hasattr(e, 'msg'):
+            msg = msg + e.msg
+        log.error(msg,
                   exc_info=True)
         if self._frontend is not None:
             self._frontend.notify_offline(
