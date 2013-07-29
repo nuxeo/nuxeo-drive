@@ -150,8 +150,11 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             dialog.show_message("Connection timed out, please check"
                                 " your Internet connection and retry.")
             return False
-        except:
-            msg = "Unable to connect to " + url
+        except Exception as e:
+            if hasattr(e, 'msg'):
+                msg = e.msg
+            else:
+                msg = "Unable to connect to " + url
             log.debug(msg, exc_info=True)
             # TODO: catch a new ServerUnreachable catching network issues
             dialog.show_message(msg)
