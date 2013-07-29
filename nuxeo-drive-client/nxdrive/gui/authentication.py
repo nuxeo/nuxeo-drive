@@ -109,7 +109,7 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
     fields_spec = [
         {
             'id': 'url',
-            'label': 'Nuxeo Server URL:',
+            'label': 'Nuxeo server URL:',
             'value': url,
             'is_readonly': is_url_readonly,
         },
