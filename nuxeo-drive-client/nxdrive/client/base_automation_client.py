@@ -17,6 +17,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
+from urllib2 import ProxyHandler
 
 
 log = get_logger(__name__)
@@ -98,6 +99,13 @@ class BaseAutomationClient(object):
         self.cookie_processor = urllib2.HTTPCookieProcessor(
             cookiejar=cookie_jar)
         self.opener = urllib2.build_opener(self.cookie_processor)
+
+        self.is_proxy = False
+        for handler in self.opener.handlers:
+            if isinstance(handler, ProxyHandler):
+                if handler.proxies:
+                    self.is_proxy = True
+
         self.automation_url = server_url + 'site/automation/'
         self.batch_upload_url = 'batch/upload'
         self.batch_execute_url = 'batch/execute'
@@ -110,9 +118,8 @@ class BaseAutomationClient(object):
 
     def fetch_api(self):
         base_error_message = (
-            "Failed to connect to Nuxeo Automation server %s"
-            " with user %s"
-        ) % (self.server_url, self.user_id)
+            "Failed to connect to Nuxeo server %s"
+        ) % (self.server_url)
         url = self.automation_url
         headers = self._get_common_headers()
         cookies = self._get_cookies()
@@ -126,12 +133,31 @@ class BaseAutomationClient(object):
             if e.code == 401 or e.code == 403:
                 raise Unauthorized(self.server_url, self.user_id, e.code)
             else:
-                e.msg = base_error_message + ": HTTP error %d" % e.code
+                msg = base_error_message + "\nHTTP error %d" % e.code
+                if hasattr(e, 'msg'):
+                    msg = msg + ": " + e.msg
+                e.msg = msg
                 raise e
+        except urllib2.URLError as e:
+            msg = base_error_message
+            if hasattr(e, 'reason'):
+                if hasattr(e.reason, 'strerror'):
+                    msg = msg + ": " + e.reason.strerror
+                else:
+                    msg = msg + ": " + e.reason
+            if self.is_proxy:
+                msg = (msg + "\nPlease make sure the Nuxeo server URL is valid"
+                       + " and check your proxy settings.")
+            else:
+                msg = msg + "\nPlease make sure the Nuxeo server URL is valid."
+            e.msg = msg
+            raise e
         except Exception as e:
+            msg = base_error_message
             if hasattr(e, 'msg'):
-                e.msg = base_error_message + ": " + e.msg
-            raise
+                msg = msg + ": " + e.msg
+            e.msg = msg
+            raise e
         self.operations = {}
         for operation in response["operations"]:
             self.operations[operation['id']] = operation

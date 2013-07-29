@@ -332,7 +332,8 @@ class CliHandler(object):
                 # Make it possible to use the postmortem debugger
                 raise
             else:
-                self.log.error("Error executing '%s': %s", command, e,
+                msg = e.msg if hasattr(e, 'msg') else e
+                self.log.error("Error executing '%s': %s", command, msg,
                           exc_info=True)
 
     def launch(self, options=None):
