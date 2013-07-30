@@ -547,13 +547,13 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         sb, ctl = self.sb_1, self.controller_1
         session = ctl.get_session()
 
-        # Grant Write permission on Workspaces for test user
+        # Grant ReadWrite permission on Workspaces for test user
         workspaces_path = u'/default-domain/workspaces'
         op_input = "doc:" + workspaces_path
         self.root_remote_client.execute("Document.SetACE",
             op_input=op_input,
             user="nuxeoDriveTestUser_user_1",
-            permission="Write",
+            permission="ReadWrite",
             grant="true")
 
         workspaces_info = self.root_remote_client.fetch(workspaces_path)
