@@ -313,8 +313,9 @@ class RemoteDocumentClient(BaseAutomationClient):
         return self.execute("Document.Unlock", op_input="doc:" + ref)
 
     def move(self, ref, target, name=None):
-        return self.execute("Document.Move", op_input="doc:" + ref,
-            target=target, name=name)
+        return self.execute("Document.Move",
+                            op_input="doc:" + self._check_ref(ref),
+                            target=self._check_ref(target), name=name)
 
     def copy(self, ref, target, name=None):
         return self.execute("Document.Copy",
