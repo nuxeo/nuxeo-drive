@@ -3,6 +3,7 @@ import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
+from nxdrive.client import RemoteDocumentClient
 from nxdrive.model import LastKnownState
 
 
@@ -536,6 +537,57 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
                           u'/Renamed Nuxeo Drive Test Workspace'
                           '/Original Folder 1/Original File 1.1.txt')
         self.assertEquals(file_1_1_state.local_name, u'Original File 1.1.txt')
+
+        # The more things change, the more they remain the same.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
+
+    def test_remote_move_to_non_sync_root(self):
+        sb, ctl = self.sb_1, self.controller_1
+        session = ctl.get_session()
+
+        # Grant Write permission on Workspaces for test user
+        workspaces_path = u'/default-domain/workspaces'
+        op_input = "doc:" + workspaces_path
+        self.root_remote_client.execute("Document.SetACE",
+            op_input=op_input,
+            user="nuxeoDriveTestUser_user_1",
+            permission="Write",
+            grant="true")
+
+        workspaces_info = self.root_remote_client.fetch(workspaces_path)
+        workspaces = workspaces_info[u'uid']
+
+        # Get remote client with Workspaces as base folder and local client
+        remote_client = RemoteDocumentClient(
+            self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
+            self.password_1, base_folder=workspaces,
+            upload_tmp_dir=self.upload_tmp_dir)
+        local_client = self.local_client_1
+
+        # Create a non synchronized folder
+        remote_client.make_folder(u'/', u'Non synchronized folder')
+
+        # Move Original Folder 1 to Non synchronized folder
+        remote_client.move(u'/nuxeo-drive-test-workspace/Original Folder 1',
+                           u'/Non synchronized folder')
+        self.assertFalse(remote_client.exists(
+                            u'/nuxeo-drive-test-workspace/Original Folder 1'))
+        self.assertTrue(remote_client.exists(
+                            u'/Non synchronized folder/Original Folder 1'))
+
+        # Synchronize: the folder move is detected as a deletion
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+        # Check local folder
+        self.assertFalse(local_client.exists(u'/Original Folder 1'))
+        # Check folder state
+        folder_1_state = session.query(LastKnownState).filter_by(
+            remote_name=u'Original Folder 1').all()
+        self.assertEquals(len(folder_1_state), 0)
 
         # The more things change, the more they remain the same.
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
