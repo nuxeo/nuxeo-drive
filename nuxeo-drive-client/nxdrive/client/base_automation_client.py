@@ -67,7 +67,7 @@ class BaseAutomationClient(object):
     def __init__(self, server_url, user_id, device_id,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
-                 timeout=10, blob_timeout=None, cookie_jar=None,
+                 timeout=20, blob_timeout=None, cookie_jar=None,
                  upload_tmp_dir=None):
         self.timeout = timeout
         self.blob_timeout = blob_timeout
