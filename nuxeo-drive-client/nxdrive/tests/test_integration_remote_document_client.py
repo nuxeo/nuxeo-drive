@@ -1,7 +1,10 @@
+import os
+from shutil import copyfile
 from time import sleep
 from nxdrive.client import NuxeoClient
 from nxdrive.client import Unauthorized
 from nxdrive.client import NotFound
+from nxdrive.client import LocalClient
 from nxdrive.tests.common import IntegrationTestCase
 from nose import SkipTest
 
@@ -300,7 +303,7 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
     def test_streaming_upload(self):
         remote_client = self.remote_document_client_1
 
-        # Create a document by streaming the file
+        # Create a document by streaming a text file
         file_path = remote_client.make_tmp_file("Some content.")
         doc_ref = remote_client.stream_file(self.workspace,
                                   'Streamed text file', file_path,
@@ -309,8 +312,19 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
                           'Streamed text file')
         self.assertEquals(remote_client.get_content(doc_ref), "Some content.")
 
-        # Update a document by streaming the new file
+        # Update a document by streaming a new text file
         file_path = remote_client.make_tmp_file("Other content.")
         remote_client.stream_update(doc_ref, file_path,
                                     filename='My updated file.txt')
         self.assertEquals(remote_client.get_content(doc_ref), "Other content.")
+
+        # Create a document by streaming a binary file
+        file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
+        copyfile('resources/testFile.pdf', file_path)
+        doc_ref = remote_client.stream_file(self.workspace,
+                                  'Streamed binary file', file_path)
+        local_client = LocalClient(self.upload_tmp_dir)
+        doc_info = remote_client.get_info(doc_ref)
+        self.assertEquals(doc_info.name, 'Streamed binary file')
+        self.assertEquals(doc_info.digest,
+                          local_client.get_info('/testFile.pdf').get_digest())

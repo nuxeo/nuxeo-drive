@@ -1,5 +1,7 @@
 from nxdrive.client import NotFound
+from nxdrive.client import LocalClient
 from nxdrive.tests.common import IntegrationTestCase
+from shutil import copyfile
 import hashlib
 import time
 import os
@@ -322,7 +324,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
     def test_streaming_upload(self):
         remote_client = self.remote_file_system_client_1
 
-        # Create a document by streaming the file
+        # Create a document by streaming a text file
         file_path = remote_client.make_tmp_file("Some content.")
         fs_item_id = remote_client.stream_file(self.workspace_id, file_path,
                                                filename='My streamed file.txt')
@@ -331,7 +333,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(remote_client.get_content(fs_item_id),
                           "Some content.")
 
-        # Update a document by streaming the new file
+        # Update a document by streaming a new text file
         file_path = remote_client.make_tmp_file("Other content.")
         remote_client.stream_update(fs_item_id, file_path,
                                     filename='My updated file.txt')
@@ -339,6 +341,16 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
                         'My updated file.txt')
         self.assertEquals(remote_client.get_content(fs_item_id),
                           "Other content.")
+
+        # Create a document by streaming a binary file
+        file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
+        copyfile('resources/testFile.pdf', file_path)
+        fs_item_id = remote_client.stream_file(self.workspace_id, file_path)
+        local_client = LocalClient(self.upload_tmp_dir)
+        fs_item_info = remote_client.get_info(fs_item_id)
+        self.assertEquals(fs_item_info.name, 'testFile.pdf')
+        self.assertEquals(fs_item_info.digest,
+                          local_client.get_info('/testFile.pdf').get_digest())
 
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)
