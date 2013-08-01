@@ -44,7 +44,7 @@ import subprocess
 MARKETPLACE_FOLDER = "mp-download.tmp"
 DEFAULT_ARCHIVE_PREFIX = "nuxeo-distribution-tomcat-"
 NUXEO_FOLDER = 'nuxeo-tomcat'
-MARKET_PLACE_PREFIX = "marketplace-"
+MARKET_PLACE_PREFIX = "nuxeo-drive-"
 
 DEFAULT_MSI_FOLDER = os.path.join(r"dist")
 DEFAULT_LESSMSI_URL = "http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
