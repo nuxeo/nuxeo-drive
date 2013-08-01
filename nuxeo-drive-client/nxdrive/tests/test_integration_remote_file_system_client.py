@@ -91,7 +91,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         tmp_file = remote_client.stream_content(fs_item_id, file_path)
         self.assertTrue(os.path.exists(tmp_file))
         self.assertEquals(os.path.basename(tmp_file), '.Document 1.txt.part')
-        self.assertEqual(open(tmp_file).read(), "Content of doc 1.")
+        self.assertEqual(open(tmp_file, 'rb').read(), "Content of doc 1.")
 
     def test_get_children_info(self):
         remote_client = self.remote_file_system_client_1

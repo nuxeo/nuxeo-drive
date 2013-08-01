@@ -334,7 +334,7 @@ class BaseAutomationClient(object):
         headers.update(self._get_common_headers())
 
         # Request data
-        input_file = open(file_path, 'r')
+        input_file = open(file_path, 'rb')
         # Use file system block size if available for streaming buffer
         if sys.platform != 'win32':
             fs_block_size = os.fstatvfs(input_file.fileno()).f_bsize
