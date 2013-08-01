@@ -330,7 +330,7 @@ class BaseAutomationClient(object):
             "X-File-Name": quoted_filename,
             "X-File-Size": file_size,
             "X-File-Type": mime_type,
-            "Content-Type": "binary/octet-stream",
+            "Content-Type": "application/octet-stream",
             "Content-Length": file_size,
         }
         headers.update(self._get_common_headers())
