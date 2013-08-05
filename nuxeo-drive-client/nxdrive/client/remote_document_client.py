@@ -62,7 +62,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     def __init__(self, server_url, user_id, device_id,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
-                 base_folder=None, timeout=10, blob_timeout=None,
+                 base_folder=None, timeout=20, blob_timeout=None,
                  cookie_jar=None, upload_tmp_dir=None):
         super(RemoteDocumentClient, self).__init__(
             server_url, user_id, device_id, password, token, repository,
