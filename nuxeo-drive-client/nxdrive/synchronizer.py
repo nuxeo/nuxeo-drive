@@ -585,7 +585,7 @@ class Synchronizer(object):
             remote_client.stream_update(
                 doc_pair.remote_ref,
                 doc_pair.get_local_abspath(),
-                name=doc_pair.remote_name,
+                filename=doc_pair.remote_name,
             )
             doc_pair.refresh_remote(remote_client)
         doc_pair.update_state('synchronized', 'synchronized')
@@ -690,7 +690,7 @@ class Synchronizer(object):
                 log.debug("Creating remote document '%s' in folder '%s'",
                           name, parent_pair.remote_name)
                 remote_ref = remote_client.stream_file(
-                    parent_ref, name, doc_pair.get_local_abspath())
+                    parent_ref, doc_pair.get_local_abspath(), filename=name)
             doc_pair.update_remote(remote_client.get_info(remote_ref))
             doc_pair.update_state('synchronized', 'synchronized')
         else:

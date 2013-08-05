@@ -1,5 +1,7 @@
 from nxdrive.client import NotFound
+from nxdrive.client import LocalClient
 from nxdrive.tests.common import IntegrationTestCase
+from shutil import copyfile
 import hashlib
 import time
 import os
@@ -91,7 +93,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         tmp_file = remote_client.stream_content(fs_item_id, file_path)
         self.assertTrue(os.path.exists(tmp_file))
         self.assertEquals(os.path.basename(tmp_file), '.Document 1.txt.part')
-        self.assertEqual(open(tmp_file).read(), "Content of doc 1.")
+        self.assertEqual(open(tmp_file, 'rb').read(), "Content of doc 1.")
 
     def test_get_children_info(self):
         remote_client = self.remote_file_system_client_1
@@ -322,21 +324,33 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
     def test_streaming_upload(self):
         remote_client = self.remote_file_system_client_1
 
-        # Create a document by streaming the file
+        # Create a document by streaming a text file
         file_path = remote_client.make_tmp_file("Some content.")
-        fs_item_id = remote_client.stream_file(self.workspace_id,
-                                            'File name.txt', file_path)
-        self.assertTrue(remote_client.exists(fs_item_id))
+        fs_item_id = remote_client.stream_file(self.workspace_id, file_path,
+                                               filename='My streamed file.txt')
+        self.assertEquals(remote_client.get_info(fs_item_id).name,
+                        'My streamed file.txt')
         self.assertEquals(remote_client.get_content(fs_item_id),
                           "Some content.")
 
-        # Update a document by streaming the new file
+        # Update a document by streaming a new text file
         file_path = remote_client.make_tmp_file("Other content.")
         remote_client.stream_update(fs_item_id, file_path,
-                                    name='New file name.txt')
-        self.assertTrue(remote_client.exists(fs_item_id))
+                                    filename='My updated file.txt')
+        self.assertEquals(remote_client.get_info(fs_item_id).name,
+                        'My updated file.txt')
         self.assertEquals(remote_client.get_content(fs_item_id),
                           "Other content.")
+
+        # Create a document by streaming a binary file
+        file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        fs_item_id = remote_client.stream_file(self.workspace_id, file_path)
+        local_client = LocalClient(self.upload_tmp_dir)
+        fs_item_info = remote_client.get_info(fs_item_id)
+        self.assertEquals(fs_item_info.name, 'testFile.pdf')
+        self.assertEquals(fs_item_info.digest,
+                          local_client.get_info('/testFile.pdf').get_digest())
 
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)
