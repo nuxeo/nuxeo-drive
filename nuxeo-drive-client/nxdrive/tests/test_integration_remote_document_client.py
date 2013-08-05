@@ -320,7 +320,7 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
 
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
-        copyfile('resources/testFile.pdf', file_path)
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
         doc_ref = remote_client.stream_file(self.workspace,
                                   'Streamed binary file', file_path)
         local_client = LocalClient(self.upload_tmp_dir)

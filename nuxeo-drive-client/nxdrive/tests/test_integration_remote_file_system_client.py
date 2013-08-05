@@ -344,7 +344,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
 
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
-        copyfile('resources/testFile.pdf', file_path)
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
         fs_item_id = remote_client.stream_file(self.workspace_id, file_path)
         local_client = LocalClient(self.upload_tmp_dir)
         fs_item_info = remote_client.get_info(fs_item_id)
