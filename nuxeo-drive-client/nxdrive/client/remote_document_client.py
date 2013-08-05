@@ -65,9 +65,11 @@ class RemoteDocumentClient(BaseAutomationClient):
                  base_folder=None, timeout=20, blob_timeout=None,
                  cookie_jar=None, upload_tmp_dir=None):
         super(RemoteDocumentClient, self).__init__(
-            server_url, user_id, device_id, password, token, repository,
-            ignored_prefixes, ignored_suffixes, timeout=timeout,
-            blob_timeout=blob_timeout, cookie_jar=cookie_jar,
+            server_url, user_id, device_id, password=password,
+            token=token, repository=repository,
+            ignored_prefixes=ignored_prefixes,
+            ignored_suffixes=ignored_suffixes,
+            timeout=timeout, blob_timeout=blob_timeout, cookie_jar=cookie_jar,
             upload_tmp_dir=upload_tmp_dir)
 
         # fetch the root folder ref
