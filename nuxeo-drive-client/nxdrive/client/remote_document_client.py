@@ -62,12 +62,14 @@ class RemoteDocumentClient(BaseAutomationClient):
     def __init__(self, server_url, user_id, device_id,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
-                 base_folder=None, timeout=10, blob_timeout=None,
+                 base_folder=None, timeout=20, blob_timeout=None,
                  cookie_jar=None, upload_tmp_dir=None):
         super(RemoteDocumentClient, self).__init__(
-            server_url, user_id, device_id, password, token, repository,
-            ignored_prefixes, ignored_suffixes, timeout=timeout,
-            blob_timeout=blob_timeout, cookie_jar=cookie_jar,
+            server_url, user_id, device_id, password=password,
+            token=token, repository=repository,
+            ignored_prefixes=ignored_prefixes,
+            ignored_suffixes=ignored_suffixes,
+            timeout=timeout, blob_timeout=blob_timeout, cookie_jar=cookie_jar,
             upload_tmp_dir=upload_tmp_dir)
 
         # fetch the root folder ref
@@ -147,30 +149,28 @@ class RemoteDocumentClient(BaseAutomationClient):
             self.attach_blob(ref, content, name)
         return ref
 
-    def stream_file(self, parent, name, file_path, filename,
+    def stream_file(self, parent, name, file_path, filename=None,
                     doc_type=FILE_TYPE):
         """Create a document by streaming the file with the given path"""
         ref = self.make_file(parent, name, doc_type=doc_type)
-        self.execute_with_blob_streaming("Blob.Attach", file_path, filename,
-                                         document=ref)
+        self.execute_with_blob_streaming("Blob.Attach", file_path,
+                                         filename=filename, document=ref)
         return ref
 
-    def update_content(self, ref, content, name=None):
+    def update_content(self, ref, content, filename=None):
         """Update a document with the given content
 
         Creates a temporary file from the content then streams it.
         """
-        if name is None:
-            name = self.get_info(ref).name
-        self.attach_blob(self._check_ref(ref), content, name)
+        if filename is None:
+            filename = self.get_info(ref).name
+        self.attach_blob(self._check_ref(ref), content, filename)
 
-    def stream_update(self, ref, file_path, name=None):
+    def stream_update(self, ref, file_path, filename=None):
         """Update a document by streaming the file with the given path"""
-        if name is None:
-            name = self.get_info(ref).name
         ref = self._check_ref(ref)
-        self.execute_with_blob_streaming("Blob.Attach", file_path, name,
-                                         document=ref)
+        self.execute_with_blob_streaming("Blob.Attach", file_path,
+                                         filename=filename, document=ref)
 
     def delete(self, ref, use_trash=True):
         op_input = "doc:" + self._check_ref(ref)
@@ -345,7 +345,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     def attach_blob(self, ref, blob, filename):
         file_path = self.make_tmp_file(blob)
         return self.execute_with_blob_streaming("Blob.Attach",
-            file_path, filename, document=ref)
+            file_path, filename=filename, document=ref)
 
     def delete_blob(self, ref, xpath=None):
         return self.execute("Blob.Remove", op_input="doc:" + ref, xpath=xpath)
