@@ -15,8 +15,8 @@ $webclient = New-Object System.Net.WebClient
 Set-Item -path env:Path -value ($env:Path + ";C:\Program Files (x86)\Git\bin")
 
 # Download Python
-$url = "http://www.python.org/ftp/python/2.7.3/python-2.7.3.msi"
-$python_msi = "$storagedir\python-2.7.3.msi"
+$url = "http://www.python.org/ftp/python/2.7.5/python-2.7.5.msi"
+$python_msi = "$storagedir\python-2.7.5.msi"
 echo "Downloading Python from $url"
 $webclient.DownloadFile($url, $python_msi)
 echo "Installing Python from $python_msi"

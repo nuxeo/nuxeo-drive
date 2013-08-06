@@ -1,5 +1,9 @@
 import os
 import sys
+from nxdrive.logging_config import get_logger
+
+
+log = get_logger(__name__)
 
 
 WIN32_SUFFIX = os.path.join('library.zip', 'nxdrive')
@@ -59,3 +63,14 @@ def update_win32_reg_key(reg, path, attributes=()):
     for attribute, type_, value in attributes:
         _winreg.SetValueEx(key, attribute, 0, type_, value)
     _winreg.CloseKey(key)
+
+
+def force_decode(string, codecs=['utf8', 'cp1252']):
+    for codec in codecs:
+        try:
+            return string.decode(codec)
+        except:
+            pass
+    log.debug("Cannot decode string '%s' with any of the given codecs: %r",
+              string, codecs)
+    return ''

@@ -17,6 +17,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
+from nxdrive.utils import force_decode
 from urllib2 import ProxyHandler
 
 
@@ -142,9 +143,9 @@ class BaseAutomationClient(object):
             msg = base_error_message
             if hasattr(e, 'reason'):
                 if hasattr(e.reason, 'strerror'):
-                    msg = msg + ": " + e.reason.strerror
+                    msg = msg + force_decode(": " + e.reason.strerror)
                 else:
-                    msg = msg + ": " + e.reason
+                    msg = msg + force_decode(": " + e.reason)
             if self.is_proxy:
                 msg = (msg + "\nPlease make sure the Nuxeo server URL is valid"
                        + " and check your proxy settings.")
