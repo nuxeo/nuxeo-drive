@@ -9,7 +9,7 @@
 
   <groupId>org.nuxeo.ecm</groupId>
   <artifactId>nuxeo-drive-server</artifactId>
-  <version>5.7.2.1-SNAPSHOT</version>
+  <version>5.7.2.1</version>
   <packaging>pom</packaging>
   <name>Nuxeo Drive Server Parent</name>
   <description>Parent project for the Java server-side code of Nuxeo Drive</description>
