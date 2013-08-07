@@ -1,6 +1,5 @@
 import os
 import uuid
-import logging
 import datetime
 from sqlalchemy import Column
 from sqlalchemy import DateTime

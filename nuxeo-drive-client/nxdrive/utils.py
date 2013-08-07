@@ -46,7 +46,8 @@ def find_exe_path():
 
     # Detect OSX frozen app
     if nxdrive_path.endswith(OSX_SUFFIX):
-        exe_path = nxdrive_path.replace(OSX_SUFFIX, "Contents/MacOS/Nuxeo Drive")
+        exe_path = nxdrive_path.replace(OSX_SUFFIX,
+                                        "Contents/MacOS/Nuxeo Drive")
         if os.path.exists(exe_path):
             return exe_path
 
