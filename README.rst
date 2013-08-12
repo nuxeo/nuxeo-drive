@@ -9,9 +9,9 @@ Watch this `screencast`_ to get 6 min overview of this project.
 
 .. _`screencast`: http://www.nuxeo.com/blog/development/2013/04/nuxeo-drive-desktop-synchronization/
 
-The documentation is here available here:
+The documentation is available here:
 
-  http://doc.nuxeo.com/display/USERDOC56/Nuxeo+Drive
+  http://doc.nuxeo.com/x/04HQ
 
 
 Install
@@ -28,9 +28,9 @@ Server-side marketplace package
 
   https://connect.nuxeo.com/nuxeo/site/marketplace/package/nuxeo-drive
 
-You can also fetch the **latest development version** of the marketplace package for the Nuxeo master branch
-`marketplace-1.1-SNAPSHOT.zip <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/marketplace-1.1-SNAPSHOT.zip>`_
-from the Continuous Integration server (use at your own risk).
+You can also fetch the **latest development version** of the
+`marketplace package <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace>`_
+for the Nuxeo master branch from the Continuous Integration server (use at your own risk).
 
 The marketplace package can be installed using the Admin Center /
 Update Center / Local Packages interface of a Nuxeo server.
