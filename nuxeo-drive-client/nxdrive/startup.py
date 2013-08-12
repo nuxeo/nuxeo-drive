@@ -6,6 +6,7 @@ from nxdrive.utils import update_win32_reg_key
 
 log = get_logger(__name__)
 
+
 def register_startup():
     if sys.platform == 'win32':
         register_startup_win32()
@@ -60,7 +61,8 @@ def register_startup_darwin():
     agents_folder = os.path.expanduser('~/Library/LaunchAgents')
     agent_filepath = os.path.join(agents_folder, NDRIVE_AGENT_FILENAME)
     exe_path = find_exe_path()
-    log.debug("Registering '%s' for startup in: '%s'", exe_path, agent_filepath)
+    log.debug("Registering '%s' for startup in: '%s'",
+              exe_path, agent_filepath)
 
     if not os.path.exists(agents_folder):
         os.makedirs(agents_folder)

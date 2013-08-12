@@ -39,7 +39,6 @@ def get_maxfd():
     return maxfd
 
 
-
 def closerange(fd_low, fd_high):
     """Failover implementation in case not provided in os"""
     # Iterate through and close all file descriptors.

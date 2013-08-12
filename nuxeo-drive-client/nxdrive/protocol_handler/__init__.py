@@ -11,6 +11,7 @@ NXDRIVE_EDIT_URL_FORM = ('nxdrive://edit/scheme/server[:port]'
 
 # Protocol handler parsing
 
+
 def parse_protocol_url(url_string):
     """Parse URL for which nxdrive is registered as a protocol handler
 
