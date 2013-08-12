@@ -1,7 +1,11 @@
-Developping Nuxeo Drive
-=======================
+Nuxeo Drive contributor guide
+=============================
 
-This guide is for developers will to work on the Nuxeo Drive codebase it-self.
+This guide is for developers willing to work on the Nuxeo Drive codebase itself.
+
+For more details please read the technical documentation available here:
+
+  http://doc.nuxeo.com/x/TYzZ
 
 Note that many behaviors of Nuxeo Drive can be customized without actually
 changing the code of Nuxeo Drive but by contributing to the server side
