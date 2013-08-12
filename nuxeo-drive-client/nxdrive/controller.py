@@ -416,7 +416,7 @@ class Controller(object):
         only once the parent folders have already been synchronized.
 
         If ingore_in_error is not None and is a duration in second, skip pair
-        states states that have recently triggered a synchronization error.
+        states that have recently triggered a synchronization error.
         """
         if session is None:
             session = self.get_session()
