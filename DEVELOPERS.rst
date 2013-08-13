@@ -74,7 +74,7 @@ WARNING: this will download many large dependencies and sometimes the remote
 server will timeout on some of them: you might need to re-run this command
 several times to get it all installed.
 
-Then install QT and PySide for graphical user interface (see below).
+Then install QT and PyQt for graphical user interface (see below).
 
 
 Nuxeo Drive Client under Windows
@@ -97,7 +97,7 @@ command::
 
   Set-ExecutionPolicy Unrestricted
 
-Then install QT and PySide for graphical user interface (see below).
+Then install QT and PyQt for graphical user interface (see below).
 
 You can then run the integration tests against a Nuxeo instance running
 ``localhost:8080`` with::
@@ -115,13 +115,16 @@ Using the binary package is a good workaround if you fail to build it with
 pip and getting the error: ``error: Unable to find vcvarsall.bat``
 
 
-Installing QT and PySide
+Installing QT and PyQt
 ------------------------
 
 The graphical user interface elements of Nuxeo Drive client (such as the
-authentication prompt and the trayicon menu) are built using the PySide library
+authentication prompt and the trayicon menu) are built using the PyQt library
 that is a Python binding for the QT C++ library for building cross-platform
-interfaces. Both PySide and QT are licensed under the LGPL.
+interfaces. Beware that:
+
+- QT is available under both the LGPL and GPL
+- PyQt is available either under the GPL or the PyQt commercial license. See `http://www.riverbankcomputing.co.uk/software/pyqt/license` for more details about PyQt license.
 
 When building/running Nuxeo Drive client from sources (i.e. not using the
 ``.msi`` package) you should have those libraries installed on your system.
@@ -129,43 +132,42 @@ When building/running Nuxeo Drive client from sources (i.e. not using the
 Under Windows
 ~~~~~~~~~~~~~
 
-Under Windows you can install the binaries by following the instructions of
-the PySide website:
+Under Windows you can install the binaries downloaded from the PyQt website:
 
-  http://qt-project.org/wiki/PySide_Binaries_Windows
+  http://www.riverbankcomputing.co.uk/software/pyqt/download
 
-Beware to install the matching version of the PySide binaries (for your
+Beware to install the matching version of the PyQt binaries (for your
 version of Python, typically 2.7 for now as Python 3.3 is not yet supported by
 Nuxeo Drive).
 
 Also if you want to use your developer workstation to generate frozen a `.msi`
 build of the Nuxeo Drive client to be runnable on all windows platforms (both 32
-and 64 bit), be careful to install both the 32 bit version of Python and PySide.
+and 64 bit), be careful to install both the 32 bit version of Python and PyQt.
 
 
 Under Mac OSX
 ~~~~~~~~~~~~~
 
 Under OSX you can either install the binaries by following the instructions
-of the official PySide website:
+of the PyQt website:
 
-  http://qt-project.org/wiki/PySide_Binaries_MacOSX
+  http://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.10.2/PyQt-mac-gpl-4.10.2.tar.gz
 
-If you installed a standalone version of Python with homebrew (recommended), you
-might need to symlink the binary install of PySide to the ``site-packages``
-folder of the homebre Python::
+If you installed a standalone version of Python with Homebrew (recommended), you
+might need to symlink the binary install of PyQt to the ``site-packages``
+folder of the homebrewed Python::
 
-  ln -s /Library/Python/2.7/site-packages/PySide /usr/local/lib/python2.7/site-packages/PySide
+  ln -s /Library/Python/2.7/site-packages/PyQt4 /usr/local/lib/python2.7/site-packages/PyQt4
 
 **Known issue**: the py2app frozen build of ``.app`` is not portable if you
-install PySide with HomeBrew directly as documented in `NXP-11552
+install PyQt with Homebrew directly as documented in `NXP-11552
 <https://jira.nuxeo.com/browse/NXP-11552>`_.
 
-So if you have any portability issues with QT / PySide under OS X you can
-uninstall any previous version of QT and PySide from your system with::
+So if you have any portability issues with QT / PQt under OS X you can
+uninstall any previous version of QT and PyQt from your system with::
 
-    brew uninstall pyside shiboken qt
-    sudo pip uninstall PySide
+    brew uninstall pyqt shiboken qt
+    sudo pip uninstall pyqt
     sudo python /Developer/Tools/uninstall-qt.py
 
 and then re-install them using from the binary packages of the qt-project.org
@@ -175,9 +177,9 @@ website as described above.
 Under Debian / Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~
 
-You can install the ``python-pyside`` package directly::
+You can install the ``python-qt4`` package directly::
 
-  sudo apt-get install python-pyside
+  sudo apt-get install python-qt4
 
 
 Generating OS specific packages

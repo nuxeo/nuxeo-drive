@@ -9,11 +9,11 @@ log = get_logger(__name__)
 # Keep QT an optional dependency for now
 QtGui, QDialog = None, object
 try:
-    from PySide import QtGui
+    from PyQt4 import QtGui
     QDialog = QtGui.QDialog
-    log.debug("QT / PySide successfully imported")
+    log.debug("QT / PyQt4 successfully imported")
 except ImportError:
-    log.warning("QT / PySide is not installed: GUI is disabled")
+    log.warning("QT / PyQt4 is not installed: GUI is disabled")
     pass
 
 
@@ -27,7 +27,7 @@ class Dialog(QDialog):
                  callback=None):
         super(Dialog, self).__init__()
         if QtGui is None:
-            raise RuntimeError("PySide is not installed.")
+            raise RuntimeError("PyQt4 is not installed.")
         self.create_authentication_box(fields_spec)
         self.callback = callback
         buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok
@@ -72,7 +72,7 @@ class Dialog(QDialog):
         self.authentication_group_box.setLayout(layout)
 
     def clear_message(self, *args, **kwargs):
-        self.message_area.setText(None)
+        self.message_area.clear()
 
     def show_message(self, message):
         self.message_area.setText(message)
@@ -96,8 +96,8 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
     global is_dialog_open
 
     if QtGui is None:
-        # Qt / PySide is not installed
-        log.error("QT / PySide is not installed:"
+        # Qt / PyQt4 is not installed
+        log.error("QT / PyQt4 is not installed:"
                   " use commandline options for binding a server.")
         return False
 
@@ -131,6 +131,7 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             if not url:
                 dialog.show_message("The Nuxeo server URL is required.")
                 return False
+            url = str(url)
             if (not url.startswith("http://")
                 and not url.startswith('https://')):
                 dialog.show_message("Not a valid HTTP url.")
@@ -139,7 +140,8 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             if not username:
                 dialog.show_message("A user name is required")
                 return False
-            password = values['password']
+            username = str(username)
+            password = str(values['password'])
             dialog.show_message("Connecting to %s ..." % url)
             controller.bind_server(local_folder, url, username, password)
             return True

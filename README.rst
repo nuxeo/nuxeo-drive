@@ -14,6 +14,32 @@ The documentation is available here:
   http://doc.nuxeo.com/x/04HQ
 
 
+License
+=======
+
+The source code of Nuxeo Drive is available under the
+GNU Lesser General Public License v2.1 described below.
+
+Though, Nuxeo Drive depends on the `PyQt <http://www.riverbankcomputing.co.uk/software/pyqt/intro>`_ component that is available
+under the following licenses:
+
+- GNU General Public License v2
+- GNU General Public License v3
+- PyQt Commercial License
+- PyQt Embedded License
+
+Therefore the binary packages resulting of the assembly of the
+Nuxeo Drive source code and all the third-party libraries that it
+depends on, among which PyQt, are available under one of the licenses
+listed above. Indeed, the binary packages are subject to the licenses
+of the sources from which they have been built. As the GNU General
+Public Licenses and the PyQt Commercial License are stronger than the
+GNU Lesser General Public License, these are the ones that apply.
+
+Thus any code written on the top of Nuxeo Drive must be distributed
+under the terms of one of the licenses available for PyQt.
+
+
 Install
 =======
 
@@ -50,7 +76,7 @@ can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
 ``nuxeo-drive-<version>-win32.msi``
-windows installer from the `Continous Integration <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-msi/>`_.
+windows installer from the `Continuous Integration <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-msi/>`_.
 
 Once you installed the package (Administrator rights required) the new folder
 holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
@@ -59,7 +85,7 @@ holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
 You can start the ``Nuxeo Drive`` program from the "Start..." menu.
 
 All the necessary dependencies (such as the Python interpreter and the QT /
-PySide for the client side user interface) are included in this folder and
+PyQt for the client side user interface) are included in this folder and
 should not impact any alternative version possibly already installed on your
 computer.
 
@@ -82,7 +108,7 @@ Ubuntu/Debian (and other Linux variants) Client
 The ``.deb`` package of the client is not yet available. In the mean time you
 can install it from source::
 
-  sudo apt-get install python-pip python-dev python-pyside
+  sudo apt-get install python-pip python-dev python-qt4
   sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
   sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
 

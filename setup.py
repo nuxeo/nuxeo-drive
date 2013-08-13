@@ -72,11 +72,11 @@ if '--dev' in sys.argv:
     print "Updated version to " + version
 
 includes = [
-    "PySide",
-    "PySide.QtCore",
-    "PySide.QtNetwork",
-    "PySide.QtGui",
-    "atexit",  # implicitly required by PySide
+    "PyQt4",
+    "PyQt4.QtCore",
+    "PyQt4.QtNetwork",
+    "PyQt4.QtGui",
+    "atexit",  # implicitly required by PyQt4
     "sqlalchemy.dialects.sqlite",
 ]
 excludes = [

@@ -13,13 +13,13 @@ log = get_logger(__name__)
 # Keep QT an optional dependency for now
 QtGui, QApplication, QObject = None, object, object
 try:
-    from PySide import QtGui
-    from PySide import QtCore
+    from PyQt4 import QtGui
+    from PyQt4 import QtCore
     QApplication = QtGui.QApplication
     QObject = QtCore.QObject
-    log.debug("QT / PySide successfully imported")
+    log.debug("QT / PyQT4 successfully imported")
 except ImportError:
-    log.warning("QT / PySide is not installed: GUI is disabled")
+    log.warning("QT / PyQT4 is not installed: GUI is disabled")
     pass
 
 
@@ -31,10 +31,10 @@ class Communicator(QObject):
 
     """
     # (event name, new icon, rebuild menu)
-    icon = QtCore.Signal(str)
-    menu = QtCore.Signal()
-    stop = QtCore.Signal()
-    invalid_credentials = QtCore.Signal(str)
+    icon = QtCore.pyqtSignal(str)
+    menu = QtCore.pyqtSignal()
+    stop = QtCore.pyqtSignal()
+    invalid_credentials = QtCore.pyqtSignal(str)
 
 
 class BindingInfo(object):
@@ -112,7 +112,7 @@ class Application(QApplication):
             self.binding_info[local_folder] = info
         return info
 
-    @QtCore.Slot(str)
+    @QtCore.pyqtSlot(str)
     def set_icon_state(self, state):
         """Execute systray icon change operations triggered by state change
 
@@ -146,14 +146,14 @@ class Application(QApplication):
         self.quit_on_stop = True
         self.communicator.menu.emit()
         if self.sync_thread is not None and self.sync_thread.isAlive():
-            # Ask the conntroller to stop: the synchronization loop will in turn
+            # Ask the controller to stop: the synchronization loop will in turn
             # call notify_sync_stopped and finally handle_stop
             self.controller.stop()
         else:
             # quit directly
             self.quit()
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def handle_stop(self):
         if self.quit_on_stop:
             self.quit()
@@ -253,9 +253,9 @@ class Application(QApplication):
         self.update_running_icon()
         self._tray_icon.show()
 
-    @QtCore.Slot(str)
+    @QtCore.pyqtSlot(str)
     def handle_invalid_credentials(self, local_folder):
-        sb = self.controller.get_server_binding(local_folder)
+        sb = self.controller.get_server_binding(str(local_folder))
         sb.invalidate_credentials()
         self.controller.get_session().commit()
         self.communicator.menu.emit()
@@ -267,7 +267,7 @@ class Application(QApplication):
             url=sb.server_url, username=sb.remote_user):
             log.debug("Credentials for %s successfully updated.", local_folder)
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def rebuild_menu(self):
         tray_icon_menu = QtGui.QMenu()
         # TODO: i18n action labels
