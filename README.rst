@@ -59,7 +59,7 @@ holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
 You can start the ``Nuxeo Drive`` program from the "Start..." menu.
 
 All the necessary dependencies (such as the Python interpreter and the QT /
-PySide for the client side user interface) are included in this folder and
+PyQt for the client side user interface) are included in this folder and
 should not impact any alternative version possibly already installed on your
 computer.
 
@@ -82,7 +82,7 @@ Ubuntu/Debian (and other Linux variants) Client
 The ``.deb`` package of the client is not yet available. In the mean time you
 can install it from source::
 
-  sudo apt-get install python-pip python-dev python-pyside
+  sudo apt-get install python-pip python-dev python-qt4
   sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
   sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
 
