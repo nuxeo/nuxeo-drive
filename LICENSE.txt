@@ -1,4 +1,4 @@
-      INTRODUCTION
+                  INTRODUCTION
       
   The source code of Nuxeo Drive is available under the
 GNU Lesser General Public License v2.1 described below.
