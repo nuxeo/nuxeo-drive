@@ -18,7 +18,7 @@ License
 =======
 
 The source code of Nuxeo Drive is available under the
-GNU Lesser General Public License v2.1 described below.
+GNU Lesser General Public License v2.1 described in LICENSE.txt.
 
 Though, Nuxeo Drive depends on the `PyQt <http://www.riverbankcomputing.co.uk/software/pyqt/intro>`_ component that is available
 under the following licenses:
