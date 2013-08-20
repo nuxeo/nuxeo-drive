@@ -148,30 +148,30 @@ and 64 bit), be careful to install both the 32 bit version of Python and PyQt.
 Under Mac OSX
 ~~~~~~~~~~~~~
 
-Under OSX you can either install the binaries by following the instructions
-of the PyQt website:
+Under OS X you can install Qt and PyQt using Homebrew.
+
+First you need to make sure that the brew installed Python will be used when installing PyQt::
+
+  #Override default tools with Cellar ones if available
+  #This makes sure homebrew stuff is used
+  export PATH=/usr/local/bin:$PATH
+
+  #Point OSX to Cellar python
+  export PYTHONPATH=/usr/local/lib/python:$PYTHONPATH
+
+Then install PyQt with Homebrew::
+
+  sudo brew install pyqt
+
+You can also install the binary package downloaded from the PyQt website:
 
   http://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.10.2/PyQt-mac-gpl-4.10.2.tar.gz
 
-If you installed a standalone version of Python with Homebrew (recommended), you
+In this case and if you installed a standalone version of Python with Homebrew (recommended), you
 might need to symlink the binary install of PyQt to the ``site-packages``
-folder of the homebrewed Python::
+folder of the brewed Python::
 
   ln -s /Library/Python/2.7/site-packages/PyQt4 /usr/local/lib/python2.7/site-packages/PyQt4
-
-**Known issue**: the py2app frozen build of ``.app`` is not portable if you
-install PyQt with Homebrew directly as documented in `NXP-11552
-<https://jira.nuxeo.com/browse/NXP-11552>`_.
-
-So if you have any portability issues with QT / PQt under OS X you can
-uninstall any previous version of QT and PyQt from your system with::
-
-    brew uninstall pyqt shiboken qt
-    sudo pip uninstall pyqt
-    sudo python /Developer/Tools/uninstall-qt.py
-
-and then re-install them using from the binary packages of the qt-project.org
-website as described above.
 
 
 Under Debian / Ubuntu
