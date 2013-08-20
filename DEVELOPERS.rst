@@ -37,8 +37,8 @@ To build the marketplace package see the related
 `Github repository <https://github.com/nuxeo/marketplace-drive>`_.
 
 
-Nuxeo Drive Client under Linux & MacOSX
----------------------------------------
+Nuxeo Drive Client under Linux & Mac OS X
+-----------------------------------------
 
 **Under OS X**: before installing Python packages, you should probably start by
 installing your own non-system version of Python 2.7 using homebrew as explained
@@ -74,7 +74,7 @@ WARNING: this will download many large dependencies and sometimes the remote
 server will timeout on some of them: you might need to re-run this command
 several times to get it all installed.
 
-Then install QT and PyQt for graphical user interface (see below).
+Then install Qt and PyQt for graphical user interface (see below).
 
 
 Nuxeo Drive Client under Windows
@@ -97,7 +97,7 @@ command::
 
   Set-ExecutionPolicy Unrestricted
 
-Then install QT and PyQt for graphical user interface (see below).
+Then install Qt and PyQt for graphical user interface (see below).
 
 You can then run the integration tests against a Nuxeo instance running
 ``localhost:8080`` with::
@@ -115,38 +115,38 @@ Using the binary package is a good workaround if you fail to build it with
 pip and getting the error: ``error: Unable to find vcvarsall.bat``
 
 
-Installing QT and PyQt
-------------------------
+Installing Qt and PyQt
+----------------------
 
 The graphical user interface elements of Nuxeo Drive client (such as the
 authentication prompt and the trayicon menu) are built using the PyQt library
-that is a Python binding for the QT C++ library for building cross-platform
+that is a Python binding for the Qt C++ library for building cross-platform
 interfaces. Beware that:
 
-- QT is available under both the LGPL and GPL
+- Qt is available under both the LGPL and GPL
 - PyQt is available either under the GPL or the PyQt commercial license. See `http://www.riverbankcomputing.co.uk/software/pyqt/license` for more details about PyQt license.
 
 When building/running Nuxeo Drive client from sources (i.e. not using the
-``.msi`` package) you should have those libraries installed on your system.
+``.msi`` or ``.dmg`` packages) you should have those libraries installed on your system.
 
 Under Windows
 ~~~~~~~~~~~~~
 
-Under Windows you can install the binaries downloaded from the PyQt website:
+Under Windows you need to install the binary package downloaded from the PyQt website:
 
   http://www.riverbankcomputing.co.uk/software/pyqt/download
 
-Beware to install the matching version of the PyQt binaries (for your
+Make sure to install the version of the PyQt binaries matching with your
 version of Python, typically 2.7 for now as Python 3.3 is not yet supported by
-Nuxeo Drive).
+Nuxeo Drive.
 
-Also if you want to use your developer workstation to generate frozen a `.msi`
+Also if you want to use your developer workstation to generate a frozen `.msi`
 build of the Nuxeo Drive client to be runnable on all windows platforms (both 32
-and 64 bit), be careful to install both the 32 bit version of Python and PyQt.
+and 64 bit), be careful to install both the 32 bit versions of Python and PyQt.
 
 
-Under Mac OSX
-~~~~~~~~~~~~~
+Under Mac OS X
+~~~~~~~~~~~~~~
 
 Under OS X you can install Qt and PyQt using Homebrew.
 
@@ -195,15 +195,15 @@ as explained above. Then run::
 
 The generated ``.msi`` file can be found in the ``dist/`` subfolder.
 
-.app and .dmg packages for OSX
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.app and .dmg packages for Mac OS X
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To generate the standalone OSX `.app` bundle, you **need** to install a
+To generate the standalone OS X `.app` bundle, you **need** to install a
 standalone version of Python (i.e. not the version that comes pre-installed
-with OSX). Otherwise the ``.app`` bundle will be generated in
-``semi-standalone`` mode and will likely not work on other versions of OSX.
+with OS X). Otherwise the ``.app`` bundle will be generated in
+``semi-standalone`` mode and will likely not work on other versions of OS X.
 
-To install you a standalone version of Python with homebrew see the dedicated
+To install you a standalone version of Python with Homebrew see the dedicated
 section below first.
 
 Then install ``py2app`` along with the dependencies if ::
@@ -221,10 +221,10 @@ can then generate a ``.dmg`` archive using::
   hdiutil create -srcfolder "dist/Nuxeo Drive.app" "dist/Nuxeo Drive.dmg"
 
 
-Installing a standalone Python interpreter on Mac OSX
+Installing a standalone Python interpreter on Mac OS X
 ------------------------------------------------------
 
-To install a standalone version of Python under OSX you can use `HomeBrew
+To install a standalone version of Python under OS X you can use `Homebrew
 <http://mxcl.github.com/homebrew/>`_::
 
   brew install python
