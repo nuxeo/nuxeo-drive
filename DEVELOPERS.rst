@@ -163,7 +163,7 @@ Then install PyQt with Homebrew::
 
   sudo brew install pyqt
 
-As an alternative method, you can also install the binary package downloaded from the PyQt website:
+As an alternative method, you can install the binary package downloaded from the PyQt website:
 
   http://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.10.2/PyQt-mac-gpl-4.10.2.tar.gz
 
