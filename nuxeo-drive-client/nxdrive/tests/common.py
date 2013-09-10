@@ -107,8 +107,9 @@ class IntegrationTestCase(unittest.TestCase):
             self.local_test_folder_2, u'nuxeo-drive-conf')
         os.mkdir(self.nxdrive_conf_folder_2)
 
-        self.controller_1 = Controller(self.nxdrive_conf_folder_1)
-        self.controller_2 = Controller(self.nxdrive_conf_folder_2)
+        # set echo to true for enabling sql statements logging 
+        self.controller_1 = Controller(self.nxdrive_conf_folder_1, echo=False) 
+        self.controller_2 = Controller(self.nxdrive_conf_folder_2, echo=False)
         self.root_remote_client = root_remote_client
         self.remote_document_client_1 = remote_document_client_1
         self.remote_document_client_2 = remote_document_client_2

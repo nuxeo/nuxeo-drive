@@ -1,6 +1,9 @@
 import os
 import uuid
 import datetime
+import itertools
+from time import time
+from sqlalchemy import or_
 from sqlalchemy import Column
 from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
@@ -164,11 +167,14 @@ class LastKnownState(Base):
     remote_can_rename = Column(Integer)
     remote_can_delete = Column(Integer)
     remote_can_update = Column(Integer)
-    remote_can_create_child = Column(Integer)
+    remote_can_create_child = Column(Integer, index=True)
 
     # Log date of sync errors to be able to skip documents in error for some
     # time
     last_sync_error_date = Column(DateTime)
+    
+    # Avoid not in clauses (temporary marker)
+    in_clause_selected = Column(Integer, default=0)
 
     def __init__(self, local_folder, local_info=None,
                  remote_info=None, local_state='unknown',
@@ -224,6 +230,40 @@ class LastKnownState(Base):
         sb = self.server_binding
         return RemoteFileSystemClient(sb.server_url, sb.remote_user,
              sb.remote_password)
+
+    @staticmethod
+    def select_remote_refs(session, refs):
+        """Mark remote refs as selected"""
+        tag = time()
+        page_size = 100
+        page_offset = 0
+        log.debug("selecting refs %r", refs)
+        while (page_offset < len(refs)):
+            page_refs = itertools.islice(refs, page_offset, page_offset + page_size, None)
+            session.query(LastKnownState).filter(LastKnownState.remote_ref.in_(page_refs)).update({'in_clause_selected':tag}, synchronize_session=False)
+            page_offset += page_size
+        return tag
+
+    @staticmethod
+    def select_local_paths(session, paths):
+        """Mark local paths as selected"""
+        tag = time()
+        page_size = 100
+        page_offset = 0
+        log.debug("selecting paths %r", paths)
+        while (page_offset < len(paths)):
+            page_paths = itertools.islice(paths, page_offset, page_offset + page_size, None)
+            session.query(LastKnownState).filter(LastKnownState.local_path.in_(page_paths)).update({'in_clause_selected':tag}, synchronize_session=False)
+            page_offset += page_size
+        return tag
+
+    @staticmethod
+    def not_selected(query, tag):
+        return query.filter(LastKnownState.in_clause_selected!=tag).all()
+
+    @staticmethod
+    def selected(query, tag):
+        return query.filter(LastKnownState.in_clause_selected==tag).all()
 
     def refresh_local(self, client=None, local_path=None):
         """Update the state from the local filesystem info."""
