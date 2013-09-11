@@ -540,7 +540,7 @@ class Synchronizer(object):
         local_client = doc_pair.get_local_client()
 
         # Update the status the collected info of this file to make sure
-        # we won't perfom inconsistent operations
+        # we won't perform inconsistent operations
         local_info = remote_info = None
         if doc_pair.local_path is not None:
             local_info = doc_pair.refresh_local(local_client)
@@ -835,7 +835,7 @@ class Synchronizer(object):
         ]
         if doc_pair.folderish:
             # Detect either renaming or move but not both at the same time
-            # for folder to reduce the potential cost of reranking that
+            # for folder to reduce the potential cost of re-ranking that
             # needs to fetch the children of all potential candidates.
             filters.append(or_(
                 LastKnownState.local_name == doc_pair.local_name,
@@ -872,7 +872,7 @@ class Synchronizer(object):
             return None, None
 
         if len(candidates) > 1 or doc_pair.folderish:
-            # Reranking is always required for folders as it also prunes false
+            # Re-ranking is always required for folders as it also prunes false
             # positives:
             candidates = rerank_local_rename_or_move_candidates(
                 doc_pair, candidates, session)
@@ -983,7 +983,7 @@ class Synchronizer(object):
 
                 # Rescan the remote folder descendants to let them realign
                 # with the local files
-                # TODO: optimize me by updating the local db and reuse the
+                # TODO: optimize me by updating the local DB and reuse the
                 # previous state info instead?
                 remote_folder_info = remote_client.get_info(
                     target_doc_pair.remote_ref)
