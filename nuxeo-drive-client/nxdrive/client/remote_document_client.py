@@ -338,10 +338,9 @@ class RemoteDocumentClient(BaseAutomationClient):
                             op_input="doc:" + self._check_ref(ref))
         return [(v['uid'], v['versionLabel']) for v in versions['entries']]
 
-    def restore_version(self, ref, version):
+    def restore_version(self, version):
         doc = self.execute("Document.RestoreVersion",
-                            op_input="doc:" + self._check_ref(ref),
-                            version=self._check_ref(version))
+                            op_input="doc:" + self._check_ref(version))
         return doc['uid']
 
     # These ones are special: no 'op_input' parameter

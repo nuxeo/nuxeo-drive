@@ -365,11 +365,11 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         remote_client.update_content(doc, "Twice updated content.")
         self.assertEquals(remote_client.get_content(doc),
                           "Twice updated content.")
-        remote_client.restore_version(doc, version_1_uid)
+        remote_client.restore_version(version_1_uid)
         self.assertEquals(remote_client.get_content(doc),
                           "Initial content.")
 
         # Restore doc to version 1.1
-        remote_client.restore_version(doc, version_2_uid)
+        remote_client.restore_version(version_2_uid)
         self.assertEquals(remote_client.get_content(doc),
                           "Updated content.")
