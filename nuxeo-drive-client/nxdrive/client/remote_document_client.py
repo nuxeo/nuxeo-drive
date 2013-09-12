@@ -85,8 +85,9 @@ class RemoteDocumentClient(BaseAutomationClient):
     # API common with the local client API
     #
     def get_info(self, ref, raise_if_missing=True, fetch_parent_uid=True,
-                 use_trash=True):
-        if not self.exists(ref, use_trash=use_trash):
+                 use_trash=True, include_versions=False):
+        if not self.exists(ref, use_trash=use_trash,
+                           include_versions=include_versions):
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
                     self._check_ref(ref), self.server_url))
@@ -188,17 +189,21 @@ class RemoteDocumentClient(BaseAutomationClient):
     def delete_content(self, ref, xpath=None):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)
 
-    def exists(self, ref, use_trash=True):
+    def exists(self, ref, use_trash=True, include_versions=False):
         ref = self._check_ref(ref)
         id_prop = 'ecm:path' if ref.startswith('/') else 'ecm:uuid'
         if use_trash:
-            lifecyle_pred = " AND ecm:currentLifeCycleState != 'deleted'"
+            lifecyle_pred = "AND ecm:currentLifeCycleState != 'deleted'"
         else:
             lifecyle_pred = ""
+        if include_versions:
+            version_pred = ""
+        else:
+            version_pred = "AND ecm:isCheckedInVersion = 0"
 
-        query = ("SELECT * FROM Document WHERE %s = '%s' %s"
-                 " AND ecm:isCheckedInVersion = 0 LIMIT 1") % (
-            id_prop, ref, lifecyle_pred)
+        query = ("SELECT * FROM Document WHERE %s = '%s' %s %s"
+                 " LIMIT 1") % (
+            id_prop, ref, lifecyle_pred, version_pred)
         results = self.query(query)
         return len(results[u'entries']) == 1
 
@@ -321,6 +326,23 @@ class RemoteDocumentClient(BaseAutomationClient):
         return self.execute("Document.Copy",
                             op_input="doc:" + self._check_ref(ref),
                             target=self._check_ref(target), name=name)
+
+    def create_version(self, ref, increment='None'):
+        doc = self.execute("Document.CreateVersion",
+                            op_input="doc:" + self._check_ref(ref),
+                            increment=increment)
+        return doc['uid']
+
+    def get_versions(self, ref):
+        versions = self.execute("Document.GetVersions",
+                            op_input="doc:" + self._check_ref(ref))
+        return [(v['uid'], v['versionLabel']) for v in versions['entries']]
+
+    def restore_version(self, ref, version):
+        doc = self.execute("Document.RestoreVersion",
+                            op_input="doc:" + self._check_ref(ref),
+                            version=self._check_ref(version))
+        return doc['uid']
 
     # These ones are special: no 'op_input' parameter
 
