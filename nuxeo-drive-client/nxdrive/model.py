@@ -281,12 +281,15 @@ class LastKnownState(Base):
         if update_digest:
             try:
                 self.local_digest = local_info.get_digest()
-            except (IOError, WindowsError):
+            except (IOError, WindowsError) as e:
                 # This can fail when another process is writing the same file
                 # let's postpone digest computation in that case
-                log.debug("Delaying local digest computation for %r"
-                          " due to possible concurrent file access.",
-                          local_info.filepath)
+                msg = ("Delaying local digest computation for %s"
+                       " due to possible concurrent file access." %
+                       local_info.filepath)
+                if hasattr(e, 'msg'):
+                    msg = msg + " " + e.msg
+                log.debug(msg, exc_info=True)
 
         # XXX: shall we store local_folderish and remote_folderish to
         # detect such kind of conflicts instead?
