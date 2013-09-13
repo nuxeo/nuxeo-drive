@@ -329,7 +329,13 @@ class LastKnownState(Base):
             self.last_remote_updated = remote_info.last_modification_time
             log.trace("last_remote_updated is None for doc %s, set it to %s",
                       self.remote_name, remote_info.last_modification_time)
-        elif (remote_info.last_modification_time > self.last_remote_updated
+        # Here checking that the remote modification time is strictly greater
+        # than the one last updated in the DB should be fine, but in the case
+        # of a version restore, the live document takes the modification time
+        # of the version, which is necessarily (not strictly) lighter than
+        # the one of the live document before restore, therefore we use the
+        # 'not equal' predicate.
+        elif (remote_info.last_modification_time != self.last_remote_updated
             or self.remote_parent_ref != remote_info.parent_uid):
             # Remote update and/or rename and/or move
             self.last_remote_updated = remote_info.last_modification_time

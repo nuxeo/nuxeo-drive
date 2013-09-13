@@ -328,3 +328,48 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         self.assertEquals(doc_info.name, 'Streamed binary file')
         self.assertEquals(doc_info.digest,
                           local_client.get_info('/testFile.pdf').get_digest())
+
+    def test_versioning(self):
+        remote_client = self.remote_document_client_1
+        doc = remote_client.make_file(self.workspace,
+                                      'Document to version.txt',
+                                      content="Initial content.")
+
+        # Create version 1.0
+        remote_client.create_version(doc, 'Major')
+        versions = remote_client.get_versions(doc)
+        self.assertEqual(len(versions), 1)
+        version_1 = versions[0]
+        version_1_uid = version_1[0]
+        version_1_label = version_1[1]
+        version_1_info = remote_client.get_info(version_1_uid,
+                                                include_versions=True)
+        self.assertEquals(version_1_info.name, 'Document to version.txt')
+        self.assertEquals(version_1_label, '1.0')
+        self.assertEquals(remote_client.get_content(version_1_uid),
+                          "Initial content.")
+
+        # Update doc and create version 1.1
+        remote_client.update_content(doc, "Updated content.")
+        remote_client.create_version(doc, 'Minor')
+        versions = remote_client.get_versions(doc)
+        self.assertEqual(len(versions), 2)
+        version_2 = versions[1]
+        version_2_uid = version_2[0]
+        version_2_label = version_2[1]
+        self.assertEquals(version_2_label, '1.1')
+        self.assertEquals(remote_client.get_content(version_2_uid),
+                          "Updated content.")
+
+        # Update doc and restore it to version 1.0
+        remote_client.update_content(doc, "Twice updated content.")
+        self.assertEquals(remote_client.get_content(doc),
+                          "Twice updated content.")
+        remote_client.restore_version(version_1_uid)
+        self.assertEquals(remote_client.get_content(doc),
+                          "Initial content.")
+
+        # Restore doc to version 1.1
+        remote_client.restore_version(version_2_uid)
+        self.assertEquals(remote_client.get_content(doc),
+                          "Updated content.")
