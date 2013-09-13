@@ -86,6 +86,42 @@ class TestIntegrationVersioning(IntegrationTestCase):
             self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
         self._assert_version(doc, '0', '2')
 
+    def test_version_restore(self):
+        remote_client = self.remote_client_1
+        local_client = self.local_client_1
+
+        # Create a remote doc
+        doc = remote_client.make_file(self.workspace,
+                                    'Document to restore.txt',
+                                    content="Initial content.")
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
+        self.assertTrue(local_client.exists('/Document to restore.txt'))
+        self.assertEquals(local_client.get_content('/Document to restore.txt'),
+                          "Initial content.")
+
+        # Create version 1.0, update content, then restore version 1.0
+        remote_client.create_version(doc, 'Major')
+        # Ensure that modification time is different between the version
+        # and the updated live document, otherwise the synchronizer won't
+        # consider the restored document (with the modification date of
+        # the version) as to be updated
+        time.sleep(1.0)
+        remote_client.update_content(doc, "Updated content.")
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
+        self.assertEquals(local_client.get_content('/Document to restore.txt'),
+                          "Updated content.")
+        version_uid = remote_client.get_versions(doc)[0][0]
+        remote_client.restore_version(version_uid)
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
+        self.assertEquals(local_client.get_content('/Document to restore.txt'),
+                          "Initial content.")
+
     def _synchronize_and_assert(self, synchronizer, server_binding,
         expected_synchronized, wait=False):
         if wait:
