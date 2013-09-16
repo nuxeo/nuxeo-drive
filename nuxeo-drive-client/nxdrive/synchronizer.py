@@ -34,6 +34,11 @@ POSSIBLE_NETWORK_ERROR_TYPES = (
     socket.error,
 )
 
+UNEXPECTED_HTTP_STATUS = (
+    500,
+    403
+)
+
 log = get_logger(__name__)
 
 
@@ -1034,7 +1039,7 @@ class Synchronizer(object):
                 self.synchronize_one(pair_state, session=session)
                 synchronized += 1
             except POSSIBLE_NETWORK_ERROR_TYPES as e:
-                if getattr(e, 'code', None) == 500:
+                if getattr(e, 'code', None) in UNEXPECTED_HTTP_STATUS:
                     # This is an unexpected: blacklist doc_pair for
                     # a cooldown period
                     log.error("Failed to sync %r, blacklisting doc pair "
