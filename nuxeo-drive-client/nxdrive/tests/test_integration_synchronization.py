@@ -889,9 +889,13 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertFalse(local.exists(expected_file_path))
 
     def test_create_content_in_readonly_area(self):
-        # XXX: implement permission checks on the client and leverage this
-        # info in the synchronizer to not try to sync unsyncable stuff
-        # and avoid logging errors in that case (just debug info)
+        # TODO: ensure that a Write permission change is fetched by the client
+        # in the remote change summary to update the remote_can_create_child
+        # flag on which the synchronizer relies to check if creation
+        # is allowed.
+        # This way it won't try to sync unsyncable stuff and will avoid
+        # logging errors in that case (just debug info)
+        # See https://jira.nuxeo.com/browse/NXP-11159
 
         # Let's bind a the server but no root workspace
         ctl = self.controller_1
@@ -941,6 +945,76 @@ class TestIntegrationSynchronization(IntegrationTestCase):
              u'synchronized', u'synchronized'),
         ])
         self.assertEquals(len(ctl.list_pending(ignore_in_error=300)), 0)
+
+        # Let's create a file and a folder in a folder on which the Write
+        # permission has been removed. Waiting for NXP-11159, this permission
+        # change will not be detected server-side, thus nor by the client,
+        # so an attempt to create the remote file will be made and the server
+        # will return a 403 status code. In this case the client should only
+        # blacklist the file.
+
+        # Bind root workspace, create local folder and synchronize it remotely
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn.loop(delay=0.1, max_loops=1)
+
+        local = LocalClient(
+            os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
+        local.make_folder(u'/', u'Readonly folder')
+        syn.loop(delay=0.1, max_loops=1)
+
+        remote = self.remote_document_client_1
+        self.assertTrue(remote.exists(u'/Readonly folder'))
+
+        # Check remote_can_create_child flag in pair state
+        session = ctl.get_session()
+        readonly_folder_state = session.query(LastKnownState).filter_by(
+            local_name=u'Readonly folder').one()
+        self.assertTrue(readonly_folder_state.remote_can_create_child)
+
+        # Make one sync loop to detect remote folder creation triggered
+        # by last synchronization and make sure we get a clean state at
+        # next change summary
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn.loop(delay=0.1, max_loops=1)
+        self.assertTrue(readonly_folder_state.remote_can_create_child)
+
+        # Set remote folder as readonly for test user
+        readonly_folder_path = self.TEST_WORKSPACE_PATH + u'/Readonly folder'
+        op_input = "doc:" + readonly_folder_path
+        self.root_remote_client.execute("Document.SetACE",
+            op_input=op_input,
+            user="nuxeoDriveTestUser_user_1",
+            permission="Write",
+            grant="false")
+
+        # Wait to make sure permission change is detected, if such detection
+        # is implemented server-side.
+        # Waiting for NXP-11159 it is not, so the remote_can_create_child flag
+        # should not be updated.
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn.loop(delay=0.1, max_loops=1)
+        self.assertTrue(readonly_folder_state.remote_can_create_child)
+
+        # Try to create a local file and folder in the readonly folder,
+        # they should not be created remotely and be blacklisted
+        local.make_file(u'/Readonly folder', u'File in readonly folder',
+                        u"File content")
+        local.make_folder(u'/Readonly folder', u'Folder in readonly folder')
+        syn.loop(delay=0.1, max_loops=1)
+        self.assertFalse(remote.exists(
+            u'/Readonly folder/File in readonly folder'))
+        self.assertFalse(remote.exists(
+            u'/Readonly folder/Folder in readonly folder'))
+        readonly_file_state = session.query(LastKnownState).filter_by(
+            local_name=u'File in readonly folder').one()
+        readonly_sub_folder_state = session.query(LastKnownState).filter_by(
+            local_name=u'Folder in readonly folder').one()
+        self.assertIsNotNone(readonly_file_state.last_sync_error_date)
+        self.assertIsNotNone(readonly_sub_folder_state.last_sync_error_date)
 
     def test_synchronize_special_filenames(self):
         ctl = self.controller_1
