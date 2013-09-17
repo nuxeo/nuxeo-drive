@@ -363,13 +363,25 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
 
         # Update doc and restore it to version 1.0
         remote_client.update_content(doc, "Twice updated content.")
+        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
+        # wait for a while to ensure transaction is commited before
+        # Blob response is serialized and sent to the client
+        sleep(1.0)
         self.assertEquals(remote_client.get_content(doc),
                           "Twice updated content.")
         remote_client.restore_version(version_1_uid)
+        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
+        # wait for a while to ensure transaction is commited before
+        # Blob response is serialized and sent to the client
+        sleep(1.0)
         self.assertEquals(remote_client.get_content(doc),
                           "Initial content.")
 
         # Restore doc to version 1.1
         remote_client.restore_version(version_2_uid)
+        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
+        # wait for a while to ensure transaction is commited before
+        # Blob response is serialized and sent to the client
+        sleep(1.0)
         self.assertEquals(remote_client.get_content(doc),
                           "Updated content.")
