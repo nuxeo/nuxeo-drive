@@ -16,7 +16,7 @@ def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
     if not client.exists(doc, use_trash=use_trash):
         # OK: the document has been deleted
         return
-    # Wait a bit for the sub-folder deletion asynchronous listner to do its
+    # Wait a bit for the sub-folder deletion asynchronous listener to do its
     # job and then retry
     sleep(delay)
     wait_for_deletion(client, doc, retries_left=retries_left - 1,
