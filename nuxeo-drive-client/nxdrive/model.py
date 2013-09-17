@@ -167,7 +167,7 @@ class LastKnownState(Base):
     remote_can_rename = Column(Integer)
     remote_can_delete = Column(Integer)
     remote_can_update = Column(Integer)
-    remote_can_create_child = Column(Integer, index=True)
+    remote_can_create_child = Column(Integer)
 
     # Log date of sync errors to be able to skip documents in error for some
     # time
