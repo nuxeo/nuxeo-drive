@@ -325,6 +325,13 @@ class LastKnownState(Base):
                 self, self.remote_ref, remote_info.name, remote_info.uid))
 
         # Use last known modification time to detect updates
+        log.trace("Use last known modification time to detect updates:"
+                  " local DB, server = %r, %r",
+                  (self.last_remote_updated.strftime('%Y-%m-%d %H:%M:%S')
+                   if self.last_remote_updated else 'None'),
+                  (remote_info.last_modification_time.strftime(
+                                                    '%Y-%m-%d %H:%M:%S')
+                  if remote_info.last_modification_time else 'None'))
         if self.last_remote_updated is None:
             self.last_remote_updated = remote_info.last_modification_time
             log.trace("last_remote_updated is None for doc %s, set it to %s",
