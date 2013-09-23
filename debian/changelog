@@ -1,3 +1,9 @@
+nuxeo-drive (5.7.3-0arakhne1) raring; urgency=low
+
+  * Adding the dependencies to the packages that are providing the required python eggs.
+
+ -- Stephane GALLAND <galland@arakhne.org>  Mon, 23 Sep 2013 18:04:20 +0200
+
 nuxeo-drive (5.7.3-0arakhne0) raring; urgency=low
 
   * First public release in Ubuntu package

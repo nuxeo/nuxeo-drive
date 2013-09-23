@@ -1,12 +1,14 @@
 #!/usr/bin/make -f
 
-export DH_VERBOSE=1
+#export DH_VERBOSE=1
 
 DEB_PYTHON_SYSTEM := pysupport
 
 include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/rules/utils.mk
 include /usr/share/cdbs/1/class/python-distutils.mk
+
+# If your package provides eggs, install egg-info directories instead of real eggs
+#DEB_PYTHON_INSTALL_ARGS_ALL += --single-version-externally-managed
 
 binary-install/nuxeo-drive-client::
 	dh_python2 -pnuxeo-drive-client
