@@ -1,0 +1,5 @@
+nuxeo-drive (5.7.3-0arakhne0) raring; urgency=low
+
+  * First public release in Ubuntu package
+
+ -- Stephane GALLAND <galland@arakhne.org>  Fri, 20 Sep 2013 15:42:41 +0200

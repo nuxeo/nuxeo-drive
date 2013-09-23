@@ -1,0 +1,13 @@
+Source: nuxeo-drive
+Section: devel
+Priority: optional
+Build-Depends: debhelper (>= 4.0), cdbs (>= 0.4.90), python
+Maintainer: Stephane Galland <galland@arakhne.org>
+Standards-Version: 3.9.2
+
+Package: nuxeo-drive-client
+Architecture: all
+Depends: ${python:Depends}
+Description: Client side of Nuxeo Driver
+ This package provides the desktop synchronization
+ of local folders with remote Nuxeo workspaces.
