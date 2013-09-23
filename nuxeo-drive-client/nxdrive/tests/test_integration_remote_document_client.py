@@ -16,7 +16,7 @@ def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
     if not client.exists(doc, use_trash=use_trash):
         # OK: the document has been deleted
         return
-    # Wait a bit for the sub-folder deletion asynchronous listner to do its
+    # Wait a bit for the sub-folder deletion asynchronous listener to do its
     # job and then retry
     sleep(delay)
     wait_for_deletion(client, doc, retries_left=retries_left - 1,
@@ -363,13 +363,25 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
 
         # Update doc and restore it to version 1.0
         remote_client.update_content(doc, "Twice updated content.")
+        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
+        # wait for a while to ensure transaction is commited before
+        # Blob response is serialized and sent to the client
+        sleep(1.0)
         self.assertEquals(remote_client.get_content(doc),
                           "Twice updated content.")
         remote_client.restore_version(version_1_uid)
+        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
+        # wait for a while to ensure transaction is commited before
+        # Blob response is serialized and sent to the client
+        sleep(1.0)
         self.assertEquals(remote_client.get_content(doc),
                           "Initial content.")
 
         # Restore doc to version 1.1
         remote_client.restore_version(version_2_uid)
+        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
+        # wait for a while to ensure transaction is commited before
+        # Blob response is serialized and sent to the client
+        sleep(1.0)
         self.assertEquals(remote_client.get_content(doc),
                           "Updated content.")
