@@ -168,9 +168,14 @@ class Synchronizer(object):
     # to a fixed cooldown period
     error_skip_period = 300  # 5 minutes
 
-    def __init__(self, controller):
+    # Default page size for deleted items detection query in DB
+    default_page_size = 100
+
+    def __init__(self, controller, page_size=None):
         self._controller = controller
         self._frontend = None
+        self.page_size = (page_size if page_size is not None
+                          else self.default_page_size)
 
     def register_frontend(self, frontend):
         self._frontend = frontend
@@ -315,6 +320,9 @@ class Synchronizer(object):
 
         children_path = set(c.path for c in children_info)
 
+        selection_tag = LastKnownState.select_local_paths(session,
+                                                          children_path,
+                                                          self.page_size)
 #         q = session.query(LastKnownState).filter_by(
 #             local_folder=doc_pair.local_folder,
 #             local_parent_path=local_info.path,
@@ -324,7 +332,6 @@ class Synchronizer(object):
 #         for deleted in q.all():
 #             self._mark_deleted_local_recursive(session, deleted)
 
-        selection_tag = LastKnownState.select_local_paths(session, children_path)
         for deleted in LastKnownState.not_selected(session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
             local_parent_path=local_info.path,
@@ -466,7 +473,9 @@ class Synchronizer(object):
         children_info = client.get_children_info(remote_info.uid)
         children_refs = set(c.uid for c in children_info)
 
-        selectionTag = LastKnownState.select_remote_refs(session, children_refs)
+        selectionTag = LastKnownState.select_remote_refs(session,
+                                                         children_refs,
+                                                         self.page_size)
         for deleted in LastKnownState.not_selected(session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
             remote_parent_ref=remote_info.uid,

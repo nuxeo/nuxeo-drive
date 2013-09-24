@@ -232,10 +232,9 @@ class LastKnownState(Base):
              sb.remote_password)
 
     @staticmethod
-    def select_remote_refs(session, refs):
+    def select_remote_refs(session, refs, page_size):
         """Mark remote refs as selected"""
         tag = time()
-        page_size = 100
         page_offset = 0
         log.debug("selecting refs %r", refs)
         while (page_offset < len(refs)):
@@ -245,10 +244,9 @@ class LastKnownState(Base):
         return tag
 
     @staticmethod
-    def select_local_paths(session, paths):
+    def select_local_paths(session, paths, page_size):
         """Mark local paths as selected"""
         tag = time()
-        page_size = 100
         page_offset = 0
         log.debug("selecting paths %r", paths)
         while (page_offset < len(paths)):

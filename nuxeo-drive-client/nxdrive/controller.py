@@ -70,7 +70,7 @@ class Controller(object):
     remote_fs_client_factory = RemoteFileSystemClient
 
     def __init__(self, config_folder, echo=None, poolclass=None,
-                 handshake_timeout=60, timeout=20):
+                 handshake_timeout=60, timeout=20, page_size=None):
         # Log the installation location for debug
         nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
         nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
@@ -95,7 +95,7 @@ class Controller(object):
         self._local = local()
         self._remote_error = None
         self.device_id = self.get_device_config().device_id
-        self.synchronizer = Synchronizer(self)
+        self.synchronizer = Synchronizer(self, page_size=page_size)
 
         # Make all the automation client related to this controller
         # share cookies using threadsafe jar
