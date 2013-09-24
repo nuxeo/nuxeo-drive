@@ -8,6 +8,7 @@ from datetime import datetime
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.model import LastKnownState
+from nxdrive.controller import Controller
 
 
 class TestIntegrationSynchronization(IntegrationTestCase):
@@ -1092,3 +1093,65 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
         self.assertFalse(local.exists('/test.odt'))
+
+    def test_synchronize_paged_delete_detection(self):
+        # Initialize a controller with page size = 1 for deleted items
+        # detection query
+        ctl = Controller(self.nxdrive_conf_folder_1, page_size=1)
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+
+        # Launch first synchronization
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn = ctl.synchronizer
+        syn.loop(delay=0.1, max_loops=1)
+
+        # Get local and remote clients
+        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
+                                         self.workspace_title))
+        remote = self.remote_document_client_1
+
+        # Create a remote folder with 2 children then synchronize
+        remote.make_folder('/', 'Remote folder',)
+        remote.make_file('/Remote folder', 'Remote file 1.odt',
+                         'Some content.')
+        remote.make_file('/Remote folder', 'Remote file 2.odt',
+                         'Other content.')
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn.loop(delay=0.1, max_loops=1)
+        self.assertTrue(local.exists('/Remote folder'))
+        self.assertTrue(local.exists('/Remote folder/Remote file 1.odt'))
+        self.assertTrue(local.exists('/Remote folder/Remote file 2.odt'))
+
+        # Delete remote folder then synchronize
+        remote.delete('/Remote folder')
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn.loop(delay=0.1, max_loops=1)
+        self.assertFalse(local.exists('/Remote folder'))
+        self.assertFalse(local.exists('/Remote folder/Remote file 1.odt'))
+        self.assertFalse(local.exists('/Remote folder/Remote file 2.odt'))
+
+        # Create a local folder with 2 children then synchronize
+        local.make_folder('/', 'Local folder')
+        local.make_file('/Local folder', 'Local file 1.odt', 'Some content.')
+        local.make_file('/Local folder', 'Local file 2.odt', 'Other content.')
+
+        syn.loop(delay=0.1, max_loops=1)
+        self.assertTrue(remote.exists('/Local folder'))
+        self.assertTrue(remote.exists('/Local folder/Local file 1.odt'))
+        self.assertTrue(remote.exists('/Local folder/Local file 2.odt'))
+
+        # Delete local folder then synchronize
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        local.delete('/Local folder')
+
+        syn.loop(delay=0.1, max_loops=1)
+        self.assertFalse(remote.exists('/Local folder'))
+        self.assertFalse(remote.exists('/Local folder/Local file 1.odt'))
+        self.assertFalse(remote.exists('/Local folder/Local file 2.odt'))
