@@ -1155,3 +1155,6 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertFalse(remote.exists('/Local folder'))
         self.assertFalse(remote.exists('/Local folder/Local file 1.odt'))
         self.assertFalse(remote.exists('/Local folder/Local file 2.odt'))
+
+        # Dispose dedicated Controller instantiated for this test
+        ctl.dispose()
