@@ -282,7 +282,7 @@ class Synchronizer(object):
 
     def _mark_deleted_local_recursive(self, session, doc_pair):
         """Update the metadata of the descendants of locally deleted doc"""
-        log.debug("Deleted %s", doc_pair.remote_ref)
+        log.trace("Marking %r as locally deleted", doc_pair.remote_ref)
         # delete descendants first
         children = session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
@@ -323,19 +323,11 @@ class Synchronizer(object):
         selection_tag = LastKnownState.select_local_paths(session,
                                                           children_path,
                                                           self.page_size)
-#         q = session.query(LastKnownState).filter_by(
-#             local_folder=doc_pair.local_folder,
-#             local_parent_path=local_info.path,
-#         )
-#         if len(children_path) > 0:
-#             q = q.filter(not_(LastKnownState.local_path.in_(children_path)))
-#         for deleted in q.all():
-#             self._mark_deleted_local_recursive(session, deleted)
-
-        for deleted in LastKnownState.not_selected(session.query(LastKnownState).filter_by(
-            local_folder=doc_pair.local_folder,
-            local_parent_path=local_info.path,
-        ), selection_tag):
+        for deleted in LastKnownState.not_selected(
+                            session.query(LastKnownState)
+                                .filter_by(local_folder=doc_pair.local_folder,
+                                           local_parent_path=local_info.path),
+                            selection_tag):
             self._mark_deleted_local_recursive(session, deleted)
 
         # recursively update children
@@ -476,10 +468,11 @@ class Synchronizer(object):
         selectionTag = LastKnownState.select_remote_refs(session,
                                                          children_refs,
                                                          self.page_size)
-        for deleted in LastKnownState.not_selected(session.query(LastKnownState).filter_by(
-            local_folder=doc_pair.local_folder,
-            remote_parent_ref=remote_info.uid,
-        ), selectionTag):
+        for deleted in LastKnownState.not_selected(
+                            session.query(LastKnownState)
+                                .filter_by(local_folder=doc_pair.local_folder,
+                                    remote_parent_ref=remote_info.uid,),
+                            selectionTag):
             self._mark_deleted_remote_recursive(session, deleted)
 
         # Recursively update children
