@@ -7,7 +7,7 @@ Standards-Version: 3.9.2
 
 Package: nuxeo-drive-client
 Architecture: all
-Depends: ${python:Depends}, python-sqlalchemy (>= 0.7.9), python-psutil, python-nose (>= 1.2.1), python-coverage, python-faulthandler, python-poster (>= 0.8.1)
+Depends: ${python:Depends}, python-sqlalchemy (>= 0.7.9), python-psutil, python-faulthandler, python-poster (>= 0.8.1)
 XB-Python-Version: >= 2.7
 Description: Client side of Nuxeo Driver
  This package provides the desktop synchronization
