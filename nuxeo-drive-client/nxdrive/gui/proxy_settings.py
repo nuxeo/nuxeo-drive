@@ -4,7 +4,7 @@ from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)
 
-# Keep QT an optional dependency for now
+# Keep Qt an optional dependency for now
 QtGui, QDialog = None, object
 try:
     from PyQt4 import QtGui
@@ -114,7 +114,7 @@ def prompt_proxy_settings(controller, app=None, config='system',
                          proxy_type=None, server=None, port=None,
                          authenticated=None, username=None, password=None,
                          exceptions=None):
-    """Prompt a QT dialog to manage HTTP proxy settings"""
+    """Prompt a Qt dialog to manage HTTP proxy settings"""
     global is_dialog_open
 
     if QtGui is None:
@@ -127,7 +127,7 @@ def prompt_proxy_settings(controller, app=None, config='system',
         # Do not reopen the dialog multiple times
         return False
 
-    # TODO: learn how to use QT i18n support to handle translation of labels
+    # TODO: learn how to use Qt i18n support to handle translation of labels
     manual_proxy = config == 'manual'
     fields_spec = [
         {
@@ -178,7 +178,7 @@ def prompt_proxy_settings(controller, app=None, config='system',
 
     if app is None:
         # TODO: ?
-        log.debug("Launching QT prompt for HTTP proxy settings.")
+        log.debug("Launching Qt prompt for HTTP proxy settings.")
         QtGui.QApplication([])
     dialog = Dialog(fields_spec, title="Nuxeo Drive - Proxy settings",
                     callback=set_proxy_settings)

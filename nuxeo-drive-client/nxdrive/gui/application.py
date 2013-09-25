@@ -1,4 +1,4 @@
-"""Main QT application handling OS events and system tray UI"""
+"""Main Qt application handling OS events and system tray UI"""
 
 import os
 from threading import Thread
@@ -11,16 +11,16 @@ from nxdrive.controller import default_nuxeo_drive_folder
 
 log = get_logger(__name__)
 
-# Keep QT an optional dependency for now
+# Keep Qt an optional dependency for now
 QtGui, QApplication, QObject = None, object, object
 try:
     from PyQt4 import QtGui
     from PyQt4 import QtCore
     QApplication = QtGui.QApplication
     QObject = QtCore.QObject
-    log.debug("QT / PyQT4 successfully imported")
+    log.debug("Qt / PyQt4 successfully imported")
 except ImportError:
-    log.warning("QT / PyQT4 is not installed: GUI is disabled")
+    log.warning("Qt / PyQt4 is not installed: GUI is disabled")
     pass
 
 
