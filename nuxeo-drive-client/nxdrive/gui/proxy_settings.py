@@ -19,6 +19,9 @@ except ImportError:
 
 is_dialog_open = False
 
+PROXY_CONFIGS = ['none', 'system', 'manual']
+PROXY_TYPES = ['http', 'https']
+
 
 class Dialog(QDialog):
     """Dialog box to manage the HTTP proxy settings"""
@@ -55,29 +58,50 @@ class Dialog(QDialog):
         layout = QtGui.QGridLayout()
         self.fields = {}
         for i, spec in enumerate(fields_spec):
+            field_id = spec['id']
             label = QtGui.QLabel(spec['label'])
-            line_edit = QtGui.QLineEdit()
             value = spec.get('value')
-            if value is not None:
-                line_edit.setText(value)
-            if spec.get('is_password', False):
-                line_edit.setEchoMode(QtGui.QLineEdit.Password)
-            line_edit.textChanged.connect(self.clear_message)
+            items = spec.get('items')
+            # Combo box
+            if items is not None:
+                field = QtGui.QComboBox()
+                field.addItems(items)
+                if value is not None:
+                    field.setCurrentIndex(items.index(value))
+                # Set listener to enable / disable fields depending on
+                # proxy config
+                if field_id == 'config':
+                    field.currentIndexChanged.connect(
+                            self.enable_manual_settings)
+            else:
+                # Text input
+                field = QtGui.QLineEdit()
+                if value is not None:
+                    field.setText(value)
+                if spec.get('is_password', False):
+                    field.setEchoMode(QtGui.QLineEdit.Password)
+            enabled = spec.get('enabled', True)
+            field.setEnabled(enabled)
+            width = spec.get('width')
+            if width is not None:
+                field.setFixedWidth(width)
             layout.addWidget(label, i + 1, 0)
-            layout.addWidget(line_edit, i + 1, 1)
-            self.fields[spec['id']] = line_edit
+            layout.addWidget(field, i + 1, 1)
+            self.fields[field_id] = field
 
         self.proxy_settings_group_box.setLayout(layout)
 
-    def clear_message(self, *args, **kwargs):
-        self.message_area.setText(None)
-
-    def show_message(self, message):
-        self.message_area.setText(message)
+    def enable_manual_settings(self):
+        enabled = self.sender().currentText() == 'manual'
+        for field in self.fields:
+            if field != 'config':
+                self.fields[field].setEnabled(enabled)
 
     def accept(self):
         if self.callback is not None:
-            values = dict((id_, w.text())
+            values = dict((id_,
+                           (w.currentText() if isinstance(w, QtGui.QComboBox)
+                            else w.text()))
                                for id_, w in self.fields.items())
             if not self.callback(values, self):
                 return
@@ -106,47 +130,52 @@ def prompt_proxy_settings(controller, app=None, config='system',
         return False
 
     # TODO: learn how to use QT i18n support to handle translation of labels
+    manual_proxy = config == 'manual'
     fields_spec = [
         {
             'id': 'config',
             'label': 'Proxy settings:',
             'value': config,
+            'items': PROXY_CONFIGS,
+            'width': 80,
         },
         {
             'id': 'proxy_type',
             'label': 'Proxy type:',
             'value': proxy_type,
+            'items': PROXY_TYPES,
+            'enabled': manual_proxy,
+            'width': 80,
         },
         {
             'id': 'server',
             'label': 'Server:',
             'value': server,
+            'enabled': manual_proxy,
         },
         {
             'id': 'port',
             'label': 'Port:',
             'value': port,
+            'enabled': manual_proxy,
         },
     ]
 
     def set_proxy_settings(values, dialog):
         # TODO: handle  validations
-        config = values['config']
-        if config != 'manual':
-            controller.set_proxy_settings(config)
-        else:
-            proxy_type = values['proxy_type']
-            server = values['server']
-            port = values['port']
-            authenticated = False
-            username = None
-            password = None
-            exceptions = None
-            controller.set_proxy_settings(config, proxy_type=proxy_type,
-                                          server=server, port=port,
-                                          authenticated=authenticated,
-                                          username=username, password=password,
-                                          exceptions=exceptions)
+        config = str(values['config'])
+        proxy_type = str(values['proxy_type'])
+        server = str(values['server'])
+        port = str(values['port'])
+        authenticated = False
+        username = None
+        password = None
+        exceptions = None
+        controller.set_proxy_settings(config, proxy_type=proxy_type,
+                                      server=server, port=port,
+                                      authenticated=authenticated,
+                                      username=username, password=password,
+                                      exceptions=exceptions)
         return True
 
     if app is None:
