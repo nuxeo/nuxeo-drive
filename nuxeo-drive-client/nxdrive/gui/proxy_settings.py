@@ -1,8 +1,6 @@
 """GUI prompt to manage HTTP proxy settings"""
-from nxdrive.client import Unauthorized
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
-import socket
 
 log = get_logger(__name__)
 
