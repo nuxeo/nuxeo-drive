@@ -17,7 +17,7 @@ except ImportError:
 
 is_dialog_open = False
 
-PROXY_CONFIGS = ['none', 'system', 'manual']
+PROXY_CONFIGS = ['None', 'System', 'Manual']
 PROXY_TYPES = ['http', 'https']
 
 
@@ -90,7 +90,7 @@ class Dialog(QDialog):
         self.proxy_settings_group_box.setLayout(layout)
 
     def enable_manual_settings(self):
-        enabled = self.sender().currentText() == 'manual'
+        enabled = self.sender().currentText() == 'Manual'
         for field in self.fields:
             if field != 'config':
                 self.fields[field].setEnabled(enabled)
@@ -110,7 +110,7 @@ class Dialog(QDialog):
         super(Dialog, self).reject()
 
 
-def prompt_proxy_settings(controller, app=None, config='system',
+def prompt_proxy_settings(controller, app=None, config='System',
                          proxy_type=None, server=None, port=None,
                          authenticated=None, username=None, password=None,
                          exceptions=None):
@@ -128,7 +128,7 @@ def prompt_proxy_settings(controller, app=None, config='system',
         return False
 
     # TODO: learn how to use Qt i18n support to handle translation of labels
-    manual_proxy = config == 'manual'
+    manual_proxy = config == 'Manual'
     fields_spec = [
         {
             'id': 'config',

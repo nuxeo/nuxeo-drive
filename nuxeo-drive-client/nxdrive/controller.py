@@ -135,11 +135,11 @@ class Controller(object):
 
     def get_proxy_settings(self, device_config):
         """Return a pair containing proxy strings and exceptions list"""
-        if device_config.proxy_config == 'none':
+        if device_config.proxy_config == 'None':
             # No proxy, return an empty dictionary to disable
             # default proxy detection
             return {}, None
-        elif device_config.proxy_config == 'system':
+        elif device_config.proxy_config == 'System':
             # System proxy, return None to use default proxy detection
             return None, None
         else:

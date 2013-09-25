@@ -77,8 +77,8 @@ class DeviceConfig(Base):
     device_id = Column(String, primary_key=True)
 
     # HTTP proxy settings
-    # Possible values for proxy_config: none, auto, manual
-    proxy_config = Column(String, default='system')
+    # Possible values for proxy_config: System, None, Manual
+    proxy_config = Column(String, default='System')
     proxy_type = Column(String)
     proxy_server = Column(String)
     proxy_port = Column(String)
