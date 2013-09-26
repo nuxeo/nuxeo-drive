@@ -337,7 +337,7 @@ class CliHandler(object):
                           exc_info=True)
 
     def launch(self, options=None):
-        """Launch the QT app in the main thread and sync in another thread."""
+        """Launch the Qt app in the main thread and sync in another thread."""
         # TODO: use the start method as default once implemented
         from nxdrive.gui.application import Application
         app = Application(self.controller, options)

@@ -6,14 +6,14 @@ import socket
 
 log = get_logger(__name__)
 
-# Keep QT an optional dependency for now
+# Keep Qt an optional dependency for now
 QtGui, QDialog = None, object
 try:
     from PyQt4 import QtGui
     QDialog = QtGui.QDialog
-    log.debug("QT / PyQt4 successfully imported")
+    log.debug("Qt / PyQt4 successfully imported")
 except ImportError:
-    log.warning("QT / PyQt4 is not installed: GUI is disabled")
+    log.warning("Qt / PyQt4 is not installed: GUI is disabled")
     pass
 
 
@@ -90,14 +90,14 @@ class Dialog(QDialog):
         super(Dialog, self).reject()
 
 
-def prompt_authentication(controller, local_folder, url=None, username=None,
-                          is_url_readonly=False, app=None):
-    """Prompt a QT dialog to ask for user credentials for binding a server"""
+def prompt_authentication(controller, local_folder, is_url_readonly=False,
+                          url=None, username=None, app=None):
+    """Prompt a Qt dialog to ask for user credentials for binding a server"""
     global is_dialog_open
 
     if QtGui is None:
         # Qt / PyQt4 is not installed
-        log.error("QT / PyQt4 is not installed:"
+        log.error("Qt / PyQt4 is not installed:"
                   " use commandline options for binding a server.")
         return False
 
@@ -105,7 +105,7 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
         # Do not reopen the dialog multiple times
         return False
 
-    # TODO: learn how to use QT i18n support to handle translation of labels
+    # TODO: learn how to use Qt i18n support to handle translation of labels
     fields_spec = [
         {
             'id': 'url',
@@ -163,7 +163,7 @@ def prompt_authentication(controller, local_folder, url=None, username=None,
             return False
 
     if app is None:
-        log.debug("Launching QT prompt for server binding.")
+        log.debug("Launching Qt prompt for server binding.")
         QtGui.QApplication([])
     dialog = Dialog(fields_spec, title="Nuxeo Drive - Authentication",
                     callback=bind_server)

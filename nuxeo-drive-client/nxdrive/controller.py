@@ -7,6 +7,7 @@ from threading import local
 import subprocess
 from datetime import datetime
 from datetime import timedelta
+import calendar
 
 from cookielib import CookieJar
 
@@ -92,9 +93,20 @@ class Controller(object):
         # metadata sqlite database.
         self._engine, self._session_maker = init_db(
             self.config_folder, echo=echo, poolclass=poolclass)
+
+        # Thread-local storage for the remote client cache
         self._local = local()
+        self._client_cache_timestamps = dict()
+
         self._remote_error = None
-        self.device_id = self.get_device_config().device_id
+
+        device_config = self.get_device_config()
+        self.device_id = device_config.device_id
+
+        # HTTP proxy settings
+        self.proxies, self.proxy_exceptions = (
+            self.get_proxy_settings(device_config))
+
         self.synchronizer = Synchronizer(self, page_size=page_size)
 
         # Make all the automation client related to this controller
@@ -120,6 +132,55 @@ class Controller(object):
             session.add(device_config)
             session.commit()
             return device_config
+
+    def get_proxy_settings(self, device_config):
+        """Return a pair containing proxy strings and exceptions list"""
+        if device_config.proxy_config == 'None':
+            # No proxy, return an empty dictionary to disable
+            # default proxy detection
+            return {}, None
+        elif device_config.proxy_config == 'System':
+            # System proxy, return None to use default proxy detection
+            return None, None
+        else:
+            # Manual proxy settings, build proxy string and exceptions list
+            if device_config.proxy_authenticated:
+                proxy_string = ("%s://%s:%s@%s:%s") % (
+                                    device_config.proxy_type,
+                                    device_config.proxy_username,
+                                    device_config.proxy_password,
+                                    device_config.proxy_server,
+                                    device_config.proxy_port)
+            else:
+                proxy_string = ("%s://%s:%s") % (
+                                    device_config.proxy_type,
+                                    device_config.proxy_server,
+                                    device_config.proxy_port)
+            proxies = {device_config.proxy_type: proxy_string}
+            if device_config.proxy_exceptions is not None:
+                proxy_exceptions = device_config.proxy_exceptions.split(',')
+            else:
+                proxy_exceptions = None
+            return proxies, proxy_exceptions
+
+    def set_proxy_settings(self, config, proxy_type=None,
+            server=None, port=None,
+            authenticated=None, username=None, password=None,
+            exceptions=None):
+        session = self.get_session()
+        device_config = session.query(DeviceConfig).one()
+
+        device_config.proxy_config = config
+        device_config.proxy_type = proxy_type
+        device_config.proxy_server = server
+        device_config.proxy_port = port
+        device_config.proxy_authenticated = authenticated
+        device_config.proxy_username = username
+        device_config.proxy_password = password
+        device_config.proxy_exceptions = exceptions
+
+        session.commit()
+        self.invalidate_client_cache()
 
     def stop(self):
         """Stop the Nuxeo Drive synchronization thread
@@ -270,8 +331,9 @@ class Controller(object):
         # request
         server_url = self._normalize_url(server_url)
         nxclient = self.remote_doc_client_factory(
-            server_url, username, self.device_id, password=password,
-            timeout=self.handshake_timeout)
+            server_url, username, self.device_id,
+            proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
+            password=password, timeout=self.handshake_timeout)
         token = nxclient.request_token()
         if token is not None:
             # The server supports token based identification: do not store the
@@ -344,6 +406,8 @@ class Controller(object):
                         binding.server_url,
                         binding.remote_user,
                         self.device_id,
+                        proxies=self.proxies,
+                        proxy_exceptions=self.proxy_exceptions,
                         token=binding.remote_token,
                         timeout=self.timeout)
                 log.info("Revoking token for '%s' with account '%s'",
@@ -462,14 +526,22 @@ class Controller(object):
         cache = self._get_client_cache()
         sb = server_binding
         cache_key = (sb.server_url, sb.remote_user, self.device_id)
-        remote_client = cache.get(cache_key)
+        remote_client_cache = cache.get(cache_key)
+        if remote_client_cache is not None:
+            remote_client = remote_client_cache[0]
+            timestamp = remote_client_cache[1]
+        client_cache_timestamp = self._client_cache_timestamps.get(cache_key)
 
-        if remote_client is None:
+        if remote_client_cache is None or timestamp < client_cache_timestamp:
             remote_client = self.remote_fs_client_factory(
                 sb.server_url, sb.remote_user, self.device_id,
-                token=sb.remote_token, password=sb.remote_password,
+                proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
+                password=sb.remote_password, token=sb.remote_token,
                 timeout=self.timeout, cookie_jar=self.cookie_jar)
-            cache[cache_key] = remote_client
+            if client_cache_timestamp is None:
+                client_cache_timestamp = 0
+                self._client_cache_timestamps[cache_key] = 0
+            cache[cache_key] = remote_client, client_cache_timestamp
         # Make it possible to have the remote client simulate any kind of
         # failure: this is useful for ensuring that cookies used for load
         # balancer affinity (e.g. AWSELB) are shared by all the automation
@@ -483,7 +555,8 @@ class Controller(object):
         sb = server_binding
         return self.remote_doc_client_factory(
             sb.server_url, sb.remote_user, self.device_id,
-            token=sb.remote_token, password=sb.remote_password,
+            proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
+            password=sb.remote_password, token=sb.remote_token,
             repository=repository, base_folder=base_folder,
             timeout=self.timeout, cookie_jar=self.cookie_jar)
 
@@ -493,11 +566,15 @@ class Controller(object):
         return self.get_remote_doc_client(server_binding,
             repository=repository, base_folder=base_folder)
 
-    def invalidate_client_cache(self, server_url):
-        cache = self._get_client_cache()
-        for key, client in cache.items():
-            if client.server_url == server_url:
-                del cache[key]
+    def invalidate_client_cache(self, server_url=None):
+        for key in self._client_cache_timestamps:
+            if server_url is None or key[0] == server_url:
+                now = datetime.utcnow().utctimetuple()
+                self._client_cache_timestamps[key] = calendar.timegm(now)
+        # Re-fetch HTTP proxy settings
+        device_config = self.get_device_config()
+        self.proxies, self.proxy_exceptions = (
+            self.get_proxy_settings(device_config))
 
     def get_state(self, server_url, remote_ref):
         """Find a pair state for the provided remote document identifiers."""

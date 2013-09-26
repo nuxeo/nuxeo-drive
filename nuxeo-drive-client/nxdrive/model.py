@@ -9,6 +9,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import Sequence
 from sqlalchemy import String
+from sqlalchemy import Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import backref
 from sqlalchemy.ext.declarative import declarative_base
@@ -17,7 +18,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.pool import SingletonThreadPool
 
-from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
 from nxdrive.utils import normalized_path
 from nxdrive.logging_config import get_logger
@@ -76,8 +76,30 @@ class DeviceConfig(Base):
 
     device_id = Column(String, primary_key=True)
 
+    # HTTP proxy settings
+    # Possible values for proxy_config: System, None, Manual
+    proxy_config = Column(String, default='System')
+    proxy_type = Column(String)
+    proxy_server = Column(String)
+    proxy_port = Column(String)
+    proxy_authenticated = Column(Boolean)
+    proxy_username = Column(String)
+    proxy_password = Column(String)
+    proxy_exceptions = Column(String)
+
     def __init__(self, device_id=None):
         self.device_id = uuid.uuid1().hex if device_id is None else device_id
+
+    def __repr__(self):
+        return ("DeviceConfig<device_id=%s, proxy_config=%s, proxy_type=%s, "
+                "proxy_server=%s, proxy_port=%s, proxy_authenticated=%r, "
+                "proxy_username=%s, proxy_password=%s, "
+                "proxy_exceptions=%s>") % (
+                    self.device_id, self.proxy_config, self.proxy_type,
+                    self.proxy_server, self.proxy_port,
+                    self.proxy_authenticated,
+                    self.proxy_username, self.proxy_password,
+                    self.proxy_exceptions)
 
 
 class ServerBinding(Base):
@@ -225,11 +247,6 @@ class LastKnownState(Base):
     def get_local_client(self):
         return LocalClient(self.local_folder)
 
-    def get_remote_client(self):
-        sb = self.server_binding
-        return RemoteFileSystemClient(sb.server_url, sb.remote_user,
-             sb.remote_password)
-
     @staticmethod
     def select_remote_refs(session, refs, page_size):
         """Mark remote refs as selected"""
@@ -340,13 +357,8 @@ class LastKnownState(Base):
         # detect such kind of conflicts instead?
         self.update_state(local_state=local_state)
 
-    def refresh_remote(self, client=None):
-        """Update the state from the remote server info.
-
-        Can reuse an existing client to spare some redundant client init HTTP
-        request.
-        """
-        client = client if client is not None else self.get_remote_client()
+    def refresh_remote(self, client):
+        """Update the state from the remote server info."""
         remote_info = client.get_info(self.remote_ref, raise_if_missing=False)
         self.update_remote(remote_info)
         return remote_info
@@ -450,7 +462,7 @@ def init_db(nxdrive_home, echo=False, scoped_sessions=True, poolclass=None):
     """Return an engine and session maker configured for using nxdrive_home
 
     The database is created in nxdrive_home if missing and the tables
-    are intialized based on the model classes from this module (they
+    are initialized based on the model classes from this module (they
     all inherit the same abstract base class.
 
     If scoped_sessions is True, sessions built with this maker are reusable

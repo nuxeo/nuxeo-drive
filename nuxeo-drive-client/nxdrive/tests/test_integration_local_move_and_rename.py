@@ -411,7 +411,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         # Check can_rename flag in pair state
         folder_1_state.refresh_remote(
-            client=self.remote_file_system_client_1)
+            self.remote_file_system_client_1)
         self.assertFalse(folder_1_state.remote_can_rename)
 
         # Rename local folder
@@ -486,7 +486,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         # Check can_delete flag in pair state
         folder_1_state.refresh_remote(
-            client=self.remote_file_system_client_1)
+            self.remote_file_system_client_1)
         self.assertFalse(folder_1_state.remote_can_delete)
 
         # Delete local folder
