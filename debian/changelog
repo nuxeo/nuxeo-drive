@@ -1,3 +1,9 @@
+nuxeo-drive (5.7.3-0arakhne3) raring; urgency=low
+
+  * pyhton-support -> dh_python2
+
+ -- Stephane GALLAND <galland@arakhne.org>  Thu, 26 Sep 2013 18:08:29 +0200
+
 nuxeo-drive (5.7.3-0arakhne2) raring; urgency=low
 
   * Removing the dependencies to the "dev" packages.
