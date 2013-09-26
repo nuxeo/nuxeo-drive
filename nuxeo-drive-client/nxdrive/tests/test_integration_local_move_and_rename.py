@@ -314,7 +314,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         remote_client = RemoteDocumentClient(
             self.nuxeo_url, self.admin_user,
             'nxdrive-test-administrator-device',
-            self.password, base_folder=self.workspace)
+            password=self.password, base_folder=self.workspace)
 
         folder_1_uid = remote_client.get_info(u'/Original Folder 1').uid
 

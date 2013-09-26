@@ -50,7 +50,7 @@ class IntegrationTestCase(unittest.TestCase):
         root_remote_client = RemoteDocumentClient(
             self.nuxeo_url, self.admin_user,
             u'nxdrive-test-administrator-device',
-            self.password, base_folder=u'/', timeout=60)
+            password=self.password, base_folder=u'/', timeout=60)
 
         # Call the Nuxeo operation to setup the integration test environment
         credentials = root_remote_client.execute(
@@ -70,23 +70,23 @@ class IntegrationTestCase(unittest.TestCase):
         self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads')
         remote_document_client_1 = RemoteDocumentClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-            self.password_1, base_folder=self.workspace,
+            password=self.password_1, base_folder=self.workspace,
             upload_tmp_dir=self.upload_tmp_dir)
 
         remote_document_client_2 = RemoteDocumentClient(
             self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-            self.password_2, base_folder=self.workspace,
+            password=self.password_2, base_folder=self.workspace,
             upload_tmp_dir=self.upload_tmp_dir)
 
         # File system client to be used to create remote test documents
         # and folders
         remote_file_system_client_1 = RemoteFileSystemClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-            self.password_1, upload_tmp_dir=self.upload_tmp_dir)
+            password=self.password_1, upload_tmp_dir=self.upload_tmp_dir)
 
         remote_file_system_client_2 = RemoteFileSystemClient(
             self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-            self.password_2, upload_tmp_dir=self.upload_tmp_dir)
+            password=self.password_2, upload_tmp_dir=self.upload_tmp_dir)
 
         # Check the local filesystem test environment
         self.local_test_folder_1 = tempfile.mkdtemp(u'-nxdrive-tests-user-1')

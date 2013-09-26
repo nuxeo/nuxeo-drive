@@ -562,7 +562,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         # Get remote client with Workspaces as base folder and local client
         remote_client = RemoteDocumentClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-            self.password_1, base_folder=workspaces,
+            password=self.password_1, base_folder=workspaces,
             upload_tmp_dir=self.upload_tmp_dir)
         local_client = self.local_client_1
 
