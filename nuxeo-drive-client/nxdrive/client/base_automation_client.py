@@ -179,11 +179,15 @@ class BaseAutomationClient(object):
                 raise e
         except urllib2.URLError as e:
             msg = base_error_message
-            if hasattr(e, 'reason'):
-                if hasattr(e.reason, 'strerror'):
+            if hasattr(e, 'message') and e.message:
+                msg = msg + force_decode(": " + e.message)
+            elif hasattr(e, 'reason') and e.reason:
+                if (hasattr(e.reason, 'message')
+                    and e.reason.message):
+                    msg = msg + force_decode(": " + e.reason.message)
+                elif (hasattr(e.reason, 'strerror')
+                    and e.reason.strerror):
                     msg = msg + force_decode(": " + e.reason.strerror)
-                else:
-                    msg = msg + force_decode(": " + e.reason)
             if self.is_proxy:
                 msg = (msg + "\nPlease make sure the Nuxeo server URL is valid"
                        + " and check your proxy settings.")
