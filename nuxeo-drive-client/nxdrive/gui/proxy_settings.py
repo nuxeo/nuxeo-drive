@@ -85,7 +85,10 @@ class Dialog(QDialog):
                             self.enable_credentials)
             else:
                 # Text input
-                field = QtGui.QLineEdit()
+                if field_id == 'exceptions':
+                    field = QtGui.QTextEdit()
+                else:
+                    field = QtGui.QLineEdit()
                 if value is not None:
                     field.setText(value)
                 if field_id == 'password':
@@ -123,6 +126,8 @@ class Dialog(QDialog):
                     value = widget.currentText()
                 elif isinstance(widget, QtGui.QCheckBox):
                     value = widget.isChecked()
+                elif isinstance(widget, QtGui.QTextEdit):
+                    value = widget.toPlainText()
                 else:
                     value = widget.text()
                 values[id_] = value
@@ -200,6 +205,12 @@ def prompt_proxy_settings(controller, app=None, config='System',
             'value': password,
             'enabled': manual_proxy and authenticated,
         },
+        {
+            'id': 'exceptions',
+            'label': 'No proxy for:',
+            'value': exceptions,
+            'enabled': manual_proxy,
+        },
     ]
 
     def set_proxy_settings(values, dialog):
@@ -211,7 +222,7 @@ def prompt_proxy_settings(controller, app=None, config='System',
         authenticated = values['authenticated']
         username = str(values['username'])
         password = str(values['password'])
-        exceptions = None
+        exceptions = str(values['exceptions'])
         controller.set_proxy_settings(config, proxy_type=proxy_type,
                                       server=server, port=port,
                                       authenticated=authenticated,

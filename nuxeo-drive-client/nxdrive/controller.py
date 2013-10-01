@@ -157,8 +157,9 @@ class Controller(object):
                                     device_config.proxy_server,
                                     device_config.proxy_port)
             proxies = {device_config.proxy_type: proxy_string}
-            if device_config.proxy_exceptions is not None:
-                proxy_exceptions = device_config.proxy_exceptions.split(',')
+            if device_config.proxy_exceptions.strip():
+                proxy_exceptions = [e.strip() for e in
+                                    device_config.proxy_exceptions.split(',')]
             else:
                 proxy_exceptions = None
             return proxies, proxy_exceptions

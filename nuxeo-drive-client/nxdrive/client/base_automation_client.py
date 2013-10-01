@@ -19,6 +19,7 @@ from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
 from nxdrive.utils import force_decode
 from urllib2 import ProxyHandler
+from urlparse import urlparse
 
 
 log = get_logger(__name__)
@@ -121,8 +122,9 @@ class BaseAutomationClient(object):
             # Use specified proxies (can be empty to disable default detection)
             if proxies:
                 if proxy_exceptions is not None:
+                    hostname = urlparse(self.server_url).hostname
                     for exception in proxy_exceptions:
-                        if exception in server_url:
+                        if exception == hostname:
                             # Server URL is in proxy exceptions,
                             # don't use any proxy
                             proxies = {}
