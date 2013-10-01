@@ -165,7 +165,7 @@ class Controller(object):
 
     def set_proxy_settings(self, config, proxy_type=None,
             server=None, port=None,
-            authenticated=None, username=None, password=None,
+            authenticated=False, username=None, password=None,
             exceptions=None):
         session = self.get_session()
         device_config = session.query(DeviceConfig).one()

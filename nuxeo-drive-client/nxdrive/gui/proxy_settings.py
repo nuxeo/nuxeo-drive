@@ -8,6 +8,7 @@ log = get_logger(__name__)
 QtGui, QDialog = None, object
 try:
     from PyQt4 import QtGui
+    from PyQt4 import QtCore
     QDialog = QtGui.QDialog
     log.debug("Qt / PyQt4 successfully imported")
 except ImportError:
@@ -19,6 +20,7 @@ is_dialog_open = False
 
 PROXY_CONFIGS = ['None', 'System', 'Manual']
 PROXY_TYPES = ['http', 'https']
+DEFAULT_FIELD_WIDGET_WIDTH = 250
 
 
 class Dialog(QDialog):
@@ -48,7 +50,7 @@ class Dialog(QDialog):
         icon = find_icon('nuxeo_drive_icon_64.png')
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
-        self.resize(600, -1)
+        self.resize(450, -1)
         self.accepted = False
 
     def create_proxy_settings_box(self, fields_spec):
@@ -71,19 +73,29 @@ class Dialog(QDialog):
                 if field_id == 'config':
                     field.currentIndexChanged.connect(
                             self.enable_manual_settings)
+            elif field_id == 'authenticated':
+                # Checkbox
+                field = QtGui.QCheckBox(spec['label'])
+                if value is not None:
+                    field.setChecked(value)
+                # Set listener to enable / disable fields depending on
+                # authentication
+                if field_id == 'authenticated':
+                    field.stateChanged.connect(
+                            self.enable_credentials)
             else:
                 # Text input
                 field = QtGui.QLineEdit()
                 if value is not None:
                     field.setText(value)
-                if spec.get('is_password', False):
+                if field_id == 'password':
                     field.setEchoMode(QtGui.QLineEdit.Password)
             enabled = spec.get('enabled', True)
             field.setEnabled(enabled)
-            width = spec.get('width')
-            if width is not None:
-                field.setFixedWidth(width)
-            layout.addWidget(label, i + 1, 0)
+            width = spec.get('width', DEFAULT_FIELD_WIDGET_WIDTH)
+            field.setFixedWidth(width)
+            if field_id != 'authenticated':
+                layout.addWidget(label, i + 1, 0, QtCore.Qt.AlignRight)
             layout.addWidget(field, i + 1, 1)
             self.fields[field_id] = field
 
@@ -92,15 +104,28 @@ class Dialog(QDialog):
     def enable_manual_settings(self):
         enabled = self.sender().currentText() == 'Manual'
         for field in self.fields:
-            if field != 'config':
+            if field in ('username', 'password'):
+                authenticated = self.fields['authenticated'].isChecked()
+                self.fields[field].setEnabled(enabled and authenticated)
+            elif field != 'config':
                 self.fields[field].setEnabled(enabled)
+
+    def enable_credentials(self):
+        enabled = self.sender().isChecked()
+        self.fields['username'].setEnabled(enabled)
+        self.fields['password'].setEnabled(enabled)
 
     def accept(self):
         if self.callback is not None:
-            values = dict((id_,
-                           (w.currentText() if isinstance(w, QtGui.QComboBox)
-                            else w.text()))
-                               for id_, w in self.fields.items())
+            values = dict()
+            for id_, widget in self.fields.items():
+                if isinstance(widget, QtGui.QComboBox):
+                    value = widget.currentText()
+                elif isinstance(widget, QtGui.QCheckBox):
+                    value = widget.isChecked()
+                else:
+                    value = widget.text()
+                values[id_] = value
             if not self.callback(values, self):
                 return
         self.accepted = True
@@ -112,7 +137,7 @@ class Dialog(QDialog):
 
 def prompt_proxy_settings(controller, app=None, config='System',
                          proxy_type=None, server=None, port=None,
-                         authenticated=None, username=None, password=None,
+                         authenticated=False, username=None, password=None,
                          exceptions=None):
     """Prompt a Qt dialog to manage HTTP proxy settings"""
     global is_dialog_open
@@ -157,6 +182,24 @@ def prompt_proxy_settings(controller, app=None, config='System',
             'value': port,
             'enabled': manual_proxy,
         },
+        {
+            'id': 'authenticated',
+            'label': 'Proxy server requires a password',
+            'value': authenticated,
+            'enabled': manual_proxy,
+        },
+        {
+            'id': 'username',
+            'label': 'Username:',
+            'value': username,
+            'enabled': manual_proxy and authenticated,
+        },
+        {
+            'id': 'password',
+            'label': 'Password:',
+            'value': password,
+            'enabled': manual_proxy and authenticated,
+        },
     ]
 
     def set_proxy_settings(values, dialog):
@@ -165,9 +208,9 @@ def prompt_proxy_settings(controller, app=None, config='System',
         proxy_type = str(values['proxy_type'])
         server = str(values['server'])
         port = str(values['port'])
-        authenticated = False
-        username = None
-        password = None
+        authenticated = values['authenticated']
+        username = str(values['username'])
+        password = str(values['password'])
         exceptions = None
         controller.set_proxy_settings(config, proxy_type=proxy_type,
                                       server=server, port=port,

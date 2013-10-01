@@ -69,10 +69,6 @@ class BaseAutomationClient(object):
     # TODO: handle system proxy detection under Linux,
     # see https://jira.nuxeo.com/browse/NXP-12068
 
-    # TODO: handle authenticated proxy, dealing with
-    # "407 Proxy Authentication Required",
-    # see https://jira.nuxeo.com/browse/NXP-12091
-
     # Used for testing network errors
     _error = None
 
