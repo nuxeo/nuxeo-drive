@@ -30,6 +30,8 @@ from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
+from nxdrive.utils import encrypt
+from nxdrive.utils import decrypt
 
 
 log = get_logger(__name__)
@@ -145,10 +147,19 @@ class Controller(object):
         else:
             # Manual proxy settings, build proxy string and exceptions list
             if device_config.proxy_authenticated:
+                # Decrypt password with token as the secret
+                # TODO: handle case where no server bindings and/or no token
+                # (possibly after token revocation).
+                # For now password is stored as plain text.
+                token = self.get_token()
+                if token is not None:
+                    password = decrypt(device_config.proxy_password, token)
+                else:
+                    password = device_config.proxy_password
                 proxy_string = ("%s://%s:%s@%s:%s") % (
                                     device_config.proxy_type,
                                     device_config.proxy_username,
-                                    device_config.proxy_password,
+                                    password,
                                     device_config.proxy_server,
                                     device_config.proxy_port)
             else:
@@ -175,10 +186,17 @@ class Controller(object):
         device_config.proxy_type = proxy_type
         device_config.proxy_server = server
         device_config.proxy_port = port
+        device_config.proxy_exceptions = exceptions
         device_config.proxy_authenticated = authenticated
         device_config.proxy_username = username
+        # Encrypt password with token as the secret
+        # TODO: handle case where no server bindings and/or no token
+        # (possibly after token revocation).
+        # For now store password as plain text.
+        token = self.get_token(session)
+        if token is not None:
+            password = encrypt(password, token)
         device_config.proxy_password = password
-        device_config.proxy_exceptions = exceptions
 
         session.commit()
         self.invalidate_client_cache()
@@ -318,6 +336,17 @@ class Controller(object):
         if session is None:
             session = self.get_session()
         return session.query(ServerBinding).all()
+
+    def get_token(self, session=None):
+        if session is None:
+            session = self.get_session()
+        server_bindings = self.list_server_bindings(session)
+        if server_bindings:
+            sb = server_bindings[0]
+            if sb.remote_token is not None:
+                return sb.remote_token
+        else:
+            return None
 
     def bind_server(self, local_folder, server_url, username, password):
         """Bind a local folder to a remote nuxeo server"""
