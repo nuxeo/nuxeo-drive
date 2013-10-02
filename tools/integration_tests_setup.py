@@ -85,6 +85,7 @@ def parse_args(args=None):
         'fetch-distrib', help="Fetch Nuxeo distribution from given URL")
     parser.set_defaults(command='fetch-distrib')
     parser.add_argument('--url')
+    parser.add_argument('--direct', action='store_true')
 
     # Fetch marketplace package dependency from related Jenkins job
     parser = subparsers.add_parser(
@@ -335,7 +336,13 @@ if __name__ == "__main__":
         clean_download_dir(MARKETPLACE_FOLDER, DEFAULT_ARCHIVE_PATTERN)
         if options.url is not None:
             # Download Nuxeo Tomcat distribution
-            download_package(options.url, DEFAULT_ARCHIVE_PATTERN,
+            if options.direct:
+                # Direct download from Nexus
+                download_package(options.url, None,
+                             MARKETPLACE_FOLDER)
+            else:
+                # Download from Jenkins job archived artifacts
+                download_package(options.url, DEFAULT_ARCHIVE_PATTERN,
                              MARKETPLACE_FOLDER)
     elif options.command == 'fetch-mp':
         clean_download_dir(MARKETPLACE_FOLDER, MARKETPLACE_PATTERN)
