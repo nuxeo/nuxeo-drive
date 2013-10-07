@@ -46,6 +46,8 @@ Possible commands:
 - unbind-server
 - bind-root
 - unbind-root
+- local_folders
+- status
 
 To get options for a specific command:
 
@@ -252,6 +254,16 @@ class CliHandler(object):
         )
         console_parser.set_defaults(command='console')
 
+        # Get the local folders bound to a Nuxeo server
+        local_folder_parser = subparsers.add_parser(
+            'local_folders',
+            help='Fetch the local folders bound to a Nuxeo server.',
+            parents=[common_parser],
+        )
+        local_folder_parser.set_defaults(command='local_folders')
+
+        # Get the children status of the given folder
+        # Default is the Drive local folder
         status_parser = subparsers.add_parser(
             'status',
             help='Fetch the status info of the children of a given folder.',
@@ -259,7 +271,8 @@ class CliHandler(object):
         )
         status_parser.set_defaults(command='status')
         status_parser.add_argument(
-            "folder", help="Path to a local Nuxeo Drive folder.")
+            "--folder", default=DEFAULT_NX_DRIVE_FOLDER,
+            help="Path to a local Nuxeo Drive folder.")
 
         # embedded test runner base on nose:
         test_parser = subparsers.add_parser(
@@ -484,10 +497,17 @@ class CliHandler(object):
         self.controller.stop()
         return 0
 
+    def local_folders(self, options):
+        server_bindings = self.controller.list_server_bindings()
+        print [sb.local_folder for sb in server_bindings]
+        return 0
+
     def status(self, options):
         states = self.controller.children_states(options.folder)
+        self.log.debug("Children status of %s:", options.folder)
         for filename, status in states:
-            print status + '\t' + filename
+            self.log.debug("%s | %s", filename, status)
+        print states
         return 0
 
     def edit(self, options):
