@@ -1,3 +1,9 @@
+nuxeo-drive (5.7.3-0arakhne4) raring; urgency=low
+
+  * Add manual page.
+
+ -- Stephane GALLAND <galland@arakhne.org>  Tue, 08 Oct 2013 15:15:07 +0200
+
 nuxeo-drive (5.7.3-0arakhne3) raring; urgency=low
 
   * pyhton-support -> dh_python2
