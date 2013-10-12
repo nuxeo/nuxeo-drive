@@ -357,7 +357,7 @@ class Application(QApplication):
     def event(self, event):
         """Handle URL scheme events under OSX"""
         if hasattr(event, 'url'):
-            url = event.url().toString()
+            url = str(event.url().toString())
             try:
                 info = parse_protocol_url(url)
                 if info is not None:
