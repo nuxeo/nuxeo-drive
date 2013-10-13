@@ -342,6 +342,7 @@ class CliHandler(object):
         from nxdrive.gui.application import Application
         app = Application(self.controller, options)
         app.exec_()
+        app.deleteLater()
 
     def start(self, options=None):
         """Launch the synchronization in a daemonized process (under POSIX)"""
