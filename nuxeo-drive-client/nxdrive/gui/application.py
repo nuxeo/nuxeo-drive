@@ -356,10 +356,13 @@ class Application(QApplication):
 
     def event(self, event):
         """Handle URL scheme events under OSX"""
+        log.debug("Received Qt application event")
         if hasattr(event, 'url'):
             url = str(event.url().toString())
+            log.debug("Event URL: %s", url)
             try:
                 info = parse_protocol_url(url)
+                log.debug("URL info: %r", info)
                 if info is not None:
                     log.debug("Received nxdrive URL scheme event: %s", url)
                     if info.get('command') == 'edit':
