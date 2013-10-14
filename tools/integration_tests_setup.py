@@ -303,12 +303,16 @@ def run_tests_from_source():
 
 
 def download_package(url, pattern, target_folder):
+    # First resolve possible URL redirect
+    req = urllib2.Request(url)
+    res = urllib2.urlopen(req)
+    final_url = res.geturl()
     if pattern is None:
-        filename = url.rsplit("/", 1)[1]
+        filename = final_url.rsplit("/", 1)[1]
     else:
-        url, filename = find_package_url(url, pattern)
+        final_url, filename = find_package_url(final_url, pattern)
     filepath = os.path.join(target_folder, urllib2.unquote(filename))
-    download(url, filepath)
+    download(final_url, filepath)
 
 
 def clean_download_dir(dir, pattern):
