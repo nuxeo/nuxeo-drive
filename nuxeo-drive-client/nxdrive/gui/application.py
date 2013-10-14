@@ -356,7 +356,7 @@ class Application(QApplication):
 
     def event(self, event):
         """Handle URL scheme events under OSX"""
-        log.debug("Received Qt application event")
+        log.trace("Received Qt application event")
         if hasattr(event, 'url'):
             url = str(event.url().toString())
             log.debug("Event URL: %s", url)
