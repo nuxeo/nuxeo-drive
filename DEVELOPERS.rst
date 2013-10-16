@@ -76,6 +76,10 @@ several times to get it all installed.
 
 Then install Qt and PyQt for graphical user interface (see below).
 
+**Under OS X** you need to install ``PyCrypto`` used for the HTTP proxy password encryption::
+
+  sudo easy_install PyCrypto
+
 
 Nuxeo Drive Client under Windows
 --------------------------------
@@ -113,6 +117,10 @@ Python threads on ``stderr``:
 
 Using the binary package is a good workaround if you fail to build it with
 pip and getting the error: ``error: Unable to find vcvarsall.bat``
+
+You also need to install the binary package for the ``PyCrypto`` module:
+
+  http://www.voidspace.org.uk/downloads/pycrypto26/pycrypto-2.6.win32-py2.7.exe
 
 
 Installing Qt and PyQt

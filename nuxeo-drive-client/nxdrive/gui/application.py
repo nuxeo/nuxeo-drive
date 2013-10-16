@@ -5,9 +5,7 @@ from threading import Thread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.resources import find_icon
-from nxdrive.gui.authentication import prompt_authentication
-from nxdrive.gui.proxy_settings import prompt_proxy_settings
-from nxdrive.controller import default_nuxeo_drive_folder
+from nxdrive.gui.settings import prompt_settings
 
 log = get_logger(__name__)
 
@@ -42,9 +40,7 @@ class BindingInfo(object):
     """Summarize the state of each server connection"""
 
     online = False
-
     n_pending = -1
-
     has_more_pending = False
 
     def __init__(self, folder_path):
@@ -66,14 +62,6 @@ class BindingInfo(object):
 
     def __str__(self):
         return "%s: %s" % (self.short_name, self.get_status_message())
-
-
-def sync_loop(controller, **kwargs):
-    """Wrapper to log uncaught exception in the sync thread"""
-    try:
-        controller.synchronizer.loop(**kwargs)
-    except Exception, e:
-        log.error("Error in synchronization thread: %s", e, exc_info=True)
 
 
 class Application(QApplication):
@@ -261,13 +249,6 @@ class Application(QApplication):
         self.controller.get_session().commit()
         self.communicator.menu.emit()
 
-    def update_credentials(self, local_folder):
-        sb = self.controller.get_server_binding(local_folder)
-        if prompt_authentication(
-            self.controller, local_folder, is_url_readonly=True,
-            url=sb.server_url, username=sb.remote_user, app=self):
-            log.debug("Credentials for %s successfully updated.", local_folder)
-
     @QtCore.pyqtSlot()
     def rebuild_menu(self):
         tray_icon_menu = QtGui.QMenu()
@@ -283,63 +264,46 @@ class Application(QApplication):
             tray_icon_menu.addAction(open_folder_action)
 
             # Pending status
-            status_action = tray_icon_menu.addAction(
-                binding_info.get_status_message())
-            status_action.setEnabled(False)
-
-            # Link to change to refetch authentication token when expired
-            update_credentials_msg = "Update credentials"
+            status_message = binding_info.get_status_message()
+            # Need to re-fetch authentication token when expired
             if sb.has_invalid_credentials():
-                update_credentials_msg += " (required)"
-            update_credentials_action = QtGui.QAction(
-                update_credentials_msg, tray_icon_menu,
-                triggered=lambda: self.update_credentials(sb.local_folder))
-            tray_icon_menu.addAction(update_credentials_action)
+                status_message += " (credentials update required)"
+            status_action = tray_icon_menu.addAction(status_message)
+            status_action.setEnabled(False)
 
             tray_icon_menu.addSeparator()
 
         if not self.controller.list_server_bindings():
-            register_server_action = QtGui.QAction(
-                "Register Nuxeo server", tray_icon_menu,
-                triggered=self.register_server)
-            tray_icon_menu.addAction(register_server_action)
+            status_action = tray_icon_menu.addAction(
+                                "Waiting for server registration")
+            status_action.setEnabled(False)
             tray_icon_menu.addSeparator()
 
-        # HTTP proxy settings
-        proxy_settings_action = QtGui.QAction("&Proxy settings",
+        # Settings
+        settings_action = QtGui.QAction("Settings",
                                     tray_icon_menu,
-                                    triggered=self.proxy_settings)
-        tray_icon_menu.addAction(proxy_settings_action)
+                                    triggered=self.settings)
+        tray_icon_menu.addAction(settings_action)
         tray_icon_menu.addSeparator()
 
         # TODO: add pause action if in running state
         # TODO: add start action if in paused state
-        quit_action = QtGui.QAction("&Quit", tray_icon_menu,
+        quit_action = QtGui.QAction("Quit", tray_icon_menu,
                                     triggered=self.action_quit)
         if self.state == 'quitting':
             quit_action.setEnabled(False)
         tray_icon_menu.addAction(quit_action)
         self._tray_icon.setContextMenu(tray_icon_menu)
 
-    def register_server(self):
-        return prompt_authentication(
-            self.controller, default_nuxeo_drive_folder(), app=self)
-
-    def proxy_settings(self):
-        device = self.controller.get_device_config()
-        if prompt_proxy_settings(
-            self.controller, app=self,
-            config=device.proxy_config, proxy_type=device.proxy_type,
-            server=device.proxy_server, port=device.proxy_port,
-            authenticated=device.proxy_authenticated,
-            username=device.proxy_username,
-            password=device.proxy_password,
-            exceptions=device.proxy_exceptions):
-            log.trace("Proxy settings successfully updated: %r", device)
+    def settings(self):
+        sb_settings = self.controller.get_server_binding_settings()
+        proxy_settings = self.controller.get_proxy_settings()
+        return prompt_settings(self.controller, sb_settings, proxy_settings,
+                               app=self)
 
     def start_synchronization_thread(self):
         if len(self.controller.list_server_bindings()) == 0:
-            self.register_server()
+            self.settings()
 
         if self.sync_thread is None or not self.sync_thread.isAlive():
             delay = getattr(self.options, 'delay', 5.0)
@@ -372,3 +336,11 @@ class Application(QApplication):
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)
         return super(Application, self).event(event)
+
+
+def sync_loop(controller, **kwargs):
+    """Wrapper to log uncaught exception in the sync thread"""
+    try:
+        controller.synchronizer.loop(**kwargs)
+    except Exception, e:
+        log.error("Error in synchronization thread: %s", e, exc_info=True)
