@@ -1,6 +1,7 @@
 import os
 import sys
 from Crypto.Cipher import AES
+from Crypto import Random
 from nxdrive.logging_config import get_logger
 
 
@@ -81,14 +82,17 @@ def force_decode(string, codecs=['utf8', 'cp1252']):
 def encrypt(plaintext, secret, lazy=True):
     """Symetric encryption using AES"""
     secret = _lazysecret(secret) if lazy else secret
-    encobj = AES.new(secret, AES.MODE_CFB)
-    return encobj.encrypt(plaintext)
+    iv = Random.new().read(AES.block_size)
+    encobj = AES.new(secret, AES.MODE_CFB, iv)
+    return iv + encobj.encrypt(plaintext)
 
 
 def decrypt(ciphertext, secret, lazy=True):
     """Symetric decryption using AES"""
     secret = _lazysecret(secret) if lazy else secret
-    encobj = AES.new(secret, AES.MODE_CFB)
+    iv = ciphertext[:AES.block_size]
+    ciphertext = ciphertext[AES.block_size:]
+    encobj = AES.new(secret, AES.MODE_CFB, iv)
     return encobj.decrypt(ciphertext)
 
 
