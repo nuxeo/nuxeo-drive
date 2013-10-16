@@ -68,14 +68,6 @@ class BindingInfo(object):
         return "%s: %s" % (self.short_name, self.get_status_message())
 
 
-def sync_loop(controller, **kwargs):
-    """Wrapper to log uncaught exception in the sync thread"""
-    try:
-        controller.synchronizer.loop(**kwargs)
-    except Exception, e:
-        log.error("Error in synchronization thread: %s", e, exc_info=True)
-
-
 class Application(QApplication):
     """Main Nuxeo drive application controlled by a system tray icon + menu"""
 
@@ -369,3 +361,11 @@ class Application(QApplication):
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)
         return super(Application, self).event(event)
+
+
+def sync_loop(controller, **kwargs):
+    """Wrapper to log uncaught exception in the sync thread"""
+    try:
+        controller.synchronizer.loop(**kwargs)
+    except Exception, e:
+        log.error("Error in synchronization thread: %s", e, exc_info=True)
