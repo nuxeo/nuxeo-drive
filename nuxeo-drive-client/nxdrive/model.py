@@ -94,12 +94,10 @@ class DeviceConfig(Base):
     def __repr__(self):
         return ("DeviceConfig<device_id=%s, proxy_config=%s, proxy_type=%s, "
                 "proxy_server=%s, proxy_port=%s, proxy_authenticated=%r, "
-                "proxy_username=%s, proxy_password=%s, "
-                "proxy_exceptions=%s>") % (
+                "proxy_username=%s, proxy_exceptions=%s>") % (
                     self.device_id, self.proxy_config, self.proxy_type,
                     self.proxy_server, self.proxy_port,
-                    self.proxy_authenticated,
-                    self.proxy_username, self.proxy_password,
+                    self.proxy_authenticated, self.proxy_username,
                     self.proxy_exceptions)
 
 
