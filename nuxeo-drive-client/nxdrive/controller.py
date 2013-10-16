@@ -201,6 +201,27 @@ class Controller(object):
         session.commit()
         self.invalidate_client_cache()
 
+    def get_server_binding(self, local_folder, raise_if_missing=False,
+                           session=None):
+        """Find the ServerBinding instance for a given local_folder"""
+        local_folder = normalized_path(local_folder)
+        if session is None:
+            session = self.get_session()
+        try:
+            return session.query(ServerBinding).filter(
+                ServerBinding.local_folder == local_folder).one()
+        except NoResultFound:
+            if raise_if_missing:
+                raise RuntimeError(
+                    "Folder '%s' is not bound to any Nuxeo server"
+                    % local_folder)
+            return None
+
+    def list_server_bindings(self, session=None):
+        if session is None:
+            session = self.get_session()
+        return session.query(ServerBinding).all()
+
     def stop(self):
         """Stop the Nuxeo Drive synchronization thread
 
@@ -315,27 +336,6 @@ class Controller(object):
         path = local_path[len(binding.local_folder):]
         path = path.replace(os.path.sep, u'/')
         return binding, path
-
-    def get_server_binding(self, local_folder, raise_if_missing=False,
-                           session=None):
-        """Find the ServerBinding instance for a given local_folder"""
-        local_folder = normalized_path(local_folder)
-        if session is None:
-            session = self.get_session()
-        try:
-            return session.query(ServerBinding).filter(
-                ServerBinding.local_folder == local_folder).one()
-        except NoResultFound:
-            if raise_if_missing:
-                raise RuntimeError(
-                    "Folder '%s' is not bound to any Nuxeo server"
-                    % local_folder)
-            return None
-
-    def list_server_bindings(self, session=None):
-        if session is None:
-            session = self.get_session()
-        return session.query(ServerBinding).all()
 
     def get_token(self, session=None):
         if session is None:
