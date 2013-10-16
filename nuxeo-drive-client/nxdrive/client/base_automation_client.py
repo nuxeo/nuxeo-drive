@@ -35,6 +35,55 @@ DEVICE_DESCRIPTIONS = {
 DEFAULT_STREAMING_BUFFER_SIZE = 4096
 
 
+def get_proxies_for_handler(proxy_settings):
+    """Return a pair containing proxy string and exceptions list"""
+    if proxy_settings.config == 'None':
+        # No proxy, return an empty dictionary to disable
+        # default proxy detection
+        return {}, None
+    elif proxy_settings.config == 'System':
+        # System proxy, return None to use default proxy detection
+        return None, None
+    else:
+        # Manual proxy settings, build proxy string and exceptions list
+        if proxy_settings.authenticated:
+            proxy_string = ("%s://%s:%s@%s:%s") % (
+                                proxy_settings.proxy_type,
+                                proxy_settings.username,
+                                proxy_settings.password,
+                                proxy_settings.server,
+                                proxy_settings.port)
+        else:
+            proxy_string = ("%s://%s:%s") % (
+                                proxy_settings.proxy_type,
+                                proxy_settings.server,
+                                proxy_settings.port)
+        proxies = {proxy_settings.proxy_type: proxy_string}
+        if proxy_settings.exceptions.strip():
+            proxy_exceptions = [e.strip() for e in
+                                proxy_settings.exceptions.split(',')]
+        else:
+            proxy_exceptions = None
+        return proxies, proxy_exceptions
+
+
+def get_proxy_handler(proxies, proxy_exceptions=None, url=None):
+    if proxies is None:
+        # No proxies specified, use default proxy detection
+        return urllib2.ProxyHandler()
+    else:
+        # Use specified proxies (can be empty to disable default detection)
+        if proxies:
+            if proxy_exceptions is not None and url is not None:
+                hostname = urlparse(url).hostname
+                for exception in proxy_exceptions:
+                    if exception == hostname:
+                        # Server URL is in proxy exceptions,
+                        # don't use any proxy
+                        proxies = {}
+        return urllib2.ProxyHandler(proxies)
+
+
 class Unauthorized(Exception):
 
     def __init__(self, server_url, user_id, code=403):
@@ -114,26 +163,15 @@ class BaseAutomationClient(object):
         cookie_processor = urllib2.HTTPCookieProcessor(
             cookiejar=cookie_jar)
 
-        # Set proxy handler
-        if proxies is None:
-            # No proxies specified, use default proxy detection
-            proxyHandler = urllib2.ProxyHandler()
-        else:
-            # Use specified proxies (can be empty to disable default detection)
-            if proxies:
-                if proxy_exceptions is not None:
-                    hostname = urlparse(self.server_url).hostname
-                    for exception in proxy_exceptions:
-                        if exception == hostname:
-                            # Server URL is in proxy exceptions,
-                            # don't use any proxy
-                            proxies = {}
-            proxyHandler = urllib2.ProxyHandler(proxies)
+        # Get proxy handler
+        proxy_handler = get_proxy_handler(proxies,
+                                          proxy_exceptions=proxy_exceptions,
+                                          url=self.server_url)
 
         # Build URL openers
-        self.opener = urllib2.build_opener(cookie_processor, proxyHandler)
+        self.opener = urllib2.build_opener(cookie_processor, proxy_handler)
         self.streaming_opener = urllib2.build_opener(cookie_processor,
-                                                     proxyHandler,
+                                                     proxy_handler,
                                                      *get_handlers())
 
         # Set Proxy flag
