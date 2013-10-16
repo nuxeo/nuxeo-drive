@@ -226,7 +226,7 @@ class BaseAutomationClient(object):
                     msg = msg + force_decode(": " + e.reason.strerror)
             if self.is_proxy:
                 msg = (msg + "\nPlease make sure the Nuxeo server URL is valid"
-                       + " and check your proxy settings.")
+                       + " and check the proxy settings.")
             else:
                 msg = msg + "\nPlease make sure the Nuxeo server URL is valid."
             e.msg = msg
