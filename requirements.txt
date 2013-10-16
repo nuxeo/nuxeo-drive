@@ -5,3 +5,4 @@ coverage
 argparse
 faulthandler
 poster >= 0.8.1
+pycrypto >= 2.6
