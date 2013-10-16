@@ -640,12 +640,6 @@ class Controller(object):
             repository=repository, base_folder=base_folder,
             timeout=self.timeout, cookie_jar=self.cookie_jar)
 
-    def get_remote_client(self, server_binding, repository='default',
-                          base_folder=None):
-        # Backward compat
-        return self.get_remote_doc_client(server_binding,
-            repository=repository, base_folder=base_folder)
-
     def invalidate_client_cache(self, server_url=None):
         for key in self._client_cache_timestamps:
             if server_url is None or key[0] == server_url:
