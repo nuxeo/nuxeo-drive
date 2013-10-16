@@ -1,5 +1,7 @@
 import os
 import sys
+from Crypto.Cipher import AES
+from Crypto import Random
 from nxdrive.logging_config import get_logger
 
 
@@ -75,3 +77,29 @@ def force_decode(string, codecs=['utf8', 'cp1252']):
     log.debug("Cannot decode string '%s' with any of the given codecs: %r",
               string, codecs)
     return ''
+
+
+def encrypt(plaintext, secret, lazy=True):
+    """Symetric encryption using AES"""
+    secret = _lazysecret(secret) if lazy else secret
+    iv = Random.new().read(AES.block_size)
+    encobj = AES.new(secret, AES.MODE_CFB, iv)
+    return iv + encobj.encrypt(plaintext)
+
+
+def decrypt(ciphertext, secret, lazy=True):
+    """Symetric decryption using AES"""
+    secret = _lazysecret(secret) if lazy else secret
+    iv = ciphertext[:AES.block_size]
+    ciphertext = ciphertext[AES.block_size:]
+    encobj = AES.new(secret, AES.MODE_CFB, iv)
+    return encobj.decrypt(ciphertext)
+
+
+def _lazysecret(secret, blocksize=32, padding='}'):
+    """Pad secret if not legal AES block size (16, 24, 32)"""
+    if len(secret) > blocksize:
+        return secret[:-(len(secret) - blocksize)]
+    if not len(secret) in (16, 24, 32):
+        return secret + (blocksize - len(secret)) * padding
+    return secret

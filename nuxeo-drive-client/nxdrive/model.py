@@ -21,6 +21,7 @@ from sqlalchemy.pool import SingletonThreadPool
 from nxdrive.client import LocalClient
 from nxdrive.utils import normalized_path
 from nxdrive.logging_config import get_logger
+from sqlalchemy.types import Binary
 
 WindowsError = None
 try:
@@ -84,7 +85,7 @@ class DeviceConfig(Base):
     proxy_port = Column(String)
     proxy_authenticated = Column(Boolean)
     proxy_username = Column(String)
-    proxy_password = Column(String)
+    proxy_password = Column(Binary)
     proxy_exceptions = Column(String)
 
     def __init__(self, device_id=None):
@@ -93,12 +94,10 @@ class DeviceConfig(Base):
     def __repr__(self):
         return ("DeviceConfig<device_id=%s, proxy_config=%s, proxy_type=%s, "
                 "proxy_server=%s, proxy_port=%s, proxy_authenticated=%r, "
-                "proxy_username=%s, proxy_password=%s, "
-                "proxy_exceptions=%s>") % (
+                "proxy_username=%s, proxy_exceptions=%s>") % (
                     self.device_id, self.proxy_config, self.proxy_type,
                     self.proxy_server, self.proxy_port,
-                    self.proxy_authenticated,
-                    self.proxy_username, self.proxy_password,
+                    self.proxy_authenticated, self.proxy_username,
                     self.proxy_exceptions)
 
 

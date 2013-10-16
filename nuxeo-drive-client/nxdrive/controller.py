@@ -20,6 +20,7 @@ from nxdrive.client import Unauthorized
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client import NotFound
 from nxdrive.model import init_db
 from nxdrive.model import DeviceConfig
@@ -30,9 +31,15 @@ from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
+from nxdrive.utils import encrypt
+from nxdrive.utils import decrypt
 
 
 log = get_logger(__name__)
+
+
+class MissingToken(Exception):
+    pass
 
 
 def default_nuxeo_drive_folder():
@@ -55,6 +62,49 @@ def default_nuxeo_drive_folder():
 
     # Fallback to home folder otherwise
     return os.path.join(os.path.expanduser(u'~'), u'Nuxeo Drive')
+
+
+class ServerBindingSettings(object):
+    """Summarize server binding settings"""
+
+    def __init__(self, server_url=None, username=None, password=None,
+                 local_folder=None, initialized=False,
+                 pwd_update_required=False):
+        self.server_url = server_url
+        self.username = username
+        self.password = password
+        self.local_folder = local_folder
+        self.initialized = initialized
+        self.pwd_update_required = pwd_update_required
+
+    def __repr__(self):
+        return ("ServerBindingSettings<server_url=%s, username=%s, "
+                "local_folder=%s, initialized=%r, pwd_update_required=%r>") % (
+                    self.server_url, self.username, self.local_folder,
+                    self.initialized, self.pwd_update_required)
+
+
+class ProxySettings(object):
+    """Summarize HTTP proxy settings"""
+
+    def __init__(self, config='System', proxy_type=None,
+                 server=None, port=None,
+                 authenticated=False, username=None, password=None,
+                 exceptions=None):
+        self.config = config
+        self.proxy_type = proxy_type
+        self.server = server
+        self.port = port
+        self.authenticated = authenticated
+        self.username = username
+        self.password = password
+        self.exceptions = exceptions
+
+    def __repr__(self):
+        return ("ProxySettings<config=%s, proxy_type=%s, server=%s, port=%s, "
+                "authenticated=%r, username=%s, exceptions=%s>") % (
+                    self.config, self.proxy_type, self.server, self.port,
+                    self.authenticated, self.username, self.exceptions)
 
 
 class Controller(object):
@@ -104,8 +154,9 @@ class Controller(object):
         self.device_id = device_config.device_id
 
         # HTTP proxy settings
-        self.proxies, self.proxy_exceptions = (
-            self.get_proxy_settings(device_config))
+        self.proxies = None
+        self.proxy_exceptions = None
+        self.refresh_proxies(device_config=device_config)
 
         self.synchronizer = Synchronizer(self, page_size=page_size)
 
@@ -133,54 +184,104 @@ class Controller(object):
             session.commit()
             return device_config
 
-    def get_proxy_settings(self, device_config):
-        """Return a pair containing proxy strings and exceptions list"""
-        if device_config.proxy_config == 'None':
-            # No proxy, return an empty dictionary to disable
-            # default proxy detection
-            return {}, None
-        elif device_config.proxy_config == 'System':
-            # System proxy, return None to use default proxy detection
-            return None, None
+    def get_proxy_settings(self, device_config=None):
+        """Fetch proxy settings from database"""
+        dc = (self.get_device_config() if device_config is None
+              else device_config)
+        # Decrypt password with token as the secret
+        token = self.get_token()
+        if dc.proxy_password is not None and token is not None:
+            password = decrypt(dc.proxy_password, token)
         else:
-            # Manual proxy settings, build proxy string and exceptions list
-            if device_config.proxy_authenticated:
-                proxy_string = ("%s://%s:%s@%s:%s") % (
-                                    device_config.proxy_type,
-                                    device_config.proxy_username,
-                                    device_config.proxy_password,
-                                    device_config.proxy_server,
-                                    device_config.proxy_port)
-            else:
-                proxy_string = ("%s://%s:%s") % (
-                                    device_config.proxy_type,
-                                    device_config.proxy_server,
-                                    device_config.proxy_port)
-            proxies = {device_config.proxy_type: proxy_string}
-            if device_config.proxy_exceptions is not None:
-                proxy_exceptions = device_config.proxy_exceptions.split(',')
-            else:
-                proxy_exceptions = None
-            return proxies, proxy_exceptions
+            # If no server binding or no token available
+            # (possibly after token revocation) reset password
+            password = ''
+        return ProxySettings(config=dc.proxy_config,
+                                       proxy_type=dc.proxy_type,
+                                       server=dc.proxy_server,
+                                       port=dc.proxy_port,
+                                       authenticated=dc.proxy_authenticated,
+                                       username=dc.proxy_username,
+                                       password=password,
+                                       exceptions=dc.proxy_exceptions)
 
-    def set_proxy_settings(self, config, proxy_type=None,
-            server=None, port=None,
-            authenticated=None, username=None, password=None,
-            exceptions=None):
+    def set_proxy_settings(self, proxy_settings):
         session = self.get_session()
-        device_config = session.query(DeviceConfig).one()
+        device_config = self.get_device_config(session)
 
-        device_config.proxy_config = config
-        device_config.proxy_type = proxy_type
-        device_config.proxy_server = server
-        device_config.proxy_port = port
-        device_config.proxy_authenticated = authenticated
-        device_config.proxy_username = username
+        device_config.proxy_config = proxy_settings.config
+        device_config.proxy_type = proxy_settings.proxy_type
+        device_config.proxy_server = proxy_settings.server
+        device_config.proxy_port = proxy_settings.port
+        device_config.proxy_exceptions = proxy_settings.exceptions
+        device_config.proxy_authenticated = proxy_settings.authenticated
+        device_config.proxy_username = proxy_settings.username
+        # Encrypt password with token as the secret
+        token = self.get_token(session)
+        if token is None:
+            raise MissingToken("Your token has been revoked,"
+                        " please update your password to acquire a new one.")
+        password = encrypt(proxy_settings.password, token)
         device_config.proxy_password = password
-        device_config.proxy_exceptions = exceptions
 
         session.commit()
+        log.debug("Proxy settings successfully updated: %r", proxy_settings)
         self.invalidate_client_cache()
+
+    def refresh_proxies(self, proxy_settings=None, device_config=None):
+        """Refresh current proxies with the given settings"""
+        # If no proxy settings passed fetch them from database
+        proxy_settings = (proxy_settings if proxy_settings is not None
+                          else self.get_proxy_settings(
+                                                device_config=device_config))
+        self.proxies, self.proxy_exceptions = get_proxies_for_handler(
+                                                            proxy_settings)
+
+    def get_server_binding(self, local_folder, raise_if_missing=False,
+                           session=None):
+        """Find the ServerBinding instance for a given local_folder"""
+        local_folder = normalized_path(local_folder)
+        if session is None:
+            session = self.get_session()
+        try:
+            return session.query(ServerBinding).filter(
+                ServerBinding.local_folder == local_folder).one()
+        except NoResultFound:
+            if raise_if_missing:
+                raise RuntimeError(
+                    "Folder '%s' is not bound to any Nuxeo server"
+                    % local_folder)
+            return None
+
+    def list_server_bindings(self, session=None):
+        if session is None:
+            session = self.get_session()
+        return session.query(ServerBinding).all()
+
+    def get_token(self, session=None):
+        if session is None:
+            session = self.get_session()
+        server_bindings = self.list_server_bindings(session)
+        if not server_bindings:
+            return None
+        sb = server_bindings[0]
+        return sb.remote_token
+
+    def get_server_binding_settings(self):
+        """Fetch server binding settings from database"""
+        server_bindings = self.list_server_bindings()
+        if not server_bindings:
+            return ServerBindingSettings(
+                local_folder=default_nuxeo_drive_folder())
+        else:
+            # TODO: handle multiple server bindings, for now take the first one
+            # See https://jira.nuxeo.com/browse/NXP-12716
+            sb = server_bindings[0]
+            return ServerBindingSettings(server_url=sb.server_url,
+                            username=sb.remote_user,
+                            local_folder=sb.local_folder,
+                            initialized=True,
+                            pwd_update_required=sb.has_invalid_credentials())
 
     def stop(self):
         """Stop the Nuxeo Drive synchronization thread
@@ -296,27 +397,6 @@ class Controller(object):
         path = local_path[len(binding.local_folder):]
         path = path.replace(os.path.sep, u'/')
         return binding, path
-
-    def get_server_binding(self, local_folder, raise_if_missing=False,
-                           session=None):
-        """Find the ServerBinding instance for a given local_folder"""
-        local_folder = normalized_path(local_folder)
-        if session is None:
-            session = self.get_session()
-        try:
-            return session.query(ServerBinding).filter(
-                ServerBinding.local_folder == local_folder).one()
-        except NoResultFound:
-            if raise_if_missing:
-                raise RuntimeError(
-                    "Folder '%s' is not bound to any Nuxeo server"
-                    % local_folder)
-            return None
-
-    def list_server_bindings(self, session=None):
-        if session is None:
-            session = self.get_session()
-        return session.query(ServerBinding).all()
 
     def bind_server(self, local_folder, server_url, username, password):
         """Bind a local folder to a remote nuxeo server"""
@@ -572,9 +652,7 @@ class Controller(object):
                 now = datetime.utcnow().utctimetuple()
                 self._client_cache_timestamps[key] = calendar.timegm(now)
         # Re-fetch HTTP proxy settings
-        device_config = self.get_device_config()
-        self.proxies, self.proxy_exceptions = (
-            self.get_proxy_settings(device_config))
+        self.refresh_proxies()
 
     def get_state(self, server_url, remote_ref):
         """Find a pair state for the provided remote document identifiers."""
