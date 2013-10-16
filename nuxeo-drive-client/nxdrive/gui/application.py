@@ -256,11 +256,12 @@ class Application(QApplication):
         for sb in self.controller.list_server_bindings():
             # Link to open the server binding folder
             binding_info = self.get_binding_info(sb.local_folder)
-            open_folder = lambda: self.controller.open_local_file(
-                binding_info.folder_path)
             open_folder_msg = "Open %s folder" % binding_info.short_name
-            open_folder_action = QtGui.QAction(
-                open_folder_msg, tray_icon_menu, triggered=open_folder)
+            open_folder = (lambda folder_path=binding_info.folder_path:
+                           self.controller.open_local_file(folder_path))
+            open_folder_action = QtGui.QAction(open_folder_msg, tray_icon_menu)
+            self.connect(open_folder_action, QtCore.SIGNAL('triggered()'),
+                         open_folder)
             tray_icon_menu.addAction(open_folder_action)
 
             # Pending status

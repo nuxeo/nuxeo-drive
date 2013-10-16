@@ -189,7 +189,7 @@ class Controller(object):
         dc = (self.get_device_config() if device_config is None
               else device_config)
         # Decrypt password with token as the secret
-        token = self.get_token()
+        token = self.get_first_token()
         if dc.proxy_password is not None and token is not None:
             password = decrypt(dc.proxy_password, token)
         else:
@@ -217,7 +217,7 @@ class Controller(object):
         device_config.proxy_authenticated = proxy_settings.authenticated
         device_config.proxy_username = proxy_settings.username
         # Encrypt password with token as the secret
-        token = self.get_token(session)
+        token = self.get_first_token(session)
         if token is None:
             raise MissingToken("Your token has been revoked,"
                         " please update your password to acquire a new one.")
@@ -258,7 +258,8 @@ class Controller(object):
             session = self.get_session()
         return session.query(ServerBinding).all()
 
-    def get_token(self, session=None):
+    def get_first_token(self, session=None):
+        """Get the token from the first server binding"""
         if session is None:
             session = self.get_session()
         server_bindings = self.list_server_bindings(session)
