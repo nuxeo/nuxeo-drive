@@ -303,10 +303,12 @@ class CliHandler(object):
         # Configure the logging frameork
         self._configure_logger(options)
 
-        # Initialize a controller for this process
-        self.controller = Controller(options.nxdrive_home,
-                            handshake_timeout=options.handshake_timeout,
-                            timeout=options.timeout)
+        # Initialize a controller for this process, except for the tests
+        # as they initialize their own
+        if command != 'test':
+            self.controller = Controller(options.nxdrive_home,
+                                handshake_timeout=options.handshake_timeout,
+                                timeout=options.timeout)
 
         # Find the command to execute based on the
         handler = getattr(self, command, None)
