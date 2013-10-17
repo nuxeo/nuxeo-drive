@@ -300,7 +300,7 @@ class CliHandler(object):
         # 'start' is the default command if None is provided
         command = options.command = getattr(options, 'command', 'launch')
 
-        # Configure the logging frameork
+        # Configure the logging framework
         self._configure_logger(options)
 
         # Initialize a controller for this process, except for the tests
