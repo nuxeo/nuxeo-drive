@@ -50,6 +50,7 @@ DEFAULT_MSI_FOLDER = os.path.join(r"dist")
 DEFAULT_LESSMSI_URL = "http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
 LESSMSI_FOLDER = 'lessmsi'
 EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
+NUXEO_DRIVE_HOME_FOLDER = os.path.expanduser('~\.nuxeo-drive')
 
 LINKS_PATTERN = r'\bhref="([^"]+)"'
 
@@ -294,8 +295,16 @@ def clean_pyc():
 
 
 def run_tests_from_msi():
+    clean_home_folder()
     ndrive = os.path.join(EXTRACTED_MSI_FOLDER, 'SourceDir', 'ndrive.exe')
     execute(ndrive + " test")
+
+
+def clean_home_folder(dir=None):
+    dir = dir if dir is not None else NUXEO_DRIVE_HOME_FOLDER
+    if os.path.exists(dir):
+        print('Removing home folder before running tests: %s' % dir)
+        shutil.rmtree(dir)
 
 
 def run_tests_from_source():
