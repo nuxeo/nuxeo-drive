@@ -300,6 +300,7 @@ class Application(QApplication):
                                     triggered=self.action_quit)
         if self.state == 'stopping':
             quit_action.setEnabled(False)
+            quit_action.setText('Quitting...')
         tray_icon_menu.addAction(quit_action)
         self._tray_icon.setContextMenu(tray_icon_menu)
 
