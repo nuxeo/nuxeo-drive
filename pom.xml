@@ -17,7 +17,6 @@
     <module>nuxeo-drive-server/nuxeo-drive-jsf</module>
     <module>nuxeo-drive-server/nuxeo-drive-core</module>
     <module>nuxeo-drive-server/nuxeo-drive-operations</module>
-    <module>nuxeo-drive-server/nuxeo-drive-hierarchy-permission</module>
   </modules>
 
   <!-- Used for multi-database tests -->
