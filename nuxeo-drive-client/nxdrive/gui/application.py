@@ -117,7 +117,7 @@ class Application(QApplication):
         if self.get_icon_state() == state:
             # Nothing to update
             return False
-        icon = find_icon('nuxeo_drive_systray_icon_%s_18.png' % state)
+        icon = find_icon('nuxeo_drive_systray_icon_%s_18.gif' % state)
         if icon is not None:
             self._tray_icon.setIcon(QtGui.QIcon(icon))
         else:
