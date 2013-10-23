@@ -131,7 +131,7 @@ class Application(QApplication):
 
     def action_quit(self):
         self.communicator.icon.emit('stopping')
-        self.state = 'quitting'
+        self.state = 'stopping'
         self.quit_on_stop = True
         self.communicator.menu.emit()
         if self.sync_thread is not None and self.sync_thread.isAlive():
@@ -148,12 +148,12 @@ class Application(QApplication):
             self.quit()
 
     def update_running_icon(self):
-        if self.state != 'running':
-            self.communicator.icon.emit('disabled')
+        if self.state not in ['enabled', 'transferring']:
+            self.communicator.icon.emit(self.state)
             return
         infos = self.binding_info.values()
         if len(infos) > 0 and any(i.online for i in infos):
-            self.communicator.icon.emit('enabled')
+            self.communicator.icon.emit(self.state)
         else:
             self.communicator.icon.emit('disabled')
 
@@ -181,7 +181,7 @@ class Application(QApplication):
 
     def notify_sync_started(self):
         log.debug('Synchronization started')
-        self.state = 'running'
+        self.state = 'enabled'
         self.communicator.menu.emit()
         self.update_running_icon()
 
@@ -222,6 +222,13 @@ class Application(QApplication):
             self.communicator.invalid_credentials.emit(local_folder)
 
     def notify_pending(self, local_folder, n_pending, or_more=False):
+        # Update icon
+        if n_pending > 0:
+            self.state = 'transferring'
+        else:
+            self.state = 'enabled'
+        self.update_running_icon()
+
         info = self.get_info(local_folder)
         if n_pending != info.n_pending:
             log.debug("%d pending operations for: %s", n_pending, local_folder)
@@ -291,8 +298,9 @@ class Application(QApplication):
         # TODO: add start action if in paused state
         quit_action = QtGui.QAction("Quit", tray_icon_menu,
                                     triggered=self.action_quit)
-        if self.state == 'quitting':
+        if self.state == 'stopping':
             quit_action.setEnabled(False)
+            quit_action.setText('Quitting...')
         tray_icon_menu.addAction(quit_action)
         self._tray_icon.setContextMenu(tray_icon_menu)
 

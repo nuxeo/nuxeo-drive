@@ -338,6 +338,8 @@ def prompt_settings(controller, sb_settings, proxy_settings, app=None):
             return False
 
     def check_proxy_settings(proxy_settings, dialog):
+        if proxy_settings.config == 'None':
+            return True
         try:
             proxies, _ = get_proxies_for_handler(proxy_settings)
             proxy_handler = get_proxy_handler(proxies)
