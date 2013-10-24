@@ -258,6 +258,7 @@ class Application(QApplication):
 
     def _setup_systray(self):
         self._tray_icon = QtGui.QSystemTrayIcon()
+        self._tray_icon.setToolTip('Nuxeo Drive')
         self.update_running_icon()
         self._tray_icon.show()
 
