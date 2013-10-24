@@ -1,6 +1,7 @@
 """Main Qt application handling OS events and system tray UI"""
 
 import os
+import time
 from threading import Thread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
@@ -8,6 +9,8 @@ from nxdrive.gui.resources import find_icon
 from nxdrive.gui.settings import prompt_settings
 
 log = get_logger(__name__)
+
+TIME_FORMAT_PATTERN = '%d %b %H:%M'
 
 # Keep Qt an optional dependency for now
 QtGui, QApplication, QObject = None, object, object
@@ -232,6 +235,15 @@ class Application(QApplication):
             if n_pending != info.n_pending:
                 log.debug("%d pending operations for: %s", n_pending,
                           local_folder)
+                if n_pending == 0 and info.n_pending > 0:
+                    current_time = int(time.time())
+                    log.debug("Updating last ended synchronization date"
+                              " to %s for: %s",
+                              time.strftime(TIME_FORMAT_PATTERN,
+                                            time.localtime(current_time)),
+                              local_folder)
+                    server_binding.last_ended_sync_date = current_time
+                    self.controller.get_session().commit()
                 self.communicator.menu.emit()
             # Update pending stats
             info.n_pending = n_pending
@@ -278,6 +290,16 @@ class Application(QApplication):
                 status_message += " (credentials update required)"
             status_action = tray_icon_menu.addAction(status_message)
             status_action.setEnabled(False)
+
+            # Last synchronization date
+            last_ended_sync_date = sb.last_ended_sync_date
+            if last_ended_sync_date is not  None:
+                last_ended_sync_message = "Last synchronized: %s" % (
+                                        time.strftime(TIME_FORMAT_PATTERN,
+                                        time.localtime(last_ended_sync_date)))
+                last_ended_sync_action = tray_icon_menu.addAction(
+                                                str(last_ended_sync_message))
+                last_ended_sync_action.setEnabled(False)
 
             tray_icon_menu.addSeparator()
 
