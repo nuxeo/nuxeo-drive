@@ -216,14 +216,12 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def _check_ref(self, ref):
         if ref.startswith('/'):
-            if self._base_folder_path is None:
-                raise RuntimeError("Path handling is disabled on a remote"
-                                   " client with no base_folder parameter:"
-                                   " use idref instead")
-            elif self._base_folder_path.endswith('/'):
-                ref = self._base_folder_path + ref[1:]
-            else:
-                ref = self._base_folder_path + ref
+            # This is a path ref (else an id ref)
+            if self._base_folder_path is not None:
+                if self._base_folder_path.endswith('/'):
+                    ref = self._base_folder_path + ref[1:]
+                else:
+                    ref = self._base_folder_path + ref
         return ref
 
     def _doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
