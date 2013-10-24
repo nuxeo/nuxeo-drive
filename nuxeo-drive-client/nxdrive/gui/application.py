@@ -1,6 +1,7 @@
 """Main Qt application handling OS events and system tray UI"""
 
 import os
+import time
 from threading import Thread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
@@ -8,6 +9,8 @@ from nxdrive.gui.resources import find_icon
 from nxdrive.gui.settings import prompt_settings
 
 log = get_logger(__name__)
+
+TIME_FORMAT_PATTERN = '%d %b %H:%M'
 
 # Keep Qt an optional dependency for now
 QtGui, QApplication, QObject = None, object, object
@@ -43,9 +46,9 @@ class BindingInfo(object):
     n_pending = -1
     has_more_pending = False
 
-    def __init__(self, folder_path):
-        self.folder_path = folder_path
-        self.short_name = os.path.basename(folder_path)
+    def __init__(self, server_binding):
+        self.folder_path = server_binding.local_folder
+        self.short_name = os.path.basename(server_binding.local_folder)
 
     def get_status_message(self):
         # TODO: i18n
@@ -93,13 +96,6 @@ class Application(QApplication):
 
         # Start long running synchronization thread
         self.start_synchronization_thread()
-
-    def get_info(self, local_folder):
-        info = self.binding_info.get(local_folder, None)
-        if info is None:
-            info = BindingInfo(local_folder)
-            self.binding_info[local_folder] = info
-        return info
 
     @QtCore.pyqtSlot(str)
     def set_icon_state(self, state):
@@ -157,16 +153,17 @@ class Application(QApplication):
         else:
             self.communicator.icon.emit('disabled')
 
-    def notify_local_folders(self, local_folders):
+    def notify_local_folders(self, server_bindings):
         """Cleanup unbound server bindings if any"""
+        local_folders = [sb.local_folder for sb in server_bindings]
         refresh = False
         for registered_folder in self.binding_info.keys():
             if registered_folder not in local_folders:
                 del self.binding_info[registered_folder]
                 refresh = True
-        for local_folder in local_folders:
-            if local_folder not in self.binding_info:
-                self.binding_info[local_folder] = BindingInfo(local_folder)
+        for sb in server_bindings:
+            if sb.local_folder not in self.binding_info:
+                self.binding_info[sb.local_folder] = BindingInfo(sb)
                 refresh = True
         if refresh:
             log.debug(u'Detected changes in the list of local folders: %s',
@@ -174,9 +171,10 @@ class Application(QApplication):
             self.communicator.menu.emit()
             self.update_running_icon()
 
-    def get_binding_info(self, local_folder):
+    def get_binding_info(self, server_binding):
+        local_folder = server_binding.local_folder
         if local_folder not in self.binding_info:
-            self.binding_info[local_folder] = BindingInfo(local_folder)
+            self.binding_info[local_folder] = BindingInfo(server_binding)
         return self.binding_info[local_folder]
 
     def notify_sync_started(self):
@@ -193,26 +191,28 @@ class Application(QApplication):
         self.communicator.menu.emit()
         self.communicator.stop.emit()
 
-    def notify_online(self, local_folder):
-        info = self.get_info(local_folder)
+    def notify_online(self, server_binding):
+        info = self.get_binding_info(server_binding)
         if not info.online:
             # Mark binding as offline and update UI
-            log.debug('Switching to online mode for: %s', local_folder)
+            log.debug('Switching to online mode for: %s',
+                      server_binding.local_folder)
             info.online = True
             self.update_running_icon()
             self.communicator.menu.emit()
 
-    def notify_offline(self, local_folder, exception):
-        info = self.get_info(local_folder)
+    def notify_offline(self, server_binding, exception):
+        info = self.get_binding_info(server_binding)
         code = getattr(exception, 'code', None)
         if code is not None:
             reason = "Server returned HTTP code %r" % code
         else:
             reason = str(exception)
         if info.online:
+            local_folder = server_binding.local_folder
             # Mark binding as offline and update UI
             log.debug('Switching to offline mode (reason: %s) for: %s',
-                      reason, local_folder)
+                      reason, server_binding.local_folder)
             info.online = False
             self.update_running_icon()
             self.communicator.menu.emit()
@@ -221,7 +221,7 @@ class Application(QApplication):
             log.debug('Detected invalid credentials for: %s', local_folder)
             self.communicator.invalid_credentials.emit(local_folder)
 
-    def notify_pending(self, local_folder, n_pending, or_more=False):
+    def notify_pending(self, server_binding, n_pending, or_more=False):
         # Update icon
         if n_pending > 0:
             self.state = 'transferring'
@@ -229,23 +229,36 @@ class Application(QApplication):
             self.state = 'enabled'
         self.update_running_icon()
 
-        info = self.get_info(local_folder)
-        if n_pending != info.n_pending:
-            log.debug("%d pending operations for: %s", n_pending, local_folder)
-            self.communicator.menu.emit()
-        # Update pending stats
-        info.n_pending = n_pending
-        info.has_more_pending = or_more
+        if server_binding is not None:
+            local_folder = server_binding.local_folder
+            info = self.get_binding_info(server_binding)
+            if n_pending != info.n_pending:
+                log.debug("%d pending operations for: %s", n_pending,
+                          local_folder)
+                if n_pending == 0 and info.n_pending > 0:
+                    current_time = int(time.time())
+                    log.debug("Updating last ended synchronization date"
+                              " to %s for: %s",
+                              time.strftime(TIME_FORMAT_PATTERN,
+                                            time.localtime(current_time)),
+                              local_folder)
+                    server_binding.last_ended_sync_date = current_time
+                    self.controller.get_session().commit()
+                self.communicator.menu.emit()
+            # Update pending stats
+            info.n_pending = n_pending
+            info.has_more_pending = or_more
 
-        if not info.online:
-            log.debug("Switching to online mode for: %s", local_folder)
-            # Mark binding as online and update UI
-            info.online = True
-            self.update_running_icon()
-            self.communicator.menu.emit()
+            if not info.online:
+                log.debug("Switching to online mode for: %s", local_folder)
+                # Mark binding as online and update UI
+                info.online = True
+                self.update_running_icon()
+                self.communicator.menu.emit()
 
     def _setup_systray(self):
         self._tray_icon = QtGui.QSystemTrayIcon()
+        self._tray_icon.setToolTip('Nuxeo Drive')
         self.update_running_icon()
         self._tray_icon.show()
 
@@ -262,7 +275,7 @@ class Application(QApplication):
         # TODO: i18n action labels
         for sb in self.controller.list_server_bindings():
             # Link to open the server binding folder
-            binding_info = self.get_binding_info(sb.local_folder)
+            binding_info = self.get_binding_info(sb)
             open_folder_msg = "Open %s folder" % binding_info.short_name
             open_folder = (lambda folder_path=binding_info.folder_path:
                            self.controller.open_local_file(folder_path))
@@ -278,6 +291,16 @@ class Application(QApplication):
                 status_message += " (credentials update required)"
             status_action = tray_icon_menu.addAction(status_message)
             status_action.setEnabled(False)
+
+            # Last synchronization date
+            last_ended_sync_date = sb.last_ended_sync_date
+            if last_ended_sync_date is not  None:
+                last_ended_sync_message = "Last synchronized: %s" % (
+                                        time.strftime(TIME_FORMAT_PATTERN,
+                                        time.localtime(last_ended_sync_date)))
+                last_ended_sync_action = tray_icon_menu.addAction(
+                                                str(last_ended_sync_message))
+                last_ended_sync_action.setEnabled(False)
 
             tray_icon_menu.addSeparator()
 

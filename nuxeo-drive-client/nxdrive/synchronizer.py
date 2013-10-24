@@ -1006,21 +1006,24 @@ class Synchronizer(object):
 
         return moved_or_renamed
 
-    def synchronize(self, local_folder=None, limit=None):
+    def synchronize(self, server_binding=None, limit=None):
         """Synchronize one file at a time from the pending list."""
+        local_folder = (server_binding.local_folder
+                        if server_binding is not None else None)
         synchronized = 0
         session = self.get_session()
 
         while (limit is None or synchronized < limit):
 
             pending = self._controller.list_pending(
-                local_folder=local_folder, limit=self.limit_pending,
+                local_folder=local_folder,
+                limit=self.limit_pending,
                 session=session, ignore_in_error=self.error_skip_period)
 
             or_more = len(pending) == self.limit_pending
             if self._frontend is not None:
                 self._frontend.notify_pending(
-                    local_folder, len(pending), or_more=or_more)
+                    server_binding, len(pending), or_more=or_more)
 
             if len(pending) == 0:
                 break
@@ -1160,8 +1163,7 @@ class Synchronizer(object):
 
                 bindings = session.query(ServerBinding).all()
                 if self._frontend is not None:
-                    local_folders = [sb.local_folder for sb in bindings]
-                    self._frontend.notify_local_folders(local_folders)
+                    self._frontend.notify_local_folders(bindings)
 
                 for sb in bindings:
                     if not sb.has_invalid_credentials():
@@ -1328,7 +1330,7 @@ class Synchronizer(object):
             # Apparently we are online, otherwise an network related exception
             # would have been raised and caught below
             if self._frontend is not None:
-                self._frontend.notify_online(server_binding.local_folder)
+                self._frontend.notify_online(server_binding)
 
             if full_scan or summary['hasTooManyChanges'] or first_pass:
                 # Force remote full scan
@@ -1377,9 +1379,8 @@ class Synchronizer(object):
             n_pending = self._notify_pending(server_binding)
 
             n_synchronized = self.synchronize(limit=max_sync_step,
-                local_folder=server_binding.local_folder)
+                server_binding=server_binding)
             synchronization_duration = time() - tick
-
             log.debug("[%s] - [%s]: synchronized: %d, pending: %d, "
                       "local: %0.3fs, remote: %0.3fs sync: %0.3fs",
                       server_binding.local_folder,
@@ -1405,7 +1406,7 @@ class Synchronizer(object):
         if self._frontend is not None:
             # XXX: this is broken: list pending should be able to count
             # pending operations on a per-server basis!
-            self._frontend.notify_pending(server_binding.local_folder, -1)
+            self._frontend.notify_pending(server_binding, -1)
 
     def _notify_pending(self, server_binding):
         """Update the statistics of the frontend"""
@@ -1418,7 +1419,7 @@ class Synchronizer(object):
             # XXX: this is broken: list pending should be able to count
             # pending operations on a per-server basis!
             self._frontend.notify_pending(
-                server_binding.local_folder, n_pending,
+                server_binding, n_pending,
                 or_more=reached_limit)
         return n_pending
 
@@ -1431,7 +1432,7 @@ class Synchronizer(object):
                   exc_info=True)
         if self._frontend is not None:
             self._frontend.notify_offline(
-                server_binding.local_folder, e)
+                server_binding, e)
 
         self._controller.invalidate_client_cache(
             server_binding.server_url)
