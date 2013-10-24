@@ -110,6 +110,7 @@ class ServerBinding(Base):
     remote_password = Column(String)
     remote_token = Column(String)
     last_sync_date = Column(Integer)
+    last_ended_sync_date = Column(Integer)
     last_root_definitions = Column(String)
 
     def __init__(self, local_folder, server_url, remote_user,
