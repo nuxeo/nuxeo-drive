@@ -18,7 +18,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Create some documents in a Nuxeo workspace and bind this server to a
         # Nuxeo Drive local folder
         self.make_server_tree()
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+        binding = ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
@@ -72,8 +72,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(len(pending), 2)
 
         # Synchronize the first document (ordered by hierarchy):
-        self.assertEquals(syn.synchronize(
-            self.local_nxdrive_folder_1, limit=1), 1)
+        self.assertEquals(syn.synchronize(binding, limit=1), 1)
         pending = ctl.list_pending()
         self.assertEquals(len(pending), 11)
         remote_names = [p.remote_name for p in pending]
