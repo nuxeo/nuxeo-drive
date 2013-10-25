@@ -56,6 +56,9 @@ class Dialog(QDialog):
         self.sb_fields = {}
         self.proxy_fields = {}
 
+        # Style sheet
+        self.setStyleSheet('QGroupBox {border: none;}')
+
         # Tabs
         account_box = self.get_account_box(sb_field_spec)
         proxy_box = self.get_proxy_box(proxy_field_spec)
