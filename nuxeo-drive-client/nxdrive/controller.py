@@ -152,6 +152,7 @@ class Controller(object):
 
         device_config = self.get_device_config()
         self.device_id = device_config.device_id
+        self.version = device_config.client_version
 
         # HTTP proxy settings
         self.proxies = None
@@ -415,7 +416,7 @@ class Controller(object):
         # request
         server_url = self._normalize_url(server_url)
         nxclient = self.remote_doc_client_factory(
-            server_url, username, self.device_id,
+            server_url, username, self.device_id, self.version,
             proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
             password=password, timeout=self.handshake_timeout)
         token = nxclient.request_token()
@@ -490,6 +491,7 @@ class Controller(object):
                         binding.server_url,
                         binding.remote_user,
                         self.device_id,
+                        self.version,
                         proxies=self.proxies,
                         proxy_exceptions=self.proxy_exceptions,
                         token=binding.remote_token,
@@ -619,6 +621,7 @@ class Controller(object):
         if remote_client_cache is None or timestamp < client_cache_timestamp:
             remote_client = self.remote_fs_client_factory(
                 sb.server_url, sb.remote_user, self.device_id,
+                self.version,
                 proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
                 password=sb.remote_password, token=sb.remote_token,
                 timeout=self.timeout, cookie_jar=self.cookie_jar)
@@ -638,7 +641,7 @@ class Controller(object):
         """Return an instance of Nuxeo Document Client"""
         sb = server_binding
         return self.remote_doc_client_factory(
-            sb.server_url, sb.remote_user, self.device_id,
+            sb.server_url, sb.remote_user, self.device_id, self.version,
             proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
             password=sb.remote_password, token=sb.remote_token,
             repository=repository, base_folder=base_folder,
