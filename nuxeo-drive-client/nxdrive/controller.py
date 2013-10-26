@@ -184,6 +184,9 @@ class Controller(object):
             session.commit()
             return device_config
 
+    def get_version(self):
+        return self.get_device_config().client_version
+
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""
         dc = (self.get_device_config() if device_config is None
