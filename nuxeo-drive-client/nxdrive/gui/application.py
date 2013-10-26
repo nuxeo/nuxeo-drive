@@ -330,8 +330,9 @@ class Application(QApplication):
     def settings(self):
         sb_settings = self.controller.get_server_binding_settings()
         proxy_settings = self.controller.get_proxy_settings()
+        version = self.controller.get_version()
         return prompt_settings(self.controller, sb_settings, proxy_settings,
-                               app=self)
+                               version, app=self)
 
     def start_synchronization_thread(self):
         if len(self.controller.list_server_bindings()) == 0:
