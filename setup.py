@@ -9,6 +9,17 @@ from datetime import datetime
 
 from distutils.core import setup
 
+BASE_VERSION = '1.2.0'
+
+def read_version(init_file):
+    with open(init_file, 'rb') as f:
+        return f.readline().split("=")[1].strip().replace('\'', '')
+
+def update_version(init_file, version):
+    with open(init_file, 'wb') as f:
+        f.write("__version__ = '%s'\n" % version)
+        f.write("FULL_VERSION = '" + BASE_VERSION + "-' + __version__\n")
+
 scripts = ["nuxeo-drive-client/scripts/ndrive"]
 freeze_options = {}
 
@@ -47,8 +58,7 @@ for filename in os.listdir(icons_home):
 old_version = None
 init_file = os.path.abspath(os.path.join(
         'nuxeo-drive-client', 'nxdrive', '__init__.py'))
-with open(init_file, 'rb') as f:
-    version = f.readline().split("=")[1].strip().replace('\'', '')
+version = read_version(init_file)
 
 if '--dev' in sys.argv:
     # timestamp the dev artifacts for continuous integration
@@ -67,8 +77,7 @@ if '--dev' in sys.argv:
     # a, b, c and d are all 16 bits integers
     version = version.replace('-dev', ".%s.%s" % (
         timestamp[0:4], timestamp[4:8]))
-    with open(init_file, 'wb') as f:
-        f.write("__version__ = '%s'" % version)
+    update_version(init_file, version)
     print "Updated version to " + version
 
 includes = [
@@ -179,6 +188,5 @@ setup(
 )
 
 if old_version is not None:
-    with open(init_file, 'wb') as f:
-        f.write("__version__ = '%s'" % old_version)
+    update_version(init_file, old_version)
     print "Restored version to " + old_version
