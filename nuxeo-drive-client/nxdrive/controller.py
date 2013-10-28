@@ -186,7 +186,7 @@ class Controller(object):
             return device_config
 
     def get_version(self):
-        return self.get_device_config().client_version
+        return self.version
 
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""
