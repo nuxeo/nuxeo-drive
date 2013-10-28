@@ -265,18 +265,11 @@
         <exec dir="${out.dir}/packages/${package.type}"
               executable="scp"
               failonerror="true">
-            <arg value="{out.dir}/${package.name}_${package.fullversion}_all.deb" />
+            <arg value="${out.dir}/packages/${package.type}/${package.name}_${package.fullversion}_all.deb" />
             <arg value="${apt.user}@${apt.host}:${apt.pool}/${package.type}/" />
         </exec>
 
-        <echo message="*** Uploading repository update script to apt host ***" />
-        <exec dir="${maven.basedir}/bin"
-              executable="scp"
-              failonerror="true">
-            <arg value="update_debian_repository" />
-            <arg value="${apt.user}@${apt.host}:bin/" />
-        </exec>
-
+        <!-- update script in nuxeo-packaging-debian -->
         <echo message="*** Updating apt repository on apt host ***" />
         <exec executable="ssh"
               failonerror="true">
