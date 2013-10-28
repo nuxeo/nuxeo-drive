@@ -31,12 +31,9 @@ PROXY_TYPES = ['http', 'https']
 PROXY_TEST_URL = 'http://www.google.com'
 DEFAULT_FIELD_WIDGET_WIDTH = 250
 
-LICENSES = ['GNU General Public License v2',
-            'GNU General Public License v3',
-            'PyQt Commercial License',
-            'PyQt Embedded License',
-            ]
-
+LICENSE_LINK = (
+    '<a href ="http://github.com/nuxeo/nuxeo-drive/blob/master/LICENSE.txt">'
+    'LICENSE.txt</a>')
 SOURCE_LINK = ('<a href ="http://github.com/nuxeo/nuxeo-drive">'
                'http://github.com/nuxeo/nuxeo-drive</a>')
 
@@ -215,14 +212,14 @@ class Dialog(QDialog):
         layout.addWidget(version_widget)
 
         # License
-        license_label = QtGui.QLabel('Available licenses')
+        license_label = QtGui.QLabel('License')
         license_label.setStyleSheet(BOLD_STYLE)
         license_label.setContentsMargins(0, 20, 0, 0)
         layout.addWidget(license_label)
-        for license_ in  LICENSES:
-            license_widget = QtGui.QLabel(license_)
-            license_widget.setContentsMargins(20, 0, 0, 0)
-            layout.addWidget(license_widget)
+        license_widget = QtGui.QLabel(LICENSE_LINK)
+        license_widget.setOpenExternalLinks(True)
+        license_widget.setContentsMargins(20, 0, 0, 0)
+        layout.addWidget(license_widget)
 
         # Source code
         source_label = QtGui.QLabel('Source code')
