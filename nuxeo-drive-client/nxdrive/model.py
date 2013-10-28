@@ -18,6 +18,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.pool import SingletonThreadPool
 
+from nxdrive import __version__
 from nxdrive.client import LocalClient
 from nxdrive.utils import normalized_path
 from nxdrive.logging_config import get_logger
@@ -76,6 +77,7 @@ class DeviceConfig(Base):
     __tablename__ = 'device_config'
 
     device_id = Column(String, primary_key=True)
+    client_version = Column(String)
 
     # HTTP proxy settings
     # Possible values for proxy_config: System, None, Manual
@@ -88,14 +90,19 @@ class DeviceConfig(Base):
     proxy_password = Column(Binary)
     proxy_exceptions = Column(String)
 
-    def __init__(self, device_id=None):
+    def __init__(self, device_id=None, client_version=None):
         self.device_id = uuid.uuid1().hex if device_id is None else device_id
+        self.client_version = (__version__ if client_version is None
+                               else client_version)
+        log.debug("Set client version to %s", self.client_version)
 
     def __repr__(self):
-        return ("DeviceConfig<device_id=%s, proxy_config=%s, proxy_type=%s, "
+        return ("DeviceConfig<device_id=%s, client_version=%s, "
+                "proxy_config=%s, proxy_type=%s, "
                 "proxy_server=%s, proxy_port=%s, proxy_authenticated=%r, "
                 "proxy_username=%s, proxy_exceptions=%s>") % (
-                    self.device_id, self.proxy_config, self.proxy_type,
+                    self.device_id, self.client_version,
+                    self.proxy_config, self.proxy_type,
                     self.proxy_server, self.proxy_port,
                     self.proxy_authenticated, self.proxy_username,
                     self.proxy_exceptions)

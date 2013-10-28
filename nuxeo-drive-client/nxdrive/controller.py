@@ -152,6 +152,8 @@ class Controller(object):
 
         device_config = self.get_device_config()
         self.device_id = device_config.device_id
+        self.version = nxdrive.__version__
+        self.update_version(device_config)
 
         # HTTP proxy settings
         self.proxies = None
@@ -183,6 +185,19 @@ class Controller(object):
             session.add(device_config)
             session.commit()
             return device_config
+
+    def get_version(self):
+        return self.version
+
+    def update_version(self, device_config):
+        if self.version != device_config.client_version:
+            log.debug("Detected version upgrade: current version = %s,"
+                      " new version = %s => upgrading current version,"
+                      " yet DB upgrade might be needed.",
+                      device_config.client_version,
+                      self.version)
+            device_config.client_version = self.version
+            self.get_session().commit()
 
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""
@@ -412,7 +427,7 @@ class Controller(object):
         # request
         server_url = self._normalize_url(server_url)
         nxclient = self.remote_doc_client_factory(
-            server_url, username, self.device_id,
+            server_url, username, self.device_id, self.version,
             proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
             password=password, timeout=self.handshake_timeout)
         token = nxclient.request_token()
@@ -487,6 +502,7 @@ class Controller(object):
                         binding.server_url,
                         binding.remote_user,
                         self.device_id,
+                        self.version,
                         proxies=self.proxies,
                         proxy_exceptions=self.proxy_exceptions,
                         token=binding.remote_token,
@@ -616,6 +632,7 @@ class Controller(object):
         if remote_client_cache is None or timestamp < client_cache_timestamp:
             remote_client = self.remote_fs_client_factory(
                 sb.server_url, sb.remote_user, self.device_id,
+                self.version,
                 proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
                 password=sb.remote_password, token=sb.remote_token,
                 timeout=self.timeout, cookie_jar=self.cookie_jar)
@@ -635,7 +652,7 @@ class Controller(object):
         """Return an instance of Nuxeo Document Client"""
         sb = server_binding
         return self.remote_doc_client_factory(
-            sb.server_url, sb.remote_user, self.device_id,
+            sb.server_url, sb.remote_user, self.device_id, self.version,
             proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
             password=sb.remote_password, token=sb.remote_token,
             repository=repository, base_folder=base_folder,

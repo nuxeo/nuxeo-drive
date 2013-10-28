@@ -28,11 +28,11 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
     def test_authentication_failure(self):
         self.assertRaises(Unauthorized, NuxeoClient,
                       self.remote_document_client_1.server_url,
-                      'someone else', 'test-device',
+                      'someone else', 'test-device', self.version,
                       password='bad password')
         self.assertRaises(Unauthorized, NuxeoClient,
                       self.remote_document_client_1.server_url,
-                      'someone else', 'test-device',
+                      'someone else', 'test-device', self.version,
                       token='some-bad-token')
 
     def test_make_token(self):
@@ -51,8 +51,8 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         # It's possible to create a new client using the same token
         remote_client2 = NuxeoClient(
             remote_client.server_url, remote_client.user_id,
-            remote_client.device_id, token=token,
-            base_folder=self.workspace)
+            remote_client.device_id, remote_client.client_version,
+            token=token, base_folder=self.workspace)
 
         token3 = remote_client.request_token()
         self.assertEquals(token, token3)
@@ -69,8 +69,8 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         # password based auth
         remote_client3 = NuxeoClient(
             remote_client.server_url, remote_client.user_id,
-            remote_client.device_id, password=self.password_1,
-            base_folder=None)
+            remote_client.device_id, remote_client.client_version,
+            password=self.password_1, base_folder=None)
         roots = remote_client3.get_roots()
         self.assertEquals(len(roots), 1)
         self.assertEquals(roots[0].name, 'Folder 1')
@@ -79,8 +79,8 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         # token
         remote_client4 = NuxeoClient(
             remote_client.server_url, remote_client.user_id,
-            'other-test-device', password=self.password_1,
-            base_folder=None)
+            'other-test-device', remote_client.client_version,
+            password=self.password_1, base_folder=None)
         token4 = remote_client4.request_token()
         self.assertNotEquals(token, token4)
 
