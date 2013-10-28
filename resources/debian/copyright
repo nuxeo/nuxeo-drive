@@ -5,6 +5,8 @@ a clone of https://github.com/nuxeo/nuxeo-drive
 
 The source code of Nuxeo Drive is available under the
 GNU Lesser General Public License v2.1 described below.
+On Debian systems, the full text can be found in
+the file '/usr/share/common-licenses/LGPL-2.1'.
 
   Though, Nuxeo Drive depends on the PyQt component that is available
 under the following licenses:
