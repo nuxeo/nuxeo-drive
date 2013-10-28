@@ -94,6 +94,7 @@ class DeviceConfig(Base):
         self.device_id = uuid.uuid1().hex if device_id is None else device_id
         self.client_version = (__version__ if client_version is None
                                else client_version)
+        log.debug("Set client version to %s", self.client_version)
 
     def __repr__(self):
         return ("DeviceConfig<device_id=%s, client_version=%s, "

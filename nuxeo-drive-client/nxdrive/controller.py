@@ -152,7 +152,8 @@ class Controller(object):
 
         device_config = self.get_device_config()
         self.device_id = device_config.device_id
-        self.version = device_config.client_version
+        self.version = nxdrive.__version__
+        self.update_version(device_config)
 
         # HTTP proxy settings
         self.proxies = None
@@ -187,6 +188,16 @@ class Controller(object):
 
     def get_version(self):
         return self.version
+
+    def update_version(self, device_config):
+        if self.version != device_config.client_version:
+            log.debug("Detected version upgrade: current version = %s,"
+                      " new version = %s => upgrading current version,"
+                      " yet DB upgrade might be needed.",
+                      device_config.client_version,
+                      self.version)
+            device_config.client_version = self.version
+            self.get_session().commit()
 
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""
