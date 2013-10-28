@@ -59,14 +59,14 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     # Override constructor to initialize base folder
     # which is specific to RemoteDocumentClient
-    def __init__(self, server_url, user_id, device_id,
+    def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
                  base_folder=None, timeout=20, blob_timeout=None,
                  cookie_jar=None, upload_tmp_dir=None):
         super(RemoteDocumentClient, self).__init__(
-            server_url, user_id, device_id,
+            server_url, user_id, device_id, client_version,
             proxies=proxies, proxy_exceptions=proxy_exceptions,
             password=password, token=token, repository=repository,
             ignored_prefixes=ignored_prefixes,

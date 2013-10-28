@@ -46,9 +46,20 @@ class BindingInfo(object):
     n_pending = -1
     has_more_pending = False
 
-    def __init__(self, server_binding):
+    def __init__(self, server_binding, repository='default'):
         self.folder_path = server_binding.local_folder
         self.short_name = os.path.basename(server_binding.local_folder)
+        self.server_link = self._get_server_link(server_binding.server_url,
+                                                 repository)
+
+    def _get_server_link(self, server_url, repository):
+        server_link = server_url
+        if not server_link.endswith('/'):
+            server_link += '/'
+        url_suffix = ('@view_home?tabIds=MAIN_TABS:home,'
+                      'USER_CENTER:userCenterNuxeoDrive')
+        server_link += 'nxhome/' + repository + url_suffix
+        return server_link
 
     def get_status_message(self):
         # TODO: i18n
@@ -284,6 +295,15 @@ class Application(QApplication):
                          open_folder)
             tray_icon_menu.addAction(open_folder_action)
 
+            # Link to Nuxeo server
+            server_link_msg = "Browse Nuxeo server"
+            open_server_link = (lambda server_link=binding_info.server_link:
+                           self.controller.open_local_file(server_link))
+            server_link_action = QtGui.QAction(server_link_msg, tray_icon_menu)
+            self.connect(server_link_action, QtCore.SIGNAL('triggered()'),
+                         open_server_link)
+            tray_icon_menu.addAction(server_link_action)
+
             # Pending status
             status_message = binding_info.get_status_message()
             # Need to re-fetch authentication token when expired
@@ -330,8 +350,9 @@ class Application(QApplication):
     def settings(self):
         sb_settings = self.controller.get_server_binding_settings()
         proxy_settings = self.controller.get_proxy_settings()
+        version = self.controller.get_version()
         return prompt_settings(self.controller, sb_settings, proxy_settings,
-                               app=self)
+                               version, app=self)
 
     def start_synchronization_thread(self):
         if len(self.controller.list_server_bindings()) == 0:

@@ -127,7 +127,7 @@ class BaseAutomationClient(object):
 
     permission = 'ReadWrite'
 
-    def __init__(self, server_url, user_id, device_id,
+    def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
@@ -157,6 +157,7 @@ class BaseAutomationClient(object):
 
         self.user_id = user_id
         self.device_id = device_id
+        self.client_version = client_version
         self._update_auth(password=password, token=token)
 
         self.cookie_jar = cookie_jar
@@ -534,6 +535,7 @@ class BaseAutomationClient(object):
         return {
             'X-User-Id': self.user_id,
             'X-Device-Id': self.device_id,
+            'X-Client-Version': self.client_version,
             'X-Application-Name': self.application_name,
             self.auth[0]: self.auth[1],
             'Cache-Control': 'no-cache',

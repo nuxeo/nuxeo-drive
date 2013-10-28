@@ -31,6 +31,14 @@ PROXY_TYPES = ['http', 'https']
 PROXY_TEST_URL = 'http://www.google.com'
 DEFAULT_FIELD_WIDGET_WIDTH = 250
 
+LICENSE_LINK = (
+    '<a href ="http://github.com/nuxeo/nuxeo-drive/blob/master/LICENSE.txt">'
+    'LICENSE.txt</a>')
+SOURCE_LINK = ('<a href ="http://github.com/nuxeo/nuxeo-drive">'
+               'http://github.com/nuxeo/nuxeo-drive</a>')
+
+BOLD_STYLE = 'font-weight: bold;'
+
 
 class Dialog(QDialog):
     """Tabbed dialog box to manage settings
@@ -38,8 +46,8 @@ class Dialog(QDialog):
     Available tabs for now: Accounts (server bindings), Proxy settings
     """
 
-    def __init__(self, sb_field_spec, proxy_field_spec, title=None,
-                 callback=None):
+    def __init__(self, sb_field_spec, proxy_field_spec, version,
+                 title=None, callback=None):
         super(Dialog, self).__init__()
         if QtGui is None:
             raise RuntimeError("PyQt4 is not installed.")
@@ -62,9 +70,11 @@ class Dialog(QDialog):
         # Tabs
         account_box = self.get_account_box(sb_field_spec)
         proxy_box = self.get_proxy_box(proxy_field_spec)
+        about_box = self.get_about_box(version)
         self.tabs = QtGui.QTabWidget()
         self.tabs.addTab(account_box, 'Accounts')
         self.tabs.addTab(proxy_box, 'Proxy settings')
+        self.tabs.addTab(about_box, 'About')
 
         # Message
         self.message_area = QtGui.QLabel()
@@ -189,6 +199,42 @@ class Dialog(QDialog):
         self.tabs.setCurrentIndex(tab_index)
         self.message_area.setText(message)
 
+    def get_about_box(self, version_number):
+        box = QtGui.QGroupBox()
+        layout = QtGui.QVBoxLayout()
+
+        # Version
+        version_label = QtGui.QLabel('Version')
+        version_label.setStyleSheet(BOLD_STYLE)
+        layout.addWidget(version_label)
+        version_widget = QtGui.QLabel('Nuxeo Drive v' + version_number)
+        version_widget.setContentsMargins(20, 0, 0, 0)
+        layout.addWidget(version_widget)
+
+        # License
+        license_label = QtGui.QLabel('License')
+        license_label.setStyleSheet(BOLD_STYLE)
+        license_label.setContentsMargins(0, 20, 0, 0)
+        layout.addWidget(license_label)
+        license_widget = QtGui.QLabel(LICENSE_LINK)
+        license_widget.setOpenExternalLinks(True)
+        license_widget.setContentsMargins(20, 0, 0, 0)
+        layout.addWidget(license_widget)
+
+        # Source code
+        source_label = QtGui.QLabel('Source code')
+        source_label.setStyleSheet(BOLD_STYLE)
+        source_label.setContentsMargins(0, 20, 0, 0)
+        layout.addWidget(source_label)
+        source_widget = QtGui.QLabel(SOURCE_LINK)
+        source_widget.setOpenExternalLinks(True)
+        source_widget.setContentsMargins(20, 0, 0, 0)
+        layout.addWidget(source_widget)
+
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        box.setLayout(layout)
+        return box
+
     def accept(self):
         if self.callback is not None:
             values = dict()
@@ -218,7 +264,8 @@ class Dialog(QDialog):
         super(Dialog, self).reject()
 
 
-def prompt_settings(controller, sb_settings, proxy_settings, app=None):
+def prompt_settings(controller, sb_settings, proxy_settings, version,
+                    app=None):
     """Prompt a Qt dialog to manage settings"""
     global is_dialog_open
 
@@ -420,7 +467,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, app=None):
     if app is None:
         log.debug("Launching Qt prompt to manage settings.")
         QtGui.QApplication([])
-    dialog = Dialog(sb_field_spec, proxy_field_spec,
+    dialog = Dialog(sb_field_spec, proxy_field_spec, version,
                     title="Nuxeo Drive - Settings",
                     callback=validate)
     is_dialog_open = True
@@ -442,5 +489,5 @@ if __name__ == '__main__':
                                     username='Administrator',
                                     local_folder=default_nuxeo_drive_folder())
     proxy_settings = ProxySettings()
-    print prompt_settings(ctl, sb_settings=sb_settings,
-                          proxy_settings=proxy_settings)
+    version = ctl.get_version()
+    print prompt_settings(ctl, sb_settings, proxy_settings, version)
