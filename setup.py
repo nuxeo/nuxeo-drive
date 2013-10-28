@@ -72,8 +72,8 @@ if '--dev' in sys.argv:
     # msi package version). On the other hand,
     # msi imposes the a.b.c.0 or a.b.c.d format where
     # a, b, c and d are all 16 bits integers
-    version = version.replace('-dev', ".%s.%s" % (
-        timestamp[0:4], timestamp[4:8]))
+    version = version.replace('-dev', ".%s" % (
+        timestamp[4:8]))
     update_version(init_file, version)
     print "Updated version to " + version
 
