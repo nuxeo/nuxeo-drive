@@ -9,8 +9,6 @@ from datetime import datetime
 
 from distutils.core import setup
 
-BASE_VERSION = '1.2.0'
-
 def read_version(init_file):
     with open(init_file, 'rb') as f:
         return f.readline().split("=")[1].strip().replace('\'', '')
@@ -18,7 +16,6 @@ def read_version(init_file):
 def update_version(init_file, version):
     with open(init_file, 'wb') as f:
         f.write("__version__ = '%s'\n" % version)
-        f.write("FULL_VERSION = '" + BASE_VERSION + "-' + __version__\n")
 
 scripts = ["nuxeo-drive-client/scripts/ndrive"]
 freeze_options = {}

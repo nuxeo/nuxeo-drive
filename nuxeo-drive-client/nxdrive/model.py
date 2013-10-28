@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.pool import SingletonThreadPool
 
-from nxdrive import FULL_VERSION
+from nxdrive import __version__
 from nxdrive.client import LocalClient
 from nxdrive.utils import normalized_path
 from nxdrive.logging_config import get_logger
@@ -92,7 +92,7 @@ class DeviceConfig(Base):
 
     def __init__(self, device_id=None, client_version=None):
         self.device_id = uuid.uuid1().hex if device_id is None else device_id
-        self.client_version = (FULL_VERSION if client_version is None
+        self.client_version = (__version__ if client_version is None
                                else client_version)
 
     def __repr__(self):
