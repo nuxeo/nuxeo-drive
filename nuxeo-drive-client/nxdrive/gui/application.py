@@ -119,7 +119,7 @@ class Application(QApplication):
         """Execute systray icon change operations triggered by state change
 
         The synchronization thread can update the state info but cannot
-        directly call QtGui widget methods. The should be executed by the main
+        directly call QtGui widget methods. This should be executed by the main
         thread event loop, hence the delegation to this method that is
         triggered by a signal to allow for message passing between the 2
         threads.
