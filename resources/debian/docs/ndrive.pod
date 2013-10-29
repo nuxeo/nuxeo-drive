@@ -1,19 +1,19 @@
 =head1 NAME
 
-nxdrive - Client Driver for Nuxeo
+ndrive - Client Driver for Nuxeo
 
 =head1 SYNOPSIS
 
-nxdrive [I<options>] [I<url>] I<command> [I<command_parameters>...]
+ndrive [I<options>] [I<url>] I<command> [I<command_parameters>...]
 
 
-Launch the client side of the Nuxeo Drive. The I<url> is the Nuxeo URL of type protocol: C<nxdrive://>.
+Launch the client side of the Nuxeo Drive. The I<url> is the Nuxeo URL of type protocol: C<ndrive://>.
 
 =head1 OPTIONS
 
 =over
 
-=item B<--nxdrive-home> F<path>
+=item B<--ndrive-home> F<path>
 
 Folder to store the Nuxeo Drive configuration, default "F<~/.nuxeo-drive>".
 
