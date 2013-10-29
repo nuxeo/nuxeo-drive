@@ -2,6 +2,7 @@
 
 import os
 import time
+import threading
 from threading import Thread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
@@ -97,6 +98,11 @@ class Application(QApplication):
         self.communicator.invalid_credentials.connect(
             self.handle_invalid_credentials)
 
+        # Timer to spin the transferring icon
+        self.icon_spin_timer = QtCore.QTimer()
+        self.icon_spin_timer.timeout.connect(self.spin_transferring_icon)
+        self.icon_spin_count = 0
+
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
         self.state = 'paused'
@@ -113,7 +119,7 @@ class Application(QApplication):
         """Execute systray icon change operations triggered by state change
 
         The synchronization thread can update the state info but cannot
-        directly call QtGui widget methods. The should be executed by the main
+        directly call QtGui widget methods. This should be executed by the main
         thread event loop, hence the delegation to this method that is
         triggered by a signal to allow for message passing between the 2
         threads.
@@ -124,17 +130,28 @@ class Application(QApplication):
         if self.get_icon_state() == state:
             # Nothing to update
             return False
-        icon = find_icon('nuxeo_drive_systray_icon_%s_18.png' % state)
-        if icon is not None:
-            self._tray_icon.setIcon(QtGui.QIcon(icon))
+        # Handle animated transferring icon
+        if state == 'transferring':
+            self.icon_spin_timer.start(150)
         else:
-            log.warning('Icon not found: %s', icon)
+            self.icon_spin_timer.stop()
+            icon = find_icon('nuxeo_drive_systray_icon_%s_18.png' % state)
+            if icon is not None:
+                self._tray_icon.setIcon(QtGui.QIcon(icon))
+            else:
+                log.warning('Icon not found: %s', icon)
         self._icon_state = state
         log.debug('Updated icon state to: %s', state)
         return True
 
     def get_icon_state(self):
         return getattr(self, '_icon_state', None)
+
+    def spin_transferring_icon(self):
+        icon = find_icon('nuxeo_drive_systray_icon_transferring_%s.png'
+                         % (self.icon_spin_count + 1))
+        self._tray_icon.setIcon(QtGui.QIcon(icon))
+        self.icon_spin_count = (self.icon_spin_count + 1) % 10
 
     def action_quit(self):
         self.communicator.icon.emit('stopping')
