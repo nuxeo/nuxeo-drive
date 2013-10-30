@@ -441,6 +441,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_encoding",
             "nxdrive.tests.test_integration_local_client",
             "nxdrive.tests.test_integration_local_move_and_rename",
+            "nxdrive.tests.test_integration_permission_hierarchy",
             "nxdrive.tests.test_integration_remote_changes",
             "nxdrive.tests.test_integration_remote_document_client",
             "nxdrive.tests.test_integration_remote_file_system_client",
