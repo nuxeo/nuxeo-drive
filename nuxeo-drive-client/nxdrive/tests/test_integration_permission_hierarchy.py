@@ -9,6 +9,10 @@ class TestIntegrationPermissionHierarchy(IntegrationTestCase):
 
     def test_sync_delete_root(self):
         try:
+            user_workspaces_path = '/default-domain/UserWorkspaces/'
+            user_workspace_title = 'nuxeoDriveTestUser_user_1'
+            user_workspace_path = user_workspaces_path + user_workspace_title
+
             # Get remote and local clients
             admin_remote_client = self.root_remote_client
             user_remote_client = RemoteDocumentClient(
@@ -27,18 +31,15 @@ class TestIntegrationPermissionHierarchy(IntegrationTestCase):
             syn = ctl.synchronizer
 
             # Create user workspace parent as Administrator if it doesn't exist
-            user_workspaces_path = '/default-domain/UserWorkspaces/'
             if not admin_remote_client.exists(user_workspaces_path):
                 admin_remote_client.make_folder('/default-domain',
                                                 'UserWorkspaces',
                                                 doc_type='UserWorkspacesRoot')
 
             # Create test user workspace as Administrator
-            user_workspace_title = 'nuxeoDriveTestUser_user_1'
             admin_remote_client.make_folder(user_workspaces_path,
                                            user_workspace_title,
                                            doc_type='Workspace')
-            user_workspace_path = user_workspaces_path + user_workspace_title
             # Grant ReadWrite permission to test user on its workspace
             op_input = "doc:" + user_workspace_path
             admin_remote_client.execute("Document.SetACE",
