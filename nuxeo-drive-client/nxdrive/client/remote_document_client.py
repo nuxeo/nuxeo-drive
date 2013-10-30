@@ -394,3 +394,10 @@ class RemoteDocumentClient(BaseAutomationClient):
         self.execute("NuxeoDrive.SetSynchronization", op_input="doc:" + ref,
                      enable=False)
         return True
+
+    def activate_profile(self, profile):
+        self.execute("NuxeoDrive.SetActiveFactories", profile=profile)
+
+    def deactivate_profile(self, profile):
+        self.execute("NuxeoDrive.SetActiveFactories", profile=profile,
+                     enable=False)
