@@ -239,11 +239,11 @@ class Application(QApplication):
             reason = "Server returned HTTP code %r" % code
         else:
             reason = str(exception)
+        local_folder = server_binding.local_folder
         if info.online:
-            local_folder = server_binding.local_folder
             # Mark binding as offline and update UI
             log.debug('Switching to offline mode (reason: %s) for: %s',
-                      reason, server_binding.local_folder)
+                      reason, local_folder)
             info.online = False
             self.update_running_icon()
             self.communicator.menu.emit()
