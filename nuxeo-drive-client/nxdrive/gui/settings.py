@@ -28,7 +28,7 @@ is_dialog_open = False
 
 PROXY_CONFIGS = ['None', 'System', 'Manual']
 PROXY_TYPES = ['http', 'https']
-PROXY_TEST_URL = 'http://www.google.com'
+PROXY_TEST_HOST = 'www.google.com'
 DEFAULT_FIELD_WIDGET_WIDTH = 250
 
 LICENSE_LINK = (
@@ -393,8 +393,12 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         try:
             proxies, _ = get_proxies_for_handler(proxy_settings)
             proxy_handler = get_proxy_handler(proxies)
-            opener = urllib2.build_opener(proxy_handler)
-            opener.open(urllib2.Request(PROXY_TEST_URL))
+            if proxy_handler.proxies:
+                # System or manual proxy set, try a GET on test URL
+                opener = urllib2.build_opener(proxy_handler)
+                protocol = proxy_handler.proxies.iterkeys().next()
+                test_url = protocol + '://' + PROXY_TEST_HOST
+                opener.open(urllib2.Request(test_url))
             return True
         except socket.timeout:
             return handle_error(timeout_msg, dialog, tab_index=1, debug=True)
