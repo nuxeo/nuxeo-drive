@@ -23,7 +23,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.nuxeo.drive.adapter.FileSystemItem;
+import org.nuxeo.drive.adapter.NuxeoDriveContribException;
 import org.nuxeo.drive.adapter.RootlessItemException;
 import org.nuxeo.drive.service.FileSystemItemAdapterService;
 import org.nuxeo.drive.service.NuxeoDriveEvents;
@@ -60,6 +63,8 @@ import org.nuxeo.runtime.api.Framework;
  */
 public class NuxeoDriveFileSystemDeletionListener implements EventListener {
 
+    private static final Log log = LogFactory.getLog(NuxeoDriveFileSystemDeletionListener.class);
+
     @Override
     public void handleEvent(Event event) throws ClientException {
         DocumentEventContext ctx;
@@ -93,10 +98,18 @@ public class NuxeoDriveFileSystemDeletionListener implements EventListener {
                 && !handleAboutToRemove(doc)) {
             return;
         }
+        // Virtual event name
+        String virtualEventName;
+        if (DocumentEventTypes.BEFORE_DOC_SECU_UPDATE.equals(event.getName())) {
+            virtualEventName = NuxeoDriveEvents.SECURITY_UPDATED_EVENT;
+        } else {
+            virtualEventName = NuxeoDriveEvents.DELETED_EVENT;
+        }
         // Some events will only impact a specific user (e.g. root
         // unregistration)
         String impactedUserName = (String) ctx.getProperty(NuxeoDriveEvents.IMPACTED_USERNAME_PROPERTY);
-        logDeletionEvent(docForLogEntry, ctx.getPrincipal(), impactedUserName);
+        logVirtualEvent(docForLogEntry, virtualEventName, ctx.getPrincipal(),
+                impactedUserName);
     }
 
     protected DocumentModel handleBeforeDocUpdate(DocumentEventContext ctx,
@@ -162,8 +175,9 @@ public class NuxeoDriveFileSystemDeletionListener implements EventListener {
         return !LifeCycleConstants.DELETED_STATE.equals(doc.getCurrentLifeCycleState());
     }
 
-    protected void logDeletionEvent(DocumentModel doc, Principal principal,
-            String impactedUserName) throws ClientException {
+    protected void logVirtualEvent(DocumentModel doc, String eventName,
+            Principal principal, String impactedUserName)
+            throws ClientException {
 
         AuditLogger logger = Framework.getLocalService(AuditLogger.class);
         if (logger == null) {
@@ -174,10 +188,16 @@ public class NuxeoDriveFileSystemDeletionListener implements EventListener {
         try {
             fsItem = Framework.getLocalService(
                     FileSystemItemAdapterService.class).getFileSystemItem(doc,
-                    true);
+                    true, true);
         } catch (RootlessItemException e) {
             // can happen when deleting a folder under and unregistered root:
             // nothing to do
+            return;
+        } catch (NuxeoDriveContribException e) {
+            // Nuxeo Drive contributions missing or component not ready
+            log.debug(String.format(
+                    "Either Nuxeo Drive contributions are missing or the FileSystemItemAdapterService component is not ready (application has nor started yet) => ignoring event '%s'.",
+                    eventName));
             return;
         }
         if (fsItem == null) {
@@ -185,7 +205,7 @@ public class NuxeoDriveFileSystemDeletionListener implements EventListener {
         }
 
         LogEntry entry = logger.newLogEntry();
-        entry.setEventId(NuxeoDriveEvents.DELETED_EVENT);
+        entry.setEventId(eventName);
         // XXX: shall we use the server local for the event date or UTC?
         entry.setEventDate(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime());
         entry.setCategory((String) NuxeoDriveEvents.EVENT_CATEGORY);

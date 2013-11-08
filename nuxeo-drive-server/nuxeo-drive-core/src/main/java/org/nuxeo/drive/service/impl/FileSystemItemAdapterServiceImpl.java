@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.nuxeo.drive.adapter.FileSystemItem;
 import org.nuxeo.drive.adapter.FolderItem;
+import org.nuxeo.drive.adapter.NuxeoDriveContribException;
 import org.nuxeo.drive.adapter.RootlessItemException;
 import org.nuxeo.drive.service.FileSystemItemAdapterService;
 import org.nuxeo.drive.service.FileSystemItemFactory;
@@ -136,26 +137,42 @@ public class FileSystemItemAdapterServiceImpl extends DefaultComponent
     @Override
     public FileSystemItem getFileSystemItem(DocumentModel doc)
             throws ClientException {
-        return getFileSystemItem(doc, false, null, false);
+        return getFileSystemItem(doc, false, null, false, false);
     }
 
     @Override
     public FileSystemItem getFileSystemItem(DocumentModel doc,
             boolean includeDeleted) throws ClientException {
-        return getFileSystemItem(doc, false, null, includeDeleted);
+        return getFileSystemItem(doc, false, null, includeDeleted, false);
+    }
+
+    @Override
+    public FileSystemItem getFileSystemItem(DocumentModel doc,
+            boolean includeDeleted, boolean relaxSyncRootConstraint)
+            throws ClientException {
+        return getFileSystemItem(doc, false, null, includeDeleted,
+                relaxSyncRootConstraint);
     }
 
     @Override
     public FileSystemItem getFileSystemItem(DocumentModel doc,
             FolderItem parentItem) throws ClientException {
-        return getFileSystemItem(doc, true, parentItem, false);
+        return getFileSystemItem(doc, true, parentItem, false, false);
     }
 
     @Override
     public FileSystemItem getFileSystemItem(DocumentModel doc,
             FolderItem parentItem, boolean includeDeleted)
             throws ClientException {
-        return getFileSystemItem(doc, true, parentItem, includeDeleted);
+        return getFileSystemItem(doc, true, parentItem, includeDeleted, false);
+    }
+
+    @Override
+    public FileSystemItem getFileSystemItem(DocumentModel doc,
+            FolderItem parentItem, boolean includeDeleted,
+            boolean relaxSyncRootConstraint) throws ClientException {
+        return getFileSystemItem(doc, true, parentItem, includeDeleted,
+                relaxSyncRootConstraint);
     }
 
     /**
@@ -177,7 +194,7 @@ public class FileSystemItemAdapterServiceImpl extends DefaultComponent
         if (getTopLevelFolderItemFactory().canHandleFileSystemItemId(id)) {
             return getTopLevelFolderItemFactory();
         }
-        throw new ClientException(
+        throw new NuxeoDriveContribException(
                 String.format(
                         "No fileSystemItemFactory found for FileSystemItem with id %s. Please check the contributions to the following extension point: <extension target=\"org.nuxeo.drive.service.FileSystemItemAdapterService\" point=\"fileSystemItemFactory\"> and make sure there is at least one defining a FileSystemItemFactory class for which the #canHandleFileSystemItemId(String id) method returns true.",
                         id));
@@ -187,7 +204,7 @@ public class FileSystemItemAdapterServiceImpl extends DefaultComponent
     public TopLevelFolderItemFactory getTopLevelFolderItemFactory()
             throws ClientException {
         if (topLevelFolderItemFactory == null) {
-            throw new ClientException(
+            throw new NuxeoDriveContribException(
                     "Found no active top level folder item factory. Please check there is a contribution to the following extension point: <extension target=\"org.nuxeo.drive.service.FileSystemItemAdapterService\" point=\"topLevelFolderItemFactory\"> and to <extension target=\"org.nuxeo.drive.service.FileSystemItemAdapterService\" point=\"activeTopLevelFolderItemFactory\">.");
         }
         return topLevelFolderItemFactory;
@@ -198,13 +215,13 @@ public class FileSystemItemAdapterServiceImpl extends DefaultComponent
             String factoryName) throws ClientException {
         FileSystemItemFactory factory = getFileSystemItemFactory(factoryName);
         if (factory == null) {
-            throw new ClientException(
+            throw new NuxeoDriveContribException(
                     String.format(
                             "No factory named %s. Please check the contributions to the following extension point: <extension target=\"org.nuxeo.drive.service.FileSystemItemAdapterService\" point=\"fileSystemItemFactory\">.",
                             factoryName));
         }
         if (!(factory instanceof VirtualFolderItemFactory)) {
-            throw new ClientException(
+            throw new NuxeoDriveContribException(
                     String.format(
                             "Factory class %s for factory %s is not a VirtualFolderItemFactory.",
                             factory.getClass().getName(), factory.getName()));
@@ -216,7 +233,7 @@ public class FileSystemItemAdapterServiceImpl extends DefaultComponent
     public Set<String> getActiveFileSystemItemFactories()
             throws ClientException {
         if (activeFileSystemItemFactoryRegistry.activeFactories.isEmpty()) {
-            throw new ClientException(
+            throw new NuxeoDriveContribException(
                     "Found no active file system item factories. Please check there is a contribution to the following extension point: <extension target=\"org.nuxeo.drive.service.FileSystemItemAdapterService\" point=\"activeFileSystemItemFactories\"> declaring at least one factory.");
         }
         return activeFileSystemItemFactoryRegistry.activeFactories;
@@ -266,7 +283,8 @@ public class FileSystemItemAdapterServiceImpl extends DefaultComponent
      */
     protected FileSystemItem getFileSystemItem(DocumentModel doc,
             boolean forceParentItem, FolderItem parentItem,
-            boolean includeDeleted) throws ClientException {
+            boolean includeDeleted, boolean relaxSyncRootConstraint)
+            throws ClientException {
 
         FileSystemItem fileSystemItem = null;
 
@@ -293,15 +311,17 @@ public class FileSystemItemAdapterServiceImpl extends DefaultComponent
             FileSystemItemFactoryWrapper factory = factoriesIt.next();
             if (generalFactoryMatches(factory)
                     || docTypeFactoryMatches(factory, doc)
-                    || facetFactoryMatches(factory, doc)) {
+                    || facetFactoryMatches(factory, doc,
+                            relaxSyncRootConstraint)) {
                 matchingFactory = factory;
                 try {
                     if (forceParentItem) {
                         fileSystemItem = factory.getFactory().getFileSystemItem(
-                                doc, parentItem, includeDeleted);
+                                doc, parentItem, includeDeleted,
+                                relaxSyncRootConstraint);
                     } else {
                         fileSystemItem = factory.getFactory().getFileSystemItem(
-                                doc, includeDeleted);
+                                doc, includeDeleted, relaxSyncRootConstraint);
                     }
                 } catch (RootlessItemException e) {
                     // Give more information in the exception message on the
@@ -349,13 +369,15 @@ public class FileSystemItemAdapterServiceImpl extends DefaultComponent
     }
 
     protected boolean facetFactoryMatches(FileSystemItemFactoryWrapper factory,
-            DocumentModel doc) throws ClientException {
+            DocumentModel doc, boolean relaxSyncRootConstraint)
+            throws ClientException {
         if (!StringUtils.isEmpty(factory.getFacet())) {
             for (String docFacet : doc.getFacets()) {
                 if (factory.getFacet().equals(docFacet)) {
                     // Handle synchronization root case
                     if (NuxeoDriveManagerImpl.NUXEO_DRIVE_FACET.equals(docFacet)) {
-                        return syncRootFactoryMatches(doc);
+                        return syncRootFactoryMatches(doc,
+                                relaxSyncRootConstraint);
                     } else {
                         return true;
                     }
@@ -366,13 +388,13 @@ public class FileSystemItemAdapterServiceImpl extends DefaultComponent
     }
 
     @SuppressWarnings("unchecked")
-    protected boolean syncRootFactoryMatches(DocumentModel doc)
-            throws ClientException {
+    protected boolean syncRootFactoryMatches(DocumentModel doc,
+            boolean relaxSyncRootConstraint) throws ClientException {
         String userName = doc.getCoreSession().getPrincipal().getName();
         List<Map<String, Object>> subscriptions = (List<Map<String, Object>>) doc.getPropertyValue(NuxeoDriveManagerImpl.DRIVE_SUBSCRIPTIONS_PROPERTY);
         for (Map<String, Object> subscription : subscriptions) {
-            if (userName.equals(subscription.get("username"))
-                    && Boolean.TRUE.equals(subscription.get("enabled"))) {
+            if (Boolean.TRUE.equals(subscription.get("enabled"))
+                    && (userName.equals(subscription.get("username")) || relaxSyncRootConstraint)) {
                 return true;
             }
         }
