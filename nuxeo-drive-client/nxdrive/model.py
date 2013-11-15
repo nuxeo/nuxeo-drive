@@ -56,6 +56,7 @@ PAIR_STATES = {
     ('deleted', 'synchronized'): 'locally_deleted',
     ('synchronized', 'deleted'): 'remotely_deleted',
     ('deleted', 'deleted'): 'deleted',
+    ('synchronized', 'unknown'): 'synchronized',
 
     # conflicts with automatic resolution
     ('created', 'deleted'): 'locally_created',
