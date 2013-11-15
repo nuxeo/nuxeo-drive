@@ -446,6 +446,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_remote_document_client",
             "nxdrive.tests.test_integration_remote_file_system_client",
             "nxdrive.tests.test_integration_remote_move_and_rename",
+            "nxdrive.tests.test_integration_security_updates",
             "nxdrive.tests.test_integration_synchronization",
             "nxdrive.tests.test_integration_versioning",
             "nxdrive.tests.test_integration_windows",
