@@ -588,6 +588,9 @@ class Synchronizer(object):
             sync_handler(doc_pair, session, local_client, remote_client,
                          local_info, remote_info)
 
+        # Update last synchronization date
+        doc_pair.last_sync_date = datetime.now()
+
         # Ensure that concurrent process can monitor the synchronization
         # progress
         if len(session.dirty) != 0 or len(session.deleted) != 0:
