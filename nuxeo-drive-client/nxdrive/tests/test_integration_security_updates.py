@@ -78,7 +78,6 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
-    # TODO: explain odt Note
     def test_synchronize_denying_read_access_local_modification(self):
         """Test denying Read access with concurrent local modification
 
@@ -140,6 +139,7 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   test_folder_path, False)
         # Local changes
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         # Create new file
         local.make_file('/Test folder', 'local.odt', 'New local content')
         # Create new folder with files
