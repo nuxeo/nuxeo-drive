@@ -267,7 +267,7 @@ class Application(QApplication):
                 log.debug("%d pending operations for: %s", n_pending,
                           local_folder)
                 if n_pending == 0 and info.n_pending > 0:
-                    current_time = int(time.time())
+                    current_time = time.time()
                     log.debug("Updating last ended synchronization date"
                               " to %s for: %s",
                               time.strftime(TIME_FORMAT_PATTERN,
