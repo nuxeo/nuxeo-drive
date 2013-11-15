@@ -139,6 +139,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         # Delete remote folder and make some local changes
         # concurrently then synchronize
         remote.delete('/Test folder')
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         # Create new file
         local.make_file('/Test folder', 'new.odt', "New content")
         # Create new folder with files
@@ -262,6 +263,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         # Delete remote file and update its local content
         # concurrently then synchronize
         remote.delete('/Test folder/jack.odt')
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/Test folder/jack.odt', 'Some updated content')
         self._synchronize(syn)
         # File should be kept locally and be marked as 'unsynchronized'.
@@ -316,6 +318,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         # Delete remote file and rename it locally
         # concurrently then synchronize
         remote.delete('/Test folder/jack.odt')
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.rename('/Test folder/jack.odt', 'jack renamed.odt')
         self._synchronize(syn)
         # File should be kept locally and be marked as 'synchronized'
