@@ -483,7 +483,7 @@ class Synchronizer(object):
             client = self.get_remote_fs_client(from_state.server_binding)
             remote_info = client.get_info(from_state.remote_ref)
         except NotFound:
-            log.debug("Mark %r as remotely deleted.", from_state)
+            log.debug("Marking %r as remotely deleted.", from_state)
             from_state.update_remote(None)
             session.commit()
             return
@@ -622,7 +622,7 @@ class Synchronizer(object):
         # local clients are cheap
         local_client = doc_pair.get_local_client()
 
-        # Update the status the collected info of this file to make sure
+        # Update the status of the collected info of this file to make sure
         # we won't perform inconsistent operations
         local_info = remote_info = None
         if doc_pair.local_path is not None:
