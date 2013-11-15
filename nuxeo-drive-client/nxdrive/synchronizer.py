@@ -183,27 +183,73 @@ class Synchronizer(object):
     def get_session(self):
         return self._controller.get_session()
 
-    def _delete_with_descendant_states(self, session, doc_pair,
+    def _delete_with_descendant_states(self, session, doc_pair, local_client,
         keep_root=False):
-        """Delete the metadata of the descendants of deleted doc"""
-        # delete local and remote descendants first
+        """Recursive delete the descendants of a deleted doc
+
+        If the file or folder has been modified since its last
+        synchronization date, keep it on the file system and mark
+        its pair state as 'unsynchronized', else delete it and
+        its pair state.
+        """
+        locally_modified = False
+        # Handle local and remote descendants first
         if doc_pair.local_path is not None:
             local_children = session.query(LastKnownState).filter_by(
                 local_folder=doc_pair.local_folder,
                 local_parent_path=doc_pair.local_path).all()
             for child in local_children:
-                self._delete_with_descendant_states(session, child)
+                if self._delete_with_descendant_states(session, child,
+                                                       local_client):
+                    locally_modified = True
 
         if doc_pair.remote_ref is not None:
             remote_children = session.query(LastKnownState).filter_by(
                 local_folder=doc_pair.local_folder,
                 remote_parent_ref=doc_pair.remote_ref).all()
             for child in remote_children:
-                self._delete_with_descendant_states(session, child)
+                if self._delete_with_descendant_states(session, child,
+                                                       local_client):
+                    locally_modified = True
 
-        # delete parent folder in the end
-        if not keep_root:
-            session.delete(doc_pair)
+        if not locally_modified:
+            # Compare last local update date and last synchronization date
+            # to detect local modification
+            log.trace("Handling %s for deletion: last_local_updated = %s,"
+                      " last_sync_date = %s",
+                    (doc_pair.remote_name if doc_pair.remote_name
+                     else doc_pair.local_path),
+                    (doc_pair.last_local_updated.strftime('%Y-%m-%d %H:%M:%S')
+                     if doc_pair.last_local_updated else 'None'),
+                    (doc_pair.last_sync_date.strftime('%Y-%m-%d %H:%M:%S')
+                     if doc_pair.last_sync_date else 'None'))
+            locally_modified = (doc_pair.last_sync_date is None
+                    or doc_pair.last_local_updated and (
+                        doc_pair.last_local_updated > doc_pair.last_sync_date))
+
+        # Handle current pair state in the end
+        file_or_folder = 'folder' if doc_pair.folderish else 'file'
+        if not locally_modified:
+            if not keep_root:
+                # Not modified since last synchronization, delete
+                # file/folder and its pair state
+                if local_client.exists(doc_pair.local_path):
+                    log.debug("Deleting local %s '%s'",
+                              file_or_folder, doc_pair.get_local_abspath())
+                    local_client.delete(doc_pair.local_path)
+                session.delete(doc_pair)
+        else:
+            log.debug("Marking local %s '%s' as unsynchronized as it has been"
+                      " remotely deleted but locally modified"
+                      " (keeping local changes)",
+                      file_or_folder, doc_pair.local_path
+                          if doc_pair.local_path else doc_pair.remote_name)
+            # Modified since last synchronization, mark pair state
+            # as unsynchronized
+            doc_pair.pair_state = 'unsynchronized'
+            doc_pair.remote_state = 'unknown'
+
+        return locally_modified
 
     def _mark_descendant_states_remotely_created(self, session, doc_pair,
         keep_root=None):
@@ -272,7 +318,8 @@ class Synchronizer(object):
         if from_state is None:
             from_state = session.query(LastKnownState).filter_by(
                 local_path='/',
-                local_folder=server_binding.local_folder).one()
+                local_folder=server_binding.local_folder).filter(
+                    LastKnownState.pair_state != 'unsynchronized').one()
 
         client = from_state.get_local_client()
         info = client.get_info('/')
@@ -298,8 +345,27 @@ class Synchronizer(object):
             # mark it for remote deletion
             doc_pair.update_local(None)
 
+    def _mark_unknown_local_recursive(self, session, doc_pair):
+        """Recursively mark local unsynchronized pair state as 'unknown'"""
+        if doc_pair.local_path is not None:
+            # Delete descendants first
+            children = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                local_parent_path=doc_pair.local_path).all()
+            for child in children:
+                self._mark_unknown_local_recursive(session, child)
+
+            # Update the state of the parent it-self
+            if doc_pair.pair_state == 'unsynchronized':
+                log.debug("Unmarking %r as unsynchronized", doc_pair)
+                doc_pair.pair_state = 'unknown'
+
     def _scan_local_recursive(self, session, client, doc_pair, local_info):
         """Recursively scan the bound local folder looking for updates"""
+        if doc_pair.pair_state == 'unsynchronized':
+            log.trace("Ignoring %s as marked unsynchronized",
+                      doc_pair.local_path)
+            return
         if local_info is None:
             raise ValueError("Cannot bind %r to missing local info" %
                              doc_pair)
@@ -461,6 +527,12 @@ class Synchronizer(object):
             # No children to align, early stop.
             return
 
+        # If a folderish pair state has been remotely updated,
+        # recursively unmark its local descendants as 'unsynchronized'
+        # by marking them as 'unknown'.
+        # This is needed to synchronize unsynchronized items back.
+        self._mark_unknown_local_recursive(session, doc_pair)
+
         # Detect recently deleted children
         children_info = client.get_children_info(remote_info.uid)
         children_refs = set(c.uid for c in children_info)
@@ -555,7 +627,8 @@ class Synchronizer(object):
         local_info = remote_info = None
         if doc_pair.local_path is not None:
             local_info = doc_pair.refresh_local(local_client)
-        if doc_pair.remote_ref is not None:
+        if (doc_pair.remote_ref is not None
+            and doc_pair.remote_state != 'deleted'):
             remote_info = doc_pair.refresh_remote(remote_client)
 
         # Detect creation
@@ -582,6 +655,9 @@ class Synchronizer(object):
         else:
             sync_handler(doc_pair, session, local_client, remote_client,
                          local_info, remote_info)
+
+        # Update last synchronization date
+        doc_pair.last_sync_date = datetime.now()
 
         # Ensure that concurrent process can monitor the synchronization
         # progress
@@ -769,7 +845,7 @@ class Synchronizer(object):
                           doc_pair.remote_name, doc_pair.remote_ref)
                 remote_client.delete(doc_pair.remote_ref)
                 self._delete_with_descendant_states(session, doc_pair,
-                    keep_root=not remote_info.can_delete)
+                    local_client)
             else:
                 log.debug("Marking %s as remotely created since remote"
                           " document '%s' (%s) can not be deleted: either"
@@ -781,34 +857,28 @@ class Synchronizer(object):
 
     def _synchronize_remotely_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
-        if doc_pair.local_path is not None:
-            try:
-                # TODO: handle OS-specific trash management?
-                file_or_folder = 'folder' if doc_pair.folderish else 'file'
-                log.debug("Deleting local %s '%s'",
-                    file_or_folder, doc_pair.get_local_abspath())
-                local_client.delete(doc_pair.local_path)
-                self._delete_with_descendant_states(session, doc_pair)
-                # XXX: shall we also delete all the subcontent / folder at
-                # once in the medata table?
-            except (IOError, WindowsError):
-                # Under Windows deletion can be impossible while another
-                # process is accessing the same file (e.g. word processor)
-                # TODO: be more specific as detecting this case:
-                # shall we restrict to the case e.errno == 13 ?
-                log.debug(
-                    "Deletion of '%s' delayed due to concurrent"
-                    "editing of this file by another process.",
-                    doc_pair.get_local_abspath())
-        else:
-            self._delete_with_descendant_states(session, doc_pair)
+        try:
+            # TODO: handle OS-specific trash management?
+            self._delete_with_descendant_states(session, doc_pair,
+                                                local_client)
+            # XXX: shall we also delete all the subcontent / folder at
+            # once in the metadata table?
+        except (IOError, WindowsError):
+            # Under Windows deletion can be impossible while another
+            # process is accessing the same file (e.g. word processor)
+            # TODO: be more specific as detecting this case:
+            # shall we restrict to the case e.errno == 13 ?
+            log.debug(
+                "Deletion of '%s' delayed due to concurrent"
+                "editing of this file by another process.",
+                doc_pair.get_local_abspath())
 
     def _synchronize_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         # No need to store this information any further
         log.debug('Deleting doc pair %s deleted on both sides' %
                   doc_pair.get_local_abspath())
-        self._delete_with_descendant_states(session, doc_pair)
+        self._delete_with_descendant_states(session, doc_pair, local_client)
 
     def _synchronize_conflicted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
@@ -990,7 +1060,7 @@ class Synchronizer(object):
             if doc_pair.folderish:
                 # Delete the old local tree info that is now deprecated
                 self._delete_with_descendant_states(
-                    session, source_doc_pair, keep_root=False)
+                    session, source_doc_pair, local_client)
 
                 # Rescan the remote folder descendants to let them realign
                 # with the local files
@@ -1036,10 +1106,12 @@ class Synchronizer(object):
             # (local_path None), otherwise the deduplication suffix will
             # be added. See https://jira.nuxeo.com/browse/NXP-11517
             pending_iterator = 0
-            while (pending[pending_iterator].local_path is None
+            while ((pending[pending_iterator].local_path is None
+                    or pending[pending_iterator].remote_ref is None)
                    and len(pending) > pending_iterator + 1):
                 pending_iterator += 1
-            if (pending[pending_iterator].local_path is None
+            if ((pending[pending_iterator].local_path is None
+                 or pending[pending_iterator].remote_ref is None)
                 and len(pending) == pending_iterator + 1):
                 pending_iterator = 0
             pair_state = pending[pending_iterator]
@@ -1262,10 +1334,22 @@ class Synchronizer(object):
             if doc_pair is not None:
                 if doc_pair.server_binding.server_url == s_url:
 
+                    # This change has no fileSystemItem, it can be either
+                    # a "deleted" event or a "securityUpdated" event
                     if fs_item is None:
-                        log.debug("Mark doc_pair '%s' as deleted",
-                                  doc_pair.remote_name)
-                        doc_pair.update_state(remote_state='deleted')
+                        eventId = change.get('eventId')
+                        if eventId == 'deleted':
+                            log.debug("Marking doc_pair '%s' as deleted",
+                                      doc_pair.remote_name)
+                            doc_pair.update_state(remote_state='deleted')
+                        elif eventId == 'securityUpdated':
+                            log.debug("Security has been updated for"
+                                      " doc_pair '%s' denying Read access,"
+                                      " marking it as deleted",
+                                      doc_pair.remote_name)
+                            doc_pair.update_state(remote_state='deleted')
+                        else:
+                            log.debug("Unknow event: '%s'", eventId)
                     else:
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved

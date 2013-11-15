@@ -32,6 +32,9 @@ class IntegrationTestCase(unittest.TestCase):
     # 0.001s for EXT4FS
     OS_STAT_MTIME_RESOLUTION = 1.0
 
+    # Nuxeo max length for document name
+    DOC_NAME_MAX_LENGTH = 24
+
     def setUp(self):
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')

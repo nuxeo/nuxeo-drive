@@ -56,11 +56,12 @@ PAIR_STATES = {
     ('deleted', 'synchronized'): 'locally_deleted',
     ('synchronized', 'deleted'): 'remotely_deleted',
     ('deleted', 'deleted'): 'deleted',
+    ('synchronized', 'unknown'): 'synchronized',
 
     # conflicts with automatic resolution
     ('created', 'deleted'): 'locally_created',
     ('deleted', 'created'): 'remotely_created',
-    ('modified', 'deleted'): 'locally_created',
+    ('modified', 'deleted'): 'remotely_deleted',
     ('deleted', 'modified'): 'remotely_created',
 
     # conflict cases that need special
@@ -196,6 +197,9 @@ class LastKnownState(Base):
     remote_can_delete = Column(Integer)
     remote_can_update = Column(Integer)
     remote_can_create_child = Column(Integer)
+
+    # Last sync date
+    last_sync_date = Column(DateTime)
 
     # Log date of sync errors to be able to skip documents in error for some
     # time
@@ -340,11 +344,17 @@ class LastKnownState(Base):
         elif local_info.last_modification_time != self.last_local_updated:
             self.last_local_updated = local_info.last_modification_time
             self.folderish = local_info.folderish
+            # The time stamp of folderish folder seems to be updated when
+            # children are added under Linux? Is this the same under OSX
+            # and Windows?
             if not self.folderish:
-                # The time stamp of folderish folder seems to be updated when
-                # children are added under Linux? Is this the same under OSX
-                # and Windows?
                 local_state = 'modified'
+            else:
+                if self.local_name == local_info.name:
+                    # Folder for which the modification time has changed
+                    # but not the name, this is a child update => align
+                    # last synchronization date on last local update date
+                    self.last_sync_date = self.last_local_updated
             update_digest = True
 
         if update_digest:
