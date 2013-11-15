@@ -582,7 +582,10 @@ class Controller(object):
         if session is None:
             session = self.get_session()
 
-        predicates = [LastKnownState.pair_state != 'synchronized']
+        # Only consider pair states that are not synchronized
+        # and ignore unsynchronized ones
+        predicates = [LastKnownState.pair_state != 'synchronized',
+                      LastKnownState.pair_state != 'unsynchronized']
         if local_folder is not None:
             predicates.append(LastKnownState.local_folder == local_folder)
 

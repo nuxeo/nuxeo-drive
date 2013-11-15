@@ -272,7 +272,8 @@ class Synchronizer(object):
         if from_state is None:
             from_state = session.query(LastKnownState).filter_by(
                 local_path='/',
-                local_folder=server_binding.local_folder).one()
+                local_folder=server_binding.local_folder).filter(
+                    LastKnownState.pair_state != 'unsynchronized').one()
 
         client = from_state.get_local_client()
         info = client.get_info('/')
@@ -300,6 +301,10 @@ class Synchronizer(object):
 
     def _scan_local_recursive(self, session, client, doc_pair, local_info):
         """Recursively scan the bound local folder looking for updates"""
+        if doc_pair.pair_state == 'unsynchronized':
+            log.trace("Ignoring %s as marked unsynchronized",
+                      doc_pair.local_path)
+            return
         if local_info is None:
             raise ValueError("Cannot bind %r to missing local info" %
                              doc_pair)
