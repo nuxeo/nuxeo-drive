@@ -61,7 +61,7 @@ PAIR_STATES = {
     # conflicts with automatic resolution
     ('created', 'deleted'): 'locally_created',
     ('deleted', 'created'): 'remotely_created',
-    ('modified', 'deleted'): 'locally_created',
+    ('modified', 'deleted'): 'remotely_deleted',
     ('deleted', 'modified'): 'remotely_created',
 
     # conflict cases that need special

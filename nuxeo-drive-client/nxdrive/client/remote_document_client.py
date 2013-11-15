@@ -189,6 +189,11 @@ class RemoteDocumentClient(BaseAutomationClient):
         else:
             return self.execute("Document.Delete", op_input=op_input)
 
+    def undelete(self, ref):
+        op_input = "doc:" + self._check_ref(ref)
+        return self.execute("Document.SetLifeCycle", op_input=op_input,
+                            value='undelete')
+
     def delete_content(self, ref, xpath=None):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)
 
