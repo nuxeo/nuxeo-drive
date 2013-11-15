@@ -78,7 +78,6 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
-    # TODO: explain odt Note
     def test_synchronize_denying_read_access_local_modification(self):
         """Test denying Read access with concurrent local modification
 
