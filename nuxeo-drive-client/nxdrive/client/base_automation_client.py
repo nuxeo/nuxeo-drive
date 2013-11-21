@@ -369,20 +369,22 @@ class BaseAutomationClient(object):
         return self._read_response(resp, url)
 
     def execute_with_blob_streaming(self, command, file_path, filename=None,
-                                    **params):
+                                    mime_type=None, **params):
         """Execute an Automation operation using a batch upload as an input
 
         Upload is streamed.
         """
         batch_id = self._generate_unique_id()
-        upload_result = self.upload(batch_id, file_path, filename=filename)
+        upload_result = self.upload(batch_id, file_path, filename=filename,
+                                    mime_type=mime_type)
         if upload_result['uploaded'] == 'true':
             return self.execute_batch(command, batch_id, '0', **params)
         else:
             raise ValueError("Bad response from batch upload with id '%s'"
                              " and file path '%s'" % (batch_id, file_path))
 
-    def upload(self, batch_id, file_path, filename=None, file_index=0):
+    def upload(self, batch_id, file_path, filename=None, file_index=0,
+               mime_type=None):
         """Upload a file through an Automation batch
 
         Uses poster.httpstreaming to stream the upload
@@ -395,11 +397,12 @@ class BaseAutomationClient(object):
         if filename is None:
             filename = os.path.basename(file_path)
         file_size = os.path.getsize(file_path)
-        ctype, _ = mimetypes.guess_type(filename)
-        if ctype:
-            mime_type = ctype
-        else:
-            mime_type = "application/octet-stream"
+        if mime_type is None:
+            ctype, _ = mimetypes.guess_type(filename)
+            if ctype:
+                mime_type = ctype
+            else:
+                mime_type = "application/octet-stream"
         # Quote UTF-8 filenames even though JAX-RS does not seem to be able
         # to retrieve them as per: https://tools.ietf.org/html/rfc5987
         filename = safe_filename(filename)

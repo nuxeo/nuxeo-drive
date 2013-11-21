@@ -154,11 +154,12 @@ class RemoteDocumentClient(BaseAutomationClient):
         return ref
 
     def stream_file(self, parent, name, file_path, filename=None,
-                    doc_type=FILE_TYPE):
+                    mime_type=None, doc_type=FILE_TYPE):
         """Create a document by streaming the file with the given path"""
         ref = self.make_file(parent, name, doc_type=doc_type)
         self.execute_with_blob_streaming("Blob.Attach", file_path,
-                                         filename=filename, document=ref)
+                                         filename=filename, document=ref,
+                                         mime_type=mime_type)
         return ref
 
     def update_content(self, ref, content, filename=None):
@@ -170,11 +171,12 @@ class RemoteDocumentClient(BaseAutomationClient):
             filename = self.get_info(ref).name
         self.attach_blob(self._check_ref(ref), content, filename)
 
-    def stream_update(self, ref, file_path, filename=None):
+    def stream_update(self, ref, file_path, filename=None, mime_type=None):
         """Update a document by streaming the file with the given path"""
         ref = self._check_ref(ref)
         self.execute_with_blob_streaming("Blob.Attach", file_path,
-                                         filename=filename, document=ref)
+                                         filename=filename, document=ref,
+                                         mime_type=mime_type)
 
     def delete(self, ref, use_trash=True):
         op_input = "doc:" + self._check_ref(ref)
