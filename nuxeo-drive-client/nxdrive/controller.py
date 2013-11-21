@@ -532,19 +532,27 @@ class Controller(object):
             log.warning('Could not find local file for server_url=%s '
                         'and remote_ref=%s', server_url, remote_ref)
 
-            # Display a user-friendly message in systemtray area. For more
-            # information, please see https://jira.nuxeo.com/browse/SUPNXP-9065
-            if self._frontend is not None:
-                self._frontend.notify_user_message(
-                    'Cannot edit',
-                    'File %s not yet downloaded, please try again shortly' % server_url)
+            self._notify_cannot_live_edit()
             return
 
         # TODO: check synchronization of this state first
 
         # Find the best editor for the file according to the OS configuration
         file_path = state.get_local_abspath()
-        self.open_local_file(file_path)
+        if not os.path.exists(file_path):
+            self._notify_cannot_live_edit()
+        else:
+            self.open_local_file(file_path)
+
+    def _notify_cannot_live_edit(self,file_path=None):
+        # Display a user-friendly message in systemtray area. For more
+        # information, please see https://jira.nuxeo.com/browse/SUPNXP-9065
+        if self._frontend is not None:
+            msg_body = 'The requested file not yet downloaded, please try again shortly'
+            if file_path is not None:
+                msg_body = "File '%s' not yet downloaded, please try again shortly" % file_path
+            self._frontend.notify_user_message('Cannot edit', msg_body)
+
 
     def open_local_file(self, file_path):
         """Launch the local OS program on the given file / folder."""
