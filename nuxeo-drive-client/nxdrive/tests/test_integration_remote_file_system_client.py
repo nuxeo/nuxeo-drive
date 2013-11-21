@@ -352,6 +352,19 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(fs_item_info.digest,
                           local_client.get_info('/testFile.pdf').get_digest())
 
+    def test_bad_mime_type(self):
+        remote_client = self.remote_file_system_client_1
+
+        # Create a document by streaming a binary file
+        file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        fs_item_id = remote_client.stream_file(self.workspace_id, file_path,
+                                               mime_type='pdf')
+        local_client = LocalClient(self.upload_tmp_dir)
+        fs_item_info = remote_client.get_info(fs_item_id)
+        self.assertEquals(fs_item_info.name, 'testFile.pdf')
+        self.assertEquals(fs_item_info.digest,
+                          local_client.get_info('/testFile.pdf').get_digest())
     def test_mime_type_doc_type_association(self):
 
         # Upload a PDF file, should create a File document
