@@ -101,6 +101,9 @@ class Controller(object):
         # share cookies using threadsafe jar
         self.cookie_jar = CookieJar()
 
+    def register_frontend(self, frontend):
+        self._frontend = frontend
+
     def get_session(self):
         """Reuse the thread local session for this controller
 
@@ -528,6 +531,13 @@ class Controller(object):
             # TODO: synchronize to a dedicated special root for one time edit
             log.warning('Could not find local file for server_url=%s '
                         'and remote_ref=%s', server_url, remote_ref)
+
+            # Display a user-friendly message in systemtray area. For more
+            # information, please see https://jira.nuxeo.com/browse/SUPNXP-9065
+            if self._frontend is not None:
+                self._frontend.notify_user_message(
+                    'Cannot edit',
+                    'File %s not yet downloaded, please try again shortly' % server_url)
             return
 
         # TODO: check synchronization of this state first

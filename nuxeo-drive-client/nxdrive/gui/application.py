@@ -36,6 +36,9 @@ class Communicator(QObject):
     stop = QtCore.pyqtSignal()
     invalid_credentials = QtCore.pyqtSignal(str)
 
+    # https://jira.nuxeo.com/browse/SUPNXP-9065
+    # For message notification (msg_title, msg_body)
+    message = QtCore.pyqtSignal(str, str)
 
 class BindingInfo(object):
     """Summarize the state of each server connection"""
@@ -93,6 +96,7 @@ class Application(QApplication):
         self.communicator.stop.connect(self.handle_stop)
         self.communicator.invalid_credentials.connect(
             self.handle_invalid_credentials)
+        self.communicator.message.connect(self.show_message)
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
@@ -101,6 +105,11 @@ class Application(QApplication):
         self.binding_info = {}
         self._setup_systray()
         self.rebuild_menu()
+
+        # Register frontend into the controller so that user message can be
+        # notified inside the controller. For more information, please see
+        # https://jira.nuxeo.com/browse/SUPNXP-9065
+        self.controller.register_frontend(self)
 
         # Start long running synchronization thread
         self.start_synchronization_thread()
@@ -248,6 +257,12 @@ class Application(QApplication):
             self.update_running_icon()
             self.communicator.menu.emit()
 
+    def notify_user_message(self, msg_title, msg_body):
+        if msg_title is not None and msg_body is not None:
+            self.communicator.message.emit(msg_title, msg_body)
+        else:
+            log.error("Both message title and message body cannot be empty")
+
     def _setup_systray(self):
         self._tray_icon = QtGui.QSystemTrayIcon()
         self.update_running_icon()
@@ -313,6 +328,18 @@ class Application(QApplication):
         tray_icon_menu.addAction(quit_action)
         self._tray_icon.setContextMenu(tray_icon_menu)
 
+    @QtCore.pyqtSlot(str, str)
+    def show_message(self, msg_title, msg_body):
+        """Show a message in systray area.
+
+        Currently, the main use is for displaying a user-friendly message when
+        opening a file with ndrive that is not yet downloaded. For more info
+        please see this ticket: https://jira.nuxeo.com/browse/SUPNXP-9065
+
+        """
+        self._tray_icon.showMessage(msg_title, msg_body)
+        return True
+
     def register_server(self):
         return prompt_authentication(
             self.controller, default_nuxeo_drive_folder(), app=self)
@@ -337,7 +364,7 @@ class Application(QApplication):
     def event(self, event):
         """Handle URL scheme events under OSX"""
         if hasattr(event, 'url'):
-            url = event.url().toString()
+            url = str(event.url().toString())
             try:
                 info = parse_protocol_url(url)
                 if info is not None:

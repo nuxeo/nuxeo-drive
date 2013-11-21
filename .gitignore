@@ -24,3 +24,5 @@ MANIFEST
 .project
 .settings
 .pydevproject
+.idea
+**/.idea
