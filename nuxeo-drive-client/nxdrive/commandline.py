@@ -378,8 +378,34 @@ class CliHandler(object):
         return 0
 
     def edit(self, options):
-        self.controller.launch_file_editor(
-            options.server_url, options.item_id)
+        if sys.platform == 'win32':
+            # https://jira.nuxeo.com/browse/SUPNXP-9065
+            #
+            # On win32 platform, when a separate ndrivew.exe process is launched by a 'edit'
+            # command, which is triggered a custom URL 'nxdrive://...' user clicking,
+            # the QApplication object is not initialized at all, so no system tray is
+            # initialised for this process. Therefore, it's not able to show message in
+            # system tray area as it does on Mac OS.
+            #
+            # Win32MsgApplication is a temporary solution to this issue on Win32.
+            from nxdrive.gui.win32_msg_app import Win32MsgApplication
+            msg_app = Win32MsgApplication(self.controller)
+
+            def launch_file_editor_win32():
+                result = self.controller.launch_file_editor(options.server_url, options.item_id)
+                if result:
+                    msg_app.stop()
+                else:
+                    import time
+                    # Wait the message to be disappeared
+                    time.sleep(12)
+                    msg_app.stop()
+            import thread
+            thread.start_new_thread(launch_file_editor_win32, ())
+
+            msg_app.exec_()
+        else:
+            self.controller.launch_file_editor(options.server_url, options.item_id)
         return 0
 
     def bind_server(self, options):
