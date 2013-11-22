@@ -1,7 +1,7 @@
 '''https://jira.nuxeo.com/browse/SUPNXP-9065
 
 On win32 platform, when a separate ndrivew.exe process is launched by a 'edit'
-command, which is triggered a custom URL 'nxdrive://...' user clicking,
+command, which is triggered by a user clicking on a custom URL 'nxdrive://...',
 the QApplication object is not initialized at all, so no system tray is
 initialised for this process. Therefore, it's not able to show message in
 system tray area as it does on Mac OS.
