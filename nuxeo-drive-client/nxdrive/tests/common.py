@@ -84,7 +84,7 @@ class IntegrationTestCase(unittest.TestCase):
         # Call the Nuxeo operation to setup the integration test environment
         credentials = root_remote_client.execute(
             "NuxeoDrive.SetupIntegrationTests",
-            userNames="user_1, user_2")
+            userNames="user_1, user_2", permission='ReadWrite')
 
         credentials = [c.strip().split(u":") for c in credentials.split(u",")]
         self.user_1, self.password_1 = credentials[0]
