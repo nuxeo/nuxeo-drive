@@ -216,6 +216,11 @@ class LastKnownState(Base):
             raise ValueError(
                 "At least local_info or remote_info should be provided")
 
+        # https://jira.nuxeo.com/browse/SUPNXP-9183
+        # Initialise last_sync_date to None value to avoid:
+        # AttributeError: 'LastKnownState' object has no attribute 'last_sync_date'
+        self.last_sync_date = None
+
         if local_info is not None:
             self.update_local(local_info)
         if remote_info is not None:

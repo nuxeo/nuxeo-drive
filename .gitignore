@@ -25,3 +25,5 @@ MANIFEST
 .settings
 .pydevproject
 debian
+.idea
+**/.idea
