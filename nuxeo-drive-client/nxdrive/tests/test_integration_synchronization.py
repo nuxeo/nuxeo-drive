@@ -546,7 +546,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Reenable network
         ctl.make_remote_raise(None)
-        syn.loop(delay=0, max_loops=1)
+        syn.loop(delay=0, max_loops=2)
 
         # All is synchronized
         self.assertEquals(ctl.list_pending(), [])
