@@ -42,7 +42,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         # automatically as soon as all the children are synchronized
         def synchronization_loop():
             for i in range(3):
-                syn.loop(delay=1, max_loops=1)
+                syn.loop(delay=1, max_loops=2)
 
                 local_children_names = [
                     c.name for c in local_client.get_children_info(u'/')]

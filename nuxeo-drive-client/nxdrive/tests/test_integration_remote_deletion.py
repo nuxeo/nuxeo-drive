@@ -363,7 +363,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
     def _synchronize(self, synchronizer):
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
-        synchronizer.loop(delay=0.1, max_loops=1)
+        synchronizer.loop(delay=0.1, max_loops=2)
 
     def _check_pair_state(self, session, local_path, pair_state):
         local_path = '/' + self.workspace_title + local_path
