@@ -73,6 +73,149 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         local_children_names.sort()
         self.assertEquals(local_children_names, children_names)
 
+    def test_delete_local_folder_2_clients(self):
+
+        # Define 2 controllers, one for each device
+        ctl1 = self.controller_1
+        ctl2 = self.controller_2
+
+        # Get local clients for each device and remote client
+        local1 = LocalClient(self.local_nxdrive_folder_1)
+        local2 = LocalClient(self.local_nxdrive_folder_2)
+        remote = self.remote_document_client_1
+
+        # Bind each device to the server with the same account:
+        # nuxeoDriveTestUser_user_1 and bind test workspace
+        ctl1.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl2.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl1.bind_root(self.local_nxdrive_folder_1, self.workspace)
+
+        # Check synchronization roots for nuxeoDriveTestUser_user_1,
+        # there should be 1, the test workspace
+        sync_roots = remote.get_roots()
+        self.assertEquals(len(sync_roots), 1)
+        self.assertEquals(sync_roots[0].name, self.workspace_title)
+
+        # Launch first synchronization on both devices
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        sync1 = ctl1.synchronizer
+        sync2 = ctl2.synchronizer
+        sync1.loop(delay=0.1, max_loops=1)
+        sync2.loop(delay=0.1, max_loops=1)
+
+        # Test workspace should be created locally on both devices
+        self.assertTrue(local1.exists('/Nuxeo Drive Test Workspace'))
+        self.assertTrue(local2.exists('/Nuxeo Drive Test Workspace'))
+
+        # Make nuxeoDriveTestUser_user_1 create a remote folder in the
+        # test workspace and a file inside this folder,
+        # then synchronize both devices
+        test_folder = remote.make_folder(self.workspace, 'Test folder')
+        remote.make_file(test_folder, 'test.odt', 'Some content.')
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        sync1.loop(delay=0.1, max_loops=1)
+        sync2.loop(delay=0.1, max_loops=1)
+
+        # Test folder should be created locally on both devices
+        self.assertTrue(local1.exists(
+                        '/Nuxeo Drive Test Workspace/Test folder'))
+        self.assertTrue(local1.exists(
+                        '/Nuxeo Drive Test Workspace/Test folder/test.odt'))
+        self.assertTrue(local2.exists(
+                        '/Nuxeo Drive Test Workspace/Test folder'))
+        self.assertTrue(local2.exists(
+                        '/Nuxeo Drive Test Workspace/Test folder/test.odt'))
+
+        # Delete Test folder locally on one of the devices
+        local1.delete('/Nuxeo Drive Test Workspace/Test folder')
+        self.assertFalse(local1.exists(
+                                    '/Nuxeo Drive Test Workspace/Test folder'))
+
+        # Launch synchronization on both devices in separate threads
+        def sync1_loop():
+            sync1.loop(delay=0.3, max_loops=5)
+
+        def sync2_loop():
+            sync2.loop(delay=0.3, max_loops=5)
+
+        sync1_thread = Thread(target=sync1_loop)
+        sync2_thread = Thread(target=sync2_loop)
+        sync1_thread.start()
+        sync2_thread.start()
+
+        # Wait for synchronization threads to complete
+        sync1_thread.join()
+        sync2_thread.join()
+
+        # Test folder should be deleted on the server and on both devices
+        self.assertFalse(remote.exists(test_folder))
+        self.assertFalse(local1.exists(
+                                    '/Nuxeo Drive Test Workspace/Test folder'))
+        self.assertFalse(local2.exists(
+                                    '/Nuxeo Drive Test Workspace/Test folder'))
+
+    def test_delete_local_folder_delay_remote_changes_fetch(self):
+
+        # Get local and remote clients
+        local = LocalClient(self.local_nxdrive_folder_1)
+        remote = self.remote_document_client_1
+
+        # Bind server and test workspace for nuxeoDriveTestUser_user_1
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+
+        # Launch first synchronization
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        sync = ctl.synchronizer
+        sync.loop(delay=0.1, max_loops=1)
+
+        # Test workspace should be created locally
+        self.assertTrue(local.exists('/Nuxeo Drive Test Workspace'))
+
+        # Create a local folder in the test workspace and a file inside
+        # this folder, then synchronize
+        local.make_folder('/Nuxeo Drive Test Workspace', 'Test folder')
+        local.make_file('/Nuxeo Drive Test Workspace/Test folder',
+                        'test.odt', 'Some content.')
+
+        sync.loop(delay=0.1, max_loops=1)
+
+        # Test folder should be created remotely in the test workspace
+        self.assertTrue(remote.exists('/Test folder'))
+        self.assertTrue(remote.exists('/Test folder/test.odt'))
+
+        # Delete Test folder locally before fetching remote changes,
+        # then synchronize
+        local.delete('/Nuxeo Drive Test Workspace/Test folder')
+        self.assertFalse(local.exists(
+                                    '/Nuxeo Drive Test Workspace/Test folder'))
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        sync.loop(delay=0.1, max_loops=1)
+
+        # Test folder should be deleted remotely in the test workspace.
+        # Even though fetching the remote changes will send
+        # 'documentCreated' events for Test folder and its child file
+        # as a result of the previous synchronization loop, since the folder
+        # will not have been modified since last synchronization, its pair
+        # state will not be marked as 'modified', see Model.update_remote().
+        # Thus the pair state will be ('deleted', 'synchronized'), resolved as
+        # 'locally_deleted'.
+        self.assertFalse(remote.exists('Test folder'))
+
+        # Check Test folder has not been re-created locally
+        self.assertFalse(local.exists(
+                                    '/Nuxeo Drive Test Workspace/Test folder'))
+
     def test_delete_local_folder_update_remote_folder_property(self):
 
         # Get local and remote clients
