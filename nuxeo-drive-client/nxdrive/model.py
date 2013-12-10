@@ -419,12 +419,19 @@ class LastKnownState(Base):
         elif (remote_info.last_modification_time != self.last_remote_updated
             or self.remote_parent_ref != remote_info.parent_uid):
             # Remote update and/or rename and/or move
-            self.last_remote_updated = remote_info.last_modification_time
-            remote_state = 'modified'
             log.trace("Doc %s has been either modified, renamed and/or moved,"
-                      " set last_remote_updated to %s"
-                      " and remote_state to 'modified'",
+                      " set last_remote_updated to %s",
                       self.remote_name, remote_info.last_modification_time)
+            self.last_remote_updated = remote_info.last_modification_time
+            if (not self.folderish or self.remote_name != remote_info.name
+                or self.remote_parent_ref != remote_info.parent_uid):
+                log.trace("Doc %s is either not folderish or a folder that has"
+                          " been renamed or moved, set remote_state"
+                          " to 'modified'",
+                      self.remote_name)
+                remote_state = 'modified'
+            # Don't consider as modified a folder for which the
+            # modification time has changed but not the name nor the parent
 
         # Update the remaining metadata
         self.remote_digest = remote_info.get_digest()
