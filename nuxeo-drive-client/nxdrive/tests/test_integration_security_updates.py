@@ -309,7 +309,7 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
     def _synchronize(self, synchronizer):
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
-        synchronizer.loop(delay=0.1, max_loops=1)
+        synchronizer.loop(delay=0.1, max_loops=2)
 
     def _set_read_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
