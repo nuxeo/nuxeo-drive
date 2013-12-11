@@ -330,7 +330,7 @@ class CliHandler(object):
         try:
             return handler(options)
         except Exception, e:
-            if options.debug:
+            if command == 'test' or options.debug:
                 # Make it possible to use the postmortem debugger
                 raise
             else:
