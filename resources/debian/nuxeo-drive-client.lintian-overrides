@@ -1,0 +1,2 @@
+# Ignore interpreter path in virtualenv
+@package.name@ binary: wrong-path-for-interpreter

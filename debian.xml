@@ -194,6 +194,8 @@
         </copy>
         <move file="${out.dir}/${package.name}-${package.fullversion}/debian/nuxeo-drive-client.manpages"
               tofile="${out.dir}/${package.name}-${package.fullversion}/debian/${package.name}.manpages" />
+        <move file="${out.dir}/${package.name}-${package.fullversion}/debian/nuxeo-drive-client.lintian-overrides"
+              tofile="${out.dir}/${package.name}-${package.fullversion}/debian/${package.name}.lintian-overrides" />
 
         <!-- Add sources -->
         <copy file="${maven.basedir}/setup.cfg" tofile="${out.dir}/${package.name}-${package.fullversion}/setup.cfg" />
