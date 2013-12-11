@@ -206,8 +206,9 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         # Even though fetching the remote changes will send
         # 'documentCreated' events for Test folder and its child file
         # as a result of the previous synchronization loop, since the folder
-        # will not have been modified since last synchronization, its pair
-        # state will not be marked as 'modified', see Model.update_remote().
+        # will not have been renamed nor moved since last synchronization,
+        # its remote pair state will not be marked as 'modified',
+        # see Model.update_remote().
         # Thus the pair state will be ('deleted', 'synchronized'), resolved as
         # 'locally_deleted'.
         self.assertFalse(remote.exists('Test folder'))
