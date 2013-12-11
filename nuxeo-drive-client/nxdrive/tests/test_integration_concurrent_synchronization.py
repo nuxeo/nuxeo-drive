@@ -282,3 +282,79 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         # Check Test folder has not been re-created locally
         self.assertFalse(local.exists(
                                     '/Nuxeo Drive Test Workspace/Test folder'))
+
+    def test_update_local_file_content_update_remote_file_property(self):
+
+        # Get local and remote clients
+        local = LocalClient(self.local_nxdrive_folder_1)
+        remote = self.remote_document_client_1
+
+        # Bind server and test workspace for nuxeoDriveTestUser_user_1
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+
+        # Launch first synchronization
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        sync = ctl.synchronizer
+        sync.loop(delay=0.1, max_loops=1)
+
+        # Test workspace should be created locally
+        self.assertTrue(local.exists('/Nuxeo Drive Test Workspace'))
+
+        # Create a local file in the test workspace then synchronize
+        local.make_file('/Nuxeo Drive Test Workspace',
+                        'test.odt', 'Some content.')
+
+        sync.loop(delay=0.1, max_loops=1)
+
+        # Test file should be created remotely in the test workspace
+        self.assertTrue(remote.exists('/test.odt'))
+
+        # Locally update the file content and remotely update one of its
+        # properties concurrently, then synchronize
+        local.update_content('/Nuxeo Drive Test Workspace/test.odt',
+                             'Updated content.')
+        self.assertEquals(local.get_content(
+                                    '/Nuxeo Drive Test Workspace/test.odt'),
+                          'Updated content.')
+        test_file_ref = remote._check_ref('/test.odt')
+        # Wait for 1 second to make sure the file's last modification time
+        # will be different from the pair state's last remote update time
+        time.sleep(1.0)
+        remote.update(test_file_ref,
+                      properties={'dc:description': 'Some description.'})
+        test_file = remote.fetch(test_file_ref)
+        self.assertEqual(test_file['properties']['dc:description'],
+                         'Some description.')
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        sync.loop(delay=0.1, max_loops=2)
+
+        # Test file should be updated remotely in the test workspace,
+        # and no conflict should be detected.
+        # Even though fetching the remote changes will send a
+        # 'documentModified' event for the test file as a result of its
+        # dc:description property update, since the file will not have been
+        # renamed, moved and its content not modified since last
+        # synchronization, its remote pair state will not be marked as
+        # 'modified', see Model.update_remote().
+        # Thus the pair state will be ('modified', 'synchronized'), resolved as
+        # 'locally_modified'.
+        self.assertTrue(remote.exists('/test.odt'))
+        self.assertEquals(remote.get_content('/test.odt'), 'Updated content.')
+        test_file = remote.fetch(test_file_ref)
+        self.assertEqual(test_file['properties']['dc:description'],
+                         'Some description.')
+        self.assertEqual(len(remote.get_children_info(self.workspace)), 1)
+
+        # Check that the content of the test file has not changed
+        self.assertTrue(local.exists('/Nuxeo Drive Test Workspace/test.odt'))
+        self.assertEquals(local.get_content(
+                                    '/Nuxeo Drive Test Workspace/test.odt'),
+                          'Updated content.')
+        self.assertEqual(len(local.get_children_info(
+                                            '/Nuxeo Drive Test Workspace')), 1)

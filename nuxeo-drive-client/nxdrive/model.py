@@ -64,7 +64,7 @@ PAIR_STATES = {
     ('modified', 'deleted'): 'remotely_deleted',
     ('deleted', 'modified'): 'remotely_created',
 
-    # conflict cases that need special
+    # conflict cases that need manual resolution
     ('modified', 'modified'): 'conflicted',
     ('created', 'created'): 'conflicted',
 }
@@ -418,20 +418,42 @@ class LastKnownState(Base):
         # 'not equal' predicate.
         elif (remote_info.last_modification_time != self.last_remote_updated
             or self.remote_parent_ref != remote_info.parent_uid):
-            # Remote update and/or rename and/or move
-            log.trace("Doc %s has been either modified, renamed and/or moved,"
+            # Remote update and/or rename and/or move or restore from the trash
+            log.trace("Doc %s has been either modified, renamed, moved or"
+                      " restored from the trash,"
                       " set last_remote_updated to %s",
                       self.remote_name, remote_info.last_modification_time)
             self.last_remote_updated = remote_info.last_modification_time
-            if (not self.folderish or self.remote_name != remote_info.name
-                or self.remote_parent_ref != remote_info.parent_uid):
-                log.trace("Doc %s is either not folderish or a folder that has"
-                          " been renamed or moved, set remote_state"
-                          " to 'modified'",
+            modified = False
+            # Only consider a remote folder for which the modification time
+            # has changed as modified if its name or its parent has changed
+            # (rename or move)
+            if (self.folderish
+                and (self.remote_name != remote_info.name
+                     or self.remote_parent_ref != remote_info.parent_uid)):
+                log.trace("Doc %s is a folder that has been renamed or moved,"
+                          " set remote_state to 'modified'",
                       self.remote_name)
+                modified = True
+            # Only consider a remote file for which the modification time has
+            # changed as modified in the following cases:
+            # - its name has changed (rename)
+            # - its parent has changed (move)
+            # - its content has changed (content update)
+            # - its digest is different from the local one (can happen if
+            # restored from the trash and content has been locally updated)
+            if (not self.folderish
+                and (self.remote_name != remote_info.name
+                     or self.remote_parent_ref != remote_info.parent_uid
+                     or self.remote_digest != remote_info.get_digest()
+                     or self.remote_digest != self.local_digest)):
+                log.trace("Doc %s is a file that has been renamed, moved,"
+                          " for which the content has been updated or restored"
+                          " from the trash, set remote_state to 'modified'",
+                      self.remote_name)
+                modified = True
+            if modified:
                 remote_state = 'modified'
-            # Don't consider as modified a folder for which the
-            # modification time has changed but not the name nor the parent
 
         # Update the remaining metadata
         self.remote_digest = remote_info.get_digest()
