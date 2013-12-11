@@ -250,14 +250,14 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         self.assertTrue(remote.exists('/Test folder'))
         self.assertTrue(remote.exists('/Test folder/test.odt'))
 
-        # Delete Test folder locally and remotely update one of its property
+        # Delete Test folder locally and remotely update one of its properties
         # concurrently, then synchronize
         local.delete('/Nuxeo Drive Test Workspace/Test folder')
         self.assertFalse(local.exists(
                                     '/Nuxeo Drive Test Workspace/Test folder'))
         test_folder_ref = remote._check_ref('/Test folder')
         # Wait for 1 second to make sure the folder's last modification time
-        # is different from the pair state's last remote update time
+        # will be different from the pair state's last remote update time
         time.sleep(1.0)
         remote.update(test_folder_ref,
                       properties={'dc:description': 'Some description.'})
@@ -273,8 +273,8 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         # Even though fetching the remote changes will send a
         # 'documentModified' event for Test folder as a result of its
         # dc:description property update, since the folder will not have been
-        # renamed nor moved since last synchronization, its pair state will
-        # not be marked as 'modified', see Model.update_remote().
+        # renamed nor moved since last synchronization, its remote pair state
+        # will not be marked as 'modified', see Model.update_remote().
         # Thus the pair state will be ('deleted', 'synchronized'), resolved as
         # 'locally_deleted'.
         self.assertFalse(remote.exists('/Test folder'))
