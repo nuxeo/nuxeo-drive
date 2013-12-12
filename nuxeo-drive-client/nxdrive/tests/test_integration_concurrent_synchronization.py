@@ -315,6 +315,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
 
         # Locally update the file content and remotely update one of its
         # properties concurrently, then synchronize
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/Nuxeo Drive Test Workspace/test.odt',
                              'Updated content.')
         self.assertEquals(local.get_content(
