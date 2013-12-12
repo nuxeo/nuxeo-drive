@@ -316,6 +316,10 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         file_path = remote_client.make_tmp_file("Other content.")
         remote_client.stream_update(doc_ref, file_path,
                                     filename='My updated file.txt')
+        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
+        # wait for a while to ensure transaction is committed before
+        # Blob response is serialized and sent to the client
+        sleep(1.0)
         self.assertEquals(remote_client.get_content(doc_ref), "Other content.")
 
         # Create a document by streaming a binary file
