@@ -138,10 +138,10 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
 
         # Launch synchronization on both devices in separate threads
         def sync1_loop():
-            sync1.loop(delay=0.3, max_loops=5)
+            sync1.loop(delay=1.0, max_loops=3)
 
         def sync2_loop():
-            sync2.loop(delay=0.3, max_loops=5)
+            sync2.loop(delay=1.0, max_loops=3)
 
         sync1_thread = Thread(target=sync1_loop)
         sync2_thread = Thread(target=sync2_loop)
