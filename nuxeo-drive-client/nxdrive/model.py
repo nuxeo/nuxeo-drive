@@ -1,7 +1,7 @@
 import os
 import uuid
-import datetime
 import itertools
+from datetime import datetime
 from time import time
 from sqlalchemy import Column
 from sqlalchemy import DateTime
@@ -354,7 +354,7 @@ class LastKnownState(Base):
                     # Folder for which the modification time has changed
                     # but not the name, this is a child update => align
                     # last synchronization date on last local update date
-                    self.last_sync_date = self.last_local_updated
+                    self.update_last_sync_date(self.last_local_updated)
             update_digest = True
 
         if update_digest:
@@ -408,8 +408,11 @@ class LastKnownState(Base):
                   if remote_info.last_modification_time else 'None'))
         if self.last_remote_updated is None:
             self.last_remote_updated = remote_info.last_modification_time
-            log.trace("last_remote_updated is None for doc %s, set it to %s",
-                      self.remote_name, remote_info.last_modification_time)
+            self.update_last_sync_date()
+            log.trace("last_remote_updated is None for doc %s, set it to %s"
+                      " and updated last_sync_date to %s",
+                      self.remote_name, remote_info.last_modification_time,
+                      self.last_sync_date)
         # Here checking that the remote modification time is strictly greater
         # than the one last updated in the DB should be fine, but in the case
         # of a version restore, the live document takes the modification time
@@ -482,6 +485,12 @@ class LastKnownState(Base):
         self.remote_parent_ref = None
         self.remote_ref = None
         self.local_state = 'unknown'
+
+    def update_last_sync_date(self, last_sync_date=None):
+        if last_sync_date is not None:
+            self.last_sync_date = last_sync_date
+        else:
+            self.last_sync_date = datetime.now()
 
     def get_local_abspath(self):
         relative_path = self.local_path[1:].replace('/', os.path.sep)

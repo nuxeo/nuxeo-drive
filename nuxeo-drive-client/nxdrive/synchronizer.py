@@ -657,7 +657,7 @@ class Synchronizer(object):
                          local_info, remote_info)
 
         # Update last synchronization date
-        doc_pair.last_sync_date = datetime.now()
+        doc_pair.update_last_sync_date()
 
         # Ensure that concurrent process can monitor the synchronization
         # progress
@@ -1057,6 +1057,8 @@ class Synchronizer(object):
 
         if moved_or_renamed:
             target_doc_pair.update_state('synchronized', 'synchronized')
+            # Set last synchronization date for new pair
+            target_doc_pair.update_last_sync_date()
             if doc_pair.folderish:
                 # Delete the old local tree info that is now deprecated
                 self._delete_with_descendant_states(
