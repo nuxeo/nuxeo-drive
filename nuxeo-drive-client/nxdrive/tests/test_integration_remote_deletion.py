@@ -360,6 +360,46 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         self._check_pair_state(session, '/Test folder/jack renamed.odt',
                                'synchronized')
 
+    def test_synchronize_local_folder_rename_remote_deletion(self):
+        """Test local folder rename followed by remote deletion"""
+        # Bind the server and root workspace
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+
+        # Get local and remote clients
+        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
+                                         self.workspace_title))
+        remote = self.remote_document_client_1
+
+        # Create a folder with a child file in the remote root workspace
+        # then synchronize
+        test_folder_uid = remote.make_folder('/', 'Test folder')
+        remote.make_file(test_folder_uid, 'joe.odt', 'Some content')
+
+        syn = ctl.synchronizer
+        self._synchronize(syn)
+        self.assertTrue(local.exists('/Test folder'))
+        self.assertTrue(local.exists('/Test folder/joe.odt'))
+
+        # Locally rename the folder then synchronize
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        local.rename('/Test folder', 'Test folder renamed')
+
+        self._synchronize(syn)
+        self.assertFalse(local.exists('/Test folder'))
+        self.assertTrue(local.exists('/Test folder renamed'))
+        self.assertEquals(remote.get_info(test_folder_uid).name,
+                          'Test folder renamed')
+
+        # Delete remote folder then synchronize
+        remote.delete('/Test folder')
+
+        self._synchronize(syn)
+        self.assertFalse(remote.exists('/Test folder renamed'))
+        self.assertFalse(local.exists('/Test folder renamed'))
+
     def _synchronize(self, synchronizer):
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
