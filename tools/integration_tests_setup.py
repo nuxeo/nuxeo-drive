@@ -297,7 +297,7 @@ def clean_pyc():
 def run_tests_from_msi():
     clean_home_folder()
     ndrive = os.path.join(EXTRACTED_MSI_FOLDER, 'SourceDir', 'ndrive.exe')
-    execute(ndrive + " test")
+    execute(ndrive + " test --nologcapture")
 
 
 def clean_home_folder(dir=None):

@@ -224,6 +224,9 @@ def make_cli_parser(add_subparsers=True):
     )
     test_parser.set_defaults(command='test')
     test_parser.add_argument(
+        "--nologcapture", default=False, action="store_true",
+        help="Disable nose logging capture plugin.")
+    test_parser.add_argument(
         "--with-coverage", default=False, action="store_true",
         help="Compute coverage report.")
     test_parser.add_argument(
@@ -420,6 +423,11 @@ class CliHandler(object):
             '--verbose',
         ]
 
+        if options.nologcapture:
+            argv += [
+                '--nologcapture',
+            ]
+
         if options.with_coverage:
             argv += [
                 '--with-coverage',
@@ -433,6 +441,7 @@ class CliHandler(object):
                 '--with-profile',
                 '--profile-restrict=nxdrive',
             ]
+
         # List the test modules explicitly as recursive discovery is broken
         # when the app is frozen.
         argv += [
