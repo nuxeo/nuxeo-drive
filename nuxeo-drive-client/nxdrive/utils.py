@@ -1,5 +1,6 @@
 import os
 import sys
+import locale
 from Crypto.Cipher import AES
 from Crypto import Random
 from nxdrive.logging_config import get_logger
@@ -11,16 +12,18 @@ log = get_logger(__name__)
 WIN32_SUFFIX = os.path.join('library.zip', 'nxdrive')
 OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
 
+ENCODING = locale.getpreferredencoding()
+
 
 def normalized_path(path):
     """Return absolute, normalized file path."""
     if isinstance(path, bytes):
-        # Assume that the path (e.g. a command line argument) is encoded in
-        # utf-8 when not already decoded explicitly by the caller
-        path = path.decode('utf-8')
+        # Decode path with local encoding when not already decoded explicitly
+        # by the caller
+        path = path.decode(ENCODING)
 
     # XXX: we could os.path.normcase as well under Windows but it might be the
-    # source of unexpected troubles so no doing it for now.
+    # source of unexpected troubles so not doing it for now.
     return os.path.normpath(os.path.abspath(os.path.expanduser(path)))
 
 
@@ -31,6 +34,10 @@ def safe_long_path(path):
 
     """
     if sys.platform == 'win32':
+        if isinstance(path, bytes):
+            # Decode path with local encoding when not already decoded
+            # explicitly  by the caller
+            path = unicode(path.decode(ENCODING))
         path = u"\\\\?\\" + path
     return path
 
