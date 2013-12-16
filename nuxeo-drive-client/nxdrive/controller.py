@@ -29,6 +29,7 @@ from nxdrive.model import LastKnownState
 from nxdrive.synchronizer import Synchronizer
 from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
 from nxdrive.logging_config import get_logger
+from nxdrive.utils import ENCODING
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
 from nxdrive.utils import encrypt
@@ -47,12 +48,19 @@ def default_nuxeo_drive_folder():
 
     This folder is user specific, typically under the home folder.
     """
+    # We need to decode the path returned by os.path.expanduser with the
+    # local encoding because the value of the HOME environment variable is
+    # read as a byte string. Using os.path.expanduser(u'~') fails if the home
+    # path contains non ASCII characters since Unicode coercion attempts to
+    # decode the byte string as an ASCII string.
     if sys.platform == "win32":
         # WARNING: it's important to check `Documents` first as under Windows 7
         # there also exists a `My Documents` folder invisible in the explorer
         # and cmd / powershell but visible from Python
-        documents = os.path.expanduser(ur'~\Documents')
-        my_documents = os.path.expanduser(ur'~\My Documents')
+        documents = os.path.expanduser(r'~\Documents')
+        documents = unicode(documents.decode(ENCODING))
+        my_documents = os.path.expanduser(r'~\My Documents')
+        my_documents = unicode(my_documents.decode(ENCODING))
         if os.path.exists(documents):
             # Regular location for documents under Windows 7 and up
             return os.path.join(documents, u'Nuxeo Drive')
@@ -61,7 +69,9 @@ def default_nuxeo_drive_folder():
             return os.path.join(my_documents, u'Nuxeo Drive')
 
     # Fallback to home folder otherwise
-    return os.path.join(os.path.expanduser(u'~'), u'Nuxeo Drive')
+    user_home = os.path.expanduser('~')
+    user_home = unicode(user_home.decode(ENCODING))
+    return os.path.join(user_home, u'Nuxeo Drive')
 
 
 class ServerBindingSettings(object):
