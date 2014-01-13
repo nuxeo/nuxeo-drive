@@ -330,6 +330,7 @@ class CliHandler(object):
             register_protocol_handlers(self.controller)
             # Ensure that ndrive is registered as a startup application
             register_startup()
+
         try:
             return handler(options)
         except Exception, e:
