@@ -1,4 +1,5 @@
 SQLAlchemy >= 0.7.9
+alembic
 psutil
 nose >= 1.2.1
 coverage
