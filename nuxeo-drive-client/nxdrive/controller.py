@@ -34,6 +34,7 @@ from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
 from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
+from nxdrive.migration import migrate_db
 
 
 log = get_logger(__name__)
@@ -153,6 +154,9 @@ class Controller(object):
         # metadata sqlite database.
         self._engine, self._session_maker = init_db(
             self.config_folder, echo=echo, poolclass=poolclass)
+
+        # Migrate SQLite database if needed
+        migrate_db(self._engine)
 
         # Thread-local storage for the remote client cache
         self._local = local()
