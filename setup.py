@@ -115,8 +115,15 @@ if '--freeze' in sys.argv:
     packages.remove('nxdrive.data.icons')
     package_data = {}
     icons_home = 'nuxeo-drive-client/nxdrive/data/icons'
+    alembic_home = 'nuxeo-drive-client/alembic'
+    alembic_versions_home = 'nuxeo-drive-client/alembic/versions'
     include_files = [(os.path.join(icons_home, f), "icons/%s" % f)
                      for f in os.listdir(icons_home)]
+    include_files.extend([(os.path.join(alembic_home, f), "alembic/%s" % f)
+                     for f in os.listdir(alembic_home)])
+    include_files.extend([(os.path.join(alembic_versions_home, f),
+                           "alembic/versions/%s" % f)
+                     for f in os.listdir(alembic_versions_home)])
     freeze_options = dict(
         executables=executables,
         options={
