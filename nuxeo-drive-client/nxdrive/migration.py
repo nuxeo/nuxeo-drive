@@ -1,8 +1,11 @@
 from nxdrive.logging_config import get_logger
+from nxdrive.utils import find_resource_dir
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
 from alembic import context
+
+import os
 
 
 log = get_logger(__name__)
@@ -18,7 +21,7 @@ def migrate_db(engine):
 def upgrade(config, engine, revision):
     """Upgrade to the given revision."""
 
-    script = ScriptDirectory.from_config(config)
+    script = from_config(config)
 
     def upgrade(rev, context):
         return script._upgrade_revs(revision, rev)
@@ -34,6 +37,24 @@ def upgrade(config, engine, revision):
         destination_rev=revision
     ):
         run_migration(engine)
+
+
+def from_config(config):
+    """Instantiate a ScriptDirectory from the given config using generic
+    resource finder.
+    """
+    script_location = config.get_main_option('script_location')
+    if script_location is None:
+        raise RuntimeError("No 'script_location' key "
+                                "found in configuration.")
+
+    import nxdrive
+    nxdrive_path = os.path.dirname(nxdrive.__file__)
+    alembic_path = nxdrive_path.replace('nxdrive', script_location)
+
+    return ScriptDirectory(
+                find_resource_dir(script_location, alembic_path)
+                )
 
 
 def run_migration(engine):
