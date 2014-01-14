@@ -11,7 +11,7 @@ log = get_logger(__name__)
 def migrate_db(engine):
     """Upgrade given database engine to latest Alembic revision if needed."""
     config = Config()
-    config.set_main_option("script_location", "nxdrive:alembic")
+    config.set_main_option("script_location", "alembic")
     upgrade(config, engine, 'head')
 
 
