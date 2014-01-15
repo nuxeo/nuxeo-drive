@@ -459,7 +459,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         except Unauthorized:
             return handle_error("Invalid credentials.", dialog)
         except socket.timeout:
-            return handle_error(timeout_msg)
+            return handle_error(timeout_msg, dialog)
         except (OSError, WindowsError) as e:
             return handle_error("Unable to create local folder %s, please"
                                 " check this is a valid location and current"
