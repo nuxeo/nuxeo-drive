@@ -461,6 +461,9 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         except socket.timeout:
             return handle_error(timeout_msg, dialog)
         except (OSError, WindowsError) as e:
+            # This error case will make more sense when local folder
+            # configuration becomes available in the Settings dialog box.
+            # See https://jira.nuxeo.com/browse/NXP-12657
             return handle_error("Unable to create local folder %s, please"
                                 " check this is a valid location and current"
                                 " user has the appropriate permission." %
@@ -471,7 +474,6 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
             else:
                 msg = "Unable to connect to " + url
             return handle_error(msg, dialog, debug=True)
-        # TODO: catch a new ServerUnreachable catching network issues
 
     def handle_error(msg, dialog, tab_index=0, debug=False):
         if debug:
