@@ -10,6 +10,12 @@ from nxdrive.client.base_automation_client import get_proxy_handler
 import urllib2
 import socket
 
+WindowsError = None
+try:
+    from exceptions import WindowsError
+except ImportError:
+    pass  # this will never be raised under unix
+
 log = get_logger(__name__)
 
 # Keep Qt an optional dependency for now
@@ -454,6 +460,11 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
             return handle_error("Invalid credentials.", dialog)
         except socket.timeout:
             return handle_error(timeout_msg)
+        except (OSError, WindowsError) as e:
+            return handle_error("Unable to create local folder %s, please"
+                                " check this is a valid location and current"
+                                " user has the appropriate permission." %
+                                sb_settings.local_folder, dialog)
         except Exception as e:
             if hasattr(e, 'msg'):
                 msg = e.msg
