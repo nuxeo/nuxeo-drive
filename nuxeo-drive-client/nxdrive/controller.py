@@ -428,10 +428,6 @@ class Controller(object):
         """Bind a local folder to a remote nuxeo server"""
         session = self.get_session()
         local_folder = normalized_path(local_folder)
-        if not os.path.exists(local_folder):
-            os.makedirs(local_folder)
-
-        self.register_folder_link(local_folder)
 
         # check the connection to the server by issuing an authentication
         # request
@@ -446,6 +442,7 @@ class Controller(object):
             # password in the DB
             password = None
         try:
+            # Look for an existing server binding for the given local folder
             server_binding = session.query(ServerBinding).filter(
                 ServerBinding.local_folder == local_folder).one()
             if (server_binding.remote_user != username
@@ -472,6 +469,13 @@ class Controller(object):
                     server_binding.remote_password = None
 
         except NoResultFound:
+            # No server binding found for the given local folder
+            # First create local folder in the file system
+            if not os.path.exists(local_folder):
+                os.makedirs(local_folder)
+            self.register_folder_link(local_folder)
+
+            # Create ServerBinding instance in DB
             log.info("Binding '%s' to '%s' with account '%s'",
                      local_folder, server_url, username)
             server_binding = ServerBinding(local_folder, server_url, username,
@@ -479,7 +483,7 @@ class Controller(object):
                                            remote_token=token)
             session.add(server_binding)
 
-            # Creating the toplevel state for the server binding
+            # Create the top level state for the server binding
             local_client = LocalClient(server_binding.local_folder)
             local_info = local_client.get_info(u'/')
 
