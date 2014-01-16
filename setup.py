@@ -35,6 +35,9 @@ package_data = {
 }
 script = 'nuxeo-drive-client/scripts/ndrive'
 icons_home = 'nuxeo-drive-client/nxdrive/data/icons'
+alembic_home = 'nuxeo-drive-client/alembic'
+alembic_versions_home = 'nuxeo-drive-client/alembic/versions'
+
 win_icon = os.path.join(icons_home, 'nuxeo_drive_icon_64.ico')
 png_icon = os.path.join(icons_home, 'nuxeo_drive_icon_64.png')
 osx_icon = os.path.join(icons_home, 'nuxeo_drive_app_icon_128.icns')
@@ -46,11 +49,35 @@ elif sys.platform == 'darwin':
 else:
     icon = png_icon
 
-icons_files = []
+# Files to include in frozen app: icons, alembic, alembic versions
+# Windows freeze with cx_Freeze
+include_files = []
+# OS X freeze with py2app
+icon_files = []
+alembic_files = []
+alembic_version_files = []
+
+# Icon files
 for filename in os.listdir(icons_home):
     filepath = os.path.join(icons_home, filename)
     if os.path.isfile(filepath):
-        icons_files.append(filepath)
+        include_files.append((filepath, "icons/%s" % filename))
+        icon_files.append(filepath)
+
+# Alembic files
+for filename in os.listdir(alembic_home):
+    filepath = os.path.join(alembic_home, filename)
+    if os.path.isfile(filepath):
+        include_files.append((filepath, "alembic/%s" % filename))
+        alembic_files.append(filepath)
+
+# Alembic version files
+for filename in os.listdir(alembic_versions_home):
+    filepath = os.path.join(alembic_versions_home, filename)
+    if os.path.isfile(filepath):
+        include_files.append((filepath, "alembic/versions/%s" % filename))
+        alembic_version_files.append(filepath)
+
 
 old_version = None
 init_file = os.path.abspath(os.path.join(
@@ -114,9 +141,6 @@ if '--freeze' in sys.argv:
     packages.remove('nxdrive.data')
     packages.remove('nxdrive.data.icons')
     package_data = {}
-    icons_home = 'nuxeo-drive-client/nxdrive/data/icons'
-    include_files = [(os.path.join(icons_home, f), "icons/%s" % f)
-                     for f in os.listdir(icons_home)]
     freeze_options = dict(
         executables=executables,
         options={
@@ -146,7 +170,8 @@ elif sys.platform == 'darwin':
 
     freeze_options = dict(
         app=["nuxeo-drive-client/scripts/ndrive.py"],
-        data_files=[('icons', icons_files)],
+        data_files=[('icons', icon_files), ('alembic', alembic_files),
+                    ('alembic/versions', alembic_version_files)],
         options=dict(
             py2app=dict(
                 iconfile=osx_icon,

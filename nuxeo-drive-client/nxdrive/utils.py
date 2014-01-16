@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 import locale
 from Crypto.Cipher import AES
 from Crypto import Random
@@ -40,6 +41,32 @@ def safe_long_path(path):
             path = unicode(path.decode(ENCODING))
         path = u"\\\\?\\" + path
     return path
+
+
+def find_resource_dir(directory, default_path):
+    """Find the FS path of a directory in various OS binary packages"""
+    import nxdrive
+    nxdrive_path = os.path.dirname(nxdrive.__file__)
+
+    app_resources = '/Contents/Resources/'
+    cxfreeze_suffix = os.path.join('library.zip', 'nxdrive')
+
+    dir_path = default_path
+    if app_resources in nxdrive_path:
+        # OSX frozen distribution, bundled as an app
+        dir_path = re.sub(app_resources + ".*", app_resources + directory,
+                             nxdrive_path)
+
+    elif nxdrive_path.endswith(cxfreeze_suffix):
+        # cx_Freeze frozen distribution of nxdrive, data is out of the zip
+        dir_path = nxdrive_path.replace(cxfreeze_suffix, directory)
+
+    if not os.path.exists(dir_path):
+        log.warning("Could not find the resource directory at: %s",
+                    dir_path)
+        return None
+
+    return dir_path
 
 
 def find_exe_path():
