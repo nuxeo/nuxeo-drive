@@ -255,7 +255,7 @@ Make sure that you are know using your newly installed version of python / pip::
   /usr/local/bin/python
 
 
-Upgrading the model
+Updating the data model
 ------------------------------------------------------
 
 If you need to change the `data model <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/nxdrive/model.py>`_
