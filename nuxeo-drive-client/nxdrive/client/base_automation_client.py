@@ -18,6 +18,7 @@ from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
 from nxdrive.utils import force_decode
+from nxdrive.utils import deprecated
 from urllib2 import ProxyHandler
 from urlparse import urlparse
 
@@ -294,6 +295,7 @@ class BaseAutomationClient(object):
 
         return self._read_response(resp, url)
 
+    @deprecated
     def execute_with_blob(self, command, blob_content, filename, **params):
         """Execute an Automation operation with a blob input
 
