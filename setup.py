@@ -61,21 +61,21 @@ alembic_version_files = []
 for filename in os.listdir(icons_home):
     filepath = os.path.join(icons_home, filename)
     if os.path.isfile(filepath):
-        include_files.append(filepath, "icons/%s" % filename))
+        include_files.append((filepath, "icons/%s" % filename))
         icon_files.append(filepath)
 
 # Alembic files
 for filename in os.listdir(alembic_home):
     filepath = os.path.join(alembic_home, filename)
     if os.path.isfile(filepath):
-        include_files.append(filepath, "alembic/%s" % filename))
+        include_files.append((filepath, "alembic/%s" % filename))
         alembic_files.append(filepath)
 
 # Alembic version files
 for filename in os.listdir(alembic_versions_home):
     filepath = os.path.join(alembic_versions_home, filename)
     if os.path.isfile(filepath):
-        include_files.append(filepath, "alembic/versions/%s" % filename))
+        include_files.append((filepath, "alembic/versions/%s" % filename))
         alembic_version_files.append(filepath)
 
 
