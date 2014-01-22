@@ -316,7 +316,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
             'label': 'Password:',
             'secret': True,
             'enabled': (not sb_settings.initialized
-                        or sb_settings.pwd_update_required)
+                        or sb_settings.pwd_update_required),
         },
         {
             'id': 'initialized',
