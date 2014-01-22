@@ -60,7 +60,7 @@ def get_proxies_for_handler(proxy_settings):
                                 proxy_settings.server,
                                 proxy_settings.port)
         proxies = {proxy_settings.proxy_type: proxy_string}
-        if proxy_settings.exceptions.strip():
+        if proxy_settings.exceptions and proxy_settings.exceptions.strip():
             proxy_exceptions = [e.strip() for e in
                                 proxy_settings.exceptions.split(',')]
         else:
