@@ -79,7 +79,7 @@ The `device_config` table of the SQLite database needs a unique id as a primary 
 
 5. Quit SQLite
 
-    .exit
+        .exit
 
 ## Start Nuxeo Drive!
 
