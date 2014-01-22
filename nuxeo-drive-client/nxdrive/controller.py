@@ -313,6 +313,20 @@ class Controller(object):
                             initialized=True,
                             pwd_update_required=sb.has_invalid_credentials())
 
+    def is_credentials_update_required(self):
+        server_bindings = self.list_server_bindings()
+        if not server_bindings:
+            return True
+        else:
+            # TODO: handle multiple server bindings, for now consider that
+            # credentials update is required if at least one binding has
+            # invalid credentials
+            # See https://jira.nuxeo.com/browse/NXP-12716
+            for server_binding in server_bindings:
+                if server_binding.has_invalid_credentials():
+                    return True
+            return  False
+
     def stop(self):
         """Stop the Nuxeo Drive synchronization thread
 
