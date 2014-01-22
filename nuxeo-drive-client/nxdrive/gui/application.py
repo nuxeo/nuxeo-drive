@@ -491,7 +491,7 @@ class Application(QApplication):
                                version, app=self)
 
     def start_synchronization_thread(self):
-        if len(self.controller.list_server_bindings()) == 0:
+        if self.controller.is_credentials_update_required():
             self.settings()
 
         if self.sync_thread is None or not self.sync_thread.isAlive():
