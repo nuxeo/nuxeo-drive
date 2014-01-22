@@ -301,7 +301,8 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
             'id': 'username',
             'label': 'Username:',
             'value': sb_settings.username,
-            'enabled': not sb_settings.initialized,
+            'enabled': (not sb_settings.initialized
+                        or sb_settings.pwd_update_required),
         },
         {
             'id': 'update_password',
