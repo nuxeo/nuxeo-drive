@@ -449,12 +449,16 @@ class Controller(object):
             # Look for an existing server binding for the given local folder
             server_binding = session.query(ServerBinding).filter(
                 ServerBinding.local_folder == local_folder).one()
-            if (server_binding.remote_user != username
-                or server_binding.server_url != server_url):
+            if server_binding.server_url != server_url:
                 raise RuntimeError(
-                    "%s is already bound to '%s' with user '%s'" % (
-                        local_folder, server_binding.server_url,
-                        server_binding.remote_user))
+                    "%s is already bound to '%s'" % (
+                        local_folder, server_binding.server_url))
+
+            if server_binding.remote_user != username:
+                # Update username info if required
+                server_binding.remote_user = username
+                log.info("Updating username to '%s' on server '%s'",
+                        username, server_url)
 
             if token is None and server_binding.remote_password != password:
                 # Update password info if required
