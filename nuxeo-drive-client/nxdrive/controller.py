@@ -476,12 +476,20 @@ class Controller(object):
                 if server_binding.remote_password is not None:
                     server_binding.remote_password = None
 
+            # If the top level state for the server binding doesn't exist,
+            # create the local folder and the top level state. This can be
+            # the case when initializing the DB manually with a SQL script.
+            try:
+                session.query(LastKnownState).filter_by(local_path='/',
+                                            local_folder=local_folder).one()
+            except NoResultFound:
+                self._make_local_folder(local_folder)
+                self._add_top_level_state(server_binding, session)
+
         except NoResultFound:
             # No server binding found for the given local folder
             # First create local folder in the file system
-            if not os.path.exists(local_folder):
-                os.makedirs(local_folder)
-            self.register_folder_link(local_folder)
+            self._make_local_folder(local_folder)
 
             # Create ServerBinding instance in DB
             log.info("Binding '%s' to '%s' with account '%s'",
@@ -492,21 +500,29 @@ class Controller(object):
             session.add(server_binding)
 
             # Create the top level state for the server binding
-            local_client = LocalClient(server_binding.local_folder)
-            local_info = local_client.get_info(u'/')
-
-            remote_client = self.get_remote_fs_client(server_binding)
-            remote_info = remote_client.get_filesystem_root_info()
-
-            state = LastKnownState(server_binding.local_folder,
-                                   local_info=local_info,
-                                   local_state='synchronized',
-                                   remote_info=remote_info,
-                                   remote_state='synchronized')
-            session.add(state)
+            self._add_top_level_state(server_binding, session)
 
         session.commit()
         return server_binding
+
+    def _add_top_level_state(self, server_binding, session):
+        local_client = LocalClient(server_binding.local_folder)
+        local_info = local_client.get_info(u'/')
+
+        remote_client = self.get_remote_fs_client(server_binding)
+        remote_info = remote_client.get_filesystem_root_info()
+
+        state = LastKnownState(server_binding.local_folder,
+                               local_info=local_info,
+                               local_state='synchronized',
+                               remote_info=remote_info,
+                               remote_state='synchronized')
+        session.add(state)
+
+    def _make_local_folder(self, local_folder):
+        if not os.path.exists(local_folder):
+            os.makedirs(local_folder)
+        self.register_folder_link(local_folder)
 
     def unbind_server(self, local_folder):
         """Remove the binding to a Nuxeo server
