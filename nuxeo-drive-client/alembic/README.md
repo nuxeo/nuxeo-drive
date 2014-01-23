@@ -3,19 +3,20 @@
 ## Alembic revision file generation
 
 For each alteration of the model (create / drop / alter a table or column) we need to generate an Alembic revision file.
-Let's say we added the column 'new_colum' of type String to the 'server_bindings' table, we can generate the Alembic revision file
+Let's say we added the column 'new\_colum' of type String to the 'server\_bindings' table, we can generate the Alembic revision file
 with a relevant comment by running this command in nuxeo-drive/nuxeo-drive-client:
 
     alembic revision -m "Adding new_column to server_bindings"
 
-The file is created in nuxeo-drive/nuxeo-drive-client/alembic/versions, as configured in alembic.ini by the script_location key.
+The file is created in [nuxeo-drive/nuxeo-drive-client/alembic/versions](https://github.com/nuxeo/nuxeo-drive/tree/master/nuxeo-drive-client/alembic/versions),
+as configured in [alembic.ini](https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/alembic.ini) by the `script_location` key.
 
 ## Alembic revision file implementation
 
-Then we need to populate the upgrade() and downgrade() functions of the generated file with directives that will apply a set of changes to the database.
-Implementing downgrade() is optional for now as we only handle database upgrade.
+Then we need to populate the `upgrade()` and `downgrade()` functions of the generated file with directives that will apply a set of changes to the database.
+Implementing `downgrade()` is optional for now as we only handle database upgrade.
 
-The modified file should look like this (see https://alembic.readthedocs.org/en/latest/ops.html for the list of available operations):
+The modified file should look like this (see the list of [available operations](https://alembic.readthedocs.org/en/latest/ops.html)):
 
     """Adding new_column to server_bindings
 
@@ -40,6 +41,6 @@ The modified file should look like this (see https://alembic.readthedocs.org/en/
 
 
     def downgrade():
-        raise ValueError("Column drop is not available in SQLite, can't downgrade")
+        raise NotImplementedError("Column drop is not available in SQLite, can't downgrade")
 
 ## That's it, we're done!
