@@ -165,7 +165,7 @@ if '--freeze' in sys.argv:
 elif sys.platform == 'darwin':
     # Under OSX we use py2app instead of cx_Freeze because we need:
     # - argv_emulation=True for nxdrive:// URL scheme handling
-    # - easy Info.plit customization
+    # - easy Info.plist customization
     import py2app  # install the py2app command
 
     freeze_options = dict(
