@@ -112,6 +112,10 @@ can install it from source::
   sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
   sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
 
+Waiting for `NXP-13633 <https://jira.nuxeo.com/browse/NXP-13633/>`_ to be resolved you need to run this command for Nuxeo Drive to work fine::
+
+    sudo mkdir /usr/local/lib/python2.7/dist-packages/alembic/versions
+
 
 Configuration and usage
 =======================
