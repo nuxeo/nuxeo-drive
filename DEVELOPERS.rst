@@ -199,7 +199,7 @@ Generating OS specific packages
 To generate the **Windows** ``.msi`` installer, you need to install ``cx_Freeze``
 as explained above. Then run::
 
-  C:\Python27\python.exe setup.py --freeze bdist_msi
+  C:\Python27\python.exe setup.py --freeze --dev bdist_msi
 
 The generated ``.msi`` file can be found in the ``dist/`` subfolder.
 
@@ -221,12 +221,12 @@ Then install ``py2app`` along with the dependencies if ::
 
 Then run::
 
-  python setup.py py2app
+  python setup.py py2app --dev
 
 The generated ``.app`` bundle can be found in the ``dist/`` subfolder. You
-can then generate a ``.dmg`` archive using::
+can then generate a ``.dmg`` archive running::
 
-  hdiutil create -srcfolder "dist/Nuxeo Drive.app" "dist/Nuxeo Drive.dmg"
+  sh tools/osx/create-dmg.sh
 
 
 Installing a standalone Python interpreter on Mac OS X
