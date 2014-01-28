@@ -1,0 +1,23 @@
+@echo off
+
+set DIST_DIR=dist
+set CERTIFICATE_STORE=Root
+set CERTIFICATE_NAME="Nuxeo Drive SPC"
+set MSI_PROGRAM_NAME="Nuxeo Drive"
+set TIMESTAMP_URL=http://timestamp.verisign.com/scripts/timstamp.dll
+
+set SIGN_CMD=signtool sign /v /s %CERTIFICATE_STORE% /n %CERTIFICATE_NAME% /d %MSI_PROGRAM_NAME% /t %TIMESTAMP_URL%
+set VERIFY_CMD=signtool verify /v /pa
+
+FOR %%F IN (%DIST_DIR%\*.msi) DO (
+	echo ---------------------------------------------
+	echo Signing %%F
+    echo ---------------------------------------------
+	echo %SIGN_CMD% %%F
+	%SIGN_CMD% %%F
+	echo ---------------------------------------------
+    echo Verifying %%F
+	echo ---------------------------------------------
+    echo %VERIFY_CMD% %%F
+	%VERIFY_CMD% %%F
+)
