@@ -266,3 +266,10 @@ Alembic full documentation is at:
 
   https://alembic.readthedocs.org/en/latest/index.html
 
+
+Manual initialization
+---------------------
+
+If you need to manually initialize Nuxeo Drive, for example to preset the Nuxeo server URL and proxy configuration before launching Nuxeo Drive the first time (useful for mass deployment),
+please follow the `related instructions <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/manual_init.md>`_.
+
