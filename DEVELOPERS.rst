@@ -256,11 +256,11 @@ Make sure that you are know using your newly installed version of python / pip::
 
 
 Updating the data model
-------------------------------------------------------
+-----------------------
 
 If you need to change the `data model <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/nxdrive/model.py>`_
 the SQLite database needs to be migrated. This is handled by the embedded `alembic <https://bitbucket.org/zzzeek/alembic/>`_ tool.
-Please follow the related `instructions <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/alembic/README>`_.
+Please follow the `related instructions <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/alembic/README.md>`_.
 
 Alembic full documentation is at:
 
