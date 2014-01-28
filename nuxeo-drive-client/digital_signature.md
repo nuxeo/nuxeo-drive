@@ -168,7 +168,7 @@ in which case you should uninstall them all before installing the Windows SDK.
 
 #### Trusted certificate, required for the released application
 
-You can get one from a certification authority.
+You can get one from a certification authority. Then you need to import it into the Windows Root certificate store with  `certmgr.msc`.
 
 #### Self-signed certificate, for tests only!
 
@@ -202,7 +202,7 @@ You can use the [MakeCert](http://msdn.microsoft.com/en-us/library/aa386968\(v=v
     You then need to create a Private Key Password and enter this password.  
     This will create the `NuxeoDriveSPC.pfx` file.
 
-- Import the code-signing certificate into the certificate store
+- Import the code-signing certificate into the Windows Root certificate store
 
     Run `certmgr.msc` and import `NuxeoDriveSPC.pfx` into the `Trusted Root Certification Authorites`. Check everything except "Enable strong  private key protection" and keep default options.  
     This will create a "Nuxeo Drive SPC" entry in the `Trusted Root Certification Authorites`.
