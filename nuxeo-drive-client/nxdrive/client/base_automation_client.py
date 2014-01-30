@@ -540,6 +540,7 @@ class BaseAutomationClient(object):
             'X-User-Id': self.user_id,
             'X-Device-Id': self.device_id,
             'X-Client-Version': self.client_version,
+            'User-Agent': self.application_name + "/" + self.client_version,
             'X-Application-Name': self.application_name,
             self.auth[0]: self.auth[1],
             'Cache-Control': 'no-cache',
