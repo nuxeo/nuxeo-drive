@@ -65,7 +65,10 @@ def register_startup_darwin():
               exe_path, agent_filepath)
 
     if not os.path.exists(agents_folder):
+        log.debug("Making launch agent folder %s", agents_folder)
         os.makedirs(agents_folder)
 
-    with open(agent_filepath, 'wb') as f:
-        f.write(NDRIVE_AGENT_TEMPLATE % exe_path)
+    if not os.path.exists(agent_filepath):
+        log.debug("Writing launch agent file %s", agent_filepath)
+        with open(agent_filepath, 'wb') as f:
+            f.write(NDRIVE_AGENT_TEMPLATE % exe_path)
