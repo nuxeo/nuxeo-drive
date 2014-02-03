@@ -1,7 +1,7 @@
 @echo off
 
 set DIST_DIR=dist
-set CERTIFICATE_PATH=%HOMEPATH%\certificates\nuxeo.com.pfx
+set CERTIFICATE_PATH=%USERPROFILE%\certificates\nuxeo.com.pfx
 set MSI_PROGRAM_NAME="Nuxeo Drive"
 set TIMESTAMP_URL=http://timestamp.verisign.com/scripts/timstamp.dll
 
