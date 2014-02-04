@@ -6,23 +6,50 @@ We've resumed the main steps in this documentation. Please follow Apple's nice [
 
 ### Obtaining a signing identity
 
-To sign code, you need a code signing identity, which is a private key plus a digital certificate. 
+To sign code, you need a code signing identity, which is basically a private key plus a digital certificate.
 
 #### Trusted certificate, required for the released application
 
-Such a certificate is needed to pass the system validation.
+Such a certificate is needed to pass the system validation. Just follow these steps.
 
-- Get a Developer ID certificate from Apple (99$ / year).
+- Get a Developer ID account from Apple (99$ / year).
 
-- Import the certificate to the build machine's keychain:
+- Generate a Certificate Signing Request for Code Signing Certificates using `openssl` under Linux:
 
-    1. In Keychain Access (available in `/Applications/Utilities`), choose File > Import Items.
+        openssl req -out CSR.csr -new -newkey rsa:2048 -nodes -keyout privateKey.key
 
-    2. Choose a destination keychain for the identity.
+    You will need to enter Distinguished Name information such as country code, city, etc.  
+    This will create the Certificate Signing Request file: `CSR.csr` and the associated private key: `privateKey.key`.
 
-    3. Choose the certificate file.
+- Connect to the Apple Developer Center and add a new Mac Certificate choosing Production / Developer ID / Developer ID Application.
+There you need to upload the `CSR.csr` file.
 
-    4. Click Open.
+- Download the Developer ID Application certificate: `developerID_application.cer`.
+
+- Import the Developer ID Application certificate into one of the keychains of your build machine:
+
+        security import developerID_application.cer -t cert -k <keychain_path>
+
+- Import the private key into the same keychain:
+
+        security import privateKey.key -t priv -k <keychain_path>
+
+- Check that the code signing identity has been well imported:
+
+        security find-identity -p codesigning
+
+    This should output something like:
+
+        Policy: Code Signing
+          Matching identities
+          1) D0B169B814372554E879CABC1B63E785909533E8 "Developer ID Application: NUXEO CORP (WCLR6985BX)"
+             1 identities found
+
+          Valid identities only
+          1) D0B169B814372554E879CABC1B63E785909533E8 "Developer ID Application: NUXEO CORP (WCLR6985BX)"
+             1 valid identities found
+
+- You're done, your signing identity is ready to use for code signing on the build machine!
 
 #### Self-signed certificate, for tests only!
 
@@ -67,11 +94,22 @@ To sign the code located at `<code-path>`, using the signing identity `<identity
 
 In the case of Nuxeo Drive:
    
-    codesign -s "Nuxeo Drive" nuxeo-drive/dist/Nuxeo\ Drive.app -v
+    codesign -s "NUXEO CORP" nuxeo-drive/dist/Nuxeo\ Drive.app -v
 
 This should output something like:
 
     nuxeo-drive/dist/Nuxeo Drive.app: signed bundle with Mach-O thin (x86_64) [org.nuxeo.drive]
+
+Note that when executing such a command through ssh, typically from Jenkins, you might get the annoying message:
+
+    nuxeo-drive/dist/Nuxeo Drive.app: User interaction is not allowed.
+
+To get rid of it you need to unlock the keychain storing your code signing identity before actually calling the signing command:
+
+    security unlock-keychain -p <password> <keychain_path>
+
+If this is not enough, unfortunately you will need to open a session on the build machine and launch the signing command in a Terminal.
+This will trigger a popup in which you can click "Always allow"...
 
 ### Verifying the code
 
@@ -110,12 +148,14 @@ This should output something like:
     CodeDirectory v=20100 size=284 flags=0x0(none) hashes=8+3 location=embedded
     Hash type=sha1 size=20
     CDHash=0d5ca767f76730c66105d57aa5bb51629291e954
-    Signature size=1506
-    Authority=Nuxeo Drive
-    Signed Time=24 janv. 2014 12:44:02
+    Signature size=8518
+    Authority=Developer ID Application: NUXEO CORP (WCLR6985BX)
+    Authority=Developer ID Certification Authority
+    Authority=Apple Root CA
+    Timestamp=Feb 4, 2014 5:35:28 PM
     Info.plist entries=23
-    Sealed Resources rules=4 files=264
-    Internal requirements count=1 size=92
+    Sealed Resources rules=4 files=265
+    Internal requirements count=1 size=176
 
 ### Test code signing using the spctl tool
 
@@ -131,7 +171,7 @@ For more detailed information about why the assessment failed, you can add the `
 In case of success this should output something like:
 
     nuxeo-drive/dist/Nuxeo Drive.app: accepted
-    source=No matching Rule
+    source=Developer ID
 
 To see everything the system has to say about an assessment, pass the `--raw` option. With this flag, the spctl tool prints a detailed assessment as a property list.
 
