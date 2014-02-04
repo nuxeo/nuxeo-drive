@@ -8,7 +8,7 @@ BACKGROUND_FILE="$SCRIPT_LOCATION/dmgbackground.png"
 GENERATED_DS_STORE="$SCRIPT_LOCATION/generated_DS_Store"
 
 PACKAGE_PATH="$SCRIPT_LOCATION/../../dist/Nuxeo Drive.app"
-SIGNING_IDENTITY="Nuxeo Drive"
+SIGNING_IDENTITY="NUXEO CORP"
 DMG_PATH="$SCRIPT_LOCATION/../../dist/Nuxeo Drive.dmg"
 DMG_SIZE=$(($(du -sm "$PACKAGE_PATH" | cut -d$'\t' -f1,1)+20))m
 
