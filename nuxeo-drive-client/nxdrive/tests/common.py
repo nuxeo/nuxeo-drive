@@ -41,6 +41,14 @@ class IntegrationTestCase(unittest.TestCase):
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD')
 
+        # Take default parameter if none has been set
+        if self.nuxeo_url is None:
+            self.nuxeo_url = "http://localhost:8080/nuxeo"
+        if self.admin_user is None:
+            self.admin_user = "Administrator"
+        if self.password is None:
+            self.password = "Administrator"
+
         if None in (self.nuxeo_url, self.admin_user, self.password):
             raise unittest.SkipTest(
                 "No integration server configuration found in environment.")
