@@ -6,23 +6,50 @@ We've resumed the main steps in this documentation. Please follow Apple's nice [
 
 ### Obtaining a signing identity
 
-To sign code, you need a code signing identity, which is a private key plus a digital certificate. 
+To sign code, you need a code signing identity, which is basically a private key plus a digital certificate.
 
 #### Trusted certificate, required for the released application
 
-Such a certificate is needed to pass the system validation.
+Such a certificate is needed to pass the system validation. Just follow these steps.
 
-- Get a Developer ID certificate from Apple (99$ / year).
+- Get a Developer ID account from Apple (99$ / year).
 
-- Import the certificate to the build machine's keychain:
+- Generate a Certificate Signing Request for Code Signing Certificates using `openssl` under Linux:
 
-    1. In Keychain Access (available in `/Applications/Utilities`), choose File > Import Items.
+        openssl req -out CSR.csr -new -newkey rsa:2048 -nodes -keyout privateKey.key
 
-    2. Choose a destination keychain for the identity.
+    You will need to enter Distinguished Name information such as country code, city, etc.  
+    This will create the Certificate Signing Request file: `CSR.csr` and the associated private key: `privateKey.key`.
 
-    3. Choose the certificate file.
+- Connect to the Apple Developer Center and add a new Mac Certificate choosing Production / Developer ID / Developer ID Application.
+There you need to upload the `CSR.csr` file.
 
-    4. Click Open.
+- Download the Developer ID Application certificate: `developerID_application.cer`.
+
+- Import the Developer ID Application certificate into one of the keychains of your build machine:
+
+        security import developerID_application.cer -t cert -k <keychain_path>
+
+- Import the private key into the same keychain:
+
+        security import privateKey.key -t priv -k <keychain_path>
+
+- Check that the code signing identity has been well imported:
+
+        security find-identity -p codesigning
+
+    This should output something like:
+
+        Policy: Code Signing
+          Matching identities
+          1) D0B169B814372554E879CABC1B63E785909533E8 "Developer ID Application: NUXEO CORP (WCLR6985BX)"
+             1 identities found
+
+          Valid identities only
+          1) D0B169B814372554E879CABC1B63E785909533E8 "Developer ID Application: NUXEO CORP (WCLR6985BX)"
+             1 valid identities found
+
+- You're done, your signing identity is ready to use for code signing on the build machine!
 
 #### Self-signed certificate, for tests only!
 
@@ -67,11 +94,22 @@ To sign the code located at `<code-path>`, using the signing identity `<identity
 
 In the case of Nuxeo Drive:
    
-    codesign -s "Nuxeo Drive" nuxeo-drive/dist/Nuxeo\ Drive.app -v
+    codesign -s "NUXEO CORP" nuxeo-drive/dist/Nuxeo\ Drive.app -v
 
 This should output something like:
 
     nuxeo-drive/dist/Nuxeo Drive.app: signed bundle with Mach-O thin (x86_64) [org.nuxeo.drive]
+
+Note that when executing such a command through ssh, typically from Jenkins, you might get the annoying message:
+
+    nuxeo-drive/dist/Nuxeo Drive.app: User interaction is not allowed.
+
+To get rid of it you need to unlock the keychain storing your code signing identity before actually calling the signing command:
+
+    security unlock-keychain -p <password> <keychain_path>
+
+If this is not enough, unfortunately you will need to open a session on the build machine and launch the signing command in a Terminal.
+This will trigger a popup in which you can click "Always allow"...
 
 ### Verifying the code
 
@@ -110,12 +148,14 @@ This should output something like:
     CodeDirectory v=20100 size=284 flags=0x0(none) hashes=8+3 location=embedded
     Hash type=sha1 size=20
     CDHash=0d5ca767f76730c66105d57aa5bb51629291e954
-    Signature size=1506
-    Authority=Nuxeo Drive
-    Signed Time=24 janv. 2014 12:44:02
+    Signature size=8518
+    Authority=Developer ID Application: NUXEO CORP (WCLR6985BX)
+    Authority=Developer ID Certification Authority
+    Authority=Apple Root CA
+    Timestamp=Feb 4, 2014 5:35:28 PM
     Info.plist entries=23
-    Sealed Resources rules=4 files=264
-    Internal requirements count=1 size=92
+    Sealed Resources rules=4 files=265
+    Internal requirements count=1 size=176
 
 ### Test code signing using the spctl tool
 
@@ -131,7 +171,7 @@ For more detailed information about why the assessment failed, you can add the `
 In case of success this should output something like:
 
     nuxeo-drive/dist/Nuxeo Drive.app: accepted
-    source=No matching Rule
+    source=Developer ID
 
 To see everything the system has to say about an assessment, pass the `--raw` option. With this flag, the spctl tool prints a detailed assessment as a property list.
 
@@ -171,7 +211,25 @@ This avoids installing the .NET Framework and whole Windows SDK.
 
 #### Trusted certificate, required for the released application
 
-You can get one from a certification authority. Then you need to import it into the Windows Root certificate store with  `certmgr.msc`.
+You can get one from any certification authority as Comodo or VeriSign. Such a signing identity is typically made up of 2  files in `pem` format (you can read them) :
+
+- A `certificate.cer` file containing the certificate as a hash surrounded by a header and footer:
+
+        -----BEGIN CERTIFICATE-----
+        hash
+        -----END CERTIFICATE-----
+
+- A `privateKey.key` file containing the private key as a hash surrounded by a header and footer:
+
+        -----BEGIN PRIVATE KEY-----
+        hash
+        ------END PRIVATE KEY-----
+
+Then you need to create a PFX file from the certificate and private key using `openssl` under Linux:
+
+    openssl pkcs12 -export -in certificate.cer -inkey privateKey.key -out certificate.pfx
+
+Copy the PFX file to the build machine as it will be directly used to sign the code.
 
 #### Self-signed certificate, for tests only!
 
@@ -211,43 +269,37 @@ You can use the [MakeCert](http://msdn.microsoft.com/en-us/library/aa386968\(v=v
     You then need to create a Private Key Password and enter this password.  
     This will create the `NuxeoDriveSPC.pfx` file.
 
-- Import the code-signing certificate into the Windows Root certificate store
-
-    Run `certmgr.msc` and import `NuxeoDriveSPC.pfx` into the `Trusted Root Certification Authorites`. Check everything except "Enable strong  private key protection" and keep default options.  
-    This will create a "Nuxeo Drive SPC" entry in the `Trusted Root Certification Authorites`.
-
 - Cleanup the certificate files
 
-    Once the certificate is imported into the Windows Root certificate store you can safely delete all certificate files generated by the previous steps:
+    Once you created the PFX file you can safely delete all intermediate certificate files generated by the previous steps:
 
-        rm NuxeoDrive*
+        rm NuxeoDrive*cer
+        rm NuxeoDrive*pvk
 
 ### Signing the code
 
 Use the [SignTool](http://msdn.microsoft.com/en-us/library/aa387764%28v=vs.85%29.aspx) tool provided by the Windows SDK to sign your application.
 
-    signtool sign /v /s Root /n "Nuxeo Drive SPC" /d "Nuxeo Drive" /t http://timestamp.verisign.com/scripts/timstamp.dll dist\nuxeo-drive-1.3.0127-win32.msi
+    signtool sign /v /f "<certificate_path>\certificate.pfx" /d "Nuxeo Drive" /t http://timestamp.verisign.com/scripts/timstamp.dll dist\nuxeo-drive-x.y.zzzz-win32.msi
 
-- `/v` verbose
+- `/v` Verbose.
 
-- `/s Root` name of the certificate store
+- `/f` PFX certificate file path. If the file is protected by a password, use the `/p` option to specify the password.
 
-- `/n "Nuxeo Drive SPC"` subject name of the signing certificate
+- `/d` Signed content description, used as the msi program name.
 
-- `/d "Nuxeo Drive"` signed content description, used as the msi program name
-
-- `/t http://timestamp.verisign.com/scripts/timstamp.dll` URL of the timestamp server
+- `/t` URL of the timestamp server.
 
 This should output something like:
 
     The following certificate was selected:
-        Issued to: Nuxeo Drive SPC
-        Issued by: Nuxeo Drive CA
-        Expires:   Sun Jan 01 00:59:59 2040
-        SHA1 hash: 786E8629AFEDA34379B6B1C7EB37D4A7AD3B268B
+        Issued to: Nuxeo
+        Issued by: COMODO Code Signing CA 2
+        Expires:   Tue Mar 17 00:59:59 2015
+        SHA1 hash: 73EB077A0500A86B80F2803304EE618230E33135
 
     Done Adding Additional Store
-    Successfully signed and timestamped: dist\nuxeo-drive-1.3.0127-win32.msi
+    Successfully signed and timestamped: dist\nuxeo-drive-1.3.0204-win32.msi
 
     Number of files successfully Signed: 1
     Number of warnings: 0
@@ -255,25 +307,35 @@ This should output something like:
 
 ### Verifying the code
 
-    signtool verify /v /pa dist\nuxeo-drive-1.3.0127-win32.msi
+    signtool verify /v /pa dist\nuxeo-drive-1.3.0204-win32.msi
+
+The `/pa` option is needed to specify that the Default Authentication Verification Policy is used.
+If the `/pa` option is not specified, SignTool uses the Windows Driver Verification Policy and you will probably get the following error:
+
+    SignTool Error: A certificate chain processed, but terminated in a root certificate which is not trusted by the trust provider.
 
 This should output something like:
 
-    Verifying: dist\nuxeo-drive-1.3.0127-win32.msi
-    Hash of file (sha1): 1F8C2CD99880DAE90F149294323D4F4B2AD8E859
+    Verifying: dist\nuxeo-drive-1.3.0204-win32.msi
+    Hash of file (sha1): 26972EF6CC939F30FDA3AAA90515A62171A61194
 
     Signing Certificate Chain:
-        Issued to: Nuxeo Drive CA
-        Issued by: Nuxeo Drive CA
-        Expires:   Sun Jan 01 00:59:59 2040
-        SHA1 hash: 83C630745010A41AEF906D586EAE5164FDDB191C
+        Issued to: UTN-USERFirst-Object
+        Issued by: UTN-USERFirst-Object
+        Expires:   Tue Jul 09 19:40:36 2019
+        SHA1 hash: E12DFB4B41D7D9C32B30514BAC1D81D8385E2D46
 
-            Issued to: Nuxeo Drive SPC
-            Issued by: Nuxeo Drive CA
-            Expires:   Sun Jan 01 00:59:59 2040
-            SHA1 hash: 786E8629AFEDA34379B6B1C7EB37D4A7AD3B268B
+            Issued to: COMODO Code Signing CA 2
+            Issued by: UTN-USERFirst-Object
+            Expires:   Sat May 30 11:48:38 2020
+            SHA1 hash: B64771392538D1EB7A9281998791C14AFD0C5035
 
-    The signature is timestamped: Tue Jan 28 14:52:34 2014
+                Issued to: Nuxeo
+                Issued by: COMODO Code Signing CA 2
+                Expires:   Tue Mar 17 00:59:59 2015
+                SHA1 hash: 73EB077A0500A86B80F2803304EE618230E33135
+
+    The signature is timestamped: Tue Feb 04 16:24:48 2014
     Timestamp Verified by:
         Issued to: Thawte Timestamping CA
         Issued by: Thawte Timestamping CA
@@ -290,7 +352,7 @@ This should output something like:
                 Expires:   Wed Dec 30 00:59:59 2020
                 SHA1 hash: 65439929B67973EB192D6FF243E6767ADF0834E4
 
-    Successfully verified: dist\nuxeo-drive-1.3.0127-win32.msi
+    Successfully verified: dist\nuxeo-drive-1.3.0204-win32.msi
 
     Number of files successfully Verified: 1
     Number of warnings: 0
