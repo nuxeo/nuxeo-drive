@@ -49,30 +49,28 @@ def default_nuxeo_drive_folder():
 
     This folder is user specific, typically under the home folder.
     """
+    if sys.platform == "win32":
+        from win32com.shell import shell, shellcon
+        my_documents = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL,
+                                             None, 0)
+        if os.path.exists(my_documents):
+            nuxeo_drive_folder = os.path.join(my_documents, u'Nuxeo Drive')
+            log.debug("Will use '%s' as Nuxeo Drive folder location"
+                      " under Windows", nuxeo_drive_folder)
+            return nuxeo_drive_folder
+
+    # Fallback to home folder otherwise
     # We need to decode the path returned by os.path.expanduser with the
     # local encoding because the value of the HOME environment variable is
     # read as a byte string. Using os.path.expanduser(u'~') fails if the home
     # path contains non ASCII characters since Unicode coercion attempts to
     # decode the byte string as an ASCII string.
-    if sys.platform == "win32":
-        # WARNING: it's important to check `Documents` first as under Windows 7
-        # there also exists a `My Documents` folder invisible in the explorer
-        # and cmd / powershell but visible from Python
-        documents = os.path.expanduser(r'~\Documents')
-        documents = unicode(documents.decode(ENCODING))
-        my_documents = os.path.expanduser(r'~\My Documents')
-        my_documents = unicode(my_documents.decode(ENCODING))
-        if os.path.exists(documents):
-            # Regular location for documents under Windows 7 and up
-            return os.path.join(documents, u'Nuxeo Drive')
-        elif os.path.exists(my_documents):
-            # Compat for Windows XP
-            return os.path.join(my_documents, u'Nuxeo Drive')
-
-    # Fallback to home folder otherwise
     user_home = os.path.expanduser('~')
     user_home = unicode(user_home.decode(ENCODING))
-    return os.path.join(user_home, u'Nuxeo Drive')
+    nuxeo_drive_folder = os.path.join(user_home, u'Nuxeo Drive')
+    log.debug("Will use '%s' as Nuxeo Drive folder location",
+              nuxeo_drive_folder)
+    return nuxeo_drive_folder
 
 
 class ServerBindingSettings(object):
