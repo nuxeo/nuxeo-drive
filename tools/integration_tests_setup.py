@@ -308,7 +308,7 @@ def clean_home_folder(dir=None):
 
 
 def run_tests_from_source():
-    execute("cd nuxeo-drive-client && nosetests")
+    execute("cd nuxeo-drive-client && nosetests -v")
 
 
 def download_package(url, pattern, target_folder):
