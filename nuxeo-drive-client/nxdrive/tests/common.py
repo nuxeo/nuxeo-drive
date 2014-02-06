@@ -10,6 +10,18 @@ from nxdrive.model import LastKnownState
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.controller import Controller
+from nxdrive.logging_config import configure
+
+
+def configure_logger():
+    configure(
+        file_level='DEBUG',
+        console_level='DEBUG',
+        command_name='test',
+    )
+
+# Configure test logger
+configure_logger()
 
 
 class IntegrationTestCase(unittest.TestCase):
