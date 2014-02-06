@@ -408,18 +408,18 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
                 opener.open(urllib2.Request(test_url))
             return True
         except socket.timeout:
-            return handle_error(timeout_msg, dialog, tab_index=1, debug=True)
+            return handle_error(timeout_msg, dialog, tab_index=1)
         except urllib2.HTTPError as e:
             msg = "HTTP error %d" % e.code
             if hasattr(e, 'msg'):
                 msg = msg + ": " + e.msg
-            return handle_error(msg, dialog, tab_index=1, debug=True)
+            return handle_error(msg, dialog, tab_index=1)
         except Exception as e:
             if hasattr(e, 'msg'):
                 msg = e.msg
             else:
                 msg = "Unable to connect to proxy server."
-            return handle_error(msg, dialog, tab_index=1, debug=True)
+            return handle_error(msg, dialog, tab_index=1)
 
     def get_proxy_settings(values):
         return ProxySettings(config=str(values['proxy_config']),
@@ -458,7 +458,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
                                    password)
             return True
         except Unauthorized:
-            return handle_error("Invalid credentials.", dialog)
+            return handle_error("Invalid credentials.", dialog, exc_info=False)
         except socket.timeout:
             return handle_error(timeout_msg, dialog)
         except (OSError, WindowsError) as e:
@@ -474,11 +474,10 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
                 msg = e.msg
             else:
                 msg = "Unable to connect to " + url
-            return handle_error(msg, dialog, debug=True)
+            return handle_error(msg, dialog)
 
-    def handle_error(msg, dialog, tab_index=0, debug=False):
-        if debug:
-            log.debug(msg, exc_info=True)
+    def handle_error(msg, dialog, tab_index=0, exc_info=True):
+        log.debug(msg, exc_info=exc_info)
         dialog.show_message(msg, tab_index=tab_index)
         return False
 
