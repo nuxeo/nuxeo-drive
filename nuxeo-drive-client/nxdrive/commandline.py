@@ -291,7 +291,8 @@ class CliHandler(object):
                 options.nxdrive_home, 'logs', 'nxdrive.log')
 
         configure(
-            filename,
+            use_file_handler=True,
+            log_filename=filename,
             file_level=options.log_level_file,
             console_level=options.log_level_console,
             command_name=options.command,
