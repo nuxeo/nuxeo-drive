@@ -304,12 +304,13 @@ class CliHandler(object):
         # 'start' is the default command if None is provided
         command = options.command = getattr(options, 'command', 'launch')
 
-        # Configure the logging framework
-        self._configure_logger(options)
-
-        # Initialize a controller for this process, except for the tests
-        # as they initialize their own
         if command != 'test':
+            # Configure the logging framework, except for the tests as they
+            # configure their own
+            self._configure_logger(options)
+
+            # Initialize a controller for this process, except for the tests
+            # as they initialize their own
             self.controller = Controller(options.nxdrive_home,
                                 handshake_timeout=options.handshake_timeout,
                                 timeout=options.timeout)
@@ -323,7 +324,9 @@ class CliHandler(object):
         self.log = get_logger(__name__)
         self.log.debug("Command line: " + ' '.join(argv))
 
-        self._install_faulthandler(options)
+        if command != 'test':
+            # Install utility to help debugging segmentation faults
+            self._install_faulthandler(options)
 
         if command == 'launch':
             # Ensure that the protocol handler are registered:
