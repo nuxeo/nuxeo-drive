@@ -536,7 +536,7 @@ class Controller(object):
     def _make_local_folder(self, local_folder):
         if not os.path.exists(local_folder):
             os.makedirs(local_folder)
-        self.register_folder_link(local_folder)
+            self.register_folder_link(local_folder)
 
     def unbind_server(self, local_folder):
         """Remove the binding to a Nuxeo server
