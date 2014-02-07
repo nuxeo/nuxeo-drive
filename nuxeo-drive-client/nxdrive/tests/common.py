@@ -4,11 +4,13 @@ import unittest
 import tempfile
 import hashlib
 import shutil
+import time
 
 from nxdrive.utils import safe_long_path
 from nxdrive.model import LastKnownState
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
+from nxdrive.client import LocalClient
 from nxdrive.controller import Controller
 from nxdrive.logging_config import configure
 
@@ -190,6 +192,25 @@ class IntegrationTestCase(unittest.TestCase):
         remote_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
         remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
+
+    def init_default_drive(self):
+        # Bind the server and root workspace
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+
+        # Launch first synchronization
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn = ctl.synchronizer
+        syn.loop(delay=0.1, max_loops=1)
+
+        # Get local and remote clients
+        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
+                                         self.workspace_title))
+        remote = self.remote_document_client_1
+        return syn, local, remote
 
     def wait(self):
         self.root_remote_client.wait()
