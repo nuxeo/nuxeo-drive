@@ -12,6 +12,7 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
     def setUp(self):
         super(TestIntegrationReinitDatabase, self).setUp()
         self.syn, self.local, self.remote = self.init_default_drive()
+        self.ctl = self.controller_1
         # Make a folder and a file
         self.remote.make_folder('/', 'Test folder')
         self.remote.make_file('/Test folder', 'Test.txt',
@@ -33,6 +34,8 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
             self.assertEquals(row.pair_state, 'synchronized')
 
     def _reinit_database(self):
+        # Close database
+        self.ctl.dispose()
         # Destroy configuration folder
         shutil.rmtree(self.nxdrive_conf_folder_1)
         os.mkdir(self.nxdrive_conf_folder_1)
