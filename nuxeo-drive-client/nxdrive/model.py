@@ -232,9 +232,26 @@ class LastKnownState(Base):
         # Detect heuristically aligned situations
         if (self.local_path is not None and self.remote_ref is not None
             and self.local_state == self.remote_state == 'unknown'):
+            # If folder or same digest consider as synchronized
             if self.folderish or self.local_digest == self.remote_digest:
                 self.local_state = 'synchronized'
                 self.remote_state = 'synchronized'
+            # One file has been modified
+            else:
+                # Local is newer and remote hasn't change since last sync
+                if (self.last_local_updated > self.last_remote_updated
+                    and self.last_remote_updated < self.last_sync_date):
+                    self.local_state = 'modified'
+                    self.remote_state = 'synchronized'
+                # Remote is newer and local hasn't change since last sync
+                elif (self.last_local_updated < self.last_remote_updated
+                    and self.last_local_updated < self.last_sync_date):
+                    self.local_state = 'synchronized'
+                    self.remote_state = 'modified'
+                # Both has changed since last sync : conflict
+                else:
+                    self.local_state = 'modified'
+                    self.remote_state = 'modified'
 
         pair = (self.local_state, self.remote_state)
         pair_state = PAIR_STATES.get(pair, 'unknown')
