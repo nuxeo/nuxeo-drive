@@ -58,6 +58,20 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
         self.wait()
         self.syn.loop(delay=0.1, max_loops=loops)
 
+    def _check_conflict_locally_handled(self):
+        # As a conflict has been raised 2 files should be present locally
+        self.assertEqual(len(self.local.get_children_info("/Test folder")), 2)
+        self.assertEqual(len(self.remote.get_children_info(
+                                            self.test_remote_folder_id)), 1)
+
+    def _check_conflict_locally_and_remotely_handled(self):
+        # End the conflict handling by uploading the second local file to
+        # the server
+        self.assertEqual(len(self.local.get_children_info("/Test folder")), 2)
+        self.assertEqual(len(self.remote.get_children_info(
+                                            self.test_remote_folder_id,
+                                            types=('File', 'Note'))), 2)
+
     def test_synchronize_folderish_and_same_digest(self):
         # Reload sync
         self._synchronize()
@@ -70,11 +84,18 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
                                    'Content has changed')
         # Sync
         self._synchronize()
+        # Check a conflict is detected and handled locally
+        self._check_conflict_locally_handled()
+        # Assert content of the original file has changed
+        self.assertEquals(self.local.get_content('/Test folder/Test.txt'),
+                          'Content has changed',
+                          'Local content should be the same as the remote one')
+        # Sync again
+        self._synchronize(3)
+        # Check a conflict is handled locally and remotely
+        self._check_conflict_locally_and_remotely_handled()
         # Check everything is synchronized
         self._check_states()
-        # Assert content has changed
-        self.assertEquals(self.local.get_content('/Test folder/Test.txt'),
-                          'Content has changed', 'Content should be the same')
 
     def test_synchronize_local_change(self):
         # Modify the local file
@@ -83,11 +104,22 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
                                    'Content has changed')
         # Sync
         self._synchronize()
-        # Check everything is synchronized
-        self._check_states()
+        # Check a conflict is detected and handled locally
+        self._check_conflict_locally_handled()
+        # Assert content of the original file has not changed
+        self.assertEquals(self.local.get_content('/Test folder/Test.txt'),
+                          'This is some content',
+                          'Local content should be the same as the remote one')
+        # Sync again
+        self._synchronize(3)
+        # Check a conflict is handled locally and remotely
+        self._check_conflict_locally_and_remotely_handled()
         # Assert content has changed
         self.assertEquals(self.remote.get_content('/Test folder/Test.txt'),
-                          'Content has changed', 'Content should be the same')
+                          'This is some content',
+                          'Remote content should not have changed')
+        # Check everything is synchronized
+        self._check_states()
 
     def test_synchronize_remote_and_local_change(self):
         # Modify the remote file
@@ -99,14 +131,19 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
                                    'Content has local changed')
         # Sync
         self._synchronize()
-        # As a conflict has been raised 2 files local should be present
-        self.assertEqual(len(self.local.get_children_info("/Test folder")), 2)
-        self.assertEqual(len(self.remote.get_children_info(
-                                            self.test_remote_folder_id)), 1)
-
-        # end the conflict resolution by upload the second local file to server
+        # Check a conflict is detected and handled locally
+        self._check_conflict_locally_handled()
+        # Assert content of the original file has not changed
+        self.assertEquals(self.local.get_content('/Test folder/Test.txt'),
+                          'Content has remote changed',
+                          'Local content should be the same as remote one')
+        # Sync again
         self._synchronize(3)
-        self.assertEqual(len(self.local.get_children_info("/Test folder")), 2)
-        self.assertEqual(len(self.remote.get_children_info(
-                                            self.test_remote_folder_id,
-                                            types=('File', 'Note'))), 2)
+        # Check a conflict is handled locally and remotely
+        self._check_conflict_locally_and_remotely_handled()
+        # Assert content has changed
+        self.assertEquals(self.local.get_content('/Test folder/Test.txt'),
+                        'Content has remote changed',
+                        'Remote changed content should not have changed again')
+        # Check everything is synchronized
+        self._check_states()
