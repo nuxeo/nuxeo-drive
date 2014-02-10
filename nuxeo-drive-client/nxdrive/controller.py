@@ -129,8 +129,9 @@ class Controller(object):
     # Used for FS synchronization operations
     remote_fs_client_factory = RemoteFileSystemClient
 
-    def __init__(self, config_folder, echo=None, poolclass=None,
-                 handshake_timeout=60, timeout=20, page_size=None):
+    def __init__(self, config_folder, echo=False, echo_pool=False,
+                 poolclass=None, handshake_timeout=60, timeout=20,
+                 page_size=None):
         # Log the installation location for debug
         nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
         nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
@@ -143,7 +144,7 @@ class Controller(object):
             os.makedirs(self.config_folder)
         log.debug("nxdrive configured in '%s'", self.config_folder)
 
-        if echo is None:
+        if not echo:
             echo = os.environ.get('NX_DRIVE_LOG_SQL', None) is not None
         self.handshake_timeout = handshake_timeout
         self.timeout = timeout
@@ -151,7 +152,8 @@ class Controller(object):
         # Handle connection to the local Nuxeo Drive configuration and
         # metadata SQLite database.
         self._engine, self._session_maker = init_db(
-            self.config_folder, echo=echo, poolclass=poolclass)
+            self.config_folder, echo=echo, echo_pool=echo_pool,
+            poolclass=poolclass)
 
         # Migrate SQLite database if needed
         migrate_db(self._engine)
