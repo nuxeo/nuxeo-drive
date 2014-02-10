@@ -1,6 +1,7 @@
 import os
 import uuid
 import itertools
+import logging
 from datetime import datetime
 from time import time
 from sqlalchemy import Column
@@ -530,7 +531,8 @@ class FileEvent(Base):
             utc_time = datetime.utcnow()
 
 
-def init_db(nxdrive_home, echo=False, scoped_sessions=True, poolclass=None):
+def init_db(nxdrive_home, echo=False, echo_pool=False, scoped_sessions=True,
+            poolclass=None):
     """Return an engine and session maker configured for using nxdrive_home
 
     The database is created in nxdrive_home if missing and the tables
@@ -547,8 +549,13 @@ def init_db(nxdrive_home, echo=False, scoped_sessions=True, poolclass=None):
     # SQLite cannot share connections across threads hence it's safer to
     # enforce this at the connection pool level
     poolclass = SingletonThreadPool if poolclass is None else poolclass
-    engine = create_engine('sqlite:///' + dbfile, echo=echo,
-                           poolclass=poolclass)
+    engine = create_engine('sqlite:///' + dbfile, poolclass=poolclass)
+
+    # Configure SQLAlchemy logging
+    if echo:
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+    if echo_pool:
+        logging.getLogger('sqlalchemy.pool').setLevel(logging.DEBUG)
 
     # Ensure that the tables are properly initialized
     Base.metadata.create_all(engine)

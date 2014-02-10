@@ -78,11 +78,12 @@ class IntegrationTestCase(unittest.TestCase):
             self.local_test_folder_2, u'nuxeo-drive-conf')
         os.mkdir(self.nxdrive_conf_folder_2)
 
-        # Set echo to True to enable SQL statements logging
+        # Set echo to True to enable SQL statements and transactions logging
+        # and echo_pool to True to enable connection pool logging
         self.controller_1 = Controller(self.nxdrive_conf_folder_1,
-                                       echo=False)
+                                       echo=False, echo_pool=False)
         self.controller_2 = Controller(self.nxdrive_conf_folder_2,
-                                       echo=False)
+                                       echo=False, echo_pool=False)
         self.version = self.controller_1.get_version()
 
         # Long timeout for the root client that is responsible for the test
