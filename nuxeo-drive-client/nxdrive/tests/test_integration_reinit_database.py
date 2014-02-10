@@ -28,6 +28,13 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
         # Destroy database
         self._reinit_database()
 
+    def tearDown(self):
+        # Dispose dedicated Controller instantiated for this test
+        # in _reinit_database()
+        self.ctl.dispose()
+
+        super(TestIntegrationReinitDatabase, self).tearDown()
+
     def _check_states(self):
         rows = self.controller_1.get_session().query(LastKnownState).all()
         for row in rows:
