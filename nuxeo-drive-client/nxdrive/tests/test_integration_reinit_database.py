@@ -78,6 +78,7 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
 
     def test_synchronize_local_change(self):
         # Modify the local file
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         self.local.update_content('/Test folder/Test.txt',
                                    'Content has changed')
         # Sync
@@ -89,10 +90,11 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
                           'Content has changed', 'Content should be the same')
 
     def test_synchronize_remote_and_local_change(self):
-                # Modify the remote file
+        # Modify the remote file
         self.remote.update_content('/Test folder/Test.txt',
                                    'Content has remote changed')
         # Modify the local file
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         self.local.update_content('/Test folder/Test.txt',
                                    'Content has local changed')
         # Sync
