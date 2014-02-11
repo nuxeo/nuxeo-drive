@@ -270,7 +270,7 @@ they simply won't be able to launch the application!
 
 For a full documentation on application signing see:
 
-  https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/digital_signature.md
+  https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/doc/digital_signature.md
 
 Under Windows
 ~~~~~~~~~~~~~
@@ -302,7 +302,7 @@ Updating the data model
 
 If you need to change the `data model <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/nxdrive/model.py>`_
 the SQLite database needs to be migrated. This is handled by the embedded `alembic <https://bitbucket.org/zzzeek/alembic/>`_ tool.
-Please follow the `related instructions <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/alembic/README.md>`_.
+Please follow the `related instructions <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/doc/Alembic.md>`_.
 
 Alembic full documentation is at:
 
@@ -313,5 +313,5 @@ Manual initialization
 ---------------------
 
 If you need to manually initialize Nuxeo Drive, for example to preset the Nuxeo server URL and proxy configuration before launching Nuxeo Drive the first time (useful for mass deployment),
-please follow the `related instructions <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/manual_init.md>`_.
+please follow the `related instructions <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/doc/manual_init.md>`_.
 
