@@ -914,7 +914,7 @@ class Synchronizer(object):
         log.debug("Detected inconsistent doc pair %r, deleting it hoping the"
                   " synchronizer will fix this case at next iteration",
                   doc_pair)
-        session.delele(doc_pair)
+        session.delete(doc_pair)
         if doc_pair.local_path is not None:
             log.debug("Since the local path is not None: %s, the synchronizer"
                       " will probably consider this as a local creation at"
