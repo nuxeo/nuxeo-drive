@@ -1136,6 +1136,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         syn.loop(delay=0.1, max_loops=1)
         self.assertFalse(remote.exists('/Local folder'))
+        # Wait for async completion as recursive deletion of children is done
+        # by the BulkLifeCycleChangeListener which is asynchronous
+        self.wait()
         self.assertFalse(remote.exists('/Local folder/Local file 1.odt'))
         self.assertFalse(remote.exists('/Local folder/Local file 2.odt'))
 
