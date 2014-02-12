@@ -325,7 +325,7 @@ class LastKnownState(Base):
         if local_info is None:
             if self.local_state in ('unknown', 'created', 'modified',
                                     'synchronized'):
-                # the file use to exist, it has been deleted
+                # the file used to exist, it has been deleted
                 self.update_state(local_state='deleted')
             return
 
