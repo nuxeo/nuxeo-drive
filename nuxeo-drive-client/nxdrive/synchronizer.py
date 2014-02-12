@@ -902,6 +902,28 @@ class Synchronizer(object):
             self._synchronize_remotely_created(doc_pair, session,
                 local_client, remote_client, local_info, remote_info)
 
+    def _synchronize_unknown_deleted(self, doc_pair, session,
+        local_client, remote_client, local_info, remote_info):
+        # Somehow a pair can get to an inconsistent state:
+        # <local_state=u'unknown', remote_state=u'deleted',
+        # pair_state=u'unknown'>
+        # Even though we are not able to figure out how this can happen we
+        # need to handle this case to put the database back to a consistent
+        # state.
+        # This is tracked by https://jira.nuxeo.com/browse/NXP-13216
+        log.debug("Detected inconsistent doc pair %r, deleting it hoping the"
+                  " synchronizer will fix this case at next iteration",
+                  doc_pair)
+        session.delele(doc_pair)
+        if doc_pair.local_path is not None:
+            log.debug("Since the local path is not None: %s, the synchronizer"
+                      " will probably consider this as a local creation at"
+                      " next iteration and create the file or folder remotely",
+                      doc_pair.local_path)
+        else:
+            log.debug("Since the local path is None the synchronizer will"
+                      " probably do nothing at next iteration")
+
     def _detect_local_move_or_rename(self, doc_pair, session,
         local_client, local_info):
         """Find local move or renaming events by introspecting the states
