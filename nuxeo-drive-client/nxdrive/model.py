@@ -68,6 +68,9 @@ PAIR_STATES = {
     # conflict cases that need manual resolution
     ('modified', 'modified'): 'conflicted',
     ('created', 'created'): 'conflicted',
+
+    # inconsistent cases
+    ('unknown', 'deleted'): 'unknown_deleted',
 }
 
 
