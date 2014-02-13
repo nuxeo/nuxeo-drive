@@ -27,8 +27,9 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         first_timestamp = summary['syncDate']
         self.assertTrue(first_timestamp > 0)
 
-        time.sleep(1.0)
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         summary = self.get_changes()
+
         self.assertEquals(summary['hasTooManyChanges'], False)
         self.assertEquals(summary['fileSystemChanges'], [])
         self.assertEquals(summary['activeSynchronizationRootDefinitions'], '')
@@ -41,9 +42,10 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         folder_1 = remote_client.make_folder(self.workspace, 'Folder 1')
         folder_2 = remote_client.make_folder(self.workspace, 'Folder 2')
         remote_client.make_folder(folder_2, 'Folder 2.2')
-        time.sleep(1.0)
 
         # Fetch an initial time stamp without any registered roots
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         summary = self.get_changes()
         self.assertEquals(summary['hasTooManyChanges'], False)
         self.assertEquals(summary['activeSynchronizationRootDefinitions'], '')
@@ -55,10 +57,10 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, folder_1)
 
-        # Would it be this possible to change the service to avoid
-        # having to put this sleep here?
-        time.sleep(1.0)
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         summary = self.get_changes()
+
         self.assertEquals(summary['hasTooManyChanges'], False)
         root_defs = summary['activeSynchronizationRootDefinitions'].split(',')
         self.assertEquals(len(root_defs), 1)
@@ -71,8 +73,11 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
 
         # Let's register the second root
         ctl.bind_root(self.local_nxdrive_folder_1, folder_2)
-        time.sleep(1.0)
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         summary = self.get_changes()
+
         self.assertEquals(summary['hasTooManyChanges'], False)
         root_defs = summary['activeSynchronizationRootDefinitions'].split(',')
         self.assertEquals(len(root_defs), 2)
@@ -96,8 +101,11 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         # Let's unregister both roots at the same time
         ctl.unbind_root(self.local_nxdrive_folder_1, folder_1)
         ctl.unbind_root(self.local_nxdrive_folder_1, folder_2)
-        time.sleep(1.0)
+
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         summary = self.get_changes()
+
         self.assertEquals(summary['hasTooManyChanges'], False)
         raw_root_defs = summary['activeSynchronizationRootDefinitions']
         self.assertEquals(raw_root_defs, '')
