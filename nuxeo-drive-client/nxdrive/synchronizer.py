@@ -4,6 +4,7 @@ import os.path
 from time import time
 from time import sleep
 from datetime import datetime
+from threading import Thread
 import urllib2
 import socket
 import httplib
@@ -144,6 +145,24 @@ def find_first_name_match(name, possible_pairs):
             if name_match(name, pair.remote_name):
                 return pair
     return None
+
+
+class SynchronizerThread(Thread):
+    """Wrapper thread running the synchronization loop"""
+
+    def __init__(self, controller, kwargs=None):
+        Thread.__init__(self)
+        self.controller = controller
+        if kwargs is None:
+            kwargs = {}
+        self.kwargs = kwargs
+
+    def run(self):
+        # Log uncaught exceptions in the synchronization loop and die
+        try:
+            self.controller.synchronizer.loop(sync_thread=self, **self.kwargs)
+        except Exception, e:
+            log.error("Error in synchronization thread: %s", e, exc_info=True)
 
 
 class Synchronizer(object):
@@ -1220,7 +1239,8 @@ class Synchronizer(object):
             return True
         return False
 
-    def loop(self, max_loops=None, delay=None, max_sync_step=None):
+    def loop(self, max_loops=None, delay=None, max_sync_step=None,
+             sync_thread=None):
         """Forever loop to scan / refresh states and perform sync"""
 
         delay = delay if delay is not None else self.delay
