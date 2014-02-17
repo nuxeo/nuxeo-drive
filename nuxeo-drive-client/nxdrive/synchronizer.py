@@ -1351,8 +1351,8 @@ class Synchronizer(object):
             log.warning("Failed to remove stalled pid file: %s"
                         " for stopped process %d: %r", pid_filepath, pid, e)
 
-        # Notify UI frontend to take synchronization stop into account and
-        # potentially quit the app
+        # Notify UI front end to take synchronization stop into account and
+        # potentially quit the application
         if self._frontend is not None:
             self._frontend.notify_sync_stopped()
 
