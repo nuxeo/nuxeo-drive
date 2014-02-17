@@ -229,8 +229,8 @@ class Application(QApplication):
         if refresh:
             log.debug(u'Detected changes in the list of local folders: %s',
                       u", ".join(local_folders))
-            self.communicator.menu.emit()
             self.update_running_icon()
+            self.communicator.menu.emit()
 
     def get_binding_info(self, server_binding):
         local_folder = server_binding.local_folder
