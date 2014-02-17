@@ -508,3 +508,4 @@ if __name__ == '__main__':
     proxy_settings = ProxySettings()
     version = ctl.get_version()
     print prompt_settings(ctl, sb_settings, proxy_settings, version)
+    ctl.dispose()

@@ -1289,6 +1289,11 @@ class Synchronizer(object):
         except:
             self.get_session().rollback()
             raise
+        finally:
+            # Close thread-local Session
+            log.debug("Calling Controller.dispose() from Synchronizer to close"
+                      " thread-local Session")
+            self._controller.dispose()
 
         # Clean pid file
         pid_filepath = self._get_sync_pid_filepath()

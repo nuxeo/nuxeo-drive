@@ -171,8 +171,12 @@ class Application(QApplication):
 
     @QtCore.pyqtSlot()
     def handle_stop(self):
-        if self.quit_on_stop:
-            self.quit()
+        log.debug('Quitting Nuxeo Drive')
+        # Close thread-local Session
+        log.debug("Calling Controller.dispose() from Qt Application to close"
+                  " thread-local Session")
+        self.controller.dispose()
+        self.quit()
 
     def update_running_icon(self):
         if self.state not in ['enabled', 'transferring']:
