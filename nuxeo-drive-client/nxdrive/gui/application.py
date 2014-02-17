@@ -2,7 +2,7 @@
 
 import os
 import time
-from threading import Thread
+from nxdrive.synchronizer import SynchronizerThread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.resources import find_icon
@@ -507,8 +507,9 @@ class Application(QApplication):
             self.controller.synchronizer.delay = delay
             self.controller.synchronizer.max_sync_step = max_sync_step
 
-            self.sync_thread = Thread(target=sync_loop,
-                                      args=(self.controller,))
+            self.sync_thread = SynchronizerThread(self.controller)
+            log.info("Starting new synchronization Thread: %r"
+                   % self.sync_thread)
             self.sync_thread.start()
 
     def event(self, event):
@@ -529,11 +530,3 @@ class Application(QApplication):
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)
         return super(Application, self).event(event)
-
-
-def sync_loop(controller, **kwargs):
-    """Wrapper to log uncaught exception in the sync thread"""
-    try:
-        controller.synchronizer.loop(**kwargs)
-    except Exception, e:
-        log.error("Error in synchronization thread: %s", e, exc_info=True)
