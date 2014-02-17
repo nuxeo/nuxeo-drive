@@ -972,6 +972,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
+        # Re-fetch folder state as sync loop closes the Session
+        readonly_folder_state = session.query(LastKnownState).filter_by(
+            local_name=u'Readonly folder').one()
         self.assertTrue(readonly_folder_state.remote_can_create_child)
 
         # Set remote folder as readonly for test user
@@ -987,6 +990,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
+        # Re-fetch folder state as sync loop closes the Session
+        readonly_folder_state = session.query(LastKnownState).filter_by(
+            local_name=u'Readonly folder').one()
         self.assertFalse(readonly_folder_state.remote_can_create_child)
 
         # Try to create a local file and folder in the readonly folder,

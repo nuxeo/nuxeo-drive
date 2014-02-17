@@ -14,10 +14,6 @@ class TestIntegrationVersioning(IntegrationTestCase):
             self.nuxeo_url, self.user_1, self.password_1)
         self.controller_2.bind_server(self.local_nxdrive_folder_2,
             self.nuxeo_url, self.user_2, self.password_2)
-        self.sb_1 = self.controller_1.get_server_binding(
-            self.local_nxdrive_folder_1)
-        self.sb_2 = self.controller_2.get_server_binding(
-            self.local_nxdrive_folder_2)
         self.controller_1.bind_root(self.local_nxdrive_folder_1,
             self.workspace)
         self.controller_2.bind_root(self.local_nxdrive_folder_2,
@@ -27,6 +23,12 @@ class TestIntegrationVersioning(IntegrationTestCase):
         self.syn_2 = self.controller_2.synchronizer
         self.syn_1.loop(delay=0.010, max_loops=1)
         self.syn_2.loop(delay=0.010, max_loops=1)
+
+        # Fetch server bindings after sync loop as it closes the Session
+        self.sb_1 = self.controller_1.get_server_binding(
+            self.local_nxdrive_folder_1)
+        self.sb_2 = self.controller_2.get_server_binding(
+            self.local_nxdrive_folder_2)
 
         self.remote_client_1 = self.remote_document_client_1
         self.remote_client_2 = self.remote_document_client_2
