@@ -240,7 +240,9 @@ class Application(QApplication):
 
     def notify_sync_started(self):
         log.debug('Synchronization started')
+        # Update state, icon and menu
         self.state = 'enabled'
+        self.update_running_icon()
         self.communicator.menu.emit()
 
     def notify_sync_suspended(self):
@@ -279,6 +281,7 @@ class Application(QApplication):
             log.debug('Switching to offline mode (reason: %s) for: %s',
                       reason, local_folder)
             info.online = False
+            self.state = 'disabled'
             self.update_running_icon()
             self.communicator.menu.emit()
 
