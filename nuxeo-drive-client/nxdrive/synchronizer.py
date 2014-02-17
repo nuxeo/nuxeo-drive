@@ -5,6 +5,7 @@ from time import time
 from time import sleep
 from datetime import datetime
 from threading import Thread
+from threading import Condition
 import urllib2
 import socket
 import httplib
@@ -156,6 +157,9 @@ class SynchronizerThread(Thread):
         if kwargs is None:
             kwargs = {}
         self.kwargs = kwargs
+        # Lock condition for suspend/resume
+        self.suspend_condition = Condition()
+        self.suspended = False
 
     def run(self):
         # Log uncaught exceptions in the synchronization loop and die
@@ -163,6 +167,17 @@ class SynchronizerThread(Thread):
             self.controller.synchronizer.loop(sync_thread=self, **self.kwargs)
         except Exception, e:
             log.error("Error in synchronization thread: %s", e, exc_info=True)
+
+    def suspend(self):
+        with self.suspend_condition:
+            log.debug('Marking synchronization thread as suspended')
+            self.suspended = True
+
+    def resume(self):
+        with self.suspend_condition:
+            log.debug('Waking up synchronization thread')
+            self.suspended = False
+            self.suspend_condition.notify()
 
 
 class Synchronizer(object):
@@ -1269,6 +1284,19 @@ class Synchronizer(object):
         try:
             while True:
                 n_synchronized = 0
+                # Check if synchronization thread was suspended
+                if sync_thread is not None:
+                    with sync_thread.suspend_condition:
+                        if sync_thread.suspended:
+                            log.info("Suspending synchronization (pid=%d)",
+                                     pid)
+                            # Notify UI front end to take synchronization
+                            # suspension into account
+                            if self._frontend is not None:
+                                self._frontend.notify_sync_suspended()
+                            # Block thread until notified
+                            sync_thread.suspend_condition.wait()
+                # Check if synchronization thread was asked to stop
                 if self.should_stop_synchronization():
                     log.info("Stopping synchronization (pid=%d)", pid)
                     break
