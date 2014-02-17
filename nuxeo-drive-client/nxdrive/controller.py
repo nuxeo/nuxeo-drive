@@ -777,9 +777,32 @@ class Controller(object):
         self._remote_error = error
 
     def dispose(self):
-        """Release all database resources"""
-        self.get_session().close_all()
-        self._engine.pool.dispose()
+        """Release all database resources used by current thread's Session.
+
+        Close thread-local Session, ending any transaction in progress and
+        releasing underlying connections from the pool.
+
+        Note that releasing all connections from the pool using
+        Session.close_all() or SingletonThreadPool.dispose() is not an option
+        here as the Python SQLite driver pysqlite used by SQLAlchemy doesn't
+        let you close a connection from a thread that didn't create it.
+        In our case at least two threads are involved, the GUI and the
+        synchronization one, so each one needs to close its own Session by
+        calling this function.
+
+        Beware that starting more threads than the pool size (default  is 5)
+        might lead to a ProgrammingError when the
+        SingletonThreadPool._cleanup() gets called, for the reason just
+        mentioned.
+
+        Also note that calling Session.close() never seems to remove the
+        connection object from the pool, even if the thread owning it is dead.
+        """
+        session = self.get_session()
+        log.debug("Closing thread-local Session %r, ending any transaction"
+                  " in progress and releasing underlying connections from"
+                  " the pool", session)
+        session.close()
 
     def _normalize_url(self, url):
         """Ensure that user provided url always has a trailing '/'"""
