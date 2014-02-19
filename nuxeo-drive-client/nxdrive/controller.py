@@ -792,9 +792,8 @@ class Controller(object):
         calling this function.
 
         Beware that starting more threads than the pool size (default  is 5)
-        might lead to a ProgrammingError when the
-        SingletonThreadPool._cleanup() gets called, for the reason just
-        mentioned.
+        might lead to a ProgrammingError when SingletonThreadPool._cleanup()
+        gets called, for the reason just mentioned.
 
         Also note that calling Session.close() never seems to remove the
         connection object from the pool, even if the thread owning it is dead.
