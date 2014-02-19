@@ -4,6 +4,8 @@ import os.path
 from time import time
 from time import sleep
 from datetime import datetime
+from threading import Thread
+from threading import Condition
 import urllib2
 import socket
 import httplib
@@ -144,6 +146,38 @@ def find_first_name_match(name, possible_pairs):
             if name_match(name, pair.remote_name):
                 return pair
     return None
+
+
+class SynchronizerThread(Thread):
+    """Wrapper thread running the synchronization loop"""
+
+    def __init__(self, controller, kwargs=None):
+        Thread.__init__(self)
+        self.controller = controller
+        if kwargs is None:
+            kwargs = {}
+        self.kwargs = kwargs
+        # Lock condition for suspend/resume
+        self.suspend_condition = Condition()
+        self.suspended = False
+
+    def run(self):
+        # Log uncaught exceptions in the synchronization loop and die
+        try:
+            self.controller.synchronizer.loop(sync_thread=self, **self.kwargs)
+        except Exception, e:
+            log.error("Error in synchronization thread: %s", e, exc_info=True)
+
+    def suspend(self):
+        with self.suspend_condition:
+            log.debug('Marking synchronization thread as suspended')
+            self.suspended = True
+
+    def resume(self):
+        with self.suspend_condition:
+            log.debug('Waking up synchronization thread')
+            self.suspended = False
+            self.suspend_condition.notify()
 
 
 class Synchronizer(object):
@@ -1220,7 +1254,8 @@ class Synchronizer(object):
             return True
         return False
 
-    def loop(self, max_loops=None, delay=None, max_sync_step=None):
+    def loop(self, max_loops=None, delay=None, max_sync_step=None,
+             sync_thread=None):
         """Forever loop to scan / refresh states and perform sync"""
 
         delay = delay if delay is not None else self.delay
@@ -1249,6 +1284,19 @@ class Synchronizer(object):
         try:
             while True:
                 n_synchronized = 0
+                # Check if synchronization thread was suspended
+                if sync_thread is not None:
+                    with sync_thread.suspend_condition:
+                        if sync_thread.suspended:
+                            log.info("Suspending synchronization (pid=%d)",
+                                     pid)
+                            # Notify UI front end to take synchronization
+                            # suspension into account
+                            if self._frontend is not None:
+                                self._frontend.notify_sync_suspended()
+                            # Block thread until notified
+                            sync_thread.suspend_condition.wait()
+                # Check if synchronization thread was asked to stop
                 if self.should_stop_synchronization():
                     log.info("Stopping synchronization (pid=%d)", pid)
                     break
@@ -1289,6 +1337,11 @@ class Synchronizer(object):
         except:
             self.get_session().rollback()
             raise
+        finally:
+            # Close thread-local Session
+            log.debug("Calling Controller.dispose() from Synchronizer to close"
+                      " thread-local Session")
+            self._controller.dispose()
 
         # Clean pid file
         pid_filepath = self._get_sync_pid_filepath()
@@ -1298,8 +1351,8 @@ class Synchronizer(object):
             log.warning("Failed to remove stalled pid file: %s"
                         " for stopped process %d: %r", pid_filepath, pid, e)
 
-        # Notify UI frontend to take synchronization stop into account and
-        # potentially quit the app
+        # Notify UI front end to take synchronization stop into account and
+        # potentially quit the application
         if self._frontend is not None:
             self._frontend.notify_sync_stopped()
 

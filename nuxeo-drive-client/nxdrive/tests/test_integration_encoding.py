@@ -13,11 +13,13 @@ class TestIntegrationEncoding(IntegrationTestCase):
         self.ctl = self.controller_1
         self.ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
             self.user_1, self.password_1)
-        self.sb = self.ctl.get_server_binding(self.local_nxdrive_folder_1)
         self.ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         self.syn = self.ctl.synchronizer
         self.syn.loop(delay=0.010, max_loops=1)
+
+        # Fetch server binding after sync loop as it closes the Session
+        self.sb = self.ctl.get_server_binding(self.local_nxdrive_folder_1)
 
         self.remote_client = self.remote_document_client_1
         sync_root_folder = os.path.join(self.local_nxdrive_folder_1,

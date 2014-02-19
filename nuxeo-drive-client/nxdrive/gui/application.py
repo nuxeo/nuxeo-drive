@@ -2,7 +2,7 @@
 
 import os
 import time
-from threading import Thread
+from nxdrive.synchronizer import SynchronizerThread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.resources import find_icon
@@ -105,7 +105,6 @@ class Application(QApplication):
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
         self.state = 'paused'
-        self.quit_on_stop = False
         self._setup_systray()
         self.tray_icon_menu = QtGui.QMenu()
         self.binding_info = {}
@@ -156,23 +155,54 @@ class Application(QApplication):
         self._tray_icon.setIcon(QtGui.QIcon(icon))
         self.icon_spin_count = (self.icon_spin_count + 1) % 10
 
-    def action_quit(self):
-        self.communicator.icon.emit('stopping')
-        self.state = 'stopping'
-        self.quit_on_stop = True
-        self.communicator.menu.emit()
-        if self.sync_thread is not None and self.sync_thread.isAlive():
-            # Ask the controller to stop: the synchronization loop will in turn
-            # call notify_sync_stopped and finally handle_stop
-            self.controller.stop()
+    def suspend_resume(self):
+        if self.state != 'paused':
+            # Suspend sync
+            if self.sync_thread is not None and self.sync_thread.isAlive():
+                # A sync thread is active, first update state, icon and menu
+                self.state = 'suspending'
+                self.update_running_icon()
+                self.communicator.menu.emit()
+                # Suspend the synchronizer thread: it will call
+                # notify_sync_suspended() then go to sleep until it gets
+                # woken up by a call to resume().
+                self.sync_thread.suspend()
+            else:
+                log.debug('No active synchronization thread, suspending sync'
+                          ' has no effect, keeping current state: %s',
+                          self.state)
         else:
-            # quit directly
-            self.quit()
+            # Update state, icon and menu
+            self.state = 'enabled'
+            self.update_running_icon()
+            self.communicator.menu.emit()
+            # Resume sync
+            self.sync_thread.resume()
+
+    def action_quit(self):
+        if self.sync_thread is not None and self.sync_thread.isAlive():
+            # A sync thread is active, first update state, icon and menu
+            self.state = 'stopping'
+            self.update_running_icon()
+            self.communicator.menu.emit()
+            # Ask the controller to stop: the synchronization loop will break
+            # and call notify_sync_stopped() which will finally emit a signal
+            # to handle_stop() to quit the application.
+            self.controller.stop()
+            # Wake up synchronization thread in case it was asleep
+            self.sync_thread.resume()
+        else:
+            # Quit directly
+            self.handle_stop()
 
     @QtCore.pyqtSlot()
     def handle_stop(self):
-        if self.quit_on_stop:
-            self.quit()
+        log.debug('Quitting Nuxeo Drive')
+        # Close thread-local Session
+        log.debug("Calling Controller.dispose() from Qt Application to close"
+                  " thread-local Session")
+        self.controller.dispose()
+        self.quit()
 
     def update_running_icon(self):
         if self.state not in ['enabled', 'transferring']:
@@ -199,8 +229,8 @@ class Application(QApplication):
         if refresh:
             log.debug(u'Detected changes in the list of local folders: %s',
                       u", ".join(local_folders))
-            self.communicator.menu.emit()
             self.update_running_icon()
+            self.communicator.menu.emit()
 
     def get_binding_info(self, server_binding):
         local_folder = server_binding.local_folder
@@ -210,16 +240,22 @@ class Application(QApplication):
 
     def notify_sync_started(self):
         log.debug('Synchronization started')
+        # Update state, icon and menu
         self.state = 'enabled'
-        self.communicator.menu.emit()
         self.update_running_icon()
+        self.communicator.menu.emit()
+
+    def notify_sync_suspended(self):
+        log.debug('Synchronization suspended')
+        # Update state, icon and menu
+        self.state = 'paused'
+        self.update_running_icon()
+        self.communicator.menu.emit()
 
     def notify_sync_stopped(self):
         log.debug('Synchronization stopped')
-        self.state = 'paused'
         self.sync_thread = None
-        self.update_running_icon()
-        self.communicator.menu.emit()
+        # Send stop signal
         self.communicator.stop.emit()
 
     def notify_online(self, server_binding):
@@ -245,6 +281,7 @@ class Application(QApplication):
             log.debug('Switching to offline mode (reason: %s) for: %s',
                       reason, local_folder)
             info.online = False
+            self.state = 'disabled'
             self.update_running_icon()
             self.communicator.menu.emit()
 
@@ -303,12 +340,17 @@ class Application(QApplication):
     @QtCore.pyqtSlot()
     def update_menu(self):
         # TODO: i18n action labels
-        settings_action = self.global_menu_actions.get('settings')
 
-        # Handle global status message
+        server_bindings = self.controller.list_server_bindings()
+        # Global actions
         global_status_action = self.global_menu_actions.get('global_status')
         global_status_sep = self.global_menu_actions.get('global_status_sep')
-        if not self.controller.list_server_bindings():
+        settings_action = self.global_menu_actions.get('settings')
+        suspend_resume_action = self.global_menu_actions.get('suspend_resume')
+        quit_action = self.global_menu_actions.get('quit')
+
+        # Handle global status message
+        if not server_bindings:
             # Add global status action if needed
             if global_status_action is None:
                 global_status_action = QtGui.QAction(
@@ -336,7 +378,7 @@ class Application(QApplication):
 
         obsolete_binding_local_folders = self.binding_menu_actions.keys()
         # Add or update server binding actions
-        for sb in self.controller.list_server_bindings():
+        for sb in server_bindings:
             if sb.local_folder in obsolete_binding_local_folders:
                 obsolete_binding_local_folders.remove(sb.local_folder)
             binding_info = self.get_binding_info(sb)
@@ -435,23 +477,47 @@ class Application(QApplication):
             self.global_menu_actions['settings'] = settings_action
             self.tray_icon_menu.addSeparator()
 
-        # TODO: add pause action if in running state
-        # TODO: add start action if in paused state
+        # Suspend / resume
+        if server_bindings:
+            if suspend_resume_action is None:
+                suspend_resume_action = QtGui.QAction(
+                                        "Suspend synchronization",
+                                        self.tray_icon_menu,
+                                        triggered=self.suspend_resume)
+                self._insert_menu_action(suspend_resume_action,
+                                         before_action=settings_action)
+                self.global_menu_actions['suspend_resume'] = (
+                                                        suspend_resume_action)
+            else:
+                if self.state == 'suspending':
+                    suspend_resume_action.setText(
+                                            'Suspending synchronization...')
+                    # Disable suspend_resume and quit actions when suspending
+                    suspend_resume_action.setEnabled(False)
+                    if quit_action is not None:
+                        quit_action.setEnabled(False)
+                elif self.state == 'paused':
+                    suspend_resume_action.setText('Resume synchronization')
+                    # Enable suspend_resume and quit actions when paused
+                    suspend_resume_action.setEnabled(True)
+                    if quit_action is not None:
+                        quit_action.setEnabled(True)
+                else:
+                    suspend_resume_action.setText('Suspend synchronization')
 
         # Quit
-        quit_action = self.global_menu_actions.get('quit')
         if quit_action is None:
             quit_action = QtGui.QAction("Quit", self.tray_icon_menu,
                                         triggered=self.action_quit)
-            if self.state == 'stopping':
-                quit_action.setEnabled(False)
-                quit_action.setText('Quitting...')
             self.tray_icon_menu.addAction(quit_action)
             self.global_menu_actions['quit'] = quit_action
         else:
             if self.state == 'stopping':
-                quit_action.setEnabled(False)
                 quit_action.setText('Quitting...')
+                # Disable quit and suspend_resume actions when quitting
+                quit_action.setEnabled(False)
+                if suspend_resume_action is not None:
+                    suspend_resume_action.setEnabled(False)
 
     def _insert_menu_action(self, action, before_action=None):
         if before_action is not None:
@@ -497,14 +563,15 @@ class Application(QApplication):
         if self.sync_thread is None or not self.sync_thread.isAlive():
             delay = getattr(self.options, 'delay', 5.0)
             max_sync_step = getattr(self.options, 'max_sync_step', 10)
-            # Controller and its database session pool should be thread safe,
+            # Controller and its database session pool are thread safe,
             # hence reuse it directly
             self.controller.synchronizer.register_frontend(self)
             self.controller.synchronizer.delay = delay
             self.controller.synchronizer.max_sync_step = max_sync_step
 
-            self.sync_thread = Thread(target=sync_loop,
-                                      args=(self.controller,))
+            self.sync_thread = SynchronizerThread(self.controller)
+            log.info("Starting new synchronization Thread: %r"
+                   % self.sync_thread)
             self.sync_thread.start()
 
     def event(self, event):
@@ -525,11 +592,3 @@ class Application(QApplication):
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)
         return super(Application, self).event(event)
-
-
-def sync_loop(controller, **kwargs):
-    """Wrapper to log uncaught exception in the sync thread"""
-    try:
-        controller.synchronizer.loop(**kwargs)
-    except Exception, e:
-        log.error("Error in synchronization thread: %s", e, exc_info=True)
