@@ -777,7 +777,7 @@ class Controller(object):
         self._remote_error = error
 
     def dispose(self):
-        """Release all database resources used by current thread's Session.
+        """Release database resources.
 
         Close thread-local Session, ending any transaction in progress and
         releasing underlying connections from the pool.
@@ -785,7 +785,8 @@ class Controller(object):
         Note that releasing all connections from the pool using
         Session.close_all() or SingletonThreadPool.dispose() is not an option
         here as the Python SQLite driver pysqlite used by SQLAlchemy doesn't
-        let you close a connection from a thread that didn't create it.
+        let you close a connection from a thread that didn't create it (except
+        under Windows, see below).
         In our case at least two threads are involved, the GUI and the
         synchronization one, so each one needs to close its own Session by
         calling this function.
@@ -797,12 +798,26 @@ class Controller(object):
 
         Also note that calling Session.close() never seems to remove the
         connection object from the pool, even if the thread owning it is dead.
+
+        Under Windows we need to release all connections from the pool
+        calling SingletonThreadPool.dispose(), which strangely doesn't raise a
+        ProgrammingError - probably due to a different implementation of the
+        pysqlite driver -, otherwise we might get a WindowsError at tear down
+        in tests using multiple threads when trying to remove the temporary
+        test folder because of it being used by another Python process than the
+        main one...
         """
         session = self.get_session()
         log.debug("Closing thread-local Session %r, ending any transaction"
                   " in progress and releasing underlying connections from"
                   " the pool", session)
         session.close()
+        if sys.platform == 'win32':
+            log.debug("As we are under Windows, dispose connection pool to"
+                      " make sure all connections are closed, avoiding any"
+                      " WindowsError due to a Python process using the"
+                      " database file")
+            self._engine.pool.dispose()
 
     def _normalize_url(self, url):
         """Ensure that user provided url always has a trailing '/'"""
