@@ -171,7 +171,7 @@ First you need to make sure that the brew installed Python will be used when ins
   export PATH=/usr/local/bin:$PATH
 
   #Point OSX to Cellar python
-  export PYTHONPATH=/usr/local/lib/python:$PYTHONPATH
+  export PYTHONPATH=/usr/local/lib/python2.7:$PYTHONPATH
 
 Then install PyQt with Homebrew::
 
@@ -239,7 +239,15 @@ Installing a standalone Python interpreter on Mac OS X
 ------------------------------------------------------
 
 To install a standalone version of Python under OS X you can use `Homebrew
-<http://mxcl.github.com/homebrew/>`_::
+<https://github.com/Homebrew/homebrew>`_.
+
+First you need to install Xcode and its Command Line Tools as they are required for compilation with Homebrew.
+
+Then make sure to update the formulae and Homebrew itself and to upgrade everything::
+
+  brew update && brew upgrade
+
+Finally install Python::
 
   brew install python
 
