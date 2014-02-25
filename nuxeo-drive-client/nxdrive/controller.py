@@ -71,7 +71,7 @@ def default_nuxeo_drive_folder():
             # We noticed that in this case the 'Location' tab is missing in the
             # Properties window of 'My Documents' accessed through the
             # Explorer.
-            # So let's fall back on the a manual (and poor) detection.
+            # So let's fall back on a manual (and poor) detection.
             # WARNING: it's important to check 'Documents' first as under
             # Windows 7 there also exists a 'My Documents' folder invisible in
             # the Explorer and cmd / powershell but visible from Python.
