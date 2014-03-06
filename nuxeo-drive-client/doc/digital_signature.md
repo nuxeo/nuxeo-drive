@@ -192,7 +192,7 @@ To enable or disable assessment, issue one of the following commands.
 ## Windows
 
 We've resumed the main steps in this documentation, mostly inspired from this excellent [stackoverflow post](http://stackoverflow.com/questions/84847/how-do-i-create-a-self-signed-certificate-for-code-signing-on-windows).
-For for more theoretical explanations, see Microsoft's [Introduction to Code Signing](http://msdn.microsoft.com/en-us/library/ie/ms537361%28v=vs.85%29.aspx).
+For more theoretical explanations, see Microsoft's [Introduction to Code Signing](http://msdn.microsoft.com/en-us/library/ie/ms537361%28v=vs.85%29.aspx).
 
 ### Requirements
 
