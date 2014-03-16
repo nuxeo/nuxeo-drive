@@ -740,6 +740,10 @@ class Controller(object):
             repository=repository, base_folder=base_folder,
             timeout=self.timeout, cookie_jar=self.cookie_jar)
 
+    def get_local_client(self, local_folder):
+        """Return a file system client for the given local folder"""
+        return LocalClient(local_folder)
+
     def invalidate_client_cache(self, server_url=None):
         for key in self._client_cache_timestamps:
             if server_url is None or key[0] == server_url:
