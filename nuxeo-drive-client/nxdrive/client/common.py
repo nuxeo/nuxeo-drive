@@ -19,7 +19,8 @@ DEFAULT_IGNORED_SUFFIXES = [
     '.part',  # partially downloaded files
 ]
 
-BUFFER_SIZE = 1024 ** 2
+# Default buffer size for file upload / download and digest computation
+FILE_BUFFER_SIZE = 4096
 
 
 def safe_filename(name, replacement=u'-'):

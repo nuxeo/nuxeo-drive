@@ -14,7 +14,7 @@ from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
-from nxdrive.client.common import BUFFER_SIZE
+from nxdrive.client.common import FILE_BUFFER_SIZE
 
 
 log = get_logger(__name__)
@@ -60,7 +60,7 @@ class FileInfo(object):
         h = digester()
         with open(safe_long_path(self.filepath), 'rb') as f:
             while True:
-                buffer_ = f.read(BUFFER_SIZE)
+                buffer_ = f.read(FILE_BUFFER_SIZE)
                 if buffer_ == '':
                     break
                 h.update(buffer_)
