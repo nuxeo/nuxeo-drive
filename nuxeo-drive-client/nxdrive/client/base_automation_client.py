@@ -14,6 +14,7 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
+from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
@@ -32,8 +33,6 @@ DEVICE_DESCRIPTIONS = {
     'cygwin': 'Windows Desktop',
     'win32': 'Windows Desktop',
 }
-
-DEFAULT_STREAMING_BUFFER_SIZE = 4096
 
 
 def get_proxies_for_handler(proxy_settings):
@@ -428,7 +427,7 @@ class BaseAutomationClient(object):
         if sys.platform != 'win32':
             fs_block_size = os.fstatvfs(input_file.fileno()).f_bsize
         else:
-            fs_block_size = DEFAULT_STREAMING_BUFFER_SIZE
+            fs_block_size = FILE_BUFFER_SIZE
         log.trace("Using file system block size"
                   " for the streaming upload buffer: %u bytes", fs_block_size)
         data = self._read_data(input_file, fs_block_size)
