@@ -7,7 +7,7 @@ import urllib2
 import os
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
-from nxdrive.client.common import BUFFER_SIZE
+from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.base_automation_client import BaseAutomationClient
 
@@ -210,7 +210,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
             if file_out is not None:
                 with open(file_out, "wb") as f:
                     while True:
-                        buffer_ = response.read(BUFFER_SIZE)
+                        buffer_ = response.read(FILE_BUFFER_SIZE)
                         if buffer_ == '':
                             break
                         f.write(buffer_)
