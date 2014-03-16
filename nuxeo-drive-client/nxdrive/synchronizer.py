@@ -355,7 +355,7 @@ class Synchronizer(object):
                 local_folder=server_binding.local_folder).filter(
                     LastKnownState.pair_state != 'unsynchronized').one()
 
-        client = from_state.get_local_client()
+        client = self.get_local_client(from_state.local_folder)
         info = client.get_info('/')
         # recursive update
         self._scan_local_recursive(session, client, from_state, info)
@@ -654,7 +654,7 @@ class Synchronizer(object):
         # synchronize
         remote_client = self.get_remote_fs_client(doc_pair.server_binding)
         # local clients are cheap
-        local_client = doc_pair.get_local_client()
+        local_client = self.get_local_client(doc_pair.local_folder)
 
         # Update the status of the collected info of this file to make sure
         # we won't perform inconsistent operations
@@ -1600,3 +1600,6 @@ class Synchronizer(object):
 
     def get_remote_fs_client(self, server_binding):
         return self._controller.get_remote_fs_client(server_binding)
+
+    def get_local_client(self, local_folder):
+        return self._controller.get_local_client(local_folder)
