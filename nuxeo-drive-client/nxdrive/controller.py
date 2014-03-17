@@ -717,7 +717,8 @@ class Controller(object):
                 self.version,
                 proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
                 password=sb.remote_password, token=sb.remote_token,
-                timeout=self.timeout, cookie_jar=self.cookie_jar)
+                timeout=self.timeout, cookie_jar=self.cookie_jar,
+                check_suspended=self.synchronizer.check_suspended)
             if client_cache_timestamp is None:
                 client_cache_timestamp = 0
                 self._client_cache_timestamps[cache_key] = 0
