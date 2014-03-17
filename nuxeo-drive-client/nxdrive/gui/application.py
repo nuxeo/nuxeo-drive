@@ -200,7 +200,7 @@ class Application(QApplication):
             # and call notify_sync_stopped() which will finally emit a signal
             # to handle_stop() to quit the application.
             self.controller.stop()
-            # Wake up synchronization thread in case it was asleep
+            # Notify synchronization thread in case it was suspended
             self.sync_thread.resume()
         else:
             # Quit directly
@@ -594,9 +594,10 @@ class Application(QApplication):
             self.controller.synchronizer.max_sync_step = max_sync_step
 
             self.sync_thread = SynchronizerThread(self.controller)
-            log.info("Starting new synchronization Thread: %r"
-                   % self.sync_thread)
+            log.info("Starting new synchronization thread %r",
+                     self.sync_thread)
             self.sync_thread.start()
+            log.info("Synchronization thread %r started", self.sync_thread)
 
     def event(self, event):
         """Handle URL scheme events under OSX"""

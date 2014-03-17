@@ -215,6 +215,7 @@ class LastKnownState(Base):
     def __init__(self, local_folder, local_info=None,
                  remote_info=None, local_state='unknown',
                  remote_state='unknown'):
+
         self.local_folder = local_folder
         if local_info is None and remote_info is None:
             raise ValueError(
