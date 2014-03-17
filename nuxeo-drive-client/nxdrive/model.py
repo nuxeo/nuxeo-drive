@@ -70,6 +70,7 @@ PAIR_STATES = {
 
     # inconsistent cases
     ('unknown', 'deleted'): 'unknown_deleted',
+    ('deleted', 'unknown'): 'deleted_unknown',
 }
 
 
