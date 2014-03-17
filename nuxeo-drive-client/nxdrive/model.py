@@ -20,7 +20,6 @@ from sqlalchemy.orm import scoped_session
 from sqlalchemy.pool import SingletonThreadPool
 
 from nxdrive import __version__
-from nxdrive.client import LocalClient
 from nxdrive.utils import normalized_path
 from nxdrive.logging_config import get_logger
 from sqlalchemy.types import Binary
