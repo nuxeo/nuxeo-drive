@@ -185,12 +185,12 @@ class SynchronizerThread(Thread):
 
     def suspend(self):
         with self.suspend_condition:
-            log.debug('Marking synchronization thread as suspended')
+            log.debug('Marking synchronization thread %r as suspended', self)
             self.suspended = True
 
     def resume(self):
         with self.suspend_condition:
-            log.debug('Waking up synchronization thread')
+            log.debug('Notifying synchronization thread %r', self)
             self.suspended = False
             self.suspend_condition.notify()
 
@@ -578,6 +578,7 @@ class Synchronizer(object):
 
     def _mark_deleted_remote_recursive(self, session, doc_pair):
         """Update the metadata of the descendants of remotely deleted doc"""
+
         # Check if synchronization thread was suspended
         self.check_suspended('Mark recursively the descendant states of a'
                              ' remotely deleted document')
@@ -705,7 +706,7 @@ class Synchronizer(object):
 
         # Could not find any pair state to align to, create one
         child_pair = LastKnownState(parent_pair.local_folder,
-            remote_info=child_info)
+                                    remote_info=child_info)
         log.trace("Created new pair %r", child_pair)
         session.add(child_pair)
         return child_pair, True
@@ -1106,7 +1107,6 @@ class Synchronizer(object):
         / move operation
         """
         # Detection step
-
         source_doc_pair, target_doc_pair = self._detect_local_move_or_rename(
             doc_pair, session, local_client, local_info)
 
@@ -1115,7 +1115,6 @@ class Synchronizer(object):
             return False
 
         # Resolution step
-
         moved_or_renamed = False
         remote_ref = source_doc_pair.remote_ref
 
@@ -1345,7 +1344,7 @@ class Synchronizer(object):
         with open(safe_long_path(pid_filepath), 'wb') as f:
             f.write(str(pid))
 
-        log.info("Starting synchronization (pid=%d)", pid)
+        log.info("Starting synchronization loop (pid=%d)", pid)
         self.continue_synchronization = True
 
         previous_time = time()
@@ -1422,7 +1421,7 @@ class Synchronizer(object):
                         " for stopped process %d: %r", pid_filepath, pid, e)
 
         # Notify UI front end to take synchronization stop into account and
-        # potentially quit the application
+        # quit the application
         if self._frontend is not None:
             self._frontend.notify_sync_stopped()
 

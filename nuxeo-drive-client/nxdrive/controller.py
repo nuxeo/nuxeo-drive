@@ -725,7 +725,7 @@ class Controller(object):
             cache[cache_key] = remote_client, client_cache_timestamp
         # Make it possible to have the remote client simulate any kind of
         # failure: this is useful for ensuring that cookies used for load
-        # balancer affinity (e.g. AWSELB) are shared by all the automation
+        # balancer affinity (e.g. AWSELB) are shared by all the Automation
         # clients managed by a given controller
         remote_client.make_raise(self._remote_error)
         return remote_client
