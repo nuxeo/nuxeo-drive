@@ -1022,6 +1022,20 @@ class Synchronizer(object):
             log.debug("Since the local path is None the synchronizer will"
                       " probably do nothing at next iteration")
 
+    def _synchronize_deleted_unknown(self, doc_pair, session,
+        local_client, remote_client, local_info, remote_info):
+        # Somehow a pair can get to an inconsistent state:
+        # <local_state=u'deleted', remote_state=u'unknown',
+        # pair_state=u'unknown'>
+        # Even though we are not able to figure out how this can happen we
+        # need to handle this case to put the database back to a consistent
+        # state.
+        # This is tracked by https://jira.nuxeo.com/browse/NXP-14039
+        log.debug("Detected inconsistent doc pair %r, deleting it hoping the"
+                  " synchronizer will fix this case at next iteration",
+                  doc_pair)
+        session.delete(doc_pair)
+
     def _detect_local_move_or_rename(self, doc_pair, session,
         local_client, local_info):
         """Find local move or renaming events by introspecting the states
