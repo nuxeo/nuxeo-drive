@@ -14,6 +14,7 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
+from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
@@ -32,8 +33,6 @@ DEVICE_DESCRIPTIONS = {
     'cygwin': 'Windows Desktop',
     'win32': 'Windows Desktop',
 }
-
-DEFAULT_STREAMING_BUFFER_SIZE = 4096
 
 
 def get_proxies_for_handler(proxy_settings):
@@ -133,7 +132,12 @@ class BaseAutomationClient(object):
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
                  timeout=20, blob_timeout=None, cookie_jar=None,
-                 upload_tmp_dir=None):
+                 upload_tmp_dir=None, check_suspended=None):
+
+        # Function to check during long-running processing like upload /
+        # download if the synchronization thread needs to be suspended
+        self.check_suspended = check_suspended
+
         self.timeout = timeout
         self.blob_timeout = blob_timeout
         if ignored_prefixes is not None:
@@ -428,7 +432,7 @@ class BaseAutomationClient(object):
         if sys.platform != 'win32':
             fs_block_size = os.fstatvfs(input_file.fileno()).f_bsize
         else:
-            fs_block_size = DEFAULT_STREAMING_BUFFER_SIZE
+            fs_block_size = FILE_BUFFER_SIZE
         log.trace("Using file system block size"
                   " for the streaming upload buffer: %u bytes", fs_block_size)
         data = self._read_data(input_file, fs_block_size)
@@ -610,6 +614,9 @@ class BaseAutomationClient(object):
 
     def _read_data(self, file_object, buffer_size):
         while True:
+            # Check if synchronization thread was suspended
+            if self.check_suspended is not None:
+                self.check_suspended('File upload: %s' % file_object.name)
             r = file_object.read(buffer_size)
             if not r:
                 break

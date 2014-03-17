@@ -215,6 +215,7 @@ class LastKnownState(Base):
     def __init__(self, local_folder, local_info=None,
                  remote_info=None, local_state='unknown',
                  remote_state='unknown'):
+
         self.local_folder = local_folder
         if local_info is None and remote_info is None:
             raise ValueError(
@@ -269,9 +270,6 @@ class LastKnownState(Base):
                     self.local_state, self.remote_state,
                     self.pair_state)
 
-    def get_local_client(self):
-        return LocalClient(self.local_folder)
-
     @staticmethod
     def select_remote_refs(session, refs, page_size):
         """Mark remote refs as selected"""
@@ -312,9 +310,8 @@ class LastKnownState(Base):
     def selected(query, tag):
         return query.filter(LastKnownState.in_clause_selected == tag).all()
 
-    def refresh_local(self, client=None, local_path=None):
+    def refresh_local(self, client, local_path=None):
         """Update the state from the local filesystem info."""
-        client = client if client is not None else self.get_local_client()
         local_path = local_path if local_path is not None else self.local_path
         local_info = client.get_info(local_path, raise_if_missing=False)
         self.update_local(local_info)

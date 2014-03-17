@@ -717,14 +717,15 @@ class Controller(object):
                 self.version,
                 proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
                 password=sb.remote_password, token=sb.remote_token,
-                timeout=self.timeout, cookie_jar=self.cookie_jar)
+                timeout=self.timeout, cookie_jar=self.cookie_jar,
+                check_suspended=self.synchronizer.check_suspended)
             if client_cache_timestamp is None:
                 client_cache_timestamp = 0
                 self._client_cache_timestamps[cache_key] = 0
             cache[cache_key] = remote_client, client_cache_timestamp
         # Make it possible to have the remote client simulate any kind of
         # failure: this is useful for ensuring that cookies used for load
-        # balancer affinity (e.g. AWSELB) are shared by all the automation
+        # balancer affinity (e.g. AWSELB) are shared by all the Automation
         # clients managed by a given controller
         remote_client.make_raise(self._remote_error)
         return remote_client
@@ -739,6 +740,10 @@ class Controller(object):
             password=sb.remote_password, token=sb.remote_token,
             repository=repository, base_folder=base_folder,
             timeout=self.timeout, cookie_jar=self.cookie_jar)
+
+    def get_local_client(self, local_folder):
+        """Return a file system client for the given local folder"""
+        return LocalClient(local_folder)
 
     def invalidate_client_cache(self, server_url=None):
         for key in self._client_cache_timestamps:
