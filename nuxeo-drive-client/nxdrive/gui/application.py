@@ -104,7 +104,10 @@ class Application(QApplication):
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
-        self.state = 'paused'
+        # Current state
+        self.state = 'disabled'
+        # Last state before suspend
+        self.last_state = 'enabled'
         self._setup_systray()
         self.tray_icon_menu = QtGui.QMenu()
         self.binding_info = {}
@@ -159,13 +162,21 @@ class Application(QApplication):
         if self.state != 'paused':
             # Suspend sync
             if self.sync_thread is not None and self.sync_thread.isAlive():
-                # A sync thread is active, first update state, icon and menu
-                self.state = 'suspending'
+                # A sync thread is active, first update last state, current
+                # state, icon and menu.
+                self.last_state = self.state
+                # If sync thread is asleep (waiting for next sync batch) set
+                # current state to 'paused' directly, else set current state
+                # to 'suspending' waiting for feedback from sync thread.
+                if self.state == 'asleep':
+                    self.state = 'paused'
+                else:
+                    self.state = 'suspending'
                 self.update_running_icon()
                 self.communicator.menu.emit()
                 # Suspend the synchronizer thread: it will call
-                # notify_sync_suspended() then go to sleep until it gets
-                # woken up by a call to resume().
+                # notify_sync_suspended() then wait until it gets notified by
+                # a call to resume().
                 self.sync_thread.suspend()
             else:
                 log.debug('No active synchronization thread, suspending sync'
@@ -173,7 +184,7 @@ class Application(QApplication):
                           self.state)
         else:
             # Update state, icon and menu
-            self.state = 'enabled'
+            self.state = self.last_state
             self.update_running_icon()
             self.communicator.menu.emit()
             # Resume sync
@@ -245,18 +256,31 @@ class Application(QApplication):
         self.update_running_icon()
         self.communicator.menu.emit()
 
+    def notify_sync_stopped(self):
+        log.debug('Synchronization stopped')
+        self.sync_thread = None
+        # Send stop signal
+        self.communicator.stop.emit()
+
+    def notify_sync_asleep(self):
+        # Update state to 'asleep' when sync thread is going to sleep
+        # (waiting for next sync batch)
+        self.state = 'asleep'
+
+    def notify_sync_woken_up(self):
+        # Update state to 'enabled' when sync thread is woken up and
+        # was not suspended
+        if self.state != 'paused':
+            self.state = 'enabled'
+        else:
+            self.last_state = 'enabled'
+
     def notify_sync_suspended(self):
         log.debug('Synchronization suspended')
         # Update state, icon and menu
         self.state = 'paused'
         self.update_running_icon()
         self.communicator.menu.emit()
-
-    def notify_sync_stopped(self):
-        log.debug('Synchronization stopped')
-        self.sync_thread = None
-        # Send stop signal
-        self.communicator.stop.emit()
 
     def notify_online(self, server_binding):
         info = self.get_binding_info(server_binding)

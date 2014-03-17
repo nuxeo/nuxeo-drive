@@ -132,7 +132,12 @@ class BaseAutomationClient(object):
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
                  timeout=20, blob_timeout=None, cookie_jar=None,
-                 upload_tmp_dir=None):
+                 upload_tmp_dir=None, check_suspended=None):
+
+        # Function to check during long-running processing like upload /
+        # download if the synchronization thread needs to be suspended
+        self.check_suspended = check_suspended
+
         self.timeout = timeout
         self.blob_timeout = blob_timeout
         if ignored_prefixes is not None:
@@ -609,6 +614,9 @@ class BaseAutomationClient(object):
 
     def _read_data(self, file_object, buffer_size):
         while True:
+            # Check if synchronization thread was suspended
+            if self.check_suspended is not None:
+                self.check_suspended('File upload: %s' % file_object.name)
             r = file_object.read(buffer_size)
             if not r:
                 break

@@ -29,7 +29,12 @@ class FileInfo(object):
     """Data Transfer Object for file info on the Local FS"""
 
     def __init__(self, root, path, folderish, last_modification_time,
-                 digest_func='md5'):
+                 digest_func='md5', check_suspended=None):
+
+        # Function to check during long-running processing like digest
+        # computation if the synchronization thread needs to be suspended
+        self.check_suspended = check_suspended
+
         root = unicodedata.normalize('NFKC', root)
         path = unicodedata.normalize('NFKC', path)
         self.root = root  # the sync root folder local path
@@ -60,6 +65,10 @@ class FileInfo(object):
         h = digester()
         with open(safe_long_path(self.filepath), 'rb') as f:
             while True:
+                # Check if synchronization thread was suspended
+                if self.check_suspended is not None:
+                    self.check_suspended('Digest computation: %s'
+                                         % self.filepath)
                 buffer_ = f.read(FILE_BUFFER_SIZE)
                 if buffer_ == '':
                     break
@@ -74,7 +83,12 @@ class LocalClient(object):
     # Automation operations fetched at controller init time.
 
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
-                 ignored_suffixes=None):
+                 ignored_suffixes=None, check_suspended=None):
+
+        # Function to check during long-running processing like digest
+        # computation if the synchronization thread needs to be suspended
+        self.check_suspended = check_suspended
+
         if ignored_prefixes is not None:
             self.ignored_prefixes = ignored_prefixes
         else:
@@ -109,7 +123,8 @@ class LocalClient(object):
         # to have Windows specific bugs, let's not use the unix inode at all.
         # uid = str(stat_info.st_ino)
         return FileInfo(self.base_folder, path, folderish, mtime,
-                        digest_func=self._digest_func)
+                        digest_func=self._digest_func,
+                        check_suspended=self.check_suspended)
 
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()

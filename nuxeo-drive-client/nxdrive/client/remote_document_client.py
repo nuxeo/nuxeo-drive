@@ -64,7 +64,7 @@ class RemoteDocumentClient(BaseAutomationClient):
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
                  base_folder=None, timeout=20, blob_timeout=None,
-                 cookie_jar=None, upload_tmp_dir=None):
+                 cookie_jar=None, upload_tmp_dir=None, check_suspended=None):
         super(RemoteDocumentClient, self).__init__(
             server_url, user_id, device_id, client_version,
             proxies=proxies, proxy_exceptions=proxy_exceptions,
@@ -72,8 +72,8 @@ class RemoteDocumentClient(BaseAutomationClient):
             ignored_prefixes=ignored_prefixes,
             ignored_suffixes=ignored_suffixes,
             timeout=timeout, blob_timeout=blob_timeout,
-            cookie_jar=cookie_jar,
-            upload_tmp_dir=upload_tmp_dir)
+            cookie_jar=cookie_jar, upload_tmp_dir=upload_tmp_dir,
+            check_suspended=check_suspended)
 
         # fetch the root folder ref
         self.base_folder = base_folder
