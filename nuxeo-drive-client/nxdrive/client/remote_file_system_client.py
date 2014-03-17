@@ -121,7 +121,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
             parentId=parent_id)
         return fs_item['id']
 
-    def update_content(self, fs_item_id, content, filename=None, mime_type=None):
+    def update_content(self, fs_item_id, content, filename=None,
+                       mime_type=None):
         """Update a document with the given content
 
         Creates a temporary file from the content then streams it.
