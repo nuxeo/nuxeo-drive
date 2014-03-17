@@ -210,6 +210,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
             if file_out is not None:
                 with open(file_out, "wb") as f:
                     while True:
+                        # Check if synchronization thread was suspended
+                        if self.check_suspended is not None:
+                            self.check_suspended('File download: %s'
+                                                 % file_out)
                         buffer_ = response.read(FILE_BUFFER_SIZE)
                         if buffer_ == '':
                             break

@@ -91,7 +91,8 @@ def _local_children_names(doc_pair, session):
                 local_parent_path=doc_pair.local_path).all()])
 
 
-def rerank_local_rename_or_move_candidates(doc_pair, candidates, session):
+def rerank_local_rename_or_move_candidates(doc_pair, candidates, session,
+                                           check_suspended=None):
     """Find the most suitable rename or move candidate
 
     If doc_pair is a folder, then the similarity (Jaccard Index) of the
@@ -110,6 +111,11 @@ def rerank_local_rename_or_move_candidates(doc_pair, candidates, session):
         children_names = _local_children_names(doc_pair, session)
 
     for c in candidates:
+
+        # Check if synchronization thread was suspended
+        if check_suspended is not None:
+            check_suspended("Re-rank local rename or move candidates")
+
         if doc_pair.folderish:
             # Measure the jackard index on direct children names of
             # folders to finger print them
@@ -130,10 +136,15 @@ def rerank_local_rename_or_move_candidates(doc_pair, candidates, session):
     return [candidate for _, candidate in relatednesses]
 
 
-def find_first_name_match(name, possible_pairs):
+def find_first_name_match(name, possible_pairs, check_suspended=None):
     """Select the first pair that can match the provided name"""
 
     for pair in possible_pairs:
+
+        # Check if synchronization thread was suspended
+        if check_suspended is not None:
+            check_suspended("Find first name match")
+
         if pair.local_name is not None and pair.remote_name is not None:
             # This pair already links a non null local and remote resource
             log.warning("Possible pair %r has both local and remote info",
@@ -146,6 +157,10 @@ def find_first_name_match(name, possible_pairs):
             if name_match(name, pair.remote_name):
                 return pair
     return None
+
+
+class SyncThreadSuspended(Exception):
+    pass
 
 
 class SynchronizerThread(Thread):
@@ -226,6 +241,11 @@ class Synchronizer(object):
         its pair state as 'unsynchronized', else delete it and
         its pair state.
         """
+
+        # Check if synchronization thread was suspended
+        self.check_suspended('Delete recursively the descendants of a locally'
+                             ' deleted item or a remotely deleted document')
+
         locally_modified = False
         # Handle local and remote descendants first
         if doc_pair.local_path is not None:
@@ -288,6 +308,11 @@ class Synchronizer(object):
     def _mark_descendant_states_remotely_created(self, session, doc_pair,
         keep_root=None):
         """Mark the descendant states as remotely created"""
+
+        # Check if synchronization thread was suspended
+        self.check_suspended('Mark recursively the descendant states of a'
+                             ' remotely created document')
+
         # mark local descendant states first
         if doc_pair.local_path is not None:
             local_children = session.query(LastKnownState).filter_by(
@@ -304,6 +329,11 @@ class Synchronizer(object):
     def _local_rename_with_descendant_states(self, session, client, doc_pair,
         previous_local_path, updated_path):
         """Update the metadata of the descendants of a renamed doc"""
+
+        # Check if synchronization thread was suspended
+        self.check_suspended('Update recursively the descendant states of a'
+                             ' remotely renamed document')
+
         # rename local descendants first
         if doc_pair.local_path is None:
             raise ValueError("Cannot apply renaming to %r due to"
@@ -322,6 +352,11 @@ class Synchronizer(object):
     def _update_remote_parent_path_recursive(self, session, doc_pair,
         updated_path):
         """Update the remote parent path of the descendants of a moved doc"""
+
+        # Check if synchronization thread was suspended
+        self.check_suspended('Update recursively the remote parent path of the'
+                             ' descendant states of a remotely moved document')
+
         # update local descendants first
         if doc_pair.remote_ref is None:
             raise ValueError("Cannot apply parent path update to %r "
@@ -363,6 +398,11 @@ class Synchronizer(object):
 
     def _mark_deleted_local_recursive(self, session, doc_pair):
         """Update the metadata of the descendants of locally deleted doc"""
+
+        # Check if synchronization thread was suspended
+        self.check_suspended('Mark recursively the descendant states of a'
+                             ' locally deleted item')
+
         log.trace("Marking %r as locally deleted", doc_pair.remote_ref)
         # delete descendants first
         children = session.query(LastKnownState).filter_by(
@@ -381,6 +421,11 @@ class Synchronizer(object):
 
     def _mark_unknown_local_recursive(self, session, doc_pair):
         """Recursively mark local unsynchronized pair state as 'unknown'"""
+
+        # Check if synchronization thread was suspended
+        self.check_suspended("Mark recursively as 'unknown' the descendant"
+                             " states of an unsynchronized pair state")
+
         if doc_pair.local_path is not None:
             # Delete descendants first
             children = session.query(LastKnownState).filter_by(
@@ -396,6 +441,10 @@ class Synchronizer(object):
 
     def _scan_local_recursive(self, session, client, doc_pair, local_info):
         """Recursively scan the bound local folder looking for updates"""
+
+        # Check if synchronization thread was suspended
+        self.check_suspended('Local recursive scan')
+
         if doc_pair.pair_state == 'unsynchronized':
             log.trace("Ignoring %s as marked unsynchronized",
                       doc_pair.local_path)
@@ -454,7 +503,7 @@ class Synchronizer(object):
                         remote_digest=child_digest,
                     ).all()
                     child_pair = find_first_name_match(
-                        child_name, possible_pairs)
+                        child_name, possible_pairs, self.check_suspended)
                     if child_pair is not None:
                         log.debug("Matched local %s with remote %s "
                                   "with digest",
@@ -475,7 +524,8 @@ class Synchronizer(object):
                     remote_parent_ref=doc_pair.remote_ref,
                     folderish=child_info.folderish,
                 ).all()
-                child_pair = find_first_name_match(child_name, possible_pairs)
+                child_pair = find_first_name_match(child_name, possible_pairs,
+                                                   self.check_suspended)
                 if child_pair is not None:
                     log.debug("Matched local %s with remote %s by name only",
                               child_info.path, child_pair.remote_name)
@@ -528,6 +578,10 @@ class Synchronizer(object):
 
     def _mark_deleted_remote_recursive(self, session, doc_pair):
         """Update the metadata of the descendants of remotely deleted doc"""
+        # Check if synchronization thread was suspended
+        self.check_suspended('Mark recursively the descendant states of a'
+                             ' remotely deleted document')
+
         # delete descendants first
         children = session.query(LastKnownState).filter_by(
             local_folder=doc_pair.local_folder,
@@ -550,6 +604,10 @@ class Synchronizer(object):
         If force_recursion is True, recursion is done even on
         non newly created children.
         """
+
+        # Check if synchronization thread was suspended
+        self.check_suspended('Remote recursive scan')
+
         if remote_info is None:
             raise ValueError("Cannot bind %r to missing remote info" %
                              doc_pair)
@@ -583,6 +641,9 @@ class Synchronizer(object):
 
         # Recursively update children
         for child_info in children_info:
+
+            # Check if synchronization thread was suspended
+            self.check_suspended('Remote recursive update')
 
             # TODO: detect whether this is a __digit suffix name and relax the
             # alignment queries accordingly
@@ -621,7 +682,8 @@ class Synchronizer(object):
                 folderish=child_info.folderish,
                 local_digest=child_info.get_digest(),
             ).all()
-            child_pair = find_first_name_match(child_name, possible_pairs)
+            child_pair = find_first_name_match(child_name, possible_pairs,
+                                               self.check_suspended)
             if child_pair is not None:
                 log.debug("Matched remote %s with local %s with digest",
                           child_info.name, child_pair.local_path)
@@ -634,7 +696,8 @@ class Synchronizer(object):
             local_parent_path=parent_pair.local_path,
             folderish=child_info.folderish,
         ).all()
-        child_pair = find_first_name_match(child_name, possible_pairs)
+        child_pair = find_first_name_match(child_name, possible_pairs,
+                                           self.check_suspended)
         if child_pair is not None:
             log.debug("Matched remote %s with local %s by name only",
                       child_info.name, child_pair.local_path)
@@ -1012,7 +1075,8 @@ class Synchronizer(object):
             # Re-ranking is always required for folders as it also prunes false
             # positives:
             candidates = rerank_local_rename_or_move_candidates(
-                doc_pair, candidates, session)
+                doc_pair, candidates, session,
+                check_suspended=self.check_suspended)
             log.trace("Reranked candidates for %s: %s", doc_pair, candidates)
 
             if len(candidates) == 0:
@@ -1143,6 +1207,9 @@ class Synchronizer(object):
 
         while (limit is None or synchronized < limit):
 
+            # Check if synchronization thread was suspended
+            self.check_suspended('Synchronization of pending items')
+
             pending = self._controller.list_pending(
                 local_folder=local_folder,
                 limit=self.limit_pending,
@@ -1191,6 +1258,8 @@ class Synchronizer(object):
                     # for this local_folder and should be dealt with
                     # in the main loop
                     raise e
+            except SyncThreadSuspended as e:
+                raise e
             except Exception as e:
                 # Unexpected exception: blacklist for a cooldown period
                 log.error("Failed to sync %r, blacklisting doc pair "
@@ -1258,6 +1327,7 @@ class Synchronizer(object):
              sync_thread=None):
         """Forever loop to scan / refresh states and perform sync"""
 
+        self.sync_thread = sync_thread
         delay = delay if delay is not None else self.delay
 
         if self._frontend is not None:
@@ -1283,53 +1353,53 @@ class Synchronizer(object):
         loop_count = 0
         try:
             while True:
-                n_synchronized = 0
-                # Check if synchronization thread was suspended
-                if sync_thread is not None:
-                    with sync_thread.suspend_condition:
-                        if sync_thread.suspended:
-                            log.info("Suspending synchronization (pid=%d)",
-                                     pid)
-                            # Notify UI front end to take synchronization
-                            # suspension into account
-                            if self._frontend is not None:
-                                self._frontend.notify_sync_suspended()
-                            # Block thread until notified
-                            sync_thread.suspend_condition.wait()
-                # Check if synchronization thread was asked to stop
-                if self.should_stop_synchronization():
-                    log.info("Stopping synchronization (pid=%d)", pid)
-                    break
-                if (max_loops is not None and loop_count >= max_loops):
-                    log.info("Stopping synchronization after %d loops",
-                             loop_count)
-                    break
+                try:
+                    n_synchronized = 0
+                    # Check if synchronization thread was suspended
+                    self.check_suspended('Main synchronization loop')
+                    # Check if synchronization thread was asked to stop
+                    if self.should_stop_synchronization():
+                        log.info("Stopping synchronization loop (pid=%d)", pid)
+                        break
+                    if (max_loops is not None and loop_count >= max_loops):
+                        log.info("Stopping synchronization loop after %d"
+                                 " loops", loop_count)
+                        break
 
-                bindings = session.query(ServerBinding).all()
-                if self._frontend is not None:
-                    self._frontend.notify_local_folders(bindings)
+                    bindings = session.query(ServerBinding).all()
+                    if self._frontend is not None:
+                        self._frontend.notify_local_folders(bindings)
 
-                for sb in bindings:
-                    if not sb.has_invalid_credentials():
-                        n_synchronized += self.update_synchronize_server(
-                            sb, session=session, max_sync_step=max_sync_step)
+                    for sb in bindings:
+                        if not sb.has_invalid_credentials():
+                            n_synchronized += self.update_synchronize_server(
+                                sb, session=session,
+                                max_sync_step=max_sync_step)
 
-                # safety net to ensure that Nuxeo Drive won't eat all the CPU,
-                # disk and network resources of the machine scanning over an
-                # over the bound folders too often.
-                current_time = time()
-                spent = current_time - previous_time
-                sleep_time = delay - spent
-                if sleep_time > 0 and n_synchronized == 0:
-                    log.debug("Sleeping %0.3fs", sleep_time)
-                    sleep(sleep_time)
-                previous_time = time()
-                loop_count += 1
+                    # Safety net to ensure that Nuxeo Drive won't eat all the
+                    # CPU, disk and network resources of the machine scanning
+                    # over an over the bound folders too often.
+                    current_time = time()
+                    spent = current_time - previous_time
+                    sleep_time = delay - spent
+                    if sleep_time > 0 and n_synchronized == 0:
+                        log.debug("Sleeping %0.3fs", sleep_time)
+                        if self._frontend is not None:
+                            self._frontend.notify_sync_asleep()
+                        sleep(sleep_time)
+                        if self._frontend is not None:
+                            self._frontend.notify_sync_woken_up()
+                    previous_time = time()
+                    loop_count += 1
 
-                # Force a commit here to refresh the visibility of any
-                # concurrent change in the database for instance if the use
-                # has updated the connection credentials for a server binding.
-                session.commit()
+                    # Force a commit here to refresh the visibility of any
+                    # concurrent change in the database for instance if the
+                    # user has updated the connection credentials for a server
+                    # binding.
+                    session.commit()
+
+                except SyncThreadSuspended as e:
+                    self._suspend_sync_thread(e)
 
         except KeyboardInterrupt:
             self.get_session().rollback()
@@ -1397,6 +1467,10 @@ class Synchronizer(object):
         # Scan events and update the inter
         refreshed = set()
         for change in sorted_changes:
+
+            # Check if synchronization thread was suspended
+            self.check_suspended('Remote states update')
+
             remote_ref = change['fileSystemItemId']
             if remote_ref in refreshed:
                 # A more recent version was already processed
@@ -1597,6 +1671,24 @@ class Synchronizer(object):
 
         self._controller.invalidate_client_cache(
             server_binding.server_url)
+
+    def check_suspended(self, msg):
+        if hasattr(self, 'sync_thread') and self.sync_thread is not None:
+            with self.sync_thread.suspend_condition:
+                if self.sync_thread.suspended:
+                    raise SyncThreadSuspended(msg)
+
+    def _suspend_sync_thread(self, exception):
+        if hasattr(self, 'sync_thread') and self.sync_thread is not None:
+            with self.sync_thread.suspend_condition:
+                log.info("Suspending synchronization thread %r during [%s]",
+                         self.sync_thread, exception.message)
+                # Notify UI front end to take synchronization
+                # suspension into account
+                if self._frontend is not None:
+                    self._frontend.notify_sync_suspended()
+                # Block thread until notified
+                self.sync_thread.suspend_condition.wait()
 
     def get_remote_fs_client(self, server_binding):
         return self._controller.get_remote_fs_client(server_binding)
