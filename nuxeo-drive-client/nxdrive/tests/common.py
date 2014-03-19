@@ -157,7 +157,7 @@ class IntegrationTestCase(unittest.TestCase):
         self.remote_document_client_2.revoke_token()
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
-        self.root_remote_client.execute(u"NuxeoDrive.TearDownIntegrationTests")
+        self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
 
         self.root_remote_client.revoke_token()
 
