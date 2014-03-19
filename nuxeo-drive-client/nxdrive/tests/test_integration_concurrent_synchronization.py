@@ -8,11 +8,11 @@ from nxdrive.client import LocalClient
 
 class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
 
-    def create_docs(self, remote_client, parent, number,
-        name_pattern=None, delay=1):
-        return remote_client.execute("NuxeoDrive.CreateTestDocuments",
-           op_input="doc:" + parent, namePattern=name_pattern,
-           number=number, delay=int(delay * 1000))
+    def create_docs(self, parent, number, name_pattern=None, delay=1):
+        return self.root_remote_client.execute(
+            "NuxeoDrive.CreateTestDocuments",
+            op_input="doc:" + parent, namePattern=name_pattern,
+            number=number, delay=int(delay * 1000))
 
     def test_find_changes_with_many_doc_creations(self):
         # Setup a controller and bind a root for user_1
@@ -59,7 +59,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         # Create the children to synchronize on the remote server concurrently
         # in a long running transaction
         remote_client.timeout = 10  # extend the timeout
-        self.create_docs(remote_client, self.workspace, n_children,
+        self.create_docs(self.workspace, n_children,
             name_pattern=child_name_pattern, delay=0.5)
 
         # Wait for the synchronizer thread to complete
