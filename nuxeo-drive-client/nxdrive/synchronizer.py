@@ -287,7 +287,8 @@ class Synchronizer(object):
             if not keep_root:
                 # Not modified since last synchronization, delete
                 # file/folder and its pair state
-                if local_client.exists(doc_pair.local_path):
+                if (doc_pair.local_path is not None
+                    and local_client.exists(doc_pair.local_path)):
                     log.debug("Deleting local %s '%s'",
                               file_or_folder, doc_pair.get_local_abspath())
                     local_client.delete(doc_pair.local_path)
