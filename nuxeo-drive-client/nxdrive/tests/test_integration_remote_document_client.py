@@ -84,7 +84,7 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         token4 = remote_client4.request_token()
         self.assertNotEquals(token, token4)
 
-        # A client can revoke a token explicitly and thus loose credentials
+        # A client can revoke a token explicitly and thus lose credentials
         remote_client4.revoke_token()
         self.assertRaises(IOError, remote_client4.get_roots)
 
