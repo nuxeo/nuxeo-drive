@@ -840,6 +840,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Increase Automation execution timeout for NuxeoDrive.GetChangeSummary
         # because of the recursive parent FileSystemItem adaptation
         ctl = self.controller_1
+        ctl.timeout = 40
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
