@@ -279,7 +279,8 @@ class Synchronizer(object):
                      if doc_pair.last_sync_date else 'None'))
             locally_modified = (doc_pair.last_sync_date is None
                     or doc_pair.last_local_updated and (
-                        doc_pair.last_local_updated > doc_pair.last_sync_date))
+                        doc_pair.last_local_updated.replace(microsecond=0) >
+                            doc_pair.last_sync_date.replace(microsecond=0)))
 
         # Handle current pair state in the end
         file_or_folder = 'folder' if doc_pair.folderish else 'file'
