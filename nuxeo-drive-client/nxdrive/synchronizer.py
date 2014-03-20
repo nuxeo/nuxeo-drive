@@ -1479,7 +1479,7 @@ class Synchronizer(object):
 
         client = self.get_remote_fs_client(server_binding)
 
-        # Scan events and update the inter
+        # Scan events and update the related pair states
         refreshed = set()
         for change in sorted_changes:
 
