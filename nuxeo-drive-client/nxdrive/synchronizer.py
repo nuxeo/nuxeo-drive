@@ -1560,7 +1560,7 @@ class Synchronizer(object):
                     break
 
                 if not created:
-                    log.warning("Could not match changed document to a "
+                    log.debug("Could not match changed document to a "
                                 "bound local folder: %r", new_info)
 
     def update_synchronize_server(self, server_binding, session=None,
