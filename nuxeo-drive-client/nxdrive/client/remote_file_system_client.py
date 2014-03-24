@@ -196,11 +196,6 @@ class RemoteFileSystemClient(BaseAutomationClient):
             can_update, can_create_child)
 
     def _do_get(self, url, file_out=None):
-        if self._error is not None:
-            # Simulate a configurable (e.g. network or server) error for the
-            # tests
-            raise self._error
-
         headers = self._get_common_headers()
         base_error_message = (
             "Failed to connect to Nuxeo server %r with user %r"
@@ -221,6 +216,14 @@ class RemoteFileSystemClient(BaseAutomationClient):
                         if buffer_ == '':
                             break
                         f.write(buffer_)
+                    if self._remote_error is not None:
+                        # Simulate a configurable remote (e.g. network or
+                        # server) error for the tests
+                        raise self._remote_error
+                    if self._local_error is not None:
+                        # Simulate a configurable local error (e.g. "No space
+                        # left on device") for the tests
+                        raise self._local_error
                 return None, file_out
             else:
                 return response.read(), None
