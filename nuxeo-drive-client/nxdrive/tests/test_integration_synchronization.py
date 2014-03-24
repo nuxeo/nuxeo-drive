@@ -531,7 +531,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
 
-        # Find various ways to similate network or server failure
+        # Find various ways to simulate a network or server failure
         errors = [
             urllib2.URLError('Test error'),
             socket.error('Test error'),
