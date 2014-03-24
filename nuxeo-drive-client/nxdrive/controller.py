@@ -190,6 +190,7 @@ class Controller(object):
         self._client_cache_timestamps = dict()
 
         self._remote_error = None
+        self._local_error = None
 
         device_config = self.get_device_config()
         self.device_id = device_config.device_id
@@ -724,10 +725,14 @@ class Controller(object):
                 self._client_cache_timestamps[cache_key] = 0
             cache[cache_key] = remote_client, client_cache_timestamp
         # Make it possible to have the remote client simulate any kind of
-        # failure: this is useful for ensuring that cookies used for load
-        # balancer affinity (e.g. AWSELB) are shared by all the Automation
-        # clients managed by a given controller
-        remote_client.make_raise(self._remote_error)
+        # network or server failure: this is useful for example to ensure that
+        # cookies used for load balancer affinity (e.g. AWSELB) are shared by
+        # all the Automation clients managed by a given controller.
+        remote_client.make_remote_raise(self._remote_error)
+        # Make it possible to have the remote client simulate any kind of
+        # local device failure: this is useful for example to test a "No space
+        # left on device" issue when downloading a file.
+        remote_client.make_local_raise(self._local_error)
         return remote_client
 
     def get_remote_doc_client(self, server_binding, repository='default',
@@ -807,6 +812,10 @@ class Controller(object):
     def make_remote_raise(self, error):
         """Helper method to simulate network failure for testing"""
         self._remote_error = error
+
+    def make_local_raise(self, error):
+        """Helper method to simulate local device failure for testing"""
+        self._local_error = error
 
     def dispose(self):
         """Release database resources.
