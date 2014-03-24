@@ -120,7 +120,10 @@ class BaseAutomationClient(object):
     # see https://jira.nuxeo.com/browse/NXP-12068
 
     # Used for testing network errors
-    _error = None
+    _remote_error = None
+
+    # Used for testing local device errors when downloading a file
+    _local_error = None
 
     # Parameters used when negotiating authentication token:
     application_name = 'Nuxeo Drive'
@@ -193,9 +196,13 @@ class BaseAutomationClient(object):
 
         self.fetch_api()
 
-    def make_raise(self, error):
+    def make_remote_raise(self, error):
         """Make next calls to server raise the provided exception"""
-        self._error = error
+        self._remote_error = error
+
+    def make_local_raise(self, error):
+        """Make RemoteFileSystemClient._do_get raise the provided exception"""
+        self._local_error = error
 
     def fetch_api(self):
         base_error_message = (
@@ -252,10 +259,10 @@ class BaseAutomationClient(object):
     def execute(self, command, op_input=None, timeout=-1,
                 check_params=True, void_op=False, **params):
         """Execute an Automation operation"""
-        if self._error is not None:
+        if self._remote_error is not None:
             # Simulate a configurable (e.g. network or server) error for the
             # tests
-            raise self._error
+            raise self._remote_error
         if check_params:
             self._check_params(command, params)
 
