@@ -8,10 +8,12 @@
   </parent>
 
   <groupId>org.nuxeo.ecm</groupId>
-  <artifactId>nuxeo-drive-server</artifactId>
+  <artifactId>nuxeo-drive-parent</artifactId>
   <packaging>pom</packaging>
-  <name>Nuxeo Drive Server Parent</name>
-  <description>Parent project for the Java server-side code of Nuxeo Drive</description>
+  <name>Nuxeo Drive Parent</name>
+  <description>Parent project for the Java server-side code of Nuxeo
+    Drive and the functional tests
+  </description>
 
   <modules>
     <module>nuxeo-drive-server/nuxeo-drive-core</module>
