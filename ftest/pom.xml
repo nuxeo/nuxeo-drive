@@ -1,0 +1,112 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.nuxeo.ecm.distribution</groupId>
+    <artifactId>nuxeo-distribution</artifactId>
+    <version>5.9.3-SNAPSHOT</version>
+    <relativePath />
+  </parent>
+
+  <groupId>org.nuxeo.ecm</groupId>
+  <artifactId>nuxeo-drive-ftest</artifactId>
+  <packaging>pom</packaging>
+  <name>Nuxeo Drive Functional Tests</name>
+  <description>
+    This POM uses tools-nuxeo-ftest to run Nuxeo Drive
+    functional tests in multiple environments (OS, DB)
+  </description>
+
+  <properties>
+    <!-- URL of the last archived artifacts of the nuxeo-drive marketplace 
+      package on Jenkins -->
+    <nuxeo.drive.mp.url>http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/
+    </nuxeo.drive.mp.url>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.nuxeo.ecm.distribution</groupId>
+      <artifactId>nuxeo-distribution-tomcat</artifactId>
+      <classifier>nuxeo-cap</classifier>
+      <type>zip</type>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.nuxeo.build</groupId>
+        <artifactId>ant-assembly-maven-plugin</artifactId>
+        <configuration>
+          <buildFile>${basedir}/itests.xml</buildFile>
+        </configuration>
+        <executions>
+          <execution>
+            <id>start-nuxeo</id>
+            <phase>pre-integration-test</phase>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <configuration>
+              <targets>
+                <target>fetch-nuxeo-drive-mp</target>
+                <target>prepare-environment</target>
+                <target>start</target>
+              </targets>
+            </configuration>
+          </execution>
+          <execution>
+            <id>run-tests</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <targets>
+                <target>run-drive-tests</target>
+              </targets>
+            </configuration>
+          </execution>
+          <execution>
+            <id>stop-nuxeo</id>
+            <phase>post-integration-test</phase>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <configuration>
+              <target>stop</target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>tomcat</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+    </profile>
+    <profile>
+      <id>pgsql</id>
+    </profile>
+    <profile>
+      <id>mssql</id>
+    </profile>
+    <profile>
+      <id>oracle10g</id>
+    </profile>
+    <profile>
+      <id>oracle11g</id>
+    </profile>
+    <profile>
+      <id>mysql</id>
+    </profile>
+  </profiles>
+
+</project>
