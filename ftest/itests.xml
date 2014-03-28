@@ -1,0 +1,42 @@
+<project name="drive-tests" default="run-drive-tests" xmlns:nx="urn:nuxeo-build" xmlns:artifact="urn:nuxeo-artifact">
+  <taskdef resource="org/nuxeo/build/antlib.xml" uri="urn:nuxeo-build" />
+  <taskdef resource="org/nuxeo/build/artifact/antlib.xml" uri="urn:nuxeo-artifact" />
+  <taskdef resource="net/sf/antcontrib/antlib.xml" />
+
+  <property name="out.dir" value="${maven.project.build.directory}" />
+  <unzip dest="${out.dir}/" overwrite="false">
+    <artifact:resolveFile key="org.nuxeo:nuxeo-ftest::zip" />
+  </unzip>
+  <import file="${out.dir}/nuxeo-ftest.xml" />
+
+  <!-- Deactivate default wizard preset (nuxeo-dm) set in "prepare-tomcat" target -->
+  <property name="wizard.preset" value="none" />
+
+  <!-- Configure nuxeo-drive marketplace package installation -->
+  <property name="nuxeo.drive.mp.filename" value="nuxeo-drive.zip" />
+  <property name="mp.install" value="${out.dir}/${nuxeo.drive.mp.filename}" />
+
+  <target name="fetch-nuxeo-drive-mp">
+    <exec executable="python" failonerror="true">
+      <arg value="../tools/integration_tests_setup.py" />
+      <arg value="--base-folder=../nuxeo-drive-client" />
+      <arg value="--work-folder=${out.dir}" />
+      <arg value="fetch-mp" />
+      <arg value="--url=${nuxeo.drive.mp.url}" />
+      <arg value="--marketplace-filename=${nuxeo.drive.mp.filename}" />
+    </exec>
+  </target>
+
+  <target name="run-drive-tests">
+    <echo level="info">################### Starting Nuxeo Drive functional tests ###################</echo>
+    <exec executable="python" failonerror="true">
+      <arg value="../tools/integration_tests_setup.py" />
+      <arg value="--base-folder=../nuxeo-drive-client" />
+      <arg value="--work-folder=${out.dir}" />
+      <arg value="test" />
+      <arg value="--msi-folder=../dist" />
+    </exec>
+    <echo level="info">################### Ended Nuxeo Drive functional tests ###################</echo>
+  </target>
+
+</project>
