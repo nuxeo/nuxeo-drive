@@ -180,16 +180,18 @@ def find_package_url(archive_page_url, pattern):
     return archive_url, archive_url.rsplit('/', 1)[1]
 
 
-def extract_msi(lessmsi_url, msi_folder, lessmsi_folder, extracted_msi_folder):
+def extract_msi(lessmsi_url, msi_folder, work_folder, extracted_msi_folder):
     if os.path.isdir(msi_folder):
         msi_filename = find_latest(msi_folder, suffix='.msi')
     else:
         msi_filename = msi_folder
 
+    lessmsi_folder = os.path.join(work_folder, LESSMSI_FOLDER)
     if not os.path.exists(lessmsi_folder):
-        filename = os.path.basename(lessmsi_url)
-        download(lessmsi_url, filename)
-        unzip(filename, target=lessmsi_folder)
+        lessmsi_filename = os.path.basename(lessmsi_url)
+        lessmsi_filepath = os.path.join(work_folder, lessmsi_filename)
+        download(lessmsi_url, lessmsi_filepath)
+        unzip(lessmsi_filepath, target=lessmsi_folder)
 
     pflush("Extracting the MSI")
     lessmsi = os.path.join(lessmsi_folder, 'lessmsi')
@@ -269,12 +271,10 @@ if __name__ == "__main__":
             set_environment()
             clean_pyc(options.base_folder)
             if sys.platform == 'win32':
-                lessmsi_folder = os.path.join(options.work_folder,
-                                              LESSMSI_FOLDER)
                 extracted_msi_folder = os.path.join(options.work_folder,
                                                     EXTRACTED_MSI_FOLDER)
                 extract_msi(options.lessmsi_url, options.msi_folder,
-                            lessmsi_folder, extracted_msi_folder)
+                            options.work_folder, extracted_msi_folder)
                 run_tests_from_msi(extracted_msi_folder)
             else:
                 run_tests_from_source(options.base_folder)
