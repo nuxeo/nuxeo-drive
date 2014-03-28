@@ -11,10 +11,6 @@ coverage
 .coverage
 build
 dist
-*.zip
-nuxeo-tomcat
-lessmsi
-nxdrive_msi
 .ropeproject
 MANIFEST
 *.framework
