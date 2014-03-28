@@ -271,10 +271,10 @@ if __name__ == "__main__":
             if sys.platform == 'win32':
                 lessmsi_folder = os.path.join(options.work_folder,
                                               LESSMSI_FOLDER)
-                extract_msi(options.lessmsi_url, options.msi_folder,
-                            lessmsi_folder)
                 extracted_msi_folder = os.path.join(options.work_folder,
                                                     EXTRACTED_MSI_FOLDER)
+                extract_msi(options.lessmsi_url, options.msi_folder,
+                            lessmsi_folder, extracted_msi_folder)
                 run_tests_from_msi(extracted_msi_folder)
             else:
                 run_tests_from_source(options.base_folder)
