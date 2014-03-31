@@ -217,10 +217,10 @@ def clean_pyc(dir):
             os.unlink(file_path)
 
 
-def run_tests_from_msi(extracted_msi_folder):
+def run_tests_from_msi(extracted_msi_folder, base_folder):
     clean_home_folder()
     ndrive = os.path.join(extracted_msi_folder, 'SourceDir', 'ndrive.exe')
-    execute(ndrive + " test --nologcapture")
+    execute(ndrive + " test -w " + base_folder + " --nologcapture")
 
 
 def clean_home_folder(dir=None):
@@ -276,7 +276,7 @@ if __name__ == "__main__":
                                                     EXTRACTED_MSI_FOLDER)
                 extract_msi(options.lessmsi_url, options.msi_folder,
                             options.work_folder, extracted_msi_folder)
-                run_tests_from_msi(extracted_msi_folder)
+                run_tests_from_msi(extracted_msi_folder, options.base_folder)
             else:
                 run_tests_from_source(options.base_folder)
     elif options.command == 'fetch-mp':
