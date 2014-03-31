@@ -224,6 +224,8 @@ def make_cli_parser(add_subparsers=True):
     )
     test_parser.set_defaults(command='test')
     test_parser.add_argument(
+        "-w", help="Nose working directory.")
+    test_parser.add_argument(
         "--nologcapture", default=False, action="store_true",
         help="Disable nose logging capture plugin.")
     test_parser.add_argument(
@@ -427,6 +429,12 @@ class CliHandler(object):
             '',
             '--verbose',
         ]
+
+        if options.w:
+            argv += [
+                '-w',
+                options.w,
+            ]
 
         if options.nologcapture:
             argv += [
