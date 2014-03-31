@@ -38,15 +38,15 @@ DEFAULT_WORK_FOLDER = 'target'
 MARKET_PLACE_PREFIX = "nuxeo-drive"
 DEFAULT_MARKETPLACE_PATTERN = MARKET_PLACE_PREFIX + r"\-\d\.\d.*?\.zip"
 DEFAULT_MARKETPLACE_FILENAME = MARKET_PLACE_PREFIX + '.zip'
+LINKS_PATTERN = r'\bhref="([^"]+)"'
+
+DEFAULT_SERVER_URL= "http://localhost:8080/nuxeo"
 
 DEFAULT_MSI_FOLDER = 'dist'
 DEFAULT_LESSMSI_URL = "http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
 LESSMSI_FOLDER = 'lessmsi'
 EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
-
 NUXEO_DRIVE_HOME_FOLDER = os.path.expanduser('~\.nuxeo-drive')
-
-LINKS_PATTERN = r'\bhref="([^"]+)"'
 
 
 def pflush(message):
@@ -101,6 +101,7 @@ def parse_args(args=None):
     parser = subparsers.add_parser(
         'test', help="Launch integration tests with nose.")
     parser.set_defaults(command='test')
+    parser.add_argument("--server-url", default=DEFAULT_SERVER_URL)
     parser.add_argument("--msi-folder", default=DEFAULT_MSI_FOLDER)
     parser.add_argument("--lessmsi-url", default=DEFAULT_LESSMSI_URL)
 
@@ -200,8 +201,8 @@ def extract_msi(lessmsi_url, msi_folder, work_folder, extracted_msi_folder):
     execute("%s /x %s %s" % (lessmsi, msi_filename, extracted_msi_folder))
 
 
-def set_environment():
-    os.environ['NXDRIVE_TEST_NUXEO_URL'] = "http://localhost:8080/nuxeo"
+def set_environment(server_url):
+    os.environ['NXDRIVE_TEST_NUXEO_URL'] = server_url
     os.environ['NXDRIVE_TEST_USER'] = "Administrator"
     os.environ['NXDRIVE_TEST_PASSWORD'] = "Administrator"
 
@@ -268,7 +269,7 @@ if __name__ == "__main__":
                    " --base-folder option."
                    % options.base_folder)
         else:
-            set_environment()
+            set_environment(options.server_url)
             clean_pyc(options.base_folder)
             if sys.platform == 'win32':
                 extracted_msi_folder = os.path.join(options.work_folder,
