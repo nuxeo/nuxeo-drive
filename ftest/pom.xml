@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.nuxeo.ecm.distribution</groupId>
     <artifactId>nuxeo-distribution</artifactId>
-    <version>5.9.3-SNAPSHOT</version>
+    <version>5.6.0-HF34-SNAPSHOT</version>
     <relativePath />
   </parent>
 
@@ -21,7 +21,7 @@
   <properties>
     <!-- URL of the last archived artifacts of the nuxeo-drive marketplace 
       package on Jenkins -->
-    <nuxeo.drive.mp.url>http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/
+    <nuxeo.drive.mp.url>http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-5.6.0-marketplace/lastSuccessfulBuild/artifact/marketplace/target/
     </nuxeo.drive.mp.url>
   </properties>
 
@@ -39,7 +39,7 @@
     <plugins>
       <plugin>
         <groupId>org.nuxeo.build</groupId>
-        <artifactId>ant-assembly-maven-plugin</artifactId>
+        <artifactId>nuxeo-distribution-tools</artifactId>
         <configuration>
           <buildFile>${basedir}/itests.xml</buildFile>
         </configuration>
