@@ -89,7 +89,7 @@ def default_nuxeo_drive_folder():
         if os.path.exists(my_documents):
             nuxeo_drive_folder = os.path.join(my_documents,
                                               NUXEO_DRIVE_FOLDER_NAME)
-            log.debug("Will use '%s' as Nuxeo Drive folder location"
+            log.debug("Will use '%s' as default Nuxeo Drive folder location"
                       " under Windows", nuxeo_drive_folder)
             return nuxeo_drive_folder
 
@@ -97,7 +97,7 @@ def default_nuxeo_drive_folder():
     user_home = os.path.expanduser('~')
     user_home = unicode(user_home.decode(ENCODING))
     nuxeo_drive_folder = os.path.join(user_home, NUXEO_DRIVE_FOLDER_NAME)
-    log.debug("Will use '%s' as Nuxeo Drive folder location",
+    log.debug("Will use '%s' as default Nuxeo Drive folder location",
               nuxeo_drive_folder)
     return nuxeo_drive_folder
 
