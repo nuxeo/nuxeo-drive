@@ -116,18 +116,18 @@ class Dialog(QDialog):
                     self.sb_fields[field_id] = field
             else:
                 label = QtGui.QLabel(spec['label'])
-                line_edit = QtGui.QLineEdit()
+                field = QtGui.QLineEdit()
                 if value is not None:
-                    line_edit.setText(str(value))
+                    field.setText(str(value))
                 if spec.get('secret', False):
-                    line_edit.setEchoMode(QtGui.QLineEdit.Password)
+                    field.setEchoMode(QtGui.QLineEdit.Password)
                 enabled = spec.get('enabled', True)
-                line_edit.setEnabled(enabled)
-                line_edit.textChanged.connect(self.clear_message)
+                field.setEnabled(enabled)
+                field.textChanged.connect(self.clear_message)
                 if field_id != 'initialized':
                     layout.addWidget(label, i + 1, 0)
-                    layout.addWidget(line_edit, i + 1, 1)
-                self.sb_fields[field_id] = line_edit
+                    layout.addWidget(field, i + 1, 1)
+                self.sb_fields[field_id] = field
         box.setLayout(layout)
         return box
 
