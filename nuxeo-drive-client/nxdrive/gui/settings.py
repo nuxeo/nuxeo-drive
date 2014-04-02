@@ -2,6 +2,7 @@
 from nxdrive.client import Unauthorized
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
+from nxdrive.controller import NUXEO_DRIVE_FOLDER_NAME
 from nxdrive.controller import ServerBindingSettings
 from nxdrive.controller import ProxySettings
 from nxdrive.controller import MissingToken
@@ -9,6 +10,8 @@ from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import get_proxy_handler
 import urllib2
 import socket
+import os
+import getpass
 
 WindowsError = None
 try:
@@ -35,7 +38,6 @@ is_dialog_open = False
 PROXY_CONFIGS = ['None', 'System', 'Manual']
 PROXY_TYPES = ['http', 'https']
 PROXY_TEST_HOST = 'www.google.com'
-DEFAULT_FIELD_WIDGET_WIDTH = 250
 
 LICENSE_LINK = (
     '<a href ="http://github.com/nuxeo/nuxeo-drive/blob/master/LICENSE.txt">'
@@ -43,6 +45,10 @@ LICENSE_LINK = (
 SOURCE_LINK = ('<a href ="http://github.com/nuxeo/nuxeo-drive">'
                'http://github.com/nuxeo/nuxeo-drive</a>')
 
+SETTINGS_DIALOG_WIDTH = 530
+FILE_DIALOG_BUTTON_WIDTH = 30
+ACCOUNT_BOX_HEIGHT = 200
+DEFAULT_FIELD_WIDGET_WIDTH = 280
 BOLD_STYLE = 'font-weight: bold;'
 
 
@@ -62,13 +68,16 @@ class Dialog(QDialog):
         icon = find_icon('nuxeo_drive_icon_64.png')
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
-        self.resize(500, -1)
+        self.resize(SETTINGS_DIALOG_WIDTH, -1)
         self.accepted = False
         self.callback = callback
 
         # Fields
         self.sb_fields = {}
         self.proxy_fields = {}
+
+        # File dialog directory
+        self.file_dialog_dir = None
 
         # Style sheet
         self.setStyleSheet('QGroupBox {border: none;}')
@@ -99,12 +108,18 @@ class Dialog(QDialog):
         self.setLayout(mainLayout)
 
     def get_account_box(self, field_spec):
+        # TODO NXP-12657: don't rely on field order to get 'initialized' value.
+        # Works fine here as it is the first element in sb_field_spec.
+        # Should use a dictionary instead.
+        initialized = False
         box = QtGui.QGroupBox()
-        box.setFixedHeight(200)
+        box.setFixedHeight(ACCOUNT_BOX_HEIGHT)
         layout = QtGui.QGridLayout()
         for i, spec in enumerate(field_spec):
             field_id = spec['id']
             value = spec.get('value')
+            if field_id == 'initialized':
+                initialized = value
             if field_id == 'update_password':
                 if spec.get('display'):
                     field = QtGui.QCheckBox(spec['label'])
@@ -114,18 +129,26 @@ class Dialog(QDialog):
                     self.sb_fields[field_id] = field
             else:
                 label = QtGui.QLabel(spec['label'])
-                line_edit = QtGui.QLineEdit()
+                field = QtGui.QLineEdit()
                 if value is not None:
-                    line_edit.setText(str(value))
+                    field.setText(str(value))
                 if spec.get('secret', False):
-                    line_edit.setEchoMode(QtGui.QLineEdit.Password)
+                    field.setEchoMode(QtGui.QLineEdit.Password)
                 enabled = spec.get('enabled', True)
-                line_edit.setEnabled(enabled)
-                line_edit.textChanged.connect(self.clear_message)
+                field.setEnabled(enabled)
+                field.textChanged.connect(self.clear_message)
                 if field_id != 'initialized':
                     layout.addWidget(label, i + 1, 0)
-                    layout.addWidget(line_edit, i + 1, 1)
-                self.sb_fields[field_id] = line_edit
+                    layout.addWidget(field, i + 1, 1)
+                self.sb_fields[field_id] = field
+                # Open file dialog button for local folder
+                if field_id == 'local_folder' and not initialized:
+                    if value is not None:
+                        self.file_dialog_dir = os.path.dirname(value)
+                    button = QtGui.QPushButton('...')
+                    button.clicked.connect(self.open_file_dialog)
+                    button.setFixedWidth(FILE_DIALOG_BUTTON_WIDTH)
+                    layout.addWidget(button, i + 1, 2)
         box.setLayout(layout)
         return box
 
@@ -135,6 +158,18 @@ class Dialog(QDialog):
 
     def clear_message(self, *args, **kwargs):
         self.message_area.clear()
+
+    def open_file_dialog(self):
+        dir_path = QtGui.QFileDialog.getExistingDirectory(
+            caption='Select Nuxeo Drive folder location',
+            directory=self.file_dialog_dir)
+        if dir_path:
+            dir_path = str(dir_path)
+            log.debug('Selected %s as the Nuxeo Drive folder location',
+                      dir_path)
+            self.file_dialog_dir = dir_path
+            local_folder_path = os.path.join(dir_path, NUXEO_DRIVE_FOLDER_NAME)
+            self.sb_fields['local_folder'].setText(local_folder_path)
 
     def get_proxy_box(self, field_spec):
         box = QtGui.QGroupBox()
@@ -292,6 +327,17 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
     # Server binding fields
     sb_field_spec = [
         {
+            'id': 'initialized',
+            'label': '',
+            'value': sb_settings.initialized,
+        },
+        {
+            'id': 'local_folder',
+            'label': 'Nuxeo Drive folder:',
+            'value': sb_settings.local_folder,
+            'enabled': False,
+        },
+        {
             'id': 'url',
             'label': 'Nuxeo server URL:',
             'value': sb_settings.server_url,
@@ -317,11 +363,6 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
             'secret': True,
             'enabled': (not sb_settings.initialized
                         or sb_settings.pwd_update_required),
-        },
-        {
-            'id': 'initialized',
-            'label': '',
-            'value': sb_settings.initialized,
         },
     ]
 
@@ -432,10 +473,37 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
                              exceptions=str(values['proxy_exceptions']))
 
     def bind_server(values, proxy_settings, dialog):
+        current_user = getpass.getuser()
         initialized = values.get('initialized')
         update_password = values.get('update_password')
         if (initialized == 'True' and update_password is False):
             return True
+        # Check local folder
+        local_folder = values['local_folder']
+        if not local_folder:
+            dialog.show_message("The Nuxeo Drive folder is required.")
+            return False
+        local_folder = str(local_folder)
+        local_folder_parent = os.path.dirname(local_folder)
+        if os.path.exists(local_folder):
+            # We should display a dialog to inform the user that the local
+            # folder already exists and let the choice between merging
+            # synchronized content into it or select another location.
+            # See https://jira.nuxeo.com/browse/NXP-14144
+            if not os.access(local_folder, os.W_OK):
+                dialog.show_message("Current user %s doesn't have write"
+                                    " permission on %s." % (current_user,
+                                                            local_folder))
+                return False
+            log.debug("Local folder %s already exists, will merge synchronized"
+                      " content into it", local_folder)
+        else:
+            if not os.access(local_folder_parent, os.W_OK):
+                dialog.show_message("%s is not a valid location or current"
+                                    " user %s doesn't have write permission"
+                                    " on %s." % (local_folder, current_user,
+                                                 local_folder_parent))
+                return False
         url = values['url']
         if not url:
             dialog.show_message("The Nuxeo server URL is required.")
@@ -454,7 +522,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         dialog.show_message("Connecting to %s ..." % url)
         try:
             controller.refresh_proxies(proxy_settings)
-            controller.bind_server(sb_settings.local_folder, url, username,
+            controller.bind_server(local_folder, url, username,
                                    password)
             return True
         except Unauthorized:
@@ -462,13 +530,13 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         except socket.timeout:
             return handle_error(timeout_msg, dialog)
         except (OSError, WindowsError) as e:
-            # This error case will make more sense when local folder
-            # configuration becomes available in the Settings dialog box.
-            # See https://jira.nuxeo.com/browse/NXP-12657
+            # The local folder check is already done before trying to actually
+            # bind to the server so this is just enforcement.
             return handle_error("Unable to create local folder %s, please"
                                 " check this is a valid location and current"
-                                " user has the appropriate permission." %
-                                sb_settings.local_folder, dialog)
+                                " user %s has write permission on %s." %
+                                (local_folder, current_user,
+                                 local_folder_parent), dialog)
         except Exception as e:
             if hasattr(e, 'msg'):
                 msg = e.msg
