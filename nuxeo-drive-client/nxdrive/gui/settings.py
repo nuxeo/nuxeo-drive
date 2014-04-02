@@ -35,7 +35,6 @@ is_dialog_open = False
 PROXY_CONFIGS = ['None', 'System', 'Manual']
 PROXY_TYPES = ['http', 'https']
 PROXY_TEST_HOST = 'www.google.com'
-DEFAULT_FIELD_WIDGET_WIDTH = 250
 
 LICENSE_LINK = (
     '<a href ="http://github.com/nuxeo/nuxeo-drive/blob/master/LICENSE.txt">'
@@ -43,6 +42,9 @@ LICENSE_LINK = (
 SOURCE_LINK = ('<a href ="http://github.com/nuxeo/nuxeo-drive">'
                'http://github.com/nuxeo/nuxeo-drive</a>')
 
+SETTINGS_DIALOG_WIDTH = 530
+ACCOUNT_BOX_HEIGHT = 200
+DEFAULT_FIELD_WIDGET_WIDTH = 280
 BOLD_STYLE = 'font-weight: bold;'
 
 
@@ -62,7 +64,7 @@ class Dialog(QDialog):
         icon = find_icon('nuxeo_drive_icon_64.png')
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
-        self.resize(500, -1)
+        self.resize(SETTINGS_DIALOG_WIDTH, -1)
         self.accepted = False
         self.callback = callback
 
@@ -100,7 +102,7 @@ class Dialog(QDialog):
 
     def get_account_box(self, field_spec):
         box = QtGui.QGroupBox()
-        box.setFixedHeight(200)
+        box.setFixedHeight(ACCOUNT_BOX_HEIGHT)
         layout = QtGui.QGridLayout()
         for i, spec in enumerate(field_spec):
             field_id = spec['id']
