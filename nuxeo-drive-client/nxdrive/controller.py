@@ -39,6 +39,7 @@ from nxdrive.migration import migrate_db
 
 log = get_logger(__name__)
 
+NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 
 class MissingToken(Exception):
     pass
@@ -86,7 +87,8 @@ def default_nuxeo_drive_folder():
                 my_documents = unicode(my_documents.decode(ENCODING))
 
         if os.path.exists(my_documents):
-            nuxeo_drive_folder = os.path.join(my_documents, u'Nuxeo Drive')
+            nuxeo_drive_folder = os.path.join(my_documents,
+                                              NUXEO_DRIVE_FOLDER_NAME)
             log.debug("Will use '%s' as Nuxeo Drive folder location"
                       " under Windows", nuxeo_drive_folder)
             return nuxeo_drive_folder
@@ -94,7 +96,7 @@ def default_nuxeo_drive_folder():
     # Fall back on home folder otherwise
     user_home = os.path.expanduser('~')
     user_home = unicode(user_home.decode(ENCODING))
-    nuxeo_drive_folder = os.path.join(user_home, u'Nuxeo Drive')
+    nuxeo_drive_folder = os.path.join(user_home, NUXEO_DRIVE_FOLDER_NAME)
     log.debug("Will use '%s' as Nuxeo Drive folder location",
               nuxeo_drive_folder)
     return nuxeo_drive_folder
