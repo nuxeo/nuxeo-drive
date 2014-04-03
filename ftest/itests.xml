@@ -29,6 +29,8 @@
 
   <target name="run-drive-tests">
     <echo level="info">################### Starting Nuxeo Drive functional tests ###################</echo>
+    <property environment="env" />
+    <echo level="info">PATH detected by Ant = ${env.PATH}</echo>
     <exec executable="python" failonerror="true">
       <arg value="../tools/integration_tests_setup.py" />
       <arg value="--base-folder=../nuxeo-drive-client" />

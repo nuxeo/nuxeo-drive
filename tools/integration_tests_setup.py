@@ -231,6 +231,7 @@ def clean_home_folder(dir=None):
 
 
 def run_tests_from_source(base_folder):
+    pflush("PATH detected by Python = " + os.environ.get('PATH'))
     cmd = "cd " + base_folder + " && nosetests -v"
     execute(cmd)
 
