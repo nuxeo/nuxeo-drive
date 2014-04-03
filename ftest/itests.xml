@@ -17,7 +17,7 @@
   <property name="mp.install" value="${out.dir}/${nuxeo.drive.mp.filename}" />
 
   <target name="fetch-nuxeo-drive-mp">
-    <exec executable="python" failonerror="true" searchpath="true">
+    <exec executable="python" failonerror="true">
       <arg value="../tools/integration_tests_setup.py" />
       <arg value="--base-folder=../nuxeo-drive-client" />
       <arg value="--work-folder=${out.dir}" />
@@ -31,7 +31,7 @@
     <echo level="info">################### Starting Nuxeo Drive functional tests ###################</echo>
     <property environment="env" />
     <echo level="info">PATH detected by Ant = ${env.PATH}</echo>
-    <exec executable="python" failonerror="true" searchpath="true">
+    <exec executable="python" failonerror="true">
       <arg value="../tools/integration_tests_setup.py" />
       <arg value="--base-folder=../nuxeo-drive-client" />
       <arg value="--work-folder=${out.dir}" />
