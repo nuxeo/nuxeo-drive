@@ -68,7 +68,7 @@ To run the tests, install and start a nuxeo server locally, then::
 ``LaunchServices`` API for registering the Nuxeo Drive folder in the OS X
 Finder favorite list (a.k.a. "Places")::
 
-  pip install PyObjC
+  sudo pip install PyObjC
 
 WARNING: this will download many large dependencies and sometimes the remote
 server will timeout on some of them: you might need to re-run this command
@@ -222,8 +222,8 @@ section below first.
 
 Then install ``py2app`` along with the dependencies if ::
 
-  pip install py2app
-  pip install -r requirements.txt
+  sudo pip install py2app
+  sudo pip install -r requirements.txt
 
 Then run::
 
