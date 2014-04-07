@@ -22,3 +22,4 @@ MANIFEST
 .pydevproject
 debian
 venv
+ENV
