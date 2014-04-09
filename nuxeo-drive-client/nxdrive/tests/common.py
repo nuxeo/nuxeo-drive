@@ -151,15 +151,13 @@ class IntegrationTestCase(unittest.TestCase):
         self.remote_file_system_client_2 = remote_file_system_client_2
 
     def tearDown(self):
+        # Note that unbinding a server revokes the related token if needed,
+        # see Controller.unbind_server()
         self.controller_1.unbind_all()
         self.controller_2.unbind_all()
-        self.remote_document_client_1.revoke_token()
-        self.remote_document_client_2.revoke_token()
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
         self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
-
-        self.root_remote_client.revoke_token()
 
         if os.path.exists(self.upload_tmp_dir):
             shutil.rmtree(safe_long_path(self.upload_tmp_dir))
