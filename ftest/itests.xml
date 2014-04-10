@@ -9,9 +9,6 @@
   </unzip>
   <import file="${out.dir}/nuxeo-ftest.xml" />
 
-  <!-- Deactivate default wizard preset (nuxeo-dm) set in "prepare-tomcat" target -->
-  <property name="wizard.preset" value="none" />
-
   <!-- Configure nuxeo-drive marketplace package installation -->
   <property name="nuxeo.drive.mp.filename" value="nuxeo-drive.zip" />
   <property name="mp.install" value="${out.dir}/${nuxeo.drive.mp.filename}" />
