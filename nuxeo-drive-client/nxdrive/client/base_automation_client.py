@@ -18,6 +18,7 @@ from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
+from nxdrive.utils import guess_mime_type
 from nxdrive.utils import force_decode
 from nxdrive.utils import deprecated
 from urllib2 import ProxyHandler
@@ -25,7 +26,6 @@ from urlparse import urlparse
 
 
 log = get_logger(__name__)
-
 
 DEVICE_DESCRIPTIONS = {
     'linux2': 'Linux Desktop',
@@ -413,11 +413,7 @@ class BaseAutomationClient(object):
             filename = os.path.basename(file_path)
         file_size = os.path.getsize(file_path)
         if mime_type is None:
-            ctype, _ = mimetypes.guess_type(filename)
-            if ctype:
-                mime_type = ctype
-            else:
-                mime_type = "application/octet-stream"
+            mime_type = guess_mime_type(filename)
         # Quote UTF-8 filenames even though JAX-RS does not seem to be able
         # to retrieve them as per: https://tools.ietf.org/html/rfc5987
         filename = safe_filename(filename)
