@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import locale
+import mimetypes
 from Crypto.Cipher import AES
 from Crypto import Random
 from nxdrive.logging_config import get_logger
@@ -137,6 +138,14 @@ def _lazysecret(secret, blocksize=32, padding='}'):
     if not len(secret) in (16, 24, 32):
         return secret + (blocksize - len(secret)) * padding
     return secret
+
+
+def guess_mime_type(filename):
+    ctype, _ = mimetypes.guess_type(filename)
+    if ctype:
+        return ctype
+    else:
+        return "application/octet-stream"
 
 
 def deprecated(func):
