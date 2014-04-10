@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import locale
+import mimetypes
 from Crypto.Cipher import AES
 from Crypto import Random
 from nxdrive.logging_config import get_logger
@@ -14,6 +15,15 @@ WIN32_SUFFIX = os.path.join('library.zip', 'nxdrive')
 OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
 
 ENCODING = locale.getpreferredencoding()
+
+WIN32_PATCHED_MIME_TYPES = {
+    'image/pjpeg': 'image/jpeg',
+    'image/x-png': 'image/png',
+    'image/bmp': 'image/x-ms-bmp',
+    'audio/x-mpg': 'audio/mpeg',
+    'video/x-mpeg2a': 'video/mpeg',
+    'application/x-javascript': 'application/javascript',
+}
 
 
 def normalized_path(path):
@@ -137,6 +147,26 @@ def _lazysecret(secret, blocksize=32, padding='}'):
     if not len(secret) in (16, 24, 32):
         return secret + (blocksize - len(secret)) * padding
     return secret
+
+
+def guess_mime_type(filename):
+    ctype, _ = mimetypes.guess_type(filename)
+    if ctype:
+        # Patch bad Windows MIME types
+        # See https://jira.nuxeo.com/browse/NXP-11660
+        # and http://bugs.python.org/issue15207
+        mime_type = _patch_win32_mime_type(ctype)
+        log.trace("Guessed mime type '%s' for '%s'", mime_type, filename)
+        return mime_type
+    else:
+        log.trace("Could not guess mime type for '%s', returing"
+            " 'application/octet-stream'", filename)
+        return "application/octet-stream"
+
+
+def _patch_win32_mime_type(mime_type):
+    patched_mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type)
+    return patched_mime_type if patched_mime_type else mime_type
 
 
 def deprecated(func):
