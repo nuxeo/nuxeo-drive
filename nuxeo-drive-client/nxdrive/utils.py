@@ -155,8 +155,12 @@ def guess_mime_type(filename):
         # Patch bad Windows MIME types
         # See https://jira.nuxeo.com/browse/NXP-11660
         # and http://bugs.python.org/issue15207
-        return _patch_win32_mime_type(ctype)
+        mime_type = _patch_win32_mime_type(ctype)
+        log.trace("Guessed mime type '%s' for '%s'", mime_type, filename)
+        return mime_type
     else:
+        log.trace("Could not guess mime type for '%s', returing"
+            " 'application/octet-stream'", filename)
         return "application/octet-stream"
 
 
