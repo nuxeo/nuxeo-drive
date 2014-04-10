@@ -24,7 +24,8 @@ class UtilsTestCase(unittest.TestCase):
 
         # Audio
         self.assertEquals(guess_mime_type('sound.mp3'), 'audio/mpeg')
-        self.assertEquals(guess_mime_type('sound.wma'), 'audio/x-ms-wma')
+        self.assertIn(guess_mime_type('sound.wma'), ['audio/x-ms-wma',
+                                                'application/octet-stream'])
         self.assertEquals(guess_mime_type('sound.wav'), 'audio/x-wav')
 
         # Video
