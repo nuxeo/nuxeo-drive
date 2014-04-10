@@ -352,6 +352,26 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(fs_item_info.digest,
                           local_client.get_info('/testFile.pdf').get_digest())
 
+    def test_mime_type_doc_type_association(self):
+
+        # Upload a PDF file, should create a File document
+        file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        fs_item_id = self.remote_file_system_client_1.stream_file(
+                                            self.workspace_id, file_path)
+        doc_uid = fs_item_id.rsplit('#', 1)[1]
+        doc_type = self.remote_document_client_1.get_info(doc_uid).doc_type
+        self.assertEquals(doc_type, 'File')
+
+        # Upload a JPG file, should create a Picture document
+        file_path = os.path.join(self.upload_tmp_dir, 'cat.jpg')
+        copyfile('nxdrive/tests/resources/cat.jpg', file_path)
+        fs_item_id = self.remote_file_system_client_1.stream_file(
+                                            self.workspace_id, file_path)
+        doc_uid = fs_item_id.rsplit('#', 1)[1]
+        doc_type = self.remote_document_client_1.get_info(doc_uid).doc_type
+        self.assertEquals(doc_type, 'Picture')
+
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)
         if hasher is None:
