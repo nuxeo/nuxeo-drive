@@ -1,4 +1,5 @@
 """GUI prompt to manage settings"""
+from nxdrive.utils import ENCODING
 from nxdrive.client import Unauthorized
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
@@ -130,14 +131,14 @@ class Dialog(QDialog):
             else:
                 label = QtGui.QLabel(spec['label'])
                 field = QtGui.QLineEdit()
-                if value is not None:
-                    field.setText(str(value))
-                if spec.get('secret', False):
-                    field.setEchoMode(QtGui.QLineEdit.Password)
-                enabled = spec.get('enabled', True)
-                field.setEnabled(enabled)
-                field.textChanged.connect(self.clear_message)
                 if field_id != 'initialized':
+                    if value is not None:
+                        field.setText(value)
+                    if spec.get('secret', False):
+                        field.setEchoMode(QtGui.QLineEdit.Password)
+                    enabled = spec.get('enabled', True)
+                    field.setEnabled(enabled)
+                    field.textChanged.connect(self.clear_message)
                     layout.addWidget(label, i + 1, 0)
                     layout.addWidget(field, i + 1, 1)
                 self.sb_fields[field_id] = field
@@ -164,7 +165,7 @@ class Dialog(QDialog):
             caption='Select Nuxeo Drive folder location',
             directory=self.file_dialog_dir)
         if dir_path:
-            dir_path = str(dir_path)
+            dir_path = unicode(dir_path)
             log.debug('Selected %s as the Nuxeo Drive folder location',
                       dir_path)
             self.file_dialog_dir = dir_path
@@ -483,7 +484,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         if not local_folder:
             dialog.show_message("The Nuxeo Drive folder is required.")
             return False
-        local_folder = str(local_folder)
+        local_folder = unicode(local_folder)
         local_folder_parent = os.path.dirname(local_folder)
         if os.path.exists(local_folder):
             # We should display a dialog to inform the user that the local
@@ -508,7 +509,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         if not url:
             dialog.show_message("The Nuxeo server URL is required.")
             return False
-        url = str(url)
+        url = unicode(url)
         if (not url.startswith("http://")
             and not url.startswith('https://')):
             dialog.show_message("Not a valid HTTP url.")
@@ -517,14 +518,17 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         if not username:
             dialog.show_message("A user name is required")
             return False
-        username = str(username)
-        password = str(values['password'])
+        username = unicode(username).encode(ENCODING)
+        password = unicode(values['password']).encode(ENCODING)
         dialog.show_message("Connecting to %s ..." % url)
         try:
             controller.refresh_proxies(proxy_settings)
             controller.bind_server(local_folder, url, username,
                                    password)
             return True
+        except UnicodeDecodeError:
+            return handle_error("Username must contain only alpha-numeric"
+                                " characters.", dialog, exc_info=False)
         except Unauthorized:
             return handle_error("Invalid credentials.", dialog, exc_info=False)
         except socket.timeout:
