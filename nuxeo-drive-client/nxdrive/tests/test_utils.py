@@ -34,7 +34,8 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(guess_mime_type('video.mov'), 'video/quicktime')
         self.assertIn(guess_mime_type('video.wmv'), ['video/x-ms-wmv',
                                                 'application/octet-stream'])
-        self.assertEquals(guess_mime_type('video.avi'), 'video/x-msvideo')
+        self.assertIn(guess_mime_type('video.avi'), ['video/x-msvideo',
+                                                     'video/avi'])
 
         # Office
         self.assertEquals(guess_mime_type('office.doc'),
