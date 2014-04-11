@@ -15,6 +15,7 @@ WIN32_SUFFIX = os.path.join('library.zip', 'nxdrive')
 OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
 
 ENCODING = locale.getpreferredencoding()
+DEFAULT_ENCODING = 'utf-8'
 
 WIN32_PATCHED_MIME_TYPES = {
     'image/pjpeg': 'image/jpeg',

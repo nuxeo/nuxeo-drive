@@ -1,4 +1,5 @@
 """GUI prompt to manage settings"""
+from nxdrive.utils import DEFAULT_ENCODING
 from nxdrive.client import Unauthorized
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
@@ -115,14 +116,14 @@ class Dialog(QDialog):
             else:
                 label = QtGui.QLabel(spec['label'])
                 line_edit = QtGui.QLineEdit()
-                if value is not None:
-                    line_edit.setText(str(value))
-                if spec.get('secret', False):
-                    line_edit.setEchoMode(QtGui.QLineEdit.Password)
-                enabled = spec.get('enabled', True)
-                line_edit.setEnabled(enabled)
-                line_edit.textChanged.connect(self.clear_message)
                 if field_id != 'initialized':
+                    if value is not None:
+                        line_edit.setText(str(value))
+                    if spec.get('secret', False):
+                        line_edit.setEchoMode(QtGui.QLineEdit.Password)
+                    enabled = spec.get('enabled', True)
+                    line_edit.setEnabled(enabled)
+                    line_edit.textChanged.connect(self.clear_message)
                     layout.addWidget(label, i + 1, 0)
                     layout.addWidget(line_edit, i + 1, 1)
                 self.sb_fields[field_id] = line_edit
@@ -440,7 +441,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         if not url:
             dialog.show_message("The Nuxeo server URL is required.")
             return False
-        url = str(url)
+        url = unicode(url)
         if (not url.startswith("http://")
             and not url.startswith('https://')):
             dialog.show_message("Not a valid HTTP url.")
@@ -449,14 +450,17 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         if not username:
             dialog.show_message("A user name is required")
             return False
-        username = str(username)
-        password = str(values['password'])
+        username = unicode(username).encode(DEFAULT_ENCODING)
+        password = unicode(values['password']).encode(DEFAULT_ENCODING)
         dialog.show_message("Connecting to %s ..." % url)
         try:
             controller.refresh_proxies(proxy_settings)
             controller.bind_server(sb_settings.local_folder, url, username,
                                    password)
             return True
+        except UnicodeDecodeError:
+            return handle_error("Username must contain only alpha-numeric"
+                                " characters.", dialog, exc_info=False)
         except Unauthorized:
             return handle_error("Invalid credentials.", dialog, exc_info=False)
         except socket.timeout:
