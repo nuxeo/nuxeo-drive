@@ -32,16 +32,19 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(guess_mime_type('video.mpeg'), 'video/mpeg')
         self.assertEquals(guess_mime_type('video.mp4'), 'video/mp4')
         self.assertEquals(guess_mime_type('video.mov'), 'video/quicktime')
-        self.assertEquals(guess_mime_type('video.wmv'), 'video/x-ms-wmv')
+        self.assertIn(guess_mime_type('video.wmv'), ['video/x-ms-wmv',
+                                                'application/octet-stream'])
         self.assertEquals(guess_mime_type('video.avi'), 'video/x-msvideo')
 
         # Office
         self.assertEquals(guess_mime_type('office.doc'),
                           'application/msword')
         self.assertIn(guess_mime_type('office.xls'), [
-                        'application/vnd.ms-excel', 'application/x-msexcel'])
-        self.assertEquals(guess_mime_type('office.ppt'),
-                          'application/vnd.ms-powerpoint')
+                          'application/vnd.ms-excel',
+                          'application/x-msexcel'])
+        self.assertIn(guess_mime_type('office.ppt'), [
+                          'application/vnd.ms-powerpoint',
+                          'application/x-mspowerpoint'])
 
         # PDF
         self.assertEquals(guess_mime_type('document.pdf'),
