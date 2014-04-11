@@ -1,5 +1,5 @@
 """GUI prompt to manage settings"""
-from nxdrive.utils import ENCODING
+from nxdrive.utils import DEFAULT_ENCODING
 from nxdrive.client import Unauthorized
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
@@ -518,8 +518,8 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         if not username:
             dialog.show_message("A user name is required")
             return False
-        username = unicode(username).encode(ENCODING)
-        password = unicode(values['password']).encode(ENCODING)
+        username = unicode(username).encode(DEFAULT_ENCODING)
+        password = unicode(values['password']).encode(DEFAULT_ENCODING)
         dialog.show_message("Connecting to %s ..." % url)
         try:
             controller.refresh_proxies(proxy_settings)
