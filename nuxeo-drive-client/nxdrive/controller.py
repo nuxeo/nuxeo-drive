@@ -41,6 +41,7 @@ log = get_logger(__name__)
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 
+
 class MissingToken(Exception):
     pass
 
