@@ -84,6 +84,7 @@ class UtilsTestCase(unittest.TestCase):
             self.assertIn(guess_mime_type('office.pptx'), [
                             'application/vnd.openxmlformats-officedocument'
                             '.presentationml.presentation',
+                            'application/x-mspowerpoint.12',
                             'application/octet-stream'])
 
             self.assertIn(guess_mime_type('office.odt'), [
