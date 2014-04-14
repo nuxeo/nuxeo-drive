@@ -47,7 +47,7 @@ SOURCE_LINK = ('<a href ="http://github.com/nuxeo/nuxeo-drive">'
                'http://github.com/nuxeo/nuxeo-drive</a>')
 
 SETTINGS_DIALOG_WIDTH = 530
-FILE_DIALOG_BUTTON_WIDTH = 30
+FILE_DIALOG_BUTTON_WIDTH = 50
 ACCOUNT_BOX_HEIGHT = 200
 DEFAULT_FIELD_WIDGET_WIDTH = 280
 BOLD_STYLE = 'font-weight: bold;'
@@ -148,7 +148,7 @@ class Dialog(QDialog):
                         self.file_dialog_dir = os.path.dirname(value)
                     button = QtGui.QPushButton('...')
                     button.clicked.connect(self.open_file_dialog)
-                    button.setFixedWidth(FILE_DIALOG_BUTTON_WIDTH)
+                    button.setMaximumWidth(FILE_DIALOG_BUTTON_WIDTH)
                     layout.addWidget(button, i + 1, 2)
         box.setLayout(layout)
         return box
