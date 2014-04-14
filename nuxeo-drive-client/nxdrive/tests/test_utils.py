@@ -73,12 +73,18 @@ class UtilsTestCase(unittest.TestCase):
                               'application/octet-stream')
 
             # Office
-            self.assertEquals(guess_mime_type('office.docx'),
-                              'application/octet-stream')
-            self.assertEquals(guess_mime_type('office.xlsx'),
-                              'application/octet-stream')
-            self.assertEquals(guess_mime_type('office.pptx'),
-                              'application/octet-stream')
+            self.assertIn(guess_mime_type('office.docx'), [
+                            'application/vnd.openxmlformats-officedocument'
+                            '.wordprocessingml.document',
+                            'application/octet-stream'])
+            self.assertIn(guess_mime_type('office.xlsx'), [
+                            'application/vnd.openxmlformats-officedocument'
+                            '.spreadsheetml.sheet',
+                            'application/octet-stream'])
+            self.assertIn(guess_mime_type('office.pptx'), [
+                            'application/vnd.openxmlformats-officedocument'
+                            '.presentationml.presentation',
+                            'application/octet-stream'])
 
             self.assertIn(guess_mime_type('office.odt'), [
                             'application/vnd.oasis.opendocument.text',
