@@ -65,8 +65,8 @@ class UtilsTestCase(unittest.TestCase):
             self.assertEquals(guess_mime_type('text.xml'), 'text/xml')
 
             # Image
-            self.assertEquals(guess_mime_type('picture.svg'),
-                              'application/octet-stream')
+            self.assertIn(guess_mime_type('picture.svg'), ['image/svg+xml',
+                              'application/octet-stream'])
 
             # Video
             self.assertEquals(guess_mime_type('video.flv'),
