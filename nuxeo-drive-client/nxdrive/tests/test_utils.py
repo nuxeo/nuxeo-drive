@@ -80,12 +80,15 @@ class UtilsTestCase(unittest.TestCase):
             self.assertEquals(guess_mime_type('office.pptx'),
                               'application/octet-stream')
 
-            self.assertEquals(guess_mime_type('office.odt'),
-                              'application/octet-stream')
-            self.assertEquals(guess_mime_type('office.ods'),
-                              'application/octet-stream')
-            self.assertEquals(guess_mime_type('office.odp'),
-                              'application/octet-stream')
+            self.assertIn(guess_mime_type('office.odt'), [
+                            'application/vnd.oasis.opendocument.text',
+                            'application/octet-stream'])
+            self.assertIn(guess_mime_type('office.ods'), [
+                            'application/vnd.oasis.opendocument.spreadsheet',
+                            'application/octet-stream'])
+            self.assertIn(guess_mime_type('office.odp'), [
+                            'application/vnd.oasis.opendocument.presentation',
+                            'application/octet-stream'])
         else:
             # Text
             self.assertEquals(guess_mime_type('text.csv'), 'text/csv')
