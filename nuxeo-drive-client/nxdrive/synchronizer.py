@@ -1314,7 +1314,7 @@ class Synchronizer(object):
                             return pid
                         if 'nxdrive' in component:
                             return pid
-                except psutil.NoSuchProcess(pid):
+                except psutil.NoSuchProcess:
                     pass
                 # This is a pid file pointing to either a stopped process
                 # or a non-nxdrive process: let's delete it if possible
