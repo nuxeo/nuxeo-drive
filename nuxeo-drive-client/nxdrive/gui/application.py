@@ -2,11 +2,14 @@
 
 import os
 import time
+import sys
 from nxdrive.synchronizer import SynchronizerThread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.settings import prompt_settings
+
+from esky import Esky
 
 log = get_logger(__name__)
 
@@ -108,6 +111,7 @@ class Application(QApplication):
         self.state = 'disabled'
         # Last state before suspend
         self.last_state = 'enabled'
+        self.restart_after_quit = False
         self._setup_systray()
         self.tray_icon_menu = QtGui.QMenu()
         self.binding_info = {}
@@ -118,6 +122,9 @@ class Application(QApplication):
 
         # Start long running synchronization thread
         self.start_synchronization_thread()
+
+        # Esky frozen application
+        self.frozen_app = None
 
     @QtCore.pyqtSlot(str)
     def set_icon_state(self, state):
@@ -191,6 +198,28 @@ class Application(QApplication):
             self.sync_thread.resume()
 
     def action_quit(self):
+        self.restart_after_quit = False
+        self._stop()
+
+    # TODO NXP-13810
+    def action_update(self):
+        frozen_app = hasattr(sys, 'frozen')
+        if frozen_app:
+            executable = sys.executable
+            version_finder = "http://localhost:8000/dist/"
+            log.debug("Application is frozen, launched by executable %s",
+                      executable)
+            log.debug("Launching auto-update using version finder %s",
+                      version_finder)
+            self.frozen_app = Esky(executable, version_finder)
+            self.frozen_app.auto_update()
+            log.debug("Will restart Nuxeo Drive")
+            self.restart_after_quit = True
+            self._stop()
+        else:
+            log.debug("Application is not frozen, cannot process update")
+
+    def _stop(self):
         if self.sync_thread is not None and self.sync_thread.isAlive():
             # A sync thread is active, first update state, icon and menu
             self.state = 'stopping'
@@ -213,7 +242,30 @@ class Application(QApplication):
         log.debug("Calling Controller.dispose() from Qt Application to close"
                   " thread-local Session")
         self.controller.dispose()
-        self.quit()
+        # TODO NXP-13810: separate conditions?
+        if self.restart_after_quit and self.frozen_app.version:
+            log.debug("Exiting Qt application")
+            self.quit()
+            self.deleteLater()
+
+            log.debug("Active application version: %s",
+                      self.frozen_app.active_version)
+            log.debug("Updated application version: %s",
+                      self.frozen_app.version)
+
+            executable = sys.executable
+            log.debug("Current executable is: %s", executable)
+            updated_executable = executable.replace(
+                    self.frozen_app.active_version, self.frozen_app.version)
+            log.debug("Updated executable is: %s", updated_executable)
+
+            args = [updated_executable]
+            args.extend(sys.argv[1:])
+            log.debug("Loading updated executable into current process with"
+                      " args: %r", args)
+            os.execl(updated_executable, *args)
+        else:
+            self.quit()
 
     def update_running_icon(self):
         if self.state not in ['enabled', 'transferring']:
@@ -372,6 +424,8 @@ class Application(QApplication):
         settings_action = self.global_menu_actions.get('settings')
         suspend_resume_action = self.global_menu_actions.get('suspend_resume')
         quit_action = self.global_menu_actions.get('quit')
+        # TODO NXP-13810
+        update_action = self.global_menu_actions.get('update')
 
         # Handle global status message
         if not server_bindings:
@@ -542,6 +596,18 @@ class Application(QApplication):
                 quit_action.setEnabled(False)
                 if suspend_resume_action is not None:
                     suspend_resume_action.setEnabled(False)
+
+        # TODO NXP-13810
+        # Update
+        if update_action is None:
+            update_action = QtGui.QAction("Update", self.tray_icon_menu,
+                                        triggered=self.action_update)
+            self._insert_menu_action(update_action,
+                                         before_action=quit_action)
+            self.global_menu_actions['update'] = update_action
+        else:
+            # TODO
+            pass
 
     def _insert_menu_action(self, action, before_action=None):
         if before_action is not None:
