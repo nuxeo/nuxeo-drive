@@ -8,10 +8,13 @@ import sys
 from datetime import datetime
 
 from distutils.core import setup
+from esky import bdist_esky
+
 
 def read_version(init_file):
     with open(init_file, 'rb') as f:
         return f.readline().split("=")[1].strip().replace('\'', '')
+
 
 def update_version(init_file, version):
     with open(init_file, 'wb') as f:
@@ -50,9 +53,13 @@ else:
     icon = png_icon
 
 # Files to include in frozen app: icons, alembic, alembic versions
-# Windows freeze with cx_Freeze
+# build_exe freeze with cx_Freeze (Windows + Linux)
 include_files = []
-# OS X freeze with py2app
+# bdist_esky freeze with cx_Freeze (Windows + Linux) and py2app freeze (OS X)
+# In fact this is a global setup option
+# TODO NXP-13810: check removed data_files from py2app and added to global
+# setup
+data_files = []
 icon_files = []
 alembic_files = []
 alembic_version_files = []
@@ -78,6 +85,8 @@ for filename in os.listdir(alembic_versions_home):
         include_files.append((filepath, "alembic/versions/%s" % filename))
         alembic_version_files.append(filepath)
 
+data_files = data_files=[('icons', icon_files), ('alembic', alembic_files),
+                         ('alembic/versions', alembic_version_files)]
 
 old_version = None
 init_file = os.path.abspath(os.path.join(
@@ -136,7 +145,7 @@ if '--freeze' in sys.argv:
             Executable(script, targetName="ndrivew.exe", base="Win32GUI",
                        icon=icon, shortcutDir="ProgramMenuFolder",
                        shortcutName="Nuxeo Drive"))
-    scripts = []
+
     # special handling for data files
     packages.remove('nxdrive.data')
     packages.remove('nxdrive.data.icons')
@@ -152,15 +161,16 @@ if '--freeze' in sys.argv:
                 "excludes": excludes,
                 "include_files": include_files,
             },
+            "bdist_esky": {
+                "includes": includes,
+                "excludes": excludes,
+            },
             "bdist_msi": {
                 "add_to_path": True,
                 "upgrade_code": '{800B7778-1B71-11E2-9D65-A0FD6088709B}',
             },
         },
     )
-    # TODO: investigate with esky to get an auto-updateable version but
-    # then make sure that we can still have .msi and .dmg packages
-    # instead of simple zip files.
 
 elif sys.platform == 'darwin':
     # Under OSX we use py2app instead of cx_Freeze because we need:
@@ -170,8 +180,6 @@ elif sys.platform == 'darwin':
 
     freeze_options = dict(
         app=["nuxeo-drive-client/scripts/ndrive.py"],
-        data_files=[('icons', icon_files), ('alembic', alembic_files),
-                    ('alembic/versions', alembic_version_files)],
         options=dict(
             py2app=dict(
                 iconfile=osx_icon,
@@ -206,6 +214,7 @@ setup(
     package_data=package_data,
     scripts=scripts,
     long_description=open('README.rst').read(),
+    data_files=data_files,
     **freeze_options
 )
 
