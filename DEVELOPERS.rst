@@ -177,6 +177,12 @@ Then install PyQt with Homebrew::
 
   sudo brew install pyqt
 
+In this case and if you installed a standalone version of Python with Homebrew (recommended), you
+might need to symlink the binary install of PyQt to the ``site-packages``
+folder of the brewed Python::
+
+  ln -s /Library/Python/2.7/site-packages/PyQt4 /usr/local/lib/python2.7/site-packages/PyQt4
+
 As an alternative method, you can install PyQt from the sources downloaded at:
 
   http://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.10.2/PyQt-mac-gpl-4.10.2.tar.gz
@@ -188,12 +194,6 @@ following the documentation at:
 or using MacPorts following the documentation at:
 
   http://pythonschool.net/cxfreeze_mac
-
-In this case and if you installed a standalone version of Python with Homebrew (recommended), you
-might need to symlink the binary install of PyQt to the ``site-packages``
-folder of the brewed Python::
-
-  ln -s /Library/Python/2.7/site-packages/PyQt4 /usr/local/lib/python2.7/site-packages/PyQt4
 
 
 Under Debian / Ubuntu
