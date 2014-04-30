@@ -300,6 +300,11 @@ class CliHandler(object):
             command_name=options.command,
         )
 
+    def get_controller(self, options):
+        return Controller(options.nxdrive_home,
+                            handshake_timeout=options.handshake_timeout,
+                            timeout=options.timeout)
+        
     def handle(self, argv):
         """Parse options, setup logs and controller and dispatch execution."""
         options = self.parse_cli(argv)
@@ -313,9 +318,7 @@ class CliHandler(object):
 
             # Initialize a controller for this process, except for the tests
             # as they initialize their own
-            self.controller = Controller(options.nxdrive_home,
-                                handshake_timeout=options.handshake_timeout,
-                                timeout=options.timeout)
+            self.controller = self.get_controller(options)
 
         # Find the command to execute based on the
         handler = getattr(self, command, None)
@@ -362,9 +365,8 @@ class CliHandler(object):
         self.controller.dispose()
         daemonize()
 
-        self.controller = Controller(options.nxdrive_home,
-                            handshake_timeout=options.handshake_timeout,
-                            timeout=options.timeout)
+        self.controller = self.get_controller(options)
+        
         self._configure_logger(options)
         self.log.debug("Synchronization daemon started.")
         self.controller.synchronizer.loop(
