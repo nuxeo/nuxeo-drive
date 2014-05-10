@@ -7,6 +7,7 @@ from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.settings import prompt_settings
+from systray_menu import SystrayMenu 
 
 log = get_logger(__name__)
 
@@ -87,12 +88,12 @@ class Application(QApplication):
         super(Application, self).__init__(list(argv))
         self.controller = controller
         self.options = options
+        self.binding_info = {}
 
         # Put communication channel in place for intra and inter-thread
         # communication for UI change notifications
         self.communicator = Communicator()
         self.communicator.icon.connect(self.set_icon_state)
-        self.communicator.menu.connect(self.update_menu)
         self.communicator.stop.connect(self.handle_stop)
         self.communicator.invalid_credentials.connect(
             self.handle_invalid_credentials)
@@ -108,16 +109,14 @@ class Application(QApplication):
         self.state = 'disabled'
         # Last state before suspend
         self.last_state = 'enabled'
-        self._setup_systray()
-        self.tray_icon_menu = QtGui.QMenu()
-        self.binding_info = {}
-        self.binding_menu_actions = {}
-        self.global_menu_actions = {}
-        self.create_menu()
-        self._tray_icon.setContextMenu(self.tray_icon_menu)
+        self.setup_systray()
 
+        
         # Start long running synchronization thread
         self.start_synchronization_thread()
+
+    def get_systray_menu(self):
+        return SystrayMenu(self,self.controller.list_server_bindings())
 
     @QtCore.pyqtSlot(str)
     def set_icon_state(self, state):
@@ -348,11 +347,17 @@ class Application(QApplication):
                 self.update_running_icon()
                 self.communicator.menu.emit()
 
-    def _setup_systray(self):
+    def setup_systray(self):
         self._tray_icon = QtGui.QSystemTrayIcon()
         self._tray_icon.setToolTip('Nuxeo Drive')
         self.update_running_icon()
         self._tray_icon.show()
+        self.tray_icon_menu = self.get_systray_menu()
+        self._tray_icon.setContextMenu(self.tray_icon_menu)
+        self.communicator.menu.connect(self.update_menu)
+
+    def update_menu(self):
+        self.tray_icon_menu.update_menu(self.controller.list_server_bindings())
 
     @QtCore.pyqtSlot(str)
     def handle_invalid_credentials(self, local_folder):
@@ -360,276 +365,6 @@ class Application(QApplication):
         sb.invalidate_credentials()
         self.controller.get_session().commit()
         self.communicator.menu.emit()
-
-
-    def create_bind_menu(self,server_bindings):
-        # Create the bind menu composed by a global suspend action
-        # And a section per server
-        self.tray_icon_menu.is_bind = True
-        suspend_resume_action = QtGui.QAction(
-                                        "Suspend synchronization",
-                                        self.tray_icon_menu,
-                                        triggered=self.suspend_resume)
-        self._insert_menu_action(suspend_resume_action,
-                                     before_action=self.global_menu_actions.get('settings'))
-        self.global_menu_actions['suspend_resume'] = (
-                                                    suspend_resume_action)
-        binding_separator = QtGui.QAction(self.tray_icon_menu)
-        binding_separator.setSeparator(True)
-        self._insert_menu_action(binding_separator,
-                              before_action=self.global_menu_actions.get('settings'))
-        self.global_menu_actions['suspend_resume_sep'] = (
-                                                    binding_separator)
-        
-        for sb in server_bindings:
-            self.create_bind_server_menu(sb)
-        
-
-    def remove_default_menu(self):
-        # Remove global status action from menu and from
-        # global menu action cache
-        global_status_action = self.global_menu_actions.get('global_status')
-        global_status_sep = self.global_menu_actions.get('global_status_sep')
-        if global_status_action and global_status_sep is not None:
-            self.tray_icon_menu.removeAction(global_status_action)
-            self.tray_icon_menu.removeAction(global_status_sep)
-            del self.global_menu_actions['global_status']
-            del self.global_menu_actions['global_status_sep']
-    
-    def create_default_menu(self):
-        # Default menu when no binding is found
-        settings_action = self.global_menu_actions.get('settings')
-        global_status_action = QtGui.QAction(
-                                            "Waiting for server registration",
-                                            self.tray_icon_menu)
-        global_status_action.setEnabled(False)
-        self._insert_menu_action(global_status_action,
-                                         before_action=settings_action)
-        self.global_menu_actions['global_status'] = (
-                                                        global_status_action)
-        global_status_sep = QtGui.QAction(self.tray_icon_menu)
-        global_status_sep.setSeparator(True)
-        self._insert_menu_action(global_status_sep,
-                                         before_action=settings_action)
-        self.global_menu_actions['global_status_sep'] = (
-                                                        global_status_sep)
-        
-    def create_menu(self):
-        # Add settings
-        settings_action = QtGui.QAction("Settings",
-                                        self.tray_icon_menu,
-                                        triggered=self.settings)
-        self.tray_icon_menu.addAction(settings_action)
-        self.global_menu_actions['settings'] = settings_action
-        
-        
-        # Quit
-        self.tray_icon_menu.addSeparator()
-        quit_action = QtGui.QAction("Quit", self.tray_icon_menu,
-                                        triggered=self.action_quit)
-        self.tray_icon_menu.addAction(quit_action)
-        self.global_menu_actions['quit'] = quit_action
-        
-        server_bindings = self.controller.list_server_bindings()
-        
-        # Create the menu as the client is bind to servers
-        self.tray_icon_menu.is_bind = False
-        if server_bindings:
-            self.create_bind_menu(server_bindings)
-        else:
-            self.create_default_menu()
-            
-    def remove_bind_menu(self):
-        global_status_action = self.global_menu_actions.get('suspend_resume')
-        global_status_sep = self.global_menu_actions.get('suspend_resume_sep')
-        if global_status_action and global_status_sep is not None:
-            self.tray_icon_menu.removeAction(global_status_action)
-            self.tray_icon_menu.removeAction(global_status_sep)
-            del self.global_menu_actions['suspend_resume']
-            del self.global_menu_actions['suspend_resume_sep']
-        
-        return
-    
-    def create_bind_server_menu(self,server_binding):
-        binding_info = self.get_binding_info(server_binding)
-        last_ended_sync_date = server_binding.last_ended_sync_date
-        sb_actions = {}
-        # Separator
-        binding_separator = QtGui.QAction(self.tray_icon_menu)
-        binding_separator.setSeparator(True)
-        self._insert_menu_action(binding_separator,
-                              before_action=self.global_menu_actions.get('settings'))
-        sb_actions['separator'] = binding_separator
-
-        # Link to open the server binding folder
-        open_folder_msg = ("Open %s folder"
-                                   % binding_info.short_name)
-        open_folder = (lambda folder_path=binding_info.folder_path:
-                               self.controller.open_local_file(
-                                                            folder_path))
-        open_folder_action = QtGui.QAction(open_folder_msg,
-                                                   self.tray_icon_menu)
-        self.connect(open_folder_action,
-                             QtCore.SIGNAL('triggered()'),
-                             open_folder)
-        self._insert_menu_action(open_folder_action,
-                                         before_action=binding_separator)
-        sb_actions['open_folder'] = open_folder_action
-
-        # Link to Nuxeo server
-        server_link_msg = "Browse Nuxeo server"
-        open_server_link = (
-                        lambda server_link=binding_info.server_link:
-                        self.controller.open_local_file(server_link))
-        server_link_action = QtGui.QAction(server_link_msg,self.tray_icon_menu)
-        self.connect(server_link_action, QtCore.SIGNAL('triggered()'),
-                         open_server_link)
-        self._insert_menu_action(server_link_action,
-                                         before_action=binding_separator)
-        sb_actions['server_link'] = server_link_action
-
-        # Pending status
-        status_action = QtGui.QAction(self.tray_icon_menu)
-        status_action.setEnabled(False)
-        self._set_pending_status(status_action, binding_info, server_binding)
-        self._insert_menu_action(status_action,
-                                         before_action=binding_separator)
-        sb_actions['pending_status'] = status_action
-
-        # Last synchronization date
-        if last_ended_sync_date is not  None:
-            last_ended_sync_action = (
-                                        self._insert_last_ended_sync_action(
-                                            last_ended_sync_date,
-                                            binding_separator))
-            sb_actions['last_ended_sync'] = last_ended_sync_action
-
-        # Cache server binding menu actions
-        self.binding_menu_actions[server_binding.local_folder] = sb_actions
-        
-    def update_bind_server_menu(self,server_binding,sb_actions):
-        binding_info = self.get_binding_info(server_binding)
-        last_ended_sync_date = server_binding.last_ended_sync_date
-        # Update pending status
-        status_action = sb_actions['pending_status']
-        self._set_pending_status(status_action, binding_info, server_binding)
-
-        # Update last synchronization date
-        last_ended_sync_action = sb_actions.get('last_ended_sync')
-        if last_ended_sync_action is None:
-            if last_ended_sync_date is not None:
-                last_ended_sync_action = (
-                                        self._insert_last_ended_sync_action(
-                                            last_ended_sync_date,
-                                            sb_actions['separator']))
-                sb_actions['last_ended_sync'] = last_ended_sync_action
-            else:
-                if last_ended_sync_date is not None:
-                    self._set_last_ended_sync(last_ended_sync_action,last_ended_sync_date)
-    
-    def remove_bind_servers(self,obsolete_binding_local_folders):
-        # Remove obsolete binding actions from menu and from
-        # binding menu action cache
-        for local_folder in obsolete_binding_local_folders:
-            sb_actions = self.binding_menu_actions[local_folder]
-            if sb_actions is not None:
-                for action_id in sb_actions.keys():
-                    self.tray_icon_menu.removeAction(sb_actions[action_id])
-                    del sb_actions[action_id]
-                del self.binding_menu_actions[local_folder]
-       
-    def update_bind_menu(self,server_bindings):
-        obsolete_binding_local_folders = self.binding_menu_actions.keys()
-        suspend_resume_action = self.global_menu_actions.get('suspend_resume')
-        quit_action = self.global_menu_actions.get('quit')
-        
-        # Suspend / resume
-        if self.state == 'suspending':
-            suspend_resume_action.setText(
-                                        'Suspending synchronization...')
-            # Disable suspend_resume and quit actions when suspending
-            suspend_resume_action.setEnabled(False)
-            quit_action.setEnabled(False)
-        elif self.state == 'paused':
-            suspend_resume_action.setText('Resume synchronization')
-            # Enable suspend_resume and quit actions when paused
-            suspend_resume_action.setEnabled(True)
-            quit_action.setEnabled(True)
-        else:
-            suspend_resume_action.setText('Suspend synchronization')
-            
-        # Add or update server binding actions
-        for sb in server_bindings:
-            if sb.local_folder in obsolete_binding_local_folders:
-                obsolete_binding_local_folders.remove(sb.local_folder)
-            sb_actions = self.binding_menu_actions.get(sb.local_folder)
-            if sb_actions is None:
-                self.create_bind_server_menu(sb)
-            else:
-                self.update_bind_server_menu(sb,sb_actions)
-
-        # Remove old binding
-        self.remove_bind_servers(obsolete_binding_local_folders)
-                
-        # Disable resume when stopping        
-        if self.state == 'stopping':
-            suspend_resume_action.setEnabled(False)
-        
-    @QtCore.pyqtSlot()
-    def update_menu(self):
-        # TODO: i18n action labels
-        server_bindings = self.controller.list_server_bindings()
-        # Global actions
-        quit_action = self.global_menu_actions.get('quit')
-
-        # Create menu if server_bindings has changed
-        if server_bindings:
-            if self.tray_icon_menu.is_bind == False:
-                self.remove_default_menu()
-                self.create_bind_menu(server_bindings)
-            self.update_bind_menu(server_bindings)
-            return
-        if not server_bindings and self.tray_icon_menu.is_bind == True:
-            self.create_default_menu()
-            self.remove_bind_menu()
-            # Default menu has no update
-            return
-        
-        # Update Quit button according to state
-        if self.state == 'stopping':
-            quit_action.setText('Quitting...')
-            # Disable quit and suspend_resume actions when quitting
-            quit_action.setEnabled(False)
-
-    def _insert_menu_action(self, action, before_action=None):
-        if before_action is not None:
-            self.tray_icon_menu.insertAction(before_action, action)
-        else:
-            self.tray_icon_menu.addAction(action)
-        return action
-
-    def _insert_last_ended_sync_action(self, last_ended_sync_date,
-                                       before_action):
-        last_ended_sync_action = QtGui.QAction(self.tray_icon_menu)
-        last_ended_sync_action.setEnabled(False)
-        self._set_last_ended_sync(last_ended_sync_action, last_ended_sync_date)
-        self._insert_menu_action(last_ended_sync_action,
-                                 before_action=before_action)
-        return last_ended_sync_action
-
-    def _set_pending_status(self, status_action, binding_info, server_binding):
-        status_message = binding_info.get_status_message()
-        # Need to re-fetch authentication token when expired
-        if server_binding.has_invalid_credentials():
-            status_message += " (credentials update required)"
-        status_action.setText(status_message)
-
-    def _set_last_ended_sync(self, last_ended_sync_action,
-                             last_ended_sync_date):
-        last_ended_sync_message = "Last synchronized: %s" % (
-                                    time.strftime(TIME_FORMAT_PATTERN,
-                                    time.localtime(last_ended_sync_date)))
-        last_ended_sync_action.setText(last_ended_sync_message)
 
     def settings(self):
         sb_settings = self.controller.get_server_binding_settings()
