@@ -301,7 +301,7 @@ class Application(QApplication):
 
     @QtCore.pyqtSlot()
     def handle_stop(self):
-        log.debug('Quitting Nuxeo Drive')
+        log.info('Quitting Nuxeo Drive')
         # Close thread-local Session
         log.debug("Calling Controller.dispose() from Qt Application to close"
                   " thread-local Session")
@@ -318,15 +318,15 @@ class Application(QApplication):
                       self.frozen_app.version)
 
             executable = sys.executable
-            log.debug("Current executable is: %s", executable)
+            log.info("Current executable is: %s", executable)
             updated_executable = executable.replace(
                     self.frozen_app.active_version, self.frozen_app.version)
-            log.debug("Updated executable is: %s", updated_executable)
+            log.info("Updated executable is: %s", updated_executable)
 
             args = [updated_executable]
             args.extend(sys.argv[1:])
-            log.debug("Loading updated executable into current process with"
-                      " args: %r", args)
+            log.info("Loading updated executable into current process"
+                      " with args: %r", args)
             os.execl(updated_executable, *args)
         else:
             self.quit()
