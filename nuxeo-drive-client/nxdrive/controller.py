@@ -244,6 +244,20 @@ class Controller(object):
             device_config.client_version = self.version
             self.get_session().commit()
 
+    def refresh_update_info(self, local_folder):
+        session = self.get_session()
+        sb = self.get_server_binding(local_folder, session=session)
+        self._set_update_info(sb)
+        session.commit()
+
+    def _set_update_info(self, server_binding, remote_client=None):
+        remote_client = (remote_client if remote_client is not None
+                         else self.get_remote_doc_client(server_binding))
+        update_info = remote_client.get_update_info()
+        log.info("Fetched update info from server: %r", update_info)
+        server_binding.server_version = update_info['serverVersion']
+        server_binding.update_url = update_info['updateSiteURL']
+
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""
         dc = (self.get_device_config() if device_config is None
@@ -546,6 +560,9 @@ class Controller(object):
 
             # Create the top level state for the server binding
             self._add_top_level_state(server_binding, session)
+
+        # Set update info
+        self._set_update_info(server_binding, remote_client=nxclient)
 
         session.commit()
         return server_binding

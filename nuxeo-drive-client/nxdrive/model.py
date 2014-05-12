@@ -121,6 +121,8 @@ class ServerBinding(Base):
     remote_user = Column(String)
     remote_password = Column(String)
     remote_token = Column(String)
+    server_version = Column(String)
+    update_url = Column(String)
     last_sync_date = Column(Integer)
     last_ended_sync_date = Column(Integer)
     last_root_definitions = Column(String)

@@ -408,3 +408,6 @@ class RemoteDocumentClient(BaseAutomationClient):
     def deactivate_profile(self, profile):
         self.execute("NuxeoDrive.SetActiveFactories", profile=profile,
                      enable=False)
+
+    def get_update_info(self):
+        return self.execute("NuxeoDrive.GetClientUpdateInfo")
