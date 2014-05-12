@@ -106,10 +106,12 @@ def default_nuxeo_drive_folder():
 class ServerBindingSettings(object):
     """Summarize server binding settings"""
 
-    def __init__(self, server_url=None, username=None, password=None,
+    def __init__(self, server_url=None, server_version=None,
+                 username=None, password=None,
                  local_folder=None, initialized=False,
                  pwd_update_required=False):
         self.server_url = server_url
+        self.server_version = server_version
         self.username = username
         self.password = password
         self.local_folder = local_folder
@@ -117,10 +119,12 @@ class ServerBindingSettings(object):
         self.pwd_update_required = pwd_update_required
 
     def __repr__(self):
-        return ("ServerBindingSettings<server_url=%s, username=%s, "
-                "local_folder=%s, initialized=%r, pwd_update_required=%r>") % (
-                    self.server_url, self.username, self.local_folder,
-                    self.initialized, self.pwd_update_required)
+        return ("ServerBindingSettings<server_url=%s, server_version=%s, "
+                "username=%s, local_folder=%s, initialized=%r, "
+                "pwd_update_required=%r>") % (
+                    self.server_url, self.server_version, self.username,
+                    self.local_folder, self.initialized,
+                    self.pwd_update_required)
 
 
 class ProxySettings(object):
@@ -353,6 +357,7 @@ class Controller(object):
             # See https://jira.nuxeo.com/browse/NXP-12716
             sb = server_bindings[0]
             return ServerBindingSettings(server_url=sb.server_url,
+                            server_version=sb.server_version,
                             username=sb.remote_user,
                             local_folder=sb.local_folder,
                             initialized=True,

@@ -349,6 +349,13 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
             'enabled': not sb_settings.initialized,
         },
         {
+            'id': 'server_version',
+            'label': 'Nuxeo server version:',
+            'value': sb_settings.server_version,
+            'display': sb_settings.initialized,
+            'enabled': False,
+        },
+        {
             'id': 'username',
             'label': 'Username:',
             'value': sb_settings.username,
