@@ -87,14 +87,10 @@ class Dialog(QDialog):
         # Tabs
         account_box = self.get_account_box(sb_field_spec)
         proxy_box = self.get_proxy_box(proxy_field_spec)
-        local_filters_box = self.get_local_filters_box(controller)
-        remote_filters_box = self.get_remote_filters_box(controller)
         about_box = self.get_about_box(version)
         
         self.tabs = QtGui.QTabWidget()
         self.tabs.addTab(account_box, 'Accounts')
-        self.tabs.addTab(remote_filters_box, 'Folders')
-        self.tabs.addTab(local_filters_box, 'Device Filters')
         self.tabs.addTab(proxy_box, 'Proxy settings')
         self.tabs.addTab(about_box, 'About')
 
@@ -247,40 +243,6 @@ class Dialog(QDialog):
         self.tabs.setCurrentIndex(tab_index)
         self.message_area.setText(message)
 
-
-    def get_remote_filters_box(self, controller):
-        box = QtGui.QGroupBox()
-        layout = QtGui.QVBoxLayout()
-        # Take the first server binding for now
-        sbs = controller.list_server_bindings()
-        
-        try:
-            client = DocClient(controller.get_remote_doc_client(sbs[0]))
-        except:
-            client = None
-        box.treeView = FolderTreeview(box, client)
-        box.treeView.setObjectName("treeView")
-        layout.addWidget(box.treeView)
-        layout.setAlignment(QtCore.Qt.AlignTop)
-        box.setLayout(layout)
-        return box
-    
-    def get_local_filters_box(self, controller):
-        box = QtGui.QGroupBox()
-        layout = QtGui.QVBoxLayout()
-        # Take the first server binding for now
-        sbs = controller.list_server_bindings()
-        
-        try:
-            client = FsClient(controller.get_remote_fs_client(sbs[0]))
-        except:
-            client = None
-        box.treeView = FolderTreeview(box, client)
-        box.treeView.setObjectName("treeView")
-        layout.addWidget(box.treeView)
-        layout.setAlignment(QtCore.Qt.AlignTop)
-        box.setLayout(layout)
-        return box
         
     def get_about_box(self, version_number):
         box = QtGui.QGroupBox()
