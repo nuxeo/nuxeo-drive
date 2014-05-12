@@ -1,8 +1,10 @@
+"""Mock update site based on a simple HTTP server"""
+
 import SimpleHTTPServer
 import SocketServer
 
 
-def run(host='127.0.0.1', port=8000,
+def run(host='127.0.0.1', port=8001,
         handler=SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     httpd = SocketServer.TCPServer((host, port), handler)
