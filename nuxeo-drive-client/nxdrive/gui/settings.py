@@ -13,7 +13,6 @@ import urllib2
 import socket
 import os
 import getpass
-from folders_treeview import FolderTreeview, FsClient, DocClient
 
 WindowsError = None
 try:
