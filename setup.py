@@ -162,7 +162,6 @@ if '--freeze' in sys.argv:
                 "include_files": include_files,
             },
             "bdist_esky": {
-                "includes": includes,
                 "excludes": excludes,
             },
             "bdist_msi": {
