@@ -404,3 +404,11 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         sleep(1.0)
         self.assertEquals(remote_client.get_content(doc),
                           "Updated content.")
+
+    def test_get_update_info(self):
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1,
+                        self.nuxeo_url, self.user_1, self.password_1)
+        sb = ctl.get_server_binding(self.local_nxdrive_folder_1)
+        self.assertIsNotNone(sb.server_version)
+        self.assertIsNotNone(sb.update_url)

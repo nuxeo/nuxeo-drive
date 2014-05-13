@@ -129,11 +129,13 @@ class Dialog(QDialog):
                     layout.addWidget(field, i + 1, 1)
                     self.sb_fields[field_id] = field
             else:
-                label = QtGui.QLabel(spec['label'])
                 field = QtGui.QLineEdit()
-                if field_id != 'initialized':
-                    if value is not None:
-                        field.setText(value)
+                if value is not None:
+                    if not isinstance(value, unicode):
+                        value = unicode(value)
+                    field.setText(value)
+                if spec.get('display'):
+                    label = QtGui.QLabel(spec['label'])
                     if spec.get('secret', False):
                         field.setEchoMode(QtGui.QLineEdit.Password)
                     enabled = spec.get('enabled', True)
@@ -329,25 +331,35 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
     sb_field_spec = [
         {
             'id': 'initialized',
-            'label': '',
             'value': sb_settings.initialized,
+            'display': False
         },
         {
             'id': 'local_folder',
             'label': 'Nuxeo Drive folder:',
             'value': sb_settings.local_folder,
+            'display': True,
             'enabled': False,
         },
         {
             'id': 'url',
             'label': 'Nuxeo server URL:',
             'value': sb_settings.server_url,
+            'display': True,
             'enabled': not sb_settings.initialized,
+        },
+        {
+            'id': 'server_version',
+            'label': 'Nuxeo server version:',
+            'value': sb_settings.server_version,
+            'display': sb_settings.initialized,
+            'enabled': False,
         },
         {
             'id': 'username',
             'label': 'Username:',
             'value': sb_settings.username,
+            'display': True,
             'enabled': (not sb_settings.initialized
                         or sb_settings.pwd_update_required),
         },
@@ -362,6 +374,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
             'id': 'password',
             'label': 'Password:',
             'secret': True,
+            'display': True,
             'enabled': (not sb_settings.initialized
                         or sb_settings.pwd_update_required),
         },

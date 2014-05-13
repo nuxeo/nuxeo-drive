@@ -90,7 +90,7 @@ def default_nuxeo_drive_folder():
         if os.path.exists(my_documents):
             nuxeo_drive_folder = os.path.join(my_documents,
                                               NUXEO_DRIVE_FOLDER_NAME)
-            log.debug("Will use '%s' as default Nuxeo Drive folder location"
+            log.info("Will use '%s' as default Nuxeo Drive folder location"
                       " under Windows", nuxeo_drive_folder)
             return nuxeo_drive_folder
 
@@ -98,7 +98,7 @@ def default_nuxeo_drive_folder():
     user_home = os.path.expanduser('~')
     user_home = unicode(user_home.decode(ENCODING))
     nuxeo_drive_folder = os.path.join(user_home, NUXEO_DRIVE_FOLDER_NAME)
-    log.debug("Will use '%s' as default Nuxeo Drive folder location",
+    log.info("Will use '%s' as default Nuxeo Drive folder location",
               nuxeo_drive_folder)
     return nuxeo_drive_folder
 
@@ -106,10 +106,12 @@ def default_nuxeo_drive_folder():
 class ServerBindingSettings(object):
     """Summarize server binding settings"""
 
-    def __init__(self, server_url=None, username=None, password=None,
+    def __init__(self, server_url=None, server_version=None,
+                 username=None, password=None,
                  local_folder=None, initialized=False,
                  pwd_update_required=False):
         self.server_url = server_url
+        self.server_version = server_version
         self.username = username
         self.password = password
         self.local_folder = local_folder
@@ -117,10 +119,12 @@ class ServerBindingSettings(object):
         self.pwd_update_required = pwd_update_required
 
     def __repr__(self):
-        return ("ServerBindingSettings<server_url=%s, username=%s, "
-                "local_folder=%s, initialized=%r, pwd_update_required=%r>") % (
-                    self.server_url, self.username, self.local_folder,
-                    self.initialized, self.pwd_update_required)
+        return ("ServerBindingSettings<server_url=%s, server_version=%s, "
+                "username=%s, local_folder=%s, initialized=%r, "
+                "pwd_update_required=%r>") % (
+                    self.server_url, self.server_version, self.username,
+                    self.local_folder, self.initialized,
+                    self.pwd_update_required)
 
 
 class ProxySettings(object):
@@ -165,14 +169,14 @@ class Controller(object):
         # Log the installation location for debug
         nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
         nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
-        log.debug("nxdrive installed in '%s'", nxdrive_install_folder)
+        log.info("nxdrive installed in '%s'", nxdrive_install_folder)
 
         # Log the configuration location for debug
         config_folder = os.path.expanduser(config_folder)
         self.config_folder = os.path.realpath(config_folder)
         if not os.path.exists(self.config_folder):
             os.makedirs(self.config_folder)
-        log.debug("nxdrive configured in '%s'", self.config_folder)
+        log.info("nxdrive configured in '%s'", self.config_folder)
 
         if not echo:
             echo = os.environ.get('NX_DRIVE_LOG_SQL', None) is not None
@@ -236,13 +240,27 @@ class Controller(object):
 
     def update_version(self, device_config):
         if self.version != device_config.client_version:
-            log.debug("Detected version upgrade: current version = %s,"
+            log.info("Detected version upgrade: current version = %s,"
                       " new version = %s => upgrading current version,"
                       " yet DB upgrade might be needed.",
                       device_config.client_version,
                       self.version)
             device_config.client_version = self.version
             self.get_session().commit()
+
+    def refresh_update_info(self, local_folder):
+        session = self.get_session()
+        sb = self.get_server_binding(local_folder, session=session)
+        self._set_update_info(sb)
+        session.commit()
+
+    def _set_update_info(self, server_binding, remote_client=None):
+        remote_client = (remote_client if remote_client is not None
+                         else self.get_remote_doc_client(server_binding))
+        update_info = remote_client.get_update_info()
+        log.info("Fetched update info from server: %r", update_info)
+        server_binding.server_version = update_info['serverVersion']
+        server_binding.update_url = update_info['updateSiteURL']
 
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""
@@ -285,7 +303,7 @@ class Controller(object):
         device_config.proxy_password = password
 
         session.commit()
-        log.debug("Proxy settings successfully updated: %r", proxy_settings)
+        log.info("Proxy settings successfully updated: %r", proxy_settings)
         self.invalidate_client_cache()
 
     def refresh_proxies(self, proxy_settings=None, device_config=None):
@@ -339,6 +357,7 @@ class Controller(object):
             # See https://jira.nuxeo.com/browse/NXP-12716
             sb = server_bindings[0]
             return ServerBindingSettings(server_url=sb.server_url,
+                            server_version=sb.server_version,
                             username=sb.remote_user,
                             local_folder=sb.local_folder,
                             initialized=True,
@@ -546,6 +565,9 @@ class Controller(object):
 
             # Create the top level state for the server binding
             self._add_top_level_state(server_binding, session)
+
+        # Set update info
+        self._set_update_info(server_binding, remote_client=nxclient)
 
         session.commit()
         return server_binding

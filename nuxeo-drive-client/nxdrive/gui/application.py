@@ -2,11 +2,18 @@
 
 import os
 import time
+import sys
 from nxdrive.synchronizer import SynchronizerThread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.settings import prompt_settings
+
+from nxdrive.updater import AppUpdater
+from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
+from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
+from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
+from nxdrive.updater import UPDATE_STATUS_UP_TO_DATE
 
 log = get_logger(__name__)
 
@@ -108,6 +115,13 @@ class Application(QApplication):
         self.state = 'disabled'
         # Last state before suspend
         self.last_state = 'enabled'
+
+        # Application update
+        self.updater = None
+        self.update_status = None
+        self.update_version = None
+        self.restart_updated_app = False
+
         self._setup_systray()
         self.tray_icon_menu = QtGui.QMenu()
         self.binding_info = {}
@@ -116,8 +130,62 @@ class Application(QApplication):
         self.update_menu()
         self._tray_icon.setContextMenu(self.tray_icon_menu)
 
+        if self.controller.is_credentials_update_required():
+            # Prompt for settings if needed (refreshes application update
+            # status)
+            self.settings()
+        else:
+            # Only refresh application update status
+            self._refresh_update_status()
+
         # Start long running synchronization thread
         self.start_synchronization_thread()
+
+    def _refresh_update_status(self, refresh_update_info=True):
+        # TODO: first read update site URL from local configuration
+        # See https://jira.nuxeo.com/browse/NXP-14403
+        server_bindings = self.controller.list_server_bindings()
+        if not server_bindings:
+            log.warning("Found no server binding, thus no update site URL, as"
+                        " a consequence update features won't be available")
+        else:
+            # If needed, let's refresh_update_info of the first server binding
+            sb = server_bindings[0]
+            if refresh_update_info:
+                self.controller.refresh_update_info(sb.local_folder)
+            # Use server binding's update site URL as a version finder to
+            # build / update the application updater.
+            update_url = sb.update_url
+            server_version = sb.server_version
+            if self.updater is None:
+                # Build application updater if it doesn't exist
+                try:
+                    self.updater = AppUpdater(version_finder=update_url)
+                except Exception as e:
+                    log.warning(e)
+                    return
+            else:
+                # If application updater exists, simply update its version
+                # finder
+                self.updater.set_version_finder(update_url)
+            # Set update status and update version
+            self.update_status, self.update_version = (
+                        self.updater.get_update_status(
+                            self.controller.get_version(), server_version))
+            if self.update_status == UPDATE_STATUS_UNAVAILABLE_SITE:
+                log.warning("Update site is unavailable, as a consequence"
+                            " update features won't be available")
+            elif self.update_status in [UPDATE_STATUS_MISSING_INFO,
+                                      UPDATE_STATUS_MISSING_VERSION]:
+                log.warning("Some information or version file is missing in"
+                            " the update site, as a consequence update"
+                            " features won't be available")
+            else:
+                log.info("Fetched information from update site %s: update"
+                         " status = '%s', update version = '%s'",
+                         self.updater.get_update_site(), self.update_status,
+                         self.update_version)
+        self.communicator.menu.emit()
 
     @QtCore.pyqtSlot(str)
     def set_icon_state(self, state):
@@ -191,6 +259,17 @@ class Application(QApplication):
             self.sync_thread.resume()
 
     def action_quit(self):
+        self.restart_updated_app = False
+        self._stop()
+
+    def action_update(self):
+        self.updater.update(self.update_version)
+        log.info("Will quit Nuxeo Drive and restart updated version %s",
+                 self.update_version)
+        self.restart_updated_app = True
+        self._stop()
+
+    def _stop(self):
         if self.sync_thread is not None and self.sync_thread.isAlive():
             # A sync thread is active, first update state, icon and menu
             self.state = 'stopping'
@@ -208,12 +287,36 @@ class Application(QApplication):
 
     @QtCore.pyqtSlot()
     def handle_stop(self):
-        log.debug('Quitting Nuxeo Drive')
+        log.info('Quitting Nuxeo Drive')
         # Close thread-local Session
         log.debug("Calling Controller.dispose() from Qt Application to close"
                   " thread-local Session")
         self.controller.dispose()
-        self.quit()
+        if self.restart_updated_app:
+            # Restart application by loading updated executable into current
+            # process
+            log.debug("Exiting Qt application")
+            self.quit()
+            self.deleteLater()
+
+            current_version = self.updater.get_active_version()
+            updated_version = self.updater.get_current_latest_version()
+            log.info("Current application version: %s", current_version)
+            log.info("Updated application version: %s", updated_version)
+
+            executable = sys.executable
+            log.info("Current executable is: %s", executable)
+            updated_executable = executable.replace(current_version,
+                                                    updated_version)
+            log.info("Updated executable is: %s", updated_executable)
+
+            args = [updated_executable]
+            args.extend(sys.argv[1:])
+            log.info("Loading updated executable into current process"
+                      " with args: %r", args)
+            os.execl(updated_executable, *args)
+        else:
+            self.quit()
 
     def update_running_icon(self):
         if self.state not in ['enabled', 'transferring']:
@@ -372,6 +475,7 @@ class Application(QApplication):
         settings_action = self.global_menu_actions.get('settings')
         suspend_resume_action = self.global_menu_actions.get('suspend_resume')
         quit_action = self.global_menu_actions.get('quit')
+        update_action = self.global_menu_actions.get('update')
 
         # Handle global status message
         if not server_bindings:
@@ -543,6 +647,41 @@ class Application(QApplication):
                 if suspend_resume_action is not None:
                     suspend_resume_action.setEnabled(False)
 
+        # Update
+        if update_action is None:
+            if (self.update_status is not None and self.updater is not None
+                and self.update_status != UPDATE_STATUS_UP_TO_DATE):
+                update_label = self.updater.get_update_label(
+                                                            self.update_status)
+                update_action = QtGui.QAction(update_label,
+                                              self.tray_icon_menu,
+                                              triggered=self.action_update)
+                if self.update_status in [UPDATE_STATUS_UNAVAILABLE_SITE,
+                                          UPDATE_STATUS_MISSING_INFO,
+                                          UPDATE_STATUS_MISSING_VERSION]:
+                    update_action.setEnabled(False)
+                self._insert_menu_action(update_action,
+                                             before_action=quit_action)
+                self.global_menu_actions['update'] = update_action
+        else:
+            if (self.update_status is not None
+                and self.update_status != UPDATE_STATUS_UP_TO_DATE):
+                # Update update action label
+                update_label = self.updater.get_update_label(
+                                                            self.update_status)
+                update_action.setText(update_label)
+                if self.update_status in [UPDATE_STATUS_UNAVAILABLE_SITE,
+                                          UPDATE_STATUS_MISSING_INFO,
+                                          UPDATE_STATUS_MISSING_VERSION]:
+                    update_action.setEnabled(False)
+                else:
+                    update_action.setEnabled(True)
+            else:
+                # Remove update action from menu and from global menu action
+                # cache
+                self.tray_icon_menu.removeAction(update_action)
+                del self.global_menu_actions['update']
+
     def _insert_menu_action(self, action, before_action=None):
         if before_action is not None:
             self.tray_icon_menu.insertAction(before_action, action)
@@ -577,13 +716,13 @@ class Application(QApplication):
         sb_settings = self.controller.get_server_binding_settings()
         proxy_settings = self.controller.get_proxy_settings()
         version = self.controller.get_version()
-        return prompt_settings(self.controller, sb_settings, proxy_settings,
-                               version, app=self)
+        settings_accepted = prompt_settings(self.controller, sb_settings,
+                                            proxy_settings, version, app=self)
+        if settings_accepted:
+            self._refresh_update_status(refresh_update_info=False)
+        return settings_accepted
 
     def start_synchronization_thread(self):
-        if self.controller.is_credentials_update_required():
-            self.settings()
-
         if self.sync_thread is None or not self.sync_thread.isAlive():
             delay = getattr(self.options, 'delay', 5.0)
             max_sync_step = getattr(self.options, 'max_sync_step', 10)

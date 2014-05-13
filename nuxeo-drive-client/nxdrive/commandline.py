@@ -353,7 +353,8 @@ class CliHandler(object):
         # TODO: use the start method as default once implemented
         from nxdrive.gui.application import Application
         app = Application(self.controller, options)
-        app.exec_()
+        exit_code = app.exec_()
+        self.log.debug("Qt application exited with code %r", exit_code)
         app.deleteLater()
 
     def start(self, options=None):
