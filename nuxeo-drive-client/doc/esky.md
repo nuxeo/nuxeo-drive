@@ -74,7 +74,7 @@ Can use PyDev server:
 - Launch PyDev server from the Debug perspective
 - Add these lines where to break:
 
-        import pydevd
+        from pydev import pydevd
         pydevd.settrace()
 
 ### TODO
