@@ -355,6 +355,10 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
         doc_ref = remote_client.stream_file(self.workspace,
                                   'Streamed binary file',
                                   file_path, mime_type='pdf')
+        # Wait to make sure transaction is commited
+        # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
+        # fixed
+        sleep(1.0)
         local_client = LocalClient(self.upload_tmp_dir)
         doc_info = remote_client.get_info(doc_ref)
         self.assertEquals(doc_info.name, 'Streamed binary file')
