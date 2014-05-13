@@ -67,10 +67,17 @@ def run_migration(engine):
         # Compare current and head revisions
         log.debug("Checking if SQLite database migration is needed.")
         migration_context = context.get_context()
-        current_rev = migration_context.get_current_revision()
+
         head_rev = context.get_head_revision()
-        log.debug("Current Alembic revision: %s", current_rev)
         log.debug("Head Alembic revision: %s", head_rev)
+        alembic_initialized = _has_table(migration_context, 'alembic_version')
+        if not alembic_initialized:
+            log.debug("Alembic is not initialized, setting current revision"
+                      " to head revision: %s", head_rev)
+            _create_version_table(migration_context)
+            migration_context._update_current_rev(None, head_rev)
+        current_rev = migration_context.get_current_revision()
+        log.debug("Current Alembic revision: %s", current_rev)
 
         # Only process migration if current revision is different from
         # head revision
@@ -83,3 +90,17 @@ def run_migration(engine):
             log.debug('Ended SQLite database migration')
     finally:
         connection.close()
+
+
+def _has_table(migration_context, table_name):
+    engine = _get_engine(migration_context)
+    return engine.dialect.has_table(engine.connect(), table_name)
+
+
+def _create_version_table(migration_context):
+    migration_context._version.create(_get_engine(migration_context),
+                                      checkfirst=True)
+
+
+def _get_engine(migration_context):
+    return migration_context.connection
