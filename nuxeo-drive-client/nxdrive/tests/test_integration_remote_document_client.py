@@ -101,6 +101,11 @@ class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
 
         doc_2 = remote_client.make_file(self.workspace, 'Document 2.txt',
                                   content=self.SOME_TEXT_CONTENT)
+        # Wait to make sure transaction is commited
+        # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
+        # fixed
+        sleep(1.0)
+
         self.assertTrue(remote_client.exists(doc_2))
         self.assertEquals(remote_client.get_content(doc_2),
                           self.SOME_TEXT_CONTENT)
