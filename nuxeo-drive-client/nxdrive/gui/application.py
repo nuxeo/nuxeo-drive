@@ -15,7 +15,6 @@ from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
 from nxdrive.updater import UPDATE_STATUS_UP_TO_DATE
-from esky import Esky
 
 log = get_logger(__name__)
 
@@ -122,7 +121,8 @@ class Application(QApplication):
         self.updater = None
         self.update_status = None
         self.update_version = None
-        self.restart_after_quit = False
+        self.restart_updated_app = False
+
         self._setup_systray()
         self.tray_icon_menu = QtGui.QMenu()
         self.binding_info = {}
@@ -187,8 +187,6 @@ class Application(QApplication):
                          self.updater.get_update_site(), self.update_status,
                          self.update_version)
         self.communicator.menu.emit()
-        # Esky frozen application
-        self.frozen_app = None
 
     @QtCore.pyqtSlot(str)
     def set_icon_state(self, state):
@@ -262,26 +260,15 @@ class Application(QApplication):
             self.sync_thread.resume()
 
     def action_quit(self):
-        self.restart_after_quit = False
+        self.restart_updated_app = False
         self._stop()
 
-    # TODO NXP-13810
     def action_update(self):
-        frozen_app = hasattr(sys, 'frozen')
-        if frozen_app:
-            executable = sys.executable
-            version_finder = "http://localhost:8000/dist/"
-            log.debug("Application is frozen, launched by executable %s",
-                      executable)
-            log.debug("Launching auto-update using version finder %s",
-                      version_finder)
-            self.frozen_app = Esky(executable, version_finder)
-            self.frozen_app.auto_update()
-            log.debug("Will restart Nuxeo Drive")
-            self.restart_after_quit = True
-            self._stop()
-        else:
-            log.debug("Application is not frozen, cannot process update")
+        self.updater.update(self.update_version)
+        log.info("Will quit Nuxeo Drive and restart updated version %s",
+                 self.update_version)
+        self.restart_updated_app = True
+        self._stop()
 
     def _stop(self):
         if self.sync_thread is not None and self.sync_thread.isAlive():
@@ -306,21 +293,22 @@ class Application(QApplication):
         log.debug("Calling Controller.dispose() from Qt Application to close"
                   " thread-local Session")
         self.controller.dispose()
-        # TODO NXP-13810: separate conditions?
-        if self.restart_after_quit and self.frozen_app.version:
+        if self.restart_updated_app:
+            # Restart application by loading updated executable into current
+            # process
             log.debug("Exiting Qt application")
             self.quit()
             self.deleteLater()
 
-            log.debug("Active application version: %s",
-                      self.frozen_app.active_version)
-            log.debug("Updated application version: %s",
-                      self.frozen_app.version)
+            current_version = self.updater.get_active_version()
+            updated_version = self.updater.get_current_latest_version()
+            log.info("Current application version: %s", current_version)
+            log.info("Updated application version: %s", updated_version)
 
             executable = sys.executable
             log.info("Current executable is: %s", executable)
-            updated_executable = executable.replace(
-                    self.frozen_app.active_version, self.frozen_app.version)
+            updated_executable = executable.replace(current_version,
+                                                    updated_version)
             log.info("Updated executable is: %s", updated_executable)
 
             args = [updated_executable]
