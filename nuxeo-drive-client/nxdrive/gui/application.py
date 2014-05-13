@@ -9,7 +9,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.settings import prompt_settings
 
-from nxdrive.updater import AppUpdater, UPDATE_STATUS_UNAVAILABLE_SITE
+from nxdrive.updater import AppUpdater
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION

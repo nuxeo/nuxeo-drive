@@ -170,7 +170,7 @@ class AppUpdater:
                                        " available")
         else:
             raise AppNotFrozen("Application is not frozen, cannot build Esky"
-                               " instance, as a consequence, update features"
+                               " instance, as a consequence update features"
                                " won't be available")
         self.local_update_site = local_update_site
         self.update_site = self.esky_app.version_finder.download_url
