@@ -232,6 +232,6 @@ The backlog_ is handled by Jira.
 Developing on Nuxeo Drive
 =========================
 
-See the `contributors guide
+See the `contributor guide
 <https://github.com/nuxeo/nuxeo-drive/blob/master/DEVELOPERS.rst>`_
 if you wish to actually contribute to the Nuxeo Drive code base.
