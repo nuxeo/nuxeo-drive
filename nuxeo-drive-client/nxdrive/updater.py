@@ -6,6 +6,7 @@ import re
 from urlparse import urljoin
 from urllib2 import URLError
 from esky import Esky
+from esky.errors import EskyBrokenError
 from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)
@@ -128,6 +129,10 @@ class AppNotFrozen(Exception):
     pass
 
 
+class UpdaterInitError(Exception):
+    pass
+
+
 class UnavailableUpdateSite(Exception):
     pass
 
@@ -152,11 +157,17 @@ class AppUpdater:
         if esky_app is not None:
             self.esky_app = esky_app
         elif hasattr(sys, 'frozen'):
-            executable = sys.executable
-            log.debug("Application is frozen, building Esky instance from"
-                      " executable %s and version finder %s",
-                      executable, version_finder)
-            self.esky_app = Esky(executable, version_finder=version_finder)
+            try:
+                executable = sys.executable
+                log.debug("Application is frozen, building Esky instance from"
+                          " executable %s and version finder %s",
+                          executable, version_finder)
+                self.esky_app = Esky(executable, version_finder=version_finder)
+            except EskyBrokenError as e:
+                log.error(e, exc_info=True)
+                raise UpdaterInitError("Error initializing Esky instance, as a"
+                                       " consequence update features won't be"
+                                       " available")
         else:
             raise AppNotFrozen("Application is not frozen, cannot build Esky"
                                " instance, as a consequence, update features"

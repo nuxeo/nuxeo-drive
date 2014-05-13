@@ -10,7 +10,6 @@ from nxdrive.gui.resources import find_icon
 from nxdrive.gui.settings import prompt_settings
 
 from nxdrive.updater import AppUpdater, UPDATE_STATUS_UNAVAILABLE_SITE
-from nxdrive.updater import AppNotFrozen
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
@@ -162,7 +161,7 @@ class Application(QApplication):
                 # Build application updater if it doesn't exist
                 try:
                     self.updater = AppUpdater(version_finder=update_url)
-                except AppNotFrozen as e:
+                except Exception as e:
                     log.warning(e)
                     return
             else:
