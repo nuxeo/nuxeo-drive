@@ -1,7 +1,7 @@
 alembic==0.6.4
 argparse==1.2.1
 coverage==3.7.1
-cx_Freeze==4.3.2
+cx_Freeze
 esky==0.9.8
 faulthandler==2.3
 mako==0.9.1
