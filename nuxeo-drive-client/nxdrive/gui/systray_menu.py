@@ -125,10 +125,9 @@ class SystrayMenu(QtGui.QMenu):
         
         # Quit
         self.addSeparator()
-        quit_action = QtGui.QAction("Quit", self,
+        self.quit_action = QtGui.QAction("Quit", self,
                                         triggered=self.application.action_quit)
-        self.addAction(quit_action)
-        self.global_menu_actions['quit'] = quit_action
+        self.addAction(self.quit_action)
         
         # Create the menu as the client is bind to servers
         self.is_bind = False
@@ -145,7 +144,9 @@ class SystrayMenu(QtGui.QMenu):
             self.removeAction(global_status_sep)
             del self.global_menu_actions['suspend_resume']
             del self.global_menu_actions['suspend_resume_sep']
-        
+        for bind_action in self.binding_menu_actions.values():
+            self.removeAction(bind_action)
+            del bind_action
         return
     
     def create_bind_server_menu(self,server_binding):
