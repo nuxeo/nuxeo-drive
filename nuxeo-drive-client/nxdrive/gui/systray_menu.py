@@ -6,7 +6,6 @@ Created on 9 mai 2014
 from PyQt4 import QtGui
 import time
 TIME_FORMAT_PATTERN = '%d %b %H:%M'
-from nxdrive.updater import AppUpdater
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
@@ -24,18 +23,13 @@ class SystrayMenu(QtGui.QMenu):
         Constructor
         '''
         super(SystrayMenu,self).__init__()
-        self.updater = None
-        self.update_status = None
-        self.update_version = None
-        self.restart_updated_app = False
+        self.update_action = None
 
         self.application = application
         self.binding_menu_actions = {}
         self.global_menu_actions = {}
         self.create_menu(server_bindings)
-        self.update_action = None
         
-    
     
     def _insert_last_ended_sync_action(self, last_ended_sync_date,
                                        before_action):
@@ -143,7 +137,7 @@ class SystrayMenu(QtGui.QMenu):
         self.quit_action = QtGui.QAction("Quit", self,
                                         triggered=self.application.action_quit)
         self.addAction(self.quit_action)
-        
+        self.auto_update_menu()
         # Create the menu as the client is bind to servers
         self.is_bind = False
         if server_bindings:
@@ -277,7 +271,9 @@ class SystrayMenu(QtGui.QMenu):
 
         # Remove old binding
         self.remove_bind_servers(obsolete_binding_local_folders)
-                
+        
+        # Handle the auto-update menu
+        self.auto_update_menu()        
         # Disable resume when stopping        
         if self.application.state == 'stopping':
             suspend_resume_action.setEnabled(False)
@@ -287,87 +283,34 @@ class SystrayMenu(QtGui.QMenu):
     def auto_update_menu(self):
         # Update
         if self.update_action is None:
-            if (self.update_status is not None and self.updater is not None
-                and self.update_status != UPDATE_STATUS_UP_TO_DATE):
-                update_label = self.updater.get_update_label(
+            if (self.application.update_status is not None and self.application.updater is not None
+                and self.application.update_status != UPDATE_STATUS_UP_TO_DATE):
+                update_label = self.application.updater.get_update_label(
                                                             self.update_status)
-                update_action = QtGui.QAction(update_label,
+                self.update_action = QtGui.QAction(update_label,
                                               self.tray_icon_menu,
                                               triggered=self.action_update)
-                if self.update_status in [UPDATE_STATUS_UNAVAILABLE_SITE,
+                if self.application.update_status in [UPDATE_STATUS_UNAVAILABLE_SITE,
                                           UPDATE_STATUS_MISSING_INFO,
                                           UPDATE_STATUS_MISSING_VERSION]:
-                    update_action.setEnabled(False)
-                self._insert_menu_action(update_action,
-                                             before_action=self.quit_action)
-                self.global_menu_actions['update'] = update_action
+                    self.update_action.setEnabled(False)
+                self.insertAction(self.quit_action,self.update_action)
+                self.global_menu_actions['update'] = self.update_action
         else:
-            if (self.update_status is not None
-                and self.update_status != UPDATE_STATUS_UP_TO_DATE):
+            if (self.application.update_status is not None
+                and self.application.update_status != UPDATE_STATUS_UP_TO_DATE):
                 # Update update action label
-                update_label = self.updater.get_update_label(
+                update_label = self.application.updater.get_update_label(
                                                             self.update_status)
-                update_action.setText(update_label)
-                if self.update_status in [UPDATE_STATUS_UNAVAILABLE_SITE,
+                self.update_action.setText(update_label)
+                if self.application.update_status in [UPDATE_STATUS_UNAVAILABLE_SITE,
                                           UPDATE_STATUS_MISSING_INFO,
                                           UPDATE_STATUS_MISSING_VERSION]:
-                    update_action.setEnabled(False)
+                    self.update_action.setEnabled(False)
                 else:
-                    update_action.setEnabled(True)
+                    self.update_action.setEnabled(True)
             else:
                 # Remove update action from menu and from global menu action
                 # cache
-                self.tray_icon_menu.removeAction(update_action)
+                self.tray_icon_menu.removeAction(self.update_action)
                 del self.global_menu_actions['update']
-
-    def update(self):
-        # Application update
-
-        # Start long running synchronization thread
-        self.start_synchronization_thread()
-
-    def _refresh_update_status(self, refresh_update_info=True):
-        # TODO: first read update site URL from local configuration
-        # See https://jira.nuxeo.com/browse/NXP-14403
-        server_bindings = self.controller.list_server_bindings()
-        if not server_bindings:
-            log.warning("Found no server binding, thus no update site URL, as"
-                        " a consequence update features won't be available")
-        else:
-            # If needed, let's refresh_update_info of the first server binding
-            sb = server_bindings[0]
-            if refresh_update_info:
-                self.controller.refresh_update_info(sb.local_folder)
-            # Use server binding's update site URL as a version finder to
-            # build / update the application updater.
-            update_url = sb.update_url
-            server_version = sb.server_version
-            if self.updater is None:
-                # Build application updater if it doesn't exist
-                try:
-                    self.updater = AppUpdater(version_finder=update_url)
-                except Exception as e:
-                    log.warning(e)
-                    return
-            else:
-                # If application updater exists, simply update its version
-                # finder
-                self.updater.set_version_finder(update_url)
-            # Set update status and update version
-            self.update_status, self.update_version = (
-                        self.updater.get_update_status(
-                            self.controller.get_version(), server_version))
-            if self.update_status == UPDATE_STATUS_UNAVAILABLE_SITE:
-                log.warning("Update site is unavailable, as a consequence"
-                            " update features won't be available")
-            elif self.update_status in [UPDATE_STATUS_MISSING_INFO,
-                                      UPDATE_STATUS_MISSING_VERSION]:
-                log.warning("Some information or version file is missing in"
-                            " the update site, as a consequence update"
-                            " features won't be available")
-            else:
-                log.info("Fetched information from update site %s: update"
-                         " status = '%s', update version = '%s'",
-                         self.updater.get_update_site(), self.update_status,
-                         self.update_version)
-        self.communicator.menu.emit()
