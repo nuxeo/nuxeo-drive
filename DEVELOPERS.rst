@@ -228,7 +228,7 @@ with OS X). Otherwise the ``.app`` bundle will be generated in
 To install you a standalone version of Python with Homebrew see the dedicated
 section below first.
 
-Then install ``py2app`` along with the dependencies if ::
+Then install ``py2app`` along with the dependencies::
 
   sudo pip install py2app
   sudo pip install -r requirements.txt

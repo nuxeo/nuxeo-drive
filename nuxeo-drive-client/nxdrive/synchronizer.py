@@ -1305,11 +1305,11 @@ class Synchronizer(object):
                     # Check that this is a nxdrive process by looking at the
                     # process name and commandline
                     # TODO: be more specific using the p.exe attribute
-                    if 'ndrive' in p.name:
+                    if 'ndrive' in p.name():
                         return pid
-                    if 'Nuxeo Drive' in p.name:
+                    if 'Nuxeo Drive' in p.name():
                         return pid
-                    for component in p.cmdline:
+                    for component in p.cmdline():
                         if 'ndrive' in component:
                             return pid
                         if 'nxdrive' in component:

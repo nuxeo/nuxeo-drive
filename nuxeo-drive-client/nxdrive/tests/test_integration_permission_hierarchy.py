@@ -47,6 +47,10 @@ class TestIntegrationPermissionHierarchy(IntegrationTestCase):
                 user="nuxeoDriveTestUser_user_1",
                 permission="ReadWrite",
                 grant="true")
+            # Wait to make sure transaction is commited
+            # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
+            # fixed
+            time.sleep(1.0)
 
             # Create test folder in user workspace as test user
             user_remote_client.make_folder(user_workspace_path, 'test_folder')

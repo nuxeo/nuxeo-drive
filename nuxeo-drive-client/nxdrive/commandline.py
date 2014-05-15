@@ -356,7 +356,8 @@ class CliHandler(object):
         # TODO: use the start method as default once implemented
         from nxdrive.gui.application import Application
         app = Application(self.controller, options)
-        app.exec_()
+        exit_code = app.exec_()
+        self.log.debug("Qt application exited with code %r", exit_code)
         app.deleteLater()
 
     def start(self, options=None):
@@ -478,6 +479,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_versioning",
             "nxdrive.tests.test_integration_windows",
             "nxdrive.tests.test_synchronizer",
+            "nxdrive.tests.test_updater",
             "nxdrive.tests.test_utils",
         ]
         return 0 if nose.run(argv=argv) else 1
