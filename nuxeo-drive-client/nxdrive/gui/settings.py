@@ -9,6 +9,7 @@ from nxdrive.controller import ProxySettings
 from nxdrive.controller import MissingToken
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import get_proxy_handler
+from nxdrive.gui.folders_treeview import FsClient, FolderTreeview
 import urllib2
 import socket
 import os
@@ -59,7 +60,7 @@ class Dialog(QDialog):
     Available tabs for now: Accounts (server bindings), Proxy settings
     """
 
-    def __init__(self, sb_field_spec, proxy_field_spec, version,
+    def __init__(self, sb_field_spec, controller, proxy_field_spec, version,
                  title=None, callback=None):
         super(Dialog, self).__init__()
         if QtGui is None:
@@ -86,9 +87,12 @@ class Dialog(QDialog):
         # Tabs
         account_box = self.get_account_box(sb_field_spec)
         proxy_box = self.get_proxy_box(proxy_field_spec)
+        local_filters_box = self.get_local_filters_box(controller)
         about_box = self.get_about_box(version)
+        
         self.tabs = QtGui.QTabWidget()
         self.tabs.addTab(account_box, 'Accounts')
+        self.tabs.addTab(local_filters_box, 'Folders')
         self.tabs.addTab(proxy_box, 'Proxy settings')
         self.tabs.addTab(about_box, 'About')
 
@@ -108,6 +112,23 @@ class Dialog(QDialog):
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
+    def get_local_filters_box(self, controller):
+        box = QtGui.QGroupBox()
+        layout = QtGui.QVBoxLayout()
+        # Take the first server binding for now
+        sbs = controller.list_server_bindings()
+        
+        try:
+            client = FsClient(controller.get_remote_fs_client(sbs[0]))
+        except:
+            client = None
+        box.treeView = FolderTreeview(box, client)
+        box.treeView.setObjectName("treeView")
+        layout.addWidget(box.treeView)
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        box.setLayout(layout)
+        return box
+    
     def get_account_box(self, field_spec):
         # TODO NXP-12657: don't rely on field order to get 'initialized' value.
         # Works fine here as it is the first element in sb_field_spec.
@@ -569,7 +590,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
     if app is None:
         log.debug("Launching Qt prompt to manage settings.")
         QtGui.QApplication([])
-    dialog = Dialog(sb_field_spec, proxy_field_spec, version,
+    dialog = Dialog(sb_field_spec, controller, proxy_field_spec, version,
                     title="Nuxeo Drive - Settings",
                     callback=validate)
     is_dialog_open = True
