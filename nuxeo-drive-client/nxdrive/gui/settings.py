@@ -59,7 +59,7 @@ class Dialog(QDialog):
     Available tabs for now: Accounts (server bindings), Proxy settings
     """
 
-    def __init__(self, sb_field_spec, controller, proxy_field_spec, version,
+    def __init__(self, sb_field_spec, proxy_field_spec, version,
                  title=None, callback=None):
         super(Dialog, self).__init__()
         if QtGui is None:
@@ -87,7 +87,6 @@ class Dialog(QDialog):
         account_box = self.get_account_box(sb_field_spec)
         proxy_box = self.get_proxy_box(proxy_field_spec)
         about_box = self.get_about_box(version)
-        
         self.tabs = QtGui.QTabWidget()
         self.tabs.addTab(account_box, 'Accounts')
         self.tabs.addTab(proxy_box, 'Proxy settings')
@@ -244,7 +243,6 @@ class Dialog(QDialog):
         self.tabs.setCurrentIndex(tab_index)
         self.message_area.setText(message)
 
-        
     def get_about_box(self, version_number):
         box = QtGui.QGroupBox()
         layout = QtGui.QVBoxLayout()
@@ -571,7 +569,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
     if app is None:
         log.debug("Launching Qt prompt to manage settings.")
         QtGui.QApplication([])
-    dialog = Dialog(sb_field_spec, controller, proxy_field_spec, version,
+    dialog = Dialog(sb_field_spec, proxy_field_spec, version,
                     title="Nuxeo Drive - Settings",
                     callback=validate)
     is_dialog_open = True

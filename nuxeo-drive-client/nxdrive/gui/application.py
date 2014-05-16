@@ -122,7 +122,6 @@ class Application(QApplication):
         self.state = 'disabled'
         # Last state before suspend
         self.last_state = 'enabled'
-        self.setup_systray()
                 
         # Application update
         self.updater = None
@@ -148,7 +147,92 @@ class Application(QApplication):
 
     def get_systray_menu(self):
         return SystrayMenu(self,self.controller.list_server_bindings())
+            
+    def _refresh_update_status(self, refresh_update_info=True):
+        # TODO: first read update site URL from local configuration
+        # See https://jira.nuxeo.com/browse/NXP-14403
+        server_bindings = self.controller.list_server_bindings()
+        if not server_bindings:
+            log.warning("Found no server binding, thus no update site URL, as"
+                        " a consequence update features won't be available")
+        else:
+            # If needed, let's refresh_update_info of the first server binding
+            sb = server_bindings[0]
+            if refresh_update_info:
+                self.controller.refresh_update_info(sb.local_folder)
+            # Use server binding's update site URL as a version finder to
+            # build / update the application updater.
+            update_url = sb.update_url
+            server_version = sb.server_version
+            if self.updater is None:
+                # Build application updater if it doesn't exist
+                try:
+                    self.updater = AppUpdater(version_finder=update_url)
+                except Exception as e:
+                    log.warning(e)
+                    return
+            else:
+                # If application updater exists, simply update its version
+                # finder
+                self.updater.set_version_finder(update_url)
+            # Set update status and update version
+            self.update_status, self.update_version = (
+                        self.updater.get_update_status(
+                            self.controller.get_version(), server_version))
+            if self.update_status == UPDATE_STATUS_UNAVAILABLE_SITE:
+                log.warning("Update site is unavailable, as a consequence"
+                            " update features won't be available")
+            elif self.update_status in [UPDATE_STATUS_MISSING_INFO,
+                                      UPDATE_STATUS_MISSING_VERSION]:
+                log.warning("Some information or version file is missing in"
+                            " the update site, as a consequence update"
+                            " features won't be available")
+            else:
+                log.info("Fetched information from update site %s: update"
+                         " status = '%s', update version = '%s'",
+                         self.updater.get_update_site(), self.update_status,
+                         self.update_version)
+        self.communicator.menu.emit()
+        
+    def set_icon_state(self, state):
+        """Execute systray icon change operations triggered by state change
 
+        The synchronization thread can update the state info but cannot
+        directly call QtGui widget methods. This should be executed by the main
+        thread event loop, hence the delegation to this method that is
+        triggered by a signal to allow for message passing between the 2
+        threads.
+
+        Return True of the icon has changed state.
+
+        """
+        if self.get_icon_state() == state:
+            # Nothing to update
+            return False
+        # Handle animated transferring icon
+        if state == 'transferring':
+            self.icon_spin_timer.start(150)
+        else:
+            self.icon_spin_timer.stop()
+            icon = find_icon('nuxeo_drive_systray_icon_%s_18.png' % state)
+            if icon is not None:
+                self._tray_icon.setIcon(QtGui.QIcon(icon))
+            else:
+                log.warning('Icon not found: %s', icon)
+        self._icon_state = state
+        log.debug('Updated icon state to: %s', state)
+        return True
+
+    def get_icon_state(self):
+        return getattr(self, '_icon_state', None)
+
+    def spin_transferring_icon(self):
+        icon = find_icon('nuxeo_drive_systray_icon_transferring_%s.png'
+                         % (self.icon_spin_count + 1))
+        self._tray_icon.setIcon(QtGui.QIcon(icon))
+        self.icon_spin_count = (self.icon_spin_count + 1) % 10
+        
+        
     def suspend_resume(self):
         if self.state != 'paused':
             # Suspend sync
@@ -437,87 +521,3 @@ class Application(QApplication):
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)
         return super(Application, self).event(event)
-    
-    def set_icon_state(self, state):
-        """Execute systray icon change operations triggered by state change
-
-        The synchronization thread can update the state info but cannot
-        directly call QtGui widget methods. This should be executed by the main
-        thread event loop, hence the delegation to this method that is
-        triggered by a signal to allow for message passing between the 2
-        threads.
-
-        Return True of the icon has changed state.
-
-        """
-        if self.get_icon_state() == state:
-            # Nothing to update
-            return False
-        # Handle animated transferring icon
-        if state == 'transferring':
-            self.icon_spin_timer.start(150)
-        else:
-            self.icon_spin_timer.stop()
-            icon = find_icon('nuxeo_drive_systray_icon_%s_18.png' % state)
-            if icon is not None:
-                self._tray_icon.setIcon(QtGui.QIcon(icon))
-            else:
-                log.warning('Icon not found: %s', icon)
-        self._icon_state = state
-        log.debug('Updated icon state to: %s', state)
-        return True
-
-    def get_icon_state(self):
-        return getattr(self, '_icon_state', None)
-
-    def spin_transferring_icon(self):
-        icon = find_icon('nuxeo_drive_systray_icon_transferring_%s.png'
-                         % (self.icon_spin_count + 1))
-        self._tray_icon.setIcon(QtGui.QIcon(icon))
-        self.icon_spin_count = (self.icon_spin_count + 1) % 10
-        
-    def _refresh_update_status(self, refresh_update_info=True):
-        # TODO: first read update site URL from local configuration
-        # See https://jira.nuxeo.com/browse/NXP-14403
-        server_bindings = self.controller.list_server_bindings()
-        if not server_bindings:
-            log.warning("Found no server binding, thus no update site URL, as"
-                        " a consequence update features won't be available")
-        else:
-            # If needed, let's refresh_update_info of the first server binding
-            sb = server_bindings[0]
-            if refresh_update_info:
-                self.controller.refresh_update_info(sb.local_folder)
-            # Use server binding's update site URL as a version finder to
-            # build / update the application updater.
-            update_url = sb.update_url
-            server_version = sb.server_version
-            if self.updater is None:
-                # Build application updater if it doesn't exist
-                try:
-                    self.updater = AppUpdater(version_finder=update_url)
-                except Exception as e:
-                    log.warning(e)
-                    return
-            else:
-                # If application updater exists, simply update its version
-                # finder
-                self.updater.set_version_finder(update_url)
-            # Set update status and update version
-            self.update_status, self.update_version = (
-                        self.updater.get_update_status(
-                            self.controller.get_version(), server_version))
-            if self.update_status == UPDATE_STATUS_UNAVAILABLE_SITE:
-                log.warning("Update site is unavailable, as a consequence"
-                            " update features won't be available")
-            elif self.update_status in [UPDATE_STATUS_MISSING_INFO,
-                                      UPDATE_STATUS_MISSING_VERSION]:
-                log.warning("Some information or version file is missing in"
-                            " the update site, as a consequence update"
-                            " features won't be available")
-            else:
-                log.info("Fetched information from update site %s: update"
-                         " status = '%s', update version = '%s'",
-                         self.updater.get_update_site(), self.update_status,
-                         self.update_version)
-        self.communicator.menu.emit()
