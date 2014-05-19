@@ -306,83 +306,6 @@ class BaseAutomationClient(object):
 
         return self._read_response(resp, url)
 
-    @deprecated
-    def execute_with_blob(self, command, blob_content, filename, **params):
-        """Execute an Automation operation with a blob input
-
-        Beware that the whole content is loaded in memory when calling this.
-        """
-        self._check_params(command, params)
-        url = self.automation_url.encode('ascii') + command
-
-        # Create data by hand :(
-        boundary = "====Part=%s=%s===" % (str(time.time()).replace('.', '='),
-                                          random.randint(0, 1000000000))
-        headers = {
-            "Accept": "application/json+nxentity, */*",
-            "Content-Type": ('multipart/related;boundary="%s";'
-                             'type="application/json+nxrequest";'
-                             'start="request"')
-            % boundary,
-        }
-        headers.update(self._get_common_headers())
-
-        container = MIMEMultipart("related",
-                type="application/json+nxrequest",
-                start="request")
-
-        d = {'params': params}
-        json_data = json.dumps(d)
-        json_part = MIMEBase("application", "json+nxrequest")
-        json_part.add_header("Content-ID", "request")
-        json_part.set_payload(json_data)
-        container.attach(json_part)
-
-        ctype, _ = mimetypes.guess_type(filename)
-        if ctype:
-            maintype, subtype = ctype.split('/', 1)
-        else:
-            maintype, subtype = "application", "octet-stream"
-        blob_part = MIMEBase(maintype, subtype)
-        blob_part.add_header("Content-ID", "input")
-        blob_part.add_header("Content-Transfer-Encoding", "binary")
-
-        # Quote UTF-8 filenames even though JAX-RS does not seem to be able
-        # to retrieve them as per: https://tools.ietf.org/html/rfc5987
-        filename = safe_filename(filename)
-        quoted_filename = urllib2.quote(filename.encode('utf-8'))
-        content_disposition = ("attachment; filename*=UTF-8''%s"
-                                % quoted_filename)
-        blob_part.add_header("Content-Disposition", content_disposition)
-        blob_part.set_payload(blob_content)
-        container.attach(blob_part)
-
-        data = (
-            "--%s\r\n"
-            "%s\r\n"
-            "--%s\r\n"
-            "%s\r\n"
-            "--%s--"
-        ) % (
-            boundary,
-            json_part.as_string(),
-            boundary,
-            blob_part.as_string(),
-            boundary,
-        )
-
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r and cookies %r for file %s",
-            url, headers, cookies, filename)
-        req = urllib2.Request(url, data, headers)
-        try:
-            resp = self.opener.open(req, timeout=self.blob_timeout)
-        except Exception as e:
-            self._log_details(e)
-            raise
-
-        return self._read_response(resp, url)
-
     def execute_with_blob_streaming(self, command, file_path, filename=None,
                                     mime_type=None, **params):
         """Execute an Automation operation using a batch upload as an input
@@ -590,11 +513,11 @@ class BaseAutomationClient(object):
         content_type = info.get('content-type', '')
         cookies = self._get_cookies()
         if content_type.startswith("application/json"):
-            log.trace("Response for '%s' with cookies %r and JSON payload: %r",
+            log.trace("Response for '%s' with cookies %r: %r",
                 url, cookies, s)
             return json.loads(s) if s else None
         else:
-            log.trace("Response for '%s' with cookies %r and content-type: %r",
+            log.trace("Response for '%s' with cookies %r has content-type %r",
                 url, cookies, content_type)
             return s
 
