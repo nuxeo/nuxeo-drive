@@ -26,6 +26,7 @@ class SystrayMenu(QtGui.QMenu):
         self.update_action = None
 
         self.application = application
+        self.controller = application.controller
         self.binding_menu_actions = {}
         self.global_menu_actions = {}
         self.create_menu(server_bindings)
