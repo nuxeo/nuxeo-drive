@@ -259,12 +259,15 @@ class Controller(object):
             update_info = None
 
     def _set_update_info(self, server_binding, remote_client=None):
-        remote_client = (remote_client if remote_client is not None
-                         else self.get_remote_doc_client(server_binding))
-        update_info = remote_client.get_update_info()
-        log.info("Fetched update info from server: %r", update_info)
-        server_binding.server_version = update_info['serverVersion']
-        server_binding.update_url = update_info['updateSiteURL']
+        try:
+            remote_client = (remote_client if remote_client is not None
+                             else self.get_remote_doc_client(server_binding))
+            update_info = remote_client.get_update_info()
+            log.info("Fetched update info from server: %r", update_info)
+            server_binding.server_version = update_info['serverVersion']
+            server_binding.update_url = update_info['updateSiteURL']
+        except:
+            log.info("Cant get update information from server, may be old server")
 
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""
