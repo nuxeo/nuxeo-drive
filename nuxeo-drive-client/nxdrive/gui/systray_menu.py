@@ -55,10 +55,7 @@ class SystrayMenu(QtGui.QMenu):
         last_ended_sync_action.setText(last_ended_sync_message)
     
     def update_menu(self, server_bindings):
-            # TODO: i18n action labels
-        # Global actions
-        quit_action = self.global_menu_actions.get('quit')
-
+        # TODO: i18n action labels
         # Create menu if server_bindings has changed
         if server_bindings:
             if self.is_bind == False:
@@ -74,9 +71,9 @@ class SystrayMenu(QtGui.QMenu):
         
         # Update Quit button according to state
         if self.application.state == 'stopping':
-            quit_action.setText('Quitting...')
+            self.quit_action.setText('Quitting...')
             # Disable quit and suspend_resume actions when quitting
-            quit_action.setEnabled(False)
+            self.quit_action.setEnabled(False)
             
     def create_bind_menu(self,server_bindings):
         # Create the bind menu composed by a global suspend action
