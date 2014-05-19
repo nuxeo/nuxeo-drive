@@ -54,191 +54,203 @@ PROTOCOL_COMMANDS = {
 }
 
 
-def make_cli_parser(add_subparsers=True):
-    """Parse commandline arguments using a git-like subcommands scheme"""
 
-    common_parser = argparse.ArgumentParser(
-        add_help=False,
-    )
-    common_parser.add_argument(
-        "--nxdrive-home",
-        default="~/.nuxeo-drive",
-        help="Folder to store the Nuxeo Drive configuration."
-    )
-    common_parser.add_argument(
-        "--log-level-file",
-        default="DEBUG",
-        help="Minimum log level for the file log (under NXDRIVE_HOME/logs)."
-    )
-    common_parser.add_argument(
-        "--log-level-console",
-        default="INFO",
-        help="Minimum log level for the console log."
-    )
-    common_parser.add_argument(
-        "--log-filename",
-        help=("File used to store the logs, default "
-              "NXDRIVE_HOME/logs/nxaudit.logs")
-    )
-    common_parser.add_argument(
-        "--debug", default=False, action="store_true",
-        help="Fire a debugger (ipdb or pdb) one uncaught error."
-    )
-    common_parser.add_argument(
-        "--delay", default=DEFAULT_DELAY, type=float,
-        help="Delay in seconds between consecutive sync operations.")
-    common_parser.add_argument(
-        "--max-sync-step", default=DEFAULT_MAX_SYNC_STEP, type=int,
-        help="Number of consecutive sync operations to perform"
-        " without refreshing the internal state DB.")
-    common_parser.add_argument(
-        "--handshake-timeout", default=DEFAULT_HANDSHAKE_TIMEOUT, type=int,
-        help="HTTP request timeout in seconds for the handshake.")
-    common_parser.add_argument(
-        "--timeout", default=DEFAULT_TIMEOUT, type=int,
-        help="HTTP request timeout in seconds for the sync Automation calls.")
-    common_parser.add_argument(
-        # XXX: Make it true by default as the fault tolerant mode is not yet
-        # implemented
-        "--stop-on-error", default=True, action="store_true",
-        help="Stop the process on first unexpected error."
-        "Useful for developers and Continuous Integration.")
-    common_parser.add_argument(
-        "-v", "--version", action="version", version=__version__,
-        help="Print the current version of the Nuxeo Drive client."
-    )
-    parser = argparse.ArgumentParser(
-        parents=[common_parser],
-        description="Command line interface for Nuxeo Drive operations.",
-        usage=USAGE,
-    )
-
-    if not add_subparsers:
-        return parser
-
-    subparsers = parser.add_subparsers(
-        title='Commands',
-    )
-
-    # Link to a remote Nuxeo server
-    bind_server_parser = subparsers.add_parser(
-        'bind-server', help='Attach a local folder to a Nuxeo server.',
-        parents=[common_parser],
-    )
-    bind_server_parser.set_defaults(command='bind_server')
-    bind_server_parser.add_argument(
-        "--password", help="Password for the Nuxeo account")
-    bind_server_parser.add_argument(
-        "--local-folder",
-        help="Local folder that will host the list of synchronized"
-        " workspaces with a remote Nuxeo server.",
-        default=DEFAULT_NX_DRIVE_FOLDER,
-    )
-    bind_server_parser.add_argument(
-        "username", help="User account to connect to Nuxeo")
-    bind_server_parser.add_argument("nuxeo_url",
-                                    help="URL of the Nuxeo server.")
-    bind_server_parser.add_argument(
-        "--remote-roots", nargs="*", default=[],
-        help="Path synchronization roots (reference or path for"
-        " folderish Nuxeo documents such as Workspaces or Folders).")
-    bind_server_parser.add_argument(
-        "--remote-repo", default='default',
-        help="Name of the remote repository.")
-
-    # Unlink from a remote Nuxeo server
-    unbind_server_parser = subparsers.add_parser(
-        'unbind-server', help='Detach from a remote Nuxeo server.',
-        parents=[common_parser],
-    )
-    unbind_server_parser.set_defaults(command='unbind_server')
-    unbind_server_parser.add_argument(
-        "--local-folder",
-        help="Local folder that hosts the list of synchronized"
-        " workspaces with a remote Nuxeo server.",
-        default=DEFAULT_NX_DRIVE_FOLDER,
-    )
-
-    # Bind root folders
-    bind_root_parser = subparsers.add_parser(
-        'bind-root',
-        help='Attach a local folder as a root for synchronization.',
-        parents=[common_parser],
-    )
-    bind_root_parser.set_defaults(command='bind_root')
-    bind_root_parser.add_argument(
-        "remote_root",
-        help="Remote path or id reference of a folder to synchronize.")
-    bind_root_parser.add_argument(
-        "--local-folder",
-        help="Local folder that will host the list of synchronized"
-        " workspaces with a remote Nuxeo server. Must be bound with the"
-        " 'bind-server' command.",
-        default=DEFAULT_NX_DRIVE_FOLDER,
-    )
-    bind_root_parser.add_argument(
-        "--remote-repo", default='default',
-        help="Name of the remote repository.")
-
-    # Unlink from a remote Nuxeo root
-    unbind_root_parser = subparsers.add_parser(
-        'unbind-root', help='Detach from a remote Nuxeo root.',
-        parents=[common_parser],
-    )
-    unbind_root_parser.set_defaults(command='unbind_root')
-    unbind_root_parser.add_argument(
-        "local_root", help="Local sub-folder to de-synchronize.")
-
-    # Start / Stop the synchronization daemon
-    start_parser = subparsers.add_parser(
-        'start', help='Start the synchronization as a GUI-less daemon',
-        parents=[common_parser],
-    )
-    start_parser.set_defaults(command='start')
-    stop_parser = subparsers.add_parser(
-        'stop', help='Stop the synchronization daemon',
-        parents=[common_parser],
-    )
-    stop_parser.set_defaults(command='stop')
-    console_parser = subparsers.add_parser(
-        'console',
-        help='Start a GUI-less synchronization without detaching the process.',
-        parents=[common_parser],
-    )
-    console_parser.set_defaults(command='console')
-
-    status_parser = subparsers.add_parser(
-        'status',
-        help='Fetch the status info of the children of a given folder.',
-        parents=[common_parser],
-    )
-    status_parser.set_defaults(command='status')
-    status_parser.add_argument(
-        "folder", help="Path to a local Nuxeo Drive folder.")
-
-    # embedded test runner base on nose:
-    test_parser = subparsers.add_parser(
-        'test',
-        help='Run the Nuxeo Drive test suite.',
-        parents=[common_parser],
-    )
-    test_parser.set_defaults(command='test')
-    test_parser.add_argument(
-        "-w", help="Nose working directory.")
-    test_parser.add_argument(
-        "--nologcapture", default=False, action="store_true",
-        help="Disable nose logging capture plugin.")
-    test_parser.add_argument(
-        "--with-coverage", default=False, action="store_true",
-        help="Compute coverage report.")
-    test_parser.add_argument(
-        "--with-profile", default=False, action="store_true",
-        help="Compute profiling report.")
-
-    return parser
 
 
 class CliHandler(object):
+    """ Set the default argument """
+    def __init__(self):
+        self.default_home = "~/.nuxeo-drive"
+        self.default_log_file_level = "DEBUG"
+        self.default_log_console_level = "INFO"
+        self.default_delay = DEFAULT_DELAY
+        self.default_max_sync_step = DEFAULT_MAX_SYNC_STEP
+        self.default_handshake_timeout = DEFAULT_HANDSHAKE_TIMEOUT
+        self.default_timeout = DEFAULT_TIMEOUT
+        self.default_stop_on_error = True
+        
+    def make_cli_parser(self,add_subparsers=True):
+        """Parse commandline arguments using a git-like subcommands scheme"""
+    
+        common_parser = argparse.ArgumentParser(
+            add_help=False,
+        )
+        common_parser.add_argument(
+            "--nxdrive-home",
+            default=self.default_home,
+            help="Folder to store the Nuxeo Drive configuration."
+        )
+        common_parser.add_argument(
+            "--log-level-file",
+            default=self.default_log_file_level,
+            help="Minimum log level for the file log (under NXDRIVE_HOME/logs)."
+        )
+        common_parser.add_argument(
+            "--log-level-console",
+            default=self.default_log_console_level,
+            help="Minimum log level for the console log."
+        )
+        common_parser.add_argument(
+            "--log-filename",
+            help=("File used to store the logs, default "
+                  "NXDRIVE_HOME/logs/nxaudit.logs")
+        )
+        common_parser.add_argument(
+            "--debug", default=False, action="store_true",
+            help="Fire a debugger (ipdb or pdb) one uncaught error."
+        )
+        common_parser.add_argument(
+            "--delay", default=self.default_delay, type=float,
+            help="Delay in seconds between consecutive sync operations.")
+        common_parser.add_argument(
+            "--max-sync-step", default=self.default_max_sync_step, type=int,
+            help="Number of consecutive sync operations to perform"
+            " without refreshing the internal state DB.")
+        common_parser.add_argument(
+            "--handshake-timeout", default=self.default_handshake_timeout, type=int,
+            help="HTTP request timeout in seconds for the handshake.")
+        common_parser.add_argument(
+            "--timeout", default=self.default_timeout, type=int,
+            help="HTTP request timeout in seconds for the sync Automation calls.")
+        common_parser.add_argument(
+            # XXX: Make it true by default as the fault tolerant mode is not yet
+            # implemented
+            "--stop-on-error", default=self.default_stop_on_error, action="store_true",
+            help="Stop the process on first unexpected error."
+            "Useful for developers and Continuous Integration.")
+        common_parser.add_argument(
+            "-v", "--version", action="version", version=__version__,
+            help="Print the current version of the Nuxeo Drive client."
+        )
+        parser = argparse.ArgumentParser(
+            parents=[common_parser],
+            description="Command line interface for Nuxeo Drive operations.",
+            usage=USAGE,
+        )
+    
+        if not add_subparsers:
+            return parser
+    
+        subparsers = parser.add_subparsers(
+            title='Commands',
+        )
+    
+        # Link to a remote Nuxeo server
+        bind_server_parser = subparsers.add_parser(
+            'bind-server', help='Attach a local folder to a Nuxeo server.',
+            parents=[common_parser],
+        )
+        bind_server_parser.set_defaults(command='bind_server')
+        bind_server_parser.add_argument(
+            "--password", help="Password for the Nuxeo account")
+        bind_server_parser.add_argument(
+            "--local-folder",
+            help="Local folder that will host the list of synchronized"
+            " workspaces with a remote Nuxeo server.",
+            default=DEFAULT_NX_DRIVE_FOLDER,
+        )
+        bind_server_parser.add_argument(
+            "username", help="User account to connect to Nuxeo")
+        bind_server_parser.add_argument("nuxeo_url",
+                                        help="URL of the Nuxeo server.")
+        bind_server_parser.add_argument(
+            "--remote-roots", nargs="*", default=[],
+            help="Path synchronization roots (reference or path for"
+            " folderish Nuxeo documents such as Workspaces or Folders).")
+        bind_server_parser.add_argument(
+            "--remote-repo", default='default',
+            help="Name of the remote repository.")
+    
+        # Unlink from a remote Nuxeo server
+        unbind_server_parser = subparsers.add_parser(
+            'unbind-server', help='Detach from a remote Nuxeo server.',
+            parents=[common_parser],
+        )
+        unbind_server_parser.set_defaults(command='unbind_server')
+        unbind_server_parser.add_argument(
+            "--local-folder",
+            help="Local folder that hosts the list of synchronized"
+            " workspaces with a remote Nuxeo server.",
+            default=DEFAULT_NX_DRIVE_FOLDER,
+        )
+    
+        # Bind root folders
+        bind_root_parser = subparsers.add_parser(
+            'bind-root',
+            help='Attach a local folder as a root for synchronization.',
+            parents=[common_parser],
+        )
+        bind_root_parser.set_defaults(command='bind_root')
+        bind_root_parser.add_argument(
+            "remote_root",
+            help="Remote path or id reference of a folder to synchronize.")
+        bind_root_parser.add_argument(
+            "--local-folder",
+            help="Local folder that will host the list of synchronized"
+            " workspaces with a remote Nuxeo server. Must be bound with the"
+            " 'bind-server' command.",
+            default=DEFAULT_NX_DRIVE_FOLDER,
+        )
+        bind_root_parser.add_argument(
+            "--remote-repo", default='default',
+            help="Name of the remote repository.")
+    
+        # Unlink from a remote Nuxeo root
+        unbind_root_parser = subparsers.add_parser(
+            'unbind-root', help='Detach from a remote Nuxeo root.',
+            parents=[common_parser],
+        )
+        unbind_root_parser.set_defaults(command='unbind_root')
+        unbind_root_parser.add_argument(
+            "local_root", help="Local sub-folder to de-synchronize.")
+    
+        # Start / Stop the synchronization daemon
+        start_parser = subparsers.add_parser(
+            'start', help='Start the synchronization as a GUI-less daemon',
+            parents=[common_parser],
+        )
+        start_parser.set_defaults(command='start')
+        stop_parser = subparsers.add_parser(
+            'stop', help='Stop the synchronization daemon',
+            parents=[common_parser],
+        )
+        stop_parser.set_defaults(command='stop')
+        console_parser = subparsers.add_parser(
+            'console',
+            help='Start a GUI-less synchronization without detaching the process.',
+            parents=[common_parser],
+        )
+        console_parser.set_defaults(command='console')
+    
+        status_parser = subparsers.add_parser(
+            'status',
+            help='Fetch the status info of the children of a given folder.',
+            parents=[common_parser],
+        )
+        status_parser.set_defaults(command='status')
+        status_parser.add_argument(
+            "folder", help="Path to a local Nuxeo Drive folder.")
+    
+        # embedded test runner base on nose:
+        test_parser = subparsers.add_parser(
+            'test',
+            help='Run the Nuxeo Drive test suite.',
+            parents=[common_parser],
+        )
+        test_parser.set_defaults(command='test')
+        test_parser.add_argument(
+            "-w", help="Nose working directory.")
+        test_parser.add_argument(
+            "--nologcapture", default=False, action="store_true",
+            help="Disable nose logging capture plugin.")
+        test_parser.add_argument(
+            "--with-coverage", default=False, action="store_true",
+            help="Compute coverage report.")
+        test_parser.add_argument(
+            "--with-profile", default=False, action="store_true",
+            help="Compute profiling report.")
+    
+        return parser
     """Command Line Interface handler: parse options and execute operation"""
 
     def parse_cli(self, argv):
@@ -264,7 +276,7 @@ class CliHandler(object):
                 has_command = True
             filtered_args.append(arg)
 
-        parser = make_cli_parser(add_subparsers=has_command)
+        parser = self.make_cli_parser(add_subparsers=has_command)
         options = parser.parse_args(filtered_args)
         if options.debug:
             # Install Post-Mortem debugger hook
