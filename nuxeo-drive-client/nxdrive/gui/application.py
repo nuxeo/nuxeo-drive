@@ -267,7 +267,7 @@ class Application(QApplication):
 
     def action_quit(self):
         self.restart_updated_app = False
-
+        self._stop()
 
     def action_update(self):
         self.updater.update(self.update_version)
