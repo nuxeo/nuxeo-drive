@@ -14,7 +14,7 @@ log = get_logger(__name__)
 # Update statuses
 UPDATE_STATUS_UPGRADE_NEEDED = 'upgrade_needed'
 UPDATE_STATUS_DOWNGRADE_NEEDED = 'downgrade_needed'
-UPDATE_STATUS_UPGRADE_AVAILABLE = 'upgrade_available'
+UPDATE_STATUS_UPDATE_AVAILABLE = 'update_available'
 UPDATE_STATUS_UP_TO_DATE = 'up_to_date'
 UPDATE_STATUS_UNAVAILABLE_SITE = 'unavailable_site'
 UPDATE_STATUS_MISSING_INFO = 'missing_info'
@@ -24,7 +24,7 @@ UPDATE_STATUS_MISSING_VERSION = 'missing_version'
 UPDATE_STATUS_LABEL = {
     UPDATE_STATUS_UPGRADE_NEEDED: 'Upgrade needed',
     UPDATE_STATUS_DOWNGRADE_NEEDED: 'Downgrade needed',
-    UPDATE_STATUS_UPGRADE_AVAILABLE: 'Update Nuxeo Drive',
+    UPDATE_STATUS_UPDATE_AVAILABLE: 'Update Nuxeo Drive',
     UPDATE_STATUS_UP_TO_DATE: 'Up-to-date',
     UPDATE_STATUS_UNAVAILABLE_SITE: 'Update site unavailable',
     UPDATE_STATUS_MISSING_INFO: 'Update information unavailable',
@@ -305,7 +305,7 @@ class AppUpdater:
             log.info("Client version %s is compatible with server version %s,"
                      " yet an update is available: version %s.",
                      client_version, server_version, latest_version)
-            return (UPDATE_STATUS_UPGRADE_AVAILABLE, latest_version)
+            return (UPDATE_STATUS_UPDATE_AVAILABLE, latest_version)
         except UnavailableUpdateSite as e:
             log.warning(e)
             return (UPDATE_STATUS_UNAVAILABLE_SITE, None)

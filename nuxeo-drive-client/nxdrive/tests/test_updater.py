@@ -8,7 +8,7 @@ from nxdrive.updater import MissingCompatibleVersion
 from nxdrive.updater import version_compare
 from nxdrive.updater import UPDATE_STATUS_UPGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_DOWNGRADE_NEEDED
-from nxdrive.updater import UPDATE_STATUS_UPGRADE_AVAILABLE
+from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
 from nxdrive.updater import UPDATE_STATUS_UP_TO_DATE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
@@ -334,13 +334,13 @@ class TestUpdater(unittest.TestCase):
         # Upgrade available
         status = self.updater.get_update_status('1.3.0424', '5.9.1')
         self.assertEquals(status,
-                          (UPDATE_STATUS_UPGRADE_AVAILABLE, '1.3.0524'))
+                          (UPDATE_STATUS_UPDATE_AVAILABLE, '1.3.0524'))
         status = self.updater.get_update_status('1.3.0424', '5.9.2')
         self.assertEquals(status,
-                          (UPDATE_STATUS_UPGRADE_AVAILABLE, '1.4.0622'))
+                          (UPDATE_STATUS_UPDATE_AVAILABLE, '1.4.0622'))
         status = self.updater.get_update_status('1.3.0524', '5.9.2')
         self.assertEquals(status,
-                          (UPDATE_STATUS_UPGRADE_AVAILABLE, '1.4.0622'))
+                          (UPDATE_STATUS_UPDATE_AVAILABLE, '1.4.0622'))
         status = self.updater.get_update_status('1.3.0524', '5.9.3')
 
         # Up-to-date
