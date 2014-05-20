@@ -9,7 +9,8 @@ from nxdrive.controller import MissingToken
 from nxdrive.client.base_automation_client import AddonNotInstalled
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import get_proxy_handler
-from nxdrive.gui.folders_treeview import FsClient, FolderTreeview
+from nxdrive.gui.folders_treeview import FilteredFsClient, FolderTreeview
+from nxdrive.model import Filter
 import urllib2
 import socket
 import os
@@ -76,6 +77,7 @@ class SettingsDialog(QDialog):
         # Fields
         self.sb_fields = {}
         self.proxy_fields = {}
+        self.controller = controller
 
         # File dialog directory
         self.file_dialog_dir = None
@@ -118,10 +120,11 @@ class SettingsDialog(QDialog):
         sbs = controller.list_server_bindings()
         
         try:
-            client = FsClient(controller.get_remote_fs_client(sbs[0]))
+            filters = controller.get_session().query(Filter).all()
+            client = FilteredFsClient(controller.get_remote_fs_client(sbs[0]),filters)
         except:
             client = None
-        box.treeView = FolderTreeview(box, client)
+        self.treeview = box.treeView = FolderTreeview(box, client)
         box.treeView.setObjectName("treeView")
         layout.addWidget(box.treeView)
         layout.setAlignment(QtCore.Qt.AlignTop)
@@ -299,6 +302,30 @@ class SettingsDialog(QDialog):
         box.setLayout(layout)
         return box
 
+    def apply_filters(self):
+        session = self.controller.get_session()
+        local_folder = ""
+        for item in self.treeview.getDirtyItems():
+            path = item.get_path()
+            if (item.get_checkstate() == QtCore.Qt.Unchecked):
+                log.debug("Add a filter on : " + path)
+                Filter.add(session, local_folder,path)
+            elif (item.get_checkstate() == QtCore.Qt.Checked):
+                log.debug("Remove a filter on : " + item.get_path())
+                #filter = Filter.get(path)
+                Filter.remove(session, local_folder,path)
+            elif item.get_old_value() == QtCore.Qt.Unchecked:
+                # Now partially checked and was before a filter
+
+                # Remove current parent filter and need to commit to enable the add
+                Filter.remove(session, local_folder,path)
+                # We need to browse every child and create a filter for unchecked as they are not dirty but has become root filter
+                for child in item.get_children():
+                    if child.get_checkstate() == QtCore.Qt.Unchecked:
+                        Filter.add(session,local_folder, child.get_path())
+                    
+        session.commit()
+        
     def accept(self):
         if self.callback is not None:
             values = dict()
@@ -306,6 +333,7 @@ class SettingsDialog(QDialog):
             self.read_field_values(self.proxy_fields, values)
             if not self.callback(values, self):
                 return
+        self.apply_filters()
         super(SettingsDialog, self).accept()
 
     def read_field_values(self, fields, values):

@@ -6,6 +6,7 @@ Created on 6 mai 2014
 from PyQt4 import QtGui, QtCore
 from threading import Thread
 import time
+from nxdrive.model import Filter
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 
@@ -14,33 +15,59 @@ log = get_logger(__name__)
 class FileInfo(object):
     def __init__(self, parent = None, checkstate = None):
         self.parent = parent
+        self.children = []
+        if parent:
+            parent.add_child(self)
         if checkstate is None and parent is not None:
             checkstate = parent.get_checkstate()
         elif checkstate is None:
             checkstate = QtCore.Qt.Checked
         self.oldvalue = self.checkstate = checkstate
+    def __repr__(self):
+        return ("FileInfo<checkstate=%r, id=%r, "
+                "label=%r, parent=%r>") % (
+                    self.get_checkstate(),
+                    self.get_id(),
+                    self.get_label(), self.get_path())
+    def add_child(self,child):
+        self.children.append(child)
+    def get_children(self):
+        return self.children
     def is_dirty(self):
         return self.oldvalue != self.checkstate
     def get_label(self):
         return ""
     def get_id(self):
         return ""
+    def get_old_value(self):
+        return self.oldvalue
     def has_children(self):
         return False
+    def get_parent(self):
+        return self.parent
     def is_hidden(self):
         return False
+    def get_path(self):
+        path = ""
+        if self.parent is not None:
+            path = path + self.parent.get_path()
+        path = path + "/" + self.get_id()
+        return path
     def get_checkstate(self):
         return self.checkstate
     def set_checkstate(self,checkstate):
         self.checkstate = checkstate
 
 class FsRootFileInfo(FileInfo):
-    def __init__(self, fs_info):
-        super(FsRootFileInfo,self).__init__()
+    def __init__(self, fs_info, checkstate = None):
+        super(FsRootFileInfo,self).__init__(None, checkstate)
         self.fs_info = fs_info
         
     def get_label(self):
         return self.fs_info.get('name')
+    
+    def get_path(self):
+        return self.fs_info.get('path')
     
     def get_id(self):
         return self.fs_info.get('id')
@@ -49,12 +76,15 @@ class FsRootFileInfo(FileInfo):
         return self.fs_info.get('folder')
     
 class FsFileInfo(FileInfo):
-    def __init__(self, fs_info, parent = None):
-        super(FsFileInfo,self).__init__(parent)
+    def __init__(self, fs_info, parent = None, checkstate = None):
+        super(FsFileInfo,self).__init__(parent,checkstate)
         self.fs_info = fs_info
         
     def get_label(self):
         return self.fs_info.name
+    
+    def get_path(self):
+        return self.fs_info.path
     
     def get_id(self):
         return self.fs_info.uid
@@ -107,7 +137,28 @@ class FsClient(Client):
         if (parent == None):
             return [FsRootFileInfo(root) for root in self.fsClient.get_top_level_children()]
         return [FsFileInfo(file_info,parent) for file_info in self.fsClient.get_children_info(parent.get_id())]
-
+                
+class FilteredFsClient(FsClient):
+    def __init__(self, fsClient, filters = None):
+        super(FilteredFsClient, self).__init__(fsClient)
+        if filters:
+            self.filters = [filter_obj.path for filter_obj in filters]
+        else:
+            self.filters = []
+        
+    def get_item_state(self, path):
+        if any([path.startswith(filter_path) for filter_path in self.filters]):
+            return QtCore.Qt.Unchecked
+        # Find partial checked
+        if any([filter_path.startswith(path) for filter_path in self.filters]):
+            return QtCore.Qt.PartiallyChecked
+        return QtCore.Qt.Checked
+    
+    def get_children(self, parent = None):
+        if (parent == None):
+            return [FsRootFileInfo(root,self.get_item_state(root.get('path'))) for root in self.fsClient.get_top_level_children()]
+        return [FsFileInfo(file_info,parent, self.get_item_state(file_info.path)) for file_info in self.fsClient.get_children_info(parent.get_id())]
+    
 class DocClient(Client):
     def __init__(self, docClient):
         super(DocClient, self).__init__()
@@ -209,6 +260,7 @@ class FolderTreeview(QtGui.QTreeView):
         if item.checkState() == QtCore.Qt.PartiallyChecked:
             if item.parent() is not None:
                 item.parent().setCheckState(QtCore.Qt.PartiallyChecked)
+                self.updateItemChanged(item.parent())
             return
         if item.parent() is not None:
             self.itemCheckParent(item.parent())
