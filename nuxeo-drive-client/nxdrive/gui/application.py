@@ -722,7 +722,7 @@ class Application(QApplication):
         proxy_settings = self.controller.get_proxy_settings()
         version = self.controller.get_version()
         settings_accepted = prompt_settings(self.controller, sb_settings,
-                                            proxy_settings, version, app=self)
+                                            proxy_settings, version)
         if settings_accepted:
             self._refresh_update_status(refresh_update_info=False)
         return settings_accepted

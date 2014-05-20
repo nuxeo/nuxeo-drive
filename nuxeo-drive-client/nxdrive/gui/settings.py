@@ -305,8 +305,7 @@ class SettingsDialog(QDialog):
         super(SettingsDialog, self).reject()
 
 
-def prompt_settings(controller, sb_settings, proxy_settings, version,
-                    app=None):
+def prompt_settings(controller, sb_settings, proxy_settings, version):
     """Prompt a Qt dialog to manage settings"""
     global is_dialog_open
 
@@ -563,9 +562,6 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         dialog.show_message(msg, tab_index=tab_index)
         return False
 
-    if app is None:
-        log.debug("Launching Qt prompt to manage settings.")
-        QtGui.QApplication([])
     dialog = SettingsDialog(sb_field_spec, proxy_field_spec, version,
                     title="Nuxeo Drive - Settings",
                     callback=validate)
