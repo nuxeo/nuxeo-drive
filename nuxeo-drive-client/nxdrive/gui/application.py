@@ -8,6 +8,7 @@ from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.settings import prompt_settings
+from nxdrive.gui.update_prompt import prompt_update
 from nxdrive.gui.updated import notify_updated
 
 from nxdrive.updater import AppUpdater
@@ -275,11 +276,13 @@ class Application(QApplication):
         self._stop()
 
     def action_update(self):
-        self.updater.update(self.update_version)
-        log.info("Will quit Nuxeo Drive and restart updated version %s",
-                 self.update_version)
-        self.restart_updated_app = True
-        self._stop()
+        update = prompt_update(self.controller.get_version(),
+                               self.update_version, self.updater)
+        if update:
+            log.info("Will quit Nuxeo Drive and restart updated version %s",
+                     self.update_version)
+            self.restart_updated_app = True
+            self._stop()
 
     def _stop(self):
         if self.sync_thread is not None and self.sync_thread.isAlive():
@@ -671,6 +674,7 @@ class Application(QApplication):
                 and self.update_status != UPDATE_STATUS_UP_TO_DATE):
                 update_label = self.updater.get_update_label(
                                                             self.update_status)
+                # TODO if possible: set text color to #FC8700 (same as icon)
                 update_action = QtGui.QAction(update_label,
                                               self.tray_icon_menu,
                                               triggered=self.action_update)
