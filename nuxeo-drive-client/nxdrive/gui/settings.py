@@ -52,7 +52,7 @@ DEFAULT_FIELD_WIDGET_WIDTH = 280
 BOLD_STYLE = 'font-weight: bold;'
 
 
-class Dialog(QDialog):
+class SettingsDialog(QDialog):
     """Tabbed dialog box to manage settings
 
     Available tabs for now: Accounts (server bindings), Proxy settings
@@ -60,7 +60,7 @@ class Dialog(QDialog):
 
     def __init__(self, sb_field_spec, proxy_field_spec, version,
                  title=None, callback=None):
-        super(Dialog, self).__init__()
+        super(SettingsDialog, self).__init__()
         if QtGui is None:
             raise RuntimeError("PyQt4 is not installed.")
         if title is not None:
@@ -286,7 +286,7 @@ class Dialog(QDialog):
             if not self.callback(values, self):
                 return
         self.accepted = True
-        super(Dialog, self).accept()
+        super(SettingsDialog, self).accept()
 
     def read_field_values(self, fields, values):
         for id_, widget in fields.items():
@@ -304,7 +304,7 @@ class Dialog(QDialog):
         for id_, widget in self.sb_fields.items():
             if id_ == 'update_password':
                 widget.stateChanged.disconnect(self.enable_password)
-        super(Dialog, self).reject()
+        super(SettingsDialog, self).reject()
 
 
 def prompt_settings(controller, sb_settings, proxy_settings, version,
@@ -568,7 +568,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
     if app is None:
         log.debug("Launching Qt prompt to manage settings.")
         QtGui.QApplication([])
-    dialog = Dialog(sb_field_spec, proxy_field_spec, version,
+    dialog = SettingsDialog(sb_field_spec, proxy_field_spec, version,
                     title="Nuxeo Drive - Settings",
                     callback=validate)
     is_dialog_open = True
