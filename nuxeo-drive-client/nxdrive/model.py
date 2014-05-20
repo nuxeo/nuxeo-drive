@@ -535,10 +535,11 @@ class Filter(Base):
     
     def __init__(self, local_folder, path):
         self.local_folder = local_folder
-        self.path = path
+        self.path = Filter.clean_path(path)
     
     @staticmethod
     def is_filter(session, local_folder, path):
+        path = Filter.clean_path(path)
         # Not the best way now need to move to count
         if any([path.startswith(filter_obj.path) for filter_obj in session.query(Filter).all()]): 
             return True
@@ -547,6 +548,7 @@ class Filter(Base):
         
     @staticmethod
     def add(session, local_folder, path):
+        path = Filter.clean_path(path)
         if Filter.is_filter(session, local_folder, path):
             # Skip it as it is already filtered
             return
@@ -558,7 +560,18 @@ class Filter(Base):
         session.add(filter_obj)
 
     @staticmethod
+    def getAll(session, local_folder):
+        return session.query(Filter).all()
+    
+    @staticmethod
+    def clean_path(path):
+        if not path.endswith("/"):
+            path = path + "/"
+        return path
+    
+    @staticmethod
     def remove(session, local_folder, path):
+        path = Filter.clean_path(path)
         filters = session.query(Filter).filter(Filter.path==path).all()
         if len(filters) == 0:
             # Non existing filter
