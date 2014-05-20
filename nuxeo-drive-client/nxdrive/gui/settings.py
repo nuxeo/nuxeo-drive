@@ -4,7 +4,6 @@ from nxdrive.client import Unauthorized
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 from nxdrive.controller import NUXEO_DRIVE_FOLDER_NAME
-from nxdrive.controller import ServerBindingSettings
 from nxdrive.controller import ProxySettings
 from nxdrive.controller import MissingToken
 from nxdrive.client.base_automation_client import get_proxies_for_handler
@@ -581,16 +580,3 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
     finally:
         is_dialog_open = False
     return dialog.accepted
-
-if __name__ == '__main__':
-    from nxdrive.controller import Controller
-    from nxdrive.controller import default_nuxeo_drive_folder
-    ctl = Controller('/tmp')
-    sb_settings = ServerBindingSettings(
-                                    server_url='http://localhost:8080/nuxeo',
-                                    username='Administrator',
-                                    local_folder=default_nuxeo_drive_folder())
-    proxy_settings = ProxySettings()
-    version = ctl.get_version()
-    print prompt_settings(ctl, sb_settings, proxy_settings, version)
-    ctl.dispose()
