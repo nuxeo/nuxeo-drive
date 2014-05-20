@@ -8,6 +8,7 @@ from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.settings import prompt_settings
+from nxdrive.gui.updated import notify_updated
 
 from nxdrive.updater import AppUpdater
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
@@ -129,6 +130,10 @@ class Application(QApplication):
         self.global_menu_actions = {}
         self.update_menu()
         self._tray_icon.setContextMenu(self.tray_icon_menu)
+
+        # Update notification
+        if self.controller.is_updated():
+            notify_updated(self.controller.get_version())
 
         if self.controller.is_credentials_update_required():
             # Prompt for settings if needed (refreshes application update

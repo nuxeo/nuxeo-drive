@@ -202,7 +202,7 @@ class Controller(object):
         device_config = self.get_device_config()
         self.device_id = device_config.device_id
         self.version = nxdrive.__version__
-        self.update_version(device_config)
+        self.updated = self.update_version(device_config)
 
         # HTTP proxy settings
         self.proxies = None
@@ -247,6 +247,11 @@ class Controller(object):
                       self.version)
             device_config.client_version = self.version
             self.get_session().commit()
+            return True
+        return False
+
+    def is_updated(self):
+        return self.updated
 
     def refresh_update_info(self, local_folder):
         session = self.get_session()
