@@ -525,6 +525,61 @@ class FileEvent(Base):
         if utc_time is None:
             utc_time = datetime.utcnow()
 
+class Filter(Base):
+    __tablename__ = 'filters'
+    
+    path = Column(String, primary_key=True)
+    local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
+    
+    server_binding = relationship("ServerBinding")
+    
+    def __init__(self, local_folder, path):
+        self.local_folder = local_folder
+        self.path = path
+    
+    @staticmethod
+    def is_filter(session, local_folder, path):
+        # Not the best way now need to move to count
+        if any([path.startswith(filter_obj.path) for filter_obj in session.query(Filter).all()]): 
+            return True
+        else:
+            return False
+        
+    @staticmethod
+    def add(session, local_folder, path):
+        if Filter.is_filter(session, local_folder, path):
+            # Skip it as it is already filtered
+            return
+        # Remove any subfolders
+        filters = session.query(Filter).filter(Filter.path.like(path+'%')).all()
+        [session.delete(filter_obj) for filter_obj in filters]
+        # Add the filter now
+        filter_obj = Filter(local_folder,path)
+        session.add(filter_obj)
+
+    @staticmethod
+    def remove(session, local_folder, path):
+        filters = session.query(Filter).filter(Filter.path==path).all()
+        if len(filters) == 0:
+            # Non existing filter
+            return
+        [session.delete(filter_obj) for filter_obj in filters] 
+    
+class FilterEvent(Base):
+    __tablename__ = 'filterevents'
+
+    id = Column(Integer, Sequence('filterevent_id_seq'), primary_key=True)
+    local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
+    utc_time = Column(DateTime)
+    path = Column(String)
+    type = Column(String)
+
+    server_binding = relationship("ServerBinding")
+
+    def __init__(self, local_folder, path, utc_time=None):
+        self.local_folder = local_folder
+        if utc_time is None:
+            utc_time = datetime.utcnow()
 
 def init_db(nxdrive_home, echo=False, echo_pool=False, scoped_sessions=True,
             poolclass=None):
