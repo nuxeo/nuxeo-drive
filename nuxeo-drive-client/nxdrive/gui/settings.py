@@ -69,7 +69,6 @@ class SettingsDialog(QDialog):
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
         self.resize(SETTINGS_DIALOG_WIDTH, -1)
-        self.accepted = False
         self.callback = callback
 
         # Fields
@@ -285,7 +284,6 @@ class SettingsDialog(QDialog):
             self.read_field_values(self.proxy_fields, values)
             if not self.callback(values, self):
                 return
-        self.accepted = True
         super(SettingsDialog, self).accept()
 
     def read_field_values(self, fields, values):
@@ -579,4 +577,4 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         raise
     finally:
         is_dialog_open = False
-    return dialog.accepted
+    return dialog.result()
