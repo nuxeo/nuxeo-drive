@@ -7,8 +7,20 @@ from PyQt4 import QtGui, QtCore
 from threading import Thread
 import time
 from nxdrive.gui.resources import find_icon
+from nxdrive.logging_config import get_logger
+
+log = get_logger(__name__)
 
 class FileInfo(object):
+    def __init__(self, parent = None, checkstate = None):
+        self.parent = parent
+        if checkstate is None and parent is not None:
+            checkstate = parent.get_checkstate()
+        elif checkstate is None:
+            checkstate = QtCore.Qt.Checked
+        self.oldvalue = self.checkstate = checkstate
+    def is_dirty(self):
+        return self.oldvalue != self.checkstate
     def get_label(self):
         return ""
     def get_id(self):
@@ -17,11 +29,14 @@ class FileInfo(object):
         return False
     def is_hidden(self):
         return False
-    def is_checked(self):
-        return False
+    def get_checkstate(self):
+        return self.checkstate
+    def set_checkstate(self,checkstate):
+        self.checkstate = checkstate
 
 class FsRootFileInfo(FileInfo):
     def __init__(self, fs_info):
+        super(FsRootFileInfo,self).__init__()
         self.fs_info = fs_info
         
     def get_label(self):
@@ -33,11 +48,9 @@ class FsRootFileInfo(FileInfo):
     def has_children(self):
         return self.fs_info.get('folder')
     
-    def is_checked(self):
-        return True
-    
 class FsFileInfo(FileInfo):
-    def __init__(self, fs_info):
+    def __init__(self, fs_info, parent = None):
+        super(FsFileInfo,self).__init__(parent)
         self.fs_info = fs_info
         
     def get_label(self):
@@ -49,11 +62,9 @@ class FsFileInfo(FileInfo):
     def has_children(self):
         return self.fs_info.folderish
     
-    def is_checked(self):
-        return True
-    
 class DocFileInfo(FileInfo):
-    def __init__(self, doc):
+    def __init__(self, doc, parent = None):
+        super(DocFileInfo,self).__init__(parent)
         self.doc = doc
         
     def get_label(self):
@@ -70,6 +81,7 @@ class DocFileInfo(FileInfo):
         
 class DocRootFileInfo(FileInfo):
     def __init__(self, doc):
+        super(DocRootFileInfo,self).__init__()
         self.doc = doc
         
     def get_label(self):
@@ -94,7 +106,7 @@ class FsClient(Client):
     def get_children(self, parent = None):
         if (parent == None):
             return [FsRootFileInfo(root) for root in self.fsClient.get_top_level_children()]
-        return [FsFileInfo(file_info) for file_info in self.fsClient.get_children_info(parent.get_id())]
+        return [FsFileInfo(file_info,parent) for file_info in self.fsClient.get_children_info(parent.get_id())]
 
 class DocClient(Client):
     def __init__(self, docClient):
@@ -144,7 +156,7 @@ class Overlay(QtGui.QWidget):
         painter.drawPixmap((self.width()-pixmap.width())/2,(self.height()-pixmap.height())/2, pixmap)
         #painter.drawText(10,10, 'Loading ...')
         painter.end()
-        
+    
 class FolderTreeview(QtGui.QTreeView):
     '''
     classdocs
@@ -157,23 +169,89 @@ class FolderTreeview(QtGui.QTreeView):
         '''
         super(FolderTreeview, self).__init__(parent)
         self.client = client
+        self.cache = []
         #self.childrenLoaded = QtCore.pyqtSignal()
-        root_item = QtGui.QStandardItemModel();
-        self.setModel(root_item)
+        self.root_item = QtGui.QStandardItemModel();
+        self.root_item.itemChanged.connect(self.itemChanged)
+        self.setModel(self.root_item)
         self.setHeaderHidden(True)
         
+        # Keep track of dirty items
+        self.dirtyItems = [];
         # Add widget overlay for loading
         self.overlay = self.getLoadingOverlay()
         self.overlay.move(1,0);
         self.overlay.hide()
         
-        self.setLoad(True)
         self.loadChildren()
         
         self.expanded.connect(self.itemExpanded)
+        
+        
+    def itemCheckParent(self,item):
+        i = 0
+        sum_states = 0
+        while i < item.rowCount():
+            if item.child(i).checkState() == QtCore.Qt.Checked:
+                sum_states = sum_states + 1
+            i = i + 1
+        if sum_states == 0:
+            item.setCheckState(QtCore.Qt.Unchecked)
+        elif sum_states == item.rowCount():
+            item.setCheckState(QtCore.Qt.Checked)
+        else:
+            item.setCheckState(QtCore.Qt.PartiallyChecked)
+        self.resolveItemUpChanged(item)
+                
+    def resolveItemUpChanged(self, item):
+        self.updateItemChanged(item)
+        
+        if item.checkState() == QtCore.Qt.PartiallyChecked:
+            if item.parent() is not None:
+                item.parent().setCheckState(QtCore.Qt.PartiallyChecked)
+            return
+        if item.parent() is not None:
+            self.itemCheckParent(item.parent())
     
+    def updateItemChanged(self,item):
+        fs_info = item.data(QtCore.Qt.UserRole).toPyObject()
+        # Fake children have no data attached
+        if not fs_info:
+            return
+        
+        fs_info.set_checkstate(item.checkState())
+        is_in_dirty = fs_info in self.dirtyItems
+        if fs_info.is_dirty() and not is_in_dirty:
+            self.dirtyItems.append(fs_info)
+        elif not fs_info.is_dirty() and is_in_dirty:
+            self.dirtyItems.remove(fs_info)
+            
+    def resolveItemDownChanged(self, item):
+        self.updateItemChanged(item)
+        # Put the same state for every child
+        i = 0
+        while i < item.rowCount():
+            item.child(i).setCheckState(item.checkState())
+            self.resolveItemDownChanged(item.child(i))
+            i = i + 1
+        
+    def itemChanged(self, item):
+        # Disconnect from signal to update the tree has we want
+        self.setEnabled(False)
+        self.root_item.itemChanged.disconnect(self.itemChanged)
+        # Dont allow partial by the user
+        self.updateItemChanged(item)
+        self.resolveItemDownChanged(item)
+        self.resolveItemUpChanged(item)
+        # Reconnect to get any user update
+        self.root_item.itemChanged.connect(self.itemChanged)
+        self.setEnabled(True)
+    
+    def setClient(self, client):
+        self.client = client
+        self.loadChildren()
+        
     def itemExpanded(self,index):
-        self.setLoad(True)
         index = self.model().index(index.row(),0,index.parent())
         item = self.model().itemFromIndex(index)
         self.loadChildren(item)
@@ -181,25 +259,43 @@ class FolderTreeview(QtGui.QTreeView):
     def getLoadingOverlay(self):
         return Overlay(self) 
     
+    def getDirtyItems(self):
+        return self.dirtyItems;
+    
     def loadChildren(self,item = None):
+        if (self.client is None):
+            self.setLoad(False)
+            return
+        self.setLoad(True)
         load_thread = Thread(target=self.loadChildrenThread,args=[item])
         load_thread.start()
         
     def loadChildrenThread(self,parent = None):
+        
         if (parent == None):
             parent = self.model().invisibleRootItem()
+            parentItem = None
             childs = self.client.get_children(None)
         else:    
-            childs = self.client.get_children(parent.data(QtCore.Qt.UserRole).toPyObject())    
+            parentItem = parent.data(QtCore.Qt.UserRole).toPyObject()
+            
+        if parentItem:
+            if parentItem.get_id() in self.cache:
+                self.setLoad(False)
+                return
+            self.cache.append(parentItem.get_id())
         # Clear previous items
+        childs = self.client.get_children(parentItem)
         parent.removeRows(0,parent.rowCount())
         for child in childs:
             subitem = QtGui.QStandardItem(child.get_label())
             subitem.setCheckable(True)
             subitem.setEnabled(True)
             subitem.setSelectable(True)
-            if child.is_checked():
-                subitem.setCheckState(QtCore.Qt.Checked)
+            subitem.setEditable(False)
+            subitem.setCheckState(True)
+            subitem.setTristate(True)
+            subitem.setCheckState(child.get_checkstate())
             subitem.setData(QtCore.QVariant(child),QtCore.Qt.UserRole)
             # Create a fake loading item for now
             if (child.has_children()):
@@ -207,6 +303,7 @@ class FolderTreeview(QtGui.QTreeView):
                 loaditem.setSelectable(False)
                 subitem.appendRow(loaditem)
             parent.appendRow(subitem)
+
         self.setLoad(False)
         
     def loadFinished(self):
