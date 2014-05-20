@@ -124,6 +124,7 @@ class Application(QApplication):
         self.update_version = None
         self.restart_updated_app = False
 
+        # Systray menu
         self._setup_systray()
         self.tray_icon_menu = QtGui.QMenu()
         self.binding_info = {}
