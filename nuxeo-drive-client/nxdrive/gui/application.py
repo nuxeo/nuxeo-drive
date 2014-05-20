@@ -15,6 +15,7 @@ from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
 from nxdrive.updater import UPDATE_STATUS_UP_TO_DATE
+from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
 
 log = get_logger(__name__)
 
@@ -190,6 +191,11 @@ class Application(QApplication):
                          " status = '%s', update version = '%s'",
                          self.updater.get_update_site(), self.update_status,
                          self.update_version)
+                if self.update_status == UPDATE_STATUS_UPDATE_AVAILABLE:
+                    self.state = 'update_available'
+                elif self.update_status == UPDATE_STATUS_UP_TO_DATE:
+                    self.state = 'enabled'
+        self.update_running_icon()
         self.communicator.menu.emit()
 
     @QtCore.pyqtSlot(str)
@@ -324,7 +330,7 @@ class Application(QApplication):
             self.quit()
 
     def update_running_icon(self):
-        if self.state not in ['enabled', 'transferring']:
+        if self.state not in ['enabled', 'update_available', 'transferring']:
             self.communicator.icon.emit(self.state)
             return
         infos = self.binding_info.values()
@@ -360,7 +366,7 @@ class Application(QApplication):
     def notify_sync_started(self):
         log.debug('Synchronization started')
         # Update state, icon and menu
-        self.state = 'enabled'
+        self.state = self._get_current_active_state()
         self.update_running_icon()
         self.communicator.menu.emit()
 
@@ -376,12 +382,12 @@ class Application(QApplication):
         self.state = 'asleep'
 
     def notify_sync_woken_up(self):
-        # Update state to 'enabled' when sync thread is woken up and
+        # Update state to current active state when sync thread is woken up and
         # was not suspended
         if self.state != 'paused':
-            self.state = 'enabled'
+            self.state = self._get_current_active_state()
         else:
-            self.last_state = 'enabled'
+            self.last_state = self._get_current_active_state()
 
     def notify_sync_suspended(self):
         log.debug('Synchronization suspended')
@@ -426,7 +432,7 @@ class Application(QApplication):
         if n_pending > 0:
             self.state = 'transferring'
         else:
-            self.state = 'enabled'
+            self.state = self._get_current_active_state()
         self.update_running_icon()
 
         if server_binding is not None:
@@ -455,6 +461,12 @@ class Application(QApplication):
                 info.online = True
                 self.update_running_icon()
                 self.communicator.menu.emit()
+
+    def _get_current_active_state(self):
+        if self.update_status == UPDATE_STATUS_UPDATE_AVAILABLE:
+            return 'update_available'
+        else:
+            return 'enabled'
 
     def _setup_systray(self):
         self._tray_icon = QtGui.QSystemTrayIcon()
