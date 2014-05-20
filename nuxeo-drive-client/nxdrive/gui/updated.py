@@ -17,6 +17,7 @@ except ImportError:
 
 is_dialog_open = False
 
+UPDATED_DIALOG_HEIGHT = 100
 BOLD_STYLE = 'font-weight: bold;'
 
 
@@ -31,7 +32,7 @@ class UpdatedDialog(QDialog):
         icon = find_icon('nuxeo_drive_icon_64.png')
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
-        self.resize(-1, 100)
+        self.resize(-1, UPDATED_DIALOG_HEIGHT)
 
         # Message
         text_l = QtGui.QHBoxLayout()
