@@ -488,44 +488,64 @@ class Controller(object):
             # password in the DB
             password = None
         try:
-            # Look for an existing server binding for the given local folder
-            server_binding = session.query(ServerBinding).filter(
-                ServerBinding.local_folder == local_folder).one()
-            if server_binding.server_url != server_url:
-                raise RuntimeError(
-                    "%s is already bound to '%s'" % (
-                        local_folder, server_binding.server_url))
-
-            if server_binding.remote_user != username:
-                # Update username info if required
-                server_binding.remote_user = username
-                log.info("Updating username to '%s' on server '%s'",
-                        username, server_url)
-
-            if token is None and server_binding.remote_password != password:
-                # Update password info if required
-                server_binding.remote_password = password
-                log.info("Updating password for user '%s' on server '%s'",
-                        username, server_url)
-
-            if token is not None and server_binding.remote_token != token:
-                log.info("Updating token for user '%s' on server '%s'",
-                        username, server_url)
-                # Update the token info if required
-                server_binding.remote_token = token
-
-                # Ensure that the password is not stored in the DB
-                if server_binding.remote_password is not None:
-                    server_binding.remote_password = None
-
-            # If the top level state for the server binding doesn't exist,
-            # create the local folder and the top level state. This can be
-            # the case when initializing the DB manually with a SQL script.
             try:
-                session.query(LastKnownState).filter_by(local_path='/',
+                # Look for an existing server binding for the given local
+                # folder
+                server_binding = session.query(ServerBinding).filter(
+                    ServerBinding.local_folder == local_folder).one()
+                if server_binding.server_url != server_url:
+                    raise RuntimeError(
+                        "%s is already bound to '%s'" % (
+                            local_folder, server_binding.server_url))
+
+                if server_binding.remote_user != username:
+                    # Update username info if required
+                    server_binding.remote_user = username
+                    log.info("Updating username to '%s' on server '%s'",
+                            username, server_url)
+
+                if (token is None
+                    and server_binding.remote_password != password):
+                    # Update password info if required
+                    server_binding.remote_password = password
+                    log.info("Updating password for user '%s' on server '%s'",
+                            username, server_url)
+
+                if token is not None and server_binding.remote_token != token:
+                    log.info("Updating token for user '%s' on server '%s'",
+                            username, server_url)
+                    # Update the token info if required
+                    server_binding.remote_token = token
+
+                    # Ensure that the password is not stored in the DB
+                    if server_binding.remote_password is not None:
+                        server_binding.remote_password = None
+
+                # If the top level state for the server binding doesn't exist,
+                # create the local folder and the top level state. This can be
+                # the case when initializing the DB manually with a SQL script.
+                try:
+                    session.query(LastKnownState).filter_by(local_path='/',
                                             local_folder=local_folder).one()
+                except NoResultFound:
+                    self._make_local_folder(local_folder)
+                    self._add_top_level_state(server_binding, session)
+
             except NoResultFound:
+                # No server binding found for the given local folder
+                # First create local folder in the file system
                 self._make_local_folder(local_folder)
+
+                # Create ServerBinding instance in DB
+                log.info("Binding '%s' to '%s' with account '%s'",
+                         local_folder, server_url, username)
+                server_binding = ServerBinding(local_folder, server_url,
+                                               username,
+                                               remote_password=password,
+                                               remote_token=token)
+                session.add(server_binding)
+
+                # Create the top level state for the server binding
                 self._add_top_level_state(server_binding, session)
 
         except NoResultFound:
@@ -543,6 +563,10 @@ class Controller(object):
 
             # Create the top level state for the server binding
             self._add_top_level_state(server_binding, session)
+
+        except:
+            session.rollback()
+            raise
 
         session.commit()
         return server_binding
