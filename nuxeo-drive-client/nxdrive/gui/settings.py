@@ -78,6 +78,12 @@ class SettingsDialog(QDialog):
         self.sb_fields = {}
         self.proxy_fields = {}
         self.controller = controller
+        
+        server_bindings = self.controller.list_server_bindings()
+        if not server_bindings:
+            self.server_binding = None
+        else:
+            self.server_binding = server_bindings[0]
 
         # File dialog directory
         self.file_dialog_dir = None
@@ -88,7 +94,7 @@ class SettingsDialog(QDialog):
         # Tabs
         account_box = self.get_account_box(sb_field_spec)
         proxy_box = self.get_proxy_box(proxy_field_spec)
-        local_filters_box = self.get_local_filters_box(controller)
+        local_filters_box = self.get_local_filters_box(controller,self.server_binding)
         about_box = self.get_about_box(version)
         
         self.tabs = QtGui.QTabWidget()
@@ -113,15 +119,13 @@ class SettingsDialog(QDialog):
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
-    def get_local_filters_box(self, controller):
+    def get_local_filters_box(self, controller, sbs):
         box = QtGui.QGroupBox()
         layout = QtGui.QVBoxLayout()
         # Take the first server binding for now
-        sbs = controller.list_server_bindings()
-        
         try:
             filters = controller.get_session().query(Filter).all()
-            client = FilteredFsClient(controller.get_remote_fs_client(sbs[0]),filters)
+            client = FilteredFsClient(controller.get_remote_fs_client(sbs,False),filters)
         except:
             client = None
         self.treeview = box.treeView = FolderTreeview(box, client)
@@ -304,27 +308,27 @@ class SettingsDialog(QDialog):
 
     def apply_filters(self):
         session = self.controller.get_session()
-        local_folder = ""
         for item in self.treeview.getDirtyItems():
             path = item.get_path()
             if (item.get_checkstate() == QtCore.Qt.Unchecked):
                 log.debug("Add a filter on : " + path)
-                Filter.add(session, local_folder,path)
+                Filter.add(session, self.server_binding,path)
             elif (item.get_checkstate() == QtCore.Qt.Checked):
                 log.debug("Remove a filter on : " + item.get_path())
                 #filter = Filter.get(path)
-                Filter.remove(session, local_folder,path)
+                Filter.remove(session, self.server_binding,path)
             elif item.get_old_value() == QtCore.Qt.Unchecked:
                 # Now partially checked and was before a filter
 
                 # Remove current parent filter and need to commit to enable the add
-                Filter.remove(session, local_folder,path)
+                Filter.remove(session, self.server_binding,path)
                 # We need to browse every child and create a filter for unchecked as they are not dirty but has become root filter
                 for child in item.get_children():
                     if child.get_checkstate() == QtCore.Qt.Unchecked:
-                        Filter.add(session,local_folder, child.get_path())
-                    
+                        Filter.add(session, self.server_binding, child.get_path())
         session.commit()
+        # Need to refresh the client for now
+        self.controller.invalidate_client_cache()
         
     def accept(self):
         if self.callback is not None:
