@@ -4,14 +4,11 @@ import sys
 import base64
 import json
 import urllib2
-import mimetypes
 import random
 import time
 import os
 import tempfile
 from urllib import urlencode
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
 from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import FILE_BUFFER_SIZE
@@ -20,7 +17,6 @@ from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
 from nxdrive.utils import guess_mime_type
 from nxdrive.utils import force_decode
-from nxdrive.utils import deprecated
 from urllib2 import ProxyHandler
 from urlparse import urlparse
 
