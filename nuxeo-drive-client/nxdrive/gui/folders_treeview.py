@@ -147,6 +147,8 @@ class FilteredFsClient(FsClient):
             self.filters = []
         
     def get_item_state(self, path):
+        if not path.endswith("/"):
+            path = path + "/"
         if any([path.startswith(filter_path) for filter_path in self.filters]):
             return QtCore.Qt.Unchecked
         # Find partial checked
