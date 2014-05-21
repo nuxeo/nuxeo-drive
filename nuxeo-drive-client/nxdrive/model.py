@@ -124,6 +124,7 @@ class ServerBinding(Base):
     server_version = Column(String)
     update_url = Column(String)
     last_sync_date = Column(Integer)
+    last_filter_date = Column(Integer)
     last_ended_sync_date = Column(Integer)
     last_root_definitions = Column(String)
 
@@ -533,34 +534,44 @@ class Filter(Base):
     
     server_binding = relationship("ServerBinding")
     
-    def __init__(self, local_folder, path):
-        self.local_folder = local_folder
+    def __init__(self, server_binding, path):
+        if server_binding:
+            self.local_folder = server_binding.local_folder
+        else:
+            self.local_folder = None
         self.path = Filter.clean_path(path)
     
+    def __repr__(self):
+        return self.path
+    
     @staticmethod
-    def is_filter(session, local_folder, path):
+    def is_filter(session, server_binding, path, filters = None):
         path = Filter.clean_path(path)
+        if filters is None:
+            filters = session.query(Filter).all()
         # Not the best way now need to move to count
-        if any([path.startswith(filter_obj.path) for filter_obj in session.query(Filter).all()]): 
+        if any([path.startswith(filter_obj.path) for filter_obj in filters]): 
             return True
         else:
             return False
         
     @staticmethod
-    def add(session, local_folder, path):
+    def add(session, server_binding, path):
         path = Filter.clean_path(path)
-        if Filter.is_filter(session, local_folder, path):
+        if Filter.is_filter(session, server_binding, path):
             # Skip it as it is already filtered
             return
         # Remove any subfolders
         filters = session.query(Filter).filter(Filter.path.like(path+'%')).all()
         [session.delete(filter_obj) for filter_obj in filters]
         # Add the filter now
-        filter_obj = Filter(local_folder,path)
+        filter_obj = Filter(server_binding,path)
         session.add(filter_obj)
+        #server_binding.last_filter_date = time()
+        session.commit()
 
     @staticmethod
-    def getAll(session, local_folder):
+    def getAll(session, server_binding):
         return session.query(Filter).all()
     
     @staticmethod
@@ -570,13 +581,15 @@ class Filter(Base):
         return path
     
     @staticmethod
-    def remove(session, local_folder, path):
+    def remove(session, server_binding, path):
         path = Filter.clean_path(path)
         filters = session.query(Filter).filter(Filter.path==path).all()
         if len(filters) == 0:
             # Non existing filter
             return
-        [session.delete(filter_obj) for filter_obj in filters] 
+        [session.delete(filter_obj) for filter_obj in filters]
+        server_binding.last_filter_date = time()
+        session.commit() 
     
 class FilterEvent(Base):
     __tablename__ = 'filterevents'
