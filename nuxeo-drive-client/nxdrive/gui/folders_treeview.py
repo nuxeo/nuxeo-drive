@@ -6,7 +6,6 @@ Created on 6 mai 2014
 from PyQt4 import QtGui, QtCore
 from threading import Thread
 import time
-from nxdrive.model import Filter
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 
