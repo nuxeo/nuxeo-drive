@@ -1446,9 +1446,7 @@ class Synchronizer(object):
         session = self.get_session() if session is None else session
         remote_client = self.get_remote_fs_client(server_binding)
 
-        summary = remote_client.get_changes(
-            last_sync_date=server_binding.last_sync_date,
-            last_root_definitions=server_binding.last_root_definitions)
+        summary = remote_client.get_changes(server_binding)
 
         root_definitions = summary['activeSynchronizationRootDefinitions']
         sync_date = summary['syncDate']

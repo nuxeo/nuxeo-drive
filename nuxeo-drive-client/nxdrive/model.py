@@ -567,7 +567,7 @@ class Filter(Base):
         # Add the filter now
         filter_obj = Filter(server_binding,path)
         session.add(filter_obj)
-        #server_binding.last_filter_date = time()
+        server_binding.last_filter_date = datetime.now()
         session.commit()
 
     @staticmethod
