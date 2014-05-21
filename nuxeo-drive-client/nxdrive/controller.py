@@ -579,6 +579,11 @@ class Controller(object):
             self._set_update_info(server_binding, remote_client=nxclient)
 
         except:
+            # In case an AddonNotInstalled exception is raised, need to
+            # invalidate the remote client cache for it to be aware of the new
+            # operations when the addon gets installed
+            if server_binding is not None:
+                self.invalidate_client_cache(server_binding.server_url)
             session.rollback()
             raise
 
