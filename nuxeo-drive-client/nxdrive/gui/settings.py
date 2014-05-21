@@ -6,6 +6,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.controller import NUXEO_DRIVE_FOLDER_NAME
 from nxdrive.controller import ProxySettings
 from nxdrive.controller import MissingToken
+from nxdrive.client.base_automation_client import AddonNotInstalled
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import get_proxy_handler
 import urllib2
@@ -535,6 +536,11 @@ def prompt_settings(controller, sb_settings, proxy_settings, version):
             controller.bind_server(local_folder, url, username,
                                    password)
             return True
+        except AddonNotInstalled:
+            return handle_error("The nuxeo-drive addon is not installed on"
+                                " Nuxeo server %s.\nPlease make sure it is installed"
+                                " before trying to connect with Nuxeo Drive."
+                                % url, dialog)
         except UnicodeDecodeError:
             return handle_error("Username must contain only alpha-numeric"
                                 " characters.", dialog, exc_info=False)

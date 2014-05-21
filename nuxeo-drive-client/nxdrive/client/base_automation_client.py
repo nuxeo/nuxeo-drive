@@ -84,6 +84,10 @@ def get_proxy_handler(proxies, proxy_exceptions=None, url=None):
         return urllib2.ProxyHandler(proxies)
 
 
+class AddonNotInstalled(Exception):
+    pass
+
+
 class Unauthorized(Exception):
 
     def __init__(self, server_url, user_id, code=403):
@@ -484,7 +488,12 @@ class BaseAutomationClient(object):
 
     def _check_params(self, command, params):
         if command not in self.operations:
-            raise ValueError("'%s' is not a registered operations." % command)
+            if command.startswith('NuxeoDrive.'):
+                raise AddonNotInstalled("nuxeo-drive addon is not installed on"
+                                        " server %s" % self.server_url)
+            else:
+                raise ValueError("'%s' is not a registered operations."
+                                 % command)
         method = self.operations[command]
         required_params = []
         other_params = []
