@@ -226,9 +226,9 @@ class SystrayMenu(QtGui.QMenu):
                                             last_ended_sync_date,
                                             sb_actions['separator']))
                 sb_actions['last_ended_sync'] = last_ended_sync_action
-            else:
-                if last_ended_sync_date is not None:
-                    self._set_last_ended_sync(last_ended_sync_action,last_ended_sync_date)
+        else:
+            if last_ended_sync_date is not None:
+                self._set_last_ended_sync(last_ended_sync_action,last_ended_sync_date)
     
     def remove_bind_servers(self,obsolete_binding_local_folders):
         # Remove obsolete binding actions from menu and from
