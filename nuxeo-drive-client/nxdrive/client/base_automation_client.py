@@ -566,8 +566,12 @@ class BaseAutomationClient(object):
     def _check_params(self, command, params):
         if command not in self.operations:
             if command.startswith('NuxeoDrive.'):
-                raise AddonNotInstalled("nuxeo-drive addon is not installed on"
-                                        " server %s" % self.server_url)
+                raise AddonNotInstalled(
+                    "Either nuxeo-drive addon is not installed on server %s or"
+                    " server version is lighter than the minimum version"
+                    " compatible with the client version %s, in which case a"
+                    " downgrade of Nuxeo Drive is needed." % (
+                        self.server_url, self.client_version))
             else:
                 raise ValueError("'%s' is not a registered operations."
                                  % command)

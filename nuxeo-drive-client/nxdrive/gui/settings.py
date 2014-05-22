@@ -460,10 +460,14 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
                                    password)
             return True
         except AddonNotInstalled:
-            return handle_error("The nuxeo-drive addon is not installed on"
-                                " Nuxeo server %s.\nPlease make sure it is installed"
-                                " before trying to connect with Nuxeo Drive."
-                                % url, dialog)
+            return handle_error(
+                    "Either the nuxeo-drive addon is not installed on Nuxeo"
+                    " server %s, in which case please make sure it is"
+                    " installed before trying to connect with Nuxeo Drive, or"
+                    " the version of the server is lighter than the minimum"
+                    " version compatible with the version of Nuxeo Drive %s,"
+                    " in which case a downgrade of Nuxeo Drive is needed."
+                                % (url, version), dialog)
         except UnicodeDecodeError:
             return handle_error("Username must contain only alpha-numeric"
                                 " characters.", dialog, exc_info=False)
