@@ -591,6 +591,7 @@ class Filter(Base):
         server_binding.last_filter_date = time()
         session.commit() 
 
+
 def init_db(nxdrive_home, echo=False, echo_pool=False, scoped_sessions=True,
             poolclass=None):
     """Return an engine and session maker configured for using nxdrive_home

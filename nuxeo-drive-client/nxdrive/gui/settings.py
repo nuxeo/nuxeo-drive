@@ -625,6 +625,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version):
         dialog.show_message(msg, tab_index=tab_index)
         return False
 
+
     dialog = SettingsDialog(sb_field_spec, proxy_field_spec, version,
                     title="Nuxeo Drive - Settings",
                     callback=validate)
