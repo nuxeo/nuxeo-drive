@@ -244,7 +244,6 @@ class SystrayMenu(QtGui.QMenu):
     def update_bind_menu(self,server_bindings):
         obsolete_binding_local_folders = self.binding_menu_actions.keys()
         suspend_resume_action = self.global_menu_actions.get('suspend_resume')
-        quit_action = self.global_menu_actions.get('quit')
         
         # Suspend / resume
         if self.application.state == 'suspending':
@@ -252,12 +251,12 @@ class SystrayMenu(QtGui.QMenu):
                                         'Suspending synchronization...')
             # Disable suspend_resume and quit actions when suspending
             suspend_resume_action.setEnabled(False)
-            quit_action.setEnabled(False)
+            self.quit_action.setEnabled(False)
         elif self.application.state == 'paused':
             suspend_resume_action.setText('Resume synchronization')
             # Enable suspend_resume and quit actions when paused
             suspend_resume_action.setEnabled(True)
-            quit_action.setEnabled(True)
+            self.quit_action.setEnabled(True)
         else:
             suspend_resume_action.setText('Suspend synchronization')
             
