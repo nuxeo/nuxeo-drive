@@ -583,29 +583,13 @@ class Filter(Base):
     @staticmethod
     def remove(session, server_binding, path):
         path = Filter.clean_path(path)
-        filters = session.query(Filter).filter(Filter.path==path).all()
+        filters = session.query(Filter).filter(Filter.path.like(path+'%')).all()
         if len(filters) == 0:
             # Non existing filter
             return
         [session.delete(filter_obj) for filter_obj in filters]
         server_binding.last_filter_date = time()
         session.commit() 
-    
-class FilterEvent(Base):
-    __tablename__ = 'filterevents'
-
-    id = Column(Integer, Sequence('filterevent_id_seq'), primary_key=True)
-    local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
-    utc_time = Column(DateTime)
-    path = Column(String)
-    type = Column(String)
-
-    server_binding = relationship("ServerBinding")
-
-    def __init__(self, local_folder, path, utc_time=None):
-        self.local_folder = local_folder
-        if utc_time is None:
-            utc_time = datetime.utcnow()
 
 def init_db(nxdrive_home, echo=False, echo_pool=False, scoped_sessions=True,
             poolclass=None):

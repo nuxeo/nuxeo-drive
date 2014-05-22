@@ -25,3 +25,8 @@ class TestModelFilter(IntegrationTestCase):
         self.assertEqual(len(Filter.getAll(session, server_binding)), 1, "Adding a more generic filter should resolve of only one filter")
         Filter.remove(session, server_binding, "/Test")
         self.assertEqual(len(Filter.getAll(session, server_binding)), 0, "Remove existing filter has failed")
+        Filter.add(session, server_binding, "/Test/Plop")
+        Filter.add(session, server_binding, "/Test/Plop2")
+        Filter.add(session, server_binding, "/Test2/Plop")
+        Filter.remove(session, server_binding, "/Test")
+        self.assertEqual(len(Filter.getAll(session, server_binding)), 1, "Removing a non existing parent folder filter should clear all subfilters")
