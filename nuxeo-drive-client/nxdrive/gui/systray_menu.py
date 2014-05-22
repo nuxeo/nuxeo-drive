@@ -3,7 +3,7 @@ Created on 9 mai 2014
 
 @author: Remi Cattiau
 '''
-from PyQt4 import QtGui
+from PyQt4 import QtGui, QtCore
 import time
 TIME_FORMAT_PATTERN = '%d %b %H:%M'
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
@@ -170,11 +170,13 @@ class SystrayMenu(QtGui.QMenu):
         open_folder_msg = ("Open %s folder"
                                    % binding_info.short_name)
         open_folder = (lambda folder_path=binding_info.folder_path:
-                               self.controller.open_local_file(
-                                                            folder_path))
+                               self.controller.open_local_file(folder_path))
         open_folder_action = QtGui.QAction(open_folder_msg,
                                                    self)
-        open_folder_action.triggered.connect(open_folder)
+        # Cant use the normal connect as we use lambda function
+        self.connect(open_folder_action,
+                             QtCore.SIGNAL('triggered()'),
+                             open_folder)
         self.insertAction(binding_separator,open_folder_action)
         sb_actions['open_folder'] = open_folder_action
 
@@ -184,7 +186,9 @@ class SystrayMenu(QtGui.QMenu):
                         lambda server_link=binding_info.server_link:
                         self.controller.open_local_file(server_link))
         server_link_action = QtGui.QAction(server_link_msg,self)
-        server_link_action.triggered.connect(open_server_link)
+        # Cant use the normal connect as we use lambda function
+        self.connect(server_link_action, QtCore.SIGNAL('triggered()'),
+                             open_server_link)
         self.insertAction(binding_separator,server_link_action)
         sb_actions['server_link'] = server_link_action
 
