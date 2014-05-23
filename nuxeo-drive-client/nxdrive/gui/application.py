@@ -47,6 +47,7 @@ class Communicator(QObject):
     menu = QtCore.pyqtSignal()
     stop = QtCore.pyqtSignal()
     invalid_credentials = QtCore.pyqtSignal(str)
+    update_check = QtCore.pyqtSignal()
 
 
 class BindingInfo(object):
@@ -106,6 +107,8 @@ class Application(QApplication):
         self.communicator.stop.connect(self.handle_stop)
         self.communicator.invalid_credentials.connect(
             self.handle_invalid_credentials)
+        self.communicator.update_check.connect(
+            self.refresh_update_status)
 
         # Timer to spin the transferring icon
         self.icon_spin_timer = QtCore.QTimer()
@@ -139,12 +142,13 @@ class Application(QApplication):
             notify_updated(self.controller.get_version())
 
         if self.controller.is_credentials_update_required():
-            # Prompt for settings if needed (refreshes application update
-            # status)
+            # Prompt for settings if needed (performs a check for application
+            # update)
             self.settings()
         else:
-            # Only refresh application update status
-            self._refresh_update_status()
+            # Initial check for application update (then periodic checks will
+            # be done by the synchronizer thread)
+            self.refresh_update_status()
 
         # Start long running synchronization thread
         self.start_synchronization_thread()
@@ -466,6 +470,10 @@ class Application(QApplication):
                 self.update_running_icon()
                 self.communicator.menu.emit()
 
+    def notify_check_update(self):
+        log.debug('Checking for application update')
+        self.communicator.update_check.emit()
+
     def _get_current_active_state(self):
         if self.update_status == UPDATE_STATUS_UPDATE_AVAILABLE:
             return 'update_available'
@@ -748,11 +756,15 @@ class Application(QApplication):
         if self.sync_thread is None or not self.sync_thread.isAlive():
             delay = getattr(self.options, 'delay', 5.0)
             max_sync_step = getattr(self.options, 'max_sync_step', 10)
+            update_check_delay = getattr(self.options, 'update_check_delay',
+                                         3600)
             # Controller and its database session pool are thread safe,
             # hence reuse it directly
             self.controller.synchronizer.register_frontend(self)
             self.controller.synchronizer.delay = delay
             self.controller.synchronizer.max_sync_step = max_sync_step
+            self.controller.synchronizer.update_check_delay = (
+                                                update_check_delay)
 
             self.sync_thread = SynchronizerThread(self.controller)
             log.info("Starting new synchronization thread %r",

@@ -28,6 +28,7 @@ DEFAULT_DELAY = 5.0
 DEFAULT_MAX_SYNC_STEP = 10
 DEFAULT_HANDSHAKE_TIMEOUT = 60
 DEFAULT_TIMEOUT = 20
+DEFAULT_UPDATE_CHECK_DELAY = 3600
 USAGE = """ndrive [command]
 
 If no command is provided, the graphical application is started along with a
@@ -97,6 +98,9 @@ def make_cli_parser(add_subparsers=True):
     common_parser.add_argument(
         "--timeout", default=DEFAULT_TIMEOUT, type=int,
         help="HTTP request timeout in seconds for the sync Automation calls.")
+    common_parser.add_argument(
+        "--update-check-delay", default=DEFAULT_UPDATE_CHECK_DELAY, type=int,
+        help="Delay in seconds between checks for application update.")
     common_parser.add_argument(
         # XXX: Make it true by default as the fault tolerant mode is not yet
         # implemented
