@@ -140,7 +140,7 @@ class Application(QApplication):
         self.update_menu()
         self._tray_icon.setContextMenu(self.tray_icon_menu)
 
-        # Update notification
+        # Application update notification
         if self.controller.is_updated():
             notify_updated(self.controller.get_version())
 
@@ -186,14 +186,17 @@ class Application(QApplication):
                         self.updater.get_update_status(
                             self.controller.get_version(), server_version))
             if self.update_status == UPDATE_STATUS_UNAVAILABLE_SITE:
+                # Update site unavailable
                 log.warning("Update site is unavailable, as a consequence"
                             " update features won't be available")
             elif self.update_status in [UPDATE_STATUS_MISSING_INFO,
                                       UPDATE_STATUS_MISSING_VERSION]:
+                # Information or version missing in update site
                 log.warning("Some information or version file is missing in"
                             " the update site, as a consequence update"
                             " features won't be available")
             else:
+                # Update information successfully fetched
                 log.info("Fetched information from update site %s: update"
                          " status = '%s', update version = '%s'",
                          self.updater.get_update_site(), self.update_status,
@@ -211,6 +214,7 @@ class Application(QApplication):
                     # Update available
                     self.state = 'update_available'
                 elif self.update_status == UPDATE_STATUS_UP_TO_DATE:
+                    # Up-to-date
                     self.state = 'enabled'
         self.update_running_icon()
         self.communicator.menu.emit()
