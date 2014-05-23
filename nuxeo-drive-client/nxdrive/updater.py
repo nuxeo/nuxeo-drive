@@ -22,8 +22,8 @@ UPDATE_STATUS_MISSING_VERSION = 'missing_version'
 
 # Update status messages
 UPDATE_STATUS_LABEL = {
-    UPDATE_STATUS_UPGRADE_NEEDED: 'Upgrade needed',
-    UPDATE_STATUS_DOWNGRADE_NEEDED: 'Downgrade needed',
+    UPDATE_STATUS_UPGRADE_NEEDED: 'Upgrade required',
+    UPDATE_STATUS_DOWNGRADE_NEEDED: 'Downgrade required',
     UPDATE_STATUS_UPDATE_AVAILABLE: 'Update Nuxeo Drive',
     UPDATE_STATUS_UP_TO_DATE: 'Up-to-date',
     UPDATE_STATUS_UNAVAILABLE_SITE: 'Update site unavailable',
