@@ -26,7 +26,7 @@ from nxdrive.client import NotFound
 from nxdrive.model import init_db
 from nxdrive.model import DeviceConfig
 from nxdrive.model import ServerBinding
-from nxdrive.model import LastKnownState, Filter
+from nxdrive.model import LastKnownState
 from nxdrive.synchronizer import Synchronizer
 from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
 from nxdrive.logging_config import get_logger
@@ -263,15 +263,12 @@ class Controller(object):
         session.commit()
 
     def _set_update_info(self, server_binding, remote_client=None):
-        try:
-            remote_client = (remote_client if remote_client is not None
-                             else self.get_remote_doc_client(server_binding))
-            update_info = remote_client.get_update_info()
-            log.info("Fetched update info from server: %r", update_info)
-            server_binding.server_version = update_info['serverVersion']
-            server_binding.update_url = update_info['updateSiteURL']
-        except:
-            log.info("Cant get update information from server, may be old server")
+        remote_client = (remote_client if remote_client is not None
+                         else self.get_remote_doc_client(server_binding))
+        update_info = remote_client.get_update_info()
+        log.info("Fetched update info from server: %r", update_info)
+        server_binding.server_version = update_info['serverVersion']
+        server_binding.update_url = update_info['updateSiteURL']
 
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""
@@ -760,13 +757,14 @@ class Controller(object):
             remote_client = remote_client_cache[0]
             timestamp = remote_client_cache[1]
         client_cache_timestamp = self._client_cache_timestamps.get(cache_key)
-        
+
         if remote_client_cache is None or timestamp < client_cache_timestamp:
             if filtered:
                 remote_client = self.remote_filtered_fs_client_factory(
                         sb.server_url, sb.remote_user, self.device_id,
                         self.version, self.get_session(),
-                        proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
+                        proxies=self.proxies,
+                        proxy_exceptions=self.proxy_exceptions,
                         password=sb.remote_password, token=sb.remote_token,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
                         check_suspended=self.synchronizer.check_suspended)
@@ -774,7 +772,8 @@ class Controller(object):
                 remote_client = self.remote_fs_client_factory(
                         sb.server_url, sb.remote_user, self.device_id,
                         self.version,
-                        proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
+                        proxies=self.proxies,
+                        proxy_exceptions=self.proxy_exceptions,
                         password=sb.remote_password, token=sb.remote_token,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
                         check_suspended=self.synchronizer.check_suspended)
