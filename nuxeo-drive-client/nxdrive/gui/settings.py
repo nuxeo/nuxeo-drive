@@ -315,7 +315,6 @@ class SettingsDialog(QDialog):
                 Filter.add(session, self.server_binding,path)
             elif (item.get_checkstate() == QtCore.Qt.Checked):
                 log.debug("Remove a filter on : " + item.get_path())
-                #filter = Filter.get(path)
                 Filter.remove(session, self.server_binding,path)
             elif item.get_old_value() == QtCore.Qt.Unchecked:
                 # Now partially checked and was before a filter
