@@ -7,7 +7,7 @@ from nxdrive.synchronizer import SynchronizerThread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.settings import prompt_settings
-from systray_menu import SystrayMenu 
+from systray_menu import SystrayMenu
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.update_prompt import prompt_update
 from nxdrive.gui.updated import notify_updated
@@ -118,25 +118,25 @@ class Application(QApplication):
         self.update_status = None
         self.update_version = None
         self.restart_updated_app = False
-        
+
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
         # Current state
         self.state = 'disabled'
         # Last state before suspend
         self.last_state = 'enabled'
-        
+
         self.setup_systray()
 
         # Update notification
         if self.controller.is_updated():
             notify_updated(self.controller.get_version())
-        
-        # Check if actions is required, in a separate method so it can be override
+
+        # Check if actions is required, separate method so it can be override
         self.init_checks()
         # Start long running synchronization thread
         self.start_synchronization_thread()
-        
+
     def init_checks(self):
         if self.controller.is_credentials_update_required():
             # Prompt for settings if needed (refreshes application update
@@ -147,8 +147,8 @@ class Application(QApplication):
             self._refresh_update_status()
 
     def get_systray_menu(self):
-        return SystrayMenu(self,self.controller.list_server_bindings())
-            
+        return SystrayMenu(self, self.controller.list_server_bindings())
+
     def _refresh_update_status(self, refresh_update_info=True):
         # TODO: first read update site URL from local configuration
         # See https://jira.nuxeo.com/browse/NXP-14403
@@ -199,7 +199,7 @@ class Application(QApplication):
                     self.state = 'enabled'
         self.update_running_icon()
         self.communicator.menu.emit()
-        
+
     def set_icon_state(self, state):
         """Execute systray icon change operations triggered by state change
 
@@ -237,8 +237,7 @@ class Application(QApplication):
                          % (self.icon_spin_count + 1))
         self._tray_icon.setIcon(QtGui.QIcon(icon))
         self.icon_spin_count = (self.icon_spin_count + 1) % 10
-        
-        
+
     def suspend_resume(self):
         if self.state != 'paused':
             # Suspend sync

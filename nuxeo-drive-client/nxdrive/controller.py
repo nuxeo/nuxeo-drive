@@ -261,7 +261,7 @@ class Controller(object):
             session.commit()
         except:
             # Can't find any update info
-            update_info = None
+            self.update_info = None
 
     def _set_update_info(self, server_binding, remote_client=None):
         try:
@@ -272,7 +272,8 @@ class Controller(object):
             server_binding.server_version = update_info['serverVersion']
             server_binding.update_url = update_info['updateSiteURL']
         except:
-            log.info("Cant get update information from server, may be old server")
+            log.info("Can't get update information from server \
+                            , may be old server")
 
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""

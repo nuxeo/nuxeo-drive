@@ -54,9 +54,6 @@ PROTOCOL_COMMANDS = {
 }
 
 
-
-
-
 class CliHandler(object):
     """ Set the default argument """
     def __init__(self):
@@ -68,10 +65,10 @@ class CliHandler(object):
         self.default_handshake_timeout = DEFAULT_HANDSHAKE_TIMEOUT
         self.default_timeout = DEFAULT_TIMEOUT
         self.default_stop_on_error = True
-        
-    def make_cli_parser(self,add_subparsers=True):
+
+    def make_cli_parser(self, add_subparsers=True):
         """Parse commandline arguments using a git-like subcommands scheme"""
-    
+
         common_parser = argparse.ArgumentParser(
             add_help=False,
         )
@@ -83,7 +80,8 @@ class CliHandler(object):
         common_parser.add_argument(
             "--log-level-file",
             default=self.default_log_file_level,
-            help="Minimum log level for the file log (under NXDRIVE_HOME/logs)."
+            help="Minimum log level for the file log"
+                        " (under NXDRIVE_HOME/logs)."
         )
         common_parser.add_argument(
             "--log-level-console",
@@ -107,15 +105,18 @@ class CliHandler(object):
             help="Number of consecutive sync operations to perform"
             " without refreshing the internal state DB.")
         common_parser.add_argument(
-            "--handshake-timeout", default=self.default_handshake_timeout, type=int,
+            "--handshake-timeout", default=self.default_handshake_timeout,
+            type=int,
             help="HTTP request timeout in seconds for the handshake.")
         common_parser.add_argument(
             "--timeout", default=self.default_timeout, type=int,
-            help="HTTP request timeout in seconds for the sync Automation calls.")
+            help="HTTP request timeout in seconds for"
+                " the sync Automation calls.")
         common_parser.add_argument(
-            # XXX: Make it true by default as the fault tolerant mode is not yet
-            # implemented
-            "--stop-on-error", default=self.default_stop_on_error, action="store_true",
+            # XXX: Make it true by default as the fault tolerant
+            #  mode is not yet implemented
+            "--stop-on-error", default=self.default_stop_on_error,
+            action="store_true",
             help="Stop the process on first unexpected error."
             "Useful for developers and Continuous Integration.")
         common_parser.add_argument(
@@ -127,14 +128,14 @@ class CliHandler(object):
             description="Command line interface for Nuxeo Drive operations.",
             usage=USAGE,
         )
-    
+
         if not add_subparsers:
             return parser
-    
+
         subparsers = parser.add_subparsers(
             title='Commands',
         )
-    
+
         # Link to a remote Nuxeo server
         bind_server_parser = subparsers.add_parser(
             'bind-server', help='Attach a local folder to a Nuxeo server.',
@@ -160,7 +161,7 @@ class CliHandler(object):
         bind_server_parser.add_argument(
             "--remote-repo", default='default',
             help="Name of the remote repository.")
-    
+
         # Unlink from a remote Nuxeo server
         unbind_server_parser = subparsers.add_parser(
             'unbind-server', help='Detach from a remote Nuxeo server.',
@@ -173,7 +174,7 @@ class CliHandler(object):
             " workspaces with a remote Nuxeo server.",
             default=DEFAULT_NX_DRIVE_FOLDER,
         )
-    
+
         # Bind root folders
         bind_root_parser = subparsers.add_parser(
             'bind-root',
@@ -194,7 +195,7 @@ class CliHandler(object):
         bind_root_parser.add_argument(
             "--remote-repo", default='default',
             help="Name of the remote repository.")
-    
+
         # Unlink from a remote Nuxeo root
         unbind_root_parser = subparsers.add_parser(
             'unbind-root', help='Detach from a remote Nuxeo root.',
@@ -203,7 +204,7 @@ class CliHandler(object):
         unbind_root_parser.set_defaults(command='unbind_root')
         unbind_root_parser.add_argument(
             "local_root", help="Local sub-folder to de-synchronize.")
-    
+
         # Start / Stop the synchronization daemon
         start_parser = subparsers.add_parser(
             'start', help='Start the synchronization as a GUI-less daemon',
@@ -217,11 +218,12 @@ class CliHandler(object):
         stop_parser.set_defaults(command='stop')
         console_parser = subparsers.add_parser(
             'console',
-            help='Start a GUI-less synchronization without detaching the process.',
+            help='Start a GUI-less synchronization without'
+                ' detaching the process.',
             parents=[common_parser],
         )
         console_parser.set_defaults(command='console')
-    
+
         status_parser = subparsers.add_parser(
             'status',
             help='Fetch the status info of the children of a given folder.',
@@ -230,7 +232,7 @@ class CliHandler(object):
         status_parser.set_defaults(command='status')
         status_parser.add_argument(
             "folder", help="Path to a local Nuxeo Drive folder.")
-    
+
         # embedded test runner base on nose:
         test_parser = subparsers.add_parser(
             'test',
@@ -249,7 +251,7 @@ class CliHandler(object):
         test_parser.add_argument(
             "--with-profile", default=False, action="store_true",
             help="Compute profiling report.")
-    
+
         return parser
     """Command Line Interface handler: parse options and execute operation"""
 
@@ -316,7 +318,7 @@ class CliHandler(object):
         return Controller(options.nxdrive_home,
                             handshake_timeout=options.handshake_timeout,
                             timeout=options.timeout)
-        
+
     def handle(self, argv):
         """Parse options, setup logs and controller and dispatch execution."""
         options = self.parse_cli(argv)
@@ -379,7 +381,6 @@ class CliHandler(object):
         daemonize()
 
         self.controller = self.get_controller(options)
-        
         self._configure_logger(options)
         self.log.debug("Synchronization daemon started.")
         self.controller.synchronizer.loop(
