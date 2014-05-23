@@ -158,8 +158,8 @@ class Application(QApplication):
         # See https://jira.nuxeo.com/browse/NXP-14403
         server_bindings = self.controller.list_server_bindings()
         if not server_bindings:
-            log.warning("Found no server binding, thus no update site URL, as"
-                        " a consequence update features won't be available")
+            log.warning("Found no server binding, thus no update site URL,"
+                        " can't check for application update")
         else:
             # Let's refresh_update_info of the first server binding
             sb = server_bindings[0]
