@@ -19,7 +19,7 @@ import nxdrive
 from nxdrive.client import Unauthorized
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
-from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
+from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client import NotFound
