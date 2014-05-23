@@ -1,17 +1,16 @@
 import os
-import time
-
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
-from nxdrive.model import LastKnownState, Filter
+from nxdrive.model import Filter
 
 
 class TestIntegrationLocalFilter(IntegrationTestCase):
-    
+
     def test_synchronize_local_filter(self):
         """Test that filtering remote documents is impacted client side
 
-        Just do a single test as it is the same as test_integration_remote_deletion
+        Just do a single test as it is the same as
+        test_integration_remote_deletion
 
         Use cases:
           - Filter delete a regular folder
@@ -41,9 +40,9 @@ class TestIntegrationLocalFilter(IntegrationTestCase):
         # then synchronize
         remote.make_folder('/', 'Test folder')
         remote.make_file('/Test folder', 'joe.txt', 'Some content')
-        
+
         session = ctl.get_session()
-        
+
         # Fake server binding with the unit test class
         syn = ctl.synchronizer
         syn.loop(1)
@@ -54,9 +53,11 @@ class TestIntegrationLocalFilter(IntegrationTestCase):
         doc = remote.get_info('/Test folder')
         root_path="/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#"
         root_path = root_path + doc.root
-        doc_path = root_path + "/defaultFileSystemItemFactory#default#" + doc.uid
-            
-        server_binding = ctl.get_server_binding(self.local_nxdrive_folder_1, session=session)
+        doc_path = (root_path + "/defaultFileSystemItemFactory#default#"
+                    + doc.uid)
+
+        server_binding = ctl.get_server_binding(self.local_nxdrive_folder_1,
+                                                session=session)
         Filter.add(session, server_binding, doc_path)
         syn.loop(1)
         self.assertFalse(local.exists('/Test folder'))
@@ -71,7 +72,8 @@ class TestIntegrationLocalFilter(IntegrationTestCase):
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
         # Delete sync root then synchronize
-        server_binding = ctl.get_server_binding(self.local_nxdrive_folder_1, session=session)
+        server_binding = ctl.get_server_binding(self.local_nxdrive_folder_1,
+                                                session=session)
         Filter.add(session, server_binding, root_path)
         syn.loop(1)
         self.assertFalse(local.exists('/'))
@@ -82,5 +84,4 @@ class TestIntegrationLocalFilter(IntegrationTestCase):
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
-
 
