@@ -19,6 +19,7 @@ import nxdrive
 from nxdrive.client import Unauthorized
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
+from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client import NotFound
@@ -162,6 +163,8 @@ class Controller(object):
 
     # Used for FS synchronization operations
     remote_fs_client_factory = RemoteFileSystemClient
+    # Used for FS synchronization operations
+    remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
 
     def __init__(self, config_folder, echo=False, echo_pool=False,
                  poolclass=None, handshake_timeout=60, timeout=20,
@@ -744,11 +747,11 @@ class Controller(object):
             self._local.remote_clients = dict()
         return self._local.remote_clients
 
-    def get_remote_fs_client(self, server_binding):
+    def get_remote_fs_client(self, server_binding, filtered=True):
         """Return a client for the FileSystem abstraction."""
         cache = self._get_client_cache()
         sb = server_binding
-        cache_key = (sb.server_url, sb.remote_user, self.device_id)
+        cache_key = (sb.server_url, sb.remote_user, self.device_id, filtered)
         remote_client_cache = cache.get(cache_key)
         if remote_client_cache is not None:
             remote_client = remote_client_cache[0]
@@ -756,13 +759,24 @@ class Controller(object):
         client_cache_timestamp = self._client_cache_timestamps.get(cache_key)
 
         if remote_client_cache is None or timestamp < client_cache_timestamp:
-            remote_client = self.remote_fs_client_factory(
-                sb.server_url, sb.remote_user, self.device_id,
-                self.version,
-                proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
-                password=sb.remote_password, token=sb.remote_token,
-                timeout=self.timeout, cookie_jar=self.cookie_jar,
-                check_suspended=self.synchronizer.check_suspended)
+            if filtered:
+                remote_client = self.remote_filtered_fs_client_factory(
+                        sb.server_url, sb.remote_user, self.device_id,
+                        self.version, self.get_session(),
+                        proxies=self.proxies,
+                        proxy_exceptions=self.proxy_exceptions,
+                        password=sb.remote_password, token=sb.remote_token,
+                        timeout=self.timeout, cookie_jar=self.cookie_jar,
+                        check_suspended=self.synchronizer.check_suspended)
+            else:
+                remote_client = self.remote_fs_client_factory(
+                        sb.server_url, sb.remote_user, self.device_id,
+                        self.version,
+                        proxies=self.proxies,
+                        proxy_exceptions=self.proxy_exceptions,
+                        password=sb.remote_password, token=sb.remote_token,
+                        timeout=self.timeout, cookie_jar=self.cookie_jar,
+                        check_suspended=self.synchronizer.check_suspended)
             if client_cache_timestamp is None:
                 client_cache_timestamp = 0
                 self._client_cache_timestamps[cache_key] = 0
