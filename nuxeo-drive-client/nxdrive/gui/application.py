@@ -153,7 +153,7 @@ class Application(QApplication):
         # Start long running synchronization thread
         self.start_synchronization_thread()
 
-    def _refresh_update_status(self, refresh_update_info=True):
+    def refresh_update_status(self):
         # TODO: first read update site URL from local configuration
         # See https://jira.nuxeo.com/browse/NXP-14403
         server_bindings = self.controller.list_server_bindings()
@@ -161,10 +161,9 @@ class Application(QApplication):
             log.warning("Found no server binding, thus no update site URL, as"
                         " a consequence update features won't be available")
         else:
-            # If needed, let's refresh_update_info of the first server binding
+            # Let's refresh_update_info of the first server binding
             sb = server_bindings[0]
-            if refresh_update_info:
-                self.controller.refresh_update_info(sb.local_folder)
+            self.controller.refresh_update_info(sb.local_folder)
             # Use server binding's update site URL as a version finder to
             # build / update the application updater.
             update_url = sb.update_url
@@ -749,7 +748,7 @@ class Application(QApplication):
         settings_accepted = prompt_settings(self.controller, sb_settings,
                                             proxy_settings, version)
         if settings_accepted:
-            self._refresh_update_status(refresh_update_info=False)
+            self.refresh_update_status()
         return settings_accepted
 
     def start_synchronization_thread(self):
