@@ -206,7 +206,6 @@ class Overlay(QtGui.QWidget):
         painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 255)))
         pixmap = self.movie.currentPixmap()
         painter.drawPixmap((self.width()-pixmap.width())/2,(self.height()-pixmap.height())/2, pixmap)
-        #painter.drawText(10,10, 'Loading ...')
         painter.end()
     
 class FolderTreeview(QtGui.QTreeView):
