@@ -463,6 +463,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_copy",
             "nxdrive.tests.test_integration_encoding",
             "nxdrive.tests.test_integration_local_client",
+            "nxdrive.tests.test_integration_local_filter",
             "nxdrive.tests.test_integration_local_move_and_rename",
             "nxdrive.tests.test_integration_local_storage_space_issue",
             "nxdrive.tests.test_integration_permission_hierarchy",
