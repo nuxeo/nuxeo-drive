@@ -1,6 +1,7 @@
 """GUI prompt to manage application update"""
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
+from nxdrive.updater import version_compare
 
 
 log = get_logger(__name__)
@@ -17,14 +18,13 @@ except ImportError:
 
 is_dialog_open = False
 
-UPDATE_DIALOG_HEIGHT = 100
-BOLD_STYLE = 'font-weight: bold;'
+UPDATE_DIALOG_HEIGHT = 120
 
 
 class UpdateDialog(QDialog):
     """Dialog box to prompt about application update."""
 
-    def __init__(self, old_version, new_version, callback):
+    def __init__(self, update_required, old_version, new_version, callback):
         super(UpdateDialog, self).__init__()
         if QtGui is None:
             raise RuntimeError("PyQt4 is not installed.")
@@ -35,31 +35,33 @@ class UpdateDialog(QDialog):
         self.resize(-1, UPDATE_DIALOG_HEIGHT)
         self.callback = callback
 
+        mainLayout = QtGui.QVBoxLayout()
         # Message
-        text_l = QtGui.QHBoxLayout()
-        msg1_w = QtGui.QLabel('Are you sure you want to upgrade the current'
-                              ' version of Nuxeo Drive')
-        msg2_w = QtGui.QLabel('to the new version')
-        msg3_w = QtGui.QLabel('?')
-        old_version_w = QtGui.QLabel(old_version)
-        old_version_w.setStyleSheet(BOLD_STYLE)
-        new_version_w = QtGui.QLabel(new_version)
-        new_version_w.setStyleSheet(BOLD_STYLE)
-        text_l.addWidget(msg1_w)
-        text_l.addWidget(old_version_w)
-        text_l.addWidget(msg2_w)
-        text_l.addWidget(new_version_w)
-        text_l.addWidget(msg3_w)
+        if update_required:
+            update_type = (
+                'upgrade' if version_compare(new_version, old_version) > 0
+                else 'downgrade')
+            article = 'an' if update_type == 'upgrade' else 'a'
+            line1_w = QtGui.QLabel('The current version of Nuxeo Drive is not'
+                                   ' compatible with the Nuxeo server version,'
+                                   ' %s %s is required.' % (
+                                                        article, update_type))
+            mainLayout.addWidget(line1_w)
+            msg = 'Do you want to %s' % update_type
+        else:
+            msg = 'Are you sure you want to upgrade'
+        msg += ' the current version of Nuxeo Drive %s to version %s ?' % (
+                                                    old_version, new_version)
+        line2_w = QtGui.QLabel(msg)
+        mainLayout.addWidget(line2_w)
 
         # Button
         button_w = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Yes
                                           | QtGui.QDialogButtonBox.No)
         button_w.accepted.connect(self.accept)
         button_w.rejected.connect(self.reject)
-
-        mainLayout = QtGui.QVBoxLayout()
-        mainLayout.addLayout(text_l)
         mainLayout.addWidget(button_w)
+
         self.setLayout(mainLayout)
 
     def accept(self):
@@ -67,7 +69,7 @@ class UpdateDialog(QDialog):
         super(UpdateDialog, self).accept()
 
 
-def prompt_update(old_version, new_version, updater):
+def prompt_update(update_required, old_version, new_version, updater):
     """Display a Qt dialog to prompt about application update"""
     global is_dialog_open
 
@@ -86,7 +88,8 @@ def prompt_update(old_version, new_version, updater):
     def update():
         updater.update(new_version)
 
-    dialog = UpdateDialog(old_version, new_version, callback=update)
+    dialog = UpdateDialog(update_required, old_version, new_version,
+                          callback=update)
     is_dialog_open = True
     try:
         dialog.exec_()
