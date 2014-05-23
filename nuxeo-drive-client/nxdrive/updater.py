@@ -14,7 +14,7 @@ log = get_logger(__name__)
 # Update statuses
 UPDATE_STATUS_UPGRADE_NEEDED = 'upgrade_needed'
 UPDATE_STATUS_DOWNGRADE_NEEDED = 'downgrade_needed'
-UPDATE_STATUS_UPGRADE_AVAILABLE = 'upgrade_available'
+UPDATE_STATUS_UPDATE_AVAILABLE = 'update_available'
 UPDATE_STATUS_UP_TO_DATE = 'up_to_date'
 UPDATE_STATUS_UNAVAILABLE_SITE = 'unavailable_site'
 UPDATE_STATUS_MISSING_INFO = 'missing_info'
@@ -24,7 +24,7 @@ UPDATE_STATUS_MISSING_VERSION = 'missing_version'
 UPDATE_STATUS_LABEL = {
     UPDATE_STATUS_UPGRADE_NEEDED: 'Upgrade needed',
     UPDATE_STATUS_DOWNGRADE_NEEDED: 'Downgrade needed',
-    UPDATE_STATUS_UPGRADE_AVAILABLE: 'Update Nuxeo Drive',
+    UPDATE_STATUS_UPDATE_AVAILABLE: 'Update Nuxeo Drive',
     UPDATE_STATUS_UP_TO_DATE: 'Up-to-date',
     UPDATE_STATUS_UNAVAILABLE_SITE: 'Update site unavailable',
     UPDATE_STATUS_MISSING_INFO: 'Update information unavailable',
@@ -44,7 +44,7 @@ def version_compare(x, y):
         - 1.4 > 1.3.0524
         - ...
 
-    Also handles date-based releases and snapshots:
+    Also handles date-based releases, snapshots and hotfixes:
         - 5.9.4-I20140515_0120 > 5.9.4-I20140415_0120
         - 5.9.4-I20140415_0120 > 5.9.3
         - 5.9.4-I20140415_0120 < 5.9.4
@@ -57,6 +57,17 @@ def version_compare(x, y):
         - 5.9.4-I20140415_0120 < 5.9.5-SNAPSHOT
         - 5.9.4-I20140415_0120 = 5.9.4-SNAPSHOT (can't decide,
                                                  consider as equal)
+        - 5.8.0-HF15 > 5.8
+        - 5.8.0-HF15 > 5.7.1-SNAPSHOT
+        - 5.8.0-HF15 < 5.9.1
+        - 5.8.0-HF15 > 5.8.0-HF14
+        - 5.8.0-HF15 > 5.6.0-HF35
+        - 5.8.0-HF15 < 5.10.0-HF01
+        - 5.8.0-HF15-SNAPSHOT > 5.8
+        - 5.8.0-HF15-SNAPSHOT > 5.8.0-HF14-SNAPSHOT
+        - 5.8.0-HF15-SNAPSHOT > 5.8.0-HF14
+        - 5.8.0-HF15-SNAPSHOT < 5.8.0-HF15
+        - 5.8.0-HF15-SNAPSHOT < 5.8.0-HF16-SNAPSHOT
     """
 
     x_numbers = x.split('.')
@@ -64,6 +75,15 @@ def version_compare(x, y):
     while (x_numbers and y_numbers):
         x_number = x_numbers.pop(0)
         y_number = y_numbers.pop(0)
+        # Handle hotfixes
+        if 'HF' in x_number:
+            hf = re.sub(ur'-HF', '.', x_number).split('.', 1)
+            x_number = hf[0]
+            x_numbers.append(hf[1])
+        if 'HF' in y_number:
+            hf = re.sub(ur'-HF', '.', y_number).split('.', 1)
+            y_number = hf[0]
+            y_numbers.append(hf[1])
         # Handle date-based and snapshots
         x_date_based = 'I' in x_number
         y_date_based = 'I' in y_number
@@ -285,7 +305,7 @@ class AppUpdater:
             log.info("Client version %s is compatible with server version %s,"
                      " yet an update is available: version %s.",
                      client_version, server_version, latest_version)
-            return (UPDATE_STATUS_UPGRADE_AVAILABLE, latest_version)
+            return (UPDATE_STATUS_UPDATE_AVAILABLE, latest_version)
         except UnavailableUpdateSite as e:
             log.warning(e)
             return (UPDATE_STATUS_UNAVAILABLE_SITE, None)

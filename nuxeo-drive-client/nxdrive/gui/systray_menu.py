@@ -68,6 +68,9 @@ class SystrayMenu(QtGui.QMenu):
             self.remove_bind_menu()
             # Default menu has no update
             return
+                
+        # Handle the auto-update menu
+        self.auto_update_menu()      
         
         # Update Quit button according to state
         if self.application.state == 'stopping':
@@ -272,9 +275,7 @@ class SystrayMenu(QtGui.QMenu):
 
         # Remove old binding
         self.remove_bind_servers(obsolete_binding_local_folders)
-        
-        # Handle the auto-update menu
-        self.auto_update_menu()        
+  
         # Disable resume when stopping        
         if self.application.state == 'stopping':
             suspend_resume_action.setEnabled(False)
@@ -287,9 +288,8 @@ class SystrayMenu(QtGui.QMenu):
             if (self.application.update_status is not None and self.application.updater is not None
                 and self.application.update_status != UPDATE_STATUS_UP_TO_DATE):
                 update_label = self.application.updater.get_update_label(
-                                                            self.update_status)
-                self.update_action = QtGui.QAction(update_label,
-                                              self.tray_icon_menu,
+                                                            self.application.update_status)
+                self.update_action = QtGui.QAction(update_label,self,
                                               triggered=self.action_update)
                 if self.application.update_status in [UPDATE_STATUS_UNAVAILABLE_SITE,
                                           UPDATE_STATUS_MISSING_INFO,
@@ -302,7 +302,7 @@ class SystrayMenu(QtGui.QMenu):
                 and self.application.update_status != UPDATE_STATUS_UP_TO_DATE):
                 # Update update action label
                 update_label = self.application.updater.get_update_label(
-                                                            self.update_status)
+                                                            self.application.update_status)
                 self.update_action.setText(update_label)
                 if self.application.update_status in [UPDATE_STATUS_UNAVAILABLE_SITE,
                                           UPDATE_STATUS_MISSING_INFO,
@@ -313,5 +313,5 @@ class SystrayMenu(QtGui.QMenu):
             else:
                 # Remove update action from menu and from global menu action
                 # cache
-                self.tray_icon_menu.removeAction(self.update_action)
+                self.removeAction(self.update_action)
                 del self.global_menu_actions['update']

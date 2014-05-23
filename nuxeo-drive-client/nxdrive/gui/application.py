@@ -9,11 +9,14 @@ from nxdrive.logging_config import get_logger
 from nxdrive.gui.settings import prompt_settings
 from systray_menu import SystrayMenu 
 from nxdrive.gui.resources import find_icon
+from nxdrive.gui.update_prompt import prompt_update
+from nxdrive.gui.updated import notify_updated
 from nxdrive.updater import AppUpdater
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
 from nxdrive.updater import UPDATE_STATUS_UP_TO_DATE
+from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
 
 
 log = get_logger(__name__)
@@ -122,14 +125,12 @@ class Application(QApplication):
         self.state = 'disabled'
         # Last state before suspend
         self.last_state = 'enabled'
-                
-        # Application update
-        self.updater = None
-        self.update_status = None
-        self.update_version = None
-        self.restart_updated_app = False
         
         self.setup_systray()
+
+        # Update notification
+        if self.controller.is_updated():
+            notify_updated(self.controller.get_version())
         
         # Check if actions is required, in a separate method so it can be override
         self.init_checks()
@@ -192,6 +193,11 @@ class Application(QApplication):
                          " status = '%s', update version = '%s'",
                          self.updater.get_update_site(), self.update_status,
                          self.update_version)
+                if self.update_status == UPDATE_STATUS_UPDATE_AVAILABLE:
+                    self.state = 'update_available'
+                elif self.update_status == UPDATE_STATUS_UP_TO_DATE:
+                    self.state = 'enabled'
+        self.update_running_icon()
         self.communicator.menu.emit()
         
     def set_icon_state(self, state):
@@ -270,11 +276,13 @@ class Application(QApplication):
         self._stop()
 
     def action_update(self):
-        self.updater.update(self.update_version)
-        log.info("Will quit Nuxeo Drive and restart updated version %s",
-                 self.update_version)
-        self.restart_updated_app = True
-        self._stop()
+        update = prompt_update(self.controller.get_version(),
+                               self.update_version, self.updater)
+        if update:
+            log.info("Will quit Nuxeo Drive and restart updated version %s",
+                     self.update_version)
+            self.restart_updated_app = True
+            self._stop()
 
     def _stop(self):
         if self.sync_thread is not None and self.sync_thread.isAlive():
@@ -326,7 +334,7 @@ class Application(QApplication):
             self.quit()
 
     def update_running_icon(self):
-        if self.state not in ['enabled', 'transferring']:
+        if self.state not in ['enabled', 'update_available', 'transferring']:
             self.communicator.icon.emit(self.state)
             return
         infos = self.binding_info.values()
@@ -362,7 +370,7 @@ class Application(QApplication):
     def notify_sync_started(self):
         log.debug('Synchronization started')
         # Update state, icon and menu
-        self.state = 'enabled'
+        self.state = self._get_current_active_state()
         self.update_running_icon()
         self.communicator.menu.emit()
 
@@ -378,12 +386,12 @@ class Application(QApplication):
         self.state = 'asleep'
 
     def notify_sync_woken_up(self):
-        # Update state to 'enabled' when sync thread is woken up and
+        # Update state to current active state when sync thread is woken up and
         # was not suspended
         if self.state != 'paused':
-            self.state = 'enabled'
+            self.state = self._get_current_active_state()
         else:
-            self.last_state = 'enabled'
+            self.last_state = self._get_current_active_state()
 
     def notify_sync_suspended(self):
         log.debug('Synchronization suspended')
@@ -428,7 +436,7 @@ class Application(QApplication):
         if n_pending > 0:
             self.state = 'transferring'
         else:
-            self.state = 'enabled'
+            self.state = self._get_current_active_state()
         self.update_running_icon()
 
         if server_binding is not None:
@@ -458,6 +466,12 @@ class Application(QApplication):
                 self.update_running_icon()
                 self.communicator.menu.emit()
 
+    def _get_current_active_state(self):
+        if self.update_status == UPDATE_STATUS_UPDATE_AVAILABLE:
+            return 'update_available'
+        else:
+            return 'enabled'
+
     def setup_systray(self):
         self._tray_icon = QtGui.QSystemTrayIcon()
         self._tray_icon.setToolTip('Nuxeo Drive')
@@ -482,7 +496,7 @@ class Application(QApplication):
         proxy_settings = self.controller.get_proxy_settings()
         version = self.controller.get_version()
         settings_accepted = prompt_settings(self.controller, sb_settings,
-                                            proxy_settings, version, app=self)
+                                            proxy_settings, version)
         if settings_accepted:
             self._refresh_update_status(refresh_update_info=False)
         return settings_accepted

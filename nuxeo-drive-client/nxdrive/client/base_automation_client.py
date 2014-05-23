@@ -4,14 +4,11 @@ import sys
 import base64
 import json
 import urllib2
-import mimetypes
 import random
 import time
 import os
 import tempfile
 from urllib import urlencode
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
 from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import FILE_BUFFER_SIZE
@@ -20,7 +17,6 @@ from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
 from nxdrive.utils import guess_mime_type
 from nxdrive.utils import force_decode
-from nxdrive.utils import deprecated
 from urllib2 import ProxyHandler
 from urlparse import urlparse
 
@@ -82,6 +78,10 @@ def get_proxy_handler(proxies, proxy_exceptions=None, url=None):
                         # don't use any proxy
                         proxies = {}
         return urllib2.ProxyHandler(proxies)
+
+
+class AddonNotInstalled(Exception):
+    pass
 
 
 class Unauthorized(Exception):
@@ -306,83 +306,6 @@ class BaseAutomationClient(object):
 
         return self._read_response(resp, url)
 
-    @deprecated
-    def execute_with_blob(self, command, blob_content, filename, **params):
-        """Execute an Automation operation with a blob input
-
-        Beware that the whole content is loaded in memory when calling this.
-        """
-        self._check_params(command, params)
-        url = self.automation_url.encode('ascii') + command
-
-        # Create data by hand :(
-        boundary = "====Part=%s=%s===" % (str(time.time()).replace('.', '='),
-                                          random.randint(0, 1000000000))
-        headers = {
-            "Accept": "application/json+nxentity, */*",
-            "Content-Type": ('multipart/related;boundary="%s";'
-                             'type="application/json+nxrequest";'
-                             'start="request"')
-            % boundary,
-        }
-        headers.update(self._get_common_headers())
-
-        container = MIMEMultipart("related",
-                type="application/json+nxrequest",
-                start="request")
-
-        d = {'params': params}
-        json_data = json.dumps(d)
-        json_part = MIMEBase("application", "json+nxrequest")
-        json_part.add_header("Content-ID", "request")
-        json_part.set_payload(json_data)
-        container.attach(json_part)
-
-        ctype, _ = mimetypes.guess_type(filename)
-        if ctype:
-            maintype, subtype = ctype.split('/', 1)
-        else:
-            maintype, subtype = "application", "octet-stream"
-        blob_part = MIMEBase(maintype, subtype)
-        blob_part.add_header("Content-ID", "input")
-        blob_part.add_header("Content-Transfer-Encoding", "binary")
-
-        # Quote UTF-8 filenames even though JAX-RS does not seem to be able
-        # to retrieve them as per: https://tools.ietf.org/html/rfc5987
-        filename = safe_filename(filename)
-        quoted_filename = urllib2.quote(filename.encode('utf-8'))
-        content_disposition = ("attachment; filename*=UTF-8''%s"
-                                % quoted_filename)
-        blob_part.add_header("Content-Disposition", content_disposition)
-        blob_part.set_payload(blob_content)
-        container.attach(blob_part)
-
-        data = (
-            "--%s\r\n"
-            "%s\r\n"
-            "--%s\r\n"
-            "%s\r\n"
-            "--%s--"
-        ) % (
-            boundary,
-            json_part.as_string(),
-            boundary,
-            blob_part.as_string(),
-            boundary,
-        )
-
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r and cookies %r for file %s",
-            url, headers, cookies, filename)
-        req = urllib2.Request(url, data, headers)
-        try:
-            resp = self.opener.open(req, timeout=self.blob_timeout)
-        except Exception as e:
-            self._log_details(e)
-            raise
-
-        return self._read_response(resp, url)
-
     def execute_with_blob_streaming(self, command, file_path, filename=None,
                                     mime_type=None, **params):
         """Execute an Automation operation using a batch upload as an input
@@ -561,7 +484,16 @@ class BaseAutomationClient(object):
 
     def _check_params(self, command, params):
         if command not in self.operations:
-            raise ValueError("'%s' is not a registered operations." % command)
+            if command.startswith('NuxeoDrive.'):
+                raise AddonNotInstalled(
+                    "Either nuxeo-drive addon is not installed on server %s or"
+                    " server version is lighter than the minimum version"
+                    " compatible with the client version %s, in which case a"
+                    " downgrade of Nuxeo Drive is needed." % (
+                        self.server_url, self.client_version))
+            else:
+                raise ValueError("'%s' is not a registered operations."
+                                 % command)
         method = self.operations[command]
         required_params = []
         other_params = []
@@ -590,11 +522,11 @@ class BaseAutomationClient(object):
         content_type = info.get('content-type', '')
         cookies = self._get_cookies()
         if content_type.startswith("application/json"):
-            log.trace("Response for '%s' with cookies %r and JSON payload: %r",
+            log.trace("Response for '%s' with cookies %r: %r",
                 url, cookies, s)
             return json.loads(s) if s else None
         else:
-            log.trace("Response for '%s' with cookies %r and content-type: %r",
+            log.trace("Response for '%s' with cookies %r has content-type %r",
                 url, cookies, content_type)
             return s
 

@@ -4,9 +4,9 @@ from nxdrive.client import Unauthorized
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 from nxdrive.controller import NUXEO_DRIVE_FOLDER_NAME
-from nxdrive.controller import ServerBindingSettings
 from nxdrive.controller import ProxySettings
 from nxdrive.controller import MissingToken
+from nxdrive.client.base_automation_client import AddonNotInstalled
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import get_proxy_handler
 import urllib2
@@ -53,7 +53,7 @@ DEFAULT_FIELD_WIDGET_WIDTH = 280
 BOLD_STYLE = 'font-weight: bold;'
 
 
-class Dialog(QDialog):
+class SettingsDialog(QDialog):
     """Tabbed dialog box to manage settings
 
     Available tabs for now: Accounts (server bindings), Proxy settings
@@ -61,7 +61,7 @@ class Dialog(QDialog):
 
     def __init__(self, sb_field_spec, proxy_field_spec, version,
                  title=None, callback=None):
-        super(Dialog, self).__init__()
+        super(SettingsDialog, self).__init__()
         if QtGui is None:
             raise RuntimeError("PyQt4 is not installed.")
         if title is not None:
@@ -70,7 +70,6 @@ class Dialog(QDialog):
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
         self.resize(SETTINGS_DIALOG_WIDTH, -1)
-        self.accepted = False
         self.callback = callback
 
         # Fields
@@ -286,8 +285,7 @@ class Dialog(QDialog):
             self.read_field_values(self.proxy_fields, values)
             if not self.callback(values, self):
                 return
-        self.accepted = True
-        super(Dialog, self).accept()
+        super(SettingsDialog, self).accept()
 
     def read_field_values(self, fields, values):
         for id_, widget in fields.items():
@@ -305,11 +303,10 @@ class Dialog(QDialog):
         for id_, widget in self.sb_fields.items():
             if id_ == 'update_password':
                 widget.stateChanged.disconnect(self.enable_password)
-        super(Dialog, self).reject()
+        super(SettingsDialog, self).reject()
 
 
-def prompt_settings(controller, sb_settings, proxy_settings, version,
-                    app=None):
+def prompt_settings(controller, sb_settings, proxy_settings, version):
     """Prompt a Qt dialog to manage settings"""
     global is_dialog_open
 
@@ -539,6 +536,15 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
             controller.bind_server(local_folder, url, username,
                                    password)
             return True
+        except AddonNotInstalled:
+            return handle_error(
+                    "Either the nuxeo-drive addon is not installed on Nuxeo"
+                    " server %s, in which case please make sure it is"
+                    " installed before trying to connect with Nuxeo Drive, or"
+                    " the version of the server is lighter than the minimum"
+                    " version compatible with the version of Nuxeo Drive %s,"
+                    " in which case a downgrade of Nuxeo Drive is needed."
+                                % (url, version), dialog)
         except UnicodeDecodeError:
             return handle_error("Username must contain only alpha-numeric"
                                 " characters.", dialog, exc_info=False)
@@ -566,10 +572,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         dialog.show_message(msg, tab_index=tab_index)
         return False
 
-    if app is None:
-        log.debug("Launching Qt prompt to manage settings.")
-        QtGui.QApplication([])
-    dialog = Dialog(sb_field_spec, proxy_field_spec, version,
+    dialog = SettingsDialog(sb_field_spec, proxy_field_spec, version,
                     title="Nuxeo Drive - Settings",
                     callback=validate)
     is_dialog_open = True
@@ -580,17 +583,4 @@ def prompt_settings(controller, sb_settings, proxy_settings, version,
         raise
     finally:
         is_dialog_open = False
-    return dialog.accepted
-
-if __name__ == '__main__':
-    from nxdrive.controller import Controller
-    from nxdrive.controller import default_nuxeo_drive_folder
-    ctl = Controller('/tmp')
-    sb_settings = ServerBindingSettings(
-                                    server_url='http://localhost:8080/nuxeo',
-                                    username='Administrator',
-                                    local_folder=default_nuxeo_drive_folder())
-    proxy_settings = ProxySettings()
-    version = ctl.get_version()
-    print prompt_settings(ctl, sb_settings, proxy_settings, version)
-    ctl.dispose()
+    return dialog.result()

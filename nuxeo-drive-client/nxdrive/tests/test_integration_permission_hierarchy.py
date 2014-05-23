@@ -1,8 +1,13 @@
 import time
+from urllib2 import HTTPError
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.client import RestAPIClient
+from nxdrive.logging_config import get_logger
+
+log = get_logger(__name__)
 
 
 class TestIntegrationPermissionHierarchy(IntegrationTestCase):
@@ -47,13 +52,37 @@ class TestIntegrationPermissionHierarchy(IntegrationTestCase):
                 user="nuxeoDriveTestUser_user_1",
                 permission="ReadWrite",
                 grant="true")
-            # Wait to make sure transaction is commited
-            # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
-            # fixed
-            time.sleep(1.0)
 
             # Create test folder in user workspace as test user
-            user_remote_client.make_folder(user_workspace_path, 'test_folder')
+            # NXP-14325: Let's try to understand this random failure
+            nb_tries = 10
+            cpt = 0
+            delay = 1.0
+            success = False
+            rest_api_client = RestAPIClient(self.nuxeo_url, self.admin_user,
+                u'nxdrive-test-administrator-device', self.version,
+                password=self.password)
+            while (cpt < nb_tries and not success):
+                log.debug("Try to make remote folder: #%d", cpt)
+                try:
+                    user_remote_client.make_folder(user_workspace_path,
+                                                   'test_folder')
+                    success = True
+                except HTTPError as e:
+                    log.error(e)
+                    acls = rest_api_client.execute(user_workspace_path,
+                                                  adapter='acl')
+                    log.debug("ACL of %s: %r", user_workspace_path, acls)
+                    cpt += 1
+                    if cpt < nb_tries:
+                        log.debug("Waiting for %.0f seconds and retrying",
+                                  delay)
+                        time.sleep(delay)
+            if cpt == nb_tries:
+                log.error("ACL still bad after %d tries..., failing", nb_tries)
+                assert False
+            else:
+                log.debug("ACL finally good after %d tries!", cpt)
             test_folder_path = user_workspace_path + '/test_folder'
             # Create a document in the test folder
             user_remote_client.make_file(test_folder_path, 'test_file.txt',

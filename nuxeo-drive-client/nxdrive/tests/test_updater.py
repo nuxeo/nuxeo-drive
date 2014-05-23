@@ -8,7 +8,7 @@ from nxdrive.updater import MissingCompatibleVersion
 from nxdrive.updater import version_compare
 from nxdrive.updater import UPDATE_STATUS_UPGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_DOWNGRADE_NEEDED
-from nxdrive.updater import UPDATE_STATUS_UPGRADE_AVAILABLE
+from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
 from nxdrive.updater import UPDATE_STATUS_UP_TO_DATE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
@@ -51,7 +51,6 @@ class TestUpdater(unittest.TestCase):
                                   local_update_site=True)
 
     def test_version_compare(self):
-
         # Compare server versions
         # Releases
         self.assertEquals(version_compare('5.9.3', '5.9.3'), 0)
@@ -119,6 +118,123 @@ class TestUpdater(unittest.TestCase):
                                           '5.9.4-SNAPSHOT'), 0)
         self.assertEquals(version_compare('5.9.4-SNAPSHOT',
                                           '5.9.4-I20140415_0120'), 0)
+
+        # Hotfixes
+        self.assertEquals(version_compare('5.8.0-HF14', '5.8.0-HF14'), 0)
+        self.assertEquals(version_compare('5.8.0-HF14', '5.8.0-HF13'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14', '5.8.0-HF15'), -1)
+        self.assertEquals(version_compare('5.8.0-HF14', '5.6.0-HF35'), 1)
+        self.assertEquals(version_compare('5.6.0-H35', '5.8.0-HF14'), -1)
+
+        # Releases and hotfixes
+        self.assertEquals(version_compare('5.8.0-HF14', '5.6'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14', '5.8'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14', '5.9.1'), -1)
+
+        self.assertEquals(version_compare('5.6', '5.8.0-HF14'), -1)
+        self.assertEquals(version_compare('5.8', '5.8.0-HF14'), -1)
+        self.assertEquals(version_compare('5.9.1', '5.8.0-HF14'), 1)
+
+        # Date-based and hotfixes
+        self.assertEquals(version_compare('5.9.4-I20140415_0120',
+                                          '5.8.0-HF14'), 1)
+        self.assertEquals(version_compare('5.8.1-I20140415_0120',
+                                          '5.8.0-HF14'), 1)
+        self.assertEquals(version_compare('5.8.0-I20140415_0120',
+                                          '5.8.0-HF14'), -1)
+        self.assertEquals(version_compare('5.8-I20140415_0120',
+                                          '5.8.0-HF14'), -1)
+        self.assertEquals(version_compare('5.9.4-I20140415_0120',
+                                          '5.10.0-HF01'), -1)
+
+        self.assertEquals(version_compare('5.8.0-HF14',
+                                          '5.9.4-I20140415_0120'), -1)
+        self.assertEquals(version_compare('5.8.0-HF14',
+                                          '5.8.1-I20140415_0120'), -1)
+        self.assertEquals(version_compare('5.8.0-HF14',
+                                          '5.8.0-I20140415_0120'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14',
+                                          '5.8-I20140415_0120'), 1)
+        self.assertEquals(version_compare('5.10.0-HF01',
+                                          '5.9.4-I20140415_0120'), 1)
+
+        # Snaphsots and hotfixes
+        self.assertEquals(version_compare('5.8.0-HF14', '5.7.1-SNAPSHOT'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14', '5.8.0-SNAPSHOT'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14', '5.8-SNAPSHOT'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14', '5.9.1-SNAPSHOT'), -1)
+
+        self.assertEquals(version_compare('5.7.1-SNAPSHOT', '5.8.0-HF14'), -1)
+        self.assertEquals(version_compare('5.8.0-SNAPSHOT', '5.8.0-HF14'), -1)
+        self.assertEquals(version_compare('5.8-SNAPSHOT', '5.8.0-HF14'), -1)
+        self.assertEquals(version_compare('5.9.1-SNAPSHOT', '5.8.0-HF14'), 1)
+
+        # Snapshot hotfixes
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.8.0-HF14-SNAPSHOT'), 0)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.8.0-HF13-SNAPSHOT'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.8.0-HF15-SNAPSHOT'), -1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.6.0-HF35-SNAPSHOT'), 1)
+        self.assertEquals(version_compare('5.6.0-H35-SNAPSHOT',
+                                          '5.8.0-HF14-SNAPSHOT'), -1)
+
+        # Releases and snapshot hotfixes
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT', '5.6'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT', '5.8'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT', '5.9.1'), -1)
+
+        self.assertEquals(version_compare('5.6', '5.8.0-HF14-SNAPSHOT'), -1)
+        self.assertEquals(version_compare('5.8', '5.8.0-HF14-SNAPSHOT'), -1)
+        self.assertEquals(version_compare('5.9.1', '5.8.0-HF14-SNAPSHOT'), 1)
+
+        # Date-based and snapshot hotfixes
+        self.assertEquals(version_compare('5.9.4-I20140415_0120',
+                                          '5.8.0-HF14-SNAPSHOT'), 1)
+        self.assertEquals(version_compare('5.8.0-I20140415_0120',
+                                          '5.8.0-HF14-SNAPSHOT'), -1)
+        self.assertEquals(version_compare('5.9.4-I20140415_0120',
+                                          '5.10.0-HF01-SNAPSHOT'), -1)
+
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.9.4-I20140415_0120'), -1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.8.0-I20140415_0120'), 1)
+        self.assertEquals(version_compare('5.10.0-HF01-SNAPSHOT',
+                                          '5.9.4-I20140415_0120'), 1)
+
+        # Snaphsots and snapshot hotfixes
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.7.1-SNAPSHOT'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.8-SNAPSHOT'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.8.0-SNAPSHOT'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.9.1-SNAPSHOT'), -1)
+
+        self.assertEquals(version_compare('5.7.1-SNAPSHOT',
+                                          '5.8.0-HF14-SNAPSHOT'), -1)
+        self.assertEquals(version_compare('5.8-SNAPSHOT',
+                                          '5.8.0-HF14-SNAPSHOT'), -1)
+        self.assertEquals(version_compare('5.8.0-SNAPSHOT',
+                                          '5.8.0-HF14-SNAPSHOT'), -1)
+        self.assertEquals(version_compare('5.9.1-SNAPSHOT',
+                                          '5.8.0-HF14-SNAPSHOT'), 1)
+
+        # Hotfixes and snapshot hotfixes
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.6.0-HF35'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.8.0-HF13'), 1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.8.0-HF14'), -1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.8.0-HF15'), -1)
+        self.assertEquals(version_compare('5.8.0-HF14-SNAPSHOT',
+                                          '5.10.0-HF01'), -1)
 
         # Compare client versions
         self.assertEquals(version_compare('0.1', '1.0'), -1)
@@ -218,13 +334,13 @@ class TestUpdater(unittest.TestCase):
         # Upgrade available
         status = self.updater.get_update_status('1.3.0424', '5.9.1')
         self.assertEquals(status,
-                          (UPDATE_STATUS_UPGRADE_AVAILABLE, '1.3.0524'))
+                          (UPDATE_STATUS_UPDATE_AVAILABLE, '1.3.0524'))
         status = self.updater.get_update_status('1.3.0424', '5.9.2')
         self.assertEquals(status,
-                          (UPDATE_STATUS_UPGRADE_AVAILABLE, '1.4.0622'))
+                          (UPDATE_STATUS_UPDATE_AVAILABLE, '1.4.0622'))
         status = self.updater.get_update_status('1.3.0524', '5.9.2')
         self.assertEquals(status,
-                          (UPDATE_STATUS_UPGRADE_AVAILABLE, '1.4.0622'))
+                          (UPDATE_STATUS_UPDATE_AVAILABLE, '1.4.0622'))
         status = self.updater.get_update_status('1.3.0524', '5.9.3')
 
         # Up-to-date
