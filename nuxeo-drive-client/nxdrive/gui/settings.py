@@ -78,7 +78,7 @@ class SettingsDialog(QDialog):
         self.sb_fields = {}
         self.proxy_fields = {}
         self.controller = controller
-        
+
         server_bindings = self.controller.list_server_bindings()
         if not server_bindings:
             self.server_binding = None
@@ -94,9 +94,10 @@ class SettingsDialog(QDialog):
         # Tabs
         account_box = self.get_account_box(sb_field_spec)
         proxy_box = self.get_proxy_box(proxy_field_spec)
-        local_filters_box = self.get_local_filters_box(controller,self.server_binding)
+        local_filters_box = self.get_local_filters_box(controller,
+                                                       self.server_binding)
         about_box = self.get_about_box(version)
-        
+
         self.tabs = QtGui.QTabWidget()
         self.tabs.addTab(account_box, 'Accounts')
         self.tabs.addTab(local_filters_box, 'Folders')
@@ -125,7 +126,8 @@ class SettingsDialog(QDialog):
         # Take the first server binding for now
         try:
             filters = controller.get_session().query(Filter).all()
-            client = FilteredFsClient(controller.get_remote_fs_client(sbs,False),filters)
+            client = FilteredFsClient(
+                        controller.get_remote_fs_client(sbs, False), filters)
         except:
             client = None
         self.treeview = box.treeView = FolderTreeview(box, client)
@@ -134,7 +136,7 @@ class SettingsDialog(QDialog):
         layout.setAlignment(QtCore.Qt.AlignTop)
         box.setLayout(layout)
         return box
-    
+
     def get_account_box(self, field_spec):
         # TODO NXP-12657: don't rely on field order to get 'initialized' value.
         # Works fine here as it is the first element in sb_field_spec.
@@ -312,23 +314,26 @@ class SettingsDialog(QDialog):
             path = item.get_path()
             if (item.get_checkstate() == QtCore.Qt.Unchecked):
                 log.debug("Add a filter on : " + path)
-                Filter.add(session, self.server_binding,path)
+                Filter.add(session, self.server_binding, path)
             elif (item.get_checkstate() == QtCore.Qt.Checked):
                 log.debug("Remove a filter on : " + item.get_path())
-                Filter.remove(session, self.server_binding,path)
+                Filter.remove(session, self.server_binding, path)
             elif item.get_old_value() == QtCore.Qt.Unchecked:
                 # Now partially checked and was before a filter
 
-                # Remove current parent filter and need to commit to enable the add
-                Filter.remove(session, self.server_binding,path)
-                # We need to browse every child and create a filter for unchecked as they are not dirty but has become root filter
+                # Remove current parent filter and need to commit to enable the
+                # add
+                Filter.remove(session, self.server_binding, path)
+                # We need to browse every child and create a filter for
+                # unchecked as they are not dirty but has become root filter
                 for child in item.get_children():
                     if child.get_checkstate() == QtCore.Qt.Unchecked:
-                        Filter.add(session, self.server_binding, child.get_path())
+                        Filter.add(session, self.server_binding,
+                                   child.get_path())
         session.commit()
         # Need to refresh the client for now
         self.controller.invalidate_client_cache()
-        
+
     def accept(self):
         if self.callback is not None:
             values = dict()
@@ -624,10 +629,9 @@ def prompt_settings(controller, sb_settings, proxy_settings, version):
         dialog.show_message(msg, tab_index=tab_index)
         return False
 
-
-    dialog = SettingsDialog(sb_field_spec, controller , proxy_field_spec, version,
-                    title="Nuxeo Drive - Settings",
-                    callback=validate)
+    dialog = SettingsDialog(sb_field_spec, controller, proxy_field_spec,
+                            version, title="Nuxeo Drive - Settings",
+                            callback=validate)
     is_dialog_open = True
     try:
         dialog.exec_()
