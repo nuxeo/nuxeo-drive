@@ -17,8 +17,10 @@ from nxdrive.model import ServerBinding
 
 log = get_logger(__name__)
 
+
 def upgrade():
-    op.add_column(ServerBinding.__tablename__,sa.Column('last_filter_date',sa.Integer()))
+    op.add_column(ServerBinding.__tablename__, sa.Column('last_filter_date',
+                                                         sa.Integer()))
     # The table filters should create itself
 
 

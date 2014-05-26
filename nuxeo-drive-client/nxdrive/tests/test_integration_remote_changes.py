@@ -11,7 +11,8 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
 
     def get_changes(self):
         remote_client = self.remote_file_system_client_1
-        # As self has the same attribute as a server_binding, fake server_binding
+        # As self has the same attribute as a server_binding, fake
+        # server_binding
         summary = remote_client.get_changes(self)
         self.last_sync_date = summary['syncDate']
         self.last_root_definitions = (

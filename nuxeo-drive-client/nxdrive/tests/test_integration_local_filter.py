@@ -51,7 +51,7 @@ class TestIntegrationLocalFilter(IntegrationTestCase):
 
         # Delete remote folder then synchronize
         doc = remote.get_info('/Test folder')
-        root_path="/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#"
+        root_path = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#"
         root_path = root_path + doc.root
         doc_path = (root_path + "/defaultFileSystemItemFactory#default#"
                     + doc.uid)
@@ -84,4 +84,3 @@ class TestIntegrationLocalFilter(IntegrationTestCase):
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
-
