@@ -166,6 +166,10 @@ class MissingCompatibleVersion(Exception):
     pass
 
 
+class UpdateError(Exception):
+    pass
+
+
 class AppUpdater:
     """Class for updating a frozen application.
 
@@ -326,15 +330,19 @@ class AppUpdater:
             return (UPDATE_STATUS_MISSING_VERSION, None)
 
     def update(self, version):
-        log.info("Starting application update process")
-        log.info("Fetching version %s from update site %s", version,
-                  self.update_site)
-        self.esky_app.fetch_version(version)
-        log.info("Installing version %s", version)
-        self.esky_app.install_version(version)
-        log.debug("Reinitializing Esky internal state")
-        self.esky_app.reinitialize()
-        log.info("Ended application update process")
+        try:
+            log.info("Starting application update process")
+            log.info("Fetching version %s from update site %s", version,
+                      self.update_site)
+            self.esky_app.fetch_version(version)
+            log.info("Installing version %s", version)
+            self.esky_app.install_version(version)
+            log.debug("Reinitializing Esky internal state")
+            self.esky_app.reinitialize()
+            log.info("Ended application update process")
+            return True
+        except Exception as e:
+            raise UpdateError(e)
 
     def cleanup(self, version):
         log.info("Uninstalling version %s", version)
