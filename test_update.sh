@@ -6,6 +6,13 @@ if [ -z "$1" ]
     exit 1
 fi
 
+VIRTUALENV_DIR=ENV
+
+if [ ! -d "$VIRTUALENV_DIR" ]; then
+  echo "Please set up virtualenv in the $VIRTUALENV_DIR directory."
+  exit 1
+fi
+
 INSTALL_DIR=~/freeze
 UPDATE_SITE=dist
 APP_NAME=nuxeo-drive
@@ -38,7 +45,7 @@ sed -i "s/'.*'/'$VERSION'/g" nuxeo-drive-client/nxdrive/__init__.py
 
 # Freeze application and deploy it to update site
 echo "Activating virtualenv"
-source ENV/bin/activate
+source $VIRTUALENV_DIR/bin/activate
 echo "Freezing application and deploying it to update site $UPDATE_SITE"
 python setup.py bdist_esky --dev --freeze --enable-appdata-dir=True
 echo "Setting back version to $DEV_VERSION"
