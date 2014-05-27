@@ -95,6 +95,9 @@ class DeviceConfig(Base):
     proxy_password = Column(Binary)
     proxy_exceptions = Column(String)
 
+    # Application update settings
+    auto_update = Column(Boolean)
+
     def __init__(self, device_id=None, client_version=None):
         self.device_id = uuid.uuid1().hex if device_id is None else device_id
         self.client_version = (__version__ if client_version is None
@@ -105,12 +108,12 @@ class DeviceConfig(Base):
         return ("DeviceConfig<device_id=%s, client_version=%s, "
                 "proxy_config=%s, proxy_type=%s, "
                 "proxy_server=%s, proxy_port=%s, proxy_authenticated=%r, "
-                "proxy_username=%s, proxy_exceptions=%s>") % (
+                "proxy_username=%s, proxy_exceptions=%s, auto_update=%r>") % (
                     self.device_id, self.client_version,
                     self.proxy_config, self.proxy_type,
                     self.proxy_server, self.proxy_port,
                     self.proxy_authenticated, self.proxy_username,
-                    self.proxy_exceptions)
+                    self.proxy_exceptions, self.auto_update)
 
 
 class ServerBinding(Base):

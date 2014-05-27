@@ -203,25 +203,43 @@ class Application(QApplication):
                          self.update_version)
                 if self._is_update_required():
                     # Current client version not compatible with server
-                    # version, upgrade or downgrade needed
+                    # version, upgrade or downgrade needed.
+                    # Let's stop synchronization thread.
                     log.info("As current client version is not compatible with"
                              " server version, an upgrade or downgrade is"
                              " needed. Synchronization thread won't start"
                              " until then.")
-                    self.state = 'disabled'
                     self.stop_sync_thread()
-                elif self.update_status == UPDATE_STATUS_UPDATE_AVAILABLE:
-                    # Update available
-                    self.state = 'update_available'
-                elif self.update_status == UPDATE_STATUS_UP_TO_DATE:
-                    # Up-to-date
-                    self.state = 'enabled'
-        self.update_running_icon()
-        self.communicator.menu.emit()
+                elif (self._is_update_available()
+                      and self.controller.is_auto_update()):
+                    # Update available and auto-update checked, let's process
+                    # update
+                    log.info("An application update is available and"
+                             " auto-update is checked")
+                    self.action_update(auto_update=True)
+                    return
+                elif (self._is_update_available()
+                      and not self.controller.is_auto_update()):
+                    # Update available and auto-update not checked, let's just
+                    # update the systray icon and menu and let the user
+                    # explicitly choose to  update
+                    log.info("An update is available and auto-update is not"
+                             " checked, let's just update the systray icon and"
+                             " menu and let the user explicitly choose to"
+                             " update")
+                else:
+                    # Application is up-to-date
+                    log.info("Application is up-to-date")
+            self.state = self._get_current_active_state()
+            self.update_running_icon()
+            self.communicator.menu.emit()
 
     def _is_update_required(self):
         return self.update_status in [UPDATE_STATUS_UPGRADE_NEEDED,
                                       UPDATE_STATUS_DOWNGRADE_NEEDED]
+
+    def _is_update_available(self):
+        return self.update_status == UPDATE_STATUS_UPDATE_AVAILABLE
 
     @QtCore.pyqtSlot(str)
     def set_icon_state(self, state):
@@ -299,8 +317,11 @@ class Application(QApplication):
         self.restart_updated_app = False
         self._stop()
 
-    def action_update(self):
-        update = prompt_update(self._is_update_required(),
+    def action_update(self, auto_update=False):
+        if auto_update:
+            update = self.updater.update(self.update_version)
+        else:
+            update = prompt_update(self._is_update_required(),
                                self.controller.get_version(),
                                self.update_version, self.updater)
         if update:
@@ -503,7 +524,7 @@ class Application(QApplication):
         self.communicator.update_check.emit()
 
     def _get_current_active_state(self):
-        if self.update_status == UPDATE_STATUS_UPDATE_AVAILABLE:
+        if self._is_update_available():
             return 'update_available'
         elif self._is_update_required():
             return 'disabled'

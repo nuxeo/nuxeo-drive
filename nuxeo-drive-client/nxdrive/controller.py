@@ -270,6 +270,11 @@ class Controller(object):
         server_binding.server_version = update_info['serverVersion']
         server_binding.update_url = update_info['updateSiteURL']
 
+    def is_auto_update(self, device_config=None):
+        dc = (self.get_device_config() if device_config is None
+              else device_config)
+        return dc.auto_update
+
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""
         dc = (self.get_device_config() if device_config is None
