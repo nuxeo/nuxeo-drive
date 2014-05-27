@@ -5,6 +5,7 @@ import json
 import re
 from urlparse import urljoin
 from urllib2 import URLError
+from urllib2 import HTTPError
 from esky import Esky
 from esky.errors import EskyBrokenError
 from nxdrive.logging_config import get_logger
@@ -212,6 +213,10 @@ class AppUpdater:
 
     def get_server_min_version(self, client_version):
         info_file = client_version + '.json'
+        missing_msg = (
+            "Missing or invalid file '%s' in update site '%s', can't get"
+            " server minimum version for client version %s" % (
+                                info_file, self.update_site, client_version))
         try:
             if not self.local_update_site:
                 url = urljoin(self.update_site, info_file)
@@ -222,19 +227,23 @@ class AppUpdater:
             log.debug("Fetched server minimum version for client version %s"
                       " from %s: %s", client_version, url, version)
             return version
+        except HTTPError as e:
+            log.error(e, exc_info=True)
+            raise MissingUpdateSiteInfo(missing_msg)
         except URLError as e:
             log.error(e, exc_info=True)
             raise UnavailableUpdateSite("Cannot connect to update site '%s'"
                                         % self.update_site)
         except Exception as e:
             log.error(e, exc_info=True)
-            raise MissingUpdateSiteInfo(
-                    "Missing or invalid file '%s' in update site '%s', can't"
-                    " get server minimum version for client version %s" % (
-                                info_file, self.update_site, client_version))
+            raise MissingUpdateSiteInfo(missing_msg)
 
     def get_client_min_version(self, server_version):
         info_file = server_version + '.json'
+        missing_msg = (
+            "Missing or invalid file '%s' in update site '%s', can't get"
+            " client minimum version for server version %s" % (
+                                info_file, self.update_site, server_version))
         try:
             if not self.local_update_site:
                 url = urljoin(self.update_site, info_file)
@@ -245,16 +254,16 @@ class AppUpdater:
             log.debug("Fetched client minimum version for server version %s"
                       " from %s: %s", server_version, url, version)
             return version
+        except HTTPError as e:
+            log.error(e, exc_info=True)
+            raise MissingUpdateSiteInfo(missing_msg)
         except URLError as e:
             log.error(e, exc_info=True)
             raise UnavailableUpdateSite("Cannot connect to update site '%s'"
                                         % self.update_site)
         except Exception as e:
             log.error(e, exc_info=True)
-            raise MissingUpdateSiteInfo(
-                    "Missing or invalid file '%s' in update site '%s', can't"
-                    " get client minimum version for server version %s" % (
-                                info_file, self.update_site, server_version))
+            raise MissingUpdateSiteInfo(missing_msg)
 
     def get_latest_compatible_version(self, server_version):
         client_min_version = self.get_client_min_version(server_version)
