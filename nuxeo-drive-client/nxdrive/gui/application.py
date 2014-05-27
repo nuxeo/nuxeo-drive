@@ -162,7 +162,7 @@ class Application(QApplication):
         if not server_bindings:
             log.warning("Found no server binding, thus no update site URL,"
                         " can't check for application update")
-        else:
+        elif self.state != 'paused':
             # Let's refresh_update_info of the first server binding
             sb = server_bindings[0]
             self.controller.refresh_update_info(sb.local_folder)
@@ -528,6 +528,8 @@ class Application(QApplication):
             return 'update_available'
         elif self._is_update_required():
             return 'disabled'
+        elif self.state == 'paused':
+            return 'paused'
         else:
             return 'enabled'
 
@@ -685,48 +687,6 @@ class Application(QApplication):
             self.global_menu_actions['settings'] = settings_action
             self.tray_icon_menu.addSeparator()
 
-        # Suspend / resume
-        if server_bindings:
-            if suspend_resume_action is None:
-                suspend_resume_action = QtGui.QAction(
-                                        "Suspend synchronization",
-                                        self.tray_icon_menu,
-                                        triggered=self.suspend_resume)
-                self._insert_menu_action(suspend_resume_action,
-                                         before_action=settings_action)
-                self.global_menu_actions['suspend_resume'] = (
-                                                        suspend_resume_action)
-            else:
-                if self.state == 'suspending':
-                    suspend_resume_action.setText(
-                                            'Suspending synchronization...')
-                    # Disable suspend_resume and quit actions when suspending
-                    suspend_resume_action.setEnabled(False)
-                    if quit_action is not None:
-                        quit_action.setEnabled(False)
-                elif self.state == 'paused':
-                    suspend_resume_action.setText('Resume synchronization')
-                    # Enable suspend_resume and quit actions when paused
-                    suspend_resume_action.setEnabled(True)
-                    if quit_action is not None:
-                        quit_action.setEnabled(True)
-                else:
-                    suspend_resume_action.setText('Suspend synchronization')
-
-        # Quit
-        if quit_action is None:
-            quit_action = QtGui.QAction("Quit", self.tray_icon_menu,
-                                        triggered=self.action_quit)
-            self.tray_icon_menu.addAction(quit_action)
-            self.global_menu_actions['quit'] = quit_action
-        else:
-            if self.state == 'stopping':
-                quit_action.setText('Quitting...')
-                # Disable quit and suspend_resume actions when quitting
-                quit_action.setEnabled(False)
-                if suspend_resume_action is not None:
-                    suspend_resume_action.setEnabled(False)
-
         # Update
         if update_action is None:
             if (self.update_status is not None and self.updater is not None
@@ -770,6 +730,56 @@ class Application(QApplication):
                 # cache
                 self.tray_icon_menu.removeAction(update_action)
                 del self.global_menu_actions['update']
+
+        # Suspend / resume
+        if server_bindings:
+            if suspend_resume_action is None:
+                suspend_resume_action = QtGui.QAction(
+                                        "Suspend synchronization",
+                                        self.tray_icon_menu,
+                                        triggered=self.suspend_resume)
+                self._insert_menu_action(suspend_resume_action,
+                                         before_action=settings_action)
+                self.global_menu_actions['suspend_resume'] = (
+                                                        suspend_resume_action)
+            else:
+                if self.state == 'suspending':
+                    suspend_resume_action.setText(
+                                            'Suspending synchronization...')
+                    # Disable suspend_resume, update and quit actions when
+                    # suspending
+                    suspend_resume_action.setEnabled(False)
+                    if quit_action is not None:
+                        quit_action.setEnabled(False)
+                    if update_action is not None:
+                        update_action.setEnabled(False)
+                elif self.state == 'paused':
+                    suspend_resume_action.setText('Resume synchronization')
+                    # Enable suspend_resume and quit actions when paused
+                    suspend_resume_action.setEnabled(True)
+                    if quit_action is not None:
+                        quit_action.setEnabled(True)
+                    # Disable update action when paused
+                    if update_action is not None:
+                        update_action.setEnabled(False)
+                else:
+                    suspend_resume_action.setText('Suspend synchronization')
+
+        # Quit
+        if quit_action is None:
+            quit_action = QtGui.QAction("Quit", self.tray_icon_menu,
+                                        triggered=self.action_quit)
+            self.tray_icon_menu.addAction(quit_action)
+            self.global_menu_actions['quit'] = quit_action
+        else:
+            if self.state == 'stopping':
+                quit_action.setText('Quitting...')
+                # Disable quit, suspend_resume and update actions when quitting
+                quit_action.setEnabled(False)
+                if suspend_resume_action is not None:
+                    suspend_resume_action.setEnabled(False)
+                if update_action is not None:
+                    update_action.setEnabled(False)
 
     def _insert_menu_action(self, action, before_action=None):
         if before_action is not None:
