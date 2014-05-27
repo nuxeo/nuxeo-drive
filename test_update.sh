@@ -1,23 +1,54 @@
+#!/bin/bash
 
-# Delete Nuxeo Drive config and files
+if [ -z "$1" ]
+  then
+    echo "No argument supplied, please provide the current minor version."
+    exit 1
+fi
+
+INSTALL_DIR=~/freeze
+UPDATE_SITE=dist
+APP_NAME=nuxeo-drive
+MAJOR_VERSION=1
+MINOR_VERSION=$1
+MONTH=$(date +"%m")
+DAY=$(date +"%d")
+VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MONTH$DAY
+DEV_VERSION=$MAJOR_VERSION.$MINOR_VERSION-dev
+PLATFORM=linux-x86_64
+FREEZE_EXTENSION=zip
+FROZEN_APP=$APP_NAME-$VERSION.$PLATFORM.$FREEZE_EXTENSION
+EXECUTABLE=ndrive
+
+# Delete Nuxeo Drive configuration and files
+echo "Deleting Nuxeo Drive configuration and files"
 rm -rf ~/.nuxeo-drive/ ~/Nuxeo\ Drive/
 
-# Delete installed frozen apps
-rm -rf ~/freeze/*
+# Delete installed frozen applications
+echo "Deleting frozen applications installed in $INSTALL_DIR"
+rm -rf $INSTALL_DIR/*
 
-# Delete frozen apps from mock update site
-rm -rf dist/nuxeo-drive-*
+# Delete frozen applications from update site
+echo "Deleting frozen applications from update site $UPDATE_SITE"
+rm -rf $UPDATE_SITE/$APP_NAME-*
 
-# Set version to 1.3.MMdd
-sed -i "s/4/3/g" nuxeo-drive-client/nxdrive/__init__.py
+# Set version to $VERSION
+echo "Setting version to $VERSION"
+sed -i "s/'.*'/'$VERSION'/g" nuxeo-drive-client/nxdrive/__init__.py
 
-# Freeze app and deploy it to mock update site
+# Freeze application and deploy it to update site
+echo "Activating virtualenv"
 source ENV/bin/activate
+echo "Freezing application and deploying it to update site $UPDATE_SITE"
 python setup.py bdist_esky --dev --freeze --enable-appdata-dir=True
+echo "Setting back version to $DEV_VERSION"
+sed -i "s/'.*'/'$DEV_VERSION'/g" nuxeo-drive-client/nxdrive/__init__.py
 
-# Install frozen app
-unzip dist/nuxeo-drive-1.3.0523.linux-x86_64.zip -d ~/freeze/
+# Install frozen application
+echo "Unzipping $UPDATE_SITE/$FROZEN_APP to $INSTALL_DIR"
+unzip $UPDATE_SITE/$FROZEN_APP -d $INSTALL_DIR
 
-# Launch deployed app
-~/freeze/ndrive --log-level-console=DEBUG --update-check-delay=4
+# Launch installed frozen application
+echo "Launching frozen application: $INSTALL_DIR/$EXECUTABLE"
+$INSTALL_DIR/$EXECUTABLE --log-level-console=DEBUG --update-check-delay=6
 
