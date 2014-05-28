@@ -151,6 +151,16 @@ class ProxySettings(object):
                     self.authenticated, self.username, self.exceptions)
 
 
+class GeneralSettings(object):
+    """Summarize general settings"""
+
+    def __init__(self, auto_update=False):
+        self.auto_update = auto_update
+
+    def __repr__(self):
+        return "GeneralSettings<auto_update=%r>" % self.auto_update
+
+
 class Controller(object):
     """Manage configuration and perform Nuxeo Drive Operations
 
@@ -318,6 +328,23 @@ class Controller(object):
         session.commit()
         log.info("Proxy settings successfully updated: %r", proxy_settings)
         self.invalidate_client_cache()
+
+    def get_general_settings(self, device_config=None):
+        """Fetch general settings from database"""
+        dc = (self.get_device_config() if device_config is None
+              else device_config)
+        return GeneralSettings(auto_update=dc.auto_update)
+
+    def set_general_settings(self, general_settings):
+        session = self.get_session()
+        device_config = self.get_device_config(session)
+        device_config.auto_update = general_settings.auto_update
+        session.commit()
+        log.info("General settings successfully updated: %r", general_settings)
+
+    def is_auto_update(self, device_config=None):
+        return self.get_general_settings(
+                        device_config=device_config).auto_update
 
     def refresh_proxies(self, proxy_settings=None, device_config=None):
         """Refresh current proxies with the given settings"""

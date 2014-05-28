@@ -814,9 +814,11 @@ class Application(QApplication):
     def settings(self):
         sb_settings = self.controller.get_server_binding_settings()
         proxy_settings = self.controller.get_proxy_settings()
+        general_settings = self.controller.get_general_settings()
         version = self.controller.get_version()
         settings_accepted = prompt_settings(self.controller, sb_settings,
-                                            proxy_settings, version)
+                                            proxy_settings, general_settings,
+                                            version)
         if settings_accepted:
             # Check for application udpate
             self.refresh_update_status()
