@@ -321,9 +321,9 @@ class Application(QApplication):
         if auto_update:
             update = self.updater.update(self.update_version)
         else:
-            update = prompt_update(self._is_update_required(),
-                               self.controller.get_version(),
-                               self.update_version, self.updater)
+            update = prompt_update(self.controller, self._is_update_required(),
+                                   self.controller.get_version(),
+                                   self.update_version, self.updater)
         if update:
             log.info("Will quit Nuxeo Drive and restart updated version %s",
                      self.update_version)

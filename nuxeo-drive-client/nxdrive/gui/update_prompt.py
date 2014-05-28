@@ -24,7 +24,8 @@ UPDATE_DIALOG_HEIGHT = 120
 class UpdateDialog(QDialog):
     """Dialog box to prompt about application update."""
 
-    def __init__(self, update_required, old_version, new_version, callback):
+    def __init__(self, update_required, old_version, new_version, auto_update,
+                 callback):
         super(UpdateDialog, self).__init__()
         if QtGui is None:
             raise RuntimeError("PyQt4 is not installed.")
@@ -55,6 +56,13 @@ class UpdateDialog(QDialog):
         line2_w = QtGui.QLabel(msg)
         mainLayout.addWidget(line2_w)
 
+        # Auto-update
+        self.auto_update_w = QtGui.QCheckBox('Automatically update Nuxeo Drive'
+                                             ' next time?')
+        if auto_update:
+            self.auto_update_w.setChecked(True)
+        mainLayout.addWidget(self.auto_update_w)
+
         # Button
         button_w = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Yes
                                           | QtGui.QDialogButtonBox.No)
@@ -65,11 +73,13 @@ class UpdateDialog(QDialog):
         self.setLayout(mainLayout)
 
     def accept(self):
-        self.callback()
+        auto_update = self.auto_update_w.isChecked()
+        self.callback(auto_update)
         super(UpdateDialog, self).accept()
 
 
-def prompt_update(update_required, old_version, new_version, updater):
+def prompt_update(controller, update_required, old_version, new_version,
+                  updater):
     """Display a Qt dialog to prompt about application update"""
     global is_dialog_open
 
@@ -85,11 +95,12 @@ def prompt_update(update_required, old_version, new_version, updater):
     if updater is None:
         raise ValueError("updater is mandatory for update prompt dialog")
 
-    def update():
+    def update(auto_update):
+        controller.set_auto_update(auto_update)
         updater.update(new_version)
 
     dialog = UpdateDialog(update_required, old_version, new_version,
-                          callback=update)
+                          controller.is_auto_update(), callback=update)
     is_dialog_open = True
     try:
         dialog.exec_()

@@ -344,6 +344,13 @@ class Controller(object):
         return self.get_general_settings(
                         device_config=device_config).auto_update
 
+    def set_auto_update(self, auto_update):
+        session = self.get_session()
+        device_config = self.get_device_config(session)
+        device_config.auto_update = auto_update
+        session.commit()
+        log.info("Auto update setting successfully updated: %r", auto_update)
+
     def refresh_proxies(self, proxy_settings=None, device_config=None):
         """Refresh current proxies with the given settings"""
         # If no proxy settings passed fetch them from database
