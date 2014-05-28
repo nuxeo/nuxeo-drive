@@ -290,8 +290,6 @@ class SettingsDialog(QDialog):
                     field.setChecked(value)
             enabled = spec.get('enabled', True)
             field.setEnabled(enabled)
-            width = spec.get('width', DEFAULT_FIELD_WIDGET_WIDTH)
-            field.setFixedWidth(width)
             layout.addWidget(field)
             self.general_fields[field_id] = field
         layout.setAlignment(QtCore.Qt.AlignTop)
