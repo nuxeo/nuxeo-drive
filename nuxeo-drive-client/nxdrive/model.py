@@ -95,6 +95,9 @@ class DeviceConfig(Base):
     proxy_password = Column(Binary)
     proxy_exceptions = Column(String)
 
+    # Application update settings
+    auto_update = Column(Boolean)
+
     def __init__(self, device_id=None, client_version=None):
         self.device_id = uuid.uuid1().hex if device_id is None else device_id
         self.client_version = (__version__ if client_version is None
@@ -105,12 +108,12 @@ class DeviceConfig(Base):
         return ("DeviceConfig<device_id=%s, client_version=%s, "
                 "proxy_config=%s, proxy_type=%s, "
                 "proxy_server=%s, proxy_port=%s, proxy_authenticated=%r, "
-                "proxy_username=%s, proxy_exceptions=%s>") % (
+                "proxy_username=%s, proxy_exceptions=%s, auto_update=%r>") % (
                     self.device_id, self.client_version,
                     self.proxy_config, self.proxy_type,
                     self.proxy_server, self.proxy_port,
                     self.proxy_authenticated, self.proxy_username,
-                    self.proxy_exceptions)
+                    self.proxy_exceptions, self.auto_update)
 
 
 class ServerBinding(Base):
@@ -124,6 +127,7 @@ class ServerBinding(Base):
     server_version = Column(String)
     update_url = Column(String)
     last_sync_date = Column(Integer)
+    last_filter_date = Column(Integer)
     last_ended_sync_date = Column(Integer)
     last_root_definitions = Column(String)
 
@@ -524,6 +528,74 @@ class FileEvent(Base):
         self.local_folder = local_folder
         if utc_time is None:
             utc_time = datetime.utcnow()
+
+
+class Filter(Base):
+    __tablename__ = 'filters'
+
+    path = Column(String, primary_key=True)
+    local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
+
+    server_binding = relationship("ServerBinding")
+
+    def __init__(self, server_binding, path):
+        if server_binding:
+            self.local_folder = server_binding.local_folder
+        else:
+            self.local_folder = None
+        self.path = Filter.clean_path(path)
+
+    def __repr__(self):
+        return self.path
+
+    @staticmethod
+    def is_filter(session, server_binding, path, filters=None):
+        path = Filter.clean_path(path)
+        if filters is None:
+            filters = session.query(Filter).all()
+        # Not the best way now need to move to count
+        if any([path.startswith(filter_obj.path) for filter_obj in filters]):
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def add(session, server_binding, path):
+        path = Filter.clean_path(path)
+        if Filter.is_filter(session, server_binding, path):
+            # Skip it as it is already filtered
+            return
+        # Remove any subfolders
+        filters = session.query(Filter).filter(
+                                            Filter.path.like(path + '%')).all()
+        [session.delete(filter_obj) for filter_obj in filters]
+        # Add the filter now
+        filter_obj = Filter(server_binding, path)
+        session.add(filter_obj)
+        server_binding.last_filter_date = time()
+        session.commit()
+
+    @staticmethod
+    def getAll(session, server_binding):
+        return session.query(Filter).all()
+
+    @staticmethod
+    def clean_path(path):
+        if not path.endswith("/"):
+            path = path + "/"
+        return path
+
+    @staticmethod
+    def remove(session, server_binding, path):
+        path = Filter.clean_path(path)
+        filters = session.query(Filter).filter(
+                                            Filter.path.like(path + '%')).all()
+        if len(filters) == 0:
+            # Non existing filter
+            return
+        [session.delete(filter_obj) for filter_obj in filters]
+        server_binding.last_filter_date = time()
+        session.commit()
 
 
 def init_db(nxdrive_home, echo=False, echo_pool=False, scoped_sessions=True,

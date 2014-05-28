@@ -5,10 +5,13 @@ from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 from nxdrive.controller import NUXEO_DRIVE_FOLDER_NAME
 from nxdrive.controller import ProxySettings
+from nxdrive.controller import GeneralSettings
 from nxdrive.controller import MissingToken
-from nxdrive.client.base_automation_client import AddonNotInstalled
+from nxdrive.client import AddonNotInstalled
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import get_proxy_handler
+from nxdrive.gui.folders_treeview import FilteredFsClient, FolderTreeview
+from nxdrive.model import Filter
 import urllib2
 import socket
 import os
@@ -59,7 +62,8 @@ class SettingsDialog(QDialog):
     Available tabs for now: Accounts (server bindings), Proxy settings
     """
 
-    def __init__(self, sb_field_spec, proxy_field_spec, version,
+    def __init__(self, sb_field_spec, controller, proxy_field_spec,
+                 general_field_spec, version,
                  title=None, callback=None):
         super(SettingsDialog, self).__init__()
         if QtGui is None:
@@ -75,6 +79,14 @@ class SettingsDialog(QDialog):
         # Fields
         self.sb_fields = {}
         self.proxy_fields = {}
+        self.general_fields = {}
+        self.controller = controller
+
+        server_bindings = self.controller.list_server_bindings()
+        if not server_bindings:
+            self.server_binding = None
+        else:
+            self.server_binding = server_bindings[0]
 
         # File dialog directory
         self.file_dialog_dir = None
@@ -84,11 +96,17 @@ class SettingsDialog(QDialog):
 
         # Tabs
         account_box = self.get_account_box(sb_field_spec)
+        local_filters_box = self.get_local_filters_box(controller,
+                                                       self.server_binding)
         proxy_box = self.get_proxy_box(proxy_field_spec)
+        general_box = self.get_general_box(general_field_spec)
         about_box = self.get_about_box(version)
+
         self.tabs = QtGui.QTabWidget()
         self.tabs.addTab(account_box, 'Accounts')
+        self.tabs.addTab(local_filters_box, 'Folders')
         self.tabs.addTab(proxy_box, 'Proxy settings')
+        self.tabs.addTab(general_box, 'General')
         self.tabs.addTab(about_box, 'About')
 
         # Message
@@ -106,6 +124,23 @@ class SettingsDialog(QDialog):
         mainLayout.addWidget(self.message_area)
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
+
+    def get_local_filters_box(self, controller, sbs):
+        box = QtGui.QGroupBox()
+        layout = QtGui.QVBoxLayout()
+        # Take the first server binding for now
+        try:
+            filters = controller.get_session().query(Filter).all()
+            client = FilteredFsClient(
+                        controller.get_remote_fs_client(sbs, False), filters)
+        except:
+            client = None
+        self.treeview = box.treeView = FolderTreeview(box, client)
+        box.treeView.setObjectName("treeView")
+        layout.addWidget(box.treeView)
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        box.setLayout(layout)
+        return box
 
     def get_account_box(self, field_spec):
         # TODO NXP-12657: don't rely on field order to get 'initialized' value.
@@ -242,6 +277,25 @@ class SettingsDialog(QDialog):
         self.tabs.setCurrentIndex(tab_index)
         self.message_area.setText(message)
 
+    def get_general_box(self, field_spec):
+        box = QtGui.QGroupBox()
+        layout = QtGui.QVBoxLayout()
+        for _, spec in enumerate(field_spec):
+            field_id = spec['id']
+            value = spec.get('value')
+            if field_id == 'auto_update':
+                # Checkbox
+                field = QtGui.QCheckBox(spec['label'])
+                if value is not None:
+                    field.setChecked(value)
+            enabled = spec.get('enabled', True)
+            field.setEnabled(enabled)
+            layout.addWidget(field)
+            self.general_fields[field_id] = field
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        box.setLayout(layout)
+        return box
+
     def get_about_box(self, version_number):
         box = QtGui.QGroupBox()
         layout = QtGui.QVBoxLayout()
@@ -278,13 +332,41 @@ class SettingsDialog(QDialog):
         box.setLayout(layout)
         return box
 
+    def apply_filters(self):
+        session = self.controller.get_session()
+        for item in self.treeview.getDirtyItems():
+            path = item.get_path()
+            if (item.get_checkstate() == QtCore.Qt.Unchecked):
+                log.debug("Add a filter on : " + path)
+                Filter.add(session, self.server_binding, path)
+            elif (item.get_checkstate() == QtCore.Qt.Checked):
+                log.debug("Remove a filter on : " + item.get_path())
+                Filter.remove(session, self.server_binding, path)
+            elif item.get_old_value() == QtCore.Qt.Unchecked:
+                # Now partially checked and was before a filter
+
+                # Remove current parent filter and need to commit to enable the
+                # add
+                Filter.remove(session, self.server_binding, path)
+                # We need to browse every child and create a filter for
+                # unchecked as they are not dirty but has become root filter
+                for child in item.get_children():
+                    if child.get_checkstate() == QtCore.Qt.Unchecked:
+                        Filter.add(session, self.server_binding,
+                                   child.get_path())
+        session.commit()
+        # Need to refresh the client for now
+        self.controller.invalidate_client_cache()
+
     def accept(self):
         if self.callback is not None:
             values = dict()
             self.read_field_values(self.sb_fields, values)
             self.read_field_values(self.proxy_fields, values)
+            self.read_field_values(self.general_fields, values)
             if not self.callback(values, self):
                 return
+        self.apply_filters()
         super(SettingsDialog, self).accept()
 
     def read_field_values(self, fields, values):
@@ -306,7 +388,8 @@ class SettingsDialog(QDialog):
         super(SettingsDialog, self).reject()
 
 
-def prompt_settings(controller, sb_settings, proxy_settings, version):
+def prompt_settings(controller, sb_settings, proxy_settings, general_settings,
+                    version):
     """Prompt a Qt dialog to manage settings"""
     global is_dialog_open
 
@@ -433,7 +516,17 @@ def prompt_settings(controller, sb_settings, proxy_settings, version):
         },
     ]
 
+    # General fields
+    general_field_spec = [
+        {
+            'id': 'auto_update',
+            'label': 'Automatically update Nuxeo Drive',
+            'value': general_settings.auto_update,
+        },
+    ]
+
     def validate(values, dialog):
+        controller.set_general_settings(get_general_settings(values))
         proxy_settings = get_proxy_settings(values)
         if not check_proxy_settings(proxy_settings, dialog):
             return False
@@ -482,6 +575,9 @@ def prompt_settings(controller, sb_settings, proxy_settings, version):
                              username=str(values['proxy_username']),
                              password=str(values['proxy_password']),
                              exceptions=str(values['proxy_exceptions']))
+
+    def get_general_settings(values):
+        return GeneralSettings(auto_update=values['auto_update'])
 
     def bind_server(values, proxy_settings, dialog):
         current_user = getpass.getuser()
@@ -572,9 +668,10 @@ def prompt_settings(controller, sb_settings, proxy_settings, version):
         dialog.show_message(msg, tab_index=tab_index)
         return False
 
-    dialog = SettingsDialog(sb_field_spec, proxy_field_spec, version,
-                    title="Nuxeo Drive - Settings",
-                    callback=validate)
+    dialog = SettingsDialog(sb_field_spec, controller, proxy_field_spec,
+                            general_field_spec, version,
+                            title="Nuxeo Drive - Settings",
+                            callback=validate)
     is_dialog_open = True
     try:
         dialog.exec_()

@@ -28,6 +28,7 @@ DEFAULT_DELAY = 5.0
 DEFAULT_MAX_SYNC_STEP = 10
 DEFAULT_HANDSHAKE_TIMEOUT = 60
 DEFAULT_TIMEOUT = 20
+DEFAULT_UPDATE_CHECK_DELAY = 3600
 USAGE = """ndrive [command]
 
 If no command is provided, the graphical application is started along with a
@@ -52,7 +53,6 @@ PROTOCOL_COMMANDS = {
     'nxdriveedit': 'edit',
     'nxdrivebind': 'bind_server',
 }
-
 
 class CliHandler(object):
     """ Set the default argument """
@@ -478,6 +478,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_copy",
             "nxdrive.tests.test_integration_encoding",
             "nxdrive.tests.test_integration_local_client",
+            "nxdrive.tests.test_integration_local_filter",
             "nxdrive.tests.test_integration_local_move_and_rename",
             "nxdrive.tests.test_integration_local_storage_space_issue",
             "nxdrive.tests.test_integration_permission_hierarchy",
@@ -490,6 +491,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_security_updates",
             "nxdrive.tests.test_integration_synchronization",
             "nxdrive.tests.test_integration_versioning",
+            "nxdrive.tests.test_model_filters",
             "nxdrive.tests.test_integration_windows",
             "nxdrive.tests.test_synchronizer",
             "nxdrive.tests.test_updater",

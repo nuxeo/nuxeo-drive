@@ -17,53 +17,61 @@ logging.TRACE = TRACE
 
 _logging_context = dict()
 
+is_logging_configured = False
+
 
 def configure(use_file_handler=False, log_filename=None, file_level='INFO',
               console_level='INFO', command_name=None, log_rotate_keep=3,
               log_rotate_max_bytes=100000000):
 
-    _logging_context['command'] = command_name
+    global is_logging_configured
 
-    # convert string levels
-    if hasattr(file_level, 'upper'):
-        file_level = getattr(logging, file_level.upper())
-    if hasattr(console_level, 'upper'):
-        console_level = getattr(logging, console_level.upper())
+    if not is_logging_configured:
+        is_logging_configured = True
 
-    # find the minimum level to avoid filtering by the root logger itself:
-    root_logger = logging.getLogger()
-    min_level = min(file_level, console_level)
-    root_logger.setLevel(min_level)
+        _logging_context['command'] = command_name
 
-    # define the formatter
-    formatter = logging.Formatter(
-        "%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s"
-        " %(message)s"
-    )
+        # convert string levels
+        if hasattr(file_level, 'upper'):
+            file_level = getattr(logging, file_level.upper())
+        if hasattr(console_level, 'upper'):
+            console_level = getattr(logging, console_level.upper())
 
-    # define a Handler which writes INFO messages or higher to the sys.stderr
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(console_level)
+        # find the minimum level to avoid filtering by the root logger itself:
+        root_logger = logging.getLogger()
+        min_level = min(file_level, console_level)
+        root_logger.setLevel(min_level)
 
-    # tell the console handler to use this format
-    console_handler.setFormatter(formatter)
+        # define the formatter
+        formatter = logging.Formatter(
+            "%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s"
+            " %(message)s"
+        )
 
-    # add the console handler to the root logger and all descendants
-    root_logger.addHandler(console_handler)
+        # define a Handler which writes INFO messages or higher to the
+        # sys.stderr
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(console_level)
 
-    # define a Handler for file based log with rotation if needed
-    if use_file_handler and log_filename is not None:
-        log_filename = os.path.expanduser(log_filename)
-        log_folder = os.path.dirname(log_filename)
-        if not os.path.exists(log_folder):
-            os.makedirs(log_folder)
+        # tell the console handler to use this format
+        console_handler.setFormatter(formatter)
 
-        file_handler = RotatingFileHandler(
-            log_filename, mode='a', maxBytes=log_rotate_max_bytes,
-            backupCount=log_rotate_keep)
-        file_handler.setLevel(file_level)
-        file_handler.setFormatter(formatter)
-        root_logger.addHandler(file_handler)
+        # add the console handler to the root logger and all descendants
+        root_logger.addHandler(console_handler)
+
+        # define a Handler for file based log with rotation if needed
+        if use_file_handler and log_filename is not None:
+            log_filename = os.path.expanduser(log_filename)
+            log_folder = os.path.dirname(log_filename)
+            if not os.path.exists(log_folder):
+                os.makedirs(log_folder)
+
+            file_handler = RotatingFileHandler(
+                log_filename, mode='a', maxBytes=log_rotate_max_bytes,
+                backupCount=log_rotate_keep)
+            file_handler.setLevel(file_level)
+            file_handler.setFormatter(formatter)
+            root_logger.addHandler(file_handler)
 
 
 def get_logger(name):

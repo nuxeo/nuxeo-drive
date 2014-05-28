@@ -220,6 +220,9 @@ class Synchronizer(object):
     # Default page size for deleted items detection query in DB
     default_page_size = 100
 
+    # Application update check delay
+    update_check_delay = 3600
+
     def __init__(self, controller, page_size=None):
         self._controller = controller
         self._frontend = None
@@ -1363,6 +1366,7 @@ class Synchronizer(object):
         log.info("Starting synchronization loop (pid=%d)", pid)
         self.continue_synchronization = True
 
+        update_check_time = time()
         previous_time = time()
         session = self.get_session()
         loop_count = 0
@@ -1416,6 +1420,16 @@ class Synchronizer(object):
                 except SyncThreadSuspended as e:
                     self._suspend_sync_thread(e)
 
+                # Check for application update
+                expired = time() - update_check_time
+                if expired > self.update_check_delay:
+                    log.debug("Delay for application update check (%ds) has"
+                              " expired",
+                              self.update_check_delay)
+                    if self._frontend is not None:
+                        self._frontend.notify_check_update()
+                    update_check_time = time()
+
         except KeyboardInterrupt:
             self.get_session().rollback()
             log.info("Interrupted synchronization on user's request.")
@@ -1446,9 +1460,7 @@ class Synchronizer(object):
         session = self.get_session() if session is None else session
         remote_client = self.get_remote_fs_client(server_binding)
 
-        summary = remote_client.get_changes(
-            last_sync_date=server_binding.last_sync_date,
-            last_root_definitions=server_binding.last_root_definitions)
+        summary = remote_client.get_changes(server_binding)
 
         root_definitions = summary['activeSynchronizationRootDefinitions']
         sync_date = summary['syncDate']

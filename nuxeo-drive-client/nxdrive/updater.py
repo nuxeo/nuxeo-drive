@@ -5,6 +5,7 @@ import json
 import re
 from urlparse import urljoin
 from urllib2 import URLError
+from urllib2 import HTTPError
 from esky import Esky
 from esky.errors import EskyBrokenError
 from nxdrive.logging_config import get_logger
@@ -22,8 +23,8 @@ UPDATE_STATUS_MISSING_VERSION = 'missing_version'
 
 # Update status messages
 UPDATE_STATUS_LABEL = {
-    UPDATE_STATUS_UPGRADE_NEEDED: 'Upgrade needed',
-    UPDATE_STATUS_DOWNGRADE_NEEDED: 'Downgrade needed',
+    UPDATE_STATUS_UPGRADE_NEEDED: 'Upgrade required',
+    UPDATE_STATUS_DOWNGRADE_NEEDED: 'Downgrade required',
     UPDATE_STATUS_UPDATE_AVAILABLE: 'Update Nuxeo Drive',
     UPDATE_STATUS_UP_TO_DATE: 'Up-to-date',
     UPDATE_STATUS_UNAVAILABLE_SITE: 'Update site unavailable',
@@ -165,6 +166,10 @@ class MissingCompatibleVersion(Exception):
     pass
 
 
+class UpdateError(Exception):
+    pass
+
+
 class AppUpdater:
     """Class for updating a frozen application.
 
@@ -176,7 +181,15 @@ class AppUpdater:
 
         if esky_app is not None:
             self.esky_app = esky_app
-        elif hasattr(sys, 'frozen'):
+        elif not hasattr(sys, 'frozen'):
+            raise AppNotFrozen("Application is not frozen, cannot build Esky"
+                               " instance, as a consequence update features"
+                               " won't be available")
+        elif version_finder is None:
+            raise UpdaterInitError("Cannot initialize Esky instance with no"
+                                   " version finder, as a consequence update"
+                                   " features won't be available")
+        else:
             try:
                 executable = sys.executable
                 log.debug("Application is frozen, building Esky instance from"
@@ -188,10 +201,6 @@ class AppUpdater:
                 raise UpdaterInitError("Error initializing Esky instance, as a"
                                        " consequence update features won't be"
                                        " available")
-        else:
-            raise AppNotFrozen("Application is not frozen, cannot build Esky"
-                               " instance, as a consequence update features"
-                               " won't be available")
         self.local_update_site = local_update_site
         self.update_site = self.esky_app.version_finder.download_url
         if not self.local_update_site and not self.update_site.endswith('/'):
@@ -212,6 +221,10 @@ class AppUpdater:
 
     def get_server_min_version(self, client_version):
         info_file = client_version + '.json'
+        missing_msg = (
+            "Missing or invalid file '%s' in update site '%s', can't get"
+            " server minimum version for client version %s" % (
+                                info_file, self.update_site, client_version))
         try:
             if not self.local_update_site:
                 url = urljoin(self.update_site, info_file)
@@ -222,19 +235,23 @@ class AppUpdater:
             log.debug("Fetched server minimum version for client version %s"
                       " from %s: %s", client_version, url, version)
             return version
+        except HTTPError as e:
+            log.error(e, exc_info=True)
+            raise MissingUpdateSiteInfo(missing_msg)
         except URLError as e:
             log.error(e, exc_info=True)
             raise UnavailableUpdateSite("Cannot connect to update site '%s'"
                                         % self.update_site)
         except Exception as e:
             log.error(e, exc_info=True)
-            raise MissingUpdateSiteInfo(
-                    "Missing or invalid file '%s' in update site '%s', can't"
-                    " get server minimum version for client version %s" % (
-                                info_file, self.update_site, client_version))
+            raise MissingUpdateSiteInfo(missing_msg)
 
     def get_client_min_version(self, server_version):
         info_file = server_version + '.json'
+        missing_msg = (
+            "Missing or invalid file '%s' in update site '%s', can't get"
+            " client minimum version for server version %s" % (
+                                info_file, self.update_site, server_version))
         try:
             if not self.local_update_site:
                 url = urljoin(self.update_site, info_file)
@@ -245,16 +262,16 @@ class AppUpdater:
             log.debug("Fetched client minimum version for server version %s"
                       " from %s: %s", server_version, url, version)
             return version
+        except HTTPError as e:
+            log.error(e, exc_info=True)
+            raise MissingUpdateSiteInfo(missing_msg)
         except URLError as e:
             log.error(e, exc_info=True)
             raise UnavailableUpdateSite("Cannot connect to update site '%s'"
                                         % self.update_site)
         except Exception as e:
             log.error(e, exc_info=True)
-            raise MissingUpdateSiteInfo(
-                    "Missing or invalid file '%s' in update site '%s', can't"
-                    " get client minimum version for server version %s" % (
-                                info_file, self.update_site, server_version))
+            raise MissingUpdateSiteInfo(missing_msg)
 
     def get_latest_compatible_version(self, server_version):
         client_min_version = self.get_client_min_version(server_version)
@@ -317,15 +334,19 @@ class AppUpdater:
             return (UPDATE_STATUS_MISSING_VERSION, None)
 
     def update(self, version):
-        log.info("Starting application update process")
-        log.info("Fetching version %s from update site %s", version,
-                  self.update_site)
-        self.esky_app.fetch_version(version)
-        log.info("Installing version %s", version)
-        self.esky_app.install_version(version)
-        log.debug("Reinitializing Esky internal state")
-        self.esky_app.reinitialize()
-        log.info("Ended application update process")
+        try:
+            log.info("Starting application update process")
+            log.info("Fetching version %s from update site %s", version,
+                      self.update_site)
+            self.esky_app.fetch_version(version)
+            log.info("Installing version %s", version)
+            self.esky_app.install_version(version)
+            log.debug("Reinitializing Esky internal state")
+            self.esky_app.reinitialize()
+            log.info("Ended application update process")
+            return True
+        except Exception as e:
+            raise UpdateError(e)
 
     def cleanup(self, version):
         log.info("Uninstalling version %s", version)
