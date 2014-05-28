@@ -1,5 +1,6 @@
 from nxdrive.client.common import NotFound
 from nxdrive.client.base_automation_client import Unauthorized
+from nxdrive.client.base_automation_client import AddonNotInstalled
 
 from nxdrive.client.remote_document_client import NuxeoDocumentInfo
 from nxdrive.client.remote_document_client import RemoteDocumentClient

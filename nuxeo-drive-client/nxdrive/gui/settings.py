@@ -7,7 +7,7 @@ from nxdrive.controller import NUXEO_DRIVE_FOLDER_NAME
 from nxdrive.controller import ProxySettings
 from nxdrive.controller import GeneralSettings
 from nxdrive.controller import MissingToken
-from nxdrive.client.base_automation_client import AddonNotInstalled
+from nxdrive.client import AddonNotInstalled
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import get_proxy_handler
 from nxdrive.gui.folders_treeview import FilteredFsClient, FolderTreeview
