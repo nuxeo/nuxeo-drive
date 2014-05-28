@@ -273,17 +273,15 @@ class Controller(object):
         session.commit()
 
     def _set_update_info(self, server_binding, remote_client=None):
-        remote_client = (remote_client if remote_client is not None
-                         else self.get_remote_doc_client(server_binding))
-        update_info = remote_client.get_update_info()
-        log.info("Fetched update info from server: %r", update_info)
-        server_binding.server_version = update_info['serverVersion']
-        server_binding.update_url = update_info['updateSiteURL']
-
-    def is_auto_update(self, device_config=None):
-        dc = (self.get_device_config() if device_config is None
-              else device_config)
-        return dc.auto_update
+        try:
+            remote_client = (remote_client if remote_client is not None
+                             else self.get_remote_doc_client(server_binding))
+            update_info = remote_client.get_update_info()
+            log.info("Fetched update info from server: %r", update_info)
+            server_binding.server_version = update_info['serverVersion']
+            server_binding.update_url = update_info['updateSiteURL']
+        except Exception as e:
+            log.warning("Cannot get update info because of: %s", e)
 
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""

@@ -181,7 +181,15 @@ class AppUpdater:
 
         if esky_app is not None:
             self.esky_app = esky_app
-        elif hasattr(sys, 'frozen'):
+        elif not hasattr(sys, 'frozen'):
+            raise AppNotFrozen("Application is not frozen, cannot build Esky"
+                               " instance, as a consequence update features"
+                               " won't be available")
+        elif version_finder is None:
+            raise UpdaterInitError("Cannot initialize Esky instance with no"
+                                   " version finder, as a consequence update"
+                                   " features won't be available")
+        else:
             try:
                 executable = sys.executable
                 log.debug("Application is frozen, building Esky instance from"
@@ -193,10 +201,6 @@ class AppUpdater:
                 raise UpdaterInitError("Error initializing Esky instance, as a"
                                        " consequence update features won't be"
                                        " available")
-        else:
-            raise AppNotFrozen("Application is not frozen, cannot build Esky"
-                               " instance, as a consequence update features"
-                               " won't be available")
         self.local_update_site = local_update_site
         self.update_site = self.esky_app.version_finder.download_url
         if not self.local_update_site and not self.update_site.endswith('/'):
