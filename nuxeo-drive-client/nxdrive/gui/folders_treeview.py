@@ -356,7 +356,6 @@ class FolderTreeview(QtGui.QTreeView):
         if (parent == None):
             parent = self.model().invisibleRootItem()
             parentItem = None
-            _ = self.client.get_children(None)
         else:
             parentItem = parent.data(QtCore.Qt.UserRole).toPyObject()
 
