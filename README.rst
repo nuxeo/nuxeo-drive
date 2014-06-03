@@ -9,9 +9,7 @@ Watch this `screencast`_ to get 6 min overview of this project.
 
 .. _`screencast`: http://www.nuxeo.com/blog/development/2013/04/nuxeo-drive-desktop-synchronization/
 
-The documentation is available here:
-
-  http://doc.nuxeo.com/x/04HQ
+See `USERDOC/Nuxeo Drive <http://doc.nuxeo.com/x/04HQ>`_ for complete up-to-date documentation.
 
 
 License
