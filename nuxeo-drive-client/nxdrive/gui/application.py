@@ -3,6 +3,7 @@
 import os
 import time
 import sys
+import subprocess
 from nxdrive.synchronizer import SynchronizerThread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
@@ -365,7 +366,6 @@ class Application(QApplication):
                 # current process
                 log.debug("Exiting Qt application")
                 self.quit()
-                self.deleteLater()
 
                 current_version = self.updater.get_active_version()
                 updated_version = self.update_version
@@ -380,9 +380,8 @@ class Application(QApplication):
 
                 args = [updated_executable]
                 args.extend(sys.argv[1:])
-                log.info("Loading updated executable into current process"
-                          " with args: %r", args)
-                os.execl(updated_executable, *args)
+                log.info("Opening subprocess with args: %r", args)
+                subprocess.Popen(args)
             else:
                 self.quit()
 
