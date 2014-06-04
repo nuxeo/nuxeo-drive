@@ -348,11 +348,14 @@ class CliHandler(object):
             self._install_faulthandler(options)
 
         if command == 'launch':
-            # Ensure that the protocol handler are registered:
-            # this is useful for the edit / open link in the Nuxeo interface
-            register_protocol_handlers(self.controller)
-            # Ensure that ndrive is registered as a startup application
-            register_startup()
+            try:
+                # Ensure that the protocol handler are registered:
+                # this is useful for the edit/open link in the Nuxeo interface
+                register_protocol_handlers(self.controller)
+                # Ensure that ndrive is registered as a startup application
+                register_startup()
+            except Exception, e:
+                self.log.warn(e)
 
         try:
             return handler(options)
