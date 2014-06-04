@@ -163,6 +163,7 @@ if '--freeze' in sys.argv:
             },
             "bdist_esky": {
                 "excludes": excludes,
+                "enable_appdata_dir": True,
             },
             "bdist_msi": {
                 "add_to_path": True,
