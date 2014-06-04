@@ -28,8 +28,8 @@ FROZEN_APP=$APP_NAME-$VERSION.$PLATFORM.$FREEZE_EXTENSION
 EXECUTABLE=ndrive
 
 # Delete Nuxeo Drive configuration and files
-echo "Deleting Nuxeo Drive configuration and files"
-rm -rf ~/.nuxeo-drive/ ~/Nuxeo\ Drive/
+#echo "Deleting Nuxeo Drive configuration and files"
+#rm -rf ~/.nuxeo-drive/ ~/Nuxeo\ Drive/
 
 # Delete installed frozen applications
 echo "Deleting frozen applications installed in $INSTALL_DIR"
@@ -57,5 +57,5 @@ unzip $UPDATE_SITE/$FROZEN_APP -d $INSTALL_DIR
 
 # Launch installed frozen application
 echo "Launching frozen application: $INSTALL_DIR/$EXECUTABLE"
-$INSTALL_DIR/$EXECUTABLE --log-level-console=DEBUG --update-check-delay=6
+$INSTALL_DIR/$EXECUTABLE --log-level-console=DEBUG --update-check-delay=3
 
