@@ -132,7 +132,8 @@ excludes = [
 if '--freeze' in sys.argv:
     print "Building standalone executable..."
     sys.argv.remove('--freeze')
-    from cx_Freeze import setup, Executable
+    from nx_cx_Freeze import setup
+    from cx_Freeze import Executable
 
     # build_exe does not seem to take the package_dir info into account
     sys.path.append('nuxeo-drive-client')
@@ -153,6 +154,9 @@ if '--freeze' in sys.argv:
     freeze_options = dict(
         executables=executables,
         options={
+            "build": {
+                "exe_command": "bdist_esky",
+            },
             "build_exe": {
                 "includes": includes,
                 "packages": packages + [
