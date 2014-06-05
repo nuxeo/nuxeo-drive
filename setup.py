@@ -8,7 +8,7 @@ import sys
 from datetime import datetime
 
 from distutils.core import setup
-from esky import bdist_esky
+import nx_esky
 
 
 def read_version(init_file):
