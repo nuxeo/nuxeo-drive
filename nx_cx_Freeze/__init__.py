@@ -11,7 +11,6 @@ running a set of sub commands, e.g.:
     install --skip-sub-commands=install_lib,install_scripts,install_data
 """
 
-import sys
 import distutils.command.build
 from cx_Freeze.dist import build as cx_build
 from cx_Freeze.dist import install as cx_install
