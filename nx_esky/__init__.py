@@ -1,3 +1,9 @@
+"""esky extension
+
+Extends the 'bdist_esky' command with the 'create-zipfile' option to allow not
+creating a zip file of the esky freeze.
+"""
+
 import sys
 from esky.bdist_esky import bdist_esky as e_bdist_esky
 
