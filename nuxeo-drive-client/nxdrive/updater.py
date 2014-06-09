@@ -1,6 +1,7 @@
 """Application update utilities using esky"""
 
 import sys
+import errno
 import json
 import re
 from urlparse import urljoin
@@ -334,19 +335,40 @@ class AppUpdater:
             return (UPDATE_STATUS_MISSING_VERSION, None)
 
     def update(self, version):
+        from pydev import pydevd
+        pydevd.settrace()
+        #  Try to update frozen application.  If it fails with
+        #  a permission error, escalate to root and try again.
         try:
-            log.info("Starting application update process")
-            log.info("Fetching version %s from update site %s", version,
+            self._do_update(version)
+        except EnvironmentError as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            if exc_value.errno != errno.EACCES or self.has_root():
+                raise UpdateError(e)
+            got_root = False
+            try:
+                self.get_root()
+            except Exception as e:
+                #raise exc_type, exc_value, exc_traceback
+                raise UpdateError(e)
+            else:
+                got_root = True
+                self._do_update(version)
+            finally:
+                if got_root:
+                    self.drop_root()
+        return True
+
+    def _do_update(self, version):
+        log.info("Starting application update process")
+        log.info("Fetching version %s from update site %s", version,
                       self.update_site)
-            self.esky_app.fetch_version(version)
-            log.info("Installing version %s", version)
-            self.esky_app.install_version(version)
-            log.debug("Reinitializing Esky internal state")
-            self.esky_app.reinitialize()
-            log.info("Ended application update process")
-            return True
-        except Exception as e:
-            raise UpdateError(e)
+        self.esky_app.fetch_version(version)
+        log.info("Installing version %s", version)
+        self.esky_app.install_version(version)
+        log.debug("Reinitializing Esky internal state")
+        self.esky_app.reinitialize()
+        log.info("Ended application update process")
 
     def cleanup(self, version):
         log.info("Uninstalling version %s", version)
