@@ -134,6 +134,7 @@ if '--freeze' in sys.argv:
     sys.argv.remove('--freeze')
     from nx_cx_Freeze import setup
     from cx_Freeze import Executable
+    from esky.util import get_platform
 
     # build_exe does not seem to take the package_dir info into account
     sys.path.append('nuxeo-drive-client')
@@ -151,6 +152,8 @@ if '--freeze' in sys.argv:
     packages.remove('nxdrive.data')
     packages.remove('nxdrive.data.icons')
     package_data = {}
+    esky_app_name = name + '-' + version + '.' + get_platform()
+    esky_dist_dir = os.path.join("dist", esky_app_name)
     freeze_options = dict(
         executables=executables,
         options={
@@ -168,6 +171,10 @@ if '--freeze' in sys.argv:
             "bdist_esky": {
                 "excludes": excludes,
                 "enable_appdata_dir": True,
+            },
+            "install_exe": {
+                "skip_build": True,
+                "build_dir": esky_dist_dir,
             },
             "bdist_msi": {
                 "add_to_path": True,
