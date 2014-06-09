@@ -9,6 +9,7 @@ from datetime import datetime
 
 from distutils.core import setup
 import nx_esky
+from esky.bdist_esky import Executable as es_Executable
 
 
 def read_version(init_file):
@@ -20,7 +21,8 @@ def update_version(init_file, version):
     with open(init_file, 'wb') as f:
         f.write("__version__ = '%s'\n" % version)
 
-scripts = ["nuxeo-drive-client/scripts/ndrive"]
+script = 'nuxeo-drive-client/scripts/ndrive.py'
+scripts = [es_Executable(script)]
 freeze_options = {}
 
 name = 'nuxeo-drive'
@@ -36,7 +38,6 @@ packages = [
 package_data = {
     'nxdrive.data.icons': ['*.png', '*.svg', '*.ico', '*.icns'],
 }
-script = 'nuxeo-drive-client/scripts/ndrive'
 icons_home = 'nuxeo-drive-client/nxdrive/data/icons'
 alembic_home = 'nuxeo-drive-client/alembic'
 alembic_versions_home = 'nuxeo-drive-client/alembic/versions'
@@ -133,20 +134,24 @@ if '--freeze' in sys.argv:
     print "Building standalone executable..."
     sys.argv.remove('--freeze')
     from nx_cx_Freeze import setup
-    from cx_Freeze import Executable
+    from cx_Freeze import Executable as cx_Executable
     from esky.util import get_platform
 
     # build_exe does not seem to take the package_dir info into account
     sys.path.append('nuxeo-drive-client')
 
-    executables = [Executable(script, base=None)]
+    executables = [cx_Executable(script)]
 
     if sys.platform == "win32":
         # Windows GUI program that can be launched without a cmd console
+        script_w = 'nuxeo-drive-client/scripts/ndrivew.pyw'
+        scripts.append(
+            es_Executable(script_w, icon=icon, shortcutDir="ProgramMenuFolder",
+                          shortcutName="Nuxeo Drive"))
         executables.append(
-            Executable(script, targetName="ndrivew.exe", base="Win32GUI",
-                       icon=icon, shortcutDir="ProgramMenuFolder",
-                       shortcutName="Nuxeo Drive"))
+            cx_Executable(script_w, targetName="ndrivew.exe", base="Win32GUI",
+                          icon=icon, shortcutDir="ProgramMenuFolder",
+                          shortcutName="Nuxeo Drive"))
 
     # special handling for data files
     packages.remove('nxdrive.data')
@@ -190,7 +195,7 @@ elif sys.platform == 'darwin':
     import py2app  # install the py2app command
 
     freeze_options = dict(
-        app=["nuxeo-drive-client/scripts/ndrive.py"],
+        app=scripts,
         options=dict(
             py2app=dict(
                 iconfile=osx_icon,
