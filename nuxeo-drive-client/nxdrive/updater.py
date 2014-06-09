@@ -335,19 +335,17 @@ class AppUpdater:
             return (UPDATE_STATUS_MISSING_VERSION, None)
 
     def update(self, version):
-        from pydev import pydevd
-        pydevd.settrace()
         #  Try to update frozen application.  If it fails with
         #  a permission error, escalate to root and try again.
         try:
             self._do_update(version)
         except EnvironmentError as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            if exc_value.errno != errno.EACCES or self.has_root():
+            if exc_value.errno != errno.EACCES or self.esky_app.has_root():
                 raise UpdateError(e)
             got_root = False
             try:
-                self.get_root()
+                self.esky_app.get_root()
             except Exception as e:
                 #raise exc_type, exc_value, exc_traceback
                 raise UpdateError(e)
@@ -356,7 +354,7 @@ class AppUpdater:
                 self._do_update(version)
             finally:
                 if got_root:
-                    self.drop_root()
+                    self.esky_app.drop_root()
         return True
 
     def _do_update(self, version):
