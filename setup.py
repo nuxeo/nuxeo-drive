@@ -177,6 +177,10 @@ if '--freeze' in sys.argv:
                 "excludes": excludes,
                 "enable_appdata_dir": True,
             },
+            "install": {
+                "skip_sub_commands":
+                    "install_lib,install_scripts,install_data",
+            },
             "install_exe": {
                 "skip_build": True,
                 "build_dir": esky_dist_dir,
