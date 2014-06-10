@@ -171,6 +171,10 @@ class UpdateError(Exception):
     pass
 
 
+class RootPrivilegeRequired(Exception):
+    pass
+
+
 class AppUpdater:
     """Class for updating a frozen application.
 
@@ -335,27 +339,23 @@ class AppUpdater:
             return (UPDATE_STATUS_MISSING_VERSION, None)
 
     def update(self, version):
-        #  Try to update frozen application.  If it fails with
-        #  a permission error, escalate to root and try again.
+        # Try to update frozen application with the given version. If it fails
+        # with a permission error, escalate to root and try again.
         try:
+            self.esky_app.get_root()
             self._do_update(version)
+            self.esky_app.drop_root()
+            return True
         except EnvironmentError as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            if exc_value.errno != errno.EACCES or self.esky_app.has_root():
-                raise UpdateError(e)
-            got_root = False
-            try:
-                self.esky_app.get_root()
-            except Exception as e:
-                #raise exc_type, exc_value, exc_traceback
-                raise UpdateError(e)
-            else:
-                got_root = True
-                self._do_update(version)
-            finally:
-                if got_root:
-                    self.esky_app.drop_root()
-        return True
+            if e.errno == errno.EINVAL:
+                # Under Windows, this means that the sudo popup was rejected
+                self.esky_app.sudo_proxy = None
+                raise RootPrivilegeRequired(e)
+            # Other EnvironmentError, probably not related to permissions
+            raise UpdateError(e)
+        except Exception as e:
+            # Error during update process, not related to permissions
+            raise UpdateError(e)
 
     def _do_update(self, version):
         log.info("Starting application update process")
