@@ -382,6 +382,9 @@ class Application(QApplication):
                 log.info("Updated application version: %s", updated_version)
 
                 executable = sys.executable
+                # TODO NXP-13818: better handle this!
+                if sys.platform == 'darwin':
+                    executable = executable.replace('python', 'ndrive')
                 log.info("Current executable is: %s", executable)
                 updated_executable = executable.replace(current_version,
                                                         updated_version)
