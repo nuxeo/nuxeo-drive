@@ -1,15 +1,24 @@
 #! /bin/bash
 
 VOLUME_NAME="Nuxeo Drive"
+APP_NAME="Nuxeo Drive.app"
 SCRIPT_LOCATION="`dirname \"$0\"`"
 SRC_FOLDER_TEMP="$SCRIPT_LOCATION/dmg_src_folder.tmp"
 DMG_TEMP="$SCRIPT_LOCATION/nuxeo-drive.tmp.dmg"
 BACKGROUND_FILE="$SCRIPT_LOCATION/dmgbackground.png"
 GENERATED_DS_STORE="$SCRIPT_LOCATION/generated_DS_Store"
-
-PACKAGE_PATH="$SCRIPT_LOCATION/../../dist/Nuxeo Drive.app"
 SIGNING_IDENTITY="NUXEO CORP"
-DMG_PATH="$SCRIPT_LOCATION/../../dist/Nuxeo Drive.dmg"
+
+# Rename frozen app
+mv "$SCRIPT_LOCATION/../../dist/Nuxeo Drive"* "$SCRIPT_LOCATION/../../dist/$APP_NAME"
+PACKAGE_PATH="$SCRIPT_LOCATION/../../dist/$APP_NAME"
+
+# Get app version
+APP_VERSION=$("$PACKAGE_PATH/Contents/MacOS/ndrive" -v 2>&1)
+echo "$APP_NAME version is $APP_VERSION"
+
+# Compute DMG name and size
+DMG_PATH="$SCRIPT_LOCATION/../../dist/nuxeo-drive-$APP_VERSION-osx.dmg"
 DMG_SIZE=$(($(du -sm "$PACKAGE_PATH" | cut -d$'\t' -f1,1)+20))m
 
 # Sign application bundle
