@@ -47,7 +47,7 @@ Install and run `py2app`:
 
 Run `esky`:
 
-    python setup.py bdist_esky --dev --freeze --enable-appdata-dir=True
+    python setup.py bdist_esky --dev --freeze
 
 ### OS X
 

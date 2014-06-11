@@ -2,6 +2,8 @@
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 from nxdrive.updater import version_compare
+from nxdrive.updater import UpdateError
+from nxdrive.updater import RootPrivilegeRequired
 
 
 log = get_logger(__name__)
@@ -70,12 +72,21 @@ class UpdateDialog(QDialog):
         button_w.rejected.connect(self.reject)
         mainLayout.addWidget(button_w)
 
+        # Message
+        self.message_area = QtGui.QLabel()
+        self.message_area.setWordWrap(True)
+        mainLayout.addWidget(self.message_area)
+
         self.setLayout(mainLayout)
 
     def accept(self):
         auto_update = self.auto_update_w.isChecked()
-        self.callback(auto_update)
+        if not self.callback(auto_update, self):
+            return
         super(UpdateDialog, self).accept()
+
+    def show_message(self, message):
+        self.message_area.setText(message)
 
 
 def prompt_update(controller, update_required, old_version, new_version,
@@ -95,9 +106,25 @@ def prompt_update(controller, update_required, old_version, new_version,
     if updater is None:
         raise ValueError("updater is mandatory for update prompt dialog")
 
-    def update(auto_update):
-        controller.set_auto_update(auto_update)
-        updater.update(new_version)
+    def update(auto_update, dialog):
+        try:
+            updated = updater.update(new_version)
+            controller.set_auto_update(auto_update)
+            return updated
+        except RootPrivilegeRequired as e:
+            return handle_error("Please accept the User Access Control dialog"
+                                " to update Nuxeo Drive.", dialog)
+        except UpdateError as e:
+            if hasattr(e, 'msg'):
+                msg = e.msg
+            else:
+                msg = "Unable to process update."
+            return handle_error(msg, dialog)
+
+    def handle_error(msg, dialog, exc_info=True):
+        log.debug(msg, exc_info=exc_info)
+        dialog.show_message(msg)
+        return False
 
     dialog = UpdateDialog(update_required, old_version, new_version,
                           controller.is_auto_update(), callback=update)

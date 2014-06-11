@@ -375,7 +375,6 @@ class CliHandler(object):
         app = Application(self.controller, options)
         exit_code = app.exec_()
         self.log.debug("Qt application exited with code %r", exit_code)
-        app.deleteLater()
 
     def start(self, options=None):
         """Launch the synchronization in a daemonized process (under POSIX)"""

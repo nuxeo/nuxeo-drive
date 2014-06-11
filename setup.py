@@ -8,7 +8,8 @@ import sys
 from datetime import datetime
 
 from distutils.core import setup
-from esky import bdist_esky
+import nx_esky
+from esky.bdist_esky import Executable as es_Executable
 
 
 def read_version(init_file):
@@ -120,6 +121,12 @@ class NuxeoDriveAttributes(object):
     def targetName(self):
         return "ndrivew.exe"
 
+    def shortcutName(self):
+        return "Nuxeo Drive"
+
+    def get_win_script(self):
+        return "nuxeo-drive-client/scripts/ndrivew.pyw"
+    
     def get_app(self):
         return ["nuxeo-drive-client/scripts/ndrive.py"]
 
@@ -148,7 +155,7 @@ class NuxeoDriveSetup(object):
 
     def __init__(self, driveAttributes):
         attribs = driveAttributes
-        scripts = [attribs.get_script()]
+        scripts = [es_Executable(attribs.get_script())]
         freeze_options = {}
 
         name = attribs.get_name()
@@ -229,25 +236,37 @@ class NuxeoDriveSetup(object):
         if '--freeze' in sys.argv:
             print "Building standalone executable..."
             sys.argv.remove('--freeze')
-            from cx_Freeze import setup, Executable
+            from nx_cx_Freeze import setup
+            from cx_Freeze import Executable as cx_Executable
+            from esky.util import get_platform
 
             # build_exe does not seem to take the package_dir info into account
             sys.path.append(attribs.get_path_append())
 
-            executables = [Executable(script, base=None)]
+            executables = [cx_Executable(script)]
 
             if sys.platform == "win32":
+                script_w = attribs.get_win_script()
+                if script_w is not None:
+                    scripts.append(
+                        es_Executable(script_w, icon=icon, shortcutDir="ProgramMenuFolder",
+                                      shortcutName=attribs.shortcutName()))
                 # Windows GUI program that can be launched without a cmd console
                 executables.append(
-                    Executable(script, targetName=attribs.targetName(), base="Win32GUI",
+                    cx_Executable(script, targetName=attribs.targetName(), base="Win32GUI",
                                icon=icon, shortcutDir="ProgramMenuFolder",
-                               shortcutName="Nuxeo Drive"))
+                               shortcutName=attribs.shortcutName()))
 
             # special handling for data files
             package_data = {}
+            esky_app_name = attribs.get_name() + '-' + version + '.' + get_platform()
+            esky_dist_dir = os.path.join("dist", esky_app_name)
             freeze_options = dict(
                 executables=executables,
                 options={
+                    "build": {
+                        "exe_command": "bdist_esky",
+                    },
                     "build_exe": {
                         "includes": includes,
                         "packages": packages + [
@@ -258,6 +277,15 @@ class NuxeoDriveSetup(object):
                     },
                     "bdist_esky": {
                         "excludes": excludes,
+                        "enable_appdata_dir": True,
+                    },
+                    "install": {
+                        "skip_sub_commands":
+                            "install_lib,install_scripts,install_data",
+                    },
+                    "install_exe": {
+                        "skip_build": True,
+                        "build_dir": esky_dist_dir,
                     },
                     "bdist_msi": {
                         "add_to_path": True,
@@ -273,26 +301,31 @@ class NuxeoDriveSetup(object):
             import py2app  # install the py2app command
             from distutils.core import setup
 
+            py2app_options = dict(
+                iconfile=osx_icon,
+                argv_emulation=False,  # We use QT for URL scheme handling
+                plist=dict(
+                    CFBundleDisplayName=attribs.get_CFBundleDisplayName(),
+                    CFBundleName=attribs.get_CFBundleName(),
+                    CFBundleIdentifier=attribs.get_CFBundleIdentifier(),
+                    LSUIElement=True,  # Do not launch as a Dock application
+                    CFBundleURLTypes=[
+                        dict(
+                            CFBundleURLName=attribs.get_CFBundleURLName(),
+                            CFBundleURLSchemes=attribs.get_CFBundleURLSchemes(),
+                        )
+                    ]
+                ),
+                includes=includes,
+                excludes=excludes,
+            )
             freeze_options = dict(
-                app=attribs.get_app(),
+                app=scripts,
                 options=dict(
-                    py2app=dict(
-                        iconfile=osx_icon,
-                        argv_emulation=False,  # We use QT for URL scheme handling
-                        plist=dict(
-                            CFBundleDisplayName=attribs.get_CFBundleDisplayName(),
-                            CFBundleName=attribs.get_CFBundleName(),
-                            CFBundleIdentifier=attribs.get_CFBundleIdentifier(),
-                            LSUIElement=True,  # Do not launch as a Dock application
-                            CFBundleURLTypes=[
-                                dict(
-                                    CFBundleURLName=attribs.get_CFBundleURLName(),
-                                    CFBundleURLSchemes=attribs.get_CFBundleURLSchemes(),
-                                )
-                            ]
-                        ),
-                        includes=includes,
-                        excludes=excludes,
+                    py2app=py2app_options,
+                    bdist_esky=dict(
+                        enable_appdata_dir=True,
+                        freezer_options=py2app_options,
                     )
                 )
             )

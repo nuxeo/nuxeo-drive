@@ -3,6 +3,7 @@
 import os
 import time
 import sys
+import subprocess
 from nxdrive.synchronizer import SynchronizerThread
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
@@ -319,13 +320,22 @@ class Application(QApplication):
         self._stop()
 
     def action_update(self, auto_update=False):
+        updated = False
         if auto_update:
-            update = self.updater.update(self.update_version)
+            try:
+                updated = self.updater.update(self.update_version)
+            except Exception as e:
+                log.error(e, exc_info=True)
+                log.warning("An error occurred while trying to automatically"
+                            " update Nuxeo Drive to version %s, setting"
+                            " 'Auto update' to False", self.update_version)
+                self.controller.set_auto_update(False)
         else:
-            update = prompt_update(self.controller, self._is_update_required(),
-                                   self.controller.get_version(),
-                                   self.update_version, self.updater)
-        if update:
+            updated = prompt_update(self.controller,
+                                    self._is_update_required(),
+                                    self.controller.get_version(),
+                                    self.update_version, self.updater)
+        if updated:
             log.info("Will quit Nuxeo Drive and restart updated version %s",
                      self.update_version)
             self.quit_app_after_sync_stopped = True
@@ -366,7 +376,6 @@ class Application(QApplication):
                 # current process
                 log.debug("Exiting Qt application")
                 self.quit()
-                self.deleteLater()
 
                 current_version = self.updater.get_active_version()
                 updated_version = self.update_version
@@ -374,6 +383,9 @@ class Application(QApplication):
                 log.info("Updated application version: %s", updated_version)
 
                 executable = sys.executable
+                # TODO NXP-13818: better handle this!
+                if sys.platform == 'darwin':
+                    executable = executable.replace('python', 'ndrive')
                 log.info("Current executable is: %s", executable)
                 updated_executable = executable.replace(current_version,
                                                         updated_version)
@@ -381,9 +393,8 @@ class Application(QApplication):
 
                 args = [updated_executable]
                 args.extend(sys.argv[1:])
-                log.info("Loading updated executable into current process"
-                          " with args: %r", args)
-                os.execl(updated_executable, *args)
+                log.info("Opening subprocess with args: %r", args)
+                subprocess.Popen(args)
             else:
                 self.quit()
 
