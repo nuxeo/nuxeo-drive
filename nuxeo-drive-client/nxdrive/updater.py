@@ -339,23 +339,30 @@ class AppUpdater:
             return (UPDATE_STATUS_MISSING_VERSION, None)
 
     def update(self, version):
-        # Try to update frozen application with the given version. If it fails
-        # with a permission error, escalate to root and try again.
-        try:
-            self.esky_app.get_root()
-            self._do_update(version)
-            self.esky_app.drop_root()
-            return True
-        except EnvironmentError as e:
-            if e.errno == errno.EINVAL:
-                # Under Windows, this means that the sudo popup was rejected
-                self.esky_app.sudo_proxy = None
-                raise RootPrivilegeRequired(e)
-            # Other EnvironmentError, probably not related to permissions
-            raise UpdateError(e)
-        except Exception as e:
-            # Error during update process, not related to permissions
-            raise UpdateError(e)
+        if sys.platform == 'win32':
+            # Try to update frozen application with the given version. If it fails
+            # with a permission error, escalate to root and try again.
+            try:
+                self.esky_app.get_root()
+                self._do_update(version)
+                self.esky_app.drop_root()
+                return True
+            except EnvironmentError as e:
+                if e.errno == errno.EINVAL:
+                    # Under Windows, this means that the sudo popup was rejected
+                    self.esky_app.sudo_proxy = None
+                    raise RootPrivilegeRequired(e)
+                # Other EnvironmentError, probably not related to permissions
+                raise UpdateError(e)
+            except Exception as e:
+                # Error during update process, not related to permissions
+                raise UpdateError(e)
+        else:
+            try:
+                self._do_update(version)
+                return True
+            except Exception as e:
+                raise UpdateError(e)
 
     def _do_update(self, version):
         log.info("Starting application update process")

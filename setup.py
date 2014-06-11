@@ -198,26 +198,31 @@ elif sys.platform == 'darwin':
     # - easy Info.plist customization
     import py2app  # install the py2app command
 
+    name = "Nuxeo Drive"
+    py2app_options = dict(
+        argv_emulation=False,  # We use QT for URL scheme handling
+        iconfile=icon,
+        plist=dict(
+            CFBundleDisplayName="Nuxeo Drive",
+            CFBundleName="Nuxeo Drive",
+            CFBundleIdentifier="org.nuxeo.drive",
+            LSUIElement=True,  # Do not launch as a Dock application
+            CFBundleURLTypes=[
+                dict(
+                    CFBundleURLName='Nuxeo Drive URL',
+                    CFBundleURLSchemes=['nxdrive'],
+                )
+            ]
+        ),
+    )
+
     freeze_options = dict(
         app=scripts,
         options=dict(
-            py2app=dict(
-                iconfile=osx_icon,
-                argv_emulation=False,  # We use QT for URL scheme handling
-                plist=dict(
-                    CFBundleDisplayName="Nuxeo Drive",
-                    CFBundleName="Nuxeo Drive",
-                    CFBundleIdentifier="org.nuxeo.drive",
-                    LSUIElement=True,  # Do not launch as a Dock application
-                    CFBundleURLTypes=[
-                        dict(
-                            CFBundleURLName='Nuxeo Drive URL',
-                            CFBundleURLSchemes=['nxdrive'],
-                        )
-                    ]
-                ),
-                includes=includes,
-                excludes=excludes,
+            py2app=py2app_options,
+            bdist_esky=dict(
+                enable_appdata_dir=True,
+                freezer_options=py2app_options,
             )
         )
     )
