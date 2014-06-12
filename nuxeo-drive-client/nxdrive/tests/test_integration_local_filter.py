@@ -45,11 +45,11 @@ class TestIntegrationLocalFilter(IntegrationTestCase):
 
         # Fake server binding with the unit test class
         syn = ctl.synchronizer
-        syn.loop(1)
+        self._synchronize(syn)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
-        # Delete remote folder then synchronize
+        # Add remote folder as filter then synchronize
         doc = remote.get_info('/Test folder')
         root_path = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#"
         root_path = root_path + doc.root
@@ -59,15 +59,18 @@ class TestIntegrationLocalFilter(IntegrationTestCase):
         server_binding = ctl.get_server_binding(self.local_nxdrive_folder_1,
                                                 session=session)
         Filter.add(session, server_binding, doc_path)
-        syn.loop(1)
+        self._synchronize(syn)
         self.assertFalse(local.exists('/Test folder'))
 
         # Restore folder from trash then synchronize
         # Undeleting each item as following 'undelete' transition
         # doesn't act recursively, should use TrashService instead
         # through a dedicated operation
+        server_binding = ctl.get_server_binding(self.local_nxdrive_folder_1,
+                                                session=session)
         Filter.remove(session, server_binding, doc_path)
-        syn.loop(1)
+        self._synchronize(syn, 2)
+
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
@@ -75,12 +78,14 @@ class TestIntegrationLocalFilter(IntegrationTestCase):
         server_binding = ctl.get_server_binding(self.local_nxdrive_folder_1,
                                                 session=session)
         Filter.add(session, server_binding, root_path)
-        syn.loop(1)
+        self._synchronize(syn)
         self.assertFalse(local.exists('/'))
 
+        server_binding = ctl.get_server_binding(self.local_nxdrive_folder_1,
+                                                session=session)
         # Restore sync root from trash then synchronize
         Filter.remove(session, server_binding, root_path)
-        syn.loop(1)
+        self._synchronize(syn)
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))

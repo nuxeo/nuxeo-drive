@@ -54,9 +54,7 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
         self.syn = self.ctl.synchronizer
 
     def _synchronize(self, loops=1):
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
-        self.wait()
-        self.syn.loop(delay=0.1, max_loops=loops)
+        super(TestIntegrationReinitDatabase, self)._synchronize(self.syn, loops)
 
     def _check_conflict_locally_handled(self):
         # As a conflict has been raised 2 files should be present locally

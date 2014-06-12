@@ -49,6 +49,11 @@ class IntegrationTestCase(unittest.TestCase):
     # Nuxeo max length for document name
     DOC_NAME_MAX_LENGTH = 24
 
+    def _synchronize(self, syn, loops=1):
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+        syn.loop(delay=0.1, max_loops=loops)
+
     def setUp(self):
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
