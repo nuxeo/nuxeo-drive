@@ -351,6 +351,11 @@ class FolderTreeview(QtGui.QTreeView):
         load_thread = Thread(target=self.loadChildrenThread, args=[item])
         load_thread.start()
 
+    def sortChildren(self, childs):
+        # Put in a specific method to be able to override if needed
+        # NXDRIVE-12: Sort child alphabetically
+        return sorted(childs, key=lambda x: x.get_label().lower())
+
     def loadChildrenThread(self, parent=None):
 
         if (parent == None):
@@ -366,6 +371,8 @@ class FolderTreeview(QtGui.QTreeView):
             self.cache.append(parentItem.get_id())
         # Clear previous items
         childs = self.client.get_children(parentItem)
+        childs = self.sortChildren(childs)
+
         parent.removeRows(0, parent.rowCount())
         for child in childs:
             subitem = QtGui.QStandardItem(child.get_label())
