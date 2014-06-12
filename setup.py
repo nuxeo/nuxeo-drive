@@ -139,17 +139,32 @@ class NuxeoDriveAttributes(object):
     def get_path_append(self):
         return self.rubric_2nd_dir()
 
-    def get_CFBundleDisplayName(self): return self.rubric_product_name()
+    def get_CFBundleDisplayName(self):
+        return self.rubric_product_name()
 
-    def get_CFBundleName(self): return self.rubric_product_name()
+    def get_CFBundleName(self):
+        return self.rubric_product_name()
 
-    def get_CFBundleIdentifier(self): return "org.nuxeo.drive"
+    def get_CFBundleIdentifier(self):
+        return "org.nuxeo.drive"
 
-    def get_CFBundleURLName(self): return 'Nuxeo Drive URL'
-    def get_description(self): return "Desktop synchronization client for Nuxeo."
-    def get_author(self): return "Nuxeo"
-    def get_author_email(self): return "contact@nuxeo.com"
-    def get_url(self): return 'http://github.com/nuxeo/nuxeo-drive'
+    def get_CFBundleURLName(self):
+        return 'Nuxeo Drive URL'
+    
+    def get_description(self):
+        return "Desktop synchronization client for Nuxeo."
+    
+    def get_author(self):
+        return "Nuxeo"
+    
+    def get_author_email(self):
+        return "contact@nuxeo.com"
+    
+    def get_url(self):
+        return 'http://github.com/nuxeo/nuxeo-drive'
+    
+    def get_long_description(self):
+        return open('README.rst').read()
 
 class NuxeoDriveSetup(object):
 
@@ -333,15 +348,15 @@ class NuxeoDriveSetup(object):
         setup(
             name=name,
             version=version,
-            description="Desktop synchronization client for Nuxeo.",
-            author="Nuxeo",
-            author_email="contact@nuxeo.com",
-            url='http://github.com/nuxeo/nuxeo-drive',
+            description=attribs.get_description(),
+            author=attribs.get_author(),
+            author_email=attribs.get_author_email(),
+            url=attribs.get_url(),
             packages=packages,
             package_dir=attribs.get_package_dir(),
             package_data=package_data,
             scripts=scripts,
-            long_description=open('README.rst').read(),
+            long_description=attribs.get_long_description(),
             data_files=data_files,
             **freeze_options
         )
