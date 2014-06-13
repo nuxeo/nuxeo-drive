@@ -140,7 +140,7 @@ class NuxeoDriveAttributes(object):
     def append_includes(self, includes):
         pass
 
-    def targetName(self):
+    def get_win_targetName(self):
         return "ndrivew.exe"
 
     def shortcutName(self):
@@ -287,19 +287,20 @@ class NuxeoDriveSetup(object):
             executables = [cx_Executable(script)]
 
             if sys.platform == "win32":
+                # Windows GUI program that can be launched without a cmd
+                # console
                 script_w = attribs.get_win_script()
                 if script_w is not None:
                     scripts.append(
                         es_Executable(script_w, icon=icon,
                                       shortcutDir="ProgramMenuFolder",
                                       shortcutName=attribs.shortcutName()))
-                # Windows GUI program that can be launched without a cmd
-                # console
-                executables.append(
-                    cx_Executable(script, targetName=attribs.targetName(),
-                                  base="Win32GUI", icon=icon,
-                                  shortcutDir="ProgramMenuFolder",
-                                  shortcutName=attribs.shortcutName()))
+
+                    executables.append(
+                        cx_Executable(script, targetName=attribs.get_win_targetName(),
+                                      base="Win32GUI", icon=icon,
+                                      shortcutDir="ProgramMenuFolder",
+                                      shortcutName=attribs.shortcutName()))
 
             # special handling for data files
             package_data = {}
