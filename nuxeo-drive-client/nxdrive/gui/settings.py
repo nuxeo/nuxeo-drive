@@ -12,6 +12,7 @@ from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import get_proxy_handler
 from nxdrive.gui.folders_treeview import FilteredFsClient, FolderTreeview
 from nxdrive.model import Filter
+from nxdrive.model import PROXY_TYPE_NONE, PROXY_TYPE_MANUAL, PROXY_TYPE_AUTO
 import urllib2
 import socket
 import os
@@ -39,7 +40,7 @@ except ImportError:
 
 is_dialog_open = False
 
-PROXY_CONFIGS = ['None', 'System', 'Manual']
+PROXY_CONFIGS = [PROXY_TYPE_NONE, PROXY_TYPE_AUTO, PROXY_TYPE_MANUAL]
 PROXY_TYPES = ['http', 'https']
 PROXY_TEST_HOST = 'www.google.com'
 
@@ -553,18 +554,18 @@ def prompt_settings(controller, sb_settings, proxy_settings, general_settings,
                 opener.open(urllib2.Request(test_url))
             return True
         except socket.timeout:
-            return handle_error(timeout_msg, dialog, tab_index=1)
+            return handle_error(timeout_msg, dialog, tab_index=2)
         except urllib2.HTTPError as e:
             msg = "HTTP error %d" % e.code
             if hasattr(e, 'msg'):
                 msg = msg + ": " + e.msg
-            return handle_error(msg, dialog, tab_index=1)
+            return handle_error(msg, dialog, tab_index=2)
         except Exception as e:
             if hasattr(e, 'msg'):
                 msg = e.msg
             else:
                 msg = "Unable to connect to proxy server."
-            return handle_error(msg, dialog, tab_index=1)
+            return handle_error(msg, dialog, tab_index=2)
 
     def get_proxy_settings(values):
         return ProxySettings(config=str(values['proxy_config']),

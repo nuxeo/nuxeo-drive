@@ -73,6 +73,9 @@ PAIR_STATES = {
     ('deleted', 'unknown'): 'deleted_unknown',
 }
 
+PROXY_TYPE_AUTO = 'System'
+PROXY_TYPE_MANUAL = 'Manual'
+PROXY_TYPE_NONE = 'None'
 
 class DeviceConfig(Base):
     """Holds Nuxeo Drive configuration parameters
@@ -86,7 +89,7 @@ class DeviceConfig(Base):
 
     # HTTP proxy settings
     # Possible values for proxy_config: System, None, Manual
-    proxy_config = Column(String, default='System')
+    proxy_config = Column(String, default=PROXY_TYPE_AUTO)
     proxy_type = Column(String)
     proxy_server = Column(String)
     proxy_port = Column(String)

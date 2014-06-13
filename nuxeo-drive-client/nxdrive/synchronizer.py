@@ -179,6 +179,7 @@ class SynchronizerThread(Thread):
     def run(self):
         # Log uncaught exceptions in the synchronization loop and die
         try:
+            log.debug('Start synchronization thread %r', self)
             self.controller.synchronizer.loop(sync_thread=self, **self.kwargs)
         except Exception, e:
             log.error("Error in synchronization thread: %s", e, exc_info=True)
@@ -1304,19 +1305,10 @@ class Synchronizer(object):
             with open(safe_long_path(pid_filepath), 'rb') as f:
                 pid = int(f.read().strip())
                 try:
-                    p = psutil.Process(pid)
-                    # Check that this is a nxdrive process by looking at the
-                    # process name and commandline
-                    # TODO: be more specific using the p.exe attribute
-                    if 'ndrive' in p.name():
-                        return pid
-                    if 'Nuxeo Drive' in p.name():
-                        return pid
-                    for component in p.cmdline():
-                        if 'ndrive' in component:
-                            return pid
-                        if 'nxdrive' in component:
-                            return pid
+                    _ = psutil.Process(pid)
+                    # TODO https://jira.nuxeo.com/browse/NXDRIVE-26: Check if
+                    # we can skip the process verif as it can be overridden
+                    return pid
                 except psutil.NoSuchProcess:
                     pass
                 # This is a pid file pointing to either a stopped process
