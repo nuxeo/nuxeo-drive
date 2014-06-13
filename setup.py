@@ -117,6 +117,12 @@ class NuxeoDriveAttributes(object):
     def get_scripts(self):
         return [es_Executable(self.get_script())]
 
+    def get_win_script(self):
+        return "nuxeo-drive-client/scripts/ndrivew.pyw"
+
+    def get_app(self):
+        return self.get_scripts()
+
     def get_icons_home(self):
         return (self.rubric_2nd_dir()
                 + '/' + self.rubric_3rd_dir() + '/data/icons')
@@ -148,12 +154,6 @@ class NuxeoDriveAttributes(object):
 
     def shortcutName(self):
         return "Nuxeo Drive"
-
-    def get_win_script(self):
-        return "nuxeo-drive-client/scripts/ndrivew.pyw"
-
-    def get_app(self):
-        return self.get_scripts()
 
     def get_CFBundleURLSchemes(self):
         return ['nxdrive']
