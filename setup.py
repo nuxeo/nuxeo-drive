@@ -112,7 +112,10 @@ class NuxeoDriveAttributes(object):
         return package_dirs
 
     def get_script(self):
-        return 'nuxeo-drive-client/scripts/ndrive'
+        return 'nuxeo-drive-client/scripts/ndrive.py'
+
+    def get_scripts(self):
+        return [es_Executable(self.get_script())]
 
     def get_icons_home(self):
         return (self.rubric_2nd_dir()
@@ -150,7 +153,7 @@ class NuxeoDriveAttributes(object):
         return "nuxeo-drive-client/scripts/ndrivew.pyw"
 
     def get_app(self):
-        return ["nuxeo-drive-client/scripts/ndrive.py"]
+        return self.get_scripts()
 
     def get_CFBundleURLSchemes(self):
         return ['nxdrive']
@@ -192,14 +195,15 @@ class NuxeoDriveAttributes(object):
 class NuxeoDriveSetup(object):
 
     def __init__(self, driveAttributes):
+
         attribs = driveAttributes
-        scripts = [es_Executable(attribs.get_script())]
         freeze_options = {}
 
+        script = attribs.get_script()
+        scripts = attribs.get_scripts()
         name = attribs.get_name()
         packages = Packages(attribs.get_package_dirs()).load()
         package_data = attribs.get_package_data()
-        script = attribs.get_script()
         icons_home = attribs.get_icons_home()
         alembic_home = attribs.get_alembic_home()
         alembic_versions_home = attribs.get_alembic_versions_home()
@@ -297,7 +301,8 @@ class NuxeoDriveSetup(object):
                                       shortcutName=attribs.shortcutName()))
 
                     executables.append(
-                        cx_Executable(script, targetName=attribs.get_win_targetName(),
+                        cx_Executable(script_w,
+                                      targetName=attribs.get_win_targetName(),
                                       base="Win32GUI", icon=icon,
                                       shortcutDir="ProgramMenuFolder",
                                       shortcutName=attribs.shortcutName()))
@@ -367,7 +372,7 @@ class NuxeoDriveSetup(object):
                 excludes=excludes,
             )
             freeze_options = dict(
-                app=scripts,
+                app=attribs.get_app(),
                 options=dict(
                     py2app=py2app_options,
                     bdist_esky=dict(
