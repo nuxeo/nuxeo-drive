@@ -267,14 +267,10 @@ class Controller(object):
         return self.updated
 
     def refresh_update_info(self, local_folder):
-        try:
-            session = self.get_session()
-            sb = self.get_server_binding(local_folder, session=session)
-            self._set_update_info(sb)
-            session.commit()
-        except:
-            # Can't find any update info
-            self.update_info = None
+        session = self.get_session()
+        sb = self.get_server_binding(local_folder, session=session)
+        self._set_update_info(sb)
+        session.commit()
 
     def _set_update_info(self, server_binding, remote_client=None):
         try:
