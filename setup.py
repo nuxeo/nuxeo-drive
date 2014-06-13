@@ -107,31 +107,34 @@ class NuxeoDriveAttributes(object):
         return package_data
 
     def get_package_dirs(self):
-        package_dirs = ['nuxeo-drive-client/nxdrive']
+        package_dirs = [os.path.join(self.rubric_2nd_dir(),
+                                     self.rubric_3rd_dir())]
 
         return package_dirs
 
     def get_script(self):
-        return 'nuxeo-drive-client/scripts/ndrive.py'
+        return os.path.join(self.rubric_2nd_dir(), 'scripts', 'ndrive.py')
 
     def get_scripts(self):
         return [es_Executable(self.get_script())]
 
     def get_win_script(self):
-        return "nuxeo-drive-client/scripts/ndrivew.pyw"
+        return os.path.join(self.rubric_2nd_dir(), 'scripts', 'ndrivew.pyw')
 
     def get_app(self):
         return self.get_scripts()
 
     def get_icons_home(self):
-        return (self.rubric_2nd_dir()
-                + '/' + self.rubric_3rd_dir() + '/data/icons')
+        return os.path.join(self.rubric_2nd_dir(), self.rubric_3rd_dir(),
+                            'data', 'icons')
 
     def get_alembic_home(self):
-        return self.rubric_super_dir() + 'nuxeo-drive-client/alembic'
+        return os.path.join(self.rubric_super_dir(), self.rubric_2nd_dir(),
+                            'alembic')
 
     def get_alembic_versions_home(self):
-        return self.rubric_super_dir() + 'nuxeo-drive-client/alembic/versions'
+        return os.path.join(self.rubric_super_dir(), self.rubric_2nd_dir(),
+                            'alembic', 'versions')
 
     def get_win_icon(self):
         return 'nuxeo_drive_icon_64.ico'
@@ -159,7 +162,8 @@ class NuxeoDriveAttributes(object):
         return ['nxdrive']
 
     def get_package_dir(self):
-        return {'nxdrive': 'nuxeo-drive-client/nxdrive'}
+        return {'nxdrive': os.path.join(self.rubric_2nd_dir(),
+                                        self.rubric_3rd_dir())}
 
     def get_path_append(self):
         return self.rubric_2nd_dir()
