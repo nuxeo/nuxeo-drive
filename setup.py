@@ -68,10 +68,10 @@ class data_file_dir(object):
     def load(self):
         result = []
         for filename in os.listdir(os.path.normpath(self.home_dir)):
-            filepath = self.home_dir + '/' + filename
+            filepath = os.path.join(self.home_dir, filename)
             if os.path.isfile(filepath):
                 self.include_files.append(
-                        (filepath, self.subfolderName + '/' + filename))
+                        (filepath, os.path.join(self.subfolderName, filename)))
                 result.append(filepath)
         return result
 
@@ -146,8 +146,9 @@ class NuxeoDriveAttributes(object):
         return 'nuxeo_drive_app_icon_128.icns'
 
     def get_init_file(self):
-        return os.path.abspath(self.rubric_2nd_dir()
-                               + '/' + self.rubric_3rd_dir() + '/__init__.py')
+        return os.path.abspath(os.path.join(self.rubric_2nd_dir(),
+                                            self.rubric_3rd_dir(),
+                                            '__init__.py'))
 
     def append_includes(self, includes):
         pass
@@ -212,9 +213,9 @@ class NuxeoDriveSetup(object):
         alembic_home = attribs.get_alembic_home()
         alembic_versions_home = attribs.get_alembic_versions_home()
 
-        win_icon = icons_home + '/' + attribs.get_win_icon()
-        png_icon = icons_home + '/' + attribs.get_png_icon()
-        osx_icon = icons_home + '/' + attribs.get_osx_icon()
+        win_icon = os.path.join(icons_home, attribs.get_win_icon())
+        png_icon = os.path.join(icons_home, attribs.get_png_icon())
+        osx_icon = os.path.join(icons_home, attribs.get_osx_icon())
 
         if sys.platform == 'win32':
             icon = win_icon
