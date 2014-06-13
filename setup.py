@@ -345,7 +345,6 @@ class NuxeoDriveSetup(object):
             # - argv_emulation=True for nxdrive:// URL scheme handling
             # - easy Info.plist customization
             import py2app  # install the py2app command
-            from distutils.core import setup
 
             py2app_options = dict(
                 iconfile=osx_icon,
