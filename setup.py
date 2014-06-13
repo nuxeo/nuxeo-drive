@@ -7,7 +7,6 @@ import os
 import sys
 from datetime import datetime
 
-from distutils.core import setup
 import nx_esky
 from esky.bdist_esky import Executable as es_Executable
 
@@ -201,6 +200,8 @@ class NuxeoDriveSetup(object):
 
     def __init__(self, driveAttributes):
 
+        from distutils.core import setup
+
         attribs = driveAttributes
         freeze_options = {}
 
@@ -357,8 +358,9 @@ class NuxeoDriveSetup(object):
             # - easy Info.plist customization
             import py2app  # install the py2app command
 
+            name = attribs.get_CFBundleName()
             py2app_options = dict(
-                iconfile=osx_icon,
+                iconfile=icon,
                 argv_emulation=False,  # We use QT for URL scheme handling
                 plist=dict(
                     CFBundleDisplayName=attribs.get_CFBundleDisplayName(),
