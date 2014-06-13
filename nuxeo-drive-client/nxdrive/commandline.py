@@ -54,6 +54,7 @@ PROTOCOL_COMMANDS = {
     'nxdrivebind': 'bind_server',
 }
 
+
 class CliHandler(object):
     """ Set the default argument """
     def __init__(self):
