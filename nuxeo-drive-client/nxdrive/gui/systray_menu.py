@@ -62,12 +62,9 @@ class SystrayMenu(QtGui.QMenu):
                 self.remove_default_menu()
                 self.create_bind_menu(server_bindings)
             self.update_bind_menu(server_bindings)
-            return
         if not server_bindings and self.is_bind == True:
             self.create_default_menu()
             self.remove_bind_menu()
-            # Default menu has no update
-            return
 
         # Handle the auto-update menu
         self.auto_update_menu()
@@ -289,7 +286,7 @@ class SystrayMenu(QtGui.QMenu):
                 update_label = self.application.updater.get_update_label(
                                                                 update_status)
                 self.update_action = QtGui.QAction(update_label, self,
-                                              triggered=self.action_update)
+                                    triggered=self.application.action_update)
                 if update_status in [UPDATE_STATUS_UNAVAILABLE_SITE,
                                           UPDATE_STATUS_MISSING_INFO,
                                           UPDATE_STATUS_MISSING_VERSION]:
