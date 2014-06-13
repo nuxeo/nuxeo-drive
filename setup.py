@@ -153,7 +153,7 @@ class NuxeoDriveAttributes(object):
         return ["nuxeo-drive-client/scripts/ndrive.py"]
 
     def get_CFBundleURLSchemes(self):
-        return [self.rubric_3rd_dir()]
+        return ['nxdrive']
 
     def get_package_dir(self):
         return {'nxdrive': 'nuxeo-drive-client/nxdrive'}
