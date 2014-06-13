@@ -396,5 +396,9 @@ class NuxeoDriveSetup(object):
             update_version(init_file, old_version)
             print "Restored version to " + old_version
 
+
+def main(argv=None):
+    NuxeoDriveSetup(NuxeoDriveAttributes())
+
 if __name__ == '__main__':
-    sys.exit(NuxeoDriveSetup(NuxeoDriveAttributes()))
+    sys.exit(main())
