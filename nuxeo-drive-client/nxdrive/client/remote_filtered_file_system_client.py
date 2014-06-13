@@ -32,13 +32,16 @@ class RemoteFilteredFileSystemClient(RemoteFileSystemClient):
             upload_tmp_dir, check_suspended)
         self.session = session
 
+    def is_filtered(self, path):
+        return Filter.is_filter(self.session, None, path)
+
     def get_children_info(self, fs_item_id):
         result = super(RemoteFilteredFileSystemClient, self).get_children_info(
                                                                     fs_item_id)
         # Need to filter the children result
         filtered = []
         for item in result:
-            if not Filter.is_filter(self.session, None, item.path):
+            if not self.is_filtered(item.path):
                 filtered.append(item)
             else:
                 log.debug("Filtering item %r", item)
