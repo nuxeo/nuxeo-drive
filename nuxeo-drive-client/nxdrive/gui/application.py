@@ -16,7 +16,6 @@ from nxdrive.updater import AppUpdater
 from nxdrive.updater import UPDATE_STATUS_UPGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_DOWNGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
-from nxdrive.updater import UPDATE_STATUS_UP_TO_DATE
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
