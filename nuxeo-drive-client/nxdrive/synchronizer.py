@@ -1306,11 +1306,8 @@ class Synchronizer(object):
                 pid = int(f.read().strip())
                 try:
                     _ = psutil.Process(pid)
-                    # Check that this is a nxdrive process by looking at the
-                    # process name and commandline
-                    # TODO: be more specific using the p.exe attribute
-                    # TODO: Check if we can skip the process verif
-                    # as it can be overriden
+                    # TODO https://jira.nuxeo.com/browse/NXDRIVE-26: Check if
+                    # we can skip the process verif as it can be overridden
                     return pid
                 except psutil.NoSuchProcess:
                     pass
