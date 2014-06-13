@@ -21,6 +21,7 @@ def update_version(init_file, version):
     with open(init_file, 'wb') as f:
         f.write("__version__ = '%s'\n" % version)
 
+
 class Packages(object):
     def __init__(self, directory_list):
         self.directory_list = directory_list
@@ -32,6 +33,7 @@ class Packages(object):
         return package_name
 
         return root
+
     def _isNonTrivialPythonFile(self, afile):
         if afile.endswith('/' + '__init__.py'):
             return False
@@ -40,11 +42,14 @@ class Packages(object):
         return False
 
     def _load_packages_in_tree(self, root):
-        # get all the directories with non trivial python files (derived from http://stackoverflow.com/questions/9994414/python-get-folder-containing-specific-files-extension)
-        package_dirs = set(folder for folder, subfolders, files in os.walk(root) for file_ in files if self._isNonTrivialPythonFile(file_))
+        # get all the directories with non trivial python files (derived from
+        # http://stackoverflow.com/questions/9994414/python-get-folder-containing-specific-files-extension)
+        package_dirs = set(folder for folder, _, files in os.walk(root)
+                           for file_ in files
+                           if self._isNonTrivialPythonFile(file_))
         for package_dir in package_dirs:
-            dir = package_dir.replace("\\","/")
-            aa = self._make_package_name_from_path(root, dir)
+            dir_ = package_dir.replace("\\", "/")
+            aa = self._make_package_name_from_path(root, dir_)
             self.packages.append(aa)
 
     def load(self):
@@ -52,6 +57,7 @@ class Packages(object):
         for directory in self.directory_list:
             self._load_packages_in_tree(directory)
         return self.packages
+
 
 class data_file_dir(object):
     def __init__(self, home_dir, subfolderName, include_files):
@@ -64,25 +70,39 @@ class data_file_dir(object):
         for filename in os.listdir(os.path.normpath(self.home_dir)):
             filepath = self.home_dir + '/' + filename
             if os.path.isfile(filepath):
-                self.include_files.append((filepath, self.subfolderName+ '/' + filename))
+                self.include_files.append(
+                        (filepath, self.subfolderName + '/' + filename))
                 result.append(filepath)
         return result
 
+
 class NuxeoDriveAttributes(object):
 
-    def rubric_company(self): return 'nuxeo'
+    def rubric_company(self):
+        return 'nuxeo'
 
-    def rubric_top_dir(self): return 'nuxeo-drive'
-    def rubric_2nd_dir(self): return 'nuxeo-drive-client'
-    def rubric_3rd_dir(self): return 'nxdrive'
-    def rubric_super_dir(self): return ''
-    def rubric_product_name(self): return 'Nuxeo Drive'
+    def rubric_top_dir(self):
+        return 'nuxeo-drive'
 
-    def get_name(self): return self.rubric_top_dir()
+    def rubric_2nd_dir(self):
+        return 'nuxeo-drive-client'
+
+    def rubric_3rd_dir(self):
+        return 'nxdrive'
+
+    def rubric_super_dir(self):
+        return ''
+
+    def rubric_product_name(self):
+        return 'Nuxeo Drive'
+
+    def get_name(self):
+        return self.rubric_top_dir()
 
     def get_package_data(self):
         package_data = {
-                self.rubric_3rd_dir() + '.data.icons': ['*.png', '*.svg', '*.ico', '*.icns'],
+                self.rubric_3rd_dir() + '.data.icons': ['*.png', '*.svg',
+                                                        '*.ico', '*.icns'],
         }
         return package_data
 
@@ -95,7 +115,8 @@ class NuxeoDriveAttributes(object):
         return 'nuxeo-drive-client/scripts/ndrive'
 
     def get_icons_home(self):
-        return self.rubric_2nd_dir() + '/' + self.rubric_3rd_dir() + '/data/icons'
+        return (self.rubric_2nd_dir()
+                + '/' + self.rubric_3rd_dir() + '/data/icons')
 
     def get_alembic_home(self):
         return self.rubric_super_dir() + 'nuxeo-drive-client/alembic'
@@ -113,7 +134,8 @@ class NuxeoDriveAttributes(object):
         return 'nuxeo_drive_app_icon_128.icns'
 
     def get_init_file(self):
-        return os.path.abspath(self.rubric_2nd_dir() + '/' + self.rubric_3rd_dir() + '/__init__.py')
+        return os.path.abspath(self.rubric_2nd_dir()
+                               + '/' + self.rubric_3rd_dir() + '/__init__.py')
 
     def append_includes(self, includes):
         pass
@@ -126,7 +148,7 @@ class NuxeoDriveAttributes(object):
 
     def get_win_script(self):
         return "nuxeo-drive-client/scripts/ndrivew.pyw"
-    
+
     def get_app(self):
         return ["nuxeo-drive-client/scripts/ndrive.py"]
 
@@ -150,21 +172,22 @@ class NuxeoDriveAttributes(object):
 
     def get_CFBundleURLName(self):
         return 'Nuxeo Drive URL'
-    
+
     def get_description(self):
         return "Desktop synchronization client for Nuxeo."
-    
+
     def get_author(self):
         return "Nuxeo"
-    
+
     def get_author_email(self):
         return "contact@nuxeo.com"
-    
+
     def get_url(self):
         return 'http://github.com/nuxeo/nuxeo-drive'
-    
+
     def get_long_description(self):
         return open('README.rst').read()
+
 
 class NuxeoDriveSetup(object):
 
@@ -195,16 +218,19 @@ class NuxeoDriveSetup(object):
         # Files to include in frozen app: icons, alembic, alembic versions
         # build_exe freeze with cx_Freeze (Windows + Linux)
         include_files = []
-        # bdist_esky freeze with cx_Freeze (Windows + Linux) and py2app freeze (OS X)
+        # bdist_esky freeze with cx_Freeze (Windows + Linux) and py2app freeze
+        # (OS X)
         # In fact this is a global setup option
-        # TODO NXP-13810: check removed data_files from py2app and added to global
-        # setup
-        data_files = []
+        # TODO NXP-13810: check removed data_files from py2app and added to
+        # global setup
         icon_files = data_file_dir(icons_home, 'icons', include_files).load()
-        alembic_files = data_file_dir(alembic_home, 'alembic', include_files).load()
-        alembic_version_files = data_file_dir(alembic_versions_home, 'alembic/versions', include_files).load()
+        alembic_files = data_file_dir(
+                                alembic_home, 'alembic', include_files).load()
+        alembic_version_files = data_file_dir(
+                                alembic_versions_home,
+                                'alembic/versions', include_files).load()
 
-        data_files = data_files=[('icons', icon_files), ('alembic', alembic_files),
+        data_files = [('icons', icon_files), ('alembic', alembic_files),
                                  ('alembic/versions', alembic_version_files)]
 
         old_version = None
@@ -264,17 +290,21 @@ class NuxeoDriveSetup(object):
                 script_w = attribs.get_win_script()
                 if script_w is not None:
                     scripts.append(
-                        es_Executable(script_w, icon=icon, shortcutDir="ProgramMenuFolder",
+                        es_Executable(script_w, icon=icon,
+                                      shortcutDir="ProgramMenuFolder",
                                       shortcutName=attribs.shortcutName()))
-                # Windows GUI program that can be launched without a cmd console
+                # Windows GUI program that can be launched without a cmd
+                # console
                 executables.append(
-                    cx_Executable(script, targetName=attribs.targetName(), base="Win32GUI",
-                               icon=icon, shortcutDir="ProgramMenuFolder",
-                               shortcutName=attribs.shortcutName()))
+                    cx_Executable(script, targetName=attribs.targetName(),
+                                  base="Win32GUI", icon=icon,
+                                  shortcutDir="ProgramMenuFolder",
+                                  shortcutName=attribs.shortcutName()))
 
             # special handling for data files
             package_data = {}
-            esky_app_name = attribs.get_name() + '-' + version + '.' + get_platform()
+            esky_app_name = (attribs.get_name()
+                             + '-' + version + '.' + get_platform())
             esky_dist_dir = os.path.join("dist", esky_app_name)
             freeze_options = dict(
                 executables=executables,
@@ -304,7 +334,8 @@ class NuxeoDriveSetup(object):
                     },
                     "bdist_msi": {
                         "add_to_path": True,
-                        "upgrade_code": '{800B7778-1B71-11E2-9D65-A0FD6088709B}',
+                        "upgrade_code":
+                            '{800B7778-1B71-11E2-9D65-A0FD6088709B}',
                     },
                 },
             )
@@ -327,7 +358,8 @@ class NuxeoDriveSetup(object):
                     CFBundleURLTypes=[
                         dict(
                             CFBundleURLName=attribs.get_CFBundleURLName(),
-                            CFBundleURLSchemes=attribs.get_CFBundleURLSchemes(),
+                            CFBundleURLSchemes=(attribs
+                                                .get_CFBundleURLSchemes()),
                         )
                     ]
                 ),
