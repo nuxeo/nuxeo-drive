@@ -114,6 +114,10 @@ class CliHandler(object):
             help="HTTP request timeout in seconds for"
                 " the sync Automation calls.")
         common_parser.add_argument(
+            "--update-check-delay", default=DEFAULT_UPDATE_CHECK_DELAY,
+            type=int,
+            help="Delay in seconds between checks for application update.")
+        common_parser.add_argument(
             # XXX: Make it true by default as the fault tolerant
             #  mode is not yet implemented
             "--stop-on-error", default=self.default_stop_on_error,
