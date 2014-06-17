@@ -19,8 +19,8 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(guess_mime_type('picture.gif'), 'image/gif')
         self.assertEquals(guess_mime_type('picture.bmp'), 'image/x-ms-bmp')
         self.assertEquals(guess_mime_type('picture.tiff'), 'image/tiff')
-        self.assertEquals(guess_mime_type('picture.ico'),
-                          'image/x-icon')
+        self.assertIn(guess_mime_type('picture.ico'), ['image/x-icon',
+                                                'image/vnd.microsoft.icon'])
 
         # Audio
         self.assertEquals(guess_mime_type('sound.mp3'), 'audio/mpeg')
