@@ -841,10 +841,13 @@ class Synchronizer(object):
                             local_client, doc_pair, previous_local_path,
                             updated_info.path)
             doc_pair.update_state('synchronized', 'synchronized')
-        except (IOError, WindowsError):
-            log.debug("Delaying update for remotely modified "
-                "content %r due to concurrent file access.",
+        except (IOError, WindowsError) as e:
+            log.warning(
+                "Delaying local update of remotely modified content %r due to"
+                " concurrent file access (probably opened by another"
+                " process).",
                 doc_pair)
+            raise e
 
     def _is_remote_move(self, doc_pair, session):
         local_parent_pair = session.query(LastKnownState).filter_by(
@@ -976,15 +979,16 @@ class Synchronizer(object):
                                                 local_client)
             # XXX: shall we also delete all the subcontent / folder at
             # once in the metadata table?
-        except (IOError, WindowsError):
+        except (IOError, WindowsError) as e:
             # Under Windows deletion can be impossible while another
             # process is accessing the same file (e.g. word processor)
             # TODO: be more specific as detecting this case:
             # shall we restrict to the case e.errno == 13 ?
-            log.debug(
-                "Deletion of '%s' delayed due to concurrent"
-                "editing of this file by another process.",
-                doc_pair.get_local_abspath())
+            log.warning(
+                "Delaying local deletion of remotely deleted item %r due to"
+                " concurrent file access (probably opened by another"
+                " process).", doc_pair)
+            raise e
 
     def _synchronize_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
