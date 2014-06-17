@@ -1,5 +1,6 @@
 import os
 import time
+import sys
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -96,52 +97,62 @@ class TestIntegrationWindows(IntegrationTestCase):
 
         # Synchronize
         self._synchronize(syn)
-        # As local file are locked, a WindowsError should occur during the
-        # local update process, therefore:
-        # - Temporary download file (.part) should be created locally but not
-        #   renamed
-        # - Opened local files should still exist and not have been
-        #   modified
-        # - Synchronization should not fail: doc pairs should be blacklisted,
-        #   there should be 2 pending items and other remote modifications
-        #   should be locally synchronized
-        self.assertTrue(local.exists('/.test_update.docx.part'))
-        self.assertTrue(local.exists('/test_update.docx'))
-        self.assertEquals(local.get_content('/test_update.docx'),
-                          'Some content to update.')
-        self.assertTrue(local.exists('/test_delete.docx'))
-        self.assertEquals(local.get_content('/test_delete.docx'),
-                          'Some content to delete.')
-        self.assertEquals(len(ctl.list_pending()), 2)
-        self.assertTrue(local.exists('/other.docx'))
-        self.assertEquals(local.get_content('/other.docx'), 'Other content.')
+        if sys.platform == 'win32':
+            # As local file are locked, a WindowsError should occur during the
+            # local update process, therefore:
+            # - Temporary download file (.part) should be created locally but
+            #   not renamed
+            # - Opened local files should still exist and not have been
+            #   modified
+            # - Synchronization should not fail: doc pairs should be
+            #   blacklisted, there should be 2 pending items and other remote
+            #   modifications should be locally synchronized
+            self.assertTrue(local.exists('/.test_update.docx.part'))
+            self.assertTrue(local.exists('/test_update.docx'))
+            self.assertEquals(local.get_content('/test_update.docx'),
+                              'Some content to update.')
+            self.assertTrue(local.exists('/test_delete.docx'))
+            self.assertEquals(local.get_content('/test_delete.docx'),
+                              'Some content to delete.')
+            self.assertEquals(len(ctl.list_pending()), 2)
+            self.assertTrue(local.exists('/other.docx'))
+            self.assertEquals(local.get_content('/other.docx'),
+                              'Other content.')
 
-        # Synchronize again
-        syn.loop(delay=0.1, max_loops=1)
-        # Blacklisted files should be ignored as delay (300 seconds by default)
-        # is not expired, nothing should have changed
-        self.assertTrue(local.exists('/.test_update.docx.part'))
-        self.assertTrue(local.exists('/test_update.docx'))
-        self.assertEquals(local.get_content('/test_update.docx'),
-                          'Some content to update.')
-        self.assertTrue(local.exists('/test_delete.docx'))
-        self.assertEquals(local.get_content('/test_delete.docx'),
-                          'Some content to delete.')
-        self.assertEquals(len(ctl.list_pending()), 2)
+            # Synchronize again
+            syn.loop(delay=0.1, max_loops=1)
+            # Blacklisted files should be ignored as delay (300 seconds by
+            # default) is not expired, nothing should have changed
+            self.assertTrue(local.exists('/.test_update.docx.part'))
+            self.assertTrue(local.exists('/test_update.docx'))
+            self.assertEquals(local.get_content('/test_update.docx'),
+                              'Some content to update.')
+            self.assertTrue(local.exists('/test_delete.docx'))
+            self.assertEquals(local.get_content('/test_delete.docx'),
+                              'Some content to delete.')
+            self.assertEquals(len(ctl.list_pending()), 2)
 
-        # Release file locks by closing them
-        file1_desc.close()
-        file2_desc.close()
-        # Reduce error skip delay to retry synchronization of pairs in error
-        syn.error_skip_period = 1.0
-        time.sleep(syn.error_skip_period)
-        syn.loop(delay=0.1, max_loops=1)
-        # Previously blacklisted files should be updated / deleted locally,
-        # temporary download file should not be there anymore and there should
-        # be no pending items left
-        self.assertTrue(local.exists('/test_update.docx'))
-        self.assertEquals(local.get_content('/test_update.docx'),
-                          'Updated content.')
-        self.assertFalse(local.exists('/.test_update.docx.part'))
-        self.assertFalse(local.exists('/test_delete.docx'))
-        self.assertEquals(len(ctl.list_pending()), 0)
+            # Release file locks by closing them
+            file1_desc.close()
+            file2_desc.close()
+            # Reduce error skip delay to retry synchronization of pairs in
+            # error
+            syn.error_skip_period = 1.0
+            time.sleep(syn.error_skip_period)
+            syn.loop(delay=0.1, max_loops=1)
+            # Previously blacklisted files should be updated / deleted locally,
+            # temporary download file should not be there anymore and there
+            # should be no pending items left
+            self.assertTrue(local.exists('/test_update.docx'))
+            self.assertEquals(local.get_content('/test_update.docx'),
+                              'Updated content.')
+            self.assertFalse(local.exists('/.test_update.docx.part'))
+            self.assertFalse(local.exists('/test_delete.docx'))
+            self.assertEquals(len(ctl.list_pending()), 0)
+        else:
+            self.assertTrue(local.exists('/test_update.docx'))
+            self.assertEquals(local.get_content('/test_update.docx'),
+                              'Updated content.')
+            self.assertFalse(local.exists('/.test_update.docx.part'))
+            self.assertFalse(local.exists('/test_delete.docx'))
+            self.assertEquals(len(ctl.list_pending()), 0)
