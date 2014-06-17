@@ -314,6 +314,8 @@ class NuxeoDriveSetup(object):
                                       shortcutName=attribs.shortcutName()))
 
             # special handling for data files
+            packages.remove('nxdrive.data')
+            packages.remove('nxdrive.data.icons')
             package_data = {}
             esky_app_name = (attribs.get_name()
                              + '-' + version + '.' + get_platform())
