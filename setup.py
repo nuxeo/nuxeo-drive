@@ -335,6 +335,11 @@ class NuxeoDriveSetup(object):
                     "bdist_esky": {
                         "excludes": excludes,
                         "enable_appdata_dir": True,
+                        "freezer_options": {
+                            "packages": packages + [
+                                "nose",
+                            ],
+                        }
                     },
                     "install": {
                         "skip_sub_commands":
