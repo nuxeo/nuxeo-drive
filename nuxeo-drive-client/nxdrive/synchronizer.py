@@ -801,15 +801,12 @@ class Synchronizer(object):
                 is_move, new_parent_pair = self._is_remote_move(
                     doc_pair, session)
                 is_renaming = doc_pair.remote_name != doc_pair.local_name
-                has_filter = getattr(remote_client, "is_filtered", None)
-                if callable(has_filter):
-                    is_new_filtered = has_filter(doc_pair.remote_parent_path)
-                    if is_new_filtered:
-                        # A move to a filtered parent ( treat it as deletion )
-                        self._synchronize_remotely_deleted(doc_pair, session,
-                                                local_client, remote_client,
-                                                local_info, remote_info)
-                        return
+                if remote_client.is_filtered(doc_pair.remote_parent_path):
+                    # A move to a filtered parent ( treat it as deletion )
+                    self._synchronize_remotely_deleted(doc_pair, session,
+                                            local_client, remote_client,
+                                            local_info, remote_info)
+                    return
                 if not is_move and not is_renaming:
                     log.debug("No local impact of metadata update on"
                               " document '%s'.", remote_info.name)
@@ -926,6 +923,11 @@ class Synchronizer(object):
             raise ValueError(
                 "Parent folder of doc %r (%r) is not bound to a local"
                 " folder" % (name, doc_pair.remote_ref))
+        # Should add is_filtered to all RemoteClient to avoid duplication
+        path = doc_pair.remote_parent_path + '/' + doc_pair.remote_ref
+        if remote_client.is_filtered(path):
+            # It is filtered so skip
+            return
         local_parent_path = parent_pair.local_path
         if doc_pair.folderish:
             log.debug("Creating local folder '%s' in '%s'", name,

@@ -99,6 +99,9 @@ class RemoteFileSystemClient(BaseAutomationClient):
         children = self.execute("NuxeoDrive.GetChildren", id=fs_item_id)
         return [self.file_to_info(fs_item) for fs_item in children]
 
+    def is_filtered(self, path):
+        return False
+
     def make_folder(self, parent_id, name):
         fs_item = self.execute("NuxeoDrive.CreateFolder",
             parentId=parent_id, name=name)

@@ -168,3 +168,53 @@ class TestIntegrationLocalFilter(IntegrationTestCase):
         self.assertFalse(local.exists('/Test/Subfolder/joe3.txt'))
         self.assertFalse(local.exists('/Test/Subfolder/SubSubfolder'))
         self.assertFalse(local.exists('/Test/Subfolder/SubSubfolder/joe4.txt'))
+
+    def test_synchronize_local_filter_with_remote_trash(self):
+        # Bind the server and root workspace
+        ctl = self.controller_1
+        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+                        self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+
+        # Get local and remote clients
+        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
+                                         self.workspace_title))
+        remote = self.remote_document_client_1
+        session = ctl.get_session()
+
+        # Create documents in the remote root workspace
+        # then synchronize
+        remote.make_folder('/', 'Test')
+        remote.make_file('/Test', 'joe.txt', 'Some content')
+
+        syn = ctl.synchronizer
+        self._synchronize(syn)
+        self.assertTrue(local.exists('/Test'))
+        self.assertTrue(local.exists('/Test/joe.txt'))
+
+        # Add remote folder as filter then synchronize
+        doc = remote.get_info('/Test')
+        root_path = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#"
+        root_path = root_path + doc.root
+        doc_path = (root_path + "/defaultFileSystemItemFactory#default#"
+                    + doc.uid)
+        server_binding = ctl.get_server_binding(self.local_nxdrive_folder_1,
+                                                session=session)
+        Filter.add(session, server_binding, doc_path)
+        self._synchronize(syn)
+        self.assertFalse(local.exists('/Test'))
+
+        # Delete remote folder then synchronize
+        remote.delete('/Test')
+        self._synchronize(syn)
+        self.assertFalse(local.exists('/Test'))
+
+        # Restore folder from trash then synchronize
+        # Undeleting each item as following 'undelete' transition
+        # doesn't act recursively, should use TrashService instead
+        # through a dedicated operation
+        remote.undelete('/Test')
+        remote.undelete('/Test/joe.txt')
+        # NXDRIVE-xx check that the folder is not created as it is filtered
+        self._synchronize(syn)
+        self.assertFalse(local.exists('/Test'))
