@@ -15,6 +15,7 @@ from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
 from nxdrive.client.common import FILE_BUFFER_SIZE
+from send2trash import send2trash
 
 
 log = get_logger(__name__)
@@ -191,6 +192,10 @@ class LocalClient(object):
 
     def delete(self, ref):
         # TODO: add support the OS trash?
+        os_path = self._abspath(ref)
+        send2trash(os_path)
+
+    def delete_final(self, ref):
         os_path = self._abspath(ref)
         if os.path.isfile(os_path):
             os.unlink(os_path)
