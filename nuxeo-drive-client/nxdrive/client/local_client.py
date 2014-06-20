@@ -194,9 +194,28 @@ class LocalClient(object):
         os_path = self._abspath(ref)
         # Remove the \\?\ for SHFileOperation on win
         if os_path[:4] == '\\\\?\\':
-            os_path = os_path[4:]
+            # http://msdn.microsoft.com/en-us/library/cc249520.aspx
+            # SHFileOperation don't handle \\?\ paths
+            if len(os_path) > 260:
+                # Rename to the drive root
+                info = self.move(ref, '/')
+                new_ref = info.path
+                try:
+                    send2trash(self._abspath(new_ref)[4:])
+                except:
+                    log.info('Cant use trash for ' + os_path
+                                 + ', delete it')
+                    self.delete_final(new_ref)
+                return
+            else:
+                os_path = os_path[4:]
         log.info('Send ' + os_path + ' to trash')
-        send2trash(os_path)
+        try:
+            send2trash(os_path)
+        except:
+            log.info('Cant use trash for ' + os_path
+                                 + ', delete it')
+            self.delete_final(ref)
 
     def delete_final(self, ref):
         os_path = self._abspath(ref)
