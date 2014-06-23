@@ -31,6 +31,7 @@ from nxdrive.synchronizer import Synchronizer
 from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import ENCODING
+from nxdrive.utils import deprecated
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
 from nxdrive.utils import encrypt
@@ -281,13 +282,26 @@ class Controller(object):
             log.info("Fetched update info from server: %r", update_info)
             server_binding.server_version = update_info['serverVersion']
             server_binding.update_url = update_info['updateSiteURL']
-            # Fall back on default update site URL if needed
-            if server_binding.update_url is None:
-                log.debug("Server returned a null update site URL, falling"
-                          " back on default one: %s", DEFAULT_UPDATE_SITE_URL)
-                server_binding.update_url = DEFAULT_UPDATE_SITE_URL
         except Exception as e:
-            log.warning("Cannot get update info because of: %s", e)
+            log.warning("Cannot get update info from server because of: %s", e)
+
+        # Fall back on default server version if needed
+        if server_binding.server_version is None:
+            server_binding.server_version = self.get_default_server_version()
+            log.debug("Server version is null or not available, falling back"
+                      " on default one: %s", server_binding.server_version)
+        # Fall back on default update site URL if needed
+        if server_binding.update_url is None:
+            server_binding.update_url = self.get_default_update_site_url()
+            log.debug("Update site URL is null or not available, falling back"
+                      " on default one: %s", server_binding.update_url)
+
+    @deprecated
+    def get_default_server_version(self):
+        return None
+
+    def get_default_update_site_url(self):
+        return DEFAULT_UPDATE_SITE_URL
 
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""
