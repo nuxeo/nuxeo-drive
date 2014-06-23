@@ -4,5 +4,3 @@ from nxdrive.model import ServerBinding
 c = Controller('~/.nuxeo-drive')
 s = c.get_session()
 sb = s.query(ServerBinding).one()
-
-
