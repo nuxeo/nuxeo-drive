@@ -41,6 +41,7 @@ from nxdrive.migration import migrate_db
 log = get_logger(__name__)
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
+DEFAULT_UPDATE_SITE_URL = 'http://community.nuxeo.com/static/drive/'
 
 
 class MissingToken(Exception):
@@ -280,6 +281,11 @@ class Controller(object):
             log.info("Fetched update info from server: %r", update_info)
             server_binding.server_version = update_info['serverVersion']
             server_binding.update_url = update_info['updateSiteURL']
+            # Fall back on default update site URL if needed
+            if server_binding.update_url is None:
+                log.debug("Server returned a null update site URL, falling"
+                          " back on default one: %s", DEFAULT_UPDATE_SITE_URL)
+                server_binding.update_url = DEFAULT_UPDATE_SITE_URL
         except Exception as e:
             log.warning("Cannot get update info because of: %s", e)
 

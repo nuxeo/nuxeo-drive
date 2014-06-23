@@ -27,10 +27,7 @@ import argparse
 import re
 import zipfile
 import shutil
-import atexit
-import time
 import fnmatch
-import subprocess
 
 
 DEFAULT_BASE_FOLDER = 'nuxeo-drive-client'
@@ -40,7 +37,7 @@ DEFAULT_MARKETPLACE_PATTERN = MARKET_PLACE_PREFIX + r"\-\d\.\d.*?\.zip"
 DEFAULT_MARKETPLACE_FILENAME = MARKET_PLACE_PREFIX + '.zip'
 LINKS_PATTERN = r'\bhref="([^"]+)"'
 
-DEFAULT_SERVER_URL= "http://localhost:8080/nuxeo"
+DEFAULT_SERVER_URL = "http://localhost:8080/nuxeo"
 
 DEFAULT_MSI_FOLDER = 'dist'
 DEFAULT_LESSMSI_URL = "http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
@@ -207,8 +204,8 @@ def set_environment(server_url):
     os.environ['NXDRIVE_TEST_PASSWORD'] = "Administrator"
 
 
-def clean_pyc(dir):
-    for root, dirnames, filenames in os.walk(dir):
+def clean_pyc(dir_):
+    for root, dirnames, filenames in os.walk(dir_):
         if '.git' in dirnames:
             dirnames.remove('.git')
         for filename in fnmatch.filter(filenames, '*.pyc'):
@@ -223,11 +220,11 @@ def run_tests_from_msi(extracted_msi_folder, base_folder):
     execute(ndrive + " test -w " + base_folder + " --nologcapture")
 
 
-def clean_home_folder(dir=None):
-    dir = dir if dir is not None else NUXEO_DRIVE_HOME_FOLDER
-    if os.path.exists(dir):
-        print('Removing home folder before running tests: %s' % dir)
-        shutil.rmtree(dir)
+def clean_home_folder(dir_=None):
+    dir_ = dir_ if dir_ is not None else NUXEO_DRIVE_HOME_FOLDER
+    if os.path.exists(dir_):
+        print('Removing home folder before running tests: %s' % dir_)
+        shutil.rmtree(dir_)
 
 
 def run_tests_from_source(base_folder):
@@ -252,13 +249,13 @@ def download_package(url, pattern, target_folder, filename):
     download(final_url, filepath)
 
 
-def clean_download_dir(dir, pattern):
-    if os.path.exists(dir):
-        for f in os.listdir(dir):
+def clean_download_dir(dir_, pattern):
+    if os.path.exists(dir_):
+        for f in os.listdir(dir_):
             if re.search(pattern, f):
-                os.remove(os.path.join(dir, f))
+                os.remove(os.path.join(dir_, f))
     else:
-        os.makedirs(dir)
+        os.makedirs(dir_)
 
 
 if __name__ == "__main__":

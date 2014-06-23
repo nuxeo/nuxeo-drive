@@ -5,19 +5,24 @@ from random import choice
 from random import seed
 import string
 
+
 def random_word():
     return "".join([choice(string.lowercase)
-                    for i in range(choice(range(4, 10)))])
+                    for _ in range(choice(range(4, 10)))])
+
 
 def random_line(n_words=10):
-    return " ".join([random_word() for i in range(n_words)])
+    return " ".join([random_word() for _ in range(n_words)])
+
 
 def random_text(n_lines=30, n_words=10):
-    return "\n".join([random_line(n_words) for i in range(n_lines)])
+    return "\n".join([random_line(n_words) for _ in range(n_lines)])
+
 
 def make_folder_tree(n_folders=10, base_folder='.'):
 
-    for i, j, k in product(range(n_folders), range(n_folders), range(n_folders)):
+    for i, j, k in product(range(n_folders), range(n_folders),
+                           range(n_folders)):
         path = os.path.join(
             base_folder,
             "Folder %02d" % i,
@@ -27,7 +32,6 @@ def make_folder_tree(n_folders=10, base_folder='.'):
         if not os.path.exists(path):
             print("Creating folder: " + path)
             os.makedirs(path)
-
 
         path = os.path.join(
             base_folder,

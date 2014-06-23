@@ -172,6 +172,11 @@ class Application(QApplication):
             # build / update the application updater.
             update_url = sb.update_url
             server_version = sb.server_version
+            if update_url is None or server_version is None:
+                log.warning("Update site URL or server version unavailable,"
+                            " as a consequence update features won't be"
+                            " available")
+                return
             if self.updater is None:
                 # Build application updater if it doesn't exist
                 try:

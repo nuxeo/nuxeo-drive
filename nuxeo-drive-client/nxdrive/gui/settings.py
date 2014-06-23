@@ -50,7 +50,7 @@ LICENSE_LINK = (
 SOURCE_LINK = ('<a href ="http://github.com/nuxeo/nuxeo-drive">'
                'http://github.com/nuxeo/nuxeo-drive</a>')
 
-SETTINGS_DIALOG_WIDTH = 530
+SETTINGS_DIALOG_WIDTH = 630
 FILE_DIALOG_BUTTON_WIDTH = 50
 ACCOUNT_BOX_HEIGHT = 200
 DEFAULT_FIELD_WIDGET_WIDTH = 280
