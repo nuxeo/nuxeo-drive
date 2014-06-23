@@ -20,6 +20,10 @@ class FileInfo(object):
             parent.add_child(self)
         if checkstate is None and parent is not None:
             checkstate = parent.get_checkstate()
+        elif (parent is not None and parent.is_dirty()):
+            self.checkstate = parent.get_checkstate()
+            self.oldvalue = checkstate
+            return
         elif checkstate is None:
             checkstate = QtCore.Qt.Checked
         self.oldvalue = self.checkstate = checkstate
