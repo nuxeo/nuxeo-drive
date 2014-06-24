@@ -229,6 +229,9 @@ class Controller(object):
         # share cookies using threadsafe jar
         self.cookie_jar = CookieJar()
 
+    def trash_modified_file(self):
+        return False
+
     def get_session(self):
         """Reuse the thread local session for this controller
 

@@ -288,7 +288,8 @@ class Synchronizer(object):
 
         # Handle current pair state in the end
         file_or_folder = 'folder' if doc_pair.folderish else 'file'
-        if not locally_modified:
+        if not locally_modified or self._controller.trash_modified_file():
+            # We now use the trash feature so we delete in this case
             if not keep_root:
                 # Not modified since last synchronization, delete
                 # file/folder and its pair state
