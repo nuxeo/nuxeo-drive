@@ -741,6 +741,34 @@ class Controller(object):
         # Unregister the root on the server
         nxclient.unregister_as_root(remote_ref)
 
+    def get_max_errors(self):
+        return 3
+
+    def list_on_errors(self, limit=100, session=None):
+        if session is None:
+            session = self.get_session()
+
+        # Only consider pair states that are not synchronized
+        # and ignore unsynchronized ones
+        predicates = [LastKnownState.pair_state != 'synchronized',
+                      LastKnownState.pair_state != 'unsynchronized']
+        # Don't try to sync file that have too many error
+        predicates.append(LastKnownState.error_count >= self.get_max_errors())
+        return session.query(LastKnownState).filter(
+            *predicates
+        ).order_by(
+            # Ensure that newly created remote folders will be synchronized
+            # before their children while keeping a fixed named based
+            # deterministic ordering to make the tests readable
+            asc(LastKnownState.remote_parent_path),
+            asc(LastKnownState.remote_name),
+            asc(LastKnownState.remote_ref),
+
+            # Ensure that newly created local folders will be synchronized
+            # before their children
+            asc(LastKnownState.local_path)
+        ).limit(limit).all()
+
     def list_pending(self, limit=100, local_folder=None, ignore_in_error=None,
                      session=None):
         """List pending files to synchronize, ordered by path
@@ -758,6 +786,8 @@ class Controller(object):
         # and ignore unsynchronized ones
         predicates = [LastKnownState.pair_state != 'synchronized',
                       LastKnownState.pair_state != 'unsynchronized']
+        # Don't try to sync file that have too many error
+        predicates.append(LastKnownState.error_count < self.get_max_errors())
         if local_folder is not None:
             predicates.append(LastKnownState.local_folder == local_folder)
 
