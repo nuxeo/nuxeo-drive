@@ -2,11 +2,15 @@ import os
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
+from nose.plugins.skip import SkipTest
 
 
 class TestIntegrationRemoteDeletion(IntegrationTestCase):
 
     def test_synchronize_remote_deletion(self):
+        raise SkipTest("Skipped for the moment as it generates too much"
+                       " error logs")
+
         """Test that deleting remote root document while uploading is handled
 
         See https://jira.nuxeo.com/browse/NXDRIVE-39
@@ -28,7 +32,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
 
         syn = ctl.synchronizer
         self._synchronize(syn)
-        # Create documents in the remote root workspace
+        # Create documents in the local root workspace
         # then synchronize
         local.make_folder('/', 'Test folder')
         i = 0
