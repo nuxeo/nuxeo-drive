@@ -1,9 +1,7 @@
 import os
-import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
-from nxdrive.model import LastKnownState
 
 
 class TestIntegrationRemoteDeletion(IntegrationTestCase):
@@ -11,7 +9,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
     def test_synchronize_remote_deletion(self):
         """Test that deleting remote root document while uploading is handled
 
-        SUPNXP-10436
+        See https://jira.nuxeo.com/browse/NXDRIVE-39
         See TestIntegrationSecurityUpdates.test_synchronize_denying_read_access
         as the same uses cases are tested
         """
