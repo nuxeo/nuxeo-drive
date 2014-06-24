@@ -179,7 +179,7 @@ class Controller(object):
 
     def __init__(self, config_folder, echo=False, echo_pool=False,
                  poolclass=None, handshake_timeout=60, timeout=20,
-                 page_size=None):
+                 page_size=None, max_errors=3):
         # Log the installation location for debug
         nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
         nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
@@ -196,6 +196,7 @@ class Controller(object):
             echo = os.environ.get('NX_DRIVE_LOG_SQL', None) is not None
         self.handshake_timeout = handshake_timeout
         self.timeout = timeout
+        self.max_errors = max_errors
 
         # Handle connection to the local Nuxeo Drive configuration and
         # metadata SQLite database.
@@ -742,7 +743,7 @@ class Controller(object):
         nxclient.unregister_as_root(remote_ref)
 
     def get_max_errors(self):
-        return 3
+        return self.max_errors
 
     def list_on_errors(self, limit=100, session=None):
         if session is None:
