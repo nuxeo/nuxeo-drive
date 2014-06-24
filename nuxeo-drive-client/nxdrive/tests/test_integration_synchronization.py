@@ -9,7 +9,7 @@ from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.model import LastKnownState
 from nxdrive.controller import Controller
-from nxdrive.client.remote_test_client import RemoteTestClient
+from nxdrive.tests import RemoteTestClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 
 
