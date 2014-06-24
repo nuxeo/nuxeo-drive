@@ -9,6 +9,8 @@ from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.model import LastKnownState
 from nxdrive.controller import Controller
+from nxdrive.tests import RemoteTestClient
+from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 
 
 class TestIntegrationSynchronization(IntegrationTestCase):
@@ -505,6 +507,80 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             (u'Folder 2', u'synchronized'),
             (u'Folder 3', u'synchronized'),
         ])
+
+    def test_synchronization_give_up(self):
+        ctl = self.controller_1
+
+        # Override to only 2 errors
+        ctl.get_max_errors = lambda: 2
+        ctl.bind_server(self.local_nxdrive_folder_1,
+                            self.nuxeo_url, self.user_1, self.password_1)
+        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+        syn = ctl.synchronizer
+        syn.error_skip_period = 1
+        expected_folder = os.path.join(self.local_nxdrive_folder_1,
+                                       self.workspace_title)
+
+        # Bound root but nothing is synced yet
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(syn.synchronize(), 0)
+
+        # Perform first scan and sync
+        syn.loop(delay=1, max_loops=2)
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(syn.synchronize(), 0)
+
+        # Let's create some document on the client and the server
+        local = LocalClient(expected_folder)
+        local.make_folder('/', 'Folder 3')
+        self.make_server_tree()
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
+
+        ctl.remote_filtered_fs_client_factory = RemoteTestClient
+        ctl.invalidate_client_cache()
+        # First check that socket error doesnt count
+        ctl.make_remote_raise(socket.error('Test error'))
+        syn.loop(delay=1, max_loops=2)
+        self.assertEquals(len(ctl.list_on_errors()), 0)
+
+        # Find various ways to simulate a network or server failure
+        error = httplib.HTTPException('Test error')
+        error.code = 500
+        ctl.make_remote_raise(error)
+
+        # Synchronization does not occur but does not fail either
+        syn.loop(delay=1, max_loops=3)
+
+        # All is synchronized
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(len(ctl.list_on_errors()), 7)
+
+        # Increase the max number of errors
+        ctl.get_max_errors = lambda: 3
+        self.assertEquals(len(ctl.list_pending()), 7)
+        self.assertEquals(len(ctl.list_on_errors()), 0)
+
+        # Synchronization does not occur but does not fail either
+        syn.loop(delay=1, max_loops=2)
+
+        # Everything should be on errors again
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(len(ctl.list_on_errors()), 7)
+
+        # Remove faulty client
+        ctl.make_remote_raise(None)
+        ctl.remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
+        ctl.invalidate_client_cache()
+
+        for doc_pair in ctl.list_on_errors():
+            doc_pair.error_count = 0
+        # Verify that we will sync now
+        self.assertEquals(len(ctl.list_pending()), 7)
+        syn.loop(delay=0, max_loops=3)
+        # Everything should be ok now
+        self.assertEquals(ctl.list_pending(), [])
+        self.assertEquals(len(ctl.list_on_errors()), 0)
 
     def test_synchronization_offline(self):
         ctl = self.controller_1

@@ -180,7 +180,7 @@ class Controller(object):
 
     def __init__(self, config_folder, echo=False, echo_pool=False,
                  poolclass=None, handshake_timeout=60, timeout=20,
-                 page_size=None):
+                 page_size=None, max_errors=3):
         # Log the installation location for debug
         nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
         nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
@@ -197,6 +197,7 @@ class Controller(object):
             echo = os.environ.get('NX_DRIVE_LOG_SQL', None) is not None
         self.handshake_timeout = handshake_timeout
         self.timeout = timeout
+        self.max_errors = max_errors
 
         # Handle connection to the local Nuxeo Drive configuration and
         # metadata SQLite database.
@@ -229,6 +230,9 @@ class Controller(object):
         # Make all the automation client related to this controller
         # share cookies using threadsafe jar
         self.cookie_jar = CookieJar()
+
+    def trash_modified_file(self):
+        return False
 
     def get_session(self):
         """Reuse the thread local session for this controller
@@ -752,6 +756,34 @@ class Controller(object):
         # Unregister the root on the server
         nxclient.unregister_as_root(remote_ref)
 
+    def get_max_errors(self):
+        return self.max_errors
+
+    def list_on_errors(self, limit=100, session=None):
+        if session is None:
+            session = self.get_session()
+
+        # Only consider pair states that are not synchronized
+        # and ignore unsynchronized ones
+        predicates = [LastKnownState.pair_state != 'synchronized',
+                      LastKnownState.pair_state != 'unsynchronized']
+        # Don't try to sync file that have too many error
+        predicates.append(LastKnownState.error_count >= self.get_max_errors())
+        return session.query(LastKnownState).filter(
+            *predicates
+        ).order_by(
+            # Ensure that newly created remote folders will be synchronized
+            # before their children while keeping a fixed named based
+            # deterministic ordering to make the tests readable
+            asc(LastKnownState.remote_parent_path),
+            asc(LastKnownState.remote_name),
+            asc(LastKnownState.remote_ref),
+
+            # Ensure that newly created local folders will be synchronized
+            # before their children
+            asc(LastKnownState.local_path)
+        ).limit(limit).all()
+
     def list_pending(self, limit=100, local_folder=None, ignore_in_error=None,
                      session=None):
         """List pending files to synchronize, ordered by path
@@ -769,6 +801,8 @@ class Controller(object):
         # and ignore unsynchronized ones
         predicates = [LastKnownState.pair_state != 'synchronized',
                       LastKnownState.pair_state != 'unsynchronized']
+        # Don't try to sync file that have too many error
+        predicates.append(LastKnownState.error_count < self.get_max_errors())
         if local_folder is not None:
             predicates.append(LastKnownState.local_folder == local_folder)
 

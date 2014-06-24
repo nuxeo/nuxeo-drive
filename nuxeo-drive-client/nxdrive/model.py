@@ -210,6 +210,7 @@ class LastKnownState(Base):
     remote_can_delete = Column(Integer)
     remote_can_update = Column(Integer)
     remote_can_create_child = Column(Integer)
+    error_count = Column(Integer, default=0)
 
     # Last sync date
     last_sync_date = Column(DateTime)
@@ -236,6 +237,8 @@ class LastKnownState(Base):
             self.update_remote(remote_info)
 
         self.update_state(local_state=local_state, remote_state=remote_state)
+
+        self.error_count = 0
 
     def update_state(self, local_state=None, remote_state=None):
         if local_state is not None and self.local_state != local_state:
@@ -273,11 +276,11 @@ class LastKnownState(Base):
     def __repr__(self):
         return ("LastKnownState<local_folder=%r, local_path=%r, "
                 "remote_name=%r, local_state=%r, remote_state=%r, "
-                "pair_state=%r>") % (
+                "pair_state=%r, error_count=%d>") % (
                     os.path.basename(self.local_folder),
                     self.local_path, self.remote_name,
                     self.local_state, self.remote_state,
-                    self.pair_state)
+                    self.pair_state, self.error_count)
 
     @staticmethod
     def select_remote_refs(session, refs, page_size):

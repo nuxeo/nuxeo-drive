@@ -288,7 +288,8 @@ class Synchronizer(object):
 
         # Handle current pair state in the end
         file_or_folder = 'folder' if doc_pair.folderish else 'file'
-        if not locally_modified:
+        if not locally_modified or self._controller.trash_modified_file():
+            # We now use the trash feature so we delete in this case
             if not keep_root:
                 # Not modified since last synchronization, delete
                 # file/folder and its pair state
@@ -308,7 +309,6 @@ class Synchronizer(object):
             # as unsynchronized
             doc_pair.pair_state = 'unsynchronized'
             doc_pair.remote_state = 'unknown'
-
         return locally_modified
 
     def _mark_descendant_states_remotely_created(self, session, doc_pair,
@@ -762,6 +762,8 @@ class Synchronizer(object):
 
         # Update last synchronization date
         doc_pair.update_last_sync_date()
+        # Reset the error counter
+        doc_pair.error_count = 0
 
         # Ensure that concurrent process can monitor the synchronization
         # progress
@@ -926,10 +928,10 @@ class Synchronizer(object):
             raise ValueError(
                 "Parent folder of doc %r (%r) is not bound to a local"
                 " folder" % (name, doc_pair.remote_ref))
-        # Should add is_filtered to all RemoteClient to avoid duplication
         path = doc_pair.remote_parent_path + '/' + doc_pair.remote_ref
         if remote_client.is_filtered(path):
-            # It is filtered so skip
+            # It is filtered so skip and remove from the LastKnownState
+            session.delete(doc_pair)
             return
         local_parent_path = parent_pair.local_path
         if doc_pair.folderish:
@@ -1286,6 +1288,7 @@ class Synchronizer(object):
                               "for %d seconds",
                         pair_state, self.error_skip_period, exc_info=True)
                     pair_state.last_sync_error_date = datetime.utcnow()
+                    pair_state.error_count += 1
                     session.commit()
                 else:
                     # This is expected and should interrupt the sync process
@@ -1300,6 +1303,7 @@ class Synchronizer(object):
                           "for %d seconds",
                     pair_state, self.error_skip_period, exc_info=True)
                 pair_state.last_sync_error_date = datetime.utcnow()
+                pair_state.error_count += 1
                 session.commit()
 
         return synchronized

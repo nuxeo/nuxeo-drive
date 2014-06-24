@@ -29,6 +29,7 @@ DEFAULT_MAX_SYNC_STEP = 10
 DEFAULT_HANDSHAKE_TIMEOUT = 60
 DEFAULT_TIMEOUT = 20
 DEFAULT_UPDATE_CHECK_DELAY = 3600
+DEFAULT_MAX_ERRORS = 3
 USAGE = """ndrive [command]
 
 If no command is provided, the graphical application is started along with a
@@ -66,6 +67,7 @@ class CliHandler(object):
         self.default_handshake_timeout = DEFAULT_HANDSHAKE_TIMEOUT
         self.default_timeout = DEFAULT_TIMEOUT
         self.default_stop_on_error = True
+        self.default_max_errors = DEFAULT_MAX_ERRORS
 
     def make_cli_parser(self, add_subparsers=True):
         """Parse commandline arguments using a git-like subcommands scheme"""
@@ -124,6 +126,10 @@ class CliHandler(object):
             action="store_true",
             help="Stop the process on first unexpected error."
             "Useful for developers and Continuous Integration.")
+        common_parser.add_argument(
+            "--max-errors", default=self.default_max_errors, type=int,
+            help="Maximum number of tries before giving up synchronization of"
+            " a file in error.")
         common_parser.add_argument(
             "-v", "--version", action="version", version=__version__,
             help="Print the current version of the Nuxeo Drive client."
@@ -322,7 +328,8 @@ class CliHandler(object):
     def get_controller(self, options):
         return Controller(options.nxdrive_home,
                             handshake_timeout=options.handshake_timeout,
-                            timeout=options.timeout)
+                            timeout=options.timeout,
+                            max_errors=options.max_errors)
 
     def handle(self, argv):
         """Parse options, setup logs and controller and dispatch execution."""
@@ -491,6 +498,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_permission_hierarchy",
             "nxdrive.tests.test_integration_reinit_database",
             "nxdrive.tests.test_integration_remote_changes",
+            "nxdrive.tests.test_integration_remote_deleted_parent",
             "nxdrive.tests.test_integration_remote_deletion",
             "nxdrive.tests.test_integration_remote_document_client",
             "nxdrive.tests.test_integration_remote_file_system_client",
@@ -498,8 +506,8 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_security_updates",
             "nxdrive.tests.test_integration_synchronization",
             "nxdrive.tests.test_integration_versioning",
-            "nxdrive.tests.test_model_filters",
             "nxdrive.tests.test_integration_windows",
+            "nxdrive.tests.test_model_filters",
             "nxdrive.tests.test_synchronizer",
             "nxdrive.tests.test_updater",
             "nxdrive.tests.test_utils",
