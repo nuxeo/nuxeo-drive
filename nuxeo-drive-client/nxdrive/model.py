@@ -238,6 +238,8 @@ class LastKnownState(Base):
 
         self.update_state(local_state=local_state, remote_state=remote_state)
 
+        self.error_count = 0
+
     def update_state(self, local_state=None, remote_state=None):
         if local_state is not None and self.local_state != local_state:
             self.local_state = local_state
