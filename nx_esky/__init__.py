@@ -33,7 +33,7 @@ class bdist_esky(e_bdist_esky):
         if self.pre_zip_callback is not None:
             self.pre_zip_callback(self)
         # Only create zip file from esky freeze if option is passed
-        if self.create_zipfile:
+        if self.create_zipfile and self.create_zipfile != 'False':
             self._run_create_zipfile()
 
     def _run_create_zipfile(self):
@@ -48,7 +48,8 @@ class bdist_esky(e_bdist_esky):
         else:
             create_zipfile(self.bootstrap_dir, zfname, compress=True)
         # Only remove bootstrap dir if option is passed
-        if self.rm_freeze_dir_after_zipping:
+        if (self.rm_freeze_dir_after_zipping
+            and self.rm_freeze_dir_after_zipping != 'False'):
             really_rmtree(self.bootstrap_dir)
 
 # Monkey-patch distutils to override bdist_esky command included in
