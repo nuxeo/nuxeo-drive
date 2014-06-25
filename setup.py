@@ -11,6 +11,8 @@ import nx_esky
 from esky.bdist_esky import Executable as es_Executable
 
 OUTPUT_DIR = 'dist'
+SERVER_MIN_VERSION = '5.6'
+
 
 def read_version(init_file):
     with open(init_file, 'rb') as f:
@@ -20,6 +22,14 @@ def read_version(init_file):
 def update_version(init_file, version):
     with open(init_file, 'wb') as f:
         f.write("__version__ = '%s'\n" % version)
+
+
+def create_json_metadata(client_version, server_version):
+    file_path = os.path.abspath(os.path.join(OUTPUT_DIR,
+                                             client_version + '.json'))
+    with open(file_path, 'wb') as f:
+        f.write('{"nuxeoPlatformMinVersion": "%s"}\n' % server_version)
+    return file_path
 
 
 class Packages(object):
@@ -267,6 +277,10 @@ class NuxeoDriveSetup(object):
                 timestamp[4:8]))
             update_version(init_file, version)
             print "Updated version to " + version
+
+            # Create JSON metadata file for the frozen application
+            json_file = create_json_metadata(version, SERVER_MIN_VERSION)
+            print "Created JSON metadata file for frozen app: " + json_file
 
         includes = [
             "PyQt4",
