@@ -25,6 +25,11 @@ def update_version(init_file, version):
 
 
 def create_json_metadata(client_version, server_version):
+
+    output_dir = os.path.abspath(OUTPUT_DIR)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     file_path = os.path.abspath(os.path.join(OUTPUT_DIR,
                                              client_version + '.json'))
     with open(file_path, 'wb') as f:
