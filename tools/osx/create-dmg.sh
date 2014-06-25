@@ -49,3 +49,8 @@ hdiutil convert "${DMG_TEMP}" -format UDZO -imagekey zlib-level=9 -o "${DMG_PATH
 
 # Clean tmp directories
 rm -rf "$SRC_FOLDER_TEMP" "$DMG_TEMP"
+
+# Zip application bundle to make it available as an update package
+echo "Zipping application bundle to make it available as an update"
+zip -r "$OUTPUT_DIR/$FROZEN_APP.zip" "$PACKAGE_PATH"
+
