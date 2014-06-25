@@ -341,7 +341,8 @@ class NuxeoDriveSetup(object):
                             "packages": packages + [
                                 "nose",
                             ],
-                        }
+                        },
+                        "rm_freeze_dir_after_zipping": False,
                     },
                     "install": {
                         "skip_sub_commands":
@@ -391,6 +392,7 @@ class NuxeoDriveSetup(object):
                     py2app=py2app_options,
                     bdist_esky=dict(
                         enable_appdata_dir=True,
+                        create_zipfile=False,
                         freezer_options=py2app_options,
                     )
                 )
