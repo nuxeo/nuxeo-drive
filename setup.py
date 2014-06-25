@@ -341,7 +341,8 @@ class NuxeoDriveSetup(object):
                             "packages": packages + [
                                 "nose",
                             ],
-                        }
+                        },
+                        "rm_freeze_dir_after_zipping": False,
                     },
                     "install": {
                         "skip_sub_commands":

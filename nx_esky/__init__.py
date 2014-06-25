@@ -22,7 +22,7 @@ class bdist_esky(e_bdist_esky):
 
     def initialize_options(self):
         e_bdist_esky.initialize_options(self)
-        self.create_zipfile = False
+        self.create_zipfile = True
         self.rm_freeze_dir_after_zipping = True
 
     def _run(self):
