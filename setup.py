@@ -10,6 +10,7 @@ from datetime import datetime
 import nx_esky
 from esky.bdist_esky import Executable as es_Executable
 
+OUTPUT_DIR = 'dist'
 
 def read_version(init_file):
     with open(init_file, 'rb') as f:
@@ -319,7 +320,7 @@ class NuxeoDriveSetup(object):
             package_data = {}
             esky_app_name = (attribs.get_name()
                              + '-' + version + '.' + get_platform())
-            esky_dist_dir = os.path.join("dist", esky_app_name)
+            esky_dist_dir = os.path.join(OUTPUT_DIR, esky_app_name)
             freeze_options = dict(
                 executables=executables,
                 options={
