@@ -49,6 +49,7 @@ The `device_config` table of the SQLite database needs a unique id as a primary 
             proxy_username VARCHAR,
             proxy_password BLOB,
             proxy_exceptions VARCHAR,
+            auto_update BOOLEAN,
             PRIMARY KEY (device_id),
             CHECK (proxy_authenticated IN (0, 1))
         );
@@ -59,7 +60,10 @@ The `device_config` table of the SQLite database needs a unique id as a primary 
             remote_user VARCHAR,
             remote_password VARCHAR,
             remote_token VARCHAR,
+            server_version VARCHAR,
+            update_url VARCHAR,
             last_sync_date INTEGER,
+            last_filter_date INTEGER,
             last_ended_sync_date INTEGER,
             last_root_definitions VARCHAR,
             PRIMARY KEY (local_folder)
@@ -69,7 +73,7 @@ The `device_config` table of the SQLite database needs a unique id as a primary 
 
     Use the previously generated id for the `device_id` column, and set your proxy settings as in the example below.
 
-        INSERT INTO device_config (device_id, proxy_config, proxy_type, proxy_server, proxy_port, proxy_authenticated) VALUES ('1bd6686882c111e391a6c8f733c9742b', 'Manual', 'http', '10.218.9.82', '80', 0);
+        INSERT INTO device_config (device_id, proxy_config, proxy_type, proxy_server, proxy_port, proxy_authenticated, auto_update) VALUES ('1bd6686882c111e391a6c8f733c9742b', 'Manual', 'http', '10.218.9.82', '80', 0, 0);
 
 4. Insert a row in `server_bindings`
 
