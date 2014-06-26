@@ -77,6 +77,7 @@ PROXY_TYPE_AUTO = 'System'
 PROXY_TYPE_MANUAL = 'Manual'
 PROXY_TYPE_NONE = 'None'
 
+
 class DeviceConfig(Base):
     """Holds Nuxeo Drive configuration parameters
 
