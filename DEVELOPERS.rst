@@ -129,6 +129,22 @@ You also need to install:
   http://sourceforge.net/projects/pywin32/files/pywin32/Build%20218/pywin32-218.win32-py2.7.exe/download
 
 
+Debian package
+--------------
+
+**Prerequisite**: install the following Debian packages::
+
+  sudo apt-get install dpkg-dev devscripts debhelper cdbs
+
+To build the Nuxeo Drive Debian package run::
+
+  virtualenv ENV
+  . ENV/bin/activate
+  pip install -r requirements.txt
+  mvn clean package -f pom-debian.xml
+  deactivate
+
+
 Installing Qt and PyQt
 ----------------------
 
