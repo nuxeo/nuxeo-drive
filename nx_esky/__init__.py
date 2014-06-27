@@ -1,7 +1,13 @@
 """esky extension
 
-Extends the 'bdist_esky' command with the 'create-zipfile' option to allow not
-creating a zip file of the esky freeze.
+Extends the 'bdist_esky' command with:
+
+- the 'create-zipfile' option to allow not creating a zip file of the
+esky freeze.
+
+- the 'rm-freeze-dir-after-zipping' option to allow not removing the esky
+freeze directory after zipping it if 'create-zipfile' is True.
+
 """
 
 import sys
