@@ -30,14 +30,14 @@ The packages will be installed in `ENV/lib/python2.7/site-packages`.
 
 Run `cx_Freeze`:
 
-    python setup.py build_exe --dev --freeze
+    python setup.py --dev --freeze build_exe
 
 ### OS X
 
 Install and run `py2app`:
 
     sudo pip install py2app
-    python setup.py py2app --dev
+    python setup.py --dev py2app
 
 ## Esky freeze
 
@@ -47,11 +47,15 @@ Install and run `py2app`:
 
 Run `esky`:
 
-    python setup.py bdist_esky --dev --freeze
+    python setup.py --dev --freeze bdist_esky
 
 ### OS X
 
-TODO
+Install `py2app` and run `bdist_esky`:
+
+    sudo pip install py2app
+    python setup.py --dev bdist_esky
+
 ### Linux
 
 Run `esky`:
