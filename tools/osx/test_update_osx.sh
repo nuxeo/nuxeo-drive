@@ -66,5 +66,5 @@ cp -r "$UPDATE_SITE/$BUNDLE_APP" $INSTALL_DIR
 
 # Launch installed frozen application
 echo "Launching frozen application: $INSTALL_DIR/$EXECUTABLE"
-"$INSTALL_DIR/$EXECUTABLE" --log-level-console=DEBUG
+"$INSTALL_DIR/$EXECUTABLE" --log-level-console=DEBUG --update-check-delay=3
 
