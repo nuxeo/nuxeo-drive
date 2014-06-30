@@ -18,15 +18,15 @@ See [latest documentation](https://virtualenv.pypa.io/en/latest/).
 
 ### Installing requirements with pip
 
-To satisfy `cx_Freeze`, the following options are needed:
+Just run:
 
-    pip install -r requirements.txt --allow-external cx_Freeze --allow-unverified cx_Freeze
+    pip install -r requirements.txt
 
 The packages will be installed in `ENV/lib/python2.7/site-packages`.
 
 ## Regular application freeze
 
-### Windows / Linux
+### Windows
 
 Run `cx_Freeze`:
 
@@ -43,7 +43,7 @@ Install and run `py2app`:
 
 [Esky](https://pypi.python.org/pypi/esky) is a framework that allows a frozen application to update itself.
 
-### Windows / Linux
+### Windows
 
 Run `esky`:
 
@@ -52,6 +52,11 @@ Run `esky`:
 ### OS X
 
 TODO
+### Linux
+
+Run `esky`:
+
+    python setup.py --dev bdist_esky
 
 ### Notes about bdist_esky options (vs cx_Freeze)
 

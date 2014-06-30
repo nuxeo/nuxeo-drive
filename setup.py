@@ -242,10 +242,9 @@ class NuxeoDriveSetup(object):
             icon = png_icon
 
         # Files to include in frozen app: icons, alembic, alembic versions
-        # build_exe freeze with cx_Freeze (Windows + Linux)
+        # build_exe freeze with cx_Freeze (Windows)
         include_files = []
-        # bdist_esky freeze with cx_Freeze (Windows + Linux) and py2app freeze
-        # (OS X)
+        # bdist_esky freeze with cx_Freeze (Windows) and py2app (OS X)
         # In fact this is a global setup option
         # TODO NXP-13810: check removed data_files from py2app and added to
         # global setup
