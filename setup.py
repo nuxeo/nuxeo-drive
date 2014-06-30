@@ -128,7 +128,7 @@ class NuxeoDriveAttributes(object):
         return package_dirs
 
     def get_script(self):
-        return os.path.join(self.rubric_2nd_dir(), 'scripts', 'ndrive.py')
+        return os.path.join(self.rubric_2nd_dir(), 'scripts', 'ndrive')
 
     def get_scripts(self):
         return [es_Executable(self.get_script())]
