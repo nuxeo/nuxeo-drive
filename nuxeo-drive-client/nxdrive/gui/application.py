@@ -410,6 +410,9 @@ class Application(QApplication):
         else:
             self.communicator.icon.emit('disabled')
 
+    def notify_change(self, doc_pair, old_state):
+        pass
+
     def notify_local_folders(self, server_bindings):
         """Cleanup unbound server bindings if any"""
         local_folders = [sb.local_folder for sb in server_bindings]

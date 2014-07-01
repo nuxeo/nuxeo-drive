@@ -750,6 +750,7 @@ class Synchronizer(object):
             # processes as file transfer can take a long time
             session.commit()
 
+        old_state = doc_pair.pair_state
         handler_name = '_synchronize_' + doc_pair.pair_state
         sync_handler = getattr(self, handler_name, None)
 
@@ -769,6 +770,9 @@ class Synchronizer(object):
         # progress
         if len(session.dirty) != 0 or len(session.deleted) != 0:
             session.commit()
+
+        if self._frontend is not None:
+                self._frontend.notify_change(doc_pair, old_state)
 
     def _synchronize_locally_modified(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
