@@ -1429,6 +1429,7 @@ class Synchronizer(object):
                     session.commit()
 
                 except SyncThreadSuspended as e:
+                    session.rollback()
                     self._suspend_sync_thread(e)
 
                 # Check for application update
