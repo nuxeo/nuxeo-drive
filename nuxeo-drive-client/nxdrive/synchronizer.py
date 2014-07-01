@@ -775,7 +775,15 @@ class Synchronizer(object):
         self._controller.update_recently_modified(doc_pair)
 
         if self._frontend is not None:
-                self._frontend.notify_change(doc_pair, old_state)
+            try:
+                # Try to refresh object if possible
+                # Deletion will throw except
+                session.add(doc_pair)
+                session.refresh(doc_pair)
+                session.expunge(doc_pair)
+            except:
+                pass
+            self._frontend.notify_change(doc_pair, old_state)
 
     def _synchronize_locally_modified(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):

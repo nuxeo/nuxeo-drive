@@ -49,6 +49,7 @@ class Communicator(QObject):
     icon = QtCore.pyqtSignal(str)
     menu = QtCore.pyqtSignal()
     stop = QtCore.pyqtSignal()
+    change = QtCore.pyqtSignal(object,str)
     invalid_credentials = QtCore.pyqtSignal(str)
     update_check = QtCore.pyqtSignal()
 
@@ -108,6 +109,7 @@ class Application(QApplication):
         self.communicator = Communicator()
         self.communicator.icon.connect(self.set_icon_state)
         self.communicator.stop.connect(self.handle_stop)
+        self.communicator.change.connect(self.handle_change)
         self.communicator.invalid_credentials.connect(
             self.handle_invalid_credentials)
         self.communicator.update_check.connect(
@@ -411,6 +413,9 @@ class Application(QApplication):
             self.communicator.icon.emit('disabled')
 
     def notify_change(self, doc_pair, old_state):
+        self.communicator.change.emit(doc_pair, old_state)
+
+    def handle_change(self, doc_pair, old_state):
         pass
 
     def notify_local_folders(self, server_bindings):
