@@ -7,12 +7,14 @@ from threading import local
 import subprocess
 from datetime import datetime
 from datetime import timedelta
+from collections import deque
 import calendar
 
 from cookielib import CookieJar
 
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import asc
+from sqlalchemy import desc
 from sqlalchemy import or_
 
 import nxdrive
@@ -43,6 +45,7 @@ log = get_logger(__name__)
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 DEFAULT_UPDATE_SITE_URL = 'http://community.nuxeo.com/static/drive/'
+DEFAULT_NUMBER_RECENTLY_MODIFIED = 5
 
 
 class MissingToken(Exception):
@@ -224,6 +227,9 @@ class Controller(object):
         self.proxies = None
         self.proxy_exceptions = None
         self.refresh_proxies(device_config=device_config)
+
+        # Recently modified items for each server binding
+        self.recently_modified = {}
 
         self.synchronizer = Synchronizer(self, page_size=page_size)
 
@@ -832,6 +838,45 @@ class Controller(object):
         pending = self.list_pending(limit=1, local_folder=local_folder,
                                     session=session)
         return pending[0] if len(pending) > 0 else None
+
+    def init_recently_modified(self):
+        server_bindings = self.list_server_bindings()
+        if server_bindings:
+            for sb in server_bindings:
+                self.recently_modified[sb.local_folder] = deque(
+                    self.list_recently_modified(sb.local_folder))
+                log.info("Initialized list of recently modified items"
+                         " in %s: %r", sb.local_folder,
+                         [item.local_name for item
+                          in list(self.recently_modified[sb.local_folder])])
+
+    def update_recently_modified(self, doc_pair):
+        local_folder = doc_pair.local_folder
+        self.recently_modified[local_folder] = deque(
+                self.list_recently_modified(local_folder))
+        log.info("Updated list of recently modified items in %s: %r",
+                 local_folder, [item.local_name for item
+                                in list(self.recently_modified[local_folder])])
+
+    def list_recently_modified(self, local_folder):
+        """List recently modified pairs ordered by last local modification.
+        """
+        session = self.get_session()
+
+        predicates = [LastKnownState.local_folder == local_folder]
+        # Only consider pair states that are synchronized
+        predicates.append(LastKnownState.pair_state == 'synchronized')
+        # Don't consider folders
+        predicates.append(LastKnownState.folderish == False)
+
+        return session.query(LastKnownState).filter(
+            *predicates
+        ).order_by(
+            desc(LastKnownState.last_local_updated),
+        ).limit(self.get_number_recently_modified()).all()
+
+    def get_number_recently_modified(self):
+        return DEFAULT_NUMBER_RECENTLY_MODIFIED
 
     def _get_client_cache(self):
         if not hasattr(self._local, 'remote_clients'):

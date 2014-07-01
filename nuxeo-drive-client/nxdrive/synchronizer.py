@@ -771,6 +771,9 @@ class Synchronizer(object):
         if len(session.dirty) != 0 or len(session.deleted) != 0:
             session.commit()
 
+        # Update recently modified items
+        self._controller.update_recently_modified(doc_pair)
+
         if self._frontend is not None:
                 self._frontend.notify_change(doc_pair, old_state)
 
@@ -1380,6 +1383,9 @@ class Synchronizer(object):
 
         log.info("Starting synchronization loop (pid=%d)", pid)
         self.continue_synchronization = True
+
+        # Initialize recently modified items
+        self._controller.init_recently_modified()
 
         update_check_time = time()
         previous_time = time()
