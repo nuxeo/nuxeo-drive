@@ -139,8 +139,6 @@ class Application(QApplication):
 
         # Check if actions is required, separate method so it can be override
         self.init_checks()
-        # Start long running synchronization thread
-        self.start_synchronization_thread()
 
     def init_checks(self):
         if self.controller.is_credentials_update_required():
