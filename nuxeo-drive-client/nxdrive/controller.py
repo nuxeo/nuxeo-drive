@@ -843,20 +843,22 @@ class Controller(object):
         server_bindings = self.list_server_bindings()
         if server_bindings:
             for sb in server_bindings:
-                self.recently_modified[sb.local_folder] = deque(
-                    self.list_recently_modified(sb.local_folder))
+                self.recently_modified[sb.local_folder] = self.list_recently_modified(sb.local_folder)
                 log.info("Initialized list of recently modified items"
                          " in %s: %r", sb.local_folder,
                          [item.local_name for item
-                          in list(self.recently_modified[sb.local_folder])])
+                          in self.get_recently_modified(sb.local_folder)])
+
+    def get_recently_modified(self, local_folder):
+        return self.recently_modified[local_folder]
 
     def update_recently_modified(self, doc_pair):
         local_folder = doc_pair.local_folder
-        self.recently_modified[local_folder] = deque(
-                self.list_recently_modified(local_folder))
+        self.recently_modified[local_folder] = self.list_recently_modified(local_folder)
+        session = self.get_session()
         log.info("Updated list of recently modified items in %s: %r",
                  local_folder, [item.local_name for item
-                                in list(self.recently_modified[local_folder])])
+                                in self.get_recently_modified(local_folder)])
 
     def list_recently_modified(self, local_folder):
         """List recently modified pairs ordered by last local modification.
@@ -869,11 +871,17 @@ class Controller(object):
         # Don't consider folders
         predicates.append(LastKnownState.folderish == False)
 
-        return session.query(LastKnownState).filter(
+        items = session.query(LastKnownState).filter(
             *predicates
         ).order_by(
-            desc(LastKnownState.last_local_updated),
-        ).limit(self.get_number_recently_modified()).all()
+            desc(LastKnownState.last_sync_date),
+        ).options().limit(self.get_number_recently_modified()).all()
+        # Remove objects from session
+        result = []
+        for item in items:
+            session.expunge(item)
+            result.append(item)
+        return result
 
     def get_number_recently_modified(self):
         return DEFAULT_NUMBER_RECENTLY_MODIFIED
