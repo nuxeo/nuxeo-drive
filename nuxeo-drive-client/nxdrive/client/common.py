@@ -6,9 +6,11 @@ import re
 class NotFound(Exception):
     pass
 
+
 DEFAULT_IGNORED_PREFIXES = [
     '.',  # hidden Unix files
     '~$',  # Windows lock files
+    'Thumbs.db',  # Thumbnails files
 ]
 
 DEFAULT_IGNORED_SUFFIXES = [
