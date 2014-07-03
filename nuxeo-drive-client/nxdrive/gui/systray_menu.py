@@ -63,6 +63,7 @@ class SystrayMenu(QtGui.QMenu):
                 self.create_bind_menu(server_bindings)
             self.update_bind_menu(server_bindings)
         if not server_bindings and self.is_bind == True:
+            self.is_bind = False
             self.create_default_menu()
             self.remove_bind_menu()
 
