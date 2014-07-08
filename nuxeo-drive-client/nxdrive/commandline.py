@@ -48,6 +48,7 @@ Possible commands:
 - unbind-root
 - local_folders
 - status
+- metadata
 
 To get options for a specific command:
 
@@ -273,6 +274,17 @@ class CliHandler(object):
         status_parser.add_argument(
             "--folder", default=DEFAULT_NX_DRIVE_FOLDER,
             help="Path to a local Nuxeo Drive folder.")
+
+        # Display metadata edition window
+        metadata_parser = subparsers.add_parser(
+            'metadata',
+            help='Display the metadata edition window for a given file.',
+            parents=[common_parser],
+        )
+        metadata_parser.set_defaults(command='metadata')
+        metadata_parser.add_argument(
+            "--file", default="http://www.google.fr",
+            help="Path of a local Nuxeo Drive file.")
 
         # embedded test runner base on nose:
         test_parser = subparsers.add_parser(
@@ -508,6 +520,12 @@ class CliHandler(object):
         for filename, status in states:
             self.log.debug("%s | %s", filename, status)
         print states
+        return 0
+
+    def metadata(self, options):
+        from nxdrive.gui.metadata import prompt_metadata
+        print 'file = ' + options.file
+        prompt_metadata(options.file)
         return 0
 
     def edit(self, options):
