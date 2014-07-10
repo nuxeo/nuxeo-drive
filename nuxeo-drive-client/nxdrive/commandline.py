@@ -22,6 +22,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.protocol_handler import register_protocol_handlers
 from nxdrive.startup import register_startup
+from nxdrive.contextual_menu import register_contextual_menu
 from nxdrive import __version__
 
 
@@ -285,9 +286,6 @@ class CliHandler(object):
         metadata_parser.add_argument(
             "--file", default="",
             help="File path.")
-        metadata_parser.add_argument(
-            "--mode", default="view",
-            help="Document metadata layout mode.")
 
         # embedded test runner base on nose:
         test_parser = subparsers.add_parser(
@@ -458,6 +456,10 @@ class CliHandler(object):
                 register_protocol_handlers(self.controller)
                 # Ensure that ndrive is registered as a startup application
                 register_startup()
+                # Ensure that ndrive is registered as a contextual menu :
+                # only for win32
+                register_contextual_menu()
+                
             except Exception, e:
                 self.log.warn(e)
 
@@ -527,9 +529,8 @@ class CliHandler(object):
 
     def metadata(self, options):
         from nxdrive.gui.metadata import prompt_metadata
-        print 'mode = ' + options.mode
         print 'file = ' + options.file
-        prompt_metadata(self.controller, options.file, options.mode)
+        prompt_metadata(self.controller, options.file)
         return 0
 
     def edit(self, options):

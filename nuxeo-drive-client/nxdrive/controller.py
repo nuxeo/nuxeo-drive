@@ -871,7 +871,7 @@ class Controller(object):
     def get_recently_modified(self, local_folder):
         return self.recently_modified[local_folder]
 
-    def get_metadata_url(self, file_path, mode):
+    def get_metadata_url(self, file_path):
 
         item = None
         local_item = None
@@ -906,7 +906,7 @@ class Controller(object):
                 docid = tab_remote_ref[2]
 
                 metadata_url += ("nxdoc/" + repo + "/" + docid +
-                                 "/" + NUXEO_DRIVE_LAYOUT + "?mode=" + mode)
+                                 "/" + NUXEO_DRIVE_LAYOUT)
 
         except NoResultFound:
             log.error("folder %s not synchronized", file_path)
