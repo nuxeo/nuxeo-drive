@@ -283,8 +283,11 @@ class CliHandler(object):
         )
         metadata_parser.set_defaults(command='metadata')
         metadata_parser.add_argument(
-            "--file", default="http://www.google.fr",
-            help="Path of a local Nuxeo Drive file.")
+            "--file", default="",
+            help="File path.")
+        metadata_parser.add_argument(
+            "--mode", default="view",
+            help="Document metadata layout mode.")
 
         # embedded test runner base on nose:
         test_parser = subparsers.add_parser(
@@ -524,8 +527,9 @@ class CliHandler(object):
 
     def metadata(self, options):
         from nxdrive.gui.metadata import prompt_metadata
+        print 'mode = ' + options.mode
         print 'file = ' + options.file
-        prompt_metadata(options.file)
+        prompt_metadata(self.controller, options.file, options.mode)
         return 0
 
     def edit(self, options):

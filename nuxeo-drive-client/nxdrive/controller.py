@@ -48,6 +48,7 @@ log = get_logger(__name__)
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 DEFAULT_NUMBER_RECENTLY_MODIFIED = 5
+NUXEO_DRIVE_LAYOUT = 'drive_form_layout_template'
 
 
 class MissingToken(Exception):
@@ -99,7 +100,7 @@ def default_nuxeo_drive_folder():
             nuxeo_drive_folder = os.path.join(my_documents,
                                               NUXEO_DRIVE_FOLDER_NAME)
             log.info("Will use '%s' as default Nuxeo Drive folder location"
-                      " under Windows", nuxeo_drive_folder)
+                     " under Windows", nuxeo_drive_folder)
             return nuxeo_drive_folder
 
     # Fall back on home folder otherwise
@@ -107,7 +108,7 @@ def default_nuxeo_drive_folder():
     user_home = unicode(user_home.decode(ENCODING))
     nuxeo_drive_folder = os.path.join(user_home, NUXEO_DRIVE_FOLDER_NAME)
     log.info("Will use '%s' as default Nuxeo Drive folder location",
-              nuxeo_drive_folder)
+             nuxeo_drive_folder)
     return nuxeo_drive_folder
 
 
@@ -433,6 +434,7 @@ class Controller(object):
         if not server_bindings:
             return None
         sb = server_bindings[0]
+                  
         return sb.remote_token
 
     def get_server_binding_settings(self):
@@ -760,8 +762,7 @@ class Controller(object):
         server_binding = self.get_server_binding(
             local_folder, raise_if_missing=True, session=session)
 
-        nxclient = self.get_remote_doc_client(server_binding,
-            repository=repository)
+        nxclient = self.get_remote_doc_client(server_binding, repository=repository)
 
         # Register the root on the server
         nxclient.register_as_root(remote_ref)
@@ -774,7 +775,7 @@ class Controller(object):
             local_folder, raise_if_missing=True, session=session)
 
         nxclient = self.get_remote_doc_client(server_binding,
-            repository=repository)
+                                              repository=repository)
 
         # Unregister the root on the server
         nxclient.unregister_as_root(remote_ref)
@@ -869,6 +870,48 @@ class Controller(object):
 
     def get_recently_modified(self, local_folder):
         return self.recently_modified[local_folder]
+
+    def get_metadata_url(self, file_path, mode):
+
+        item = None
+        local_item = None
+        sb = None
+
+        session = self.get_session()
+        server_bindings = self.list_server_bindings(session)
+        for sb_ in server_bindings:
+
+            if file_path.startswith(sb_.local_folder):
+                sb = sb_
+                local_item = file_path.split(sb_.local_folder, 1)[1]
+
+        if sb is None:
+            log.error("%s not found in database", file_path)
+            return
+
+        # Replace os path for windows
+        local_item = local_item.replace(os.path.sep, "/")
+        predicates = [LastKnownState.local_folder == sb.local_folder,
+                      LastKnownState.local_path == local_item]
+
+        metadata_url = sb.server_url
+
+        try:
+            item = session.query(LastKnownState).filter(*predicates).one()
+
+            if (item.remote_ref is not None):
+                tab_remote_ref = item.remote_ref.split("#", 2)
+
+                repo = tab_remote_ref[1]
+                docid = tab_remote_ref[2]
+
+                metadata_url += ("nxdoc/" + repo + "/" + docid +
+                                 "/" + NUXEO_DRIVE_LAYOUT + "?mode=" + mode)
+
+        except NoResultFound:
+            log.error("folder %s not synchronized", file_path)
+
+        return metadata_url, sb.remote_token
 
     def update_recently_modified(self, doc_pair):
         local_folder = doc_pair.local_folder
