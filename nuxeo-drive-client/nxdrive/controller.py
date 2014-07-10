@@ -48,7 +48,7 @@ log = get_logger(__name__)
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 DEFAULT_NUMBER_RECENTLY_MODIFIED = 5
-NUXEO_DRIVE_LAYOUT = 'drive_form_layout_template'
+NUXEO_DRIVE_LAYOUT = 'view_drive_metadata'
 
 
 class MissingToken(Exception):
