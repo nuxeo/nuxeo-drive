@@ -434,7 +434,7 @@ class Controller(object):
         if not server_bindings:
             return None
         sb = server_bindings[0]
-                  
+
         return sb.remote_token
 
     def get_server_binding_settings(self):
@@ -762,7 +762,8 @@ class Controller(object):
         server_binding = self.get_server_binding(
             local_folder, raise_if_missing=True, session=session)
 
-        nxclient = self.get_remote_doc_client(server_binding, repository=repository)
+        nxclient = self.get_remote_doc_client(server_binding,
+                                              repository=repository)
 
         # Register the root on the server
         nxclient.register_as_root(remote_ref)

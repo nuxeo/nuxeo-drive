@@ -119,6 +119,8 @@ def update_win32_reg_key(reg, path, attributes=()):
     _winreg.CloseKey(key)
     key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_WRITE)
     for attribute, type_, value in attributes:
+        if attribute == "None":
+            attribute = None
         _winreg.SetValueEx(key, attribute, 0, type_, value)
     _winreg.CloseKey(key)
 

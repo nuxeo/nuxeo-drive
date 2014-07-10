@@ -4,11 +4,13 @@ from nxdrive.logging_config import get_logger
 from PyQt4 import QtCore, QtGui, QtWebKit, QtNetwork
 from PyQt4.Qt import QUrl, QObject
 from PyQt4.QtCore import Qt
+from nxdrive.gui.resources import find_icon
 
 log = get_logger(__name__)
 
-METADATA_WEBVIEW_WIDTH = 500
+METADATA_WEBVIEW_WIDTH = 630
 METADATA_WEBVIEW_HEIGHT = 500
+
 
 class MetadataWebView(QtWebKit.QWebView):
     """Web view to prompt about metadata."""
@@ -17,6 +19,11 @@ class MetadataWebView(QtWebKit.QWebView):
         super(MetadataWebView, self).__init__()
 
         self.controller = controller
+
+        self.setWindowTitle("Nuxeo Drive : "+file_path)
+        icon = find_icon('nuxeo_drive_icon_64.png')
+        if icon is not None:
+            self.setWindowIcon(QtGui.QIcon(icon))
 
         url, token = self.controller.get_metadata_url(file_path)
 
@@ -31,10 +38,9 @@ def prompt_metadata(controller, file_path):
     """Display a Qt web view to prompt about metadata."""
 
     def close(): sys.exit()
-
     app = QtGui.QApplication(sys.argv)
     webview = MetadataWebView(controller, file_path)
-    webview.setWindowTitle("Nuxeo Drive : "+file_path)
+
     webview.resize(METADATA_WEBVIEW_WIDTH, METADATA_WEBVIEW_HEIGHT)
 
     webview.setWindowFlags(Qt.WindowStaysOnTopHint)
