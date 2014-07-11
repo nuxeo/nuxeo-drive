@@ -1,4 +1,6 @@
 import subprocess
+import urlparse
+import urllib2
 
 from gi.repository import Nautilus, GObject
 
@@ -12,18 +14,13 @@ class ExampleMenuProvider(GObject.GObject, Nautilus.MenuProvider):
         main_item = Nautilus.MenuItem(name='Nautilus::nuxe_drive',
                                       label='Nuxeo Drive',
                                       tip='Nuxeo Drive')
-        submenu = Nautilus.Menu()
-        submenu_item = Nautilus.MenuItem(name='Nautilus::metadata_edit',
-                                         label='Edit metadata',
-                                         tip='Edit metadata')
-        submenu.append_item(submenu_item)
-        submenu_item.connect("activate", self.menu_activate_cb, files)
-        main_item.set_submenu(submenu)
+        main_item.connect("activate", self.open_metadata_view, files)
         return main_item,
 
-    def menu_activate_cb(self, menu, files):
+    def open_metadata_view(self, menu, files):
         """Called when the user selects the menu."""
-        self.drive_exec(['metadata', '--file', "http://localhost:8080/nuxeo"])
+        file_uri = urlparse.urlparse(urllib2.unquote(files[0].get_uri())).path
+        self.drive_exec(['metadata', '--file', file_uri])
 
     def drive_exec(self, cmds):
         # add the ndrive command !
@@ -32,4 +29,4 @@ class ExampleMenuProvider(GObject.GObject, Nautilus.MenuProvider):
         p = subprocess.Popen(cmds, stdout=subprocess.PIPE)
         result, _ = p.communicate()
         # print "Result = " + result
-        return eval(result)
+        #return eval(result)
