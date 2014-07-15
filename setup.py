@@ -211,6 +211,11 @@ class NuxeoDriveAttributes(object):
     def get_long_description(self):
         return open('README.rst').read()
 
+    def get_data_files(self):
+        return []
+
+    def get_includes(self):
+        return []
 
 class NuxeoDriveSetup(object):
 
@@ -243,7 +248,7 @@ class NuxeoDriveSetup(object):
 
         # Files to include in frozen app: icons, alembic, alembic versions
         # build_exe freeze with cx_Freeze (Windows)
-        include_files = []
+        include_files = attribs.get_includes()
         # bdist_esky freeze with cx_Freeze (Windows) and py2app (OS X)
         # In fact this is a global setup option
         # TODO NXP-13810: check removed data_files from py2app and added to
@@ -257,7 +262,7 @@ class NuxeoDriveSetup(object):
 
         data_files = [('icons', icon_files), ('alembic', alembic_files),
                                  ('alembic/versions', alembic_version_files)]
-
+        data_files.extend(attribs.get_data_files())
         old_version = None
         init_file = attribs.get_init_file()
         version = read_version(init_file)
