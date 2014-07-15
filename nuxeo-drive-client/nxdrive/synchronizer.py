@@ -237,7 +237,7 @@ class Synchronizer(object):
         return self._controller.get_session()
 
     def _delete_with_descendant_states(self, session, doc_pair, local_client,
-        keep_root=False):
+        keep_root=False, io_delete=True):
         """Recursive delete the descendants of a deleted doc
 
         If the file or folder has been modified since its last
@@ -258,7 +258,8 @@ class Synchronizer(object):
                 local_parent_path=doc_pair.local_path).all()
             for child in local_children:
                 if self._delete_with_descendant_states(session, child,
-                                                       local_client):
+                                                       local_client,
+                                                       io_delete=io_delete):
                     locally_modified = True
 
         if doc_pair.remote_ref is not None:
@@ -267,7 +268,8 @@ class Synchronizer(object):
                 remote_parent_ref=doc_pair.remote_ref).all()
             for child in remote_children:
                 if self._delete_with_descendant_states(session, child,
-                                                       local_client):
+                                                       local_client,
+                                                       io_delete=io_delete):
                     locally_modified = True
 
         if not locally_modified:
@@ -297,7 +299,8 @@ class Synchronizer(object):
                     and local_client.exists(doc_pair.local_path)):
                     log.debug("Deleting local %s '%s'",
                               file_or_folder, doc_pair.get_local_abspath())
-                    local_client.delete(doc_pair.local_path)
+                    if io_delete:
+                        local_client.delete(doc_pair.local_path)
                 session.delete(doc_pair)
         else:
             log.debug("Marking local %s '%s' as unsynchronized as it has been"
@@ -1233,7 +1236,7 @@ class Synchronizer(object):
             if doc_pair.folderish:
                 # Delete the old local tree info that is now deprecated
                 self._delete_with_descendant_states(
-                    session, source_doc_pair, local_client)
+                    session, source_doc_pair, local_client, io_delete=False)
 
                 # Rescan the remote folder descendants to let them realign
                 # with the local files
