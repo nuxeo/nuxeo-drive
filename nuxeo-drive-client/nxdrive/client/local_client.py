@@ -6,6 +6,7 @@ import hashlib
 import os
 import shutil
 import re
+import sys
 
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import safe_filename
@@ -85,7 +86,7 @@ class LocalClient(object):
 
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
                  ignored_suffixes=None, check_suspended=None):
-
+        self._case_sensitive = None
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
@@ -104,6 +105,17 @@ class LocalClient(object):
             base_folder = base_folder[:-1]
         self.base_folder = base_folder
         self._digest_func = digest_func
+
+    def is_case_sensitive(self):
+        if self._case_sensitive is None:
+            path = os.tempnam(self.base_folder, '.caseTest_')
+            os.mkdir(path)
+            if os.path.exists(path.upper()):
+                self._case_sensitive = False
+            else:
+                self._case_sensitive = True
+            os.rmdir(path)
+        return self._case_sensitive
 
     # Getters
     def get_info(self, ref, raise_if_missing=True):
@@ -240,9 +252,28 @@ class LocalClient(object):
         """
         source_os_path = self._abspath(ref)
         parent = ref.rsplit(u'/', 1)[0]
+        old_name = ref.rsplit(u'/', 1)[1]
         parent = u'/' if parent == '' else parent
-        target_os_path, new_name = self._abspath_deduped(parent, new_name)
+        # Check if only case renaming
+        if (old_name != new_name and old_name.lower() == new_name.lower()
+            and not self.is_case_sensitive()):
+            # Must use a temp rename as FS is not case sensitive
+            temp_path = os.tempnam(self._abspath(parent),
+                                   '.ren_' + old_name + '_')
+            if sys.platform == 'win32':
+                import ctypes
+                ctypes.windll.kernel32.SetFileAttributesW(unicode(temp_path), 2)
+            shutil.move(source_os_path, temp_path)
+            source_os_path = temp_path
+            # Try the os rename part
+            target_os_path = self._abspath(os.path.join(parent, new_name))
+        else:
+            target_os_path, new_name = self._abspath_deduped(parent, new_name)
         shutil.move(source_os_path, target_os_path)
+        if sys.platform == 'win32':
+            import ctypes
+            # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
+            ctypes.windll.kernel32.SetFileAttributesW(unicode(target_os_path), 128)
         if parent == u'/':
             new_ref = u'/' + new_name
         else:
@@ -279,6 +310,16 @@ class LocalClient(object):
         path_suffix = ref[1:].replace('/', os.path.sep)
         path = normalized_path(os.path.join(self.base_folder, path_suffix))
         return safe_long_path(path)
+
+    def _abspath_safe(self, parent, orig_name):
+        """Absolute path on the operating system with deduplicated names"""
+        # make name safe by removing invalid chars
+        name = safe_filename(orig_name)
+
+        # decompose the name into actionable components
+        name, suffix = os.path.splitext(name)
+        os_path = self._abspath(os.path.join(parent, name + suffix))
+        return os_path
 
     def _abspath_deduped(self, parent, orig_name):
         """Absolute path on the operating system with deduplicated names"""

@@ -113,6 +113,34 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertEquals(parent_of_file_1_1_remote_info.name,
             u'Original Folder 1')
 
+    def test_local_rename_file_uppercase(self):
+        sb, ctl = self.sb_1, self.controller_1
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+
+        # Rename /Original File 1.txt to /Renamed File 1.txt
+
+        # Rename 'Renamed File 1.txt' to 'Renamed Again File 1.txt'
+        # and 'Original File 1.1.txt' to
+        # 'Renamed File 1.1.txt' at the same time as they share
+        # the same digest but do not live in the same folder
+        original_1_1_uid = remote_client.get_info(
+            u'/Original Folder 1/Original File 1.1.txt').uid
+        local_client.rename(
+            u'/Original Folder 1/Original File 1.1.txt',
+            u'original File 1.1.txt')
+
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+        file_1_1_remote_info = remote_client.get_info(original_1_1_uid)
+        self.assertEquals(file_1_1_remote_info.name,
+            u'original File 1.1.txt')
+
+        parent_of_file_1_1_remote_info = remote_client.get_info(
+            file_1_1_remote_info.parent_uid)
+        self.assertEquals(parent_of_file_1_1_remote_info.name,
+            u'Original Folder 1')
+
     def test_local_move_file(self):
         sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
