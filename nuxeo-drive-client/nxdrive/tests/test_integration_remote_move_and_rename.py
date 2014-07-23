@@ -310,7 +310,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = self.local_client_1
-        session = ctl.get_session()
 
         self.assertTrue(local_client.exists('/Original Folder 1'))
         remote_client.rename(self.folder_1_id, 'Original folder 1')
