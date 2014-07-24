@@ -52,7 +52,7 @@ class TestIntegrationVersioning(IntegrationTestCase):
         self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
         doc = self.root_remote_client.fetch(
             self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
-        self._assert_version(doc, '0', '0')
+        self._assert_version(doc, 0, 0)
 
         # Synchronize it for user 2
         self.assertTrue(self.remote_client_2.exists('/Test versioning.txt'))
@@ -66,7 +66,7 @@ class TestIntegrationVersioning(IntegrationTestCase):
         self._synchronize_and_assert(self.syn_2, self.sb_2, 1)
         doc = self.root_remote_client.fetch(
             self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
-        self._assert_version(doc, '0', '1')
+        self._assert_version(doc, 0, 1)
 
         # Update it as user 2 => should NOT be versioned
         # since the versioning delay (10s) is not passed by
@@ -76,7 +76,7 @@ class TestIntegrationVersioning(IntegrationTestCase):
         self._synchronize_and_assert(self.syn_2, self.sb_2, 1)
         doc = self.root_remote_client.fetch(
             self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
-        self._assert_version(doc, '0', '1')
+        self._assert_version(doc, 0, 1)
 
         # Update it as user 2 after 10s => should be versioned
         # since the versioning delay is passed by
@@ -86,7 +86,7 @@ class TestIntegrationVersioning(IntegrationTestCase):
         self._synchronize_and_assert(self.syn_2, self.sb_2, 1)
         doc = self.root_remote_client.fetch(
             self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
-        self._assert_version(doc, '0', '2')
+        self._assert_version(doc, 0, 2)
 
     def test_version_restore(self):
         remote_client = self.remote_client_1
