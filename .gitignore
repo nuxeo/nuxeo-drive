@@ -9,6 +9,7 @@ seam-bin
 bin
 coverage
 .coverage
+htmlcov
 build
 dist
 .ropeproject
