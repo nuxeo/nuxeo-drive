@@ -260,10 +260,10 @@ class RemoteDocumentClient(BaseAutomationClient):
         if parent_uid is None and fetch_parent_uid:
             parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
 
-        # Normalize using NFKC to make the tests more intuitive
+        # Normalize using NFC to make the tests more intuitive
         name = props['dc:title']
         if name is not None:
-            name = unicodedata.normalize('NFKC', name)
+            name = unicodedata.normalize('NFC', name)
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
             doc['path'], folderish, last_update, digest, self.repository,

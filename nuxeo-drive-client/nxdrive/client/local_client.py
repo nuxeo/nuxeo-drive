@@ -37,8 +37,8 @@ class FileInfo(object):
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
 
-        root = unicodedata.normalize('NFKC', root)
-        path = unicodedata.normalize('NFKC', path)
+        root = unicodedata.normalize('NFC', root)
+        path = unicodedata.normalize('NFC', path)
         self.root = root  # the sync root folder local path
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder

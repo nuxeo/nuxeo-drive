@@ -188,10 +188,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
             can_update = fs_item['canUpdate']
             can_create_child = False
 
-        # Normalize using NFKC to make the tests more intuitive
+        # Normalize using NFC to make the tests more intuitive
         name = fs_item['name']
         if name is not None:
-            name = unicodedata.normalize('NFKC', name)
+            name = unicodedata.normalize('NFC', name)
         return RemoteFileInfo(
             name, fs_item['id'], fs_item['parentId'],
             fs_item['path'], folderish, last_update, digest, digest_algorithm,
