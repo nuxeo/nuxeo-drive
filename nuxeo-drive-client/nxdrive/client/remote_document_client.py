@@ -402,6 +402,13 @@ class RemoteDocumentClient(BaseAutomationClient):
                      enable=False)
         return True
 
+    def make_file_in_user_workspace(self, content, filename):
+        """Stream the given content as a document in the user workspace"""
+        file_path = self.make_tmp_file(content)
+        return self.execute_with_blob_streaming(
+                                        "UserWorkspace.CreateDocumentFromBlob",
+                                        file_path, filename=filename)
+
     def activate_profile(self, profile):
         self.execute("NuxeoDrive.SetActiveFactories", profile=profile)
 
