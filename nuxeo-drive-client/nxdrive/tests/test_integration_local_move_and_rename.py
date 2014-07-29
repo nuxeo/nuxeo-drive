@@ -7,10 +7,7 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.model import LastKnownState
 from nxdrive.client.common import NotFound
 
-'''
-As we can't be sure that the move on the server wont be detected in only one loop
-We can't compare the result from update_synchronized_server
-'''
+
 class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
     def setUp(self):
@@ -222,7 +219,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
         # The server folder has been renamed: the uid stays the same
         new_remote_name = remote_client.get_info(original_folder_1_uid).name
@@ -267,7 +264,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder move is detected: all
         # the descendants are automatically realigned
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
         # The server folder has been moved: the uid stays the same
         remote_folder_info = remote_client.get_info(original_folder_1_uid)
@@ -315,7 +312,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder renamings are detected: all
         # the descendants are automatically realigned
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
 
         # The server folders have been renamed: the uid stays the same
         folder_1_info = remote_client.get_info(folder_1_uid)
@@ -354,7 +351,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         toplevel_local_client.rename('/' + self.workspace_title,
             'Renamed Nuxeo Drive Test Workspace')
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
         workspace_info = remote_client.get_info(self.workspace)
         self.assertEquals(workspace_info.name,
@@ -410,7 +407,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertRaises(NotFound,
                           local_client.get_info, u'/Nuxeo Drive')
 
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
         # Check deleted server binding
         self.assertRaises(RuntimeError,
@@ -451,7 +448,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertFalse(local_client.exists(u'/Original Folder 1'))
         self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
 
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
         # Check remote folder has not been renamed
         folder_1_remote_info = remote_client.get_info(
@@ -494,6 +491,26 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertEquals(folder_1_2_state.remote_name,
                           u'Sub-Folder 1.2')
 
+    def test_local_move_with_remote_error(self):
+        sb, ctl = self.sb_1, self.controller_1
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+
+        # Check local folder
+        self.assertTrue(local_client.exists(u'/Original Folder 1'))
+        remote_client._remote_error = IOError
+        local_client.rename(u'/Original Folder 1', u'IOErrorTest')
+        ctl.synchronizer.update_synchronize_server(sb)
+        remote_client._remote_error = None
+        folder_1 = remote_client.get_info(
+            u'/Original Folder 1')
+        self.assertTrue(folder_1 is not None, 'Move has happen')
+        self.assertTrue(local_client.exists(u'/IOErrorTest'))
+        ctl.synchronizer.update_synchronize_server(sb)
+        folder_1 = remote_client.get_info(folder_1.uid)
+        self.assertEquals(folder_1.name, u'IOErrorTest', 'Move has not happen')
+        self.assertTrue(local_client.exists(u'/IOErrorTest'))
+
     def test_local_delete_readonly_folder(self):
         sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
@@ -525,7 +542,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertRaises(NotFound,
                           local_client.get_info, u'/Original Folder 1')
 
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 5)
 
         # Check remote folder and its children have not been deleted
         folder_1_remote_info = remote_client.get_info(

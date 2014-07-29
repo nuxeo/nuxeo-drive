@@ -1075,6 +1075,36 @@ class Synchronizer(object):
             log.debug("Since the local path is None the synchronizer will"
                       " probably do nothing at next iteration")
 
+    def _synchronize_locally_moved_created(self, doc_pair, session,
+        local_client, remote_client, local_info, remote_info):
+        doc_pair.remote_ref = None
+        self._synchronize_locally_created(doc_pair, session, local_client,
+                                        remote_client, local_info, remote_info)
+
+    def _synchronize_locally_moved(self, doc_pair, session,
+        local_client, remote_client, local_info, remote_info):
+        # A file has been moved locally, and an error occurs when tried to
+        # move on the server
+        if doc_pair.local_name != doc_pair.remote_name:
+            try:
+                log.debug('Renaming remote file according to local : %r', doc_pair)
+                doc_pair.update_remote(remote_client.rename(doc_pair.remote_ref,
+                                                        doc_pair.local_name))
+            except:
+                    # An error occurs return false
+                    log.error("Renaming from %s to %s canceled",
+                                doc_pair.remote_name, doc_pair.local_name)
+                    return
+        parent_pair = session.query(LastKnownState).filter_by(
+                local_folder=local_client.base_folder,
+                local_path=doc_pair.local_parent_path).first()
+        if (parent_pair is not None
+            and parent_pair.remote_ref != doc_pair.remote_parent_ref):
+            log.debug('Moving remote file according to local : %r', doc_pair)
+            doc_pair.update_remote(remote_client.move(doc_pair.remote_ref,
+                        parent_pair.remote_ref))
+        doc_pair.update_state('synchronized', 'synchronized')
+
     def _synchronize_deleted_unknown(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         # Somehow a pair can get to an inconsistent state:
@@ -1669,7 +1699,7 @@ class Synchronizer(object):
             # XXX: OPTIM: use file system monitoring instead
             try:
                 if server_binding.local_folder in self.local_full_scan:
-                    n_synchronized += self.handle_local_changes(server_binding)
+                    self.handle_local_changes(server_binding)
                 else:
                     '''
                      Setup the FS notify before scaning
@@ -1789,7 +1819,6 @@ class Synchronizer(object):
             raise NotFound
         if self.test_delay > 0:
             sleep(self.test_delay)
-        renamed = 0
         local_client = self.get_local_client(local_folder)
         sorted_evts = []
         # Use the thread_safe pop() to extract events
@@ -1823,7 +1852,6 @@ class Synchronizer(object):
                     self.handle_move(local_client, remote_client,
                                      doc_pair, src_path,
                                      normalize_event_filename(evt.dest_path))
-                    renamed = renamed + 1
                     session.commit()
                     continue
                 if evt.event_type == 'deleted':
@@ -1859,20 +1887,17 @@ class Synchronizer(object):
                     continue
                 log.info('Unhandle case: %r %s %s', evt, rel_path, file_name)
         session.commit()
-        return renamed
 
     def handle_rename(self, local_client, remote_client, doc_pair, dest_path):
         new_name = os.path.basename(dest_path)
-        log.info("Renaming from %s to %s", doc_pair.local_name, new_name)
+        state = 'synchronized'
         if doc_pair.remote_can_rename:
-            doc_pair.update_remote(remote_client.rename(doc_pair.remote_ref,
-                                                        new_name))
+            state = 'moved'
         rel_path = local_client.get_path(dest_path)
         if len(rel_path) == 0:
                 rel_path = '/'
         doc_pair.update_local(local_client.get_info(rel_path))
-        doc_pair.update_state('synchronized', 'synchronized')
-        # update new file
+        doc_pair.update_state(state, 'synchronized')
 
     def handle_move(self, local_client, remote_client, doc_pair, src_path,
                         dest_path):
@@ -1891,12 +1916,12 @@ class Synchronizer(object):
             parent_pair = self.get_session().query(LastKnownState).filter_by(
                 local_folder=local_client.base_folder,
                 local_path=rel_path).first()
+            state = 'synchronized'
             if parent_pair is None:
                 log.warn("Cant find parent for %s, %s", rel_path, new_parent)
             else:
-                doc_pair.update_remote(remote_client.move(doc_pair.remote_ref,
-                                                    parent_pair.remote_ref))
-            doc_pair.update_state('synchronized', 'synchronized')
+                state = 'moved'
+            doc_pair.update_state(state, 'synchronized')
             rel_path = local_client.get_path(dest_path)
             if len(rel_path) == 0:
                 rel_path = '/'
