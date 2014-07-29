@@ -1959,7 +1959,11 @@ from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 
 def normalize_event_filename(filename):
     import unicodedata
-    return unicodedata.normalize('NFKC', unicode(filename, 'utf-8'))
+    import sys
+    if sys.platform == 'win32':
+        return unicodedata.normalize('NFKC', unicode(filename))
+    else:
+        return unicodedata.normalize('NFKC', unicode(filename, 'utf-8'))
 
 
 class DriveFSEventHandler(FileSystemEventHandler):
