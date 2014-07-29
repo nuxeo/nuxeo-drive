@@ -231,6 +231,7 @@ class Synchronizer(object):
     def __init__(self, controller, page_size=None):
         self.local_full_scan = []
         self.local_changes = []
+        self.observers = []
         self._controller = controller
         self._frontend = None
         self.page_size = (page_size if page_size is not None
@@ -1420,6 +1421,7 @@ class Synchronizer(object):
             self.local_full_scan = []
             self.local_changes = []
             self.conflicted_changes = []
+            self.observers = []
         self.sync_thread = sync_thread
         delay = delay if delay is not None else self.delay
 
@@ -1529,6 +1531,15 @@ class Synchronizer(object):
             log.warning("Failed to remove stalled pid file: %s"
                         " for stopped process %d: %r", pid_filepath, pid, e)
 
+        # Stop all observers
+        if not no_event_init:
+            log.info("Stopping all FS Observers thread")
+            # Send the stop command
+            for observer in self.observers:
+                observer.stop()
+            # Wait for all observers to stop
+            for observer in self.observers:
+                observer.join()
         # Notify UI front end to take synchronization stop into account and
         # quit the application
         if self._frontend is not None:
@@ -1941,6 +1952,7 @@ class Synchronizer(object):
         observer.schedule(event_handler, server_binding.local_folder,
                           recursive=True)
         observer.start()
+        self.observers.append(observer)
 
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 

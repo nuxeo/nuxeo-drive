@@ -16,7 +16,7 @@ class TestIntegrationEncoding(IntegrationTestCase):
         self.ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         self.syn = self.ctl.synchronizer
-        self.syn.loop(delay=0.010, max_loops=1)
+        self.syn.loop(delay=0.010, max_loops=1, no_event_init=True)
 
         # Fetch server binding after sync loop as it closes the Session
         self.sb = self.ctl.get_server_binding(self.local_nxdrive_folder_1)

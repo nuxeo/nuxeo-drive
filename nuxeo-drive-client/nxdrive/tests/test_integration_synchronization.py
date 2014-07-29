@@ -817,7 +817,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.wait()
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
-        syn.loop(delay=0, max_loops=1)
+        syn.loop(delay=0, max_loops=1, no_event_init=True)
         self.assertEquals(ctl.list_pending(), [])
         self.assertTrue(local.exists('/' + self.workspace_title))
         self.assertTrue(local.exists('/' + self.workspace_title + '/Folder 3'))
