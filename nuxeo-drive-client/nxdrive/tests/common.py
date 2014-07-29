@@ -97,6 +97,8 @@ class IntegrationTestCase(unittest.TestCase):
                                        echo=False, echo_pool=False)
         self.controller_2 = Controller(self.nxdrive_conf_folder_2,
                                        echo=False, echo_pool=False)
+        self.controller_1.synchronizer.test_delay = 3
+        self.controller_2.synchronizer.test_delay = 3
         self.version = self.controller_1.get_version()
 
         # Long timeout for the root client that is responsible for the test

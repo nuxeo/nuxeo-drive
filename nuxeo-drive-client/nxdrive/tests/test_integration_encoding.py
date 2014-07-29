@@ -43,6 +43,23 @@ class TestIntegrationEncoding(IntegrationTestCase):
             u'/Nom avec accents \xe9 \xe8.doc'),
             u"Contenu sans accents.")
 
+    def test_filename_with_katakana_from_server(self):
+        self.remote_client.make_file(self.workspace,
+            u'Nom sans \u30bc\u30ec accents.doc',
+            u"Contenu")
+        self.local_client.make_file('/',
+            u'Avec accents \u30d7 \u793e.doc',
+            u"Contenu")
+
+        self._synchronize_and_assert(2, wait=True)
+
+        self.assertEquals(self.local_client.get_content(
+            u'/Nom sans \u30bc\u30ec accents.doc'),
+            u"Contenu")
+        self.assertEquals(self.local_client.get_content(
+            u'/Avec accents \u30d7 \u793e.doc'),
+            u"Contenu")
+
     def test_content_with_accents_from_server(self):
         self.remote_client.make_file(self.workspace,
             u'Nom sans accents.txt',

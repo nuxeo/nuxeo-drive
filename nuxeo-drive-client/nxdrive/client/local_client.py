@@ -142,25 +142,26 @@ class LocalClient(object):
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()
 
+    def is_ignored(self, child_name):
+        ignore = False
+        for suffix in self.ignored_suffixes:
+            if child_name.endswith(suffix):
+                ignore = True
+                break
+        for prefix in self.ignored_prefixes:
+            if child_name.startswith(prefix):
+                ignore = True
+                break
+        return ignore
+
     def get_children_info(self, ref):
         os_path = self._abspath(ref)
         result = []
         children = os.listdir(os_path)
         children.sort()
         for child_name in children:
-            ignore = False
 
-            for suffix in self.ignored_suffixes:
-                if child_name.endswith(suffix):
-                    ignore = True
-                    break
-
-            for prefix in self.ignored_prefixes:
-                if child_name.startswith(prefix):
-                    ignore = True
-                    break
-
-            if not ignore:
+            if not self.is_ignored(child_name):
                 if ref == u'/':
                     child_ref = ref + child_name
                 else:
