@@ -1821,7 +1821,7 @@ class Synchronizer(object):
                 if (evt.event_type == 'moved'):
                     remote_client = self.get_remote_fs_client(server_binding)
                     self.handle_move(local_client, remote_client,
-                                     doc_pair, evt.src_path,
+                                     doc_pair, src_path,
                                      normalize_event_filename(evt.dest_path))
                     renamed = renamed + 1
                     session.commit()
@@ -1922,7 +1922,7 @@ from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 
 def normalize_event_filename(filename):
     import unicodedata
-    return unicodedata.normalize('NFKC', filename.decode('utf-8'))
+    return unicodedata.normalize('NFKC', unicode(filename, 'utf-8'))
 
 
 class DriveFSEventHandler(FileSystemEventHandler):
@@ -1945,7 +1945,7 @@ class DriveFSEventHandler(FileSystemEventHandler):
             except ValueError:
                 pass
         if event.event_type == 'deleted':
-            src_path = event.src_path.decode("utf-8")
+            src_path = normalize_event_filename(event.src_path)
             try:
                 conflicted_changes.index(src_path)
                 conflicted_changes.remove(src_path)
