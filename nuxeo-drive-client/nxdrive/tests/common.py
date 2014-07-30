@@ -158,6 +158,17 @@ class IntegrationTestCase(unittest.TestCase):
         self.remote_file_system_client_2 = remote_file_system_client_2
 
     def tearDown(self):
+        # Force to clean all observers
+        for observer in self.controller_1.synchronizer.observers:
+            observer.stop()
+            observer.join()
+            del observer
+        self.controller_1.synchronizer.observers = []
+        for observer in self.controller_2.synchronizer.observers:
+            observer.stop()
+            observer.join()
+            del observer
+        self.controller_2.synchronizer.observers = []
         # Note that unbinding a server revokes the related token if needed,
         # see Controller.unbind_server()
         self.controller_1.unbind_all()
@@ -171,11 +182,17 @@ class IntegrationTestCase(unittest.TestCase):
 
         if os.path.exists(self.local_test_folder_1):
             self.controller_1.dispose()
-            shutil.rmtree(safe_long_path(self.local_test_folder_1))
+            try:
+                shutil.rmtree(safe_long_path(self.local_test_folder_1))
+            except:
+                pass
 
         if os.path.exists(self.local_test_folder_2):
             self.controller_2.dispose()
-            shutil.rmtree(safe_long_path(self.local_test_folder_2))
+            try:
+                shutil.rmtree(safe_long_path(self.local_test_folder_2))
+            except:
+                pass
 
     def get_all_states(self, session=None):
         """Utility to quickly introspect the current known states"""

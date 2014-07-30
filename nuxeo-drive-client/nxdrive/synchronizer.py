@@ -21,6 +21,7 @@ from nxdrive.model import ServerBinding
 from nxdrive.model import LastKnownState
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import safe_long_path
+import sys
 
 WindowsError = None
 try:
@@ -1832,71 +1833,86 @@ class Synchronizer(object):
             sleep(self.test_delay)
         local_client = self.get_local_client(local_folder)
         sorted_evts = []
+        deleted_files = []
         # Use the thread_safe pop() to extract events
         while (len(self.local_changes)):
             evt = self.local_changes.pop()
             sorted_evts.append(evt)
-        sorted(sorted_evts, key=lambda evt: evt.time)
-        log.info('Sorted events: %r', sorted_evts)
+        sorted_evts = sorted(sorted_evts, key=lambda evt: evt.time)
+        log.debug('Sorted events: %r', sorted_evts)
         for evt in sorted_evts:
-            src_path = normalize_event_filename(evt.src_path)
-            rel_path = local_client.get_path(src_path)
-            if len(rel_path) == 0:
-                rel_path = '/'
-            file_name = os.path.basename(src_path)
-            if (local_client.is_ignored(file_name)
-                  and evt.event_type != 'moved'):
-                continue
-            doc_pair = session.query(LastKnownState).filter_by(
-                local_folder=local_folder, local_path=rel_path).first()
-            if (evt.event_type == 'created'
-                    and doc_pair is None):
-                # If doc_pair is not None mean
-                # the creation has been catched by scan
-                doc_pair = LastKnownState(local_folder,
-                    local_info=local_client.get_info(rel_path))
-                doc_pair.local_state = 'created'
-                session.add(doc_pair)
-            elif doc_pair is not None:
-                if (evt.event_type == 'moved'):
-                    remote_client = self.get_remote_fs_client(server_binding)
-                    self.handle_move(local_client, remote_client,
-                                     doc_pair, src_path,
-                                     normalize_event_filename(evt.dest_path))
-                    session.commit()
+            try:
+                src_path = normalize_event_filename(evt.src_path)
+                rel_path = local_client.get_path(src_path)
+                if len(rel_path) == 0:
+                    rel_path = '/'
+                file_name = os.path.basename(src_path)
+                if (local_client.is_ignored(file_name)
+                      and evt.event_type != 'moved'):
                     continue
-                if evt.event_type == 'deleted':
-                    doc_pair.update_state('deleted', doc_pair.remote_state)
-                    continue
-                if evt.event_type == 'modified' and doc_pair.folderish:
-                    continue
-                doc_pair.update_local(local_client.get_info(rel_path))
-            else:
-                # Event is the reflection of remote deletion
-                if evt.event_type == 'deleted':
-                    continue
-                # As you receive an event for every children move also
-                if evt.event_type == 'moved':
-                    # Try to see if it is a move from update
-                    # No previous pair as it was hidden file
-                    # Existing pair (may want to check the pair state)
-                    dst_rel_path = local_client.get_path(
-                                    normalize_event_filename(evt.dest_path))
-                    dst_pair = session.query(LastKnownState).filter_by(
-                                    local_folder=local_folder,
-                                    local_path=dst_rel_path).first()
-                    # No pair so it must be a filed moved to this folder
-                    if dst_pair is None:
-                        # It can be consider as a creation
-                        doc_pair = LastKnownState(local_folder,
-                                local_info=local_client.get_info(dst_rel_path))
-                        session.add(doc_pair)
-                    else:
-                        # Must come from a modification
-                        dst_pair.update_local(
-                                    local_client.get_info(dst_rel_path))
-                    continue
-                log.info('Unhandle case: %r %s %s', evt, rel_path, file_name)
+                doc_pair = session.query(LastKnownState).filter_by(
+                    local_folder=local_folder, local_path=rel_path).first()
+                if (evt.event_type == 'created'
+                        and doc_pair is None):
+                    # If doc_pair is not None mean
+                    # the creation has been catched by scan
+                    # As Windows send a delete / create event for reparent
+                    local_info = local_client.get_info(rel_path)
+                    digest = local_info.get_digest()
+                    for deleted in deleted_files:
+                        if deleted.local_digest == digest:
+                            # Move detected
+                            log.info('Detected a file movement %r', deleted)
+                            deleted.update_state('moved',deleted.remote_state)
+                            deleted.update_local(local_client.get_info(rel_path))
+                            continue
+                    doc_pair = LastKnownState(local_folder,
+                        local_info=local_info)
+                    doc_pair.local_state = 'created'
+                    session.add(doc_pair)
+                elif doc_pair is not None:
+                    if (evt.event_type == 'moved'):
+                        remote_client = self.get_remote_fs_client(server_binding)
+                        self.handle_move(local_client, remote_client,
+                                         doc_pair, src_path,
+                                         normalize_event_filename(evt.dest_path))
+                        session.commit()
+                        continue
+                    if evt.event_type == 'deleted':
+                        doc_pair.update_state('deleted', doc_pair.remote_state)
+                        deleted_files.append(doc_pair)
+                        continue
+                    if evt.event_type == 'modified' and doc_pair.folderish:
+                        continue
+                    doc_pair.update_local(local_client.get_info(rel_path))
+                else:
+                    # Event is the reflection of remote deletion
+                    if evt.event_type == 'deleted':
+                        continue
+                    # As you receive an event for every children move also
+                    if evt.event_type == 'moved':
+                        # Try to see if it is a move from update
+                        # No previous pair as it was hidden file
+                        # Existing pair (may want to check the pair state)
+                        dst_rel_path = local_client.get_path(
+                                        normalize_event_filename(evt.dest_path))
+                        dst_pair = session.query(LastKnownState).filter_by(
+                                        local_folder=local_folder,
+                                        local_path=dst_rel_path).first()
+                        # No pair so it must be a filed moved to this folder
+                        if dst_pair is None:
+                            # It can be consider as a creation
+                            doc_pair = LastKnownState(local_folder,
+                                    local_info=local_client.get_info(dst_rel_path))
+                            session.add(doc_pair)
+                        else:
+                            # Must come from a modification
+                            dst_pair.update_local(
+                                        local_client.get_info(dst_rel_path))
+                        continue
+                    log.info('Unhandle case: %r %s %s', evt, rel_path, file_name)
+            except:
+                log.info(sys.exc_info()[0])
         session.commit()
 
     def handle_rename(self, local_client, remote_client, doc_pair, dest_path):
@@ -1907,7 +1923,13 @@ class Synchronizer(object):
         rel_path = local_client.get_path(dest_path)
         if len(rel_path) == 0:
                 rel_path = '/'
-        doc_pair.update_local(local_client.get_info(rel_path))
+        try:
+            doc_pair.update_local(local_client.get_info(rel_path))
+        except NotFound:
+            # In case of Windows with several move in a row
+            # Still need to update path
+            doc_pair.local_name = new_name
+            doc_pair.local_path = rel_path
         doc_pair.update_state(state, 'synchronized')
 
     def handle_move(self, local_client, remote_client, doc_pair, src_path,
@@ -1959,7 +1981,6 @@ from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 
 def normalize_event_filename(filename):
     import unicodedata
-    import sys
     if sys.platform == 'win32':
         return unicodedata.normalize('NFKC', unicode(filename))
     else:
@@ -1970,6 +1991,7 @@ class DriveFSEventHandler(FileSystemEventHandler):
     def __init__(self, queue):
         super(DriveFSEventHandler, self).__init__()
         self.queue = queue
+        self.counter = 0
 
     def on_any_event(self, event):
         if event.event_type == 'moved':
@@ -1995,6 +2017,9 @@ class DriveFSEventHandler(FileSystemEventHandler):
                 return
             except ValueError:
                 pass
-        event.time = time()
+        # Use counter instead of time so to be sure to respect the order
+        # As 2 events can have the same ms
+        self.counter += 1
+        event.time = self.counter
         self.queue.append(event)
-        log.debug(event)
+        log.debug('%d %r', self.counter, event)
