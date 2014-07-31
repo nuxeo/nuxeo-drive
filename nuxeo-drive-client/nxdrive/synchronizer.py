@@ -1046,6 +1046,7 @@ class Synchronizer(object):
                                                         new_local_name))
             log.debug('Conflict being handled by renaming local "%s" to "%s"',
                       doc_pair.local_name, new_local_name)
+
             # Let's rename the file
             # The new local item will be detected as a creation and
             # synchronized by the next iteration of the sync loop
@@ -1417,6 +1418,7 @@ class Synchronizer(object):
     def loop(self, max_loops=None, delay=None, max_sync_step=None,
              sync_thread=None, no_event_init=False):
         """Forever loop to scan / refresh states and perform sync"""
+
         # Reinit the full scan for unit test
         if not no_event_init:
             self.local_full_scan = []
@@ -1472,7 +1474,7 @@ class Synchronizer(object):
 
                     for sb in bindings:
                         if not sb.has_invalid_credentials():
-                            n_synchronized = self.update_synchronize_server(
+                            n_synchronized += self.update_synchronize_server(
                                 sb, session=session,
                                 max_sync_step=max_sync_step)
 
@@ -1706,7 +1708,7 @@ class Synchronizer(object):
             # the change data): we can save the new time stamp to start again
             # from this point next time
             self._checkpoint(server_binding, checkpoint, session=session)
-            n_synchronized = 0
+
             # Scan local folders to detect changes
             # XXX: OPTIM: use file system monitoring instead
             try:
@@ -1740,7 +1742,7 @@ class Synchronizer(object):
             # pending tasks
             n_pending = self._notify_pending(server_binding)
 
-            n_synchronized += self.synchronize(limit=max_sync_step,
+            n_synchronized = self.synchronize(limit=max_sync_step,
                 server_binding=server_binding)
             synchronization_duration = time() - tick
             log.debug("[%s] - [%s]: synchronized: %d, pending: %d, "
