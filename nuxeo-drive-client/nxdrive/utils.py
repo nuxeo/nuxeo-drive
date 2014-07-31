@@ -24,6 +24,8 @@ WIN32_PATCHED_MIME_TYPES = {
     'audio/x-mpg': 'audio/mpeg',
     'video/x-mpeg2a': 'video/mpeg',
     'application/x-javascript': 'application/javascript',
+    'application/x-mspowerpoint.12':
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 }
 
 
