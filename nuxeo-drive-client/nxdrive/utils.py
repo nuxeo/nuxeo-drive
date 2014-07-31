@@ -151,12 +151,13 @@ def _lazysecret(secret, blocksize=32, padding='}'):
 
 
 def guess_mime_type(filename):
-    ctype, _ = mimetypes.guess_type(filename)
-    if ctype:
-        # Patch bad Windows MIME types
-        # See https://jira.nuxeo.com/browse/NXP-11660
-        # and http://bugs.python.org/issue15207
-        mime_type = _patch_win32_mime_type(ctype)
+    mime_type, _ = mimetypes.guess_type(filename)
+    if mime_type:
+        if sys.platform == 'win32':
+            # Patch bad Windows MIME types
+            # See https://jira.nuxeo.com/browse/NXP-11660
+            # and http://bugs.python.org/issue15207
+            mime_type = _patch_win32_mime_type(mime_type)
         log.trace("Guessed mime type '%s' for '%s'", mime_type, filename)
         return mime_type
     else:
