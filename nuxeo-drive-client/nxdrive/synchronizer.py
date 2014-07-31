@@ -1982,9 +1982,9 @@ from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 def normalize_event_filename(filename):
     import unicodedata
     if sys.platform == 'win32':
-        return unicodedata.normalize('NFKC', unicode(filename))
+        return unicodedata.normalize('NFC', unicode(filename))
     else:
-        return unicodedata.normalize('NFKC', unicode(filename, 'utf-8'))
+        return unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
 
 
 class DriveFSEventHandler(FileSystemEventHandler):
