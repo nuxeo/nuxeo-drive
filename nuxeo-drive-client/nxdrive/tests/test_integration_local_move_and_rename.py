@@ -183,7 +183,6 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             u'/Original Folder 1/Renamed File 1 \xe9.txt'))
 
         ctl.synchronizer.update_synchronize_server(sb)
-        #self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Renamed File 1 \xe9.txt'))
@@ -265,7 +264,6 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder move is detected: all
         # the descendants are automatically realigned
-        #self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
         ctl.synchronizer.update_synchronize_server(sb)
         # The server folder has been moved: the uid stays the same
         remote_folder_info = remote_client.get_info(original_folder_1_uid)

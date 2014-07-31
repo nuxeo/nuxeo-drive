@@ -1472,7 +1472,7 @@ class Synchronizer(object):
 
                     for sb in bindings:
                         if not sb.has_invalid_credentials():
-                            n_synchronized += self.update_synchronize_server(
+                            n_synchronized = self.update_synchronize_server(
                                 sb, session=session,
                                 max_sync_step=max_sync_step)
 
