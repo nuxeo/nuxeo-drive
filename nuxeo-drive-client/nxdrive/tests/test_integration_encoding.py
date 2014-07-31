@@ -76,6 +76,14 @@ class TestIntegrationEncoding(IntegrationTestCase):
             u'/Nom sans accents'),
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
 
+    def test_name_normalization(self):
+        self.local_client.make_file('/',
+            u'espace\xa0 et TM\u2122.doc')
+        self._synchronize_and_assert(1)
+        self.assertEquals(self.remote_client.get_info(
+            u'/espace\xa0 et TM\u2122.doc').name,
+            u'espace\xa0 et TM\u2122.doc')
+
     def _synchronize_and_assert(self, expected_synchronized, wait=False):
         if wait:
             # Wait for audit changes to be detected after the 1 second step
