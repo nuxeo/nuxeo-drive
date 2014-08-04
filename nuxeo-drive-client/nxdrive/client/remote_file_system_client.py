@@ -254,5 +254,5 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def get_changes(self, server_binding):
         return self.execute(
             'NuxeoDrive.GetChangeSummary',
-            lastSyncDate=server_binding.last_sync_date,
+            lowerBound=server_binding.last_event_log_id,
             lastSyncActiveRootDefinitions=server_binding.last_root_definitions)

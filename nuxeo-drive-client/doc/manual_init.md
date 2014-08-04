@@ -63,6 +63,7 @@ The `device_config` table of the SQLite database needs a unique id as a primary 
             server_version VARCHAR,
             update_url VARCHAR,
             last_sync_date INTEGER,
+            last_event_log_id INTEGER,
             last_filter_date INTEGER,
             last_ended_sync_date INTEGER,
             last_root_definitions VARCHAR,

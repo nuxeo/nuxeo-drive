@@ -7,6 +7,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
     def setUp(self):
         super(TestIntegrationRemoteChanges, self).setUp()
         self.last_sync_date = None
+        self.last_event_log_id = None
         self.last_root_definitions = None
 
     def get_changes(self):
@@ -15,6 +16,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         # server_binding
         summary = remote_client.get_changes(self)
         self.last_sync_date = summary['syncDate']
+        self.last_event_log_id = summary['upperBound']
         self.last_root_definitions = (
             summary['activeSynchronizationRootDefinitions'])
         return summary
@@ -26,6 +28,8 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         self.assertEquals(summary['activeSynchronizationRootDefinitions'], '')
         first_timestamp = summary['syncDate']
         self.assertTrue(first_timestamp > 0)
+        first_event_log_id = summary['upperBound']
+        self.assertTrue(first_event_log_id > 0)
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         summary = self.get_changes()
@@ -35,6 +39,8 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         self.assertEquals(summary['activeSynchronizationRootDefinitions'], '')
         second_time_stamp = summary['syncDate']
         self.assertTrue(second_time_stamp > first_timestamp)
+        second_event_log_id = summary['upperBound']
+        self.assertEquals(second_event_log_id, first_event_log_id)
 
     def test_changes_root_registrations(self):
         # Lets create some folders in Nuxeo

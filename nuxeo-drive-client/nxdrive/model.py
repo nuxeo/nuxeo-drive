@@ -133,6 +133,7 @@ class ServerBinding(Base):
     server_version = Column(String)
     update_url = Column(String)
     last_sync_date = Column(Integer)
+    last_event_log_id = Column(Integer)
     last_filter_date = Column(Integer)
     last_ended_sync_date = Column(Integer)
     last_root_definitions = Column(String)
