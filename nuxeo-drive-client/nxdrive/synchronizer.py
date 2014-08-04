@@ -1456,15 +1456,17 @@ class Synchronizer(object):
 
         root_definitions = summary['activeSynchronizationRootDefinitions']
         sync_date = summary['syncDate']
-        checkpoint_data = (sync_date, root_definitions)
+        last_event_log_id = summary['upperBound']
+        checkpoint_data = (sync_date, last_event_log_id, root_definitions)
 
         return summary, checkpoint_data
 
     def _checkpoint(self, server_binding, checkpoint_data, session=None):
         """Save the incremental change data for the next iteration"""
         session = self.get_session() if session is None else session
-        sync_date, root_definitions = checkpoint_data
+        sync_date, last_event_log_id, root_definitions = checkpoint_data
         server_binding.last_sync_date = sync_date
+        server_binding.last_event_log_id = last_event_log_id
         server_binding.last_root_definitions = root_definitions
         session.commit()
 
@@ -1577,7 +1579,7 @@ class Synchronizer(object):
         local_scan_is_done = False
         try:
             tick = time()
-            first_pass = server_binding.last_sync_date is None
+            first_pass = server_binding.last_event_log_id is None
             summary, checkpoint = self._get_remote_changes(
                 server_binding, session=session)
 

@@ -248,8 +248,9 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def get_top_level_children(self):
         return self.execute("NuxeoDrive.GetTopLevelChildren")
 
-    def get_changes(self, last_sync_date=None, last_root_definitions=None):
+    def get_changes(self, last_sync_date=None, last_event_log_id=None,
+                    last_root_definitions=None):
         return self.execute(
             'NuxeoDrive.GetChangeSummary',
-            lastSyncDate=last_sync_date,
+            lowerBound=last_event_log_id,
             lastSyncActiveRootDefinitions=last_root_definitions)
