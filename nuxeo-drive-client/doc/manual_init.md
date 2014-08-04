@@ -60,6 +60,7 @@ The `device_config` table of the SQLite database needs a unique id as a primary 
             remote_password VARCHAR,
             remote_token VARCHAR,
             last_sync_date INTEGER,
+            last_event_log_id INTEGER,
             last_ended_sync_date INTEGER,
             last_root_definitions VARCHAR,
             PRIMARY KEY (local_folder)
