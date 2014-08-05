@@ -17,7 +17,8 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(guess_mime_type('picture.jpg'), 'image/jpeg')
         self.assertEquals(guess_mime_type('picture.png'), 'image/png')
         self.assertEquals(guess_mime_type('picture.gif'), 'image/gif')
-        self.assertEquals(guess_mime_type('picture.bmp'), 'image/x-ms-bmp')
+        self.assertIn(guess_mime_type('picture.bmp'), ['image/x-ms-bmp',
+                                                       'image/bmp'])
         self.assertEquals(guess_mime_type('picture.tiff'), 'image/tiff')
         self.assertIn(guess_mime_type('picture.ico'), ['image/x-icon',
                                                 'image/vnd.microsoft.icon'])
