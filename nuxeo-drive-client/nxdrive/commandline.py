@@ -508,7 +508,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_versioning",
             "nxdrive.tests.test_integration_windows",
             "nxdrive.tests.test_model_filters",
-            "nxdrive.tests.test_shared_folders.py",
+            "nxdrive.tests.test_shared_folders",
             "nxdrive.tests.test_synchronizer",
             "nxdrive.tests.test_updater",
             "nxdrive.tests.test_utils",
