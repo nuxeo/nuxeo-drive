@@ -209,7 +209,7 @@ class Synchronizer(object):
 
     # Test delay for FS notify
     test_delay = 0
-    
+
     # Default number of consecutive sync operations to perform
     # without refreshing the internal state DB.
     max_sync_step = 10
@@ -456,12 +456,58 @@ class Synchronizer(object):
                 log.debug("Unmarking %r as unsynchronized", doc_pair)
                 doc_pair.pair_state = 'unknown'
 
+    def _scan_local_new_file(self, session, child_name, child_info, parent_pair):
+        if not child_info.folderish:
+            # Try to find an existing remote doc that has not yet been
+            # bound to any local file that would align with both name
+            # and digest
+            try:
+                child_digest = child_info.get_digest()
+                possible_pairs = session.query(LastKnownState).filter_by(
+                        local_folder=parent_pair.local_folder,
+                        local_path=None,
+                        remote_parent_ref=parent_pair.remote_ref,
+                        folderish=child_info.folderish,
+                        remote_digest=child_digest,
+                    ).all()
+                child_pair = find_first_name_match(
+                        child_name, possible_pairs, self.check_suspended)
+                if child_pair is not None:
+                    log.debug("Matched local %s with remote %s "
+                                "with digest",
+                              child_info.path, child_pair.remote_name)
+                    return child_pair
+            except (IOError, WindowsError):
+                    # The file is currently being accessed and we cannot
+                    # compute the digest
+                    log.debug("Cannot perform alignment of %r using"
+                              " digest info due to concurrent file"
+                              " access", child_info.filepath)
+
+            # Previous attempt has failed: relax the digest constraint
+        possible_pairs = session.query(LastKnownState).filter_by(
+            local_folder=parent_pair.local_folder,
+            local_path=None,
+            remote_parent_ref=parent_pair.remote_ref,
+            folderish=child_info.folderish,
+        ).all()
+        child_pair = find_first_name_match(child_name, possible_pairs,
+                                                       self.check_suspended)
+        if child_pair is not None:
+            log.debug("Matched local %s with remote %s by name only",
+                                child_info.path, child_pair.remote_name)
+            return child_pair
+
+        # Could not find any pair state to align to, create one
+        child_pair = LastKnownState(parent_pair.local_folder,
+                local_info=child_info)
+        session.add(child_pair)
+        log.debug("Detected a new non-alignable local file at %s",
+                          child_pair.local_path)
+        return child_pair
+
     def _scan_local_recursive(self, session, client, doc_pair, local_info):
-        """Recursively scan the bound local folder looking for updates"""
-
-        # Check if synchronization thread was suspended
         self.check_suspended('Local recursive scan')
-
         if doc_pair.pair_state == 'unsynchronized':
             log.trace("Ignoring %s as marked unsynchronized",
                       doc_pair.local_path)
@@ -477,86 +523,35 @@ class Synchronizer(object):
             # No children to align, early stop.
             return
 
+        # Load all children from db
+        db_children = session.query(LastKnownState).filter_by(
+                local_folder=doc_pair.local_folder,
+                local_parent_path=doc_pair.local_path)
+        # Create a list of all children by their name
+        children = dict()
+        for child in db_children:
+            children[child.local_name] = child
+        # Load all children from FS
         # detect recently deleted children
         try:
-            children_info = client.get_children_info(local_info.path)
+            fs_children_info = client.get_children_info(local_info.path)
         except OSError:
             # The folder has been deleted in the mean time
             return
 
-        children_path = set(c.path for c in children_info)
-
-        selection_tag = LastKnownState.select_local_paths(session,
-                                                          children_path,
-                                                          self.page_size)
-        for deleted in LastKnownState.not_selected(
-                            session.query(LastKnownState)
-                                .filter_by(local_folder=doc_pair.local_folder,
-                                           local_parent_path=local_info.path),
-                            selection_tag):
-            self._mark_deleted_local_recursive(session, deleted)
-
         # recursively update children
-        for child_info in children_info:
-
-            # TODO: detect whether this is a __digit suffix name and relax the
-            # alignment queries accordingly
+        for child_info in fs_children_info:
             child_name = os.path.basename(child_info.path)
-            child_pair = session.query(LastKnownState).filter_by(
-                local_folder=doc_pair.local_folder,
-                local_path=child_info.path).first()
-
-            if child_pair is None and not child_info.folderish:
-                # Try to find an existing remote doc that has not yet been
-                # bound to any local file that would align with both name
-                # and digest
-                try:
-                    child_digest = child_info.get_digest()
-                    possible_pairs = session.query(LastKnownState).filter_by(
-                        local_folder=doc_pair.local_folder,
-                        local_path=None,
-                        remote_parent_ref=doc_pair.remote_ref,
-                        folderish=child_info.folderish,
-                        remote_digest=child_digest,
-                    ).all()
-                    child_pair = find_first_name_match(
-                        child_name, possible_pairs, self.check_suspended)
-                    if child_pair is not None:
-                        log.debug("Matched local %s with remote %s "
-                                  "with digest",
-                                  child_info.path, child_pair.remote_name)
-
-                except (IOError, WindowsError):
-                    # The file is currently being accessed and we cannot
-                    # compute the digest
-                    log.debug("Cannot perform alignment of %r using"
-                              " digest info due to concurrent file"
-                              " access", local_info.filepath)
-
-            if child_pair is None:
-                # Previous attempt has failed: relax the digest constraint
-                possible_pairs = session.query(LastKnownState).filter_by(
-                    local_folder=doc_pair.local_folder,
-                    local_path=None,
-                    remote_parent_ref=doc_pair.remote_ref,
-                    folderish=child_info.folderish,
-                ).all()
-                child_pair = find_first_name_match(child_name, possible_pairs,
-                                                   self.check_suspended)
-                if child_pair is not None:
-                    log.debug("Matched local %s with remote %s by name only",
-                              child_info.path, child_pair.remote_name)
-
-            if child_pair is None:
-                # Could not find any pair state to align to, create one
-                child_pair = LastKnownState(doc_pair.local_folder,
-                    local_info=child_info)
-                session.add(child_pair)
-                log.debug("Detected a new non-alignable local file at %s",
-                          child_pair.local_path)
-
+            if not child_name in children:
+                child_pair = self._scan_local_new_file(session, child_name,
+                                            child_info, doc_pair)
+            else:
+                child_pair = children.pop(child_name)
             self._scan_local_recursive(session, client, child_pair,
                                        child_info)
+
+        for deleted in children.values():
+            self._mark_deleted_local_recursive(session, deleted)
 
     def scan_remote(self, server_binding_or_local_path, from_state=None,
                     session=None):
@@ -1090,9 +1085,10 @@ class Synchronizer(object):
         # move on the server
         if doc_pair.local_name != doc_pair.remote_name:
             try:
-                log.debug('Renaming remote file according to local : %r', doc_pair)
+                log.debug('Renaming remote file according to local : %r',
+                                                    doc_pair)
                 doc_pair.update_remote(remote_client.rename(doc_pair.remote_ref,
-                                                        doc_pair.local_name))
+                                                         doc_pair.local_name))
             except:
                     # An error occurs return false
                     log.error("Renaming from %s to %s canceled",
@@ -1720,7 +1716,23 @@ class Synchronizer(object):
                      as we may create new file during the scan
                     '''
                     self.setup_local_watchdog(server_binding)
+                    self.profile = False
+                    if self.profile:
+                        import cProfile, pstats, StringIO
+                        self.profiler = cProfile.Profile()
+                        self.profiler.enable()
+                    tick_scan = time()
+                    log.warn("Start local scan at %r", tick_scan)
                     self.scan_local(server_binding, session=session)
+                    tick_scan = time() - tick_scan
+                    log.warn("End local scan at %r : %d s", time(), tick_scan)
+                    if self.profile:
+                        self.profiler.disable()
+                        s = StringIO.StringIO()
+                        sortby = 'cumulative'
+                        ps = pstats.Stats(self.profiler, stream=s).sort_stats(sortby)
+                        ps.print_stats()
+                        print s.getvalue()
                     self.local_full_scan.append(server_binding.local_folder)
             except NotFound:
                 # The top level folder has been locally deleted, renamed
@@ -1865,19 +1877,23 @@ class Synchronizer(object):
                         if deleted.local_digest == digest:
                             # Move detected
                             log.info('Detected a file movement %r', deleted)
-                            deleted.update_state('moved',deleted.remote_state)
+                            deleted.update_state('moved', deleted.remote_state)
                             deleted.update_local(local_client.get_info(rel_path))
                             continue
                     doc_pair = LastKnownState(local_folder,
                         local_info=local_info)
                     doc_pair.local_state = 'created'
                     session.add(doc_pair)
+                    # An event can be missed inside a new created folder as
+                    # watchdog will put listener after it
+                    self._scan_local_recursive(session, local_client, doc_pair,
+                                                local_info)
                 elif doc_pair is not None:
                     if (evt.event_type == 'moved'):
                         remote_client = self.get_remote_fs_client(server_binding)
                         self.handle_move(local_client, remote_client,
                                          doc_pair, src_path,
-                                         normalize_event_filename(evt.dest_path))
+                                    normalize_event_filename(evt.dest_path))
                         session.commit()
                         continue
                     if evt.event_type == 'deleted':
