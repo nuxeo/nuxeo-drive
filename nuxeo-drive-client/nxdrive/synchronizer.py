@@ -1716,23 +1716,7 @@ class Synchronizer(object):
                      as we may create new file during the scan
                     '''
                     self.setup_local_watchdog(server_binding)
-                    self.profile = False
-                    if self.profile:
-                        import cProfile, pstats, StringIO
-                        self.profiler = cProfile.Profile()
-                        self.profiler.enable()
-                    tick_scan = time()
-                    log.warn("Start local scan at %r", tick_scan)
                     self.scan_local(server_binding, session=session)
-                    tick_scan = time() - tick_scan
-                    log.warn("End local scan at %r : %d s", time(), tick_scan)
-                    if self.profile:
-                        self.profiler.disable()
-                        s = StringIO.StringIO()
-                        sortby = 'cumulative'
-                        ps = pstats.Stats(self.profiler, stream=s).sort_stats(sortby)
-                        ps.print_stats()
-                        print s.getvalue()
                     self.local_full_scan.append(server_binding.local_folder)
             except NotFound:
                 # The top level folder has been locally deleted, renamed
