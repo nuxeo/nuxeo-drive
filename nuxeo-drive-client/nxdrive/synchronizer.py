@@ -640,30 +640,18 @@ class Synchronizer(object):
 
         # Detect recently deleted children
         children_info = client.get_children_info(remote_info.uid)
-        children_refs = set(c.uid for c in children_info)
 
-        selectionTag = LastKnownState.select_remote_refs(session,
-                                                         children_refs,
-                                                         self.page_size)
-        for deleted in LastKnownState.not_selected(
-                            session.query(LastKnownState)
-                                .filter_by(local_folder=doc_pair.local_folder,
-                                    remote_parent_ref=remote_info.uid,),
-                            selectionTag):
-            self._mark_deleted_remote_recursive(session, deleted)
-
-        # Recursively update children
-        for child_info in children_info:
-
-            # Check if synchronization thread was suspended
-            self.check_suspended('Remote recursive update')
-
-            # TODO: detect whether this is a __digit suffix name and relax the
-            # alignment queries accordingly
-            child_pair = session.query(LastKnownState).filter_by(
+        db_children = session.query(LastKnownState).filter_by(
                 local_folder=doc_pair.local_folder,
-                remote_ref=child_info.uid).first()
+                remote_parent_ref=doc_pair.remote_ref)
+        children = dict()
+        for child in db_children:
+            children[child.remote_ref] = child
 
+        for child_info in children_info:
+            child_pair = None
+            if child_info.uid in children:
+                child_pair = children.pop(child_info.uid)
             new_pair = False
             if child_pair is None:
                 child_pair, new_pair = self._find_remote_child_match_or_create(
@@ -672,6 +660,9 @@ class Synchronizer(object):
             if new_pair or force_recursion:
                 self._scan_remote_recursive(session, client, child_pair,
                                         child_info)
+        # Delete remaining
+        for deleted in children.values():
+            self._mark_deleted_remote_recursive(session, deleted)
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info,
                                            session=None):
