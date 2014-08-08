@@ -2015,4 +2015,4 @@ class DriveFSEventHandler(FileSystemEventHandler):
         self.counter += 1
         event.time = self.counter
         self.queue.append(event)
-        log.debug('%d %r', self.counter, event)
+        log.trace('%d %r', self.counter, event)
