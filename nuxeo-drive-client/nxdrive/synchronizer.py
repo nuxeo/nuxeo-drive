@@ -1701,14 +1701,23 @@ class Synchronizer(object):
                 if server_binding.local_folder in self.local_full_scan:
                     self.handle_local_changes(server_binding)
                 else:
-                    '''
-                     Setup the FS notify before scanning
-                     as we may create new file during the scan
-                    '''
-                    self.setup_local_watchdog(server_binding)
+                    try:
+                        '''
+                         Setup the FS notify before scanning
+                         as we may create new file during the scan
+                        '''
+                        self.setup_local_watchdog(server_binding)
+                        self.local_full_scan.append(
+                                                server_binding.local_folder)
+                    except OSError:
+                        log.error("Cannot setup watchdog to monitor local"
+                                  " changes since inotify instance limit has"
+                                  " been reached. Please try increasing it,"
+                                  " typically under Linux by changing"
+                                  " /proc/sys/fs/inotify/max_user_instances",
+                                  exc_info=True)
                     # Scan local folders to detect changes
                     self.scan_local(server_binding, session=session)
-                    self.local_full_scan.append(server_binding.local_folder)
             except NotFound:
                 # The top level folder has been locally deleted, renamed
                 # or moved, unbind the server
