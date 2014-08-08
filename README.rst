@@ -114,6 +114,13 @@ Waiting for `NXP-13633 <https://jira.nuxeo.com/browse/NXP-13633>`_ to be resolve
 
     sudo mkdir /usr/local/lib/python2.7/dist-packages/alembic/versions
 
+Waiting for `NXDRIVE-62 <https://jira.nuxeo.com/browse/NXDRIVE-62>`_ to be resolved you need to run these commands for Nuxeo Drive to work fine::
+
+    # increase inotify file watch limit
+    ofile=/proc/sys/fs/inotify/max_user_instances
+    sudo sh -c "echo 8192 > $ofile"
+    cat $ofile
+
 
 Configuration and usage
 =======================

@@ -16,7 +16,7 @@ class TestIntegrationEncoding(IntegrationTestCase):
         self.ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         self.syn = self.ctl.synchronizer
-        self.syn.loop(delay=0.010, max_loops=1)
+        self.syn.loop(delay=0.010, max_loops=1, no_event_init=True)
 
         # Fetch server binding after sync loop as it closes the Session
         self.sb = self.ctl.get_server_binding(self.local_nxdrive_folder_1)
@@ -42,6 +42,23 @@ class TestIntegrationEncoding(IntegrationTestCase):
         self.assertEquals(self.local_client.get_content(
             u'/Nom avec accents \xe9 \xe8.doc'),
             u"Contenu sans accents.")
+
+    def test_filename_with_katakana_from_server(self):
+        self.remote_client.make_file(self.workspace,
+            u'Nom sans \u30bc\u30ec accents.doc',
+            u"Contenu")
+        self.local_client.make_file('/',
+            u'Avec accents \u30d7 \u793e.doc',
+            u"Contenu")
+
+        self._synchronize_and_assert(2, wait=True)
+
+        self.assertEquals(self.local_client.get_content(
+            u'/Nom sans \u30bc\u30ec accents.doc'),
+            u"Contenu")
+        self.assertEquals(self.local_client.get_content(
+            u'/Avec accents \u30d7 \u793e.doc'),
+            u"Contenu")
 
     def test_content_with_accents_from_server(self):
         self.remote_client.make_file(self.workspace,

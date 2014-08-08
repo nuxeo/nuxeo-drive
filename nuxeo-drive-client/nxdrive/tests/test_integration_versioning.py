@@ -21,8 +21,8 @@ class TestIntegrationVersioning(IntegrationTestCase):
 
         self.syn_1 = self.controller_1.synchronizer
         self.syn_2 = self.controller_2.synchronizer
-        self.syn_1.loop(delay=0.010, max_loops=1)
-        self.syn_2.loop(delay=0.010, max_loops=1)
+        self.syn_1.loop(delay=0.010, max_loops=1, no_event_init=True)
+        self.syn_2.loop(delay=0.010, max_loops=1, no_event_init=True)
 
         # Fetch server bindings after sync loop as it closes the Session
         self.sb_1 = self.controller_1.get_server_binding(

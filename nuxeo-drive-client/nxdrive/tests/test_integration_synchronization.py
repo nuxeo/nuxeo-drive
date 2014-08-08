@@ -817,7 +817,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.wait()
 
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
-        syn.loop(delay=0, max_loops=1)
+        syn.loop(delay=0, max_loops=1, no_event_init=True)
         self.assertEquals(ctl.list_pending(), [])
         self.assertTrue(local.exists('/' + self.workspace_title))
         self.assertTrue(local.exists('/' + self.workspace_title + '/Folder 3'))
@@ -837,14 +837,14 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         syn = ctl.synchronizer
         # Fetch the workspace sync root
-        syn.loop(delay=0, max_loops=1)
+        syn.loop(delay=0, max_loops=1, no_event_init=True)
         self.assertEquals(ctl.list_pending(), [])
 
         # Let's create some document on the client and synchronize it.
         local = LocalClient(self.local_nxdrive_folder_1)
         local_path = local.make_file('/' + self.workspace_title,
            'Some File.doc', content="Original content.")
-        syn.loop(delay=0, max_loops=1)
+        syn.loop(delay=0, max_loops=1, no_event_init=True)
 
         # Let's modify it concurrently but with the same content (digest)
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
@@ -857,7 +857,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # resolution will work for this case/
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
-        syn.loop(delay=0, max_loops=1)
+        syn.loop(delay=0, max_loops=1, no_event_init=True)
         item_infos = local.get_children_info('/' + self.workspace_title)
         self.assertEquals(len(item_infos), 1)
         self.assertEquals(item_infos[0].name, 'Some File.doc')
@@ -873,7 +873,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         # 2 loops are necessary for full conflict handling
-        syn.loop(delay=0, max_loops=2)
+        syn.loop(delay=0, max_loops=2, no_event_init=True)
         item_infos = local.get_children_info('/' + self.workspace_title)
         self.assertEquals(len(item_infos), 2)
 

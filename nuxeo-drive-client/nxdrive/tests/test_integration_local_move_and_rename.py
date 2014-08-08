@@ -130,7 +130,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             u'/Original Folder 1/Original File 1.1.txt',
             u'original File 1.1.txt')
 
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+        ctl.synchronizer.update_synchronize_server(sb)
 
         file_1_1_remote_info = remote_client.get_info(original_1_1_uid)
         self.assertEquals(file_1_1_remote_info.name,
@@ -154,7 +154,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Original File 1.txt'))
 
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+        ctl.synchronizer.update_synchronize_server(sb)
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Original File 1.txt'))
@@ -182,7 +182,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Renamed File 1 \xe9.txt'))
 
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+        ctl.synchronizer.update_synchronize_server(sb)
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Renamed File 1 \xe9.txt'))
@@ -264,8 +264,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder move is detected: all
         # the descendants are automatically realigned
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
-
+        ctl.synchronizer.update_synchronize_server(sb)
         # The server folder has been moved: the uid stays the same
         remote_folder_info = remote_client.get_info(original_folder_1_uid)
 
@@ -448,7 +447,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertFalse(local_client.exists(u'/Original Folder 1'))
         self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
 
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
         # Check remote folder has not been renamed
         folder_1_remote_info = remote_client.get_info(
@@ -490,6 +489,26 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
                           u'Sub-Folder 1.2')
         self.assertEquals(folder_1_2_state.remote_name,
                           u'Sub-Folder 1.2')
+
+    def test_local_move_with_remote_error(self):
+        sb, ctl = self.sb_1, self.controller_1
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+
+        # Check local folder
+        self.assertTrue(local_client.exists(u'/Original Folder 1'))
+        remote_client._remote_error = IOError
+        local_client.rename(u'/Original Folder 1', u'IOErrorTest')
+        ctl.synchronizer.update_synchronize_server(sb)
+        remote_client._remote_error = None
+        folder_1 = remote_client.get_info(
+            u'/Original Folder 1')
+        self.assertTrue(folder_1 is not None, 'Move has happen')
+        self.assertTrue(local_client.exists(u'/IOErrorTest'))
+        ctl.synchronizer.update_synchronize_server(sb)
+        folder_1 = remote_client.get_info(folder_1.uid)
+        self.assertEquals(folder_1.name, u'IOErrorTest', 'Move has not happen')
+        self.assertTrue(local_client.exists(u'/IOErrorTest'))
 
     def test_local_delete_readonly_folder(self):
         sb, ctl = self.sb_1, self.controller_1
