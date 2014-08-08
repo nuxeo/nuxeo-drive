@@ -1696,17 +1696,17 @@ class Synchronizer(object):
             # from this point next time
             self._checkpoint(server_binding, checkpoint, session=session)
 
-            # Scan local folders to detect changes
-            # XXX: OPTIM: use file system monitoring instead
             try:
+                # Local scan is done, handle changes registered by watchdog
                 if server_binding.local_folder in self.local_full_scan:
                     self.handle_local_changes(server_binding)
                 else:
                     '''
-                     Setup the FS notify before scaning
+                     Setup the FS notify before scanning
                      as we may create new file during the scan
                     '''
                     self.setup_local_watchdog(server_binding)
+                    # Scan local folders to detect changes
                     self.scan_local(server_binding, session=session)
                     self.local_full_scan.append(server_binding.local_folder)
             except NotFound:
