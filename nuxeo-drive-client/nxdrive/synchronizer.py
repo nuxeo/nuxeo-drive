@@ -237,6 +237,7 @@ class Synchronizer(object):
         self._frontend = None
         self.page_size = (page_size if page_size is not None
                           else self.default_page_size)
+        self.unhandle_fs_event = False
 
     def register_frontend(self, frontend):
         self._frontend = frontend
@@ -879,8 +880,10 @@ class Synchronizer(object):
 
     def _synchronize_locally_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
-        if self._detect_resolve_local_move(doc_pair, session,
-            local_client, remote_client, local_info):
+        # Dont detect move if events is on
+        if (not doc_pair.local_folder in self.local_full_scan and
+            self._detect_resolve_local_move(doc_pair, session,
+            local_client, remote_client, local_info)):
             return
         name = os.path.basename(doc_pair.local_path)
         # Find the parent pair to find the ref of the remote folder to
@@ -970,8 +973,9 @@ class Synchronizer(object):
 
     def _synchronize_locally_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
-        if self._detect_resolve_local_move(doc_pair, session,
-            local_client, remote_client, local_info):
+        if (not doc_pair.local_folder in self.local_full_scan and
+            self._detect_resolve_local_move(doc_pair, session,
+            local_client, remote_client, local_info)):
             return
         if doc_pair.remote_ref is not None:
             if remote_info.can_delete:
@@ -1699,16 +1703,30 @@ class Synchronizer(object):
             try:
                 # Local scan is done, handle changes registered by watchdog
                 if server_binding.local_folder in self.local_full_scan:
-                    self.handle_local_changes(server_binding)
+                    if self.unhandle_fs_event:
+                        # Force a scan unhandle fs event has been found
+                        log.warn('Scan local as unhandled fs event')
+                        # Reset the local changes
+                        del self.local_changes[:]
+                        self.unhandle_fs_event = False
+                        # Remove to enable move detection
+                        self.local_full_scan.remove(
+                                                server_binding.local_folder)
+                        self.scan_local(server_binding, session=session)
+                        # Add it again
+                        self.local_full_scan.append(
+                                                server_binding.local_folder)
+                    else:
+                        self.handle_local_changes(server_binding)
                 else:
+                    watcher_installed = False
                     try:
                         '''
                          Setup the FS notify before scanning
                          as we may create new file during the scan
                         '''
                         self.setup_local_watchdog(server_binding)
-                        self.local_full_scan.append(
-                                                server_binding.local_folder)
+                        watcher_installed = True
                     except OSError:
                         log.error("Cannot setup watchdog to monitor local"
                                   " changes since inotify instance limit has"
@@ -1718,6 +1736,10 @@ class Synchronizer(object):
                                   exc_info=True)
                     # Scan local folders to detect changes
                     self.scan_local(server_binding, session=session)
+                    # Put the local_full_scan after to keep move detection
+                    if watcher_installed:
+                        self.local_full_scan.append(
+                                                server_binding.local_folder)
             except NotFound:
                 # The top level folder has been locally deleted, renamed
                 # or moved, unbind the server
@@ -1913,6 +1935,7 @@ class Synchronizer(object):
                                         local_client.get_info(dst_rel_path))
                         continue
                     log.info('Unhandle case: %r %s %s', evt, rel_path, file_name)
+                    self.unhandle_fs_event = True
             except:
                 log.info(sys.exc_info()[0])
         session.commit()
@@ -2025,3 +2048,4 @@ class DriveFSEventHandler(FileSystemEventHandler):
         event.time = self.counter
         self.queue.append(event)
         log.trace('%d %r', self.counter, event)
+        # ERROR_NOTIFY_ENUM_DIR should be sent in specific case
