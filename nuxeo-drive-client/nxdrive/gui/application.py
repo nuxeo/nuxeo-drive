@@ -389,7 +389,8 @@ class Application(QApplication):
                 executable = sys.executable
                 # TODO NXP-13818: better handle this!
                 if sys.platform == 'darwin':
-                    executable = executable.replace('python', 'ndrive')
+                    executable = executable.replace('python',
+                                                    self.get_mac_app())
                 log.info("Current executable is: %s", executable)
                 updated_executable = executable.replace(current_version,
                                                         updated_version)
@@ -401,6 +402,9 @@ class Application(QApplication):
                 subprocess.Popen(args)
             else:
                 self.quit()
+
+    def get_mac_app(self):
+        return 'ndrive'
 
     def update_running_icon(self):
         if self.state not in ['enabled', 'update_available', 'transferring']:
