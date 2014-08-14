@@ -230,6 +230,10 @@ class NuxeoDriveSetup(object):
         scripts = attribs.get_scripts()
         name = attribs.get_name()
         packages = Packages(attribs.get_package_dirs()).load()
+
+        # special handling for data files
+        packages.remove('nxdrive.data')
+        packages.remove('nxdrive.data.icons')
         package_data = attribs.get_package_data()
         icons_home = attribs.get_icons_home()
         alembic_home = attribs.get_alembic_home()
@@ -337,9 +341,6 @@ class NuxeoDriveSetup(object):
                                       shortcutDir="ProgramMenuFolder",
                                       shortcutName=attribs.shortcutName()))
 
-            # special handling for data files
-            packages.remove('nxdrive.data')
-            packages.remove('nxdrive.data.icons')
             package_data = {}
             esky_app_name = (attribs.get_name()
                              + '-' + version + '.' + get_platform())
@@ -384,7 +385,7 @@ class NuxeoDriveSetup(object):
                 },
             )
 
-        elif sys.platform == 'darwin':
+        if sys.platform == 'darwin':
             # Under OSX we use py2app instead of cx_Freeze because we need:
             # - argv_emulation=True for nxdrive:// URL scheme handling
             # - easy Info.plist customization
