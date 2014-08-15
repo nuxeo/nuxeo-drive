@@ -69,6 +69,9 @@ class CliHandler(object):
         self.default_stop_on_error = True
         self.default_max_errors = DEFAULT_MAX_ERRORS
 
+    def get_version(self):
+        return __version__
+
     def make_cli_parser(self, add_subparsers=True):
         """Parse commandline arguments using a git-like subcommands scheme"""
 
@@ -131,7 +134,7 @@ class CliHandler(object):
             help="Maximum number of tries before giving up synchronization of"
             " a file in error.")
         common_parser.add_argument(
-            "-v", "--version", action="version", version=__version__,
+            "-v", "--version", action="version", version=self.get_version(),
             help="Print the current version of the Nuxeo Drive client."
         )
         parser = argparse.ArgumentParser(
