@@ -218,26 +218,30 @@ class RemoteFileSystemClient(BaseAutomationClient):
                 self.current_action.size = int(response.info().getheader(
                                                     'Content-Length', 0))
             if file_out is not None:
-                with open(file_out, "wb") as f:
-                    while True:
-                        # Check if synchronization thread was suspended
-                        if self.check_suspended is not None:
-                            self.check_suspended('File download: %s'
-                                                 % file_out)
-                        buffer_ = response.read(FILE_BUFFER_SIZE)
-                        if buffer_ == '':
-                            break
-                        self.current_action.progress += FILE_BUFFER_SIZE
-                        f.write(buffer_)
-                    if self._remote_error is not None:
-                        # Simulate a configurable remote (e.g. network or
-                        # server) error for the tests
-                        raise self._remote_error
-                    if self._local_error is not None:
-                        # Simulate a configurable local error (e.g. "No space
-                        # left on device") for the tests
-                        raise self._local_error
-                return None, file_out
+                locker = self.unlock_path(file_out)
+                try:
+                    with open(file_out, "wb") as f:
+                        while True:
+                            # Check if synchronization thread was suspended
+                            if self.check_suspended is not None:
+                                self.check_suspended('File download: %s'
+                                                     % file_out)
+                            buffer_ = response.read(FILE_BUFFER_SIZE)
+                            if buffer_ == '':
+                                break
+                            self.current_action.progress += FILE_BUFFER_SIZE
+                            f.write(buffer_)
+                        if self._remote_error is not None:
+                            # Simulate a configurable remote (e.g. network or
+                            # server) error for the tests
+                            raise self._remote_error
+                        if self._local_error is not None:
+                            # Simulate a configurable local error (e.g.
+                            # "No space left on device") for the tests
+                            raise self._local_error
+                    return None, file_out
+                finally:
+                    self.lock_path(file_out, locker)
             else:
                 return response.read(), None
         except urllib2.HTTPError as e:

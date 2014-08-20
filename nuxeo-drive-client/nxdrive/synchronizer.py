@@ -797,14 +797,23 @@ class Synchronizer(object):
     def _synchronize_locally_modified(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         if doc_pair.remote_digest != doc_pair.local_digest:
-            log.debug("Updating remote document '%s'.",
-                      doc_pair.remote_name)
-            remote_client.stream_update(
-                doc_pair.remote_ref,
-                doc_pair.get_local_abspath(),
-                filename=doc_pair.remote_name,
-            )
-            doc_pair.refresh_remote(remote_client)
+            if doc_pair.remote_can_update:
+                log.debug("Updating remote document '%s'.",
+                          doc_pair.remote_name)
+                remote_client.stream_update(
+                    doc_pair.remote_ref,
+                    doc_pair.get_local_abspath(),
+                    filename=doc_pair.remote_name,
+                )
+                doc_pair.refresh_remote(remote_client)
+            else:
+                log.debug("Skip update of remote document '%s'"\
+                             " as it is readonly.",
+                          doc_pair.remote_name)
+                #if self._controller.overwrite_readonly():
+                #    doc_pair.update_state('synchronized', 'modified')
+                #else:
+                #    doc_pair.update_state('unsynchronized', 'unsynchronized')
         doc_pair.update_state('synchronized', 'synchronized')
 
     def _synchronize_remotely_modified(self, doc_pair, session,
@@ -980,6 +989,10 @@ class Synchronizer(object):
             # Rename tmp file
             local_client.rename(local_client.get_path(tmp_file), name)
         doc_pair.update_local(local_client.get_info(path))
+        if doc_pair.is_readonly():
+            local_client.set_readonly(doc_pair.local_path)
+        else:
+            local_client.unset_readonly(doc_pair.local_path)
         doc_pair.update_state('synchronized', 'synchronized')
 
     def _synchronize_locally_deleted(self, doc_pair, session,

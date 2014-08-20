@@ -11,6 +11,7 @@ import tempfile
 from urllib import urlencode
 from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
+from nxdrive.client.common import BaseClient
 from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
@@ -98,7 +99,7 @@ class Unauthorized(Exception):
                 " the provided credentials" % (self.user_id, self.server_url))
 
 
-class BaseAutomationClient(object):
+class BaseAutomationClient(BaseClient):
     """Client for the Nuxeo Content Automation HTTP API
 
     timeout is a short timeout to avoid having calls to fast JSON operations

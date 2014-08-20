@@ -7,6 +7,7 @@ import os
 import shutil
 import re
 import sys
+from nxdrive.client.common import BaseClient
 
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import safe_filename
@@ -78,7 +79,7 @@ class FileInfo(object):
         return h.hexdigest()
 
 
-class LocalClient(object):
+class LocalClient(BaseClient):
     """Client API implementation for the local file system"""
 
     # TODO: initialize the prefixes and suffix with a dedicated Nuxeo
@@ -116,6 +117,14 @@ class LocalClient(object):
                 self._case_sensitive = True
             os.rmdir(path)
         return self._case_sensitive
+
+    def set_readonly(self, ref):
+        path = self._abspath(ref)
+        self.set_path_readonly(path)
+
+    def unset_readonly(self, ref):
+        path = self._abspath(ref)
+        self.unset_path_readonly(path)
 
     # Getters
     def get_info(self, ref, raise_if_missing=True):
@@ -178,21 +187,45 @@ class LocalClient(object):
 
         return result
 
+    def get_parent_ref(self, ref):
+        if ref == '/':
+            return None
+        parent = ref.rsplit(u'/', 1)[0]
+        if parent is None:
+            parent = '/'
+        return parent
+
+    def unlock_ref(self, ref, unlock_parent=True):
+        path = self._abspath(ref)
+        return self.unlock_path(path, unlock_parent)
+
+    def lock_ref(self, ref, locker):
+        path = self._abspath(ref)
+        return self.lock_path(path, locker)
+
     def make_folder(self, parent, name):
+        locker = self.unlock_ref(parent, False)
         os_path, name = self._abspath_deduped(parent, name)
-        os.mkdir(os_path)
-        if parent == u"/":
-            return u"/" + name
-        return parent + u"/" + name
+        try:
+            os.mkdir(os_path)
+            if parent == u"/":
+                return u"/" + name
+            return parent + u"/" + name
+        finally:
+            self.lock_ref(parent, locker)
 
     def make_file(self, parent, name, content=None):
+        locker = self.unlock_ref(parent, False)
         os_path, name = self._abspath_deduped(parent, name)
-        with open(os_path, "wb") as f:
-            if content:
-                f.write(content)
-        if parent == u"/":
-            return u"/" + name
-        return parent + u"/" + name
+        try:
+            with open(os_path, "wb") as f:
+                if content:
+                    f.write(content)
+            if parent == u"/":
+                return u"/" + name
+            return parent + u"/" + name
+        finally:
+            self.lock_ref(parent, locker)
 
     def get_new_file(self, parent, name):
         os_path, name = self._abspath_deduped(parent, name)
@@ -207,6 +240,7 @@ class LocalClient(object):
             f.write(content)
 
     def delete(self, ref):
+        locker = self.unlock_ref(ref)
         os_path = self._abspath(ref)
         if not self.exists(ref):
             return
@@ -234,8 +268,12 @@ class LocalClient(object):
             log.info('Cant use trash for ' + os_path
                                  + ', delete it')
             self.delete_final(ref)
+        finally:
+            # Dont want to unlock the current deleted
+            self.lock_ref(ref, locker & 2)
 
     def delete_final(self, ref):
+        self.unset_readonly(ref)
         os_path = self._abspath(ref)
         if os.path.isfile(os_path):
             os.unlink(os_path)
@@ -260,30 +298,35 @@ class LocalClient(object):
         parent = ref.rsplit(u'/', 1)[0]
         old_name = ref.rsplit(u'/', 1)[1]
         parent = u'/' if parent == '' else parent
-        # Check if only case renaming
-        if (old_name != new_name and old_name.lower() == new_name.lower()
-            and not self.is_case_sensitive()):
-            # Must use a temp rename as FS is not case sensitive
-            temp_path = os.tempnam(self._abspath(parent),
-                                   '.ren_' + old_name + '_')
+        locker = self.unlock_ref(ref)
+        try:
+            # Check if only case renaming
+            if (old_name != new_name and old_name.lower() == new_name.lower()
+                and not self.is_case_sensitive()):
+                # Must use a temp rename as FS is not case sensitive
+                temp_path = os.tempnam(self._abspath(parent),
+                                       '.ren_' + old_name + '_')
+                if sys.platform == 'win32':
+                    import ctypes
+                    ctypes.windll.kernel32.SetFileAttributesW(
+                                                unicode(temp_path), 2)
+                shutil.move(source_os_path, temp_path)
+                source_os_path = temp_path
+                # Try the os rename part
+                target_os_path = self._abspath(os.path.join(parent, new_name))
+            else:
+                target_os_path, new_name = self._abspath_deduped(parent,
+                                                                new_name)
+            shutil.move(source_os_path, target_os_path)
             if sys.platform == 'win32':
                 import ctypes
-                ctypes.windll.kernel32.SetFileAttributesW(unicode(temp_path),
-                                                          2)
-            shutil.move(source_os_path, temp_path)
-            source_os_path = temp_path
-            # Try the os rename part
-            target_os_path = self._abspath(os.path.join(parent, new_name))
-        else:
-            target_os_path, new_name = self._abspath_deduped(parent, new_name)
-        shutil.move(source_os_path, target_os_path)
-        if sys.platform == 'win32':
-            import ctypes
-            # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
-            ctypes.windll.kernel32.SetFileAttributesW(unicode(target_os_path),
-                                                      128)
-        new_ref = self.get_children_ref(parent, new_name)
-        return self.get_info(new_ref)
+                # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
+                ctypes.windll.kernel32.SetFileAttributesW(
+                                            unicode(target_os_path), 128)
+            new_ref = self.get_children_ref(parent, new_name)
+            return self.get_info(new_ref)
+        finally:
+            self.lock_ref(ref, locker & 2)
 
     def move(self, ref, new_parent_ref):
         """Move a local file or folder into another folder
@@ -293,12 +336,18 @@ class LocalClient(object):
         """
         if ref == u'/':
             raise ValueError("Cannot move the toplevel folder.")
+        locker = self.unlock_ref(ref)
+        new_locker = self.unlock_ref(new_parent_ref, False)
         source_os_path = self._abspath(ref)
         name = ref.rsplit(u'/', 1)[1]
         target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
-        shutil.move(source_os_path, target_os_path)
-        new_ref = self.get_children_ref(new_parent_ref, new_name)
-        return self.get_info(new_ref)
+        try:
+            shutil.move(source_os_path, target_os_path)
+            new_ref = self.get_children_ref(new_parent_ref, new_name)
+            return self.get_info(new_ref)
+        finally:
+            self.lock_ref(ref, locker & 2)
+            self.lock_ref(new_parent_ref, locker & 1 | new_locker)
 
     def get_path(self, abspath):
         """Relative path to the local client from an absolute OS path"""

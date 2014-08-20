@@ -498,6 +498,12 @@ class LastKnownState(Base):
         self.remote_can_update = remote_info.can_update
         self.remote_can_create_child = remote_info.can_create_child
 
+    def is_readonly(self):
+        return ((self.folderish == 1 and self.remote_can_create_child == 0)
+                    or
+                (self.remote_can_delete & self.remote_can_rename
+                        & self.remote_can_update) == 0)
+
     def reset_local(self):
         self.local_digest = None
         self.local_name = None
