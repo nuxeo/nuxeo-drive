@@ -335,9 +335,11 @@ class CliHandler(object):
     def uninstall(self, options):
         try:
             import shutil
-            shutil.rmtree(self.default_home)
-        except:
+            self.controller.dispose()
+            shutil.rmtree(self.controller.config_folder)
+        except Exception, e:
             # Exit with 0 signal to not block the uninstall
+            print e
             sys.exit(0)
 
     def get_controller(self, options):
@@ -355,7 +357,8 @@ class CliHandler(object):
         if command != 'test':
             # Configure the logging framework, except for the tests as they
             # configure their own
-            self._configure_logger(options)
+            if command != 'uninstall':
+                self._configure_logger(options)
 
             # Initialize a controller for this process, except for the tests
             # as they initialize their own
