@@ -74,7 +74,6 @@ class CliHandler(object):
 
     def make_cli_parser(self, add_subparsers=True):
         """Parse commandline arguments using a git-like subcommands scheme"""
-
         common_parser = argparse.ArgumentParser(
             add_help=False,
         )
@@ -218,6 +217,11 @@ class CliHandler(object):
         unbind_root_parser.set_defaults(command='unbind_root')
         unbind_root_parser.add_argument(
             "local_root", help="Local sub-folder to de-synchronize.")
+        uninstall_parser = subparsers.add_parser(
+            'uninstall', help='Remove app data',
+            parents=[common_parser],
+        )
+        uninstall_parser.set_defaults(command='uninstall')
 
         # Start / Stop the synchronization daemon
         start_parser = subparsers.add_parser(
@@ -327,6 +331,14 @@ class CliHandler(object):
             console_level=options.log_level_console,
             command_name=options.command,
         )
+
+    def uninstall(self, options):
+        try:
+            import shutil
+            shutil.rmtree(self.default_home)
+        except:
+            # Exit with 0 signal to not block the uninstall
+            sys.exit(0)
 
     def get_controller(self, options):
         return Controller(options.nxdrive_home,
