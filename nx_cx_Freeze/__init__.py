@@ -59,6 +59,8 @@ class bdist_msi(cx_bdist_msi):
         # 18 is for execute a .exe from install
         msilib.add_data(self.db, "CustomAction", [("LaunchNuxeoDrive", 18, "launcher.exe", self.get_executable())])
         button.event("DoAction","LaunchNuxeoDrive",'StartClient=1 and Progress1="Install"')
+        msilib.add_data(self.db, "CustomAction", [("NuxeoDriveCleanUp", 18, self.get_executable(), "uninstall")])
+        msilib.add_data(self.db, "InstallExecuteSequence", [("NuxeoDriveCleanUp", 'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE', 1260)])
 
 class install(cx_install):
 
