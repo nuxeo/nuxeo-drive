@@ -356,7 +356,8 @@ class CliHandler(object):
 
         if command != 'test':
             # Configure the logging framework, except for the tests as they
-            # configure their own
+            # configure their own.
+            # Don't need uninstall logs either for now.
             if command != 'uninstall':
                 self._configure_logger(options)
 
