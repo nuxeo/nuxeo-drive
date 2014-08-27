@@ -74,7 +74,6 @@ class CliHandler(object):
 
     def make_cli_parser(self, add_subparsers=True):
         """Parse commandline arguments using a git-like subcommands scheme"""
-
         common_parser = argparse.ArgumentParser(
             add_help=False,
         )
@@ -218,6 +217,11 @@ class CliHandler(object):
         unbind_root_parser.set_defaults(command='unbind_root')
         unbind_root_parser.add_argument(
             "local_root", help="Local sub-folder to de-synchronize.")
+        uninstall_parser = subparsers.add_parser(
+            'uninstall', help='Remove app data',
+            parents=[common_parser],
+        )
+        uninstall_parser.set_defaults(command='uninstall')
 
         # Start / Stop the synchronization daemon
         start_parser = subparsers.add_parser(
@@ -328,6 +332,16 @@ class CliHandler(object):
             command_name=options.command,
         )
 
+    def uninstall(self, options):
+        try:
+            import shutil
+            self.controller.dispose()
+            shutil.rmtree(self.controller.config_folder)
+        except Exception, e:
+            # Exit with 0 signal to not block the uninstall
+            print e
+            sys.exit(0)
+
     def get_controller(self, options):
         return Controller(options.nxdrive_home,
                             handshake_timeout=options.handshake_timeout,
@@ -342,8 +356,10 @@ class CliHandler(object):
 
         if command != 'test':
             # Configure the logging framework, except for the tests as they
-            # configure their own
-            self._configure_logger(options)
+            # configure their own.
+            # Don't need uninstall logs either for now.
+            if command != 'uninstall':
+                self._configure_logger(options)
 
             # Initialize a controller for this process, except for the tests
             # as they initialize their own
@@ -358,7 +374,7 @@ class CliHandler(object):
         self.log = get_logger(__name__)
         self.log.debug("Command line: " + ' '.join(argv))
 
-        if command != 'test':
+        if command != 'test' and command != 'uninstall':
             # Install utility to help debugging segmentation faults
             self._install_faulthandler(options)
 

@@ -131,7 +131,7 @@ class NuxeoDriveAttributes(object):
         return os.path.join(self.rubric_2nd_dir(), 'scripts', 'ndrive')
 
     def get_scripts(self):
-        return [es_Executable(self.get_script())]
+        return [es_Executable(self.get_script()), 'launcher.py']
 
     def get_win_script(self):
         return os.path.join(self.rubric_2nd_dir(), 'scripts', 'ndrivew.pyw')
@@ -216,6 +216,7 @@ class NuxeoDriveAttributes(object):
 
     def get_includes(self):
         return []
+
 
 class NuxeoDriveSetup(object):
 
@@ -422,7 +423,6 @@ class NuxeoDriveSetup(object):
                     )
                 )
             )
-
         setup(
             name=name,
             version=version,
