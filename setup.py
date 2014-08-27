@@ -217,6 +217,7 @@ class NuxeoDriveAttributes(object):
     def get_includes(self):
         return []
 
+
 class NuxeoDriveSetup(object):
 
     def __init__(self, driveAttributes):

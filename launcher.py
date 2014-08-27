@@ -1,16 +1,14 @@
 """Commandline interface for the Nuxeo Drive installation"""
 
 import sys
-import os
 import subprocess
-import time
 
 if len(sys.argv) < 2:
     sys.exit(1)
 
+
 def launch(exe):
     executable = sys.executable
-    # TODO NXP-13818: better handle this!
     if sys.platform == 'darwin':
         executable = executable.replace('python', exe)
     elif sys.platform == 'win32':
