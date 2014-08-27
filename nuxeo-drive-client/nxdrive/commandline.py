@@ -373,7 +373,7 @@ class CliHandler(object):
         self.log = get_logger(__name__)
         self.log.debug("Command line: " + ' '.join(argv))
 
-        if command != 'test':
+        if command != 'test' and command != 'uninstall':
             # Install utility to help debugging segmentation faults
             self._install_faulthandler(options)
 
