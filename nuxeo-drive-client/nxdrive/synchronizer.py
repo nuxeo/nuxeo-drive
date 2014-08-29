@@ -2038,7 +2038,7 @@ class DriveFSEventHandler(FileSystemEventHandler):
                 conflicted_changes.index(src_path)
                 conflicted_changes.remove(src_path)
                 log.info('Skipping delete of %s as it is in fact an update',
-                            dest_path)
+                            src_path)
                 return
             except ValueError:
                 pass
