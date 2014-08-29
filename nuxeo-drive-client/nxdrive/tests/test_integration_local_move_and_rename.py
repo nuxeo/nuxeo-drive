@@ -268,7 +268,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         # The server folder has been moved: the uid stays the same
         remote_folder_info = remote_client.get_info(original_folder_1_uid)
 
-        # The parent folder is not folder 2
+        # The parent folder is now folder 2
         self.assertEquals(remote_folder_info.parent_uid,
             original_folder_2_uid)
 
