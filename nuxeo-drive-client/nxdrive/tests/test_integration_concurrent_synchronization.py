@@ -63,6 +63,8 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
             name_pattern=child_name_pattern, delay=0.5)
 
         # Wait for the synchronizer thread to complete
+        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.wait()
         sync_thread.join()
 
         # Check that all the children creations where detected despite the
