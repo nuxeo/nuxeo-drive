@@ -1381,7 +1381,8 @@ class Synchronizer(object):
                     pid = int(f.read().strip())
                     _ = psutil.Process(pid)
                     # TODO https://jira.nuxeo.com/browse/NXDRIVE-26: Check if
-                    # we can skip the process verif as it can be overridden
+                    # we can skip the process name verif as it can be
+                    # overridden
                     return pid
                 except (ValueError, psutil.NoSuchProcess):
                     pass
