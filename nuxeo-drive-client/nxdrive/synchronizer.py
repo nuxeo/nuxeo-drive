@@ -1376,24 +1376,35 @@ class Synchronizer(object):
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
         if os.path.exists(pid_filepath):
             with open(safe_long_path(pid_filepath), 'rb') as f:
-                pid = int(f.read().strip())
+                pid = None
                 try:
+                    pid = int(f.read().strip())
                     _ = psutil.Process(pid)
                     # TODO https://jira.nuxeo.com/browse/NXDRIVE-26: Check if
                     # we can skip the process verif as it can be overridden
                     return pid
-                except psutil.NoSuchProcess:
+                except (ValueError, psutil.NoSuchProcess):
                     pass
-                # This is a pid file pointing to either a stopped process
-                # or a non-nxdrive process: let's delete it if possible
+                # This is a pid file that is empty or pointing to either a
+                # stopped process or a non-nxdrive process: let's delete it if
+                # possible
                 try:
                     os.unlink(pid_filepath)
-                    log.info("Removed old pid file: %s for"
-                            " stopped process %d", pid_filepath, pid)
+                    if pid is None:
+                        msg = "Removed old empty pid file: %s" % pid_filepath
+                    else:
+                        msg = ("Removed old pid file: %s for stopped process"
+                               " %d" % (pid_filepath, pid))
+                    log.info(msg)
                 except Exception, e:
-                    log.warning("Failed to remove stalled pid file: %s"
-                            " for stopped process %d: %r",
-                            pid_filepath, pid, e)
+                    if pid is None:
+                        msg = ("Failed to remove empty stalled pid file: %s:"
+                               " %r" % (pid_filepath, e))
+                    else:
+                        msg = ("Failed to remove stalled pid file: %s for"
+                               " stopped process %d: %r"
+                               % (pid_filepath, pid, e))
+                    log.warning(msg)
                 return None
         return None
 
