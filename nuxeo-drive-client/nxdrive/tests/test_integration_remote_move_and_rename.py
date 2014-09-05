@@ -1,5 +1,4 @@
 import os
-import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -65,7 +64,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             u'Original File 3.txt',
             content=u'Some Content 3'.encode('utf-8'))
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
 
@@ -80,7 +78,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
             u'Renamed File 1.txt')
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
@@ -109,7 +106,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_1_id).name,
             u'Renamed File 1.1 \xe9.txt')
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
 
@@ -153,7 +149,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
             os.path.join(self.sync_root_folder_1, u'Original Folder 1'))
 
         # The more things change, the more they remain the same.
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
@@ -170,7 +165,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_id).parent_uid,
             self.folder_1_id)
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
@@ -197,7 +191,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(file_1_state.local_name, u'Original File 1.txt')
 
         # The more things change, the more they remain the same.
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
@@ -215,7 +208,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_id).parent_uid,
             self.folder_1_id)
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
@@ -242,7 +234,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(file_1_state.local_name, u'Renamed File 1 \xe9.txt')
 
         # The more things change, the more they remain the same.
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
@@ -259,7 +250,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
@@ -302,7 +292,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(folder_1_1_state.local_name, u'Sub-Folder 1.1')
 
         # The more things change, the more they remain the same.
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
@@ -313,12 +302,10 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
 
         self.assertTrue(local_client.exists('/Original Folder 1'))
         remote_client.rename(self.folder_1_id, 'Original folder 1')
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         ctl.synchronizer.update_synchronize_server(sb)
         self.assertTrue(local_client.exists('/Original folder 1'))
         remote_client.rename(self.folder_1_id, 'Original Folder 1')
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         ctl.synchronizer.update_synchronize_server(sb)
         self.assertTrue(local_client.exists('/Original Folder 1'))
@@ -338,7 +325,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder move is detected: all
         # the descendants are automatically realigned
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
@@ -402,7 +388,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(folder_1_1_state.local_name, u'Sub-Folder 1.1')
 
         # The more things change, the more they remain the same.
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
@@ -422,7 +407,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
 
@@ -460,7 +444,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(file_3_state.local_name, u'Original File 3.txt')
 
         # The more things change, the more they remain the same.
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
@@ -478,7 +461,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the sync root folder renaming is detected: all
         # the descendants are automatically realigned
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
@@ -556,7 +538,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(file_1_1_state.local_name, u'Original File 1.1.txt')
 
         # The more things change, the more they remain the same.
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
@@ -596,7 +577,6 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
                             u'/Non synchronized folder/Original Folder 1'))
 
         # Synchronize: the folder move is detected as a deletion
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
 
@@ -608,6 +588,5 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(len(folder_1_state), 0)
 
         # The more things change, the more they remain the same.
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)

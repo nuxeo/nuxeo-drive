@@ -401,7 +401,6 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         self.assertFalse(local.exists('/Test folder renamed'))
 
     def _synchronize(self, synchronizer):
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         synchronizer.loop(delay=0.1, max_loops=2, no_event_init=True)
 

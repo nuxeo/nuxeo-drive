@@ -56,7 +56,7 @@ class TestIntegrationVersioning(IntegrationTestCase):
 
         # Synchronize it for user 2
         self.assertTrue(self.remote_client_2.exists('/Test versioning.txt'))
-        self._synchronize_and_assert(self.syn_2, self.sb_2, 1, wait=True)
+        self._synchronize_and_assert(self.syn_2, self.sb_2, 1)
         self.assertTrue(self.local_client_2.exists('/Test versioning.txt'))
 
         # Update it as user 2 => should be versioned
@@ -96,7 +96,6 @@ class TestIntegrationVersioning(IntegrationTestCase):
         doc = remote_client.make_file(self.workspace,
                                     'Document to restore.txt',
                                     content="Initial content.")
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
         self.assertTrue(local_client.exists('/Document to restore.txt'))
@@ -111,24 +110,19 @@ class TestIntegrationVersioning(IntegrationTestCase):
         # the version) as to be updated
         time.sleep(1.0)
         remote_client.update_content(doc, "Updated content.")
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
         self.assertEquals(local_client.get_content('/Document to restore.txt'),
                           "Updated content.")
         version_uid = remote_client.get_versions(doc)[0][0]
         remote_client.restore_version(version_uid)
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
         self.assertEquals(local_client.get_content('/Document to restore.txt'),
                           "Initial content.")
 
     def _synchronize_and_assert(self, synchronizer, server_binding,
-        expected_synchronized, wait=False):
-        if wait:
-            # Wait for audit changes to be detected after the 1 second step
-            time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        expected_synchronized):
         n_synchronized = synchronizer.update_synchronize_server(server_binding)
         self.assertEqual(n_synchronized, expected_synchronized)
 

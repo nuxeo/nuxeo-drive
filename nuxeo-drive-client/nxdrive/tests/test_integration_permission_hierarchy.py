@@ -152,6 +152,5 @@ class TestIntegrationPermissionHierarchy(IntegrationTestCase):
             admin_remote_client.deactivate_profile('permission')
 
     def _synchronize(self, synchronizer):
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         synchronizer.loop(delay=0.1, max_loops=1)

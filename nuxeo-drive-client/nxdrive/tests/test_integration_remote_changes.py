@@ -1,4 +1,3 @@
-import time
 from nxdrive.tests.common import IntegrationTestCase
 
 
@@ -31,14 +30,13 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         first_event_log_id = summary['upperBound']
         self.assertTrue(first_event_log_id > 0)
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         summary = self.get_changes()
 
         self.assertEquals(summary['hasTooManyChanges'], False)
         self.assertEquals(summary['fileSystemChanges'], [])
         self.assertEquals(summary['activeSynchronizationRootDefinitions'], '')
         second_time_stamp = summary['syncDate']
-        self.assertTrue(second_time_stamp > first_timestamp)
+        self.assertTrue(second_time_stamp >= first_timestamp)
         second_event_log_id = summary['upperBound']
         self.assertEquals(second_event_log_id, first_event_log_id)
 
@@ -50,7 +48,6 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         remote_client.make_folder(folder_2, 'Folder 2.2')
 
         # Fetch an initial time stamp without any registered roots
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         summary = self.get_changes()
         self.assertEquals(summary['hasTooManyChanges'], False)
@@ -63,7 +60,6 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, folder_1)
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         summary = self.get_changes()
 
@@ -80,7 +76,6 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         # Let's register the second root
         ctl.bind_root(self.local_nxdrive_folder_1, folder_2)
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         summary = self.get_changes()
 
@@ -108,7 +103,6 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         ctl.unbind_root(self.local_nxdrive_folder_1, folder_1)
         ctl.unbind_root(self.local_nxdrive_folder_1, folder_2)
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         summary = self.get_changes()
 

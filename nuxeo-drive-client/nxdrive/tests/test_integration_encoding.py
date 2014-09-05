@@ -1,5 +1,4 @@
 import os
-import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -34,7 +33,7 @@ class TestIntegrationEncoding(IntegrationTestCase):
             u'Nom avec accents \xe9 \xe8.doc',
             u"Contenu sans accents.")
 
-        self._synchronize_and_assert(2, wait=True)
+        self._synchronize_and_assert(2)
 
         self.assertEquals(self.local_client.get_content(
             u'/Nom sans accents.doc'),
@@ -51,7 +50,7 @@ class TestIntegrationEncoding(IntegrationTestCase):
             u'Avec accents \u30d7 \u793e.doc',
             u"Contenu")
 
-        self._synchronize_and_assert(2, wait=True)
+        self._synchronize_and_assert(2)
 
         self.assertEquals(self.local_client.get_content(
             u'/Nom sans \u30bc\u30ec accents.doc'),
@@ -64,7 +63,7 @@ class TestIntegrationEncoding(IntegrationTestCase):
         self.remote_client.make_file(self.workspace,
             u'Nom sans accents.txt',
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
-        self._synchronize_and_assert(1, wait=True)
+        self._synchronize_and_assert(1)
         self.assertEquals(self.local_client.get_content(
             u'/Nom sans accents.txt'),
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
@@ -101,9 +100,7 @@ class TestIntegrationEncoding(IntegrationTestCase):
             u'/espace\xa0 et TM\u2122.doc').name,
             u'espace\xa0 et TM\u2122.doc')
 
-    def _synchronize_and_assert(self, expected_synchronized, wait=False):
-        if wait:
-            # Wait for audit changes to be detected after the 1 second step
-            time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+    def _synchronize_and_assert(self, expected_synchronized):
+        self.wait()
         n_synchronized = self.syn.update_synchronize_server(self.sb)
         self.assertEqual(n_synchronized, expected_synchronized)
