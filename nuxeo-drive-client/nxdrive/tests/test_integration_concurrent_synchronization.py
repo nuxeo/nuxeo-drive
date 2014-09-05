@@ -99,7 +99,6 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         self.assertEquals(sync_roots[0].name, self.workspace_title)
 
         # Launch first synchronization on both devices
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         sync1 = ctl1.synchronizer
         sync2 = ctl2.synchronizer
@@ -116,7 +115,6 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         test_folder = remote.make_folder(self.workspace, 'Test folder')
         remote.make_file(test_folder, 'test.odt', 'Some content.')
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         sync1.loop(delay=0.1, max_loops=1)
         sync2.loop(delay=0.1, max_loops=1)
@@ -172,7 +170,6 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         sync = ctl.synchronizer
         sync.loop(delay=0.1, max_loops=1)
@@ -198,7 +195,6 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         self.assertFalse(local.exists(
                                     '/Nuxeo Drive Test Workspace/Test folder'))
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         sync.loop(delay=0.1, max_loops=1)
 
@@ -230,7 +226,6 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         sync = ctl.synchronizer
         sync.loop(delay=0.1, max_loops=1)
@@ -265,7 +260,6 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         self.assertEqual(test_folder['properties']['dc:description'],
                          'Some description.')
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         sync.loop(delay=0.1, max_loops=1)
 
@@ -296,7 +290,6 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         sync = ctl.synchronizer
         sync.loop(delay=0.1, max_loops=1)
@@ -331,7 +324,6 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         self.assertEqual(test_file['properties']['dc:description'],
                          'Some description.')
 
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         sync.loop(delay=0.1, max_loops=2)
 
