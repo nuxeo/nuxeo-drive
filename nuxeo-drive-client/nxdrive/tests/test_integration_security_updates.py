@@ -307,7 +307,6 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
                     '/Test folder/Remote sub folder 2/remote sub file 2.txt'))
 
     def _synchronize(self, synchronizer):
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         synchronizer.loop(delay=0.1, max_loops=2)
 

@@ -15,7 +15,6 @@ class TestIntegrationLocalStorageSpaceIssue(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         syn = ctl.synchronizer
         syn.loop(delay=0.1, max_loops=1)
@@ -27,7 +26,6 @@ class TestIntegrationLocalStorageSpaceIssue(IntegrationTestCase):
 
         # Create a file in the remote root workspace
         remote.make_file('/', 'test_KO.odt', 'Some large content.')
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
 
         # Synchronize simulating a "No space left on device" error
@@ -43,7 +41,6 @@ class TestIntegrationLocalStorageSpaceIssue(IntegrationTestCase):
 
         # Create another file in the remote root workspace
         remote.make_file('/', 'test_OK.odt', 'Some small content.')
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
 
         # Synchronize without simulating any error

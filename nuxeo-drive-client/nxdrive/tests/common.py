@@ -4,7 +4,6 @@ import unittest
 import tempfile
 import hashlib
 import shutil
-import time
 
 from nxdrive.utils import safe_long_path
 from nxdrive.model import LastKnownState
@@ -36,9 +35,6 @@ class IntegrationTestCase(unittest.TestCase):
     SOME_TEXT_CONTENT = b"Some text content."
     SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 
-    # 1s time resolution because of the datetime resolution of MYSQL
-    AUDIT_CHANGE_FINDER_TIME_RESOLUTION = 1.0
-
     # 1s resolution on HFS+ on OSX
     # 2s resolution on FAT but can be ignored as no Jenkins is running the test
     # suite under windows on FAT partitions
@@ -50,7 +46,6 @@ class IntegrationTestCase(unittest.TestCase):
     DOC_NAME_MAX_LENGTH = 24
 
     def _synchronize(self, syn, delay=0.1, loops=1):
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         syn.loop(delay=delay, max_loops=loops)
 
@@ -205,7 +200,6 @@ class IntegrationTestCase(unittest.TestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         syn = ctl.synchronizer
         syn.loop(delay=0.1, max_loops=1)

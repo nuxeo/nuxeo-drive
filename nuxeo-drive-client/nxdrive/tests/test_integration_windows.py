@@ -17,7 +17,6 @@ class TestIntegrationWindows(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
-        time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.wait()
         syn = ctl.synchronizer
         syn.loop(delay=0.1, max_loops=1)
