@@ -61,9 +61,9 @@ if sys.platform == 'win32':
     from cx_Freeze.windist import bdist_msi as cx_bdist_msi
     
     class bdist_msi(cx_bdist_msi):
-    
+        exec_name = "ndrivew.exe"
         def get_executable(self):
-            return "ndrivew.exe"
+            return bdist_msi.exec_name
     
         def add_exit_dialog(self):
             import msilib
@@ -104,5 +104,6 @@ def setup(**attrs):
     _AddCommandClass(commandClasses, "build", build)
     _AddCommandClass(commandClasses, "install", install)
     if sys.platform == 'win32':
+        bdist_msi.exec_name = attrs.get("win_target")
         _AddCommandClass(commandClasses, "bdist_msi", bdist_msi)
     cx_setup(**attrs)

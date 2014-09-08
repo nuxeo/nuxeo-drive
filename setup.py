@@ -436,6 +436,7 @@ class NuxeoDriveSetup(object):
             scripts=scripts,
             long_description=attribs.get_long_description(),
             data_files=data_files,
+            win_target=attribs.get_win_targetName(),
             **freeze_options
         )
 
