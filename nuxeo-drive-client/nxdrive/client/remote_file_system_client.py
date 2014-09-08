@@ -250,7 +250,18 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
     def get_changes(self, last_sync_date=None, last_event_log_id=None,
                     last_root_definitions=None):
-        return self.execute(
-            'NuxeoDrive.GetChangeSummary',
-            lowerBound=last_event_log_id,
-            lastSyncActiveRootDefinitions=last_root_definitions)
+        if self.is_event_log_id_available():
+            # If available, use last event log id as 'lowerBound' parameter
+            # according to the new implementation of the audit change finder,
+            # see https://jira.nuxeo.com/browse/NXP-14826.
+            return self.execute('NuxeoDrive.GetChangeSummary',
+                                lowerBound=last_event_log_id,
+                                lastSyncActiveRootDefinitions=(
+                                        last_root_definitions))
+        else:
+            # Use last sync date as 'lastSyncDate' parameter according to the
+            # old implementation of the audit change finder.
+            return self.execute('NuxeoDrive.GetChangeSummary',
+                                lastSyncDate=last_sync_date,
+                                lastSyncActiveRootDefinitions=(
+                                        last_root_definitions))

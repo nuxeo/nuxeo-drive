@@ -13,6 +13,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         remote_client = self.remote_file_system_client_1
         summary = remote_client.get_changes(
             last_sync_date=self.last_sync_date,
+            last_event_log_id=self.last_event_log_id,
             last_root_definitions=self.last_root_definitions)
         self.last_sync_date = summary['syncDate']
         self.last_event_log_id = summary['upperBound']
