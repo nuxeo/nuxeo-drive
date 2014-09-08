@@ -1560,7 +1560,13 @@ class Synchronizer(object):
 
         root_definitions = summary['activeSynchronizationRootDefinitions']
         sync_date = summary['syncDate']
-        last_event_log_id = summary['upperBound']
+        if remote_client.is_event_log_id_available():
+            # If available, read 'upperBound' key as last event log id
+            # according to the new implementation of the audit change finder,
+            # see https://jira.nuxeo.com/browse/NXP-14826.
+            last_event_log_id = summary['upperBound']
+        else:
+            last_event_log_id = None
         checkpoint_data = (sync_date, last_event_log_id, root_definitions)
 
         return summary, checkpoint_data
@@ -1570,7 +1576,8 @@ class Synchronizer(object):
         session = self.get_session() if session is None else session
         sync_date, last_event_log_id, root_definitions = checkpoint_data
         server_binding.last_sync_date = sync_date
-        server_binding.last_event_log_id = last_event_log_id
+        if last_event_log_id is not None:
+            server_binding.last_event_log_id = last_event_log_id
         server_binding.last_root_definitions = root_definitions
         session.commit()
 
@@ -1683,7 +1690,11 @@ class Synchronizer(object):
         local_scan_is_done = False
         try:
             tick = time()
-            first_pass = server_binding.last_event_log_id is None
+            is_event_log_id = (self.get_remote_fs_client(server_binding)
+                               .is_event_log_id_available())
+            first_pass = (is_event_log_id
+                          and server_binding.last_event_log_id is None
+                          or server_binding.last_sync_date is None)
             summary, checkpoint = self._get_remote_changes(
                 server_binding, session=session)
 

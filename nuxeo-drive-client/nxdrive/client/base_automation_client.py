@@ -29,6 +29,7 @@ DEVICE_DESCRIPTIONS = {
     'cygwin': 'Windows Desktop',
     'win32': 'Windows Desktop',
 }
+CHANGE_SUMMARY_OPERATION = 'NuxeoDrive.GetChangeSummary'
 
 
 def get_proxies_for_handler(proxy_settings):
@@ -256,6 +257,12 @@ class BaseAutomationClient(object):
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
 
+        # Is event log id available in change summary?
+        # See https://jira.nuxeo.com/browse/NXP-14826
+        change_summary_op = self._check_operation(CHANGE_SUMMARY_OPERATION)
+        self.is_event_log_id = 'lowerBound' in [
+                        param['name'] for param in change_summary_op['params']]
+
     def execute(self, command, op_input=None, timeout=-1,
                 check_params=True, void_op=False, **params):
         """Execute an Automation operation"""
@@ -387,6 +394,9 @@ class BaseAutomationClient(object):
     def is_addon_installed(self):
         return 'NuxeoDrive.GetRoots' in self.operations
 
+    def is_event_log_id_available(self):
+        return self.is_event_log_id
+
     def request_token(self, revoke=False):
         """Request and return a new token for the user"""
         base_error_message = (
@@ -482,7 +492,7 @@ class BaseAutomationClient(object):
     def _get_cookies(self):
         return list(self.cookie_jar) if self.cookie_jar is not None else []
 
-    def _check_params(self, command, params):
+    def _check_operation(self, command):
         if command not in self.operations:
             if command.startswith('NuxeoDrive.'):
                 raise AddonNotInstalled(
@@ -494,7 +504,10 @@ class BaseAutomationClient(object):
             else:
                 raise ValueError("'%s' is not a registered operations."
                                  % command)
-        method = self.operations[command]
+        return self.operations[command]
+
+    def _check_params(self, command, params):
+        method = self._check_operation(command)
         required_params = []
         other_params = []
         for param in method['params']:

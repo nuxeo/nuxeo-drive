@@ -252,7 +252,18 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self.execute("NuxeoDrive.GetTopLevelChildren")
 
     def get_changes(self, server_binding):
-        return self.execute(
-            'NuxeoDrive.GetChangeSummary',
-            lowerBound=server_binding.last_event_log_id,
-            lastSyncActiveRootDefinitions=server_binding.last_root_definitions)
+        if self.is_event_log_id_available():
+            # If available, use last event log id as 'lowerBound' parameter
+            # according to the new implementation of the audit change finder,
+            # see https://jira.nuxeo.com/browse/NXP-14826.
+            return self.execute('NuxeoDrive.GetChangeSummary',
+                                lowerBound=server_binding.last_event_log_id,
+                                lastSyncActiveRootDefinitions=(
+                                        server_binding.last_root_definitions))
+        else:
+            # Use last sync date as 'lastSyncDate' parameter according to the
+            # old implementation of the audit change finder.
+            return self.execute('NuxeoDrive.GetChangeSummary',
+                                lastSyncDate=server_binding.last_sync_date,
+                                lastSyncActiveRootDefinitions=(
+                                        server_binding.last_root_definitions))
