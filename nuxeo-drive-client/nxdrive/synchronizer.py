@@ -457,7 +457,8 @@ class Synchronizer(object):
                 log.debug("Unmarking %r as unsynchronized", doc_pair)
                 doc_pair.pair_state = 'unknown'
 
-    def _scan_local_new_file(self, session, child_name, child_info, parent_pair):
+    def _scan_local_new_file(self, session, child_name, child_info,
+                             parent_pair):
         if not child_info.folderish:
             # Try to find an existing remote doc that has not yet been
             # bound to any local file that would align with both name
@@ -1082,8 +1083,9 @@ class Synchronizer(object):
             try:
                 log.debug('Renaming remote file according to local : %r',
                                                     doc_pair)
-                doc_pair.update_remote(remote_client.rename(doc_pair.remote_ref,
-                                                         doc_pair.local_name))
+                doc_pair.update_remote(remote_client.rename(
+                                                        doc_pair.remote_ref,
+                                                        doc_pair.local_name))
             except:
                     # An error occurs return false
                     log.error("Renaming from %s to %s canceled",
@@ -1909,7 +1911,8 @@ class Synchronizer(object):
                             # Move detected
                             log.info('Detected a file movement %r', deleted)
                             deleted.update_state('moved', deleted.remote_state)
-                            deleted.update_local(local_client.get_info(rel_path))
+                            deleted.update_local(local_client.get_info(
+                                                                    rel_path))
                             continue
                     doc_pair = LastKnownState(local_folder,
                         local_info=local_info)
@@ -1921,7 +1924,8 @@ class Synchronizer(object):
                                                 local_info)
                 elif doc_pair is not None:
                     if (evt.event_type == 'moved'):
-                        remote_client = self.get_remote_fs_client(server_binding)
+                        remote_client = self.get_remote_fs_client(
+                                                                server_binding)
                         self.handle_move(local_client, remote_client,
                                          doc_pair, src_path,
                                     normalize_event_filename(evt.dest_path))
@@ -1944,7 +1948,8 @@ class Synchronizer(object):
                         # No previous pair as it was hidden file
                         # Existing pair (may want to check the pair state)
                         dst_rel_path = local_client.get_path(
-                                        normalize_event_filename(evt.dest_path))
+                                        normalize_event_filename(
+                                                                evt.dest_path))
                         dst_pair = session.query(LastKnownState).filter_by(
                                         local_folder=local_folder,
                                         local_path=dst_rel_path).first()
@@ -1952,14 +1957,16 @@ class Synchronizer(object):
                         if dst_pair is None:
                             # It can be consider as a creation
                             doc_pair = LastKnownState(local_folder,
-                                    local_info=local_client.get_info(dst_rel_path))
+                                    local_info=local_client.get_info(
+                                                                dst_rel_path))
                             session.add(doc_pair)
                         else:
                             # Must come from a modification
                             dst_pair.update_local(
                                         local_client.get_info(dst_rel_path))
                         continue
-                    log.info('Unhandle case: %r %s %s', evt, rel_path, file_name)
+                    log.info('Unhandle case: %r %s %s', evt, rel_path,
+                             file_name)
                     self.unhandle_fs_event = True
             except:
                 log.info(sys.exc_info()[0])

@@ -7,7 +7,6 @@ from threading import local
 import subprocess
 from datetime import datetime
 from datetime import timedelta
-from collections import deque
 import calendar
 
 from cookielib import CookieJar
