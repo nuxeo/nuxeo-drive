@@ -660,7 +660,7 @@ class Controller(object):
         return server_binding
 
     def _add_top_level_state(self, server_binding, session):
-        local_client = LocalClient(server_binding.local_folder)
+        local_client = self.get_local_client(server_binding.local_folder)
         local_info = local_client.get_info(u'/')
 
         remote_client = self.get_remote_fs_client(server_binding)

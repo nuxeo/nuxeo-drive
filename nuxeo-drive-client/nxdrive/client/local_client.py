@@ -154,6 +154,12 @@ class LocalClient(object):
                 break
         return ignore
 
+    def get_children_ref(self, parent_ref, name):
+        if parent_ref == u'/':
+            return parent_ref + name
+        else:
+            return parent_ref + u'/' + name
+
     def get_children_info(self, ref):
         os_path = self._abspath(ref)
         result = []
@@ -162,10 +168,7 @@ class LocalClient(object):
         for child_name in children:
 
             if not self.is_ignored(child_name):
-                if ref == u'/':
-                    child_ref = ref + child_name
-                else:
-                    child_ref = ref + u'/' + child_name
+                child_ref = self.get_children_ref(ref, child_name)
                 try:
                     result.append(self.get_info(child_ref))
                 except (OSError, NotFound):
@@ -275,10 +278,7 @@ class LocalClient(object):
             import ctypes
             # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
             ctypes.windll.kernel32.SetFileAttributesW(unicode(target_os_path), 128)
-        if parent == u'/':
-            new_ref = u'/' + new_name
-        else:
-            new_ref = parent + u"/" + new_name
+        new_ref = self.get_children_ref(parent, new_name)
         return self.get_info(new_ref)
 
     def move(self, ref, new_parent_ref):
@@ -293,10 +293,7 @@ class LocalClient(object):
         name = ref.rsplit(u'/', 1)[1]
         target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
         shutil.move(source_os_path, target_os_path)
-        if new_parent_ref == u'/':
-            new_ref = u'/' + new_name
-        else:
-            new_ref = new_parent_ref + u"/" + new_name
+        new_ref = self.get_children_ref(new_parent_ref, new_name)
         return self.get_info(new_ref)
 
     def get_path(self, abspath):
