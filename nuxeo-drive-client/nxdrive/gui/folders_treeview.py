@@ -41,6 +41,12 @@ class FileInfo(object):
     def get_children(self):
         return self.children
 
+    def enable(self):
+        return True
+
+    def selectable(self):
+        return True
+
     def is_dirty(self):
         return self.oldvalue != self.checkstate
 
@@ -381,8 +387,8 @@ class FolderTreeview(QtGui.QTreeView):
         for child in childs:
             subitem = QtGui.QStandardItem(child.get_label())
             subitem.setCheckable(True)
-            subitem.setEnabled(True)
-            subitem.setSelectable(True)
+            subitem.setEnabled(child.enable())
+            subitem.setSelectable(child.selectable())
             subitem.setEditable(False)
             subitem.setCheckState(True)
             subitem.setTristate(True)
