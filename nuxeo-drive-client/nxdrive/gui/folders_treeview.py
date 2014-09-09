@@ -47,6 +47,9 @@ class FileInfo(object):
     def selectable(self):
         return True
 
+    def checkable(self):
+        return True
+
     def is_dirty(self):
         return self.oldvalue != self.checkstate
 
@@ -297,11 +300,11 @@ class FolderTreeview(QtGui.QTreeView):
         self.updateItemChanged(item)
 
         if item.checkState() == QtCore.Qt.PartiallyChecked:
-            if item.parent() is not None:
+            if item.parent() is not None and item.parent().isCheckable():
                 item.parent().setCheckState(QtCore.Qt.PartiallyChecked)
                 self.updateItemChanged(item.parent())
             return
-        if item.parent() is not None:
+        if item.parent() is not None and item.parent().isCheckable():
             self.itemCheckParent(item.parent())
 
     def updateItemChanged(self, item):
@@ -386,13 +389,14 @@ class FolderTreeview(QtGui.QTreeView):
         parent.removeRows(0, parent.rowCount())
         for child in childs:
             subitem = QtGui.QStandardItem(child.get_label())
-            subitem.setCheckable(True)
+            if child.checkable():
+                subitem.setCheckable(True)
+                subitem.setCheckState(True)
+                subitem.setTristate(True)
+                subitem.setCheckState(child.get_checkstate())
             subitem.setEnabled(child.enable())
             subitem.setSelectable(child.selectable())
             subitem.setEditable(False)
-            subitem.setCheckState(True)
-            subitem.setTristate(True)
-            subitem.setCheckState(child.get_checkstate())
             subitem.setData(QtCore.QVariant(child), QtCore.Qt.UserRole)
             # Create a fake loading item for now
             if (child.has_children()):
