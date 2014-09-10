@@ -38,7 +38,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         second_time_stamp = summary['syncDate']
         self.assertTrue(second_time_stamp >= first_timestamp)
         second_event_log_id = summary['upperBound']
-        self.assertEquals(second_event_log_id, first_event_log_id)
+        self.assertTrue(second_event_log_id >= first_event_log_id)
 
     def test_changes_root_registrations(self):
         # Lets create some folders in Nuxeo
