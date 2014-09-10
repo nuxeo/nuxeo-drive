@@ -259,6 +259,11 @@ class Synchronizer(object):
         self.check_suspended('Delete recursively the descendants of a locally'
                              ' deleted item or a remotely deleted document')
 
+        # Delete first the parent as we use the trash
+        # and we want to keep hierarchy
+        if self._controller.trash_modified_file() and io_delete:
+            local_client.delete(doc_pair.local_path)
+
         locally_modified = False
         # Handle local and remote descendants first
         if doc_pair.local_path is not None:
@@ -998,7 +1003,6 @@ class Synchronizer(object):
     def _synchronize_remotely_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         try:
-            # TODO: handle OS-specific trash management?
             self._delete_with_descendant_states(session, doc_pair,
                                                 local_client)
             # XXX: shall we also delete all the subcontent / folder at

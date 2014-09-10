@@ -208,6 +208,8 @@ class LocalClient(object):
 
     def delete(self, ref):
         os_path = self._abspath(ref)
+        if not self.exists(ref):
+            return
         # Remove the \\?\ for SHFileOperation on win
         if os_path[:4] == '\\\\?\\':
             # http://msdn.microsoft.com/en-us/library/cc249520.aspx
