@@ -1894,11 +1894,12 @@ class Synchronizer(object):
                 if len(rel_path) == 0:
                     rel_path = '/'
                 file_name = os.path.basename(src_path)
-                if (local_client.is_ignored(file_name)
-                      and evt.event_type != 'moved'):
-                    continue
                 doc_pair = session.query(LastKnownState).filter_by(
                     local_folder=local_folder, local_path=rel_path).first()
+                if (doc_pair is not None and
+                        local_client.is_ignored(doc_pair.local_path, file_name)
+                      and evt.event_type != 'moved'):
+                    continue
                 if (evt.event_type == 'created'
                         and doc_pair is None):
                     # If doc_pair is not None mean
