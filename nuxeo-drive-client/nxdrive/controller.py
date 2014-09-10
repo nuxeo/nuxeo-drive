@@ -236,6 +236,9 @@ class Controller(object):
         # share cookies using threadsafe jar
         self.cookie_jar = CookieJar()
 
+    def use_watchdog(self):
+        return True
+
     def trash_modified_file(self):
         return False
 

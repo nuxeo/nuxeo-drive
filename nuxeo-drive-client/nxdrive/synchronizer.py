@@ -1687,6 +1687,47 @@ class Synchronizer(object):
                     log.debug("Could not match changed document to a "
                                 "bound local folder: %r", new_info)
 
+    def watchdog_local(self, server_binding, session):
+        # Local scan is done, handle changes registered by watchdog
+        if server_binding.local_folder in self.local_full_scan:
+            if self.unhandle_fs_event:
+                # Force a scan unhandle fs event has been found
+                log.warn('Scan local as unhandled fs event')
+                # Reset the local changes
+                del self.local_changes[:]
+                self.unhandle_fs_event = False
+                # Remove to enable move detection
+                self.local_full_scan.remove(
+                                    server_binding.local_folder)
+                self.scan_local(server_binding, session=session)
+                # Add it again
+                self.local_full_scan.append(
+                                        server_binding.local_folder)
+            else:
+                self.handle_local_changes(server_binding)
+        else:
+            watcher_installed = False
+            try:
+                '''
+                 Setup the FS notify before scanning
+                 as we may create new file during the scan
+                '''
+                self.setup_local_watchdog(server_binding)
+                watcher_installed = True
+            except OSError:
+                log.error("Cannot setup watchdog to monitor local"
+                            " changes since inotify instance limit has"
+                          " been reached. Please try increasing it,"
+                          " typically under Linux by changing"
+                          " /proc/sys/fs/inotify/max_user_instances",
+                        exc_info=True)
+            # Scan local folders to detect changes
+            self.scan_local(server_binding, session=session)
+            # Put the local_full_scan after to keep move detection
+            if watcher_installed:
+                self.local_full_scan.append(
+                                        server_binding.local_folder)
+
     def update_synchronize_server(self, server_binding, session=None,
                                   full_scan=False, max_sync_step=None):
         """Do one pass of synchronization for given server binding."""
@@ -1732,48 +1773,14 @@ class Synchronizer(object):
             self._checkpoint(server_binding, checkpoint, session=session)
 
             try:
-                # Local scan is done, handle changes registered by watchdog
-                if server_binding.local_folder in self.local_full_scan:
-                    if self.unhandle_fs_event:
-                        # Force a scan unhandle fs event has been found
-                        log.warn('Scan local as unhandled fs event')
-                        # Reset the local changes
-                        del self.local_changes[:]
-                        self.unhandle_fs_event = False
-                        # Remove to enable move detection
-                        self.local_full_scan.remove(
-                                                server_binding.local_folder)
-                        self.scan_local(server_binding, session=session)
-                        # Add it again
-                        self.local_full_scan.append(
-                                                server_binding.local_folder)
-                    else:
-                        self.handle_local_changes(server_binding)
-                else:
-                    watcher_installed = False
-                    try:
-                        '''
-                         Setup the FS notify before scanning
-                         as we may create new file during the scan
-                        '''
-                        self.setup_local_watchdog(server_binding)
-                        watcher_installed = True
-                    except OSError:
-                        log.error("Cannot setup watchdog to monitor local"
-                                  " changes since inotify instance limit has"
-                                  " been reached. Please try increasing it,"
-                                  " typically under Linux by changing"
-                                  " /proc/sys/fs/inotify/max_user_instances",
-                                  exc_info=True)
-                    # Scan local folders to detect changes
+                if not self._controller.use_watchdog():
                     self.scan_local(server_binding, session=session)
-                    # Put the local_full_scan after to keep move detection
-                    if watcher_installed:
-                        self.local_full_scan.append(
-                                                server_binding.local_folder)
+                else:
+                    self.watchdog_local(server_binding, session)
             except NotFound:
                 # The top level folder has been locally deleted, renamed
                 # or moved, unbind the server
+                # TODO This decision should be left to the controller
                 log.info("[%s] - [%s]: unbinding server because local folder"
                          " doesn't exist anymore",
                          server_binding.local_folder,
@@ -1901,7 +1908,8 @@ class Synchronizer(object):
                 doc_pair = session.query(LastKnownState).filter_by(
                     local_folder=local_folder, local_path=rel_path).first()
                 if (doc_pair is not None and
-                        local_client.is_ignored(doc_pair.local_path, file_name)
+                        local_client.is_ignored(doc_pair.local_parent_path,
+                                                    file_name)
                       and evt.event_type != 'moved'):
                     continue
                 if (evt.event_type == 'created'
