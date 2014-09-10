@@ -90,6 +90,9 @@ class TestIntegrationWindows(IntegrationTestCase):
         file2_desc = open(file2_path, 'rb')
 
         # Update /delete existing remote files and create a new remote file
+        # Wait for 1 second to make sure the file's last modification time
+        # will be different from the pair state's last remote update time
+        time.sleep(self.REMOTE_MODIFICATION_TIME_RESOLUTION)
         remote.update_content('/test_update.docx', 'Updated content.')
         remote.delete('/test_delete.docx')
         remote.make_file('/', 'other.docx', 'Other content.')

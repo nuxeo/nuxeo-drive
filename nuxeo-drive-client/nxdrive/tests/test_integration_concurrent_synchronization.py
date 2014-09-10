@@ -254,7 +254,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         test_folder_ref = remote._check_ref('/Test folder')
         # Wait for 1 second to make sure the folder's last modification time
         # will be different from the pair state's last remote update time
-        time.sleep(1.0)
+        time.sleep(self.REMOTE_MODIFICATION_TIME_RESOLUTION)
         remote.update(test_folder_ref,
                       properties={'dc:description': 'Some description.'})
         test_folder = remote.fetch(test_folder_ref)
@@ -318,7 +318,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         test_file_ref = remote._check_ref('/test.odt')
         # Wait for 1 second to make sure the file's last modification time
         # will be different from the pair state's last remote update time
-        time.sleep(1.0)
+        time.sleep(self.REMOTE_MODIFICATION_TIME_RESOLUTION)
         remote.update(test_file_ref,
                       properties={'dc:description': 'Some description.'})
         test_file = remote.fetch(test_file_ref)
