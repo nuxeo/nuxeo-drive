@@ -35,6 +35,11 @@ class IntegrationTestCase(unittest.TestCase):
     SOME_TEXT_CONTENT = b"Some text content."
     SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 
+    # 1s time resolution as we truncate remote last modification time to the
+    # seconds in RemoteFileSystemClient.file_to_info() because of the datetime
+    # resolution of some databases (MySQL...)
+    REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
+
     # 1s resolution on HFS+ on OSX
     # 2s resolution on FAT but can be ignored as no Jenkins is running the test
     # suite under windows on FAT partitions
