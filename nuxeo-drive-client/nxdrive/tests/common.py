@@ -4,6 +4,7 @@ import unittest
 import tempfile
 import hashlib
 import shutil
+import time
 
 from nxdrive.utils import safe_long_path
 from nxdrive.model import LastKnownState
@@ -40,6 +41,9 @@ class IntegrationTestCase(unittest.TestCase):
     # resolution of some databases (MySQL...)
     REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
 
+    # 1s time resolution because of the datetime resolution of MYSQL
+    AUDIT_CHANGE_FINDER_TIME_RESOLUTION = 1.0
+
     # 1s resolution on HFS+ on OSX
     # 2s resolution on FAT but can be ignored as no Jenkins is running the test
     # suite under windows on FAT partitions
@@ -51,6 +55,7 @@ class IntegrationTestCase(unittest.TestCase):
     DOC_NAME_MAX_LENGTH = 24
 
     def _synchronize(self, syn, delay=0.1, loops=1):
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=delay, max_loops=loops)
 
@@ -232,6 +237,7 @@ class IntegrationTestCase(unittest.TestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn = ctl.synchronizer
         syn.loop(delay=0.1, max_loops=1)
@@ -244,3 +250,7 @@ class IntegrationTestCase(unittest.TestCase):
 
     def wait(self):
         self.root_remote_client.wait()
+
+    def wait_audit_change_finder_if_needed(self):
+        if not self.root_remote_client.is_event_log_id_available():
+            time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)

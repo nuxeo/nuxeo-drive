@@ -194,6 +194,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             u'Original Folder 1')
 
         # Nothing left to do
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
@@ -235,6 +236,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             original_folder_1_uid)
 
         # The more things change, the more they remain the same.
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
@@ -281,6 +283,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             original_folder_1_uid)
 
         # The more things change, the more they remain the same.
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
@@ -326,6 +329,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertEquals(file_3_info.parent_uid, folder_2_uid)
 
         # The more things change, the more they remain the same.
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 

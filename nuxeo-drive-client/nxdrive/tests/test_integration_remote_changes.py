@@ -30,6 +30,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         first_event_log_id = summary['upperBound']
         self.assertTrue(first_event_log_id > 0)
 
+        self.wait_audit_change_finder_if_needed()
         summary = self.get_changes()
 
         self.assertEquals(summary['hasTooManyChanges'], False)
@@ -48,6 +49,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         remote_client.make_folder(folder_2, 'Folder 2.2')
 
         # Fetch an initial time stamp without any registered roots
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         summary = self.get_changes()
         self.assertEquals(summary['hasTooManyChanges'], False)
@@ -60,6 +62,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, folder_1)
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         summary = self.get_changes()
 
@@ -76,6 +79,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         # Let's register the second root
         ctl.bind_root(self.local_nxdrive_folder_1, folder_2)
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         summary = self.get_changes()
 
@@ -103,6 +107,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         ctl.unbind_root(self.local_nxdrive_folder_1, folder_1)
         ctl.unbind_root(self.local_nxdrive_folder_1, folder_2)
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         summary = self.get_changes()
 

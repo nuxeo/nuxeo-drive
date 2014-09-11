@@ -14,6 +14,7 @@ class TestIntegrationCopy(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn = ctl.synchronizer
         syn.loop(delay=0.1, max_loops=1)
@@ -28,6 +29,7 @@ class TestIntegrationCopy(IntegrationTestCase):
         remote.make_file('/', 'test.odt', 'Some content.')
         remote.make_folder('/', 'Test folder')
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
         self.assertTrue(local.exists('/test.odt'))
@@ -36,6 +38,7 @@ class TestIntegrationCopy(IntegrationTestCase):
         # Copy the file to the folder remotely then synchronize
         remote.copy('/test.odt', '/Test folder')
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
         self.assertTrue(local.exists('/Test folder/test.odt'))

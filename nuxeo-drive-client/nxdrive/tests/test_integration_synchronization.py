@@ -534,6 +534,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         local = LocalClient(expected_folder)
         local.make_folder('/', 'Folder 3')
         self.make_server_tree()
+        self.wait_audit_change_finder_if_needed()
         self.wait()
 
         ctl.remote_filtered_fs_client_factory = RemoteTestClient
@@ -603,6 +604,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         local = LocalClient(expected_folder)
         local.make_folder('/', 'Folder 3')
         self.make_server_tree()
+        self.wait_audit_change_finder_if_needed()
         self.wait()
 
         # Find various ways to simulate a network or server failure
@@ -757,6 +759,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Refetching the changes in the server autid log does not see any
         # change
+        self.wait_audit_change_finder_if_needed()
         self.assertEquals(syn.update_synchronize_server(sb), 0)
         self.assertEquals(ctl.list_pending(), [])
 
@@ -801,6 +804,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Synchronizing later does not refetch the workspace as it's not
         # mapped as a sync root.
+        self.wait_audit_change_finder_if_needed()
         self.assertEquals(syn.update_synchronize_server(sb), 0)
         self.assertEquals(self.get_all_states(), [
             (u'/',
@@ -812,6 +816,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
         self.wait()
 
+        self.wait_audit_change_finder_if_needed()
         syn.loop(delay=0, max_loops=1, no_event_init=True)
         self.assertEquals(ctl.list_pending(), [])
         self.assertTrue(local.exists('/' + self.workspace_title))
@@ -850,6 +855,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Let's synchronize and check the conflict handling: automatic
         # resolution will work for this case/
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0, max_loops=1, no_event_init=True)
         item_infos = local.get_children_info('/' + self.workspace_title)
@@ -864,6 +870,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         remote_2 = self.remote_document_client_2
         remote_2.update_content('/Some File.doc', 'Remote new content.')
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         # 2 loops are necessary for full conflict handling
         syn.loop(delay=0, max_loops=2, no_event_init=True)
@@ -930,6 +937,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         remote.make_file(folder, "File.odt", content="Fake non-zero content.")
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0, max_loops=5)
         self.assertEquals(ctl.list_pending(), [])
@@ -948,6 +956,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # and synchronize again
         remote.delete('/' + folder_name)
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0, max_loops=5)
         self.assertEquals(ctl.list_pending(), [])
@@ -1015,6 +1024,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Bind root workspace, create local folder and synchronize it remotely
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
 
@@ -1035,6 +1045,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Make one sync loop to detect remote folder creation triggered
         # by last synchronization and make sure we get a clean state at
         # next change summary
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
         # Re-fetch folder state as sync loop closes the Session
@@ -1052,6 +1063,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             grant="false")
 
         # Wait to make sure permission change is detected.
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
         # Re-fetch folder state as sync loop closes the Session
@@ -1087,6 +1099,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         folder = remote.make_folder(self.workspace,
             u'Folder with forbidden chars: / \\ * < > ? "')
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0, max_loops=1)
         self.assertEquals(ctl.list_pending(), [])
@@ -1101,6 +1114,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             u'File with forbidden chars: / \\ * < > ? ".doc',
             content="some content")
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0, max_loops=1)
         self.assertEquals(ctl.list_pending(), [])
@@ -1118,6 +1132,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn = ctl.synchronizer
         syn.loop(delay=0.1, max_loops=1)
@@ -1131,6 +1146,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # then synchronize
         remote.make_file('/', 'test.odt', 'Some content.')
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
         self.assertTrue(local.exists('/test.odt'))
@@ -1138,6 +1154,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Delete the blob from the remote doc then synchronize
         remote.delete_content('/test.odt')
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
         self.assertFalse(local.exists('/test.odt'))
@@ -1151,6 +1168,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn = ctl.synchronizer
         syn.loop(delay=0.1, max_loops=1)
@@ -1167,6 +1185,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         remote.make_file('/Remote folder', 'Remote file 2.odt',
                          'Other content.')
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
         self.assertTrue(local.exists('/Remote folder'))
@@ -1176,6 +1195,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # Delete remote folder then synchronize
         remote.delete('/Remote folder')
 
+        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=0.1, max_loops=1)
         self.assertFalse(local.exists('/Remote folder'))
