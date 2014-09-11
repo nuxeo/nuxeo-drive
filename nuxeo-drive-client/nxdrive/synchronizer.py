@@ -185,6 +185,7 @@ class SynchronizerThread(Thread):
             self.controller.synchronizer.loop(sync_thread=self, **self.kwargs)
         except Exception, e:
             log.error("Error in synchronization thread: %s", e, exc_info=True)
+        self.controller.sync_thread = None
 
     def suspend(self):
         with self.suspend_condition:

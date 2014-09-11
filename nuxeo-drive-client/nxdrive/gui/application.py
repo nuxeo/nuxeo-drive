@@ -307,6 +307,7 @@ class Application(QApplication):
                 # a call to resume().
                 self.sync_thread.suspend()
             else:
+                self.state = 'paused'
                 log.debug('No active synchronization thread, suspending sync'
                           ' has no effect, keeping current state: %s',
                           self.state)
@@ -316,7 +317,10 @@ class Application(QApplication):
             self.update_running_icon()
             self.communicator.menu.emit()
             # Resume sync
-            self.sync_thread.resume()
+            if self.sync_thread is None:
+                self.launch_synchronization_thread()
+            else:
+                self.sync_thread.resume()
 
     def action_quit(self):
         self.quit_app_after_sync_stopped = True
@@ -610,11 +614,11 @@ class Application(QApplication):
             self.controller.synchronizer.update_check_delay = (
                                                 update_check_delay)
 
-            self.sync_thread = SynchronizerThread(self.controller)
-            log.info("Starting new synchronization thread %r",
-                     self.sync_thread)
-            self.sync_thread.start()
-            log.info("Synchronization thread %r started", self.sync_thread)
+    def launch_synchronization_thread(self):
+        self.sync_thread = SynchronizerThread(self.controller)
+        log.info("Starting new synchronization thread %r", self.sync_thread)
+        self.sync_thread.start()
+        log.info("Synchronization thread %r started", self.sync_thread)
 
     def _is_sync_thread_started(self):
         return self.sync_thread is not None and self.sync_thread.isAlive()
