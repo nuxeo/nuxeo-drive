@@ -15,20 +15,23 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         # server_binding
         summary = remote_client.get_changes(self)
         self.last_sync_date = summary['syncDate']
-        self.last_event_log_id = summary['upperBound']
+        if remote_client.is_event_log_id_available():
+            self.last_event_log_id = summary['upperBound']
         self.last_root_definitions = (
             summary['activeSynchronizationRootDefinitions'])
         return summary
 
     def test_changes_without_active_roots(self):
+        remote_client = self.remote_file_system_client_1
         summary = self.get_changes()
         self.assertEquals(summary['hasTooManyChanges'], False)
         self.assertEquals(summary['fileSystemChanges'], [])
         self.assertEquals(summary['activeSynchronizationRootDefinitions'], '')
         first_timestamp = summary['syncDate']
         self.assertTrue(first_timestamp > 0)
-        first_event_log_id = summary['upperBound']
-        self.assertTrue(first_event_log_id > 0)
+        if remote_client.is_event_log_id_available():
+            first_event_log_id = summary['upperBound']
+            self.assertTrue(first_event_log_id > 0)
 
         self.wait_audit_change_finder_if_needed()
         summary = self.get_changes()
@@ -38,8 +41,9 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         self.assertEquals(summary['activeSynchronizationRootDefinitions'], '')
         second_time_stamp = summary['syncDate']
         self.assertTrue(second_time_stamp >= first_timestamp)
-        second_event_log_id = summary['upperBound']
-        self.assertTrue(second_event_log_id >= first_event_log_id)
+        if remote_client.is_event_log_id_available():
+            second_event_log_id = summary['upperBound']
+            self.assertTrue(second_event_log_id >= first_event_log_id)
 
     def test_changes_root_registrations(self):
         # Lets create some folders in Nuxeo
