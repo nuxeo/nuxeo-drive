@@ -3,9 +3,6 @@ import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
-from nxdrive.client import RemoteDocumentClient
-from nxdrive.model import LastKnownState
-from nxdrive.client.common import NotFound
 
 
 class TestIntegrationReadOnly(IntegrationTestCase):
@@ -99,7 +96,8 @@ class TestIntegrationReadOnly(IntegrationTestCase):
         # TODO Might rollback if rollback only !
         self.assertFalse(remote.exists('/Test folder/local.odt'))
         self.assertFalse(remote.exists('/Test folder/Local sub folder 2'))
-        self.assertFalse(remote.exists('/Test folder/Local sub folder 2/local sub file 2.txt'))
+        self.assertFalse(remote.exists(
+                    '/Test folder/Local sub folder 2/local sub file 2.txt'))
         self.assertTrue(local.exists('/Test folder/local.odt'))
 
         delete_folder = '/Test folder/Sub folder 1'
@@ -136,3 +134,52 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                                 'Sub folder 1', 'test.txt')
         self.assertFalse(self.touch(fname),
                         "Should be able to create in SYNCROOT folder")
+
+    def test_file_readonly_change(self):
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+        # Create documents in the remote root workspace
+        # then synchronize
+        remote.make_folder('/', 'Test folder')
+        remote.make_file('/Test folder', 'joe.odt', 'Some content')
+        remote.make_file('/Test folder', 'jack.odt', 'Some content')
+        remote.make_folder('/Test folder', 'Sub folder 1')
+        remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
+                         'Content')
+        self._set_readonly_permission("nuxeoDriveTestUser_user_1",
+                    self.TEST_WORKSPACE_PATH + '/Test folder', True)
+        syn = self.controller_1.synchronizer
+        syn.update_synchronize_server(self.sb_1)
+        self.assertTrue(local.exists('/Test folder'))
+        self.assertTrue(local.exists('/Test folder/joe.odt'))
+        self.assertTrue(local.exists('/Test folder/jack.odt'))
+        self.assertTrue(local.exists('/Test folder/Sub folder 1'))
+        self.assertTrue(local.exists(
+                                '/Test folder/Sub folder 1/sub file 1.txt'))
+
+        # Local changes
+        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        # Remove the readonly
+        self._set_readonly_permission("nuxeoDriveTestUser_user_1",
+                    self.TEST_WORKSPACE_PATH + '/Test folder', False)
+        syn.update_synchronize_server(self.sb_1)
+
+        fname = os.path.join(self.sync_root_folder_1, 'Test folder',
+                                'test.txt')
+        fname2 = os.path.join(self.sync_root_folder_1, 'Test folder',
+                                'Sub folder 1', 'test.txt')
+        # Check it works
+        self.assertTrue(self.touch(fname))
+        self.assertTrue(self.touch(fname2))
+
+        # Put it back readonly
+        os.remove(fname)
+        os.remove(fname2)
+        # First remove the file
+        self._set_readonly_permission("nuxeoDriveTestUser_user_1",
+                    self.TEST_WORKSPACE_PATH + '/Test folder', True)
+        syn.update_synchronize_server(self.sb_1)
+
+        # Check it works
+        self.assertFalse(self.touch(fname))
+        self.assertFalse(self.touch(fname2))

@@ -492,11 +492,23 @@ class LastKnownState(Base):
         suffix_len = len(remote_info.uid) + 1
         self.remote_parent_ref = remote_info.parent_uid
         self.remote_parent_path = remote_info.path[:-suffix_len]
-        self.update_state(remote_state=remote_state)
-        self.remote_can_rename = remote_info.can_rename
-        self.remote_can_delete = remote_info.can_delete
-        self.remote_can_update = remote_info.can_update
+        if (self.remote_can_create_child != remote_info.can_create_child
+                and remote_state is None):
+            remote_state = 'modified'
         self.remote_can_create_child = remote_info.can_create_child
+        if (self.remote_can_rename != remote_info.can_rename
+                and remote_state is None):
+            remote_state = 'modified'
+        self.remote_can_rename = remote_info.can_rename
+        if (self.remote_can_delete != remote_info.can_delete
+                and remote_state is None):
+            remote_state = 'modified'
+        self.remote_can_delete = remote_info.can_delete
+        if (self.remote_can_update != remote_info.can_update
+                and remote_state is None):
+            remote_state = 'modified'
+        self.remote_can_update = remote_info.can_update
+        self.update_state(remote_state=remote_state)
 
     def is_readonly(self):
         if self.folderish:

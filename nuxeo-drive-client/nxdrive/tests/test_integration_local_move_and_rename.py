@@ -492,6 +492,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
     def test_local_rename_readonly_folder_with_rollback(self):
         sb, ctl = self.sb_1, self.controller_1
+
         def rollback():
             return True
         ctl.local_rollback = rollback
@@ -608,7 +609,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertRaises(NotFound,
                           local_client.get_info, u'/Original Folder 1')
 
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 5)
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 4)
 
         # Check remote folder and its children have not been deleted
         folder_1_remote_info = remote_client.get_info(

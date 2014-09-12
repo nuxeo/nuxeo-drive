@@ -875,6 +875,7 @@ class Synchronizer(object):
                         self._local_rename_with_descendant_states(session,
                             local_client, doc_pair, previous_local_path,
                             updated_info.path)
+            self.handle_readonly(local_client, doc_pair)
             doc_pair.update_state('synchronized', 'synchronized')
         except (IOError, WindowsError) as e:
             log.warning(
@@ -989,11 +990,14 @@ class Synchronizer(object):
             # Rename tmp file
             local_client.rename(local_client.get_path(tmp_file), name)
         doc_pair.update_local(local_client.get_info(path))
+        self.handle_readonly(local_client, doc_pair)
+        doc_pair.update_state('synchronized', 'synchronized')
+
+    def handle_readonly(self, local_client, doc_pair):
         if doc_pair.is_readonly():
             local_client.set_readonly(doc_pair.local_path)
         else:
             local_client.unset_readonly(doc_pair.local_path)
-        doc_pair.update_state('synchronized', 'synchronized')
 
     def _synchronize_locally_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
@@ -1712,8 +1716,10 @@ class Synchronizer(object):
                         log.debug("Refreshing remote state info"
                                   " for doc_pair '%s'",
                                   doc_pair.remote_name)
+                        eventId = change.get('eventId')
                         self._scan_remote_recursive(session, client, doc_pair,
-                            new_info, force_recursion=False)
+                            new_info,
+                            force_recursion=eventId == "securityUpdated")
 
                     session.commit()
                     updated = True
