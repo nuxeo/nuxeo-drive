@@ -49,7 +49,7 @@ class Communicator(QObject):
     icon = QtCore.pyqtSignal(str)
     menu = QtCore.pyqtSignal()
     stop = QtCore.pyqtSignal()
-    change = QtCore.pyqtSignal(object,str)
+    change = QtCore.pyqtSignal(object, str)
     invalid_credentials = QtCore.pyqtSignal(str)
     update_check = QtCore.pyqtSignal()
 

@@ -340,8 +340,8 @@ class AppUpdater:
 
     def update(self, version):
         if sys.platform == 'win32':
-            # Try to update frozen application with the given version. If it fails
-            # with a permission error, escalate to root and try again.
+            # Try to update frozen application with the given version. If it
+            # fails with a permission error, escalate to root and try again.
             try:
                 self.esky_app.get_root()
                 self._do_update(version)
@@ -349,7 +349,8 @@ class AppUpdater:
                 return True
             except EnvironmentError as e:
                 if e.errno == errno.EINVAL:
-                    # Under Windows, this means that the sudo popup was rejected
+                    # Under Windows, this means that the sudo popup was
+                    # rejected
                     self.esky_app.sudo_proxy = None
                     raise RootPrivilegeRequired(e)
                 # Other EnvironmentError, probably not related to permissions

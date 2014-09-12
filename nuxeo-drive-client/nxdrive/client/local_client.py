@@ -268,7 +268,8 @@ class LocalClient(object):
                                    '.ren_' + old_name + '_')
             if sys.platform == 'win32':
                 import ctypes
-                ctypes.windll.kernel32.SetFileAttributesW(unicode(temp_path), 2)
+                ctypes.windll.kernel32.SetFileAttributesW(unicode(temp_path),
+                                                          2)
             shutil.move(source_os_path, temp_path)
             source_os_path = temp_path
             # Try the os rename part
@@ -279,7 +280,8 @@ class LocalClient(object):
         if sys.platform == 'win32':
             import ctypes
             # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
-            ctypes.windll.kernel32.SetFileAttributesW(unicode(target_os_path), 128)
+            ctypes.windll.kernel32.SetFileAttributesW(unicode(target_os_path),
+                                                      128)
         new_ref = self.get_children_ref(parent, new_name)
         return self.get_info(new_ref)
 

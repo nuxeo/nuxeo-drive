@@ -845,7 +845,8 @@ class Controller(object):
         server_bindings = self.list_server_bindings()
         if server_bindings:
             for sb in server_bindings:
-                self.recently_modified[sb.local_folder] = self.list_recently_modified(sb.local_folder)
+                self.recently_modified[sb.local_folder] = (
+                                self.list_recently_modified(sb.local_folder))
                 log.info("Initialized list of recently modified items"
                          " in %s: %r", sb.local_folder,
                          [item.local_name for item
@@ -856,8 +857,8 @@ class Controller(object):
 
     def update_recently_modified(self, doc_pair):
         local_folder = doc_pair.local_folder
-        self.recently_modified[local_folder] = self.list_recently_modified(local_folder)
-        session = self.get_session()
+        self.recently_modified[local_folder] = self.list_recently_modified(
+                                                                local_folder)
         log.info("Updated list of recently modified items in %s: %r",
                  local_folder, [item.local_name for item
                                 in self.get_recently_modified(local_folder)])
