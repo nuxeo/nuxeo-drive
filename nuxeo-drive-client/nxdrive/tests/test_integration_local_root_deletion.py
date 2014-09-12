@@ -51,7 +51,8 @@ class TestIntegrationLocalRootDeletion(IntegrationTestCase):
             content=u'Some Content 3'.encode('utf-8'))
 
         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
-        shutil.rmtree(self.local_nxdrive_folder_1, True)
+        self.local_client_1.unlock_path(self.sync_root_folder_1, True)
+        shutil.rmtree(self.local_nxdrive_folder_1, False)
 
     def test_without_rollback(self):
         sb, ctl = self.sb_1, self.controller_1

@@ -6,11 +6,13 @@ import stat
 
 
 class BaseClient(object):
-    def set_path_readonly(self, path):
+    @staticmethod
+    def set_path_readonly(path):
         os.chmod(path, stat.S_IXUSR | stat.S_IRGRP |
                     stat.S_IXGRP | stat.S_IRUSR)
 
-    def unset_path_readonly(self, path):
+    @staticmethod
+    def unset_path_readonly(path):
         os.chmod(path, stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
                                 stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
 

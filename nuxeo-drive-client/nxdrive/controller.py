@@ -661,7 +661,7 @@ class Controller(object):
                 self.invalidate_client_cache(server_binding.server_url)
             session.rollback()
             raise
-
+        
         session.commit()
         return server_binding
 
@@ -683,6 +683,9 @@ class Controller(object):
         if not os.path.exists(local_folder):
             os.makedirs(local_folder)
             self.register_folder_link(local_folder)
+        # Put the ROOT in readonly
+        from nxdrive.client.common import BaseClient
+        BaseClient.set_path_readonly(local_folder)
 
     def unbind_server(self, local_folder):
         """Remove the binding to a Nuxeo server
