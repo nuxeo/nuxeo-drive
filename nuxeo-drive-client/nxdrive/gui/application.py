@@ -614,6 +614,8 @@ class Application(QApplication):
             self.controller.synchronizer.update_check_delay = (
                                                 update_check_delay)
 
+            self.launch_synchronization_thread()
+
     def launch_synchronization_thread(self):
         self.sync_thread = SynchronizerThread(self.controller)
         log.info("Starting new synchronization thread %r", self.sync_thread)
