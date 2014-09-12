@@ -1080,6 +1080,48 @@ class Synchronizer(object):
         self._synchronize_locally_created(doc_pair, session, local_client,
                                         remote_client, local_info, remote_info)
 
+    def handle_failed_remote_rename(self, doc_pair, session):
+        # An error occurs return false
+        log.error("Renaming from %s to %s canceled",
+                            doc_pair.remote_name, doc_pair.local_name)
+        if self._controller.local_rollback():
+            try:
+                local_client = self._controller.get_local_client(
+                                                    doc_pair.local_folder)
+                info = local_client.rename(doc_pair.local_path,
+                                            doc_pair.remote_name)
+                doc_pair.update_local(info)
+            except Exception, e:
+                log.error("Can't rollback local modification")
+                log.debug(e)
+
+    def handle_missing_root(self, server_binding, session):
+        log.info("[%s] - [%s]: unbinding server because local folder"
+                    " doesn't exist anymore",
+                     server_binding.local_folder,
+                     server_binding.server_url)
+        # LastKnownState table will be deleted on cascade
+        session.delete(server_binding)
+        session.commit()
+        if self._controller.local_rollback():
+            old = server_binding
+            new_binding = ServerBinding(old.local_folder, old.server_url,
+                                           old.remote_user, old.remote_password,
+                                           old.remote_token)
+            new_binding.last_event_log_id = None
+            new_binding.last_sync_date = None
+            new_binding.last_ended_sync_date = None
+            session.add(new_binding)
+            # Create back the folder
+            self._controller._make_local_folder(new_binding.local_folder)
+            # Add the root folder back in lastknownstate
+            self._controller._add_top_level_state(new_binding, session)
+            # Remove from watchdog registered
+            if server_binding.local_folder in self.local_full_scan:
+                self.local_full_scan.remove(new_binding.local_folder)
+            # Reinit the date to force remote scan
+            session.commit()
+
     def _synchronize_locally_moved(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         # A file has been moved locally, and an error occurs when tried to
@@ -1092,9 +1134,7 @@ class Synchronizer(object):
                                                         doc_pair.remote_ref,
                                                         doc_pair.local_name))
             except:
-                    # An error occurs return false
-                    log.error("Renaming from %s to %s canceled",
-                                doc_pair.remote_name, doc_pair.local_name)
+                    self.handle_failed_remote_rename(doc_pair, session)
                     return
         parent_pair = session.query(LastKnownState).filter_by(
                 local_folder=local_client.base_folder,
@@ -1102,6 +1142,8 @@ class Synchronizer(object):
         if (parent_pair is not None
             and parent_pair.remote_ref != doc_pair.remote_parent_ref):
             log.debug('Moving remote file according to local : %r', doc_pair)
+            # Bug if move in a parent with no rights / partial move
+            # if rename at the same time
             doc_pair.update_remote(remote_client.move(doc_pair.remote_ref,
                         parent_pair.remote_ref))
         doc_pair.update_state('synchronized', 'synchronized')
@@ -1270,6 +1312,7 @@ class Synchronizer(object):
                           " a virtual folder that doesn't exist"
                           " in the server hierarchy",
                           target_doc_pair)
+                self.handle_failed_remote_rename(target_doc_pair, session)
             target_doc_pair.update_remote(remote_info)
 
         if moved_or_renamed:
@@ -1781,14 +1824,7 @@ class Synchronizer(object):
             except NotFound:
                 # The top level folder has been locally deleted, renamed
                 # or moved, unbind the server
-                # TODO This decision should be left to the controller
-                log.info("[%s] - [%s]: unbinding server because local folder"
-                         " doesn't exist anymore",
-                         server_binding.local_folder,
-                         server_binding.server_url)
-                # LastKnownState table will be deleted on cascade
-                session.delete(server_binding)
-                session.commit()
+                self.handle_missing_root(server_binding, session)
                 return 1
 
             local_scan_is_done = True
@@ -1982,15 +2018,13 @@ class Synchronizer(object):
                     log.info('Unhandle case: %r %s %s', evt, rel_path,
                              file_name)
                     self.unhandle_fs_event = True
-            except:
-                log.info(sys.exc_info()[0])
+            except Exception, e:
+                log.info(e)
         session.commit()
 
     def handle_rename(self, local_client, remote_client, doc_pair, dest_path):
         new_name = os.path.basename(dest_path)
-        state = 'synchronized'
-        if doc_pair.remote_can_rename:
-            state = 'moved'
+        state = 'moved'
         rel_path = local_client.get_path(dest_path)
         if len(rel_path) == 0:
                 rel_path = '/'

@@ -242,6 +242,9 @@ class Controller(object):
     def trash_modified_file(self):
         return False
 
+    def local_rollback(self):
+        return False
+
     def get_session(self):
         """Reuse the thread local session for this controller
 
