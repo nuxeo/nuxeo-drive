@@ -4,6 +4,7 @@ import time
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.model import LastKnownState
+from nose.plugins.skip import SkipTest
 
 
 class TestIntegrationRemoteDeletion(IntegrationTestCase):
@@ -362,6 +363,8 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
 
     def test_synchronize_local_folder_rename_remote_deletion(self):
         """Test local folder rename followed by remote deletion"""
+        raise SkipTest("Skipped waiting for"
+                       " https://jira.nuxeo.com/browse/NXDRIVE-80 to be fixed")
         # Bind the server and root workspace
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
