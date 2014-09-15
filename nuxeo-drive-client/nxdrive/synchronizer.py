@@ -1953,6 +1953,12 @@ class Synchronizer(object):
                 file_name = os.path.basename(src_path)
                 doc_pair = session.query(LastKnownState).filter_by(
                     local_folder=local_folder, local_path=rel_path).first()
+                # Ignore unsynchronized doc pairs
+                if (doc_pair is not None
+                    and doc_pair.pair_state == 'unsynchronized'):
+                    log.debug("Ignoring %s as marked unsynchronized",
+                              doc_pair.local_path)
+                    continue
                 if (doc_pair is not None and
                         local_client.is_ignored(doc_pair.local_parent_path,
                                                     file_name)
@@ -2027,8 +2033,8 @@ class Synchronizer(object):
                     log.info('Unhandle case: %r %s %s', evt, rel_path,
                              file_name)
                     self.unhandle_fs_event = True
-            except Exception, e:
-                log.info(e)
+            except Exception as e:
+                log.trace(e, exc_info=True)
         session.commit()
 
     def handle_rename(self, local_client, remote_client, doc_pair, dest_path):
