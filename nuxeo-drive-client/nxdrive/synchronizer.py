@@ -724,6 +724,7 @@ class Synchronizer(object):
 
     def synchronize_one(self, doc_pair, session=None):
         """Refresh state and perform network transfer for a doc pair."""
+        log.trace("Synchronizing doc pair %r", doc_pair)
         session = self.get_session() if session is None else session
         # Find a cached remote client for the server binding of the file to
         # synchronize
@@ -763,6 +764,7 @@ class Synchronizer(object):
             raise RuntimeError("Unhandled pair_state: %r for %r",
                                doc_pair.pair_state, doc_pair)
         else:
+            log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
             sync_handler(doc_pair, session, local_client, remote_client,
                          local_info, remote_info)
 
@@ -1354,14 +1356,17 @@ class Synchronizer(object):
                 local_folder=local_folder,
                 limit=self.limit_pending,
                 session=session, ignore_in_error=self.error_skip_period)
+            nb_pending = len(pending)
 
-            or_more = len(pending) == self.limit_pending
+            or_more = nb_pending == self.limit_pending
             if self._frontend is not None:
                 self._frontend.notify_pending(
-                    server_binding, len(pending), or_more=or_more)
+                    server_binding, nb_pending, or_more=or_more)
 
-            if len(pending) == 0:
+            if nb_pending == 0:
                 break
+            log.debug("Found %d pending items", nb_pending)
+            log.trace("Pending items: %r", pending)
 
             # Look first for a pending pair state with local_path not None,
             # fall back on first one. This is needed in the case where a
@@ -1373,11 +1378,11 @@ class Synchronizer(object):
             pending_iterator = 0
             while ((pending[pending_iterator].local_path is None
                     or pending[pending_iterator].remote_ref is None)
-                   and len(pending) > pending_iterator + 1):
+                   and nb_pending > pending_iterator + 1):
                 pending_iterator += 1
             if ((pending[pending_iterator].local_path is None
                  or pending[pending_iterator].remote_ref is None)
-                and len(pending) == pending_iterator + 1):
+                and nb_pending == pending_iterator + 1):
                 pending_iterator = 0
             pair_state = pending[pending_iterator]
 
@@ -1786,6 +1791,7 @@ class Synchronizer(object):
             first_pass = (is_event_log_id
                           and server_binding.last_event_log_id is None
                           or server_binding.last_sync_date is None)
+            log.trace("Fetching remote change summary")
             summary, checkpoint = self._get_remote_changes(
                 server_binding, session=session)
 
@@ -1803,6 +1809,7 @@ class Synchronizer(object):
                 self.scan_remote(server_binding, session=session)
             else:
                 # Only update recently changed documents
+                log.trace("Updating remote states")
                 self._update_remote_states(server_binding, summary,
                                            session=session)
                 self._notify_pending(server_binding)
@@ -1818,8 +1825,10 @@ class Synchronizer(object):
 
             try:
                 if not self._controller.use_watchdog():
+                    log.trace("Processing local scan to detect local changes")
                     self.scan_local(server_binding, session=session)
                 else:
+                    log.trace("Using Watchdog to detect local changes")
                     self.watchdog_local(server_binding, session)
             except NotFound:
                 # The top level folder has been locally deleted, renamed
