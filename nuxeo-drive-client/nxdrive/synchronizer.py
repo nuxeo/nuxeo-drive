@@ -1547,7 +1547,13 @@ class Synchronizer(object):
                         log.debug("Sleeping %0.3fs", sleep_time)
                         if self._frontend is not None:
                             self._frontend.notify_sync_asleep()
-                        sleep(sleep_time)
+                        while (sleep_time > 0):
+                            if sleep_time < 1:
+                                sleep(sleep_time)
+                            else:
+                                sleep(1)
+                            sleep_time -= 1
+                            self.check_suspended("Suspend during pause")
                         if self._frontend is not None:
                             self._frontend.notify_sync_woken_up()
                     previous_time = time()
