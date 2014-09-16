@@ -1108,7 +1108,8 @@ class Synchronizer(object):
         if self._controller.local_rollback():
             old = server_binding
             new_binding = ServerBinding(old.local_folder, old.server_url,
-                                           old.remote_user, old.remote_password,
+                                           old.remote_user,
+                                           old.remote_password,
                                            old.remote_token)
             new_binding.last_event_log_id = None
             new_binding.last_sync_date = None
