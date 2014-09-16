@@ -4,6 +4,7 @@ from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 import shutil
 
+
 class TestIntegrationLocalRootDeletion(IntegrationTestCase):
 
     def setUp(self):
@@ -53,6 +54,7 @@ class TestIntegrationLocalRootDeletion(IntegrationTestCase):
 
     def test_with_rollback(self):
         sb, ctl = self.sb_1, self.controller_1
+
         def rollback():
             return True
         ctl.local_rollback = rollback
