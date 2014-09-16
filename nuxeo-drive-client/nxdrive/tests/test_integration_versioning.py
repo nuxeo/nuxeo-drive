@@ -129,6 +129,7 @@ class TestIntegrationVersioning(IntegrationTestCase):
         if wait:
             # Wait for audit changes to be detected after the 1 second step
             self.wait_audit_change_finder_if_needed()
+            self.wait()
         n_synchronized = synchronizer.update_synchronize_server(server_binding)
         self.assertEqual(n_synchronized, expected_synchronized)
 
