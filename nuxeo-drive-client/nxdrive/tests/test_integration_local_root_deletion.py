@@ -17,6 +17,13 @@ class TestIntegrationLocalRootDeletion(IntegrationTestCase):
         self.controller_1.bind_root(self.local_nxdrive_folder_1,
             self.workspace)
 
+        # Deactivate Watchdog as it prevents the Nuxeo Drive folder from being
+        # well removed later on by shutil.rmtree, thus re-created by the
+        # synchronizer during rollback if activated.
+        def no_watchdog():
+            return False
+        self.controller_1.use_watchdog = no_watchdog
+
         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
 
         self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
