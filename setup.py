@@ -93,6 +93,9 @@ class data_file_dir(object):
 
 class NuxeoDriveAttributes(object):
 
+    def get_uid(self):
+        return '{800B7778-1B71-11E2-9D65-A0FD6088709B}'
+
     def rubric_company(self):
         return 'nuxeo'
 
@@ -381,7 +384,7 @@ class NuxeoDriveSetup(object):
                     "bdist_msi": {
                         "add_to_path": True,
                         "upgrade_code":
-                            '{800B7778-1B71-11E2-9D65-A0FD6088709B}',
+                            attribs.get_uid(),
                     },
                 },
             )
