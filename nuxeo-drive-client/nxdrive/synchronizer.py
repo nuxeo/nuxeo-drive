@@ -2034,7 +2034,9 @@ class Synchronizer(object):
                              file_name)
                     self.unhandle_fs_event = True
             except Exception as e:
-                log.trace(e, exc_info=True)
+                if e.args and len(e.args) > 0 and e.args[0]:
+                    e.args = tuple([e.args[0].encode('utf-8')])
+                log.trace(e)
         session.commit()
 
     def handle_rename(self, local_client, remote_client, doc_pair, dest_path):
