@@ -56,7 +56,7 @@ class TestIntegrationLocalRootDeletion(IntegrationTestCase):
     def test_without_rollback(self):
         sb, ctl = self.sb_1, self.controller_1
         ctl.synchronizer.update_synchronize_server(sb)
-        self.assertFalse(os.path.exists(self.sync_root_folder_1))
+        self.assertFalse(os.path.exists(self.local_nxdrive_folder_1))
         self.assertFalse(sb in ctl.list_server_bindings())
 
     def test_with_rollback(self):
@@ -65,6 +65,7 @@ class TestIntegrationLocalRootDeletion(IntegrationTestCase):
         def rollback():
             return True
         ctl.local_rollback = rollback
+
         ctl.synchronizer.update_synchronize_server(sb)
         self.assertTrue(os.path.exists(self.local_nxdrive_folder_1))
         sb = ctl.list_server_bindings()[0]
