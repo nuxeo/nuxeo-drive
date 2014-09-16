@@ -1595,13 +1595,7 @@ class Synchronizer(object):
 
         # Stop all observers
         if not no_event_init:
-            log.info("Stopping all FS Observers thread")
-            # Send the stop command
-            for observer in self.observers:
-                observer.stop()
-            # Wait for all observers to stop
-            for observer in self.observers:
-                observer.join()
+            self.stop_observers()
         # Notify UI front end to take synchronization stop into account and
         # quit the application
         if self._frontend is not None:
@@ -2098,6 +2092,32 @@ class Synchronizer(object):
                           recursive=True)
         observer.start()
         self.observers.append(observer)
+
+    def stop_observers(self, raise_on_error=True):
+        log.info("Stopping all FS Observers thread")
+        # Send the stop command
+        for observer in self.observers:
+            try:
+                observer.stop()
+            except:
+                if raise_on_error:
+                    raise
+                else:
+                    pass
+        # Wait for all observers to stop
+        for observer in self.observers:
+            try:
+                observer.join()
+            except:
+                if raise_on_error:
+                    raise
+                else:
+                    pass
+        # Delete all observers
+        for observer in self.observers:
+            del observer
+        # Reinitialize list of observers
+        self.observers = []
 
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 

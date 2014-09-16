@@ -164,24 +164,8 @@ class IntegrationTestCase(unittest.TestCase):
 
     def tearDown(self):
         # Force to clean all observers
-        for observer in self.controller_1.synchronizer.observers:
-            # If the folder has been delete a null pointer can happen
-            try:
-                observer.stop()
-                observer.join()
-            except Exception, e:
-                pass
-            del observer
-        self.controller_1.synchronizer.observers = []
-        for observer in self.controller_2.synchronizer.observers:
-            # If the folder has been delete a null pointer can happen
-            try:
-                observer.stop()
-                observer.join()
-            except Exception, e:
-                pass
-            del observer
-        self.controller_2.synchronizer.observers = []
+        self.controller_1.synchronizer.stop_observers(raise_on_error=False)
+        self.controller_2.synchronizer.stop_observers(raise_on_error=False)
         # Note that unbinding a server revokes the related token if needed,
         # see Controller.unbind_server()
         self.controller_1.unbind_all()
