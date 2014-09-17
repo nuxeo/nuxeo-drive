@@ -10,6 +10,7 @@ from nxdrive.client.common import NotFound
 from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.base_automation_client import BaseAutomationClient
+from nxdrive.activity import FileAction
 
 
 log = get_logger(__name__)
@@ -77,7 +78,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
         """
         fs_item_info = self.get_info(fs_item_id)
         download_url = self.server_url + fs_item_info.download_url
+        self.current_action = FileAction("Download", None,
+                                        fs_item_info.name, 0)
         content, _ = self._do_get(download_url)
+        self.end_action()
         return content
 
     def stream_content(self, fs_item_id, file_path):
@@ -92,7 +96,9 @@ class RemoteFileSystemClient(BaseAutomationClient):
         file_name = os.path.basename(file_path)
         file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
                                 + DOWNLOAD_TMP_FILE_SUFFIX)
+        self.current_action = FileAction("Download", file_out, file_name, 0)
         _, tmp_file = self._do_get(download_url, file_out=file_out)
+        self.end_action()
         return tmp_file
 
     def get_children_info(self, fs_item_id):
@@ -207,7 +213,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
             log.trace("Calling '%s' with headers: %r", url, headers)
             req = urllib2.Request(url, headers=headers)
             response = self.opener.open(req, timeout=self.blob_timeout)
-
+            # Get the size file
+            if response is not None and response.info() is not None:
+                self.current_action.size = int(response.info().getheader(
+                                                    'Content-Length', 0))
             if file_out is not None:
                 with open(file_out, "wb") as f:
                     while True:
@@ -218,6 +227,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
                         buffer_ = response.read(FILE_BUFFER_SIZE)
                         if buffer_ == '':
                             break
+                        self.current_action.progress += FILE_BUFFER_SIZE
                         f.write(buffer_)
                     if self._remote_error is not None:
                         # Simulate a configurable remote (e.g. network or

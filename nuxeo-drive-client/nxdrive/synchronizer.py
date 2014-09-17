@@ -18,6 +18,7 @@ from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
 from nxdrive.model import ServerBinding
+from nxdrive.activity import Action
 from nxdrive.model import LastKnownState
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import safe_long_path
@@ -231,6 +232,7 @@ class Synchronizer(object):
     update_check_delay = 3600
 
     def __init__(self, controller, page_size=None):
+        self.current_action = None
         self.local_full_scan = []
         self.local_changes = []
         self.observers = []
@@ -1568,6 +1570,7 @@ class Synchronizer(object):
                 except SyncThreadSuspended as e:
                     session.rollback()
                     self._suspend_sync_thread(e)
+                    Action.finish_action()
 
                 # Check for application update
                 expired = time() - update_check_time
@@ -1590,6 +1593,7 @@ class Synchronizer(object):
             log.debug("Calling Controller.dispose() from Synchronizer to close"
                       " thread-local Session")
             self._controller.dispose()
+            Action.finish_action()
 
         # Clean pid file
         pid_filepath = self._get_sync_pid_filepath()
@@ -1801,6 +1805,7 @@ class Synchronizer(object):
             if self._frontend is not None:
                 self._frontend.notify_online(server_binding)
 
+            self.current_action = Action("Remote scan")
             if full_scan or summary['hasTooManyChanges'] or first_pass:
                 # Force remote full scan
                 log.debug("Remote full scan of %s. Reasons: "
@@ -1823,7 +1828,7 @@ class Synchronizer(object):
             # the change data): we can save the new time stamp to start again
             # from this point next time
             self._checkpoint(server_binding, checkpoint, session=session)
-
+            self.current_action = Action("Local scan")
             try:
                 if not self._controller.use_watchdog():
                     log.trace("Processing local scan to detect local changes")
@@ -1839,7 +1844,7 @@ class Synchronizer(object):
 
             local_scan_is_done = True
             local_refresh_duration = time() - tick
-
+            Action.finish_action()
             tick = time()
             # The DB is updated we, can update the UI with the number of
             # pending tasks

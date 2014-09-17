@@ -15,6 +15,7 @@ from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
+from nxdrive.activity import Action, FileAction
 from nxdrive.utils import guess_mime_type
 from nxdrive.utils import force_decode
 from urllib2 import ProxyHandler
@@ -335,6 +336,7 @@ class BaseAutomationClient(object):
         Uses poster.httpstreaming to stream the upload
         and not load the whole file in memory.
         """
+        self.current_action = FileAction("Upload", file_path, filename)
         # Request URL
         url = self.automation_url.encode('ascii') + self.batch_upload_url
 
@@ -382,8 +384,12 @@ class BaseAutomationClient(object):
             raise
         finally:
             input_file.close()
-
+        self.end_action()
         return self._read_response(resp, url)
+
+    def end_action(self):
+        self.current_action = None
+        Action.finish_action()
 
     def execute_batch(self, op_id, batch_id, file_idx, **params):
         """Execute a file upload Automation batch"""
@@ -568,4 +574,5 @@ class BaseAutomationClient(object):
             r = file_object.read(buffer_size)
             if not r:
                 break
+            self.current_action.progress += buffer_size
             yield r
