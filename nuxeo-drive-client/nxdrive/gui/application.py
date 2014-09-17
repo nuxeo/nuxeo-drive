@@ -9,6 +9,7 @@ from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.settings import prompt_settings
 from systray_menu import SystrayMenu
+from nxdrive.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.update_prompt import prompt_update
 from nxdrive.gui.updated import notify_updated
@@ -134,6 +135,11 @@ class Application(QApplication):
         self.last_state = 'enabled'
 
         self.setup_systray()
+
+        # Update systray every xs
+        self.systray_update_timer = QtCore.QTimer()
+        self.systray_update_timer.timeout.connect(self.update_tooltip)
+        self.systray_update_timer.start(750)
 
         # Application update notification
         if self.controller.is_updated():
@@ -263,6 +269,7 @@ class Application(QApplication):
         if self.get_icon_state() == state:
             # Nothing to update
             return False
+        self._tray_icon.setToolTip(self.get_tooltip())
         # Handle animated transferring icon
         if state == 'transferring':
             self.icon_spin_timer.start(150)
@@ -285,6 +292,39 @@ class Application(QApplication):
                          % (self.icon_spin_count + 1))
         self._tray_icon.setIcon(QtGui.QIcon(icon))
         self.icon_spin_count = (self.icon_spin_count + 1) % 10
+
+    def update_tooltip(self):
+        # Update also the file
+        self._tray_icon.setToolTip(self.get_tooltip())
+
+    def get_default_tooltip(self):
+        return "Nuxeo Drive"
+
+    def get_tooltip(self):
+        actions = Action.get_actions()
+        if actions is None or len(actions) == 0:
+            return self.get_default_tooltip()
+        # Display only the first action for now
+        action = actions.itervalues().next()
+        if action is None:
+            return self.get_default_tooltip()
+        if isinstance(action, FileAction):
+            if action.get_percent() is not None:
+                return ("%s - %s - %s - %d%%" %
+                                    (self.get_default_tooltip(),
+                                    action.type, action.filename,
+                                    action.get_percent()))
+            else:
+                return ("%s - %s - %s" % (self.get_default_tooltip(),
+                                    action.type, action.filename,
+                                    action.get_percent()))
+        elif action.get_percent() is not None:
+            return ("%s - %s - %d%%" % (self.get_default_tooltip(),
+                                    action.type,
+                                    action.get_percent()))
+        else:
+            return ("%s - %s" % (self.get_default_tooltip(),
+                                    action.type))
 
     def suspend_resume(self):
         if self.state != 'paused':
