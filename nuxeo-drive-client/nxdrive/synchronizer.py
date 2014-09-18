@@ -810,10 +810,11 @@ class Synchronizer(object):
                 log.debug("Skip update of remote document '%s'"\
                              " as it is readonly.",
                           doc_pair.remote_name)
-                #if self._controller.overwrite_readonly():
-                #    doc_pair.update_state('synchronized', 'modified')
-                #else:
-                #    doc_pair.update_state('unsynchronized', 'unsynchronized')
+                if self._controller.local_rollback():
+                    local_client.delete(doc_pair.local_path)
+                    doc_pair.update_state('unknown', 'created')
+                else:
+                    doc_pair.update_state('unsynchronized', 'unsynchronized')
         doc_pair.update_state('synchronized', 'synchronized')
 
     def _synchronize_remotely_modified(self, doc_pair, session,
@@ -944,7 +945,11 @@ class Synchronizer(object):
             # XXX: in the future we might want to introduce a new
             # 'notsynchronizable' pair state to display a special icon
             # in the UI
-            doc_pair.update_state('synchronized', 'synchronized')
+            if self._controller.local_rollback():
+                local_client.delete(doc_pair.local_path)
+                session.delete(doc_pair)
+            else:
+                doc_pair.update_state('unsynchronized', 'unsynchronized')
 
     def _synchronize_remotely_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
