@@ -220,6 +220,15 @@ class NuxeoDriveAttributes(object):
     def get_includes(self):
         return []
 
+    def get_licence(self):
+        return None
+
+    def get_gpl_licence(self):
+        license = open('LICENSE.txt').read().replace('\n','\\line')
+        return '{\\rtf1\\ansi\\ansicpg1252\\deff0\\deftab720{'\
+                '\\fonttbl{\\f0\\froman\\fprq2 Times New Roman;}}'\
+                '{\\colortbl\\red0\\green0\\blue0;}'+license+'}'
+
 
 class NuxeoDriveSetup(object):
 
@@ -439,7 +448,7 @@ class NuxeoDriveSetup(object):
             scripts=scripts,
             long_description=attribs.get_long_description(),
             data_files=data_files,
-            win_target=attribs.get_win_targetName(),
+            attribs=attribs,
             **freeze_options
         )
 

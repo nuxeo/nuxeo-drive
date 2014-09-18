@@ -61,12 +61,38 @@ if sys.platform == 'win32':
     from cx_Freeze.windist import bdist_msi as cx_bdist_msi
     
     class bdist_msi(cx_bdist_msi):
-        exec_name = "ndrivew.exe"
+        attribs = None
         def get_executable(self):
-            return bdist_msi.exec_name
-    
+            return self.attribs.get_win_targetName()
+
+        def get_license(self):
+            return self.attribs.get_licence()
+
+        def add_licence_dialog(self):
+            import msilib
+            msilib.add_data(self.db, 'InstallUISequence',
+                [("LicenceDialog", None, 380)])
+            dialog = distutils.command.bdist_msi.PyDialog(self.db, "LicenceDialog",
+                    self.x, self.y, self.width, self.height, self.modal,
+                    self.title, "Next", "Next", "Cancel")
+            dialog.text("LicenseTitle", 15, 10, 320, 20, 0x3, "License")
+            text = dialog.control("License", "ScrollableText",
+                                  15, 30, 340, 200, 0x7, None,
+                                    self.get_license(), None, None)
+            c = dialog.control("LicenseAccepted", "CheckBox",
+                               15, 240, 320, 20, 0x3,
+                               "LicenseAccepted", "I've accepted this agreement", None, None)
+            button = dialog.cancel("Cancel", "Next")
+            button.event("EndDialog", "Exit")
+            button = dialog.next("Next", "Cancel", active=False)
+            button.condition("Enable","LicenseAccepted")
+            button.condition("Disable","not LicenseAccepted")
+            button.event("EndDialog", "Return")
+
         def add_exit_dialog(self):
             import msilib
+            if self.get_license() is not None:
+                self.add_licence_dialog()
             dialog = distutils.command.bdist_msi.PyDialog(self.db, "ExitDialog",
                     self.x, self.y, self.width, self.height, self.modal,
                     self.title, "Finish", "Finish", "Finish")
@@ -78,8 +104,8 @@ if sys.platform == 'win32':
             button = dialog.next("Finish", "Cancel", name="Finish")
             button.event("EndDialog", "Return")
             msilib.add_data(self.db, "Property",
-                     # See "DefaultUIFont Property"
                      [("StartClient", "1")])
+            # Launch product checkbox
             c = dialog.control("LaunchAfterInstall", "CheckBox",
                                15, 200, 320, 20, 0x3,
                                "StartClient", "Launch [ProductName]", None, None)
@@ -104,6 +130,6 @@ def setup(**attrs):
     _AddCommandClass(commandClasses, "build", build)
     _AddCommandClass(commandClasses, "install", install)
     if sys.platform == 'win32':
-        bdist_msi.exec_name = attrs.get("win_target")
+        bdist_msi.attribs = attrs.get("attribs")
         _AddCommandClass(commandClasses, "bdist_msi", bdist_msi)
     cx_setup(**attrs)
