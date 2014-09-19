@@ -23,28 +23,6 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                                        self.workspace_title)
         self.local_client_1 = LocalClient(self.sync_root_folder_1)
 
-        self.local_client_1.make_file('/', u'Original File 1.txt',
-            content=u'Some Content 1'.encode('utf-8'))
-
-        self.local_client_1.make_file('/', u'Original File 2.txt',
-            content=u'Some Content 2'.encode('utf-8'))
-
-        self.local_client_1.make_folder(u'/', u'Original Folder 1')
-        self.local_client_1.make_folder(
-            u'/Original Folder 1', u'Sub-Folder 1.1')
-        self.local_client_1.make_folder(
-            u'/Original Folder 1', u'Sub-Folder 1.2')
-        self.local_client_1.make_file(u'/Original Folder 1',
-            u'Original File 1.1.txt',
-            content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
-
-        self.local_client_1.make_folder('/', 'Original Folder 2')
-        self.local_client_1.make_file('/Original Folder 2',
-            u'Original File 3.txt',
-            content=u'Some Content 3'.encode('utf-8'))
-
-        self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
-
     def _set_readonly_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
         grantWrite = "false" if grant else "true"
