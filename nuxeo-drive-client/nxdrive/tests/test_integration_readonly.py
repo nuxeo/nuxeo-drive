@@ -135,8 +135,6 @@ class TestIntegrationReadOnly(IntegrationTestCase):
         self.assertTrue(local.exists(
                                 '/Test folder/Sub folder 1/sub file 1.txt'))
 
-        # Local changes
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         # Remove the readonly
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', False)
