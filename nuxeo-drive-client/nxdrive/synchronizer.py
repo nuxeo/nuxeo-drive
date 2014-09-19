@@ -943,9 +943,6 @@ class Synchronizer(object):
                 child_type, local_info.name, parent_pair.local_name)
             if doc_pair.folderish:
                 doc_pair.remote_can_create_child = False
-            # XXX: in the future we might want to introduce a new
-            # 'notsynchronizable' pair state to display a special icon
-            # in the UI
             if self._controller.local_rollback():
                 local_client.delete(doc_pair.local_path)
                 session.delete(doc_pair)

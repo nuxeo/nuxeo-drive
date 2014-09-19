@@ -661,7 +661,7 @@ class Controller(object):
                 self.invalidate_client_cache(server_binding.server_url)
             session.rollback()
             raise
-        
+
         session.commit()
         return server_binding
 

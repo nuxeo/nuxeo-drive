@@ -10,6 +10,16 @@ from nose.plugins.skip import SkipTest
 
 class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
+    # Sets up the following local hierarchy:
+    # Nuxeo Drive Test Workspace
+    #    |-- Original File 1.txt
+    #    |-- Original File 2.txt
+    #    |-- Original Folder 1
+    #    |       |-- Sub-Folder 1.1
+    #    |       |-- Sub-Folder 1.2
+    #    |       |-- Original File 1.1.txt
+    #    |-- Original Folder 2
+    #    |       |-- Original File 3.txt
     def setUp(self):
         super(TestIntegrationLocalMoveAndRename, self).setUp()
 
