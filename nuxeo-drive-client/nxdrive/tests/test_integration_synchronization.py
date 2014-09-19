@@ -988,11 +988,11 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         # marked as synchronized
         self.assertEquals(self.get_all_states(), [
             (u'/', u'synchronized', u'synchronized'),
-            (u'/Folder 3', u'synchronized', u'synchronized'),
-            (u'/Folder 3/File 1.txt', u'synchronized', u'synchronized'),
-            (u'/Folder 3/Sub Folder 1', u'synchronized', u'synchronized'),
+            (u'/Folder 3', u'created', u'unknown'),
+            (u'/Folder 3/File 1.txt', u'created', u'unknown'),
+            (u'/Folder 3/Sub Folder 1', u'created', u'unknown'),
             (u'/Folder 3/Sub Folder 1/File 2.txt',
-             u'synchronized', u'synchronized'),
+             u'created', u'unknown'),
         ])
         self.assertEquals(ctl.list_pending(), [])
 
@@ -1005,12 +1005,12 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(self.get_all_states(), [
             (u'/', u'synchronized', u'synchronized'),
             (u'/A file in a readonly folder.txt',
-             u'synchronized', u'synchronized'),
-            (u'/Folder 3', u'synchronized', u'synchronized'),
-            (u'/Folder 3/File 1.txt', u'synchronized', u'synchronized'),
-            (u'/Folder 3/Sub Folder 1', u'synchronized', u'synchronized'),
+             u'created', u'unknown'),
+            (u'/Folder 3', u'created', u'unknown'),
+            (u'/Folder 3/File 1.txt', u'created', u'unknown'),
+            (u'/Folder 3/Sub Folder 1', u'created', u'unknown'),
             (u'/Folder 3/Sub Folder 1/File 2.txt',
-             u'synchronized', u'synchronized'),
+             u'created', u'unknown'),
         ])
         self.assertEquals(len(ctl.list_pending(ignore_in_error=300)), 0)
 

@@ -814,7 +814,8 @@ class Synchronizer(object):
                     local_client.delete(doc_pair.local_path)
                     doc_pair.update_state('unknown', 'created')
                 else:
-                    doc_pair.update_state('unsynchronized', 'unsynchronized')
+                    doc_pair.pair_state = 'unsynchronized'
+                return
         doc_pair.update_state('synchronized', 'synchronized')
 
     def _synchronize_remotely_modified(self, doc_pair, session,
@@ -949,7 +950,7 @@ class Synchronizer(object):
                 local_client.delete(doc_pair.local_path)
                 session.delete(doc_pair)
             else:
-                doc_pair.update_state('unsynchronized', 'unsynchronized')
+                doc_pair.pair_state = 'unsynchronized'
 
     def _synchronize_remotely_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
