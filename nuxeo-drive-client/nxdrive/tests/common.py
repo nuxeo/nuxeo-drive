@@ -191,7 +191,7 @@ class IntegrationTestCase(unittest.TestCase):
             except:
                 pass
 
-    def get_all_states(self, session=None):
+    def get_all_states(self, session=None, get_pair_state=False):
         """Utility to quickly introspect the current known states"""
         if session is None:
             session = self.controller_1.get_session()
@@ -199,7 +199,12 @@ class IntegrationTestCase(unittest.TestCase):
             LastKnownState.local_path,
             LastKnownState.remote_parent_path,
             LastKnownState.remote_name).all()
-        return [(p.local_path, p.local_state, p.remote_state) for p in pairs]
+        if not get_pair_state:
+            return [(p.local_path, p.local_state, p.remote_state)
+                    for p in pairs]
+        else:
+            return [(p.local_path, p.local_state, p.remote_state, p.pair_state)
+                    for p in pairs]
 
     def make_server_tree(self):
         remote_client = self.remote_document_client_1

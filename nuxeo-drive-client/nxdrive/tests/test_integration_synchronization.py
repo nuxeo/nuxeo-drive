@@ -986,13 +986,15 @@ class TestIntegrationSynchronization(IntegrationTestCase):
 
         # Pairs have been created for the subfolder and its content,
         # marked as synchronized
-        self.assertEquals(self.get_all_states(), [
-            (u'/', u'synchronized', u'synchronized'),
-            (u'/Folder 3', u'created', u'unknown'),
-            (u'/Folder 3/File 1.txt', u'created', u'unknown'),
-            (u'/Folder 3/Sub Folder 1', u'created', u'unknown'),
+        self.assertEquals(self.get_all_states(get_pair_state=True), [
+            (u'/', u'synchronized', u'synchronized', u'synchronized'),
+            (u'/Folder 3', u'created', u'unknown', u'unsynchronized'),
+            (u'/Folder 3/File 1.txt', u'created', u'unknown',
+             u'unsynchronized'),
+            (u'/Folder 3/Sub Folder 1', u'created', u'unknown',
+             u'unsynchronized'),
             (u'/Folder 3/Sub Folder 1/File 2.txt',
-             u'created', u'unknown'),
+             u'created', u'unknown', u'unsynchronized'),
         ])
         self.assertEquals(ctl.list_pending(), [])
 
@@ -1002,15 +1004,17 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         syn.loop(delay=0.1, max_loops=1)
 
         # A pair has been created, marked as synchronized
-        self.assertEquals(self.get_all_states(), [
-            (u'/', u'synchronized', u'synchronized'),
+        self.assertEquals(self.get_all_states(get_pair_state=True), [
+            (u'/', u'synchronized', u'synchronized', u'synchronized'),
             (u'/A file in a readonly folder.txt',
-             u'created', u'unknown'),
-            (u'/Folder 3', u'created', u'unknown'),
-            (u'/Folder 3/File 1.txt', u'created', u'unknown'),
-            (u'/Folder 3/Sub Folder 1', u'created', u'unknown'),
+             u'created', u'unknown', u'unsynchronized'),
+            (u'/Folder 3', u'created', u'unknown', u'unsynchronized'),
+            (u'/Folder 3/File 1.txt', u'created', u'unknown',
+             u'unsynchronized'),
+            (u'/Folder 3/Sub Folder 1', u'created', u'unknown',
+             u'unsynchronized'),
             (u'/Folder 3/Sub Folder 1/File 2.txt',
-             u'created', u'unknown'),
+             u'created', u'unknown', u'unsynchronized'),
         ])
         self.assertEquals(len(ctl.list_pending(ignore_in_error=300)), 0)
 
