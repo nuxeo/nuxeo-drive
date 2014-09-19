@@ -501,12 +501,14 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
                           u'Sub-Folder 1.2')
 
     def test_local_rename_readonly_folder_with_rollback(self):
-        raise SkipTest("Skipped waiting for"
-                       " https://jira.nuxeo.com/browse/NXDRIVE-97 to be fixed")
         sb, ctl = self.sb_1, self.controller_1
+
+        def watchdog():
+            return False
 
         def rollback():
             return True
+        ctl.use_watchdog = watchdog
         ctl.local_rollback = rollback
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
