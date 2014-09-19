@@ -37,10 +37,9 @@ class TestIntegrationWindows(IntegrationTestCase):
         # Copy the newest file to the root workspace and synchronize it
         sync_root = os.path.join(self.local_nxdrive_folder_1,
                                  self.workspace_title)
-        import stat
-        folder = os.path.join(self.local_test_folder_1, 'folder', 'test.odt')
-        os.chmod(sync_root, stat.S_IWUSR | stat.S_IRUSR | stat.S_IXUSR)
-        copyfile(folder, os.path.join(sync_root, 'test.odt'))
+        test_file = os.path.join(self.local_test_folder_1, 'folder',
+                                 'test.odt')
+        copyfile(test_file, os.path.join(sync_root, 'test.odt'))
         syn.loop(delay=0.1, max_loops=1)
         self.assertTrue(remote.exists('/test.odt'))
         self.assertEquals(remote.get_content('/test.odt'), 'Updated content.')
