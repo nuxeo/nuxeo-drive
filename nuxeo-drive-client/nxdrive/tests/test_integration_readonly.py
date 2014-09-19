@@ -148,10 +148,10 @@ class TestIntegrationReadOnly(IntegrationTestCase):
         self.assertTrue(self.touch(fname))
         self.assertTrue(self.touch(fname2))
 
-        # Put it back readonly
+        # First remove the files
         os.remove(fname)
         os.remove(fname2)
-        # First remove the file
+        # Put it back readonly
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', True)
         syn.update_synchronize_server(self.sb_1)
