@@ -4,6 +4,7 @@ from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.model import LastKnownState
+from nose.plugins.skip import SkipTest
 
 
 class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
@@ -306,6 +307,8 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_remote_rename_case_folder(self):
+        raise SkipTest("Skipped waiting for"
+                       " https://jira.nuxeo.com/browse/NXDRIVE-98 to be fixed")
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = self.local_client_1
