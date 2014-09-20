@@ -3,6 +3,7 @@ import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
+from nose.plugins.skip import SkipTest
 
 
 class TestIntegrationReadOnly(IntegrationTestCase):
@@ -97,6 +98,8 @@ class TestIntegrationReadOnly(IntegrationTestCase):
         return True
 
     def test_readonly_user_access(self):
+        if os.sys.platform == 'win32':
+            raise SkipTest('Readonly folder let new file creation')
         # Should not be able to create content in root folder
         fname = os.path.join(self.local_nxdrive_folder_1, 'test.txt')
         self.assertFalse(self.touch(fname),
@@ -114,6 +117,8 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                         "Should be able to create in SYNCROOT folder")
 
     def test_file_readonly_change(self):
+        if os.sys.platform == 'win32':
+            raise SkipTest('Readonly folder let new file creation')
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace
