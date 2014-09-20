@@ -509,6 +509,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         def rollback():
             return True
         ctl.use_watchdog = watchdog
+        ctl.synchronizer.local_full_scan = []
         ctl.local_rollback = rollback
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1

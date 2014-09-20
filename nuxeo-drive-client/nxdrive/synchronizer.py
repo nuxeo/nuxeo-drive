@@ -509,6 +509,7 @@ class Synchronizer(object):
             return child_pair
 
         # Could not find any pair state to align to, create one
+        # XXX Should be tagued as locally created
         child_pair = LastKnownState(parent_pair.local_folder,
                 local_info=child_info)
         session.add(child_pair)
@@ -951,6 +952,11 @@ class Synchronizer(object):
 
     def _synchronize_remotely_created(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
+        if (doc_pair.local_state == 'deleted' and
+            doc_pair.remote_state == 'modified' and
+            self._detect_resolve_local_move(doc_pair, session,
+            local_client, remote_client, local_info)):
+            return
         name = remote_info.name
         # Find the parent pair to find the path of the local folder to
         # create the document into
@@ -1104,17 +1110,34 @@ class Synchronizer(object):
         self._synchronize_locally_created(doc_pair, session, local_client,
                                         remote_client, local_info, remote_info)
 
-    def handle_failed_remote_rename(self, doc_pair, session):
+    def handle_failed_remote_rename(self, source_pair, target_pair, session):
         # An error occurs return false
         log.error("Renaming from %s to %s canceled",
-                            doc_pair.remote_name, doc_pair.local_name)
+                            target_pair.remote_name, target_pair.local_name)
         if self._controller.local_rollback():
             try:
                 local_client = self._controller.get_local_client(
-                                                    doc_pair.local_folder)
-                info = local_client.rename(doc_pair.local_path,
-                                            doc_pair.remote_name)
-                doc_pair.update_local(info)
+                                                    target_pair.local_folder)
+                info = local_client.rename(target_pair.local_path,
+                                            target_pair.remote_name)
+                source_pair.update_local(info)
+                if source_pair != target_pair:
+                    if target_pair.folderish:
+                        # Remove "new" created tree
+                        pairs = session.query(LastKnownState).filter(
+                                LastKnownState.local_path.like(
+                                target_pair.local_path + '%')).all()
+                        [session.delete(pair) for pair in pairs]
+                        pairs = session.query(LastKnownState).filter(
+                                LastKnownState.local_path.like(
+                                source_pair.local_path + '%')).all()
+                        for pair in pairs:
+                            pair.update_state('synchronized', 'synchronized')
+                    else:
+                        session.delete(target_pair)
+                    # Mark all local as unknown
+                    #self._mark_unknown_local_recursive(session, source_pair)
+                source_pair.update_state('synchronized', 'synchronized')
             except Exception, e:
                 log.error("Can't rollback local modification")
                 log.debug(e)
@@ -1159,7 +1182,7 @@ class Synchronizer(object):
                                                         doc_pair.remote_ref,
                                                         doc_pair.local_name))
             except:
-                    self.handle_failed_remote_rename(doc_pair, session)
+                    self.handle_failed_remote_rename(doc_pair, doc_pair, session)
                     return
         parent_pair = session.query(LastKnownState).filter_by(
                 local_folder=local_client.base_folder,
@@ -1213,7 +1236,8 @@ class Synchronizer(object):
             filters.append(
                 LastKnownState.local_digest == doc_pair.local_digest)
 
-        if doc_pair.pair_state == 'locally_deleted':
+        if (doc_pair.pair_state == 'locally_deleted'
+            or doc_pair.pair_state == 'remotely_created'):
             source_doc_pair = doc_pair
             target_doc_pair = None
             # The creation detection might not have occurred yet for the
@@ -1254,10 +1278,10 @@ class Synchronizer(object):
                       len(candidates), doc_pair)
 
         best_candidate = candidates[0]
-        if doc_pair.pair_state == 'locally_deleted':
-            target_doc_pair = best_candidate
-        else:
+        if doc_pair.pair_state == 'locally_created':
             source_doc_pair = best_candidate
+        else:
+            target_doc_pair = best_candidate
         return source_doc_pair, target_doc_pair
 
     def _detect_resolve_local_move(self, doc_pair, session,
@@ -1331,14 +1355,18 @@ class Synchronizer(object):
                       source_doc_pair, new_name)
             if remote_info.can_rename:
                 remote_info = remote_client.rename(remote_ref, new_name)
+                target_doc_pair.update_remote(remote_info)
             else:
                 log.debug("Marking %s as synchronized since remote document"
                           " can not be renamed: either it is readonly or it is"
                           " a virtual folder that doesn't exist"
                           " in the server hierarchy",
                           target_doc_pair)
-                self.handle_failed_remote_rename(target_doc_pair, session)
-            target_doc_pair.update_remote(remote_info)
+                # Put the previous remote name to allow rename
+                target_doc_pair.remote_name = source_doc_pair.local_name
+                self.handle_failed_remote_rename(source_doc_pair,
+                                                 target_doc_pair, session)
+                return True
 
         if moved_or_renamed:
             target_doc_pair.update_state('synchronized', 'synchronized')
