@@ -51,6 +51,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
     Uses the FileSystemItem API.
     """
 
+    def get_download_buffer(self):
+        return FILE_BUFFER_SIZE
     #
     # API common with the local client API
     #
@@ -226,10 +228,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
                             if self.check_suspended is not None:
                                 self.check_suspended('File download: %s'
                                                      % file_out)
-                            buffer_ = response.read(FILE_BUFFER_SIZE)
+                            buffer_ = response.read(self.get_download_buffer())
                             if buffer_ == '':
                                 break
-                            self.current_action.progress += FILE_BUFFER_SIZE
+                            self.current_action.progress += self.get_download_buffer()
                             f.write(buffer_)
                         if self._remote_error is not None:
                             # Simulate a configurable remote (e.g. network or

@@ -330,6 +330,12 @@ class BaseAutomationClient(BaseClient):
             raise ValueError("Bad response from batch upload with id '%s'"
                              " and file path '%s'" % (batch_id, file_path))
 
+    def get_upload_buffer(self, input_file):
+        if sys.platform != 'win32':
+            return os.fstatvfs(input_file.fileno()).f_bsize
+        else:
+            return FILE_BUFFER_SIZE
+
     def upload(self, batch_id, file_path, filename=None, file_index=0,
                mime_type=None):
         """Upload a file through an Automation batch
@@ -365,10 +371,7 @@ class BaseAutomationClient(BaseClient):
         # Request data
         input_file = open(file_path, 'rb')
         # Use file system block size if available for streaming buffer
-        if sys.platform != 'win32':
-            fs_block_size = os.fstatvfs(input_file.fileno()).f_bsize
-        else:
-            fs_block_size = FILE_BUFFER_SIZE
+        fs_block_size = self.get_upload_buffer(input_file)
         log.trace("Using file system block size"
                   " for the streaming upload buffer: %u bytes", fs_block_size)
         data = self._read_data(input_file, fs_block_size)
