@@ -1003,6 +1003,9 @@ class Synchronizer(object):
         doc_pair.update_state('synchronized', 'synchronized')
 
     def handle_readonly(self, local_client, doc_pair):
+        # Only use readonly on file for win32
+        if doc_pair.folderish and os.sys.platform == 'win32':
+            return
         if doc_pair.is_readonly():
             local_client.set_readonly(doc_pair.local_path)
         else:
