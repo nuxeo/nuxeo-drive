@@ -55,7 +55,9 @@ class TestIntegrationLocalRootDeletion(IntegrationTestCase):
         # Force the write mode under Windows
         import stat
         if os.access(self.local_nxdrive_folder_1, os.W_OK):
-            os.chmod(self.local_nxdrive_folder_1, stat.S_IWUSR)
+            os.chmod(self.local_nxdrive_folder_1,
+                     stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
+                     stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
         shutil.rmtree(self.local_nxdrive_folder_1, False)
 
     def test_without_rollback(self):
