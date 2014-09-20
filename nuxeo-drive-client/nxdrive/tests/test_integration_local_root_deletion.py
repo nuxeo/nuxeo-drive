@@ -51,7 +51,11 @@ class TestIntegrationLocalRootDeletion(IntegrationTestCase):
             content=u'Some Content 3'.encode('utf-8'))
 
         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
-        self.local_client_1.unlock_path(self.sync_root_folder_1, True)
+        self.local_client_1.unlock_path(self.sync_root_folder_1)
+        # Force the write mode under Windows
+        import stat
+        if os.access(self.local_nxdrive_folder_1, os.W_OK):
+            os.chmod(self.local_nxdrive_folder_1, stat.S_IWUSR)
         shutil.rmtree(self.local_nxdrive_folder_1, False)
 
     def test_without_rollback(self):
