@@ -2093,7 +2093,7 @@ class Synchronizer(object):
                              file_name)
                     self.unhandle_fs_event = True
             except Exception as e:
-                if e.args and len(e.args) > 0 and e.args[0]:
+                if e.args and len(e.args) == 1 and e.args[0]:
                     e.args = tuple([e.args[0].encode('utf-8')])
                 log.trace(e)
         session.commit()
