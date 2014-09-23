@@ -266,7 +266,8 @@ class BaseAutomationClient(BaseClient):
                         param['name'] for param in change_summary_op['params']]
 
     def execute(self, command, op_input=None, timeout=-1,
-                check_params=True, void_op=False, **params):
+                check_params=True, void_op=False, extra_headers=None,
+                **params):
         """Execute an Automation operation"""
         if self._remote_error is not None:
             # Simulate a configurable (e.g. network or server) error for the
@@ -283,6 +284,8 @@ class BaseAutomationClient(BaseClient):
         }
         if void_op:
             headers.update({"X-NXVoidOperation": "true"})
+        if extra_headers is not None:
+            headers.update(extra_headers)
         headers.update(self._get_common_headers())
 
         json_struct = {'params': {}}
@@ -322,10 +325,18 @@ class BaseAutomationClient(BaseClient):
         Upload is streamed.
         """
         batch_id = self._generate_unique_id()
+        tick = time.time()
         upload_result = self.upload(batch_id, file_path, filename=filename,
                                     mime_type=mime_type)
+        upload_duration = time.time() - tick
+        # Use upload duration * 2 as Nuxeo transaction timeout
+        tx_timeout = int(upload_duration) * 2
+        log.debug('Using %d seconds (upload time * 2) as Nuxeo transaction'
+                  ' timeout for batch execution of %s with file %s',
+                  tx_timeout, command, file_path)
         if upload_result['uploaded'] == 'true':
-            return self.execute_batch(command, batch_id, '0', **params)
+            return self.execute_batch(command, batch_id, '0', tx_timeout,
+                                      **params)
         else:
             raise ValueError("Bad response from batch upload with id '%s'"
                              " and file path '%s'" % (batch_id, file_path))
@@ -395,11 +406,12 @@ class BaseAutomationClient(BaseClient):
         self.current_action = None
         Action.finish_action()
 
-    def execute_batch(self, op_id, batch_id, file_idx, **params):
+    def execute_batch(self, op_id, batch_id, file_idx, tx_timeout, **params):
         """Execute a file upload Automation batch"""
+        extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout, }
         return self.execute(self.batch_execute_url,
                      operationId=op_id, batchId=batch_id, fileIdx=file_idx,
-                     check_params=False, **params)
+                     check_params=False, extra_headers=extra_headers, **params)
 
     def is_addon_installed(self):
         return 'NuxeoDrive.GetRoots' in self.operations
