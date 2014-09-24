@@ -20,7 +20,8 @@ class BaseClient(object):
         result = 0
         if unlock_parent:
             parent_path = os.path.dirname(path)
-            if not os.access(parent_path, os.W_OK):
+            if (os.path.exists(parent_path) and
+                not os.access(parent_path, os.W_OK)):
                 self.unset_path_readonly(parent_path)
                 result |= 2
         if os.path.exists(path) and not os.access(path, os.W_OK):
