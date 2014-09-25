@@ -32,6 +32,7 @@ DEVICE_DESCRIPTIONS = {
     'win32': 'Windows Desktop',
 }
 CHANGE_SUMMARY_OPERATION = 'NuxeoDrive.GetChangeSummary'
+DEFAULT_NUXEO_TX_TIMEOUT = 300
 
 
 def get_proxies_for_handler(proxy_settings):
@@ -328,12 +329,13 @@ class BaseAutomationClient(BaseClient):
         tick = time.time()
         upload_result = self.upload(batch_id, file_path, filename=filename,
                                     mime_type=mime_type)
-        upload_duration = time.time() - tick
+        upload_duration = int(time.time() - tick)
         # Use upload duration * 2 as Nuxeo transaction timeout
-        tx_timeout = int(upload_duration) * 2
-        log.debug('Using %d seconds (upload time * 2) as Nuxeo transaction'
-                  ' timeout for batch execution of %s with file %s',
-                  tx_timeout, command, file_path)
+        tx_timeout = max(DEFAULT_NUXEO_TX_TIMEOUT, upload_duration * 2)
+        log.debug('Using %d seconds [max(%d, 2 * upload time=%d)] as Nuxeo'
+                  ' transaction timeout for batch execution of %s'
+                  ' with file %s', tx_timeout, DEFAULT_NUXEO_TX_TIMEOUT,
+                  upload_duration, command, file_path)
         if upload_result['uploaded'] == 'true':
             return self.execute_batch(command, batch_id, '0', tx_timeout,
                                       **params)
