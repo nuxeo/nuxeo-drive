@@ -2089,7 +2089,7 @@ class Synchronizer(object):
                             dst_pair.update_local(
                                         local_client.get_info(dst_rel_path))
                         continue
-                    log.info('Unhandled case: %r %s %s', evt, rel_path,
+                    log.trace('Unhandled case: %r %s %s', evt, rel_path,
                              file_name)
                     self.unhandle_fs_event = True
             except Exception as e:
