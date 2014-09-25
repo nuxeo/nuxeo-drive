@@ -401,12 +401,10 @@ class Application(QApplication):
                 self.state = 'stopping'
                 self.update_running_icon()
                 self.communicator.menu.emit()
-            # Ask the controller to stop: the synchronization loop will break
-            # and call notify_sync_stopped() which will finally emit a signal
-            # to handle_stop() to quit the application.
-            self.controller.stop()
-            # Notify synchronization thread in case it was suspended
+            # Resume the sync thread so it checks the stop signal
             self.sync_thread.resume()
+            # Stop the thread
+            self.sync_thread.stop()
         else:
             # Quit directly
             self.handle_stop()

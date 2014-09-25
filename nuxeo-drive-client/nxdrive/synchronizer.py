@@ -162,6 +162,10 @@ def find_first_name_match(name, possible_pairs, check_suspended=None):
     return None
 
 
+class SyncThreadStopped(Exception):
+    pass
+
+
 class SyncThreadSuspended(Exception):
     pass
 
@@ -178,6 +182,9 @@ class SynchronizerThread(Thread):
         # Lock condition for suspend/resume
         self.suspend_condition = Condition()
         self.suspended = False
+        # Lock condition for stop
+        self.stop_condition = Condition()
+        self.stopped = False
 
     def run(self):
         # Log uncaught exceptions in the synchronization loop and die
@@ -187,6 +194,11 @@ class SynchronizerThread(Thread):
         except Exception, e:
             log.error("Error in synchronization thread: %s", e, exc_info=True)
         self.controller.sync_thread = None
+
+    def stop(self):
+        with self.stop_condition:
+            log.debug('Marking synchronization thread %r as stopped', self)
+            self.stopped = True
 
     def suspend(self):
         with self.suspend_condition:
@@ -1460,6 +1472,8 @@ class Synchronizer(object):
                     raise e
             except SyncThreadSuspended as e:
                 raise e
+            except SyncThreadStopped as e:
+                raise e
             except Exception as e:
                 # Unexpected exception: blacklist for a cooldown period
                 log.error("Failed to sync %r, blacklisting doc pair "
@@ -1622,7 +1636,6 @@ class Synchronizer(object):
                     session.rollback()
                     self._suspend_sync_thread(e)
                     Action.finish_action()
-
                 # Check for application update
                 expired = time() - update_check_time
                 if expired > self.update_check_delay:
@@ -1632,7 +1645,9 @@ class Synchronizer(object):
                     if self._frontend is not None:
                         self._frontend.notify_check_update()
                     update_check_time = time()
-
+        except SyncThreadStopped as e:
+            self.get_session().rollback()
+            log.info("Stopping synchronization loop (pid=%d)", pid)
         except KeyboardInterrupt:
             self.get_session().rollback()
             log.info("Interrupted synchronization on user's request.")
@@ -1967,6 +1982,10 @@ class Synchronizer(object):
             with self.sync_thread.suspend_condition:
                 if self.sync_thread.suspended:
                     raise SyncThreadSuspended(msg)
+        if hasattr(self, 'sync_thread') and self.sync_thread is not None:
+            with self.sync_thread.stop_condition:
+                if self.sync_thread.stopped:
+                    raise SyncThreadStopped(msg)
 
     def _suspend_sync_thread(self, exception):
         if hasattr(self, 'sync_thread') and self.sync_thread is not None:
