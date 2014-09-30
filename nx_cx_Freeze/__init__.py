@@ -62,6 +62,19 @@ if sys.platform == 'win32':
     
     class bdist_msi(cx_bdist_msi):
         attribs = None
+        def finalize_options(self):
+            name = self.distribution.get_name()
+            if self.initial_target_dir is None:
+                if distutils.util.get_platform() == "win-amd64":
+                    programFilesFolder = "ProgramFiles64Folder"
+                else:
+                    programFilesFolder = "ProgramFilesFolder"
+                self.initial_target_dir = r"[%s]\%s" % (programFilesFolder,
+                                            self.attribs.get_install_dir())
+            # Using old style class so can't use super
+            import cx_Freeze
+            cx_Freeze.windist.bdist_msi.finalize_options(self)
+
         def get_executable(self):
             return self.attribs.get_win_targetName()
 
