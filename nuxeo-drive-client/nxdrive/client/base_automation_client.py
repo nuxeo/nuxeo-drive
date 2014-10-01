@@ -210,7 +210,7 @@ class BaseAutomationClient(BaseClient):
         self._remote_error = error
 
     def make_local_raise(self, error):
-        """Make RemoteFileSystemClient.do_get raise the provided exception"""
+        """Make do_get raise the provided exception"""
         self._local_error = error
 
     def fetch_api(self):
