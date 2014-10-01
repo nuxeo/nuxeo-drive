@@ -206,7 +206,7 @@ class NuxeoDriveAttributes(object):
         return "Nuxeo"
 
     def get_install_dir(self):
-        return self.get_name()
+        return os.path.join(self.get_author(), 'Drive')
 
     def get_author_email(self):
         return "contact@nuxeo.com"
