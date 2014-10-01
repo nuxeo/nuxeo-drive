@@ -1202,7 +1202,8 @@ class Synchronizer(object):
                                                         doc_pair.remote_ref,
                                                         doc_pair.local_name))
             except:
-                    self.handle_failed_remote_rename(doc_pair, doc_pair, session)
+                    self.handle_failed_remote_rename(doc_pair, doc_pair,
+                                                     session)
                     return
         parent_pair = session.query(LastKnownState).filter_by(
                 local_folder=local_client.base_folder,
@@ -1942,7 +1943,7 @@ class Synchronizer(object):
             if not local_scan_is_done:
                 # Scan the local folders now to update the local DB even
                 # if the network is done so that the UI (e.g. windows shell
-                # extension can still be right)
+                # extension) can still be right
                 self.scan_local(server_binding, session=session)
             return 0
 
