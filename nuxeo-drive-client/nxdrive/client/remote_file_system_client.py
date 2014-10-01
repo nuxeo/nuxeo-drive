@@ -51,8 +51,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
     # API common with the local client API
     #
 
-    def get_info(self, fs_item_id, raise_if_missing=True):
-        fs_item = self.get_fs_item(fs_item_id)
+    def get_info(self, fs_item_id, parent_fs_item_id=None,
+                 raise_if_missing=True):
+        fs_item = self.get_fs_item(fs_item_id,
+                                   parent_fs_item_id=parent_fs_item_id)
         if fs_item is None:
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
@@ -80,13 +82,14 @@ class RemoteFileSystemClient(BaseAutomationClient):
         self.end_action()
         return content
 
-    def stream_content(self, fs_item_id, file_path):
+    def stream_content(self, fs_item_id, file_path, parent_fs_item_id=None):
         """Stream the binary content of a file system item to a tmp file
 
         Raises NotFound if file system item with id fs_item_id
         cannot be found
         """
-        fs_item_info = self.get_info(fs_item_id)
+        fs_item_info = self.get_info(fs_item_id,
+                                     parent_fs_item_id=parent_fs_item_id)
         download_url = self.server_url + fs_item_info.download_url
         file_dir = os.path.dirname(file_path)
         file_name = os.path.basename(file_path)
@@ -139,13 +142,16 @@ class RemoteFileSystemClient(BaseAutomationClient):
             file_path, filename=filename, mime_type=mime_type,
             id=fs_item_id)
 
-    def stream_update(self, fs_item_id, file_path, filename=None):
+    def stream_update(self, fs_item_id, file_path, parent_fs_item_id=None,
+                      filename=None):
         """Update a document by streaming the file with the given path"""
         self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
-            file_path, filename=filename, id=fs_item_id)
+            file_path, filename=filename, id=fs_item_id,
+            parentId=parent_fs_item_id)
 
-    def delete(self, fs_item_id):
-        self.execute("NuxeoDrive.Delete", id=fs_item_id)
+    def delete(self, fs_item_id, parent_fs_item_id=None):
+        self.execute("NuxeoDrive.Delete", id=fs_item_id,
+                     parentId=parent_fs_item_id)
 
     def exists(self, fs_item_id):
         return self.execute("NuxeoDrive.FileSystemItemExists", id=fs_item_id)
@@ -204,8 +210,9 @@ class RemoteFileSystemClient(BaseAutomationClient):
     # API specific to the remote file system client
     #
 
-    def get_fs_item(self, fs_item_id):
-        return self.execute("NuxeoDrive.GetFileSystemItem", id=fs_item_id)
+    def get_fs_item(self, fs_item_id, parent_fs_item_id=None):
+        return self.execute("NuxeoDrive.GetFileSystemItem", id=fs_item_id,
+                            parentId=parent_fs_item_id)
 
     def get_top_level_children(self):
         return self.execute("NuxeoDrive.GetTopLevelChildren")

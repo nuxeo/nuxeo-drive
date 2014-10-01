@@ -403,7 +403,9 @@ class LastKnownState(Base):
 
     def refresh_remote(self, client):
         """Update the state from the remote server info."""
-        remote_info = client.get_info(self.remote_ref, raise_if_missing=False)
+        remote_info = client.get_info(self.remote_ref,
+                                      parent_fs_item_id=self.remote_parent_ref,
+                                      raise_if_missing=False)
         self.update_remote(remote_info)
         return remote_info
 

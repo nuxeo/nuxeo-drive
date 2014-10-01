@@ -267,6 +267,14 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(fs_item['id'], fs_item_id)
         self.assertFalse(fs_item['folder'])
 
+        # Check file item using parent id
+        fs_item = remote_client.get_fs_item(fs_item_id,
+                                        parent_fs_item_id=self.workspace_id)
+        self.assertTrue(fs_item is not None)
+        self.assertEquals(fs_item['name'], 'Document 1.txt')
+        self.assertEquals(fs_item['id'], fs_item_id)
+        self.assertEquals(fs_item['parentId'], self.workspace_id)
+
         # Check folder item
         fs_item_id = remote_client.make_folder(self.workspace_id,
             'Folder 1')

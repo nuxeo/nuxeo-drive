@@ -816,6 +816,7 @@ class Synchronizer(object):
                 remote_client.stream_update(
                     doc_pair.remote_ref,
                     doc_pair.get_local_abspath(),
+                    parent_fs_item_id=doc_pair.remote_parent_ref,
                     filename=doc_pair.remote_name,
                 )
                 doc_pair.refresh_remote(remote_client)
@@ -839,7 +840,8 @@ class Synchronizer(object):
                           doc_pair.get_local_abspath())
                 os_path = local_client.get_info(doc_pair.local_path).filepath
                 tmp_file = remote_client.stream_content(
-                                            doc_pair.remote_ref, os_path)
+                                doc_pair.remote_ref, os_path,
+                                parent_fs_item_id=doc_pair.remote_parent_ref)
                 # Delete original file and rename tmp file
                 # Ignore the next delete event
                 conflicted_changes.append(os_path)
@@ -1007,7 +1009,8 @@ class Synchronizer(object):
             log.debug("Creating local file '%s' in '%s'", name,
                       parent_pair.get_local_abspath())
             tmp_file = remote_client.stream_content(
-                                            doc_pair.remote_ref, os_path)
+                                doc_pair.remote_ref, os_path,
+                                parent_fs_item_id=doc_pair.remote_parent_ref)
             # Rename tmp file
             local_client.rename(local_client.get_path(tmp_file), name)
         doc_pair.update_local(local_client.get_info(path))
@@ -1034,7 +1037,8 @@ class Synchronizer(object):
                 log.debug("Deleting or unregistering remote document"
                           " '%s' (%s)",
                           doc_pair.remote_name, doc_pair.remote_ref)
-                remote_client.delete(doc_pair.remote_ref)
+                remote_client.delete(doc_pair.remote_ref,
+                                parent_fs_item_id=doc_pair.remote_parent_ref)
                 self._delete_with_descendant_states(session, doc_pair,
                     local_client)
             else:
