@@ -972,15 +972,12 @@ class Controller(object):
         """Find a pair state for the provided remote document identifiers."""
         server_url = self._normalize_url(server_url)
         session = self.get_session()
-        try:
-            states = session.query(LastKnownState).filter_by(
-                remote_ref=remote_ref,
-            ).all()
-            for state in states:
-                if (state.server_binding.server_url == server_url):
-                    return state
-        except NoResultFound:
-            return None
+        states = session.query(LastKnownState).filter_by(
+            remote_ref=remote_ref,
+        ).all()
+        for state in states:
+            if (state.server_binding.server_url == server_url):
+                return state
 
     def get_state_for_local_path(self, local_os_path):
         """Find a DB state from a local filesystem path"""
