@@ -548,8 +548,8 @@ class BaseAutomationClient(BaseClient):
         for param in params.keys():
             if (not param in required_params
                 and not param in other_params):
-                raise ValueError("Unexpected param '%s' for operation '%s"
-                                 % (param, command))
+                log.trace("Unexpected param '%s' for operation '%s'", param,
+                            command)
         for param in required_params:
             if not param in params:
                 raise ValueError(
