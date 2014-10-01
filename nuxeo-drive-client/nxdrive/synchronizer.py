@@ -17,6 +17,7 @@ from nxdrive.client import DEDUPED_BASENAME_PATTERN
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
+from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.model import ServerBinding
 from nxdrive.activity import Action
 from nxdrive.model import LastKnownState
@@ -2061,10 +2062,27 @@ class Synchronizer(object):
                             deleted.update_local(local_client.get_info(
                                                                     rel_path))
                             continue
-                    doc_pair = LastKnownState(local_folder,
-                        local_info=local_info)
-                    doc_pair.local_state = 'created'
-                    session.add(doc_pair)
+                    fragments = rel_path.rsplit('/', 1)
+                    name = fragments[1]
+                    parent_path = fragments[0]
+                    # Handle creation of "Locally Edited" folder and its
+                    # children
+                    if name == LOCALLY_EDITED_FOLDER_NAME:
+                        root_pair = session.query(LastKnownState).filter_by(
+                            local_path='/', local_folder=local_folder).one()
+                        doc_pair = self._scan_local_new_file(session, name,
+                                                    local_info, root_pair)
+                    elif parent_path.endswith(LOCALLY_EDITED_FOLDER_NAME):
+                        parent_pair = session.query(LastKnownState).filter_by(
+                            local_path=parent_path,
+                            local_folder=local_folder).one()
+                        doc_pair = self._scan_local_new_file(session, name,
+                                                    local_info, parent_pair)
+                    else:
+                        doc_pair = LastKnownState(local_folder,
+                            local_info=local_info)
+                        doc_pair.local_state = 'created'
+                        session.add(doc_pair)
                     # An event can be missed inside a new created folder as
                     # watchdog will put listener after it
                     self._scan_local_recursive(session, local_client, doc_pair,
@@ -2102,11 +2120,28 @@ class Synchronizer(object):
                                         local_path=dst_rel_path).first()
                         # No pair so it must be a filed moved to this folder
                         if dst_pair is None:
-                            # It can be consider as a creation
-                            doc_pair = LastKnownState(local_folder,
-                                    local_info=local_client.get_info(
+                            local_info = local_client.get_info(dst_rel_path)
+                            fragments = dst_rel_path.rsplit('/', 1)
+                            name = fragments[1]
+                            parent_path = fragments[0]
+                            if (parent_path
+                                .endswith(LOCALLY_EDITED_FOLDER_NAME)):
+                                parent_pair = (session.query(LastKnownState)
+                                               .filter_by(
+                                                    local_path=parent_path,
+                                                    local_folder=local_folder)
+                                               .one())
+                                doc_pair = self._scan_local_new_file(session,
+                                                                name,
+                                                                local_info,
+                                                                parent_pair)
+                                doc_pair.update_local(local_info)
+                            else:
+                                # It can be consider as a creation
+                                doc_pair = LastKnownState(local_folder,
+                                        local_info=local_client.get_info(
                                                                 dst_rel_path))
-                            session.add(doc_pair)
+                                session.add(doc_pair)
                         else:
                             # Must come from a modification
                             dst_pair.update_local(
