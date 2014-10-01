@@ -201,6 +201,8 @@ class BaseAutomationClient(BaseClient):
         self.batch_upload_url = 'batch/upload'
         self.batch_execute_url = 'batch/execute'
 
+        self.current_action = None
+
         self.fetch_api()
 
     def make_remote_raise(self, error):
@@ -608,7 +610,8 @@ class BaseAutomationClient(BaseClient):
             req = urllib2.Request(url, headers=headers)
             response = self.opener.open(req, timeout=self.blob_timeout)
             # Get the size file
-            if response is not None and response.info() is not None:
+            if (self.current_action and response is not None
+                and response.info() is not None):
                 self.current_action.size = int(response.info().getheader(
                                                     'Content-Length', 0))
             if file_out is not None:
@@ -622,7 +625,8 @@ class BaseAutomationClient(BaseClient):
                         buffer_ = response.read(self.get_download_buffer())
                         if buffer_ == '':
                             break
-                        self.current_action.progress += (
+                        if self.current_action:
+                            self.current_action.progress += (
                                                     self.get_download_buffer())
                         f.write(buffer_)
                     if self._remote_error is not None:
