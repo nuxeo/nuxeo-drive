@@ -60,6 +60,9 @@ DEFAULT_IGNORED_SUFFIXES = [
 # Default buffer size for file upload / download and digest computation
 FILE_BUFFER_SIZE = 4096
 
+# Name of the folder holding the files locally edited from Nuxeo
+LOCALLY_EDITED_FOLDER_NAME = 'Locally Edited'
+
 
 def safe_filename(name, replacement=u'-'):
     """Replace invalid character in candidate filename"""

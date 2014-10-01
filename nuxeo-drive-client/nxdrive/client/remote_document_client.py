@@ -418,3 +418,8 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def get_update_info(self):
         return self.execute("NuxeoDrive.GetClientUpdateInfo")
+
+    def add_to_locally_edited_collection(self, ref):
+        doc = self.execute("NuxeoDrive.AddToLocallyEditedCollection",
+                           op_input="doc:" + self._check_ref(ref))
+        return doc['uid']

@@ -676,6 +676,10 @@ class Application(QApplication):
                     log.debug("Received nxdrive URL scheme event: %s", url)
                     if info.get('command') == 'edit':
                         # This is a quick operation, no need to fork a QThread
+                        self.controller.locally_edit(
+                            info['server_url'], info['repo'], info['doc_id'],
+                            info['filename'])
+                    elif info.get('command') == 'old_edit':
                         self.controller.launch_file_editor(
                             info['server_url'], info['item_id'])
             except:

@@ -6,8 +6,12 @@ from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
 
 
-NXDRIVE_EDIT_URL_FORM = ('nxdrive://edit/scheme/server[:port]'
+OLD_NXDRIVE_EDIT_URL_FORM = ('nxdrive://edit/scheme/server[:port]'
                          '/webappname/nxdoc/reponame/docref')
+NXDRIVE_EDIT_URL_FORM = ('nxdrive://edit/scheme/server[:port]'
+                         '/webappname/repo/repoName/nxdocid/docId'
+                         '/filename/fileName')
+
 
 # Protocol handler parsing
 
@@ -31,15 +35,45 @@ def parse_protocol_url(url_string):
 
     command, data_string = data_string.split('/', 1)
     if command == 'edit':
-        return parse_edit_protocol(data_string)
+        try:
+            return parse_edit_protocol(data_string)
+        except:
+            # Try to parse old edit protocol data string
+            return parse_old_edit_protocol(data_string)
     else:
         raise ValueError("Unsupported command '%s' in " + url_string)
 
 
 def parse_edit_protocol(data_string):
-    """Parse a nxdriveedit:// URL for quick editing of nuxeo documents"""
+    """Parse a nxdrive://edit URL for quick editing of nuxeo documents"""
     invalid_msg = ('Invalid URL: got nxdrive://edit/%s while expecting %s'
                    % (data_string, NXDRIVE_EDIT_URL_FORM))
+
+    if '/' not in data_string:
+        raise ValueError(invalid_msg)
+
+    scheme, data_string = data_string.split('/', 1)
+    if scheme not in ('http', 'https'):
+        raise ValueError(
+            invalid_msg + ' : scheme should be http or https')
+
+    if '/nxdocid/' not in data_string:
+        raise ValueError(invalid_msg)
+
+    server_part, doc_part = data_string.split('/repo/', 1)
+    server_url = "%s://%s" % (scheme, server_part)
+    repo, doc_part = doc_part.split('/nxdocid/', 1)
+    doc_id, filename = doc_part.split('/filename/', 1)
+
+    return dict(command='edit', server_url=server_url, repo=repo,
+                doc_id=doc_id, filename=filename)
+
+
+def parse_old_edit_protocol(data_string):
+    """Parse a nxdrive://edit URL for quick editing of nuxeo documents"""
+    invalid_msg = ('Invalid URL: got nxdrive://edit/%s while expecting'
+                   ' %s or %s' % (data_string, NXDRIVE_EDIT_URL_FORM,
+                                  OLD_NXDRIVE_EDIT_URL_FORM))
 
     if '/' not in data_string:
         raise ValueError(invalid_msg)
@@ -56,7 +90,7 @@ def parse_edit_protocol(data_string):
     server_url = "%s://%s" % (scheme, server_part)
 
     item_id = urllib.unquote(item_id)  # unquote # sign
-    return dict(command='edit', server_url=server_url, item_id=item_id)
+    return dict(command='old_edit', server_url=server_url, item_id=item_id)
 
 
 # Protocol handler registration

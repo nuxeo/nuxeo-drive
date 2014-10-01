@@ -22,7 +22,10 @@ from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.base_automation_client import get_proxies_for_handler
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client import NotFound
 from nxdrive.model import init_db
 from nxdrive.model import DeviceConfig
@@ -38,6 +41,7 @@ from nxdrive.utils import safe_long_path
 from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
 from nxdrive.migration import migrate_db
+from nxdrive.activity import FileAction
 
 
 log = get_logger(__name__)
@@ -991,7 +995,6 @@ class Controller(object):
 
         state = self.get_state(server_url, remote_ref)
         if state is None:
-            # TODO: synchronize to a dedicated special root for one time edit
             log.warning('Could not find local file for server_url=%s '
                         'and remote_ref=%s', server_url, remote_ref)
             return
@@ -1001,6 +1004,52 @@ class Controller(object):
         # Find the best editor for the file according to the OS configuration
         file_path = state.get_local_abspath()
         self.open_local_file(file_path)
+
+    def locally_edit(self, server_url, repo, doc_id, filename):
+        """Locally edit document with the given id."""
+
+        # Find server binding from server URL
+        sb = None
+        server_url = self._normalize_url(server_url)
+        session = self.get_session()
+        server_bindings = self.list_server_bindings(session)
+        for sb_ in server_bindings:
+            if (sb_.server_url == server_url):
+                sb = sb_
+
+        if sb is None:
+            log.warning('Could not find server binding for server_url=%s ',
+                        server_url)
+            return
+
+        # Create "Locally Edited" folder if not exists
+        local_client = LocalClient(sb.local_folder)
+        locally_edited_path = '/' + LOCALLY_EDITED_FOLDER_NAME
+        locally_edited = local_client.get_info(locally_edited_path,
+                                               raise_if_missing=False)
+        if locally_edited is None:
+            locally_edited_path = local_client.make_folder('/',
+                                                    LOCALLY_EDITED_FOLDER_NAME)
+
+        # Download file to edit locally in "Locally Edited" folder
+        doc_client = self.get_remote_doc_client(sb, repository=repo)
+        doc_url = (server_url + 'nxbigfile/' + repo + '/' + doc_id + '/'
+                   + 'blobholder:0/' + filename)
+        _, os_path, name = local_client.get_new_file(locally_edited_path,
+                                                     filename)
+        file_dir = os.path.dirname(os_path)
+        file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + name
+                                + DOWNLOAD_TMP_FILE_SUFFIX)
+        log.debug("Downloading file '%s' in '%s'", name, file_dir)
+        doc_client.current_action = FileAction("Download", file_out, name, 0)
+        _, tmp_file = doc_client.do_get(doc_url, file_out=file_out)
+        local_client.rename(local_client.get_path(tmp_file), name)
+
+        # Find the best editor for the file according to the OS configuration
+        self.open_local_file(os_path)
+
+        # Add document to "Locally Edited" collection
+        doc_client.add_to_locally_edited_collection(doc_id)
 
     def open_local_file(self, file_path):
         """Launch the local OS program on the given file / folder."""
