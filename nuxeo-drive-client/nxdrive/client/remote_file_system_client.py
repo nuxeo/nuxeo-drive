@@ -3,20 +3,16 @@
 import unicodedata
 from collections import namedtuple
 from datetime import datetime
-import urllib2
 import os
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
-from nxdrive.client.common import FILE_BUFFER_SIZE
-from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.base_automation_client import BaseAutomationClient
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.activity import FileAction
 
 
 log = get_logger(__name__)
-
-DOWNLOAD_TMP_FILE_PREFIX = '.'
-DOWNLOAD_TMP_FILE_SUFFIX = '.part'
 
 # Data transfer objects
 
@@ -51,8 +47,6 @@ class RemoteFileSystemClient(BaseAutomationClient):
     Uses the FileSystemItem API.
     """
 
-    def get_download_buffer(self):
-        return FILE_BUFFER_SIZE
     #
     # API common with the local client API
     #
@@ -82,7 +76,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         download_url = self.server_url + fs_item_info.download_url
         self.current_action = FileAction("Download", None,
                                         fs_item_info.name, 0)
-        content, _ = self._do_get(download_url)
+        content, _ = self.do_get(download_url)
         self.end_action()
         return content
 
@@ -99,7 +93,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
                                 + DOWNLOAD_TMP_FILE_SUFFIX)
         self.current_action = FileAction("Download", file_out, file_name, 0)
-        _, tmp_file = self._do_get(download_url, file_out=file_out)
+        _, tmp_file = self.do_get(download_url, file_out=file_out)
         self.end_action()
         return tmp_file
 
@@ -205,57 +199,6 @@ class RemoteFileSystemClient(BaseAutomationClient):
             fs_item['path'], folderish, last_update, digest, digest_algorithm,
             download_url, fs_item['canRename'], fs_item['canDelete'],
             can_update, can_create_child)
-
-    def _do_get(self, url, file_out=None):
-        headers = self._get_common_headers()
-        base_error_message = (
-            "Failed to connect to Nuxeo server %r with user %r"
-        ) % (self.server_url, self.user_id)
-        try:
-            log.trace("Calling '%s' with headers: %r", url, headers)
-            req = urllib2.Request(url, headers=headers)
-            response = self.opener.open(req, timeout=self.blob_timeout)
-            # Get the size file
-            if response is not None and response.info() is not None:
-                self.current_action.size = int(response.info().getheader(
-                                                    'Content-Length', 0))
-            if file_out is not None:
-                locker = self.unlock_path(file_out)
-                try:
-                    with open(file_out, "wb") as f:
-                        while True:
-                            # Check if synchronization thread was suspended
-                            if self.check_suspended is not None:
-                                self.check_suspended('File download: %s'
-                                                     % file_out)
-                            buffer_ = response.read(self.get_download_buffer())
-                            if buffer_ == '':
-                                break
-                            self.current_action.progress += self.get_download_buffer()
-                            f.write(buffer_)
-                        if self._remote_error is not None:
-                            # Simulate a configurable remote (e.g. network or
-                            # server) error for the tests
-                            raise self._remote_error
-                        if self._local_error is not None:
-                            # Simulate a configurable local error (e.g.
-                            # "No space left on device") for the tests
-                            raise self._local_error
-                    return None, file_out
-                finally:
-                    self.lock_path(file_out, locker)
-            else:
-                return response.read(), None
-        except urllib2.HTTPError as e:
-            if e.code == 401 or e.code == 403:
-                raise Unauthorized(self.server_url, self.user_id, e.code)
-            else:
-                e.msg = base_error_message + ": HTTP error %d" % e.code
-                raise e
-        except Exception as e:
-            if hasattr(e, 'msg'):
-                e.msg = base_error_message + ": " + e.msg
-            raise
 
     #
     # API specific to the remote file system client

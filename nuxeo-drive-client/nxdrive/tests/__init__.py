@@ -28,9 +28,9 @@ class RemoteTestClient(RemoteFileSystemClient):
             upload_tmp_dir, check_suspended)
         self._upload_remote_error = None
 
-    def _do_get(self, url, file_out=None):
+    def do_get(self, url, file_out=None):
         if self._upload_remote_error is None:
-            super(RemoteTestClient, self)._do_get(url, file_out)
+            super(RemoteTestClient, self).do_get(url, file_out)
         else:
             raise self._upload_remote_error
 

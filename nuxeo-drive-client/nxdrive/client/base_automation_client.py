@@ -34,6 +34,9 @@ DEVICE_DESCRIPTIONS = {
 CHANGE_SUMMARY_OPERATION = 'NuxeoDrive.GetChangeSummary'
 DEFAULT_NUXEO_TX_TIMEOUT = 300
 
+DOWNLOAD_TMP_FILE_PREFIX = '.'
+DOWNLOAD_TMP_FILE_SUFFIX = '.part'
+
 
 def get_proxies_for_handler(proxy_settings):
     """Return a pair containing proxy string and exceptions list"""
@@ -205,7 +208,7 @@ class BaseAutomationClient(BaseClient):
         self._remote_error = error
 
     def make_local_raise(self, error):
-        """Make RemoteFileSystemClient._do_get raise the provided exception"""
+        """Make RemoteFileSystemClient.do_get raise the provided exception"""
         self._local_error = error
 
     def fetch_api(self):
@@ -594,3 +597,55 @@ class BaseAutomationClient(BaseClient):
                 break
             self.current_action.progress += buffer_size
             yield r
+
+    def do_get(self, url, file_out=None):
+        headers = self._get_common_headers()
+        base_error_message = (
+            "Failed to connect to Nuxeo server %r with user %r"
+        ) % (self.server_url, self.user_id)
+        try:
+            log.trace("Calling '%s' with headers: %r", url, headers)
+            req = urllib2.Request(url, headers=headers)
+            response = self.opener.open(req, timeout=self.blob_timeout)
+            # Get the size file
+            if response is not None and response.info() is not None:
+                self.current_action.size = int(response.info().getheader(
+                                                    'Content-Length', 0))
+            if file_out is not None:
+                locker = self.unlock_path(file_out)
+                with open(file_out, "wb") as f:
+                    while True:
+                        # Check if synchronization thread was suspended
+                        if self.check_suspended is not None:
+                            self.check_suspended('File download: %s'
+                                                 % file_out)
+                        buffer_ = response.read(self.get_download_buffer())
+                        if buffer_ == '':
+                            break
+                        self.current_action.progress += (
+                                                    self.get_download_buffer())
+                        f.write(buffer_)
+                    if self._remote_error is not None:
+                        # Simulate a configurable remote (e.g. network or
+                        # server) error for the tests
+                        raise self._remote_error
+                    if self._local_error is not None:
+                        # Simulate a configurable local error (e.g. "No space
+                        # left on device") for the tests
+                        raise self._local_error
+                return None, file_out
+            else:
+                return response.read(), None
+        except urllib2.HTTPError as e:
+            if e.code == 401 or e.code == 403:
+                raise Unauthorized(self.server_url, self.user_id, e.code)
+            else:
+                e.msg = base_error_message + ": HTTP error %d" % e.code
+                raise e
+        except Exception as e:
+            if hasattr(e, 'msg'):
+                e.msg = base_error_message + ": " + e.msg
+            raise
+
+    def get_download_buffer(self):
+        return FILE_BUFFER_SIZE
