@@ -8,6 +8,7 @@ from nxdrive.controller import ProxySettings
 from nxdrive.controller import GeneralSettings
 from nxdrive.controller import MissingToken
 from nxdrive.client import AddonNotInstalled
+from nxdrive.client.local_client import BaseClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import get_proxy_handler
 from nxdrive.gui.folders_treeview import FilteredFsClient, FolderTreeview
@@ -598,6 +599,8 @@ def prompt_settings(controller, sb_settings, proxy_settings, general_settings,
             # folder already exists and let the choice between merging
             # synchronized content into it or select another location.
             # See https://jira.nuxeo.com/browse/NXP-14144
+            # NXDRIVE-106: Remove readonly first on the target folder
+            BaseClient.unset_path_readonly(local_folder)
             if not os.access(local_folder, os.W_OK):
                 dialog.show_message("Current user %s doesn't have write"
                                     " permission on %s." % (current_user,
@@ -606,6 +609,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, general_settings,
             log.debug("Local folder %s already exists, will merge synchronized"
                       " content into it", local_folder)
         else:
+            # NXDRIVE-106: Don't force on parent folder
             if not os.access(local_folder_parent, os.W_OK):
                 dialog.show_message("%s is not a valid location or current"
                                     " user %s doesn't have write permission"
