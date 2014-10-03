@@ -342,8 +342,11 @@ class BaseAutomationClient(BaseClient):
                   ' with file %s', tx_timeout, DEFAULT_NUXEO_TX_TIMEOUT,
                   upload_duration, command, file_path)
         if upload_result['uploaded'] == 'true':
-            return self.execute_batch(command, batch_id, '0', tx_timeout,
+            self.current_action = FileAction("Upload", file_path, filename)
+            result = self.execute_batch(command, batch_id, '0', tx_timeout,
                                       **params)
+            self.end_action()
+            return result
         else:
             raise ValueError("Bad response from batch upload with id '%s'"
                              " and file path '%s'" % (batch_id, file_path))
@@ -416,7 +419,7 @@ class BaseAutomationClient(BaseClient):
     def execute_batch(self, op_id, batch_id, file_idx, tx_timeout, **params):
         """Execute a file upload Automation batch"""
         extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout, }
-        return self.execute(self.batch_execute_url,
+        return self.execute(self.batch_execute_url, timeout=tx_timeout,
                      operationId=op_id, batchId=batch_id, fileIdx=file_idx,
                      check_params=False, extra_headers=extra_headers, **params)
 
