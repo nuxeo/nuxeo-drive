@@ -316,8 +316,7 @@ class Application(QApplication):
                                     action.get_percent()))
             else:
                 return ("%s - %s - %s" % (self.get_default_tooltip(),
-                                    action.type, action.filename,
-                                    action.get_percent()))
+                                    action.type, action.filename))
         elif action.get_percent() is not None:
             return ("%s - %s - %d%%" % (self.get_default_tooltip(),
                                     action.type,
