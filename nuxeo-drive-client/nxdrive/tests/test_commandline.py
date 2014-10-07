@@ -4,13 +4,14 @@ import tempfile
 
 from nxdrive.commandline import CliHandler
 
+
 class CommandLineTestCase(unittest.TestCase):
     def setUp(self):
         self.cmd = CliHandler()
 
     def create_ini(self, filename='config.ini', env='PROD'):
-        with open(filename, 'w+') as file:
-            file.writelines(['[DEFAULT]\n',
+        with open(filename, 'w+') as inifile:
+            inifile.writelines(['[DEFAULT]\n',
                             'env=' + env + '\n',
                             '[PROD]\n',
                             'log-level-console=PROD\n',
