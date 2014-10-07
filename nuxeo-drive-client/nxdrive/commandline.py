@@ -297,6 +297,8 @@ class CliHandler(object):
             filtered_args.append(arg)
 
         parser = self.make_cli_parser(add_subparsers=has_command)
+        # Change default value according to config.ini
+        self.load_config(parser)
         options = parser.parse_args(filtered_args)
         if options.debug:
             # Install Post-Mortem debugger hook
@@ -316,6 +318,22 @@ class CliHandler(object):
                 setattr(options, k, v)
 
         return options
+
+    def load_config(self, parser):
+        import ConfigParser
+        config = ConfigParser.ConfigParser()
+        if os.path.exists('config.ini'):
+            config.readfp(open('config.ini'))
+        config.read([os.path.join(self.default_home, 'config.ini')])
+        if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
+            env = config.get(ConfigParser.DEFAULTSECT, 'env')
+            args = {}
+            for item in config.items(env):
+                if item[0] == 'env':
+                    continue
+                args[item[0].replace('-', '_')] = item[1]
+            if len(args):
+                parser.set_defaults(**args)
 
     def _configure_logger(self, options):
         """Configure the logging framework from the provided options"""
@@ -514,6 +532,7 @@ class CliHandler(object):
         # when the app is frozen.
         argv += [
             "nxdrive.tests.test_integration_concurrent_synchronization",
+            "nxdrive.tests.test_commandline",
             "nxdrive.tests.test_integration_copy",
             "nxdrive.tests.test_integration_encoding",
             "nxdrive.tests.test_integration_local_client",
