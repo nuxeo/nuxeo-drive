@@ -678,9 +678,9 @@ class Controller(object):
 
         state = LastKnownState(server_binding.local_folder,
                                local_info=local_info,
-                               local_state='synchronized',
-                               remote_info=remote_info,
-                               remote_state='synchronized')
+                               remote_info=remote_info)
+        # The root should also be sync
+        state.update_state('synchronized', 'synchronized')
         session.add(state)
 
     def _make_local_folder(self, local_folder):

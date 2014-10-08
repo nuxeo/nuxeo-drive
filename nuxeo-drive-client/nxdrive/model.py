@@ -18,6 +18,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.pool import SingletonThreadPool
+from sqlalchemy import or_
 
 from nxdrive import __version__
 from nxdrive.utils import normalized_path
@@ -69,12 +70,16 @@ PAIR_STATES = {
     # conflict cases that need manual resolution
     ('modified', 'modified'): 'conflicted',
     ('created', 'created'): 'conflicted',
+    ('created', 'modified'): 'conflicted',
 
     # inconsistent cases
     ('unknown', 'deleted'): 'unknown_deleted',
     ('deleted', 'unknown'): 'deleted_unknown',
 }
-
+INCONSISTENT_STATES = [
+    'unknown_deleted',
+    'deleted_unknown'
+]
 PROXY_TYPE_AUTO = 'System'
 PROXY_TYPE_MANUAL = 'Manual'
 PROXY_TYPE_NONE = 'None'
@@ -237,12 +242,31 @@ class LastKnownState(Base):
 
         if local_info is not None:
             self.update_local(local_info)
+            if self.local_state is not None:
+                local_state = self.local_state
         if remote_info is not None:
             self.update_remote(remote_info)
+            if self.remote_state is not None:
+                remote_state = self.remote_state
 
         self.update_state(local_state=local_state, remote_state=remote_state)
 
         self.error_count = 0
+
+    @staticmethod
+    def remove_inconsistents(session):
+        # Disable this tests to check the result
+        if LastKnownState.inconsistents == 0 and False:
+            return
+        pairs = session.query(LastKnownState).filter(
+                LastKnownState.pair_state.in_(INCONSISTENT_STATES)).delete(
+                        synchronize_session='fetch')
+        LastKnownState.inconsistents = 0
+        if pairs == 0:
+            # Non existing filter
+            return
+        log.debug("Removing %d inconsistent pairs", pairs)
+        session.commit()
 
     def update_state(self, local_state=None, remote_state=None):
         if local_state is not None and self.local_state != local_state:
@@ -270,6 +294,10 @@ class LastKnownState(Base):
         pair = (self.local_state, self.remote_state)
         pair_state = PAIR_STATES.get(pair, 'unknown')
         if self.pair_state != pair_state:
+            if (pair_state in INCONSISTENT_STATES):
+                LastKnownState.inconsistents = LastKnownState.inconsistents + 1
+            if (self.pair_state in INCONSISTENT_STATES):
+                LastKnownState.inconsistents = LastKnownState.inconsistents - 1
             self.pair_state = pair_state
             log.trace("Updated state for LastKnownState<"
                       "local_folder=%r, local_path=%r, remote_name=%r,"
@@ -543,6 +571,8 @@ class LastKnownState(Base):
     def get_local_abspath(self):
         relative_path = self.local_path[1:].replace('/', os.path.sep)
         return os.path.join(self.local_folder, relative_path)
+# Keep track of inconsistents static variable
+LastKnownState.inconsistents = 0
 
 
 class FileEvent(Base):

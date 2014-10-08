@@ -496,6 +496,7 @@ class Synchronizer(object):
                 child_pair = find_first_name_match(
                         child_name, possible_pairs, self.check_suspended)
                 if child_pair is not None:
+                    child_pair.update_state(local_state='created')
                     log.debug("Matched local %s with remote %s "
                                 "with digest",
                               child_info.path, child_pair.remote_name)
@@ -519,6 +520,7 @@ class Synchronizer(object):
         if child_pair is not None:
             log.debug("Matched local %s with remote %s by name only",
                                 child_info.path, child_pair.remote_name)
+            child_pair.update_state(local_state='created')
             return child_pair
 
         # Could not find any pair state to align to, create one
@@ -795,7 +797,9 @@ class Synchronizer(object):
             session.commit()
 
         # Update recently modified items
-        self._controller.update_recently_modified(doc_pair)
+        # Avoid specific case like not known file
+        if not old_state in ['unknown_deleted']:
+            self._controller.update_recently_modified(doc_pair)
 
         if self._frontend is not None:
             try:
@@ -1111,6 +1115,7 @@ class Synchronizer(object):
         # need to handle this case to put the database back to a consistent
         # state.
         # This is tracked by https://jira.nuxeo.com/browse/NXP-13216
+        log.debug("Inconsistency should not happens anymore")
         log.debug("Detected inconsistent doc pair %r, deleting it hoping the"
                   " synchronizer will fix this case at next iteration",
                   doc_pair)
@@ -1226,6 +1231,7 @@ class Synchronizer(object):
         # need to handle this case to put the database back to a consistent
         # state.
         # This is tracked by https://jira.nuxeo.com/browse/NXP-14039
+        log.debug("Inconsistency should not happens anymore")
         log.debug("Detected inconsistent doc pair %r, deleting it hoping the"
                   " synchronizer will fix this case at next iteration",
                   doc_pair)
@@ -1418,6 +1424,9 @@ class Synchronizer(object):
                         if server_binding is not None else None)
         synchronized = 0
         session = self.get_session()
+
+        # NDRIVE-107: Remove inconsistents pair
+        LastKnownState.remove_inconsistents(session)
 
         while (limit is None or synchronized < limit):
 

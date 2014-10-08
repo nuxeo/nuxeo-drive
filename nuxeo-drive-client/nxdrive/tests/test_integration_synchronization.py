@@ -471,9 +471,9 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(pending[0].local_name, 'Folder 3')
         self.assertEquals(pending[0].pair_state, 'unknown')
         self.assertEquals(pending[1].remote_name, 'File 5.txt')
-        self.assertEquals(pending[1].pair_state, 'unknown')
+        self.assertEquals(pending[1].pair_state, 'remotely_modified')
         self.assertEquals(pending[2].remote_name, 'Folder 1')
-        self.assertEquals(pending[2].pair_state, 'unknown')
+        self.assertEquals(pending[2].pair_state, 'remotely_modified')
 
         # Simulate synchronization errors
         session = ctl.get_session()
@@ -495,7 +495,7 @@ class TestIntegrationSynchronization(IntegrationTestCase):
         self.assertEquals(pending[0].local_name, 'Folder 3')
         self.assertEquals(pending[0].pair_state, 'unknown')
         self.assertEquals(pending[1].remote_name, 'File 5.txt')
-        self.assertEquals(pending[1].pair_state, 'unknown')
+        self.assertEquals(pending[1].pair_state, 'remotely_modified')
 
         # Reduce the skip delay to retry the sync on pairs in error
         syn.error_skip_period = 0.000001
