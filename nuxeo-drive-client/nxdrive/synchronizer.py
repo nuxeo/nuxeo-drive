@@ -1489,6 +1489,17 @@ class Synchronizer(object):
                 raise e
             except SyncThreadStopped as e:
                 raise e
+            except WindowsError as e:
+                log.error("Failed to sync %r, blacklisting doc pair "
+                          "for %d seconds",
+                    pair_state, self.error_skip_period, exc_info=True)
+                # Another process is using it, dont update the error count
+                pair_state.last_sync_error_date = datetime.utcnow()
+                if e.errno == 32:
+                    log.error("Another process is using it")
+                else:
+                    pair_state.error_count += 1
+                session.commit()
             except Exception as e:
                 # Unexpected exception: blacklist for a cooldown period
                 log.error("Failed to sync %r, blacklisting doc pair "
