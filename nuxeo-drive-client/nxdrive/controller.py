@@ -2,7 +2,7 @@
 
 import os
 import sys
-from urllib import quote
+import urllib2
 from threading import local
 import subprocess
 from datetime import datetime
@@ -1035,8 +1035,9 @@ class Controller(object):
         doc_client = self.get_remote_doc_client(sb, repository=repo)
         doc_url = (server_url + 'nxbigfile/' + repo + '/' + doc_id + '/'
                    + 'blobholder:0/' + filename)
+        unquoted_filename = urllib2.unquote(filename)
         _, os_path, name = local_client.get_new_file(locally_edited_path,
-                                                     filename)
+                                                     unquoted_filename)
         file_dir = os.path.dirname(os_path)
         file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + name
                                 + DOWNLOAD_TMP_FILE_SUFFIX)
@@ -1148,7 +1149,8 @@ class Controller(object):
             log.warning("Could not fetch the Finder favorite list.")
             return
 
-        url = CFURLCreateWithString(None, "file://" + quote(folder_path), None)
+        url = CFURLCreateWithString(None, "file://"
+                                    + urllib2.quote(folder_path), None)
         if url is None:
             log.warning("Could not generate valid favorite URL for: %s",
                 folder_path)
