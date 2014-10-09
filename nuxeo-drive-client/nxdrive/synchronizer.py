@@ -11,7 +11,6 @@ import socket
 import httplib
 
 from sqlalchemy import or_
-import psutil
 
 from nxdrive.client import DEDUPED_BASENAME_PATTERN
 from nxdrive.client import safe_filename
@@ -22,7 +21,7 @@ from nxdrive.model import ServerBinding
 from nxdrive.activity import Action
 from nxdrive.model import LastKnownState
 from nxdrive.logging_config import get_logger
-from nxdrive.utils import safe_long_path
+from nxdrive.utils import PidLockFile
 import sys
 
 WindowsError = None
@@ -188,13 +187,25 @@ class SynchronizerThread(Thread):
         self.stopped = False
 
     def run(self):
-        # Log uncaught exceptions in the synchronization loop and die
-        try:
-            log.debug('Start synchronization thread %r', self)
-            self.controller.synchronizer.loop(sync_thread=self, **self.kwargs)
-        except Exception, e:
-            log.error("Error in synchronization thread: %s", e, exc_info=True)
+        # Check sync is running
+        lock = PidLockFile(self.controller.config_folder, "sync")
+        pid = lock.lock()
+        if pid is not None:
+            log.warning('Another synchronization thread is running %d', pid)
+            return
+        shouldRun = True
+        while shouldRun:
+            # Log uncaught exceptions in the synchronization loop and continue
+            try:
+                log.debug('Start synchronization thread %r', self)
+                self.controller.synchronizer.loop(sync_thread=self,
+                                                  **self.kwargs)
+                shouldRun = False
+            except Exception, e:
+                log.error("Error in synchronization thread: %s", e,
+                                    exc_info=True)
         self.controller.sync_thread = None
+        lock.unlock()
 
     def stop(self):
         with self.stop_condition:
@@ -1511,53 +1522,6 @@ class Synchronizer(object):
 
         return synchronized
 
-    def _get_sync_pid_filepath(self, process_name="sync"):
-        return os.path.join(self._controller.config_folder,
-                            'nxdrive_%s.pid' % process_name)
-
-    def check_running(self, process_name="sync"):
-        """Check whether another sync process is already runnning
-
-        If nxdrive.pid file already exists and the pid points to a running
-        nxdrive program then return the pid. Return None otherwise.
-
-        """
-        pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
-        if os.path.exists(pid_filepath):
-            with open(safe_long_path(pid_filepath), 'rb') as f:
-                pid = None
-                try:
-                    pid = int(f.read().strip())
-                    _ = psutil.Process(pid)
-                    # TODO https://jira.nuxeo.com/browse/NXDRIVE-26: Check if
-                    # we can skip the process name verif as it can be
-                    # overridden
-                    return pid
-                except (ValueError, psutil.NoSuchProcess):
-                    pass
-                # This is a pid file that is empty or pointing to either a
-                # stopped process or a non-nxdrive process: let's delete it if
-                # possible
-                try:
-                    os.unlink(pid_filepath)
-                    if pid is None:
-                        msg = "Removed old empty pid file: %s" % pid_filepath
-                    else:
-                        msg = ("Removed old pid file: %s for stopped process"
-                               " %d" % (pid_filepath, pid))
-                    log.info(msg)
-                except Exception, e:
-                    if pid is None:
-                        msg = ("Failed to remove empty stalled pid file: %s:"
-                               " %r" % (pid_filepath, e))
-                    else:
-                        msg = ("Failed to remove stalled pid file: %s for"
-                               " stopped process %d: %r"
-                               % (pid_filepath, pid, e))
-                    log.warning(msg)
-                return None
-        return None
-
     def should_stop_synchronization(self):
         """Check whether another process has told the synchronizer to stop"""
         stop_file = os.path.join(self._controller.config_folder,
@@ -1582,19 +1546,7 @@ class Synchronizer(object):
 
         if self._frontend is not None:
             self._frontend.notify_sync_started()
-        pid = self.check_running(process_name="sync")
-        if pid is not None:
-            log.warning(
-                    "Synchronization process with pid %d already running.",
-                    pid)
-            return
-
-        # Write the pid of this process
-        pid_filepath = self._get_sync_pid_filepath(process_name="sync")
         pid = os.getpid()
-        with open(safe_long_path(pid_filepath), 'wb') as f:
-            f.write(str(pid))
-
         log.info("Starting synchronization loop (pid=%d)", pid)
         self.continue_synchronization = True
 
@@ -1686,14 +1638,6 @@ class Synchronizer(object):
                       " thread-local Session")
             self._controller.dispose()
             Action.finish_action()
-
-        # Clean pid file
-        pid_filepath = self._get_sync_pid_filepath()
-        try:
-            os.unlink(pid_filepath)
-        except Exception, e:
-            log.warning("Failed to remove stalled pid file: %s"
-                        " for stopped process %d: %r", pid_filepath, pid, e)
 
         # Stop all observers
         if not no_event_init:

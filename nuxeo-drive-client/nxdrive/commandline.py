@@ -420,9 +420,15 @@ class CliHandler(object):
     def launch(self, options=None):
         """Launch the Qt app in the main thread and sync in another thread."""
         # TODO: use the start method as default once implemented
+        from nxdrive.utils import PidLockFile
+        lock = PidLockFile(self.controller.config_folder, "qt")
+        if lock.lock() is not None:
+            self.log.warning("Qt application already running: exiting")
+            return
         from nxdrive.gui.application import Application
         app = Application(self.controller, options)
         exit_code = app.exec_()
+        lock.unlock()
         self.log.debug("Qt application exited with code %r", exit_code)
 
     def start(self, options=None):

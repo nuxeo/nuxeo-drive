@@ -3,6 +3,7 @@ import sys
 import re
 import locale
 import mimetypes
+import psutil
 from Crypto.Cipher import AES
 from Crypto import Random
 from nxdrive.logging_config import get_logger
@@ -191,3 +192,89 @@ def deprecated(func):
     new_func.__doc__ = func.__doc__
     new_func.__dict__.update(func.__dict__)
     return new_func
+
+
+class PidLockFile(object):
+    """ This class handle the pid lock file"""
+    def __init__(self, folder, key):
+        self.folder = folder
+        self.key = key
+        self.locked = False
+
+    def _get_sync_pid_filepath(self, process_name=None):
+        if process_name is None:
+            process_name = self.key
+        return os.path.join(self.folder,
+                            'nxdrive_%s.pid' % process_name)
+
+    def unlock(self):
+        if not self.locked:
+            return
+        # Clean pid file
+        pid_filepath = self._get_sync_pid_filepath()
+        try:
+            os.unlink(pid_filepath)
+        except Exception, e:
+            log.warning("Failed to remove stalled pid file: %s"
+                        " for stopped process %d: %r", pid_filepath,
+                        os.getpid(), e)
+
+    def check_running(self, process_name=None):
+        """Check whether another sync process is already runnning
+
+        If nxdrive.pid file already exists and the pid points to a running
+        nxdrive program then return the pid. Return None otherwise.
+
+        """
+        if process_name is None:
+            process_name = self.key
+        pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
+        if os.path.exists(pid_filepath):
+            with open(safe_long_path(pid_filepath), 'rb') as f:
+                pid = os.getpid()
+                try:
+                    pid = int(f.read().strip())
+                    _ = psutil.Process(pid)
+                    # TODO https://jira.nuxeo.com/browse/NXDRIVE-26: Check if
+                    # we can skip the process name verif as it can be
+                    # overridden
+                    return pid
+                except (ValueError, psutil.NoSuchProcess):
+                    pass
+                # This is a pid file that is empty or pointing to either a
+                # stopped process or a non-nxdrive process: let's delete it if
+                # possible
+                try:
+                    os.unlink(pid_filepath)
+                    if pid is None:
+                        msg = "Removed old empty pid file: %s" % pid_filepath
+                    else:
+                        msg = ("Removed old pid file: %s for stopped process"
+                               " %d" % (pid_filepath, pid))
+                    log.info(msg)
+                except Exception, e:
+                    if pid is None:
+                        msg = ("Failed to remove empty stalled pid file: %s:"
+                               " %r" % (pid_filepath, e))
+                    else:
+                        msg = ("Failed to remove stalled pid file: %s for"
+                               " stopped process %d: %r"
+                               % (pid_filepath, pid, e))
+                    log.warning(msg)
+        self.locked = True
+        return None
+
+    def lock(self):
+        pid = self.check_running(process_name=self.key)
+        if pid is not None:
+            log.warning(
+                    "%s process with pid %d already running.",
+                    self.key, pid)
+            return pid
+
+        # Write the pid of this process
+        pid_filepath = self._get_sync_pid_filepath(process_name=self.key)
+        pid = os.getpid()
+        with open(safe_long_path(pid_filepath), 'wb') as f:
+            f.write(str(pid))
+        return None
