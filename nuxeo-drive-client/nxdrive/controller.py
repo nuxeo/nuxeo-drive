@@ -241,7 +241,7 @@ class Controller(object):
         self.cookie_jar = CookieJar()
 
     def use_watchdog(self):
-        return True
+        return False
 
     def trash_modified_file(self):
         return False
