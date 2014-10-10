@@ -241,6 +241,7 @@ class Controller(object):
         self.cookie_jar = CookieJar()
 
     def use_watchdog(self):
+        # TODO NXDRIVE-112: enable back when fixed!
         return False
 
     def trash_modified_file(self):
