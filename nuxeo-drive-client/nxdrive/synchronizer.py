@@ -396,7 +396,7 @@ class Synchronizer(object):
             child_path = updated_path + '/' + child.local_name
             self._local_rename_with_descendant_states(session, client, child,
                 child.local_path, child_path)
-
+        doc_pair.update_state(local_state='synchronized')
         doc_pair.refresh_local(client=client, local_path=updated_path)
 
     def _update_remote_parent_path_recursive(self, session, doc_pair,
@@ -1174,9 +1174,11 @@ class Synchronizer(object):
                     # Mark all local as unknown
                     #self._mark_unknown_local_recursive(session, source_pair)
                 source_pair.update_state('synchronized', 'synchronized')
+                return True
             except Exception, e:
                 log.error("Can't rollback local modification")
                 log.debug(e)
+        return False
 
     def handle_missing_root(self, server_binding, session):
         log.info("[%s] - [%s]: unbinding server because local folder"
@@ -1402,29 +1404,31 @@ class Synchronizer(object):
                           target_doc_pair)
                 # Put the previous remote name to allow rename
                 target_doc_pair.remote_name = source_doc_pair.local_name
-                self.handle_failed_remote_rename(source_doc_pair,
-                                                 target_doc_pair, session)
-                return True
+                if self.handle_failed_remote_rename(source_doc_pair,
+                                                 target_doc_pair, session):
+                    return True
 
         if moved_or_renamed:
-            target_doc_pair.update_state('synchronized', 'synchronized')
+            #target_doc_pair.update_state('synchronized', 'synchronized')
             # Set last synchronization date for new pair
-            target_doc_pair.update_last_sync_date()
-            if doc_pair.folderish:
-                # Delete the old local tree info that is now deprecated
-                self._delete_with_descendant_states(
-                    session, source_doc_pair, local_client, io_delete=False)
-
-                # Rescan the remote folder descendants to let them realign
-                # with the local files
-                # TODO: optimize me by updating the local DB and reuse the
-                # previous state info instead?
-                remote_folder_info = remote_client.get_info(
-                    target_doc_pair.remote_ref)
-                self._scan_remote_recursive(session, remote_client,
-                    target_doc_pair, remote_folder_info)
-            else:
-                session.delete(source_doc_pair)
+            #target_doc_pair.update_last_sync_date()
+            new_path = target_doc_pair.local_path
+            # Delete the new tree info that is now deprecated
+            filters = [
+                LastKnownState.local_folder == target_doc_pair.local_folder,
+                LastKnownState.local_path.like(
+                                            target_doc_pair.local_path + '/%'),
+                LastKnownState.remote_ref == None
+            ]
+            session.query(LastKnownState).filter(*filters).delete(
+                                                synchronize_session='fetch')
+            session.delete(target_doc_pair)
+            # Change the old tree with new path
+            self._local_rename_with_descendant_states(session, local_client,
+                                    source_doc_pair,
+                                    source_doc_pair.local_path, new_path)
+            source_doc_pair.update_remote(remote_info)
+            source_doc_pair.update_state('synchronized', 'synchronized')
             session.commit()
 
         return moved_or_renamed
