@@ -8,13 +8,20 @@ import stat
 class BaseClient(object):
     @staticmethod
     def set_path_readonly(path):
-        os.chmod(path, stat.S_IXUSR | stat.S_IRGRP |
+        if os.path.isdir(path):
+            os.chmod(path, stat.S_IXUSR | stat.S_IRGRP |
                     stat.S_IXGRP | stat.S_IRUSR)
+        else:
+            os.chmod(path, stat.S_IRGRP | stat.S_IRUSR)
 
     @staticmethod
     def unset_path_readonly(path):
-        os.chmod(path, stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
+        if os.path.isdir(path):
+            os.chmod(path, stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
                                 stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
+        else:
+            os.chmod(path, stat.S_IRGRP | stat.S_IRUSR |
+                             stat.S_IWGRP | stat.S_IWUSR)
 
     def unlock_path(self, path, unlock_parent=True):
         result = 0
