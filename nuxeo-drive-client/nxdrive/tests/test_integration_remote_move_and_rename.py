@@ -1,4 +1,5 @@
 import os
+import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -102,6 +103,9 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         # and 'Original File 1.1.txt' to
         # 'Renamed File 1.1.txt' at the same time as they share
         # the same digest but do not live in the same folder
+        # Wait for 1 second to make sure the file's last modification time
+        # will be different from the pair state's last remote update time
+        time.sleep(self.REMOTE_MODIFICATION_TIME_RESOLUTION)
         remote_client.rename(self.file_1_id, 'Renamed Again File 1.txt')
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
             u'Renamed Again File 1.txt')
