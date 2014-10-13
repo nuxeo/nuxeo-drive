@@ -1,10 +1,12 @@
 """Utilities to operate Nuxeo Drive from the command line"""
 import os
 import sys
+import time
 import argparse
 from getpass import getpass
 import traceback
 import threading
+from sqlalchemy.exc import OperationalError
 try:
     import ipdb
     debugger = ipdb
@@ -54,6 +56,8 @@ PROTOCOL_COMMANDS = {
     'nxdriveedit': 'edit',
     'nxdrivebind': 'bind_server',
 }
+GET_CTL_MAX_NB_TRIES = 5
+GET_CTL_SLEEP_DURATION = 1
 
 
 class CliHandler(object):
@@ -361,10 +365,24 @@ class CliHandler(object):
             sys.exit(0)
 
     def get_controller(self, options):
-        return Controller(options.nxdrive_home,
+        nb_tries = 1
+        while (nb_tries <= GET_CTL_MAX_NB_TRIES):
+            try:
+                return Controller(options.nxdrive_home,
                             handshake_timeout=options.handshake_timeout,
                             timeout=options.timeout,
                             max_errors=options.max_errors)
+            except OperationalError as e:
+                self.log.error("OperationalError during try #%d to get"
+                               " controller, waiting for %d seconds and"
+                               " retrying at most %d times" %
+                               (nb_tries, GET_CTL_SLEEP_DURATION,
+                                GET_CTL_MAX_NB_TRIES - nb_tries),
+                               exc_info=True)
+                time.sleep(GET_CTL_SLEEP_DURATION)
+                nb_tries += 1
+        if nb_tries > 1:
+            raise e
 
     def handle(self, argv):
         """Parse options, setup logs and controller and dispatch execution."""
@@ -372,13 +390,21 @@ class CliHandler(object):
         # 'start' is the default command if None is provided
         command = options.command = getattr(options, 'command', 'launch')
 
-        if command != 'test':
+        if command != 'test' and command != 'uninstall':
             # Configure the logging framework, except for the tests as they
             # configure their own.
             # Don't need uninstall logs either for now.
-            if command != 'uninstall':
-                self._configure_logger(options)
+            self._configure_logger(options)
 
+        self.log = get_logger(__name__)
+        self.log.debug("Command line: command=%s, argv=%s",
+                       command, ' '.join(argv))
+
+        if command != 'test' and command != 'uninstall':
+            # Install utility to help debugging segmentation faults
+            self._install_faulthandler(options)
+
+        if command != 'test':
             # Initialize a controller for this process, except for the tests
             # as they initialize their own
             self.controller = self.get_controller(options)
@@ -388,13 +414,6 @@ class CliHandler(object):
         if handler is None:
             raise NotImplementedError(
                 'No handler implemented for command ' + options.command)
-
-        self.log = get_logger(__name__)
-        self.log.debug("Command line: " + ' '.join(argv))
-
-        if command != 'test' and command != 'uninstall':
-            # Install utility to help debugging segmentation faults
-            self._install_faulthandler(options)
 
         if command == 'launch':
             try:
