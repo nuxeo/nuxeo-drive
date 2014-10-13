@@ -234,11 +234,14 @@ class Controller(object):
         # Recently modified items for each server binding
         self.recently_modified = {}
 
-        self.synchronizer = Synchronizer(self, page_size=page_size)
+        self.synchronizer = self.get_synchronizer(page_size)
 
         # Make all the automation client related to this controller
         # share cookies using threadsafe jar
         self.cookie_jar = CookieJar()
+
+    def get_synchronizer(self, page_size):
+        return Synchronizer(self, page_size=page_size)
 
     def use_watchdog(self):
         # TODO NXDRIVE-112: enable back when fixed!
