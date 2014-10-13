@@ -328,7 +328,8 @@ class CliHandler(object):
         config = ConfigParser.ConfigParser()
         if os.path.exists('config.ini'):
             config.readfp(open('config.ini'))
-        config.read([os.path.join(self.default_home, 'config.ini')])
+        config.readfp(open(os.path.expanduser(os.path.join(self.default_home,
+                                                           'config.ini'))))
         if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
             env = config.get(ConfigParser.DEFAULTSECT, 'env')
             args = {}
