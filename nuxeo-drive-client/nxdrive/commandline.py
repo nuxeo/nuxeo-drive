@@ -490,13 +490,13 @@ class CliHandler(object):
             print status + '\t' + filename
         return 0
 
-    def old_edit(self, options):
-        self.controller.launch_file_editor(
+    def edit(self, options):
+        self.controller.edit(
             options.server_url, options.item_id)
         return 0
 
-    def edit(self, options):
-        self.controller.locally_edit(
+    def download_edit(self, options):
+        self.controller.download_edit(
             options.server_url, options.repo, options.doc_id,
             options.filename)
         return 0

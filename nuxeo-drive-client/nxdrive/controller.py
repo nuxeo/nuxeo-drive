@@ -995,7 +995,7 @@ class Controller(object):
         return session.query(LastKnownState).filter_by(
             local_folder=sb.local_folder, local_path=local_path).one()
 
-    def launch_file_editor(self, server_url, remote_ref):
+    def edit(self, server_url, remote_ref):
         """Find the local file if any and start OS editor on it."""
 
         state = self.get_state(server_url, remote_ref)
@@ -1010,7 +1010,7 @@ class Controller(object):
         file_path = state.get_local_abspath()
         self.open_local_file(file_path)
 
-    def locally_edit(self, server_url, repo, doc_id, filename):
+    def download_edit(self, server_url, repo, doc_id, filename):
         """Locally edit document with the given id."""
 
         # Find server binding from server URL

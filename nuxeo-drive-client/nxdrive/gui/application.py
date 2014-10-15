@@ -673,13 +673,13 @@ class Application(QApplication):
                 log.debug("URL info: %r", info)
                 if info is not None:
                     log.debug("Received nxdrive URL scheme event: %s", url)
-                    if info.get('command') == 'edit':
+                    if info.get('command') == 'download_edit':
                         # This is a quick operation, no need to fork a QThread
-                        self.controller.locally_edit(
+                        self.controller.download_edit(
                             info['server_url'], info['repo'], info['doc_id'],
                             info['filename'])
-                    elif info.get('command') == 'old_edit':
-                        self.controller.launch_file_editor(
+                    elif info.get('command') == 'edit':
+                        self.controller.edit(
                             info['server_url'], info['item_id'])
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)
