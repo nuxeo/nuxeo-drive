@@ -1007,8 +1007,7 @@ class Controller(object):
         # TODO: check synchronization of this state first
 
         # Find the best editor for the file according to the OS configuration
-        file_path = state.get_local_abspath()
-        self.open_local_file(file_path)
+        self.open_local_file(state.get_local_abspath())
 
     def download_edit(self, server_url, repo, doc_id, filename):
         """Locally edit document with the given id."""
@@ -1025,6 +1024,17 @@ class Controller(object):
         if sb is None:
             log.warning('Could not find server binding for server_url=%s ',
                         server_url)
+            return
+
+        # Check for a possibly existing doc pair, in which case edit it only
+        doc_pair = session.query(LastKnownState).filter(
+            LastKnownState.local_folder == sb.local_folder,
+            LastKnownState.local_parent_path.endswith(
+                                                LOCALLY_EDITED_FOLDER_NAME),
+            LastKnownState.remote_ref.endswith('#%s#%s' % (repo, doc_id))
+        ).first()
+        if doc_pair is not None:
+            self.open_local_file(doc_pair.get_local_abspath())
             return
 
         # Create "Locally Edited" folder if not exists
