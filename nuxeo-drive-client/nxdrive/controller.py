@@ -47,7 +47,6 @@ from nxdrive.activity import FileAction
 log = get_logger(__name__)
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
-DEFAULT_UPDATE_SITE_URL = 'http://community.nuxeo.com/static/drive/'
 DEFAULT_NUMBER_RECENTLY_MODIFIED = 5
 
 
@@ -186,7 +185,9 @@ class Controller(object):
 
     def __init__(self, config_folder, echo=False, echo_pool=False,
                  poolclass=None, handshake_timeout=60, timeout=20,
-                 page_size=None, max_errors=3):
+                 page_size=None, max_errors=3,
+                 update_url=None):
+        self.update_url = update_url
         # Log the installation location for debug
         nxdrive_install_folder = os.path.dirname(nxdrive.__file__)
         nxdrive_install_folder = os.path.realpath(nxdrive_install_folder)
@@ -324,7 +325,7 @@ class Controller(object):
         return None
 
     def get_default_update_site_url(self):
-        return DEFAULT_UPDATE_SITE_URL
+        return self.update_url
 
     def get_proxy_settings(self, device_config=None):
         """Fetch proxy settings from database"""

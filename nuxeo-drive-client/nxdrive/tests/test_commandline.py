@@ -22,6 +22,19 @@ class CommandLineTestCase(unittest.TestCase):
         if os.path.exists(filename):
             os.remove(filename)
 
+    def test_update__site_url(self):
+        argv = ["ndrive",
+                "--update-site-url", "DEBUG_TEST",
+                "console"]
+        options = self.cmd.parse_cli([])
+        self.assertEqual(options.update_site_url,
+                         "http://community.nuxeo.com/static/drive/",
+                         "The official default")
+        # Normal arg
+        options = self.cmd.parse_cli(argv)
+        self.assertEqual(options.update_site_url, "DEBUG_TEST",
+                            "Should be debug test")
+
     def test_default_override(self):
         self.clean_ini()
         argv = ["ndrive",

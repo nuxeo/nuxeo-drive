@@ -32,6 +32,7 @@ DEFAULT_HANDSHAKE_TIMEOUT = 60
 DEFAULT_TIMEOUT = 20
 DEFAULT_UPDATE_CHECK_DELAY = 3600
 DEFAULT_MAX_ERRORS = 3
+DEFAULT_UPDATE_SITE_URL = 'http://community.nuxeo.com/static/drive/'
 USAGE = """ndrive [command]
 
 If no command is provided, the graphical application is started along with a
@@ -101,6 +102,11 @@ class CliHandler(object):
             "--log-filename",
             help=("File used to store the logs, default "
                   "NXDRIVE_HOME/logs/nxaudit.logs")
+        )
+        common_parser.add_argument(
+            "--update-site-url",
+            default=DEFAULT_UPDATE_SITE_URL,
+            help=("Website for client auto-update")
         )
         common_parser.add_argument(
             "--debug", default=False, action="store_true",
@@ -372,7 +378,8 @@ class CliHandler(object):
                 return Controller(options.nxdrive_home,
                             handshake_timeout=options.handshake_timeout,
                             timeout=options.timeout,
-                            max_errors=options.max_errors)
+                            max_errors=options.max_errors,
+                            update_url=options.update_site_url)
             except OperationalError as e:
                 self.log.error("OperationalError during try #%d to get"
                                " controller, waiting for %d seconds and"
