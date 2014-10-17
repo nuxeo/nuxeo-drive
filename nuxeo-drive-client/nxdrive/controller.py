@@ -42,6 +42,7 @@ from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
 from nxdrive.migration import migrate_db
 from nxdrive.activity import FileAction
+from nxdrive.utils import PidLockFile
 
 
 log = get_logger(__name__)
@@ -476,7 +477,8 @@ class Controller(object):
         the stop message between the two.
 
         """
-        pid = self.synchronizer.check_running(process_name="sync")
+        pid_lock_file = PidLockFile(self.config_folder, "sync")
+        pid = pid_lock_file.check_running(process_name="sync")
         if pid is not None:
             # Create a stop file marker for the running synchronization
             # process
