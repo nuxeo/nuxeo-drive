@@ -48,7 +48,7 @@ log = get_logger(__name__)
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 DEFAULT_NUMBER_RECENTLY_MODIFIED = 5
-NUXEO_DRIVE_LAYOUT = 'view_drive_metadata'
+DRIVE_METADATA_VIEW = 'view_drive_metadata'
 
 
 class MissingToken(Exception):
@@ -434,7 +434,6 @@ class Controller(object):
         if not server_bindings:
             return None
         sb = server_bindings[0]
-
         return sb.remote_token
 
     def get_server_binding_settings(self):
@@ -872,47 +871,36 @@ class Controller(object):
     def get_recently_modified(self, local_folder):
         return self.recently_modified[local_folder]
 
-    def get_metadata_url(self, file_path):
-
-        item = None
-        local_item = None
+    def get_metadata_view_url(self, file_path):
+        local_path = None
         sb = None
-
         session = self.get_session()
         server_bindings = self.list_server_bindings(session)
         for sb_ in server_bindings:
-
             if file_path.startswith(sb_.local_folder):
                 sb = sb_
-                local_item = file_path.split(sb_.local_folder, 1)[1]
-
+                local_path = file_path.split(sb_.local_folder, 1)[1]
         if sb is None:
-            log.error("%s not found in database", file_path)
+            log.error('Could not find server binding for file %s', file_path)
             return
 
-        # Replace os path for windows
-        local_item = local_item.replace(os.path.sep, "/")
-        predicates = [LastKnownState.local_folder == sb.local_folder,
-                      LastKnownState.local_path == local_item]
-
         metadata_url = sb.server_url
-
         try:
-            item = session.query(LastKnownState).filter(*predicates).one()
-
-            if (item.remote_ref is not None):
-                tab_remote_ref = item.remote_ref.split("#", 2)
-
-                repo = tab_remote_ref[1]
-                docid = tab_remote_ref[2]
-
-                metadata_url += ("nxdoc/" + repo + "/" + docid +
-                                 "/" + NUXEO_DRIVE_LAYOUT)
-
+            # Replace os path for windows
+            local_path = local_path.replace(os.path.sep, "/")
+            predicates = [LastKnownState.local_folder == sb.local_folder,
+                          LastKnownState.local_path == local_path]
+            doc_pair = session.query(LastKnownState).filter(*predicates).one()
+            if (doc_pair.remote_ref is not None):
+                remote_ref_segments = doc_pair.remote_ref.split("#", 2)
+                repo = remote_ref_segments[1]
+                doc_id = remote_ref_segments[2]
+                metadata_url += ("nxdoc/" + repo + "/" + doc_id +
+                                 "/" + DRIVE_METADATA_VIEW)
+                return metadata_url, sb.remote_token
         except NoResultFound:
-            log.error("folder %s not synchronized", file_path)
-
-        return metadata_url, sb.remote_token
+            raise ValueError('Could not find file %s in Nuxeo Drive database' %
+                             file_path)
 
     def update_recently_modified(self, doc_pair):
         local_folder = doc_pair.local_folder

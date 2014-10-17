@@ -276,10 +276,10 @@ class CliHandler(object):
             "--folder", default=DEFAULT_NX_DRIVE_FOLDER,
             help="Path to a local Nuxeo Drive folder.")
 
-        # Display metadata edition window
+        # Display the metadata window
         metadata_parser = subparsers.add_parser(
             'metadata',
-            help='Display the metadata edition window for a given file.',
+            help='Display the metadata window for a given file.',
             parents=[common_parser],
         )
         metadata_parser.set_defaults(command='metadata')
@@ -456,10 +456,10 @@ class CliHandler(object):
                 register_protocol_handlers(self.controller)
                 # Ensure that ndrive is registered as a startup application
                 register_startup()
-                # Ensure that ndrive is registered as a contextual menu :
-                # only for win32
+                # Ensure that ndrive is registered as a contextual menu entry.
+                # Only under win32 for now, for OS X Finder implementation see
+                # https://jira.nuxeo.com/browse/NXDRIVE-119
                 register_contextual_menu()
-                
             except Exception, e:
                 self.log.warn(e)
 

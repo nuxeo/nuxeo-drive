@@ -17,41 +17,33 @@ class MetadataWebView(QtWebKit.QWebView):
 
     def __init__(self, controller, file_path):
         super(MetadataWebView, self).__init__()
-
         self.controller = controller
-
-        self.setWindowTitle("Nuxeo Drive : "+file_path)
+        self.setWindowTitle("Nuxeo Drive: " + file_path)
         icon = find_icon('nuxeo_drive_icon_64.png')
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
 
-        url, token = self.controller.get_metadata_url(file_path)
-
+        url, token = self.controller.get_metadata_view_url(file_path)
         self.request = QtNetwork.QNetworkRequest(QUrl(url))
         self.request.setRawHeader("X-Authentication-Token",
                                   QtCore.QByteArray(token))
-
         self.load(self.request)
 
 
 def prompt_metadata(controller, file_path):
     """Display a Qt web view to prompt about metadata."""
 
-    def close(): sys.exit()
+    def close():
+        sys.exit()
+
     app = QtGui.QApplication(sys.argv)
     webview = MetadataWebView(controller, file_path)
-
     webview.resize(METADATA_WEBVIEW_WIDTH, METADATA_WEBVIEW_HEIGHT)
-
     webview.setWindowFlags(Qt.WindowStaysOnTopHint)
-
     QObject.connect(webview.page(), QtCore.SIGNAL("windowCloseRequested ()"),
                     close)
-
     webview.show()
-
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
-
     sys.exit(prompt_metadata(None, None))

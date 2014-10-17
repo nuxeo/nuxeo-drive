@@ -23,10 +23,7 @@ class ExampleMenuProvider(GObject.GObject, Nautilus.MenuProvider):
         self.drive_exec(['metadata', '--file', file_uri])
 
     def drive_exec(self, cmds):
-        # add the ndrive command !
+        # Add the ndrive command
         cmds.insert(0, "ndrive")
-        # print "Executing ndrive command: " + str(cmds)
         p = subprocess.Popen(cmds, stdout=subprocess.PIPE)
-        result, _ = p.communicate()
-        # print "Result = " + result
-        #return eval(result)
+        p.communicate()

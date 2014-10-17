@@ -1,4 +1,3 @@
-import os
 import sys
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import find_exe_path
@@ -15,9 +14,11 @@ def register_contextual_menu():
 
 
 def register_contextual_menu_win32():
-    """Register ndrive as a windows explorer contextual menu"""
+    """Register ndrive as a Windows explorer contextual menu entry"""
     import _winreg
 
+    # TODO: better understand why / how this works.
+    # See https://jira.nuxeo.com/browse/NXDRIVE-120
     app_name = "None"
     args = " metadata --file \"%1\""
     exe_path = find_exe_path() + args
