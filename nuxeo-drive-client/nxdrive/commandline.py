@@ -22,6 +22,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.protocol_handler import register_protocol_handlers
 from nxdrive.startup import register_startup
+from nxdrive.contextual_menu import register_contextual_menu
 from nxdrive import __version__
 
 
@@ -46,6 +47,9 @@ Possible commands:
 - unbind-server
 - bind-root
 - unbind-root
+- local_folders
+- status
+- metadata
 
 To get options for a specific command:
 
@@ -252,6 +256,16 @@ class CliHandler(object):
         )
         console_parser.set_defaults(command='console')
 
+        # Get the local folders bound to a Nuxeo server
+        local_folder_parser = subparsers.add_parser(
+            'local_folders',
+            help='Fetch the local folders bound to a Nuxeo server.',
+            parents=[common_parser],
+        )
+        local_folder_parser.set_defaults(command='local_folders')
+
+        # Get the children status of the given folder
+        # Default is the Drive local folder
         status_parser = subparsers.add_parser(
             'status',
             help='Fetch the status info of the children of a given folder.',
@@ -259,7 +273,19 @@ class CliHandler(object):
         )
         status_parser.set_defaults(command='status')
         status_parser.add_argument(
-            "folder", help="Path to a local Nuxeo Drive folder.")
+            "--folder", default=DEFAULT_NX_DRIVE_FOLDER,
+            help="Path to a local Nuxeo Drive folder.")
+
+        # Display the metadata window
+        metadata_parser = subparsers.add_parser(
+            'metadata',
+            help='Display the metadata window for a given file.',
+            parents=[common_parser],
+        )
+        metadata_parser.set_defaults(command='metadata')
+        metadata_parser.add_argument(
+            "--file", default="",
+            help="File path.")
 
         # embedded test runner base on nose:
         test_parser = subparsers.add_parser(
@@ -430,6 +456,10 @@ class CliHandler(object):
                 register_protocol_handlers(self.controller)
                 # Ensure that ndrive is registered as a startup application
                 register_startup()
+                # Ensure that ndrive is registered as a contextual menu entry.
+                # Only under win32 for now, for OS X Finder implementation see
+                # https://jira.nuxeo.com/browse/NXDRIVE-119
+                register_contextual_menu()
             except Exception, e:
                 self.log.warn(e)
 
@@ -484,10 +514,23 @@ class CliHandler(object):
         self.controller.stop()
         return 0
 
+    def local_folders(self, options):
+        server_bindings = self.controller.list_server_bindings()
+        print [sb.local_folder for sb in server_bindings]
+        return 0
+
     def status(self, options):
         states = self.controller.children_states(options.folder)
+        self.log.debug("Children status of %s:", options.folder)
         for filename, status in states:
-            print status + '\t' + filename
+            self.log.debug("%s | %s", filename, status)
+        print states
+        return 0
+
+    def metadata(self, options):
+        from nxdrive.gui.metadata import prompt_metadata
+        print 'file = ' + options.file
+        prompt_metadata(self.controller, options.file)
         return 0
 
     def edit(self, options):

@@ -49,6 +49,7 @@ log = get_logger(__name__)
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 DEFAULT_NUMBER_RECENTLY_MODIFIED = 5
+DRIVE_METADATA_VIEW = 'view_drive_metadata'
 
 
 class MissingToken(Exception):
@@ -100,7 +101,7 @@ def default_nuxeo_drive_folder():
             nuxeo_drive_folder = os.path.join(my_documents,
                                               NUXEO_DRIVE_FOLDER_NAME)
             log.info("Will use '%s' as default Nuxeo Drive folder location"
-                      " under Windows", nuxeo_drive_folder)
+                     " under Windows", nuxeo_drive_folder)
             return nuxeo_drive_folder
 
     # Fall back on home folder otherwise
@@ -108,7 +109,7 @@ def default_nuxeo_drive_folder():
     user_home = unicode(user_home.decode(ENCODING))
     nuxeo_drive_folder = os.path.join(user_home, NUXEO_DRIVE_FOLDER_NAME)
     log.info("Will use '%s' as default Nuxeo Drive folder location",
-              nuxeo_drive_folder)
+             nuxeo_drive_folder)
     return nuxeo_drive_folder
 
 
@@ -763,7 +764,7 @@ class Controller(object):
             local_folder, raise_if_missing=True, session=session)
 
         nxclient = self.get_remote_doc_client(server_binding,
-            repository=repository)
+                                              repository=repository)
 
         # Register the root on the server
         nxclient.register_as_root(remote_ref)
@@ -776,7 +777,7 @@ class Controller(object):
             local_folder, raise_if_missing=True, session=session)
 
         nxclient = self.get_remote_doc_client(server_binding,
-            repository=repository)
+                                              repository=repository)
 
         # Unregister the root on the server
         nxclient.unregister_as_root(remote_ref)
@@ -871,6 +872,37 @@ class Controller(object):
 
     def get_recently_modified(self, local_folder):
         return self.recently_modified[local_folder]
+
+    def get_metadata_view_url(self, file_path):
+        local_path = None
+        sb = None
+        session = self.get_session()
+        server_bindings = self.list_server_bindings(session)
+        for sb_ in server_bindings:
+            if file_path.startswith(sb_.local_folder):
+                sb = sb_
+                local_path = file_path.split(sb_.local_folder, 1)[1]
+        if sb is None:
+            log.error('Could not find server binding for file %s', file_path)
+            return
+
+        metadata_url = sb.server_url
+        try:
+            # Replace os path for windows
+            local_path = local_path.replace(os.path.sep, "/")
+            predicates = [LastKnownState.local_folder == sb.local_folder,
+                          LastKnownState.local_path == local_path]
+            doc_pair = session.query(LastKnownState).filter(*predicates).one()
+            if (doc_pair.remote_ref is not None):
+                remote_ref_segments = doc_pair.remote_ref.split("#", 2)
+                repo = remote_ref_segments[1]
+                doc_id = remote_ref_segments[2]
+                metadata_url += ("nxdoc/" + repo + "/" + doc_id +
+                                 "/" + DRIVE_METADATA_VIEW)
+                return metadata_url, sb.remote_token
+        except NoResultFound:
+            raise ValueError('Could not find file %s in Nuxeo Drive database' %
+                             file_path)
 
     def update_recently_modified(self, doc_pair):
         local_folder = doc_pair.local_folder
