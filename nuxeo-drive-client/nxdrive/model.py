@@ -255,7 +255,7 @@ class LastKnownState(Base):
     @staticmethod
     def remove_inconsistents(session):
         # Disable this tests to check the result
-        if LastKnownState.inconsistents == 0 and False:
+        if LastKnownState.inconsistents == 0:
             return
         pairs = session.query(LastKnownState).filter(
                 LastKnownState.pair_state.in_(INCONSISTENT_STATES)).delete(
