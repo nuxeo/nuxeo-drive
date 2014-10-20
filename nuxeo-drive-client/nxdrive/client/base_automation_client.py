@@ -337,7 +337,7 @@ class BaseAutomationClient(BaseClient):
         upload_duration = int(time.time() - tick)
         # Use upload duration * 2 as Nuxeo transaction timeout
         tx_timeout = max(DEFAULT_NUXEO_TX_TIMEOUT, upload_duration * 2)
-        log.debug('Using %d seconds [max(%d, 2 * upload time=%d)] as Nuxeo'
+        log.trace('Using %d seconds [max(%d, 2 * upload time=%d)] as Nuxeo'
                   ' transaction timeout for batch execution of %s'
                   ' with file %s', tx_timeout, DEFAULT_NUXEO_TX_TIMEOUT,
                   upload_duration, command, file_path)

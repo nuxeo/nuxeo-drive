@@ -1461,7 +1461,8 @@ class Synchronizer(object):
 
             if nb_pending == 0:
                 break
-            log.debug("Found %d pending items", nb_pending)
+            if not or_more:
+                log.debug("Found %d pending items", nb_pending)
             log.trace("Pending items: %r", pending)
 
             # Look first for a pending pair state with local_path not None,

@@ -908,7 +908,7 @@ class Controller(object):
         local_folder = doc_pair.local_folder
         self.recently_modified[local_folder] = self.list_recently_modified(
                                                                 local_folder)
-        log.info("Updated list of recently modified items in %s: %r",
+        log.trace("Updated list of recently modified items in %s: %r",
                  local_folder, [item.local_name for item
                                 in self.get_recently_modified(local_folder)])
 
