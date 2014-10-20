@@ -18,7 +18,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.pool import SingletonThreadPool
-from sqlalchemy import or_
 
 from nxdrive import __version__
 from nxdrive.utils import normalized_path
