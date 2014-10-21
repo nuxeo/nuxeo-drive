@@ -9,6 +9,9 @@
   </unzip>
   <import file="${out.dir}/nuxeo-ftest.xml" />
 
+  <!-- Activate nuxeo-dm wizard preset as we  -->
+  <property name="wizard.preset" value="nuxeo-dam" />
+
   <!-- Configure nuxeo-drive marketplace package installation -->
   <property name="nuxeo.drive.mp.filename" value="nuxeo-drive.zip" />
   <property name="mp.install" value="${out.dir}/${nuxeo.drive.mp.filename}" />
