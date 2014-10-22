@@ -1064,7 +1064,8 @@ class TestIntegrationSynchronization(IntegrationTestCase):
             op_input=op_input,
             user="nuxeoDriveTestUser_user_1",
             permission="Read")
-        self.root_remote_client.block_inheritance(readonly_folder_path)
+        self.root_remote_client.block_inheritance(readonly_folder_path,
+                                                  overwrite=False)
 
         # Wait to make sure permission change is detected.
         self.wait_audit_change_finder_if_needed()

@@ -351,13 +351,13 @@ class RemoteDocumentClient(BaseAutomationClient):
                             op_input="doc:" + self._check_ref(version))
         return doc['uid']
 
-    def block_inheritance(self, ref):
+    def block_inheritance(self, ref, overwrite=True):
         op_input = "doc:" + self._check_ref(ref)
         self.execute("Document.SetACE",
             op_input=op_input,
             user="Administrator",
             permission="Everything",
-            overwrite=False)
+            overwrite=overwrite)
         self.execute("Document.SetACE",
             op_input=op_input,
             user="Everyone",

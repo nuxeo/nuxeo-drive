@@ -446,7 +446,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             op_input=op_input,
             user="nuxeoDriveTestUser_user_1",
             permission="Read")
-        self.root_remote_client.block_inheritance(folder_1_path)
+        self.root_remote_client.block_inheritance(folder_1_path,
+                                                  overwrite=False)
 
         # Check can_rename flag in pair state
         folder_1_state.refresh_remote(
@@ -528,7 +529,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             op_input=op_input,
             user="nuxeoDriveTestUser_user_1",
             permission="Read")
-        self.root_remote_client.block_inheritance(folder_1_path)
+        self.root_remote_client.block_inheritance(folder_1_path,
+                                                  overwrite=False)
 
         # Check can_rename flag in pair state
         folder_1_state.refresh_remote(
@@ -612,7 +614,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             op_input=op_input,
             user="nuxeoDriveTestUser_user_1",
             permission="Read")
-        self.root_remote_client.block_inheritance(folder_1_path)
+        self.root_remote_client.block_inheritance(folder_1_path,
+                                                  overwrite=False)
 
         # Check can_delete flag in pair state
         folder_1_state.refresh_remote(

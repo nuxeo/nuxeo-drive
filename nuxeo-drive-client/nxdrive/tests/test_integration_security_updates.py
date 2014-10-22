@@ -317,11 +317,6 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
             self.root_remote_client.execute("Document.SetACE",
                 op_input=op_input,
                 user=user,
-                permission="ReadWrite",
-                grant="true")
-            self.root_remote_client.execute("Document.SetACE",
-                op_input=op_input,
-                user=user,
                 permission="Read",
                 grant="true")
         else:

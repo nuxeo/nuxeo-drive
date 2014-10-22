@@ -31,7 +31,8 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                 op_input=op_input,
                 user=user,
                 permission="Read")
-            self.root_remote_client.block_inheritance(doc_path)
+            self.root_remote_client.block_inheritance(doc_path,
+                                                      overwrite=False)
         else:
             self.root_remote_client.execute("Document.SetACE",
                 op_input=op_input,
