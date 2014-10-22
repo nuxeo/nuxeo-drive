@@ -26,12 +26,18 @@ class TestIntegrationReadOnly(IntegrationTestCase):
 
     def _set_readonly_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
-        grantWrite = "false" if grant else "true"
-        self.root_remote_client.execute("Document.SetACE",
-            op_input=op_input,
-            user=user,
-            permission="Write",
-            grant=grantWrite)
+        if grant:
+            self.root_remote_client.execute("Document.SetACE",
+                op_input=op_input,
+                user=user,
+                permission="Read")
+            self.root_remote_client.block_inheritance(doc_path)
+        else:
+            self.root_remote_client.execute("Document.SetACE",
+                op_input=op_input,
+                user=user,
+                permission="Write",
+                grant="true")
 
     def test_rename_readonly_file(self):
         local = self.local_client_1

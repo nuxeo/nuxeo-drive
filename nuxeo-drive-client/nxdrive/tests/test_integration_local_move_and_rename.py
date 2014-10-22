@@ -445,8 +445,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.root_remote_client.execute("Document.SetACE",
             op_input=op_input,
             user="nuxeoDriveTestUser_user_1",
-            permission="Write",
-            grant="false")
+            permission="Read")
+        self.root_remote_client.block_inheritance(folder_1_path)
 
         # Check can_rename flag in pair state
         folder_1_state.refresh_remote(
@@ -527,8 +527,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.root_remote_client.execute("Document.SetACE",
             op_input=op_input,
             user="nuxeoDriveTestUser_user_1",
-            permission="Write",
-            grant="false")
+            permission="Read")
+        self.root_remote_client.block_inheritance(folder_1_path)
 
         # Check can_rename flag in pair state
         folder_1_state.refresh_remote(
@@ -611,8 +611,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.root_remote_client.execute("Document.SetACE",
             op_input=op_input,
             user="nuxeoDriveTestUser_user_1",
-            permission="Write",
-            grant="false")
+            permission="Read")
+        self.root_remote_client.block_inheritance(folder_1_path)
 
         # Check can_delete flag in pair state
         folder_1_state.refresh_remote(

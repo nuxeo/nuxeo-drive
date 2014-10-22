@@ -313,17 +313,19 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
 
     def _set_read_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
-        grant = "true" if grant else "false"
-        self.root_remote_client.execute("Document.SetACE",
-            op_input=op_input,
-            user=user,
-            permission="ReadWrite",
-            grant=grant)
-        self.root_remote_client.execute("Document.SetACE",
-            op_input=op_input,
-            user=user,
-            permission="Read",
-            grant=grant)
+        if grant:
+            self.root_remote_client.execute("Document.SetACE",
+                op_input=op_input,
+                user=user,
+                permission="ReadWrite",
+                grant="true")
+            self.root_remote_client.execute("Document.SetACE",
+                op_input=op_input,
+                user=user,
+                permission="Read",
+                grant="true")
+        else:
+            self.root_remote_client.block_inheritance(doc_path)
 
     def _check_pair_state(self, session, local_path, pair_state):
         local_path = '/' + self.workspace_title + local_path

@@ -351,6 +351,20 @@ class RemoteDocumentClient(BaseAutomationClient):
                             op_input="doc:" + self._check_ref(version))
         return doc['uid']
 
+    def block_inheritance(self, ref):
+        op_input = "doc:" + self._check_ref(ref)
+        self.execute("Document.SetACE",
+            op_input=op_input,
+            user="Administrator",
+            permission="Everything",
+            overwrite=False)
+        self.execute("Document.SetACE",
+            op_input=op_input,
+            user="Everyone",
+            permission="Everything",
+            grant="false",
+            overwrite=False)
+
     # These ones are special: no 'op_input' parameter
 
     def fetch(self, ref):
