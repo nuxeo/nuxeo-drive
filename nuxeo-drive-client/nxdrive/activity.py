@@ -10,11 +10,14 @@ from threading import current_thread
 class Action(object):
     progress = None
     type = None
+    finished = False
 
-    def __init__(self, actionType, progress=None):
+    def __init__(self, actionType, progress=None, threadId=None):
         self.progress = progress
         self.type = actionType
-        Action.actions[current_thread().ident] = self
+        if threadId is None:
+            threadId = current_thread().ident
+        Action.actions[threadId] = self
 
     def get_percent(self):
         return self.progress
@@ -25,6 +28,8 @@ class Action(object):
 
     @staticmethod
     def finish_action():
+        if current_thread().ident in Action.actions:
+            Action.actions[current_thread().ident].finished = True
         Action.actions[current_thread().ident] = None
 
 
