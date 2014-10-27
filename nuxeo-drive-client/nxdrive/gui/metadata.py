@@ -8,8 +8,8 @@ from nxdrive.gui.resources import find_icon
 
 log = get_logger(__name__)
 
-METADATA_WEBVIEW_WIDTH = 630
-METADATA_WEBVIEW_HEIGHT = 500
+METADATA_WEBVIEW_WIDTH = 800
+METADATA_WEBVIEW_HEIGHT = 700
 
 
 class MetadataWebView(QtWebKit.QWebView):
