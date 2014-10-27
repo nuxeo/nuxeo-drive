@@ -28,7 +28,8 @@ class Action(object):
 
     @staticmethod
     def finish_action():
-        if current_thread().ident in Action.actions:
+        if (current_thread().ident in Action.actions and
+            Action.actions[current_thread().ident] is not None):
             Action.actions[current_thread().ident].finished = True
         Action.actions[current_thread().ident] = None
 
