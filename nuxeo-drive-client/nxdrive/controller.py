@@ -1082,6 +1082,11 @@ class Controller(object):
 
         # Download file to edit locally in "Locally Edited" folder
         doc_client = self.get_remote_doc_client(sb, repository=repo)
+        # URL encode filename if not the case, which happens when it is parsed
+        # from an URL sent by Internet Explorer...
+        # If URL contains no special characters then has no effect.
+        if '%' not in filename:
+            filename = urllib2.quote(filename)
         doc_url = (server_url + 'nxbigfile/' + repo + '/' + doc_id + '/'
                    + 'blobholder:0/' + filename)
         unquoted_filename = urllib2.unquote(filename)
