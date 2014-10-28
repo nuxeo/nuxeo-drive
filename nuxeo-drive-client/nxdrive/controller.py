@@ -1208,21 +1208,17 @@ class ProxyPassword(object):
     def encrypt(self, password):
         return encrypt(password, self.get_secret())
 
-    def decrypt(self, password):
-        dc = self.controller.get_device_config()
-        token = self.controller.get_first_token()
-        if dc.proxy_password is not None and token is not None:
-            password = decrypt(dc.proxy_password, self.get_secret())
-        else:
-            # If no server binding or no token available
-            # (possibly after token revocation) reset password
-            password = ''
+    def decrypt(self, password_in):
+        password = ''
+        if password_in is not None:
+            password = decrypt(password_in,
+                               self.get_secret(raise_exception_if_fail=False))
         return password
 
-    def get_secret(self):
+    def get_secret(self, raise_exception_if_fail=True):
         # Encrypt password with token as the secret
         token = self.controller.get_first_token()
-        if token is None:
+        if raise_exception_if_fail and token is None:
             raise MissingToken("Your token has been revoked,"
                         " please update your password to acquire a new one.")
         return token
