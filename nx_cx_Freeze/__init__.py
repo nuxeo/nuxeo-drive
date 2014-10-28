@@ -124,12 +124,12 @@ if sys.platform == 'win32':
                                "StartClient", "Launch [ProductName]", None, None)
             c.condition("Hide", 'Progress1<>"Install"')
             # 18 is for execute a .exe from install
-            msilib.add_data(self.db, "CustomAction", [("LaunchNuxeoDrive", 18,
+            msilib.add_data(self.db, "CustomAction", [("LaunchNuxeoDrive", 82,
                                                        "launcher.exe",
                                                        self.get_executable())])
             button.event("DoAction", "LaunchNuxeoDrive",
                          'StartClient=1 and Progress1="Install"')
-            msilib.add_data(self.db, "CustomAction", [("NuxeoDriveCleanUp", 18,
+            msilib.add_data(self.db, "CustomAction", [("NuxeoDriveCleanUp", 82,
                                                        self.get_executable(),
                                                        "uninstall")])
             msilib.add_data(self.db, "InstallExecuteSequence",
