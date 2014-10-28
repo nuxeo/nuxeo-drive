@@ -163,6 +163,10 @@ class Application(QApplication):
     def get_systray_menu(self):
         return SystrayMenu(self, self.controller.list_server_bindings())
 
+    def get_version_finder(self, update_url):
+        # Used by extended application to inject version finder
+        return update_url
+
     def refresh_update_status(self):
         # TODO: first read update site URL from local configuration
         # See https://jira.nuxeo.com/browse/NXP-14403
@@ -186,14 +190,16 @@ class Application(QApplication):
             if self.updater is None:
                 # Build application updater if it doesn't exist
                 try:
-                    self.updater = AppUpdater(version_finder=update_url)
+                    self.updater = AppUpdater(version_finder=self.\
+                                              get_version_finder(update_url))
                 except Exception as e:
                     log.warning(e)
                     return
             else:
                 # If application updater exists, simply update its version
                 # finder
-                self.updater.set_version_finder(update_url)
+                self.updater.set_version_finder(
+                                        self.get_version_finder(update_url))
             # Set update status and update version
             self.update_status, self.update_version = (
                         self.updater.get_update_status(
