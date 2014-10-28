@@ -13,8 +13,8 @@ class ProgressDialog(QtGui.QDialog):
 
     def __init__(self, action, autoclose=True):
         super(ProgressDialog, self).__init__()
-        self.resize(200, 80)
-        self.setFixedSize(200, 80)
+        self.resize(300, 80)
+        self.setFixedSize(300, 80)
         self.setModal(True)
         layout = QtGui.QVBoxLayout()
         self.action = action
