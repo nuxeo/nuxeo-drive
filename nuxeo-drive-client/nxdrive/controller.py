@@ -1091,7 +1091,8 @@ class Controller(object):
         file_dir = os.path.dirname(os_path)
         file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + name
                                 + DOWNLOAD_TMP_FILE_SUFFIX)
-        log.debug("Downloading file '%s' in '%s'", name, file_dir)
+        log.debug("Downloading file '%s' in '%s' with URL '%s'", name,
+                  file_dir, doc_url)
         doc_client.current_action = FileAction("Download", file_out, name, 0)
         _, tmp_file = doc_client.do_get(doc_url, file_out=file_out)
         local_client.rename(local_client.get_path(tmp_file), name)
