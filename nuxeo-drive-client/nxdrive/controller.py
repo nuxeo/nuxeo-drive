@@ -1085,8 +1085,9 @@ class Controller(object):
         doc_url = (server_url + 'nxbigfile/' + repo + '/' + doc_id + '/'
                    + 'blobholder:0/' + filename)
         unquoted_filename = urllib2.unquote(filename)
+        decoded_filename = unquoted_filename.decode('utf-8')
         _, os_path, name = local_client.get_new_file(locally_edited_path,
-                                                     unquoted_filename)
+                                                     decoded_filename)
         file_dir = os.path.dirname(os_path)
         file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + name
                                 + DOWNLOAD_TMP_FILE_SUFFIX)
