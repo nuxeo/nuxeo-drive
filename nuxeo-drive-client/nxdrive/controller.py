@@ -1216,9 +1216,8 @@ class ProxyPassword(object):
         return password
 
     def get_secret(self, raise_exception_if_fail=True):
-        # Encrypt password with token as the secret
-        token = self.controller.get_first_token()
-        if raise_exception_if_fail and token is None:
-            raise MissingToken("Your token has been revoked,"
-                        " please update your password to acquire a new one.")
-        return token
+        # this version can not raise an exception, but future versions may
+        # Encrypt password with device_id, and a constant
+        dc = self.controller.get_device_config()
+        secret = dc.device_id + '234380'
+        return secret
