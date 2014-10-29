@@ -853,18 +853,22 @@ class Synchronizer(object):
         try:
             is_renaming = doc_pair.remote_name != doc_pair.local_name
             if doc_pair.remote_digest != doc_pair.local_digest != None:
-                log.debug("Updating content of local file '%s'.",
-                          doc_pair.get_local_abspath())
-                os_path = local_client.get_info(doc_pair.local_path).filepath
-                # Ignore the next delete event
-                log.info("Ignore next deleteEvent on %s", os_path)
-                conflicted_changes.append(os_path)
+                os_path = doc_pair.get_local_abspath()
                 if is_renaming:
-                    os_path = os.path.join(os.path.dirname(os_path),
-                                           doc_pair.remote_name)
+                    new_os_path = os.path.join(os.path.dirname(os_path),
+                                               doc_pair.remote_name)
+                    log.debug("Replacing local file '%s' by '%s'.",
+                              os_path, new_os_path)
+                else:
+                    new_os_path = os_path
+                    log.debug("Updating content of local file '%s'.",
+                              os_path)
                 tmp_file = remote_client.stream_content(
-                                doc_pair.remote_ref, os_path,
+                                doc_pair.remote_ref, new_os_path,
                                 parent_fs_item_id=doc_pair.remote_parent_ref)
+                # Ignore the next delete event
+                log.debug("Ignore next deleteEvent on %s", os_path)
+                conflicted_changes.append(os_path)
                 # Delete original file and rename tmp file
                 local_client.delete(doc_pair.local_path)
                 updated_info = local_client.rename(
