@@ -145,3 +145,11 @@ class ControllerCipherTest(unittest.TestCase):
         encryptedp = pp.encrypt('halellujah')
         decryptedp = pp.decrypt(encryptedp)
         self.assertEqual(decryptedp, 'halellujah')
+
+    def test_empty_password(self):
+        """Test the encrypt and decrypt with empty passwords"""
+        pp = ControllerCipher(self.controller)
+        self.assertEqual(pp.encrypt(''), '')
+        self.assertEqual(pp.encrypt(None), '')
+        self.assertEqual(pp.decrypt(''), '')
+        self.assertEqual(pp.decrypt(None), '')

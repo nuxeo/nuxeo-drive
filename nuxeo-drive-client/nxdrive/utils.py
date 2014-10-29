@@ -289,11 +289,13 @@ class ControllerCipher(object):
         self.controller = controller
 
     def encrypt(self, password):
-        return encrypt(password, self.get_secret())
+        if password:
+            return encrypt(password, self.get_secret())
+        return ''
 
     def decrypt(self, password_in):
         password = ''
-        if password_in is not None:
+        if password_in:
             password = decrypt(password_in,
                                self.get_secret(raise_exception_if_fail=False))
         return password
