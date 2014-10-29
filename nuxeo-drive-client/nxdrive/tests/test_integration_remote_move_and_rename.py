@@ -161,6 +161,35 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.wait()
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
+    def test_remote_rename_update_content_file(self):
+        sb, ctl = self.sb_1, self.controller_1
+        remote_client = self.remote_client_1
+        local_client = self.local_client_1
+
+        # Update the content of /Original File 1.txt and rename it
+        # to /Renamed File 1.txt
+        remote_client.update_content(self.file_1_id, 'Updated content',
+                                     filename=u'Renamed File 1.txt')
+        self.assertEquals(remote_client.get_info(self.file_1_id).name,
+            u'Renamed File 1.txt')
+        self.assertEquals(remote_client.get_content(self.file_1_id),
+            'Updated content')
+
+        self.wait_audit_change_finder_if_needed()
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+
+        # Check local file name
+        self.assertFalse(local_client.exists(u'/Original File 1.txt'))
+        self.assertTrue(local_client.exists(u'/Renamed File 1.txt'))
+        self.assertEquals(local_client.get_content(u'/Renamed File 1.txt'),
+                          'Updated content')
+
+        # The more things change, the more they remain the same.
+        self.wait_audit_change_finder_if_needed()
+        self.wait()
+        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
+
     def test_remote_move_file(self):
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1

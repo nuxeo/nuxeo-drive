@@ -851,27 +851,32 @@ class Synchronizer(object):
     def _synchronize_remotely_modified(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
         try:
+            is_renaming = doc_pair.remote_name != doc_pair.local_name
             if doc_pair.remote_digest != doc_pair.local_digest != None:
                 log.debug("Updating content of local file '%s'.",
                           doc_pair.get_local_abspath())
                 os_path = local_client.get_info(doc_pair.local_path).filepath
+                # Ignore the next delete event
+                log.info("Ignore next deleteEvent on %s", os_path)
+                conflicted_changes.append(os_path)
+                if is_renaming:
+                    os_path = os.path.join(os.path.dirname(os_path),
+                                           doc_pair.remote_name)
                 tmp_file = remote_client.stream_content(
                                 doc_pair.remote_ref, os_path,
                                 parent_fs_item_id=doc_pair.remote_parent_ref)
                 # Delete original file and rename tmp file
-                # Ignore the next delete event
-                conflicted_changes.append(os_path)
-                log.info("Ignore next deleteEvent on %s", os_path)
                 local_client.delete(doc_pair.local_path)
-                local_client.rename(local_client.get_path(tmp_file),
-                                    doc_pair.local_name)
-                doc_pair.refresh_local(local_client)
+                updated_info = local_client.rename(
+                                            local_client.get_path(tmp_file),
+                                            doc_pair.remote_name)
+                doc_pair.refresh_local(local_client,
+                                       local_path=updated_info.path)
             else:
                 # digest agree so this might be a renaming and/or a move,
                 # and no need to transfer additional bytes over the network
                 is_move, new_parent_pair = self._is_remote_move(
                     doc_pair, session)
-                is_renaming = doc_pair.remote_name != doc_pair.local_name
                 if remote_client.is_filtered(doc_pair.remote_parent_path):
                     # A move to a filtered parent ( treat it as deletion )
                     self._synchronize_remotely_deleted(doc_pair, session,
