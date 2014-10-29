@@ -38,8 +38,7 @@ from nxdrive.utils import ENCODING
 from nxdrive.utils import deprecated
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
-from nxdrive.utils import encrypt
-from nxdrive.utils import decrypt
+from nxdrive.utils import ControllerCipher
 from nxdrive.migration import migrate_db
 from nxdrive.activity import FileAction
 from nxdrive.utils import PidLockFile
@@ -333,7 +332,7 @@ class Controller(object):
         """Fetch proxy settings from database"""
         dc = (self.get_device_config() if device_config is None
               else device_config)
-        password = ProxyPassword(self).decrypt(dc.proxy_password)
+        password = ControllerCipher(self).decrypt(dc.proxy_password)
         return ProxySettings(config=dc.proxy_config,
                                        proxy_type=dc.proxy_type,
                                        server=dc.proxy_server,
@@ -355,7 +354,7 @@ class Controller(object):
         device_config.proxy_authenticated = proxy_settings.authenticated
         device_config.proxy_username = proxy_settings.username
         device_config.proxy_password = \
-                    ProxyPassword(self).encrypt(proxy_settings.password)
+                    ControllerCipher(self).encrypt(proxy_settings.password)
 
         session.commit()
         log.info("Proxy settings successfully updated: %r", proxy_settings)
@@ -1199,25 +1198,3 @@ class Controller(object):
             {}, [])
         if item is not None:
             log.debug("Registered new favorite in Finder for: %s", folder_path)
-
-
-class ProxyPassword(object):
-    def __init__(self, controller):
-        self.controller = controller
-
-    def encrypt(self, password):
-        return encrypt(password, self.get_secret())
-
-    def decrypt(self, password_in):
-        password = ''
-        if password_in is not None:
-            password = decrypt(password_in,
-                               self.get_secret(raise_exception_if_fail=False))
-        return password
-
-    def get_secret(self, raise_exception_if_fail=True):
-        # this version can not raise an exception, but future versions may
-        # Encrypt password with device_id, and a constant
-        dc = self.controller.get_device_config()
-        secret = dc.device_id + '234380'
-        return secret

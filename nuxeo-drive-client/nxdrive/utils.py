@@ -282,3 +282,25 @@ class PidLockFile(object):
         with open(safe_long_path(pid_filepath), 'wb') as f:
             f.write(str(pid))
         return None
+
+
+class ControllerCipher(object):
+    def __init__(self, controller):
+        self.controller = controller
+
+    def encrypt(self, password):
+        return encrypt(password, self.get_secret())
+
+    def decrypt(self, password_in):
+        password = ''
+        if password_in is not None:
+            password = decrypt(password_in,
+                               self.get_secret(raise_exception_if_fail=False))
+        return password
+
+    def get_secret(self, raise_exception_if_fail=True):
+        # this version can not raise an exception, but future versions may
+        # Encrypt password with device_id, and a constant
+        dc = self.controller.get_device_config()
+        secret = dc.device_id + '234380'
+        return secret
