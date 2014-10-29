@@ -287,10 +287,8 @@ class NuxeoDriveSetup(object):
         init_file = attribs.get_init_file()
         version = read_version(init_file)
 
-        if '--dev' in sys.argv:
-            # timestamp the dev artifacts for continuous integration
-            # distutils only accepts "b" + digit
-            sys.argv.remove('--dev')
+        if '-dev' in version:
+            # timestamp the dev artifacts as distutils only accepts "b" + digit
             timestamp = datetime.utcnow().isoformat()
             timestamp = timestamp.replace(":", "")
             timestamp = timestamp.replace(".", "")
@@ -307,9 +305,9 @@ class NuxeoDriveSetup(object):
             update_version(init_file, version)
             print "Updated version to " + version
 
-            # Create JSON metadata file for the frozen application
-            json_file = create_json_metadata(version, SERVER_MIN_VERSION)
-            print "Created JSON metadata file for frozen app: " + json_file
+        # Create JSON metadata file for the frozen application
+        json_file = create_json_metadata(version, SERVER_MIN_VERSION)
+        print "Created JSON metadata file for frozen app: " + json_file
 
         includes = [
             "PyQt4",
