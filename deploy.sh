@@ -1,0 +1,25 @@
+#!/bin/bash -xe
+
+MAJOR_VERSION=${MAJOR_VERSION:-$1}
+MINOR_VERSION=${MINOR_VERSION:-$2}
+RELEASE_VERSION=${RELEASE_VERSION:-$3}
+
+[ -n "$MAJOR_VERSION" ]
+[ -n "$MINOR_VERSION" ]
+[ -n "$RELEASE_VERSION" ]
+
+VERSION=$MAJOR_VERSION.$MINOR_VERSION.$RELEASE_VERSION
+PROTOCOL=http
+STAGING_SITE=community.nuxeo.com/static/drive-tests
+PROD_SITE=community.nuxeo.com/static/drive-prod
+#PROD_SITE=community.nuxeo.com/static/drive
+SCP_STRING=nuxeo@styx.nuxeo.com:/var/www
+APP_NAME=nuxeo-drive
+OSX_UPDATE_APP_NAME="Nuxeo\ Drive"
+
+echo Deploying Nuxeo Drive $VERSION from $PROTOCOL://$STAGING_SITE to $PROTOCOL://$PROD_SITE
+scp "$SCP_STRING/$STAGING_SITE/$VERSION.json" $SCP_STRING/$PROD_SITE
+scp "$SCP_STRING/$STAGING_SITE/$APP_NAME-$VERSION"* $SCP_STRING/$PROD_SITE
+scp "$SCP_STRING/$STAGING_SITE/$OSX_UPDATE_APP_NAME-$VERSION."* $SCP_STRING/$PROD_SITE
+
+
