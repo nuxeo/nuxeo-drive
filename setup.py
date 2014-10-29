@@ -227,10 +227,10 @@ class NuxeoDriveAttributes(object):
         return None
 
     def get_gpl_licence(self):
-        license = open('LICENSE.txt').read().replace('\n','\\line')
+        license_ = open('LICENSE.txt').read().replace('\n', '\\line')
         return '{\\rtf1\\ansi\\ansicpg1252\\deff0\\deftab720{'\
                 '\\fonttbl{\\f0\\froman\\fprq2 Times New Roman;}}'\
-                '{\\colortbl\\red0\\green0\\blue0;}'+license+'}'
+                '{\\colortbl\\red0\\green0\\blue0;}' + license_ + '}'
 
 
 class NuxeoDriveSetup(object):
