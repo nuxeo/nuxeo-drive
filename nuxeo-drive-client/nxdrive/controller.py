@@ -1083,13 +1083,17 @@ class Controller(object):
         # Download file to edit locally in "Locally Edited" folder
         doc_client = self.get_remote_doc_client(sb, repository=repo)
         # URL encode filename if not the case, which happens when it is parsed
-        # from an URL sent by Internet Explorer...
-        # If URL contains no special characters then has no effect.
-        if '%' not in filename:
-            filename = urllib2.quote(filename)
-        doc_url = (server_url + 'nxbigfile/' + repo + '/' + doc_id + '/'
-                   + 'blobholder:0/' + filename)
+        # from an URL sent by Internet Explorer.
+        # Note that Chrome under OS X can send some partially encoded URL
+        # strings, encoding accents but not whitespaces...
+        # Thus we need to URL decode the filename first.
         unquoted_filename = urllib2.unquote(filename)
+        quoted_filename = urllib2.quote(unquoted_filename)
+        log.debug('Local edition: filename = %s, unquoted filename = %s,'
+                  ' quoted filename = %s', filename, unquoted_filename,
+                  quoted_filename)
+        doc_url = (server_url + 'nxbigfile/' + repo + '/' + doc_id + '/'
+                   + 'blobholder:0/' + quoted_filename)
         decoded_filename = unquoted_filename.decode('utf-8')
         _, os_path, name = local_client.get_new_file(locally_edited_path,
                                                      decoded_filename)
