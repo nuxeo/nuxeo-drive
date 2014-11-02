@@ -867,7 +867,7 @@ class Synchronizer(object):
                                 doc_pair.remote_ref, new_os_path,
                                 parent_fs_item_id=doc_pair.remote_parent_ref)
                 # Ignore the next delete event
-                log.debug("Ignore next deleteEvent on %s", os_path)
+                log.trace("Ignore next deleteEvent on %s", os_path)
                 conflicted_changes.append(os_path)
                 # Delete original file and rename tmp file
                 local_client.delete(doc_pair.local_path)

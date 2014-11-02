@@ -255,17 +255,17 @@ class LocalClient(BaseClient):
                 try:
                     send2trash(self._abspath(new_ref)[4:])
                 except:
-                    log.info('Cant use trash for ' + os_path
+                    log.debug('Cant use trash for ' + os_path
                                  + ', delete it')
                     self.delete_final(new_ref)
                 return
             else:
                 os_path = os_path[4:]
-        log.info('Send ' + os_path + ' to trash')
+        log.trace('Send ' + os_path + ' to trash')
         try:
             send2trash(os_path)
         except:
-            log.info('Cant use trash for ' + os_path
+            log.debug('Cant use trash for ' + os_path
                                  + ', delete it')
             self.delete_final(ref)
         finally:
