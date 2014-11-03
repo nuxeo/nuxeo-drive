@@ -337,7 +337,7 @@ class NuxeoDriveSetup(object):
             sys.path.append(attribs.get_path_append())
 
             executables = [cx_Executable(script)]
-
+            freeze_options = dict()
             if sys.platform == "win32":
                 # Windows GUI program that can be launched without a cmd
                 # console
@@ -354,14 +354,15 @@ class NuxeoDriveSetup(object):
                                       base="Win32GUI", icon=icon,
                                       shortcutDir="ProgramMenuFolder",
                                       shortcutName=attribs.shortcutName()))
+                freeze_options.update({'attribs': attribs})
 
             package_data = {}
             esky_app_name = (attribs.get_name()
                              + '-' + version + '.' + get_platform())
             esky_dist_dir = os.path.join(OUTPUT_DIR, esky_app_name)
-            freeze_options = dict(
-                executables=executables,
-                options={
+            freeze_options.update({
+                'executables': executables,
+                'options': {
                     "build": {
                         "exe_command": "bdist_esky",
                     },
@@ -397,7 +398,7 @@ class NuxeoDriveSetup(object):
                             attribs.get_uid(),
                     },
                 },
-            )
+            })
 
         if sys.platform == 'darwin':
             # Under OSX we use py2app instead of cx_Freeze because we need:
@@ -449,7 +450,6 @@ class NuxeoDriveSetup(object):
             scripts=scripts,
             long_description=attribs.get_long_description(),
             data_files=data_files,
-            attribs=attribs,
             **freeze_options
         )
 
