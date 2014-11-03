@@ -59,11 +59,12 @@ class install(cx_install):
 
 if sys.platform == 'win32':
     from cx_Freeze.windist import bdist_msi as cx_bdist_msi
-    
+
     class bdist_msi(cx_bdist_msi):
         attribs = None
+
         def finalize_options(self):
-            name = self.distribution.get_name()
+            self.distribution.get_name()
             if self.initial_target_dir is None:
                 if distutils.util.get_platform() == "win-amd64":
                     programFilesFolder = "ProgramFiles64Folder"
@@ -85,28 +86,31 @@ if sys.platform == 'win32':
             import msilib
             msilib.add_data(self.db, 'InstallUISequence',
                 [("LicenceDialog", None, 380)])
-            dialog = distutils.command.bdist_msi.PyDialog(self.db, "LicenceDialog",
+            dialog = distutils.command.bdist_msi.PyDialog(self.db,
+                                                          "LicenceDialog",
                     self.x, self.y, self.width, self.height, self.modal,
                     self.title, "Next", "Next", "Cancel")
             dialog.text("LicenseTitle", 15, 10, 320, 20, 0x3, "License")
-            text = dialog.control("License", "ScrollableText",
+            dialog.control("License", "ScrollableText",
                                   15, 30, 340, 200, 0x7, None,
                                     self.get_license(), None, None)
-            c = dialog.control("LicenseAccepted", "CheckBox",
+            dialog.control("LicenseAccepted", "CheckBox",
                                15, 240, 320, 20, 0x3,
-                               "LicenseAccepted", "I've accepted this agreement", None, None)
+                               "LicenseAccepted",
+                               "I've accepted this agreement", None, None)
             button = dialog.cancel("Cancel", "Next")
             button.event("EndDialog", "Exit")
             button = dialog.next("Next", "Cancel", active=False)
-            button.condition("Enable","LicenseAccepted")
-            button.condition("Disable","not LicenseAccepted")
+            button.condition("Enable", "LicenseAccepted")
+            button.condition("Disable", "not LicenseAccepted")
             button.event("EndDialog", "Return")
 
         def add_exit_dialog(self):
             import msilib
             if self.get_license() is not None:
                 self.add_licence_dialog()
-            dialog = distutils.command.bdist_msi.PyDialog(self.db, "ExitDialog",
+            dialog = distutils.command.bdist_msi.PyDialog(self.db,
+                                                          "ExitDialog",
                     self.x, self.y, self.width, self.height, self.modal,
                     self.title, "Finish", "Finish", "Finish")
             dialog.title("Completing the [ProductName]")
@@ -121,7 +125,8 @@ if sys.platform == 'win32':
             # Launch product checkbox
             c = dialog.control("LaunchAfterInstall", "CheckBox",
                                15, 200, 320, 20, 0x3,
-                               "StartClient", "Launch [ProductName]", None, None)
+                               "StartClient", "Launch [ProductName]",
+                               None, None)
             c.condition("Hide", 'Progress1<>"Install"')
             # 18 is for execute a .exe from install
             msilib.add_data(self.db, "CustomAction", [("LaunchNuxeoDrive", 82,
@@ -134,7 +139,8 @@ if sys.platform == 'win32':
                                                        "uninstall")])
             msilib.add_data(self.db, "InstallExecuteSequence",
                             [("NuxeoDriveCleanUp",
-                              'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE', 1260)])
+                              'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE',
+                              1260)])
 
 
 # Override cx_Freeze setup to override build and install commands.
