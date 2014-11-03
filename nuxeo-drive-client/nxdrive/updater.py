@@ -365,16 +365,37 @@ class AppUpdater:
             except Exception as e:
                 raise UpdateError(e)
 
-    def _do_update(self, version):
+    def _update_callback(self, status):
+        if "received" in status and "size" in status:
+            self.action.progress = (status["received"] * 100 / status["size"])
+
+    def _do_update_thread(self, version):
         log.info("Starting application update process")
         log.info("Fetching version %s from update site %s", version,
                       self.update_site)
-        self.esky_app.fetch_version(version)
+        self.esky_app.fetch_version(version, self._update_callback)
+        self.action.progress = None
+        self.action.type = "Installing %s version" % version
         log.info("Installing version %s", version)
         self.esky_app.install_version(version)
+        self.action.type = "Reinitializing"
         log.debug("Reinitializing Esky internal state")
         self.esky_app.reinitialize()
         log.info("Ended application update process")
+        self.action.finish_action()
+
+    def _do_update(self, version):
+        from nxdrive.activity import Action
+        from nxdrive.gui.progress_dialog import ProgressDialog
+        from threading import Thread
+        update_thread = Thread(target=self._do_update_thread,
+                               args=[version])
+        update_thread.start()
+        self.action = Action("Downloading %s version" % version,
+                                threadId=update_thread.ident)
+        self.action.progress = 0
+        progressDlg = ProgressDialog(self.action)
+        progressDlg.exec_()
 
     def cleanup(self, version):
         log.info("Uninstalling version %s", version)
