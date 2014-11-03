@@ -12,8 +12,9 @@ See [latest documentation](https://virtualenv.pypa.io/en/latest/).
 
     sudo pip install virtualenv
     virtualenv ENV
-    cp /usr/lib/python2.7/dist-packages/PyQt4 ENV/lib/python2.7/site-packages
+    cp -r /usr/lib/python2.7/dist-packages/PyQt4 ENV/lib/python2.7/site-packages
     cp /usr/lib/python2.7/dist-packages/sip.so ENV/lib/python2.7/site-packages
+    cp -r /usr/local/lib/python2.7/dist-packages/cx_Freeze ENV/lib/python2.7/site-packages/
     source ENV/bin/activate
 
 ### Installing requirements with pip
