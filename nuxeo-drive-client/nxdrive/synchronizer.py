@@ -535,7 +535,7 @@ class Synchronizer(object):
             return child_pair
 
         # Could not find any pair state to align to, create one
-        # XXX Should be tagued as locally created
+        # XXX Should be tagged as locally created
         child_pair = LastKnownState(parent_pair.local_folder,
                 local_info=child_info)
         session.add(child_pair)
