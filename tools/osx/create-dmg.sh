@@ -30,7 +30,7 @@ codesign -s "$SIGNING_IDENTITY" "$PACKAGE_PATH" -v
 # Verify code signature
 codesign -vv "$PACKAGE_PATH"
 codesign -d -vvv "$PACKAGE_PATH"
-spctl --assess --type execute "$PACKAGE_PATH" --verbose
+spctl --assess --type execute "$PACKAGE_PATH" -vv
 
 # Clean tmp directories
 rm -rf "$SRC_FOLDER_TEMP" "$DMG_TEMP"
