@@ -1104,8 +1104,12 @@ class Synchronizer(object):
         local_client, remote_client, local_info, remote_info):
         if doc_pair.local_digest == doc_pair.remote_digest:
             # Note: this also handles folders
-            log.debug('Automated conflict resolution using digest for %s',
-                doc_pair.get_local_abspath())
+            if doc_pair.folderish:
+                log.debug('Automated conflict resolution using name for %s',
+                          doc_pair.get_local_abspath())
+            else:
+                log.debug('Automated conflict resolution using digest for %s',
+                          doc_pair.get_local_abspath())
             doc_pair.update_state('synchronized', 'synchronized')
         else:
             new_local_name = remote_client.conflicted_name(
