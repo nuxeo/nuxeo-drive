@@ -1043,8 +1043,9 @@ class Synchronizer(object):
         doc_pair.update_state('synchronized', 'synchronized')
 
     def handle_readonly(self, local_client, doc_pair):
-        # Only use readonly on file for win32
-        if doc_pair.folderish and os.sys.platform == 'win32':
+        # Don't use readonly on folder for win32 and on Locally Edited
+        if (doc_pair.folderish and os.sys.platform == 'win32'
+            or self.is_locally_edited_folder(doc_pair)):
             return
         if doc_pair.is_readonly():
             local_client.set_readonly(doc_pair.local_path)
@@ -2223,6 +2224,9 @@ class Synchronizer(object):
             del observer
         # Reinitialize list of observers
         self.observers = []
+
+    def is_locally_edited_folder(self, doc_pair):
+        return doc_pair.local_path.endswith(LOCALLY_EDITED_FOLDER_NAME)
 
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 
