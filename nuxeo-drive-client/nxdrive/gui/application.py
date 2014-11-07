@@ -167,6 +167,10 @@ class Application(QApplication):
         # Used by extended application to inject version finder
         return update_url
 
+    def get_updater(self, version_finder):
+        # Enable the capacity to extend the AppUpdater
+        return AppUpdater(version_finder)
+
     def refresh_update_status(self):
         # TODO: first read update site URL from local configuration
         # See https://jira.nuxeo.com/browse/NXP-14403
@@ -190,8 +194,8 @@ class Application(QApplication):
             if self.updater is None:
                 # Build application updater if it doesn't exist
                 try:
-                    self.updater = AppUpdater(version_finder=self.\
-                                              get_version_finder(update_url))
+                    self.updater = self.get_updater(
+                                        self.get_version_finder(update_url))
                 except Exception as e:
                     log.warning(e)
                     return
