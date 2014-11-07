@@ -46,7 +46,7 @@ in a dedicated section below.
 
 Use pip_ to grab all the dev dependencies and tools at once::
 
-  sudo pip install -r requirements.txt
+  pip install --user -r requirements.txt
 
 To run the Nuxeo Drive client from your source folder use the following settings::
 
@@ -68,7 +68,7 @@ To run the tests, install and start a nuxeo server locally, then::
 ``LaunchServices`` API for registering the Nuxeo Drive folder in the OS X
 Finder favorite list (a.k.a. "Places")::
 
-  sudo pip install PyObjC
+  pip install PyObjC
 
 WARNING: this will download many large dependencies and sometimes the remote
 server will timeout on some of them: you might need to re-run this command
@@ -78,7 +78,7 @@ Then install Qt and PyQt for graphical user interface (see below).
 
 **Under OS X** you need to install ``PyCrypto`` used for the HTTP proxy password encryption::
 
-  sudo easy_install PyCrypto
+  easy_install PyCrypto
 
 
 Nuxeo Drive Client under Windows
@@ -191,7 +191,7 @@ First you need to make sure that the brew installed Python will be used when ins
 
 Then install PyQt with Homebrew::
 
-  sudo brew install pyqt
+  brew install pyqt
 
 In this case and if you installed a standalone version of Python with Homebrew (recommended), you
 might need to symlink the binary install of PyQt to the ``site-packages``
@@ -246,8 +246,8 @@ section below first.
 
 Then install ``py2app`` along with the dependencies::
 
-  sudo pip install py2app
-  sudo pip install -r requirements.txt
+  pip install py2app
+  pip install --user -r requirements.txt
 
 Then run::
 
