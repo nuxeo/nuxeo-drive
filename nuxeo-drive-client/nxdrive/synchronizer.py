@@ -261,6 +261,7 @@ class Synchronizer(object):
         self.local_changes = []
         self.observers = []
         self._controller = controller
+        self.previous_time = None
         self._frontend = None
         self.page_size = (page_size if page_size is not None
                           else self.default_page_size)
@@ -1573,13 +1574,34 @@ class Synchronizer(object):
         self._controller.init_recently_modified()
 
         update_check_time = time()
-        previous_time = time()
         session = self.get_session()
         loop_count = 0
         try:
             while True:
                 try:
                     n_synchronized = 0
+                    # Safety net to ensure that Nuxeo Drive won't eat all the
+                    # CPU, disk and network resources of the machine scanning
+                    # over an over the bound folders too often.
+                    current_time = time()
+                    if self.previous_time is not None:
+                        spent = current_time - self.previous_time
+                        sleep_time = delay - spent
+                        if sleep_time > 0 and n_synchronized == 0:
+                            log.debug("Sleeping %0.3fs", sleep_time)
+                            if self._frontend is not None:
+                                self._frontend.notify_sync_asleep()
+                            while (sleep_time > 0):
+                                if sleep_time < 1:
+                                    sleep(sleep_time)
+                                else:
+                                    sleep(1)
+                                sleep_time -= 1
+                                self.check_suspended("Suspend during pause")
+                            if self._frontend is not None:
+                                self._frontend.notify_sync_woken_up()
+                    self.previous_time = time()
+
                     # Check if synchronization thread was suspended
                     self.check_suspended('Main synchronization loop')
                     # Check if synchronization thread was asked to stop
@@ -1601,26 +1623,6 @@ class Synchronizer(object):
                                 sb, session=session,
                                 max_sync_step=max_sync_step)
 
-                    # Safety net to ensure that Nuxeo Drive won't eat all the
-                    # CPU, disk and network resources of the machine scanning
-                    # over an over the bound folders too often.
-                    current_time = time()
-                    spent = current_time - previous_time
-                    sleep_time = delay - spent
-                    if sleep_time > 0 and n_synchronized == 0:
-                        log.debug("Sleeping %0.3fs", sleep_time)
-                        if self._frontend is not None:
-                            self._frontend.notify_sync_asleep()
-                        while (sleep_time > 0):
-                            if sleep_time < 1:
-                                sleep(sleep_time)
-                            else:
-                                sleep(1)
-                            sleep_time -= 1
-                            self.check_suspended("Suspend during pause")
-                        if self._frontend is not None:
-                            self._frontend.notify_sync_woken_up()
-                    previous_time = time()
                     loop_count += 1
 
                     # Force a commit here to refresh the visibility of any
