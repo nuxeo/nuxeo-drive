@@ -479,16 +479,11 @@ class Synchronizer(object):
 
         if doc_pair.local_path is not None:
             # Delete descendants first
-            children = session.query(LastKnownState).filter_by(
-                local_folder=doc_pair.local_folder,
-                local_parent_path=doc_pair.local_path).all()
-            for child in children:
-                self._mark_unknown_local_recursive(session, child)
-
-            # Update the state of the parent it-self
-            if doc_pair.pair_state == 'unsynchronized':
-                log.debug("Unmarking %r as unsynchronized", doc_pair)
-                doc_pair.pair_state = 'unknown'
+            session.query(LastKnownState).filter(
+                            LastKnownState.local_parent_path.like(
+                            doc_pair.local_path + '%')).update(
+                            {'pair_state': 'unknown'},
+                            synchronize_session=False)
 
     def _scan_local_new_file(self, session, child_name, child_info,
                              parent_pair):
@@ -649,7 +644,7 @@ class Synchronizer(object):
             doc_pair.update_remote(None)
 
     def _scan_remote_recursive(self, session, client, doc_pair, remote_info,
-        force_recursion=True):
+        force_recursion=True, mark_unknown=True):
         """Recursively scan the bound remote folder looking for updates
 
         If force_recursion is True, recursion is done even on
@@ -674,7 +669,8 @@ class Synchronizer(object):
         # recursively unmark its local descendants as 'unsynchronized'
         # by marking them as 'unknown'.
         # This is needed to synchronize unsynchronized items back.
-        self._mark_unknown_local_recursive(session, doc_pair)
+        if mark_unknown:
+            self._mark_unknown_local_recursive(session, doc_pair)
 
         # Detect recently deleted children
         children_info = client.get_children_info(remote_info.uid)
@@ -697,7 +693,7 @@ class Synchronizer(object):
 
             if new_pair or force_recursion:
                 self._scan_remote_recursive(session, client, child_pair,
-                                        child_info)
+                                        child_info, mark_unknown=False)
         # Delete remaining
         for deleted in children.values():
             self._mark_deleted_remote_recursive(session, deleted)
