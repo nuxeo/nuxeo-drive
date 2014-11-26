@@ -1,5 +1,3 @@
-import time
-
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
@@ -127,17 +125,18 @@ class TestIntegrationPermissionHierarchy(IntegrationTestCase):
                 user="nuxeoDriveTestUser_user_2",
                 permission="ReadWrite",
                 grant="true")
+            # Make the synchronizer handle events one by one
+            self._synchronize(syn_1)
 
             # Register test folder as a sync root for user2
             user2_remote_client.register_as_root(test_folder_path)
-
-            # Wait for a while:
-            time.sleep(2.0)
+            # Make the synchronizer handle events one by one
+            self._synchronize(syn_1)
 
             # Delete test folder
             user1_remote_client.delete(test_folder_path)
 
-            # Synchronize
+            # Synchronize deletion
             self._synchronize(syn_1)
             # Check locally synchronized content
             self.assertFalse(local_client_1.exists('/My Docs/test_folder'))
