@@ -1723,6 +1723,13 @@ class Synchronizer(object):
             doc_pair = session.query(LastKnownState).filter_by(
                 local_folder=server_binding.local_folder,
                 remote_ref=remote_ref).first()
+            if doc_pair is None:
+                # Relax constraint on factory name in FileSystemItem id to
+                # match 'deleted' or 'securityUpdated' events.
+                # See https://jira.nuxeo.com/browse/NXDRIVE-167
+                doc_pair = session.query(LastKnownState).filter(
+                    LastKnownState.local_folder == server_binding.local_folder,
+                    LastKnownState.remote_ref.endswith(remote_ref)).first()
             fs_item = change.get('fileSystemItem')
             new_info = client.file_to_info(fs_item) if fs_item else None
 
