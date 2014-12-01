@@ -38,8 +38,7 @@ from nxdrive.utils import ENCODING
 from nxdrive.utils import deprecated
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
-from nxdrive.utils import encrypt
-from nxdrive.utils import decrypt
+from nxdrive.utils import ControllerCipher
 from nxdrive.migration import migrate_db
 from nxdrive.activity import FileAction
 from nxdrive.utils import PidLockFile
@@ -333,14 +332,7 @@ class Controller(object):
         """Fetch proxy settings from database"""
         dc = (self.get_device_config() if device_config is None
               else device_config)
-        # Decrypt password with token as the secret
-        token = self.get_first_token()
-        if dc.proxy_password is not None and token is not None:
-            password = decrypt(dc.proxy_password, token)
-        else:
-            # If no server binding or no token available
-            # (possibly after token revocation) reset password
-            password = ''
+        password = ControllerCipher(self).decrypt(dc.proxy_password)
         return ProxySettings(config=dc.proxy_config,
                                        proxy_type=dc.proxy_type,
                                        server=dc.proxy_server,
@@ -361,13 +353,8 @@ class Controller(object):
         device_config.proxy_exceptions = proxy_settings.exceptions
         device_config.proxy_authenticated = proxy_settings.authenticated
         device_config.proxy_username = proxy_settings.username
-        # Encrypt password with token as the secret
-        token = self.get_first_token(session)
-        if token is None:
-            raise MissingToken("Your token has been revoked,"
-                        " please update your password to acquire a new one.")
-        password = encrypt(proxy_settings.password, token)
-        device_config.proxy_password = password
+        device_config.proxy_password = \
+                    ControllerCipher(self).encrypt(proxy_settings.password)
 
         session.commit()
         log.info("Proxy settings successfully updated: %r", proxy_settings)

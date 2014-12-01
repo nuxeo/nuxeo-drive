@@ -1,6 +1,9 @@
 import sys
 import unittest
 from nxdrive.utils import guess_mime_type
+from nxdrive.utils import ControllerCipher
+from nxdrive.tests.mocks_for_unit_tests import MockController
+
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -125,3 +128,28 @@ class UtilsTestCase(unittest.TestCase):
                           'application/vnd.oasis.opendocument.spreadsheet')
             self.assertEquals(guess_mime_type('office.odp'),
                           'application/vnd.oasis.opendocument.presentation')
+
+
+class ControllerCipherTest(unittest.TestCase):
+    def setUp(self):
+        super(ControllerCipherTest, self).setUp()
+        self.controller = MockController()
+
+    def tearDown(self):
+        super(ControllerCipherTest, self).tearDown()
+        self.cmdline = None
+
+    def test_happy_path(self):
+        """Test the class in its happy path"""
+        pp = ControllerCipher(self.controller)
+        encryptedp = pp.encrypt('halellujah')
+        decryptedp = pp.decrypt(encryptedp)
+        self.assertEqual(decryptedp, 'halellujah')
+
+    def test_empty_password(self):
+        """Test the encrypt and decrypt with empty passwords"""
+        pp = ControllerCipher(self.controller)
+        self.assertEqual(pp.encrypt(''), '')
+        self.assertEqual(pp.encrypt(None), '')
+        self.assertEqual(pp.decrypt(''), '')
+        self.assertEqual(pp.decrypt(None), '')
