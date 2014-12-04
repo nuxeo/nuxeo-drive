@@ -11,6 +11,7 @@ import socket
 import httplib
 
 from sqlalchemy import or_
+from sqlalchemy import and_
 
 from nxdrive.client import DEDUPED_BASENAME_PATTERN
 from nxdrive.client import safe_filename
@@ -480,8 +481,9 @@ class Synchronizer(object):
         if doc_pair.local_path is not None:
             # Delete descendants first
             session.query(LastKnownState).filter(
+                            and_(LastKnownState.pair_state == "unsynchronized",
                             LastKnownState.local_parent_path.like(
-                            doc_pair.local_path + '%')).update(
+                            doc_pair.local_path + '%'))).update(
                             {'pair_state': 'unknown'},
                             synchronize_session=False)
 
