@@ -141,6 +141,8 @@ if sys.platform == 'win32':
                             [("NuxeoDriveCleanUp",
                               'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE',
                               1260)])
+            if getattr(self.attribs, 'customize_msi', None) is not None:
+                self.attribs.customize_msi(self.db)
 
 
 # Override cx_Freeze setup to override build and install commands.
