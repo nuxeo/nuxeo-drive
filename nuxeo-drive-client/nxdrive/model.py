@@ -454,64 +454,31 @@ class LastKnownState(Base):
                              " doc %r (%s)" % (
                 self, self.remote_ref, remote_info.name, remote_info.uid))
 
-        # Use last known modification time to detect updates
-        log.trace("Use last known modification time to detect updates:"
-                  " local DB, server = %r, %r",
-                  (self.last_remote_updated.strftime('%Y-%m-%d %H:%M:%S')
-                   if self.last_remote_updated else 'None'),
-                  (remote_info.last_modification_time.strftime(
-                                                    '%Y-%m-%d %H:%M:%S')
-                  if remote_info.last_modification_time else 'None'))
-        if self.last_remote_updated is None:
-            self.last_remote_updated = remote_info.last_modification_time
+        first_remote_update = self.last_remote_updated is None
+        remotely_modified = self.last_remote_updated != remote_info.last_modification_time
+        self.last_remote_updated = remote_info.last_modification_time
+        if first_remote_update:
+            # Only update last sync date in this case
             self.update_last_sync_date()
-            log.trace("last_remote_updated is None for doc %s, set it to %s"
-                      " and updated last_sync_date to %s",
-                      self.remote_name, remote_info.last_modification_time,
-                      self.last_sync_date)
-        # Here checking that the remote modification time is strictly greater
-        # than the one last updated in the DB should be fine, but in the case
-        # of a version restore, the live document takes the modification time
-        # of the version, which is necessarily (not strictly) lighter than
-        # the one of the live document before restore, therefore we use the
-        # 'not equal' predicate.
-        elif (remote_info.last_modification_time != self.last_remote_updated
-            or self.remote_parent_ref != remote_info.parent_uid):
-            # Remote update and/or rename and/or move or restore from the trash
-            log.trace("Doc %s has been either modified, renamed, moved or"
-                      " restored from the trash,"
-                      " set last_remote_updated to %s",
-                      self.remote_name, remote_info.last_modification_time)
-            self.last_remote_updated = remote_info.last_modification_time
-            modified = False
-            # Only consider a remote folder for which the modification time
-            # has changed as modified if its name or its parent has changed
-            # (rename or move)
-            if (self.folderish
-                and (self.remote_name != remote_info.name
-                     or self.remote_parent_ref != remote_info.parent_uid)):
-                log.trace("Doc %s is a folder that has been renamed or moved,"
-                          " set remote_state to 'modified'",
-                      self.remote_name)
-                modified = True
-            # Only consider a remote file for which the modification time has
-            # changed as modified in the following cases:
+        else:
+            # Only consider a remote file or folder as modified in the following cases:
             # - its name has changed (rename)
             # - its parent has changed (move)
             # - its content has changed (content update)
             # - its digest is different from the local one (can happen if
             # restored from the trash and content has been locally updated)
-            if (not self.folderish
-                and (self.remote_name != remote_info.name
-                     or self.remote_parent_ref != remote_info.parent_uid
-                     or self.remote_digest != remote_info.get_digest()
-                     or self.remote_digest != self.local_digest)):
-                log.trace("Doc %s is a file that has been renamed, moved,"
-                          " for which the content has been updated or restored"
-                          " from the trash, set remote_state to 'modified'",
-                      self.remote_name)
-                modified = True
+            renamed = self.remote_name != remote_info.name
+            moved = self.remote_parent_ref != remote_info.parent_uid
+            remotely_updated = not self.folderish and self.remote_digest != remote_info.get_digest()
+            locally_updated = (not self.folderish and remotely_modified and self.remote_digest != self.local_digest)
+            modified = renamed or moved or remotely_updated or locally_updated
             if modified:
+                if self.folderish:
+                    log.trace("Doc %s is a folder that has been renamed or moved, set remote_state to 'modified'",
+                              self.remote_name)
+                else:
+                    log.trace("Doc %s is a file that has been renamed, moved, for which the content has been updated"
+                              " or restored from the trash, set remote_state to 'modified'", self.remote_name)
                 remote_state = 'modified'
 
         # Update the remaining metadata
