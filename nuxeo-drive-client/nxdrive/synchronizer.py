@@ -17,7 +17,9 @@ from nxdrive.client import DEDUPED_BASENAME_PATTERN
 from nxdrive.client import safe_filename
 from nxdrive.client import NotFound
 from nxdrive.client import Unauthorized
+from nxdrive.client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
+from nxdrive.client.remote_file_system_client import RemoteFileInfo
 from nxdrive.model import ServerBinding
 from nxdrive.activity import Action
 from nxdrive.model import LastKnownState
@@ -1718,53 +1720,90 @@ class Synchronizer(object):
             # Check if synchronization thread was suspended
             self.check_suspended('Remote states update')
 
+            eventId = change.get('eventId')
             remote_ref = change['fileSystemItemId']
             if remote_ref in refreshed:
                 # A more recent version was already processed
                 continue
-            doc_pair = session.query(LastKnownState).filter_by(
-                local_folder=server_binding.local_folder,
-                remote_ref=remote_ref).first()
-            if doc_pair is None:
-                # Relax constraint on factory name in FileSystemItem id to
-                # match 'deleted' or 'securityUpdated' events.
-                # See https://jira.nuxeo.com/browse/NXDRIVE-167
-                doc_pair = session.query(LastKnownState).filter(
-                    LastKnownState.local_folder == server_binding.local_folder,
-                    LastKnownState.remote_ref.endswith(remote_ref)).first()
             fs_item = change.get('fileSystemItem')
             new_info = client.file_to_info(fs_item) if fs_item else None
 
-            updated = False
-            if doc_pair is not None:
-                if doc_pair.server_binding.server_url == s_url:
+            # Possibly fetch multiple doc pairs as the same doc can be synchronized at 2 places,
+            # typically if under a sync root and locally edited.
+            # See https://jira.nuxeo.com/browse/NXDRIVE-125
+            doc_pairs = session.query(LastKnownState).filter_by(
+                local_folder=server_binding.local_folder,
+                remote_ref=remote_ref).all()
+            if not doc_pairs:
+                # Relax constraint on factory name in FileSystemItem id to
+                # match 'deleted' or 'securityUpdated' events.
+                # See https://jira.nuxeo.com/browse/NXDRIVE-167
+                doc_pairs = session.query(LastKnownState).filter(
+                    LastKnownState.local_folder == server_binding.local_folder,
+                    LastKnownState.remote_ref.endswith(remote_ref)).all()
 
+            updated = False
+            if doc_pairs:
+                for doc_pair in (
+                        pair for pair in doc_pairs
+                            if pair.server_binding.server_url == s_url):
+                    doc_pair_repr = doc_pair.local_path if doc_pair.local_path is not None else doc_pair.remote_name
                     # This change has no fileSystemItem, it can be either
                     # a "deleted" event or a "securityUpdated" event
                     if fs_item is None:
-                        eventId = change.get('eventId')
                         if eventId == 'deleted':
                             log.debug("Marking doc_pair '%s' as deleted",
-                                      doc_pair.remote_name)
+                                      doc_pair_repr)
                             doc_pair.update_state(remote_state='deleted')
                         elif eventId == 'securityUpdated':
                             log.debug("Security has been updated for"
                                       " doc_pair '%s' denying Read access,"
                                       " marking it as deleted",
-                                      doc_pair.remote_name)
+                                      doc_pair_repr)
                             doc_pair.update_state(remote_state='deleted')
                         else:
                             log.debug("Unknow event: '%s'", eventId)
                     else:
-                        # Perform a regular document update on a document
-                        # that has been updated, renamed or moved
-                        log.debug("Refreshing remote state info"
-                                  " for doc_pair '%s'",
-                                  doc_pair.remote_name)
-                        eventId = change.get('eventId')
-                        self._scan_remote_recursive(session, client, doc_pair,
-                            new_info,
-                            force_recursion=eventId == "securityUpdated")
+                        remote_parent_factory = doc_pair.remote_parent_ref.split('#', 1)[0]
+                        new_info_parent_factory = new_info.parent_uid.split('#', 1)[0]
+                        # Specific cases of a move on a locally edited doc
+                        if (eventId == 'documentMoved'
+                            and remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME):
+                                # If moved from a non sync root to a sync root, break to creation case
+                                # (updated is False).
+                                # If moved from a sync root to a non sync root, break to noop
+                                # (updated is True).
+                                break
+                        elif (eventId == 'documentMoved'
+                              and new_info_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME):
+                            # If moved from a sync root to a non sync root, delete from local sync root
+                            log.debug("Marking doc_pair '%s' as deleted", doc_pair_repr)
+                            doc_pair.update_state(remote_state='deleted')
+                        else:
+                            # Make new_info consistent with actual doc pair parent path for a doc member of a
+                            # collection (typically the Locally Edited one) that is also under a sync root.
+                            # Indeed, in this case, when adapted as a FileSystemItem, its parent path will be the one
+                            # of the sync root because it takes precedence over the collection,
+                            # see AbstractDocumentBackedFileSystemItem constructor.
+                            consistent_new_info = new_info
+                            if remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME:
+                                new_info_parent_uid = doc_pair.remote_parent_ref
+                                new_info_path = (doc_pair.remote_parent_path + '/' + remote_ref)
+                                consistent_new_info = RemoteFileInfo(new_info.name, new_info.uid,
+                                                            new_info_parent_uid, new_info_path, new_info.folderish,
+                                                            new_info.last_modification_time,
+                                                            new_info.digest, new_info.digest_algorithm,
+                                                            new_info.download_url, new_info.can_rename,
+                                                            new_info.can_delete, new_info.can_update,
+                                                            new_info.can_create_child)
+                            # Perform a regular document update on a document
+                            # that has been updated, renamed or moved
+                            log.debug("Refreshing remote state info"
+                                      " for doc_pair '%s'", doc_pair_repr)
+                            eventId = change.get('eventId')
+                            self._scan_remote_recursive(session, client,
+                                doc_pair, consistent_new_info,
+                                force_recursion=(eventId == "securityUpdated"))
 
                     session.commit()
                     updated = True

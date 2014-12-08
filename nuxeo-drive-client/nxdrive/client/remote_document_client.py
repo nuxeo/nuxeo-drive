@@ -437,3 +437,8 @@ class RemoteDocumentClient(BaseAutomationClient):
         doc = self.execute("NuxeoDrive.AddToLocallyEditedCollection",
                            op_input="doc:" + self._check_ref(ref))
         return doc['uid']
+
+    def get_collection_members(self, ref):
+        docs = self.execute("Collection.GetDocumentsFromCollection",
+                           op_input="doc:" + self._check_ref(ref))
+        return [doc['uid'] for doc in docs['entries']]

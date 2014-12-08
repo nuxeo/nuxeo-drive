@@ -1043,7 +1043,8 @@ class Controller(object):
         # Find the best editor for the file according to the OS configuration
         self.open_local_file(state.get_local_abspath())
 
-    def download_edit(self, server_url, repo, doc_id, filename):
+    def download_edit(self, server_url, repo, doc_id, filename,
+                      open_file=True):
         """Locally edit document with the given id."""
 
         # Find server binding from server URL
@@ -1068,7 +1069,8 @@ class Controller(object):
             LastKnownState.remote_ref.endswith('#%s#%s' % (repo, doc_id))
         ).first()
         if doc_pair is not None:
-            self.open_local_file(doc_pair.get_local_abspath())
+            if open_file:
+                self.open_local_file(doc_pair.get_local_abspath())
             return
 
         # Create "Locally Edited" folder if not exists
@@ -1107,7 +1109,8 @@ class Controller(object):
         local_client.rename(local_client.get_path(tmp_file), name)
 
         # Find the best editor for the file according to the OS configuration
-        self.open_local_file(os_path)
+        if open_file:
+            self.open_local_file(os_path)
 
         # Add document to "Locally Edited" collection
         doc_client.add_to_locally_edited_collection(doc_id)

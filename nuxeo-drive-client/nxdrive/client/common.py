@@ -70,6 +70,8 @@ FILE_BUFFER_SIZE = 4096
 # Name of the folder holding the files locally edited from Nuxeo
 LOCALLY_EDITED_FOLDER_NAME = 'Locally Edited'
 
+COLLECTION_SYNC_ROOT_FACTORY_NAME = 'collectionSyncRootFolderItemFactory'
+
 
 def safe_filename(name, replacement=u'-'):
     """Replace invalid character in candidate filename"""
