@@ -33,6 +33,8 @@ try:
 except ImportError:
     pass  # this will never be raised under unix
 
+DEFAULT_DELAY = 30.0
+
 POSSIBLE_NETWORK_ERROR_TYPES = (
     Unauthorized,
     urllib2.URLError,
@@ -234,7 +236,7 @@ class Synchronizer(object):
     # won't happen too closely from one another.
     # TODO: make this a value returned by the server so that it can tell the
     # client to slow down when the server cannot keep up with the load
-    delay = 5
+    delay = DEFAULT_DELAY
 
     # Test delay for FS notify
     test_delay = 0

@@ -15,6 +15,7 @@ except ImportError:
     debugger = pdb
 
 from nxdrive.controller import Controller
+from nxdrive.synchronizer import DEFAULT_DELAY
 from nxdrive.daemon import daemonize
 from nxdrive.controller import default_nuxeo_drive_folder
 from nxdrive.logging_config import configure
@@ -27,7 +28,6 @@ from nxdrive import __version__
 
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
-DEFAULT_DELAY = 5.0
 DEFAULT_MAX_SYNC_STEP = 10
 DEFAULT_HANDSHAKE_TIMEOUT = 60
 DEFAULT_TIMEOUT = 20

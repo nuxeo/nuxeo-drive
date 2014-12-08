@@ -5,6 +5,7 @@ import time
 import sys
 import subprocess
 from nxdrive.synchronizer import SynchronizerThread
+from nxdrive.synchronizer import DEFAULT_DELAY
 from nxdrive.protocol_handler import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.settings import prompt_settings
@@ -649,7 +650,7 @@ class Application(QApplication):
         # thread is not already started before actually starting it
         if (not self._is_update_required()
             and not self._is_sync_thread_started()):
-            delay = getattr(self.options, 'delay', 5.0)
+            delay = getattr(self.options, 'delay', DEFAULT_DELAY)
             max_sync_step = getattr(self.options, 'max_sync_step', 10)
             update_check_delay = getattr(self.options, 'update_check_delay',
                                          3600)
