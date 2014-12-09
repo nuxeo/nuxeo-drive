@@ -19,7 +19,7 @@ class ExampleMenuProvider(GObject.GObject, Nautilus.MenuProvider):
 
     def open_metadata_view(self, menu, files):
         """Called when the user selects the menu."""
-        file_uri = urlparse.urlparse(urllib2.unquote(files[0].get_uri())).path
+        file_uri = self._get_uri_path(files[0].get_uri())
         self.drive_exec(['metadata', '--file', file_uri])
 
     def drive_exec(self, cmds):
@@ -27,3 +27,6 @@ class ExampleMenuProvider(GObject.GObject, Nautilus.MenuProvider):
         cmds.insert(0, "ndrive")
         p = subprocess.Popen(cmds, stdout=subprocess.PIPE)
         p.communicate()
+
+    def _get_uri_path(self, uri):
+        return urllib2.unquote(urlparse.urlparse(uri).path)

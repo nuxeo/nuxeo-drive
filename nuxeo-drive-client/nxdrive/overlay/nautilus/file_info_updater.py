@@ -1,4 +1,4 @@
-import urllib
+import urllib2
 import subprocess
 import urlparse
 from gi.repository import Nautilus, GObject
@@ -81,19 +81,19 @@ class NuxeoDriveFileInfoUpdater(GObject.GObject, Nautilus.InfoProvider,
     def get_drive_roots(self):
         if (len(self.driveRoots) == 0):
             # print "Getting Nuxeo Drive local folders"
-            self.driveRoots = [urllib.quote(x) for x in
+            self.driveRoots = [x for x in
                                 self.drive_exec(['local_folders', ])]
         return self.driveRoots
 
     def is_drive_root(self, file_):
-        path = urlparse.urlparse(file_.get_uri()).path
+        path = self._get_uri_path(file_.get_uri())
         if (path in self.get_drive_roots()):
             return True
         else:
             return False
 
     def is_drive_managed_file(self, file_):
-        path = urlparse.urlparse(file_.get_uri()).path
+        path = self._get_uri_path(file_.get_uri())
         for root in self.get_drive_roots():
             if (path.startswith(root)):
                 return True
@@ -102,7 +102,7 @@ class NuxeoDriveFileInfoUpdater(GObject.GObject, Nautilus.InfoProvider,
     def get_drive_managed_file_status(self, file_, uri):
         # XXX
         folder_uri = file_.get_parent_uri()
-        folder_uri = urlparse.urlparse(urllib.unquote(folder_uri)).path
+        folder_uri = self._get_uri_path(folder_uri)
 #         currentFolderUri = (self.currentFolderUri
 #                             if self.currentFolderUri is not None else '')
         # print "self.currentFolderUri = " + currentFolderUri
@@ -140,3 +140,6 @@ class NuxeoDriveFileInfoUpdater(GObject.GObject, Nautilus.InfoProvider,
         # print "Update done"
         # return False to kill the timeout !
         return False
+
+    def _get_uri_path(self, uri):
+        return urllib2.unquote(urlparse.urlparse(uri).path)
