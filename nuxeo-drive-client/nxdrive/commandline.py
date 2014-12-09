@@ -14,6 +14,7 @@ except ImportError:
     import pdb
     debugger = pdb
 
+from nxdrive.utils import normalized_path
 from nxdrive.controller import Controller
 from nxdrive.synchronizer import DEFAULT_DELAY
 from nxdrive.daemon import daemonize
@@ -529,8 +530,8 @@ class CliHandler(object):
 
     def metadata(self, options):
         from nxdrive.gui.metadata import prompt_metadata
-        print 'file = ' + options.file
-        prompt_metadata(self.controller, options.file)
+        self.log.debug('Opening metadata window for %s', options.file)
+        prompt_metadata(self.controller, normalized_path(options.file))
         return 0
 
     def edit(self, options):
