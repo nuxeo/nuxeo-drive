@@ -1,3 +1,4 @@
+import locale
 import urllib2
 import subprocess
 import urlparse
@@ -62,13 +63,6 @@ class NuxeoDriveFileInfoUpdater(GObject.GObject, Nautilus.InfoProvider,
                                      label=self.property_label,
                                      page=self.hbox),
 
-    def decode(self, uri):
-        try:
-            return urllib.unquote(uri)
-        except TypeError:
-            print "Error while processing " + uri
-            return uri.replace("%20", " ")
-
     def drive_exec(self, cmds):
         # add the ndrive command !
         cmds.insert(0, "ndrive")
@@ -86,14 +80,14 @@ class NuxeoDriveFileInfoUpdater(GObject.GObject, Nautilus.InfoProvider,
         return self.driveRoots
 
     def is_drive_root(self, file_):
-        path = self._get_uri_path(file_.get_uri())
+        path = self._decode_path(self._get_uri_path(file_.get_uri()))
         if (path in self.get_drive_roots()):
             return True
         else:
             return False
 
     def is_drive_managed_file(self, file_):
-        path = self._get_uri_path(file_.get_uri())
+        path = self._decode_path(self._get_uri_path(file_.get_uri()))
         for root in self.get_drive_roots():
             if (path.startswith(root)):
                 return True
@@ -114,7 +108,7 @@ class NuxeoDriveFileInfoUpdater(GObject.GObject, Nautilus.InfoProvider,
             self.currentFolderUri = folder_uri
         icon_set = False
         for t in self.syncStatuses:
-            if (t[0] == urllib.unquote(file_.get_name())):
+            if (t[0] == self._decode_path(file_.get_name())):
                 # filename = t[0]
                 status = t[1]
                 # print "Status of " + filename + " = " + status
@@ -143,3 +137,6 @@ class NuxeoDriveFileInfoUpdater(GObject.GObject, Nautilus.InfoProvider,
 
     def _get_uri_path(self, uri):
         return urllib2.unquote(urlparse.urlparse(uri).path)
+
+    def _decode_path(self, path):
+        return path.decode(locale.getpreferredencoding())
