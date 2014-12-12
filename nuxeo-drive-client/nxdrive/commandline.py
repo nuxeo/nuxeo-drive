@@ -610,6 +610,7 @@ class CliHandler(object):
         argv += [
             "nxdrive.tests.test_integration_concurrent_synchronization",
             "nxdrive.tests.test_commandline",
+            "nxdrive.tests.test_drive_edit",
             "nxdrive.tests.test_integration_copy",
             "nxdrive.tests.test_integration_encoding",
             "nxdrive.tests.test_integration_local_client",
