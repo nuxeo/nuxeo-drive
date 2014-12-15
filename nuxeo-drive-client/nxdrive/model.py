@@ -220,6 +220,9 @@ class LastKnownState(Base):
     remote_can_create_child = Column(Integer)
     error_count = Column(Integer, default=0)
 
+    # Last contributor
+    last_remote_modifier = Column(String)
+
     # Last sync date
     last_sync_date = Column(DateTime)
 
