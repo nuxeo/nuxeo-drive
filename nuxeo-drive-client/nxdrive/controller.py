@@ -639,8 +639,7 @@ class Controller(object):
                 # create the local folder and the top level state. This can be
                 # the case when initializing the DB manually with a SQL script.
                 try:
-                    session.query(LastKnownState).filter_by(local_path='/',
-                                            local_folder=local_folder).one()
+                    self.get_top_level_state(local_folder, session=session)
                 except NoResultFound:
                     self._make_local_folder(local_folder)
                     self._add_top_level_state(server_binding, session)
@@ -690,6 +689,10 @@ class Controller(object):
         # The root should also be sync
         state.update_state('synchronized', 'synchronized')
         session.add(state)
+
+    def get_top_level_state(self, local_folder, session=None):
+        session = session if session is not None else self.get_session()
+        return session.query(LastKnownState).filter_by(local_path='/', local_folder=local_folder).one()
 
     def _make_local_folder(self, local_folder):
         if not os.path.exists(local_folder):

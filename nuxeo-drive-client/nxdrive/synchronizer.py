@@ -611,9 +611,7 @@ class Synchronizer(object):
         self._notify_refreshing(server_binding)
 
         if from_state is None:
-            from_state = session.query(LastKnownState).filter_by(
-                local_path='/', local_folder=server_binding.local_folder).one()
-
+            from_state = self._controller.get_top_level_state(server_binding.local_folder, session=session)
         try:
             client = self.get_remote_fs_client(from_state.server_binding)
             remote_info = client.get_info(from_state.remote_ref)
@@ -2100,8 +2098,7 @@ class Synchronizer(object):
                     # Handle creation of "Locally Edited" folder and its
                     # children
                     if name == LOCALLY_EDITED_FOLDER_NAME:
-                        root_pair = session.query(LastKnownState).filter_by(
-                            local_path='/', local_folder=local_folder).one()
+                        root_pair = self._controller.get_top_level_state(local_folder, session=session)
                         doc_pair = self._scan_local_new_file(session, name,
                                                     local_info, root_pair)
                     elif parent_path.endswith(LOCALLY_EDITED_FOLDER_NAME):
