@@ -243,6 +243,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             # no millisecond?
             last_update = datetime.strptime(doc['lastModified'],
                                             "%Y-%m-%dT%H:%M:%SZ")
+        lastContributor = props['dc:lastContributor']
 
         # TODO: support other main files
         if folderish:
@@ -267,7 +268,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             name = unicodedata.normalize('NFC', name)
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
-            doc['path'], folderish, last_update, doc['dc:lastContributor'],
+            doc['path'], folderish, last_update, lastContributor,
             digest, self.repository, doc['type'])
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
