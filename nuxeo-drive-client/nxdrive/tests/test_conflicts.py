@@ -35,6 +35,7 @@ class TestConflicts(IntegrationTestCase):
         # Update content on both sides by the same user, remote last
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/test.txt', 'Local update')
+        time.sleep(1.0)
         remote.update_content(self.file_id, 'Remote update')
         self._sync(syn, max_loops=2)
 
