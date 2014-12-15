@@ -3,6 +3,7 @@ import time
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
+from nose.plugins.skip import SkipTest
 
 
 class TestConflicts(IntegrationTestCase):
@@ -17,8 +18,11 @@ class TestConflicts(IntegrationTestCase):
 
     def test_self_conflict(self):
         ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
+        sb = ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
+        if not ctl.get_top_level_state(self.local_nxdrive_folder_1).last_remote_modifier:
+            raise SkipTest("Self-conflict automatic resolution not implemented in Nuxeo Platform %s"
+                           % sb.server_version)
         local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
                                          self.workspace_title))
         remote = self.remote_file_system_client_1
