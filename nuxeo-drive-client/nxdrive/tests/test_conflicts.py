@@ -104,7 +104,7 @@ class TestConflicts(IntegrationTestCase):
         self.assertTrue(child2.name.startswith('test (%s' % self.user_1))
         self.assertEquals(remote.get_content(child2.uid), 'Local update')
 
-        # Update content on both sides, local last
+        # Update content on both sides by different users, local last
         remote.update_content(self.file_id, 'Remote update 2')
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/test.txt', 'Local update 2')
