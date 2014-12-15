@@ -1114,23 +1114,34 @@ class Synchronizer(object):
                           doc_pair.get_local_abspath())
             doc_pair.update_state('synchronized', 'synchronized')
         else:
-            new_local_name = remote_client.conflicted_name(
-                doc_pair.local_name)
-            path = doc_pair.get_local_abspath()
-            # Ignore the next move event on this file (replace it by creation)
-            conflicted_changes.append(os.path.join(os.path.dirname(path),
-                                                        new_local_name))
-            log.debug('Conflict being handled by renaming local "%s" to "%s"',
-                      doc_pair.local_name, new_local_name)
+            # Automatically resolve a self-conflict
+            if doc_pair.last_remote_modifier == doc_pair.server_binding.remote_user:
+                # Remote update performed last, mark as remotely modified
+                if doc_pair.last_remote_updated > doc_pair.last_local_updated:
+                    self._synchronize_remotely_modified(doc_pair, session,
+                    local_client, remote_client, local_info, remote_info)
+                else:
+                    # Local update performed last, mark as locally modified
+                    self._synchronize_locally_modified(doc_pair, session,
+                    local_client, remote_client, local_info, remote_info)
+            else:
+                new_local_name = remote_client.conflicted_name(
+                    doc_pair.local_name)
+                path = doc_pair.get_local_abspath()
+                # Ignore the next move event on this file (replace it by creation)
+                conflicted_changes.append(os.path.join(os.path.dirname(path),
+                                                            new_local_name))
+                log.debug('Conflict being handled by renaming local "%s" to "%s"',
+                          doc_pair.local_name, new_local_name)
 
-            # Let's rename the file
-            # The new local item will be detected as a creation and
-            # synchronized by the next iteration of the sync loop
-            local_client.rename(doc_pair.local_path, new_local_name)
+                # Let's rename the file
+                # The new local item will be detected as a creation and
+                # synchronized by the next iteration of the sync loop
+                local_client.rename(doc_pair.local_path, new_local_name)
 
-            # Let the remote win as if doing a regular creation
-            self._synchronize_remotely_created(doc_pair, session,
-                local_client, remote_client, local_info, remote_info)
+                # Let the remote win as if doing a regular creation
+                self._synchronize_remotely_created(doc_pair, session,
+                    local_client, remote_client, local_info, remote_info)
 
     def _synchronize_unknown_deleted(self, doc_pair, session,
         local_client, remote_client, local_info, remote_info):
