@@ -39,7 +39,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             self.workspace_id)
         self.assertFalse(info.folderish)
         if info.last_contributor:
-            self.assertEquals(info.last_contributor, 'nuxeoDriveTestUser_1')
+            self.assertEquals(info.last_contributor, 'nuxeoDriveTestUser_user_1')
         digest_algorithm = info.digest_algorithm
         self.assertEquals(digest_algorithm, 'md5')
         digest = self._get_digest(digest_algorithm, "Content of doc 1.")
@@ -59,7 +59,7 @@ class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
             self.workspace_id)
         self.assertTrue(info.folderish)
         if info.last_contributor:
-            self.assertEquals(info.last_contributor, 'nuxeoDriveTestUser_1')
+            self.assertEquals(info.last_contributor, 'nuxeoDriveTestUser_user_1')
         self.assertTrue(info.digest_algorithm is None)
         self.assertTrue(info.digest is None)
         self.assertTrue(info.download_url is None)
