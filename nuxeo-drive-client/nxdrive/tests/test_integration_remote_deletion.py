@@ -118,7 +118,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         # Get local and remote clients
         local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
                                          self.workspace_title))
-        remote = self.remote_document_client_1
+        remote = self.remote_document_client_2
 
         # Create documents in the remote root workspace
         # then synchronize

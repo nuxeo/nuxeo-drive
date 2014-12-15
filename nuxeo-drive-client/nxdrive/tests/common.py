@@ -226,7 +226,7 @@ class IntegrationTestCase(unittest.TestCase):
         remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
 
-    def init_default_drive(self):
+    def init_default_drive(self, local_user=1, remote_user=1):
         # Bind the server and root workspace
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
@@ -240,9 +240,16 @@ class IntegrationTestCase(unittest.TestCase):
         syn.loop(delay=0.1, max_loops=1)
 
         # Get local and remote clients
-        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
+        if local_user == 1:
+            local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
                                          self.workspace_title))
-        remote = self.remote_document_client_1
+        else:
+            local = LocalClient(os.path.join(self.local_nxdrive_folder_2,
+                                         self.workspace_title))
+        if remote_user == 1:
+            remote = self.remote_document_client_1
+        else:
+            remote = self.remote_document_client_2
         return syn, local, remote
 
     def wait(self):

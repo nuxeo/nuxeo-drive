@@ -11,7 +11,7 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
 
     def setUp(self):
         super(TestIntegrationReinitDatabase, self).setUp()
-        self.syn, self.local, self.remote = self.init_default_drive()
+        self.syn, self.local, self.remote = self.init_default_drive(local_user=1, remote_user=2)
         self.ctl = self.controller_1
         # Make a folder and a file
         self.remote.make_folder('/', 'Test folder')
