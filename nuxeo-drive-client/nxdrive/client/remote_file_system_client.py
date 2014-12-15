@@ -23,6 +23,7 @@ BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
     'path',  # abstract file system path: useful for ordering folder trees
     'folderish',  # True is can host children
     'last_modification_time',  # last update time
+    'last_contributor',  # last contributor
     'digest',  # digest of the file
     'digest_algorithm',  # digest algorithm of the file
     'download_url',  # download URL of the file
@@ -182,6 +183,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         folderish = fs_item['folder']
         milliseconds = fs_item['lastModificationDate']
         last_update = datetime.fromtimestamp(milliseconds // 1000)
+        last_contributor = fs_item.get('lastContributor')
 
         if folderish:
             digest = None
@@ -202,7 +204,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
             name = unicodedata.normalize('NFC', name)
         return RemoteFileInfo(
             name, fs_item['id'], fs_item['parentId'],
-            fs_item['path'], folderish, last_update, digest, digest_algorithm,
+            fs_item['path'], folderish, last_update, last_contributor, digest, digest_algorithm,
             download_url, fs_item['canRename'], fs_item['canDelete'],
             can_update, can_create_child)
 

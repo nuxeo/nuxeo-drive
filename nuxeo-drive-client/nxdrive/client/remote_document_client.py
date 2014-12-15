@@ -34,6 +34,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'path',  # remote path (useful for ordering)
     'folderish',  # True is can host child documents
     'last_modification_time',  # last update time
+    'last_contributor',  # last contributor
     'digest',  # digest of the document
     'repository',  # server repository name
     'doc_type',  # Nuxeo document type
@@ -266,8 +267,8 @@ class RemoteDocumentClient(BaseAutomationClient):
             name = unicodedata.normalize('NFC', name)
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
-            doc['path'], folderish, last_update, digest, self.repository,
-            doc['type'])
+            doc['path'], folderish, last_update, doc['dc:lastContributor'],
+            digest, self.repository, doc['type'])
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):

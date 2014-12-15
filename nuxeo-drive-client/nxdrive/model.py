@@ -507,6 +507,7 @@ class LastKnownState(Base):
                 and remote_state is None):
             remote_state = 'modified'
         self.remote_can_update = remote_info.can_update
+        self.last_remote_modifier = remote_info.last_contributor
         self.update_state(remote_state=remote_state)
 
     def is_readonly(self):

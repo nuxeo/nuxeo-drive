@@ -1803,6 +1803,7 @@ class Synchronizer(object):
                                 consistent_new_info = RemoteFileInfo(new_info.name, new_info.uid,
                                                             new_info_parent_uid, new_info_path, new_info.folderish,
                                                             new_info.last_modification_time,
+                                                            new_info.last_contributor,
                                                             new_info.digest, new_info.digest_algorithm,
                                                             new_info.download_url, new_info.can_rename,
                                                             new_info.can_delete, new_info.can_update,
