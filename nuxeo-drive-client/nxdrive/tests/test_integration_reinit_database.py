@@ -3,8 +3,8 @@ import time
 import shutil
 
 from nxdrive.tests.common import IntegrationTestCase
-from nxdrive.controller import Controller
-from nxdrive.model import LastKnownState
+from nxdrive.engine.controller import Controller
+from nxdrive.engine.dao.model import LastKnownState
 
 
 class TestIntegrationReinitDatabase(IntegrationTestCase):

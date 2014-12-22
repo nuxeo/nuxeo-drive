@@ -4,7 +4,7 @@ Created on 20 mai 2014
 @author: Remi Cattiau
 '''
 from nxdrive.tests.common import IntegrationTestCase
-from nxdrive.model import Filter, ServerBinding
+from nxdrive.engine.dao.model import Filter, ServerBinding
 
 
 class TestModelFilter(IntegrationTestCase):

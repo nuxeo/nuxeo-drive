@@ -7,11 +7,11 @@ import shutil
 import time
 
 from nxdrive.utils import safe_long_path
-from nxdrive.model import LastKnownState
+from nxdrive.engine.dao.model import LastKnownState
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
-from nxdrive.controller import Controller
+from nxdrive.engine.controller import Controller
 from nxdrive.logging_config import configure
 
 

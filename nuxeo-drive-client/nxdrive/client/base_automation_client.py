@@ -16,7 +16,7 @@ from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
-from nxdrive.activity import Action, FileAction
+from nxdrive.engine.activity import Action, FileAction
 from nxdrive.utils import guess_mime_type
 from nxdrive.utils import force_decode
 from urllib2 import ProxyHandler

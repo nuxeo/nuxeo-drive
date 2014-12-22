@@ -11,7 +11,6 @@ from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)
 
-
 WIN32_SUFFIX = os.path.join('library.zip', 'nxdrive')
 OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
 
@@ -37,7 +36,7 @@ def normalized_path(path):
         # by the caller
         path = path.decode(ENCODING)
 
-    # XXX: we could os.path.normcase as well under Windows but it might be the
+    # XXX: we could osi.path.normcase as well under Windows but it might be the
     # source of unexpected troubles so not doing it for now.
     return os.path.normpath(os.path.abspath(os.path.expanduser(path)))
 

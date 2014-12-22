@@ -1,8 +1,8 @@
 from nose.tools import assert_true
 from nose.tools import assert_false
 from nose.tools import assert_equals
-from nxdrive.synchronizer import name_match
-from nxdrive.synchronizer import jaccard_index
+from nxdrive.engine.synchronizer import name_match
+from nxdrive.engine.synchronizer import jaccard_index
 
 
 def test_name_match():

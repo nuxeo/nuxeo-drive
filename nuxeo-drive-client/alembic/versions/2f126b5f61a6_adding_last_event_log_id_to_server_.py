@@ -13,7 +13,7 @@ down_revision = '4f23a55ef249'
 from alembic import op
 import sqlalchemy as sa
 from nxdrive.logging_config import get_logger
-from nxdrive.model import ServerBinding
+from nxdrive.engine.dao.model import ServerBinding
 
 log = get_logger(__name__)
 

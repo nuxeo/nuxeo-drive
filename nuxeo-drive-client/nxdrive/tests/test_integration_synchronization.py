@@ -7,8 +7,8 @@ from datetime import datetime
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
-from nxdrive.model import LastKnownState
-from nxdrive.controller import Controller
+from nxdrive.engine.dao.model import LastKnownState
+from nxdrive.engine.controller import Controller
 from nxdrive.tests import RemoteTestClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 

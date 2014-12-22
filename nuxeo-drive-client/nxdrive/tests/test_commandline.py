@@ -2,7 +2,7 @@ import unittest
 import os
 import tempfile
 
-from nxdrive.commandline import CliHandler
+from nxdrive.osi.command.commandline import CliHandler
 
 
 class CommandLineTestCase(unittest.TestCase):

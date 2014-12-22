@@ -1,7 +1,7 @@
 import os
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
-from nxdrive.model import Filter
+from nxdrive.engine.dao.model import Filter
 
 
 class TestIntegrationLocalFilter(IntegrationTestCase):

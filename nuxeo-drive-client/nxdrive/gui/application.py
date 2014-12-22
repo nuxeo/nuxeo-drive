@@ -4,13 +4,13 @@ import os
 import time
 import sys
 import subprocess
-from nxdrive.synchronizer import SynchronizerThread
-from nxdrive.synchronizer import DEFAULT_DELAY
-from nxdrive.protocol_handler import parse_protocol_url
+from nxdrive.engine.synchronizer import SynchronizerThread
+from nxdrive.engine.synchronizer import DEFAULT_DELAY
+from nxdrive.osi.protocol import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.settings import prompt_settings
 from systray_menu import SystrayMenu
-from nxdrive.activity import Action, FileAction
+from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.update_prompt import prompt_update
 from nxdrive.gui.updated import notify_updated

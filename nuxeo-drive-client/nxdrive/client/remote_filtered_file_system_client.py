@@ -4,7 +4,7 @@ Created on 19 mai 2014
 @author: Remi Cattiau
 '''
 from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
-from nxdrive.model import Filter
+from nxdrive.engine.dao.model import Filter
 from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)

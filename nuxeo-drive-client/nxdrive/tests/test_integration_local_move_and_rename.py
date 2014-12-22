@@ -3,7 +3,7 @@ import os
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
-from nxdrive.model import LastKnownState
+from nxdrive.engine.dao.model import LastKnownState
 from nxdrive.client.common import NotFound
 from nose.plugins.skip import SkipTest
 

@@ -20,9 +20,9 @@ from nxdrive.client import Unauthorized
 from nxdrive.client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.remote_file_system_client import RemoteFileInfo
-from nxdrive.model import ServerBinding
-from nxdrive.activity import Action
-from nxdrive.model import LastKnownState
+from nxdrive.engine.dao.model import ServerBinding
+from nxdrive.engine.activity import Action
+from nxdrive.engine.dao.model import LastKnownState
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import PidLockFile
 import sys

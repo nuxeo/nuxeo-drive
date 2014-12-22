@@ -10,7 +10,6 @@ class DAO(QObject):
     '''
     classdocs
     '''
-    self._state_state = QtSignal 
 
     def __init__(self, params):
         '''
@@ -18,7 +17,30 @@ class DAO(QObject):
         '''
 
     def get_state(self):
-        session.expunge(obj)
+        #session.expunge(obj)
+        pass
 
     def save_state(self, object):
-        _save_state.emit(object)
+        #_save_state.emit(object)
+        pass
+
+    def update_local_state(self, id):
+        pass
+
+    def update_remote_state(self, id):
+        pass
+
+    def get_filter(self):
+        pass
+
+    def get_filters(self):
+        pass
+
+    def add_filter(self):
+        pass
+
+    def remove_filter(self):
+        pass
+
+    def update_config(self):
+        pass

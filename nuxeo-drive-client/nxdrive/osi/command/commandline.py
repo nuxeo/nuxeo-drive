@@ -15,16 +15,16 @@ except ImportError:
     debugger = pdb
 
 from nxdrive.utils import normalized_path
-from nxdrive.controller import Controller
-from nxdrive.synchronizer import DEFAULT_DELAY
-from nxdrive.daemon import daemonize
-from nxdrive.controller import default_nuxeo_drive_folder
+from nxdrive.engine.controller import Controller
+from nxdrive.engine.synchronizer import DEFAULT_DELAY
+from nxdrive.osi.command.daemon import daemonize
+from nxdrive.engine.controller import default_nuxeo_drive_folder
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
-from nxdrive.protocol_handler import parse_protocol_url
-from nxdrive.protocol_handler import register_protocol_handlers
-from nxdrive.startup import register_startup
-from nxdrive.contextual_menu import register_contextual_menu
+from nxdrive.osi.protocol import parse_protocol_url
+from nxdrive.osi.protocol import register_protocol_handlers
+from nxdrive.osi.startup.startup import register_startup
+from nxdrive.osi.menu import register_contextual_menu
 from nxdrive import __version__
 
 

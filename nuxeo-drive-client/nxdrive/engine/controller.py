@@ -27,12 +27,12 @@ from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client import NotFound
-from nxdrive.model import init_db
-from nxdrive.model import DeviceConfig
-from nxdrive.model import ServerBinding
-from nxdrive.model import LastKnownState
-from nxdrive.synchronizer import Synchronizer
-from nxdrive.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
+from nxdrive.engine.dao.model import init_db
+from nxdrive.engine.dao.model import DeviceConfig
+from nxdrive.engine.dao.model import ServerBinding
+from nxdrive.engine.dao.model import LastKnownState
+from nxdrive.engine.synchronizer import Synchronizer
+from nxdrive.engine.synchronizer import POSSIBLE_NETWORK_ERROR_TYPES
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import ENCODING
 from nxdrive.utils import deprecated
@@ -40,8 +40,8 @@ from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
 from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
-from nxdrive.migration import migrate_db
-from nxdrive.activity import FileAction
+from nxdrive.engine.dao.migration import migrate_db
+from nxdrive.engine.activity import FileAction
 from nxdrive.utils import PidLockFile
 
 

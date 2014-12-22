@@ -385,7 +385,7 @@ class AppUpdater:
         self.action.finish_action()
 
     def _do_update(self, version):
-        from nxdrive.activity import Action
+        from nxdrive.engine.activity import Action
         from nxdrive.gui.progress_dialog import ProgressDialog
         from threading import Thread
         update_thread = Thread(target=self._do_update_thread,

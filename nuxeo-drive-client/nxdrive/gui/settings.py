@@ -3,17 +3,17 @@ from nxdrive.utils import DEFAULT_ENCODING
 from nxdrive.client import Unauthorized
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
-from nxdrive.controller import NUXEO_DRIVE_FOLDER_NAME
-from nxdrive.controller import ProxySettings
-from nxdrive.controller import GeneralSettings
-from nxdrive.controller import MissingToken
+from nxdrive.engine.controller import NUXEO_DRIVE_FOLDER_NAME
+from nxdrive.engine.controller import ProxySettings
+from nxdrive.engine.controller import GeneralSettings
+from nxdrive.engine.controller import MissingToken
 from nxdrive.client import AddonNotInstalled
 from nxdrive.client.local_client import BaseClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.base_automation_client import get_proxy_handler
 from nxdrive.gui.folders_treeview import FilteredFsClient, FolderTreeview
-from nxdrive.model import Filter
-from nxdrive.model import PROXY_TYPE_NONE, PROXY_TYPE_MANUAL, PROXY_TYPE_AUTO
+from nxdrive.engine.dao.model import Filter
+from nxdrive.engine.dao.model import PROXY_TYPE_NONE, PROXY_TYPE_MANUAL, PROXY_TYPE_AUTO
 import urllib2
 import socket
 import os
