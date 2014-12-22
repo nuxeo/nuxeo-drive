@@ -545,22 +545,6 @@ class LastKnownState(Base):
 LastKnownState.inconsistents = 0
 
 
-class FileEvent(Base):
-    __tablename__ = 'fileevents'
-
-    id = Column(Integer, Sequence('fileevent_id_seq'), primary_key=True)
-    local_folder = Column(String, ForeignKey('server_bindings.local_folder'))
-    utc_time = Column(DateTime)
-    path = Column(String)
-
-    server_binding = relationship("ServerBinding")
-
-    def __init__(self, local_folder, path, utc_time=None):
-        self.local_folder = local_folder
-        if utc_time is None:
-            utc_time = datetime.utcnow()
-
-
 class Filter(Base):
     __tablename__ = 'filters'
 
