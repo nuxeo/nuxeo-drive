@@ -34,7 +34,7 @@ class Engine(QCoreApplication):
         self.remote_watcher = self.create_thread()
         self.queue_manager = self.create_thread()
         self.queue_processors = list()
-        for i in range(0, processors):
+        for _ in range(0, processors):
             self.queue_processors.append(self.create_thread())
         self.gui = self.create_thread()
         self.threads = list()
