@@ -12,7 +12,7 @@ VERSION=$MAJOR_VERSION.$MINOR_VERSION.$RELEASE_VERSION
 PROTOCOL=http
 STAGING_SITE=community.nuxeo.com/static/drive-tests
 PROD_SITE=community.nuxeo.com/static/drive
-SCP_STRING=nuxeo@styx.nuxeo.com:/var/www
+SCP_STRING=nuxeo@lethe.nuxeo.com:/var/www
 APP_NAME=nuxeo-drive
 OSX_UPDATE_APP_NAME="Nuxeo\ Drive"
 
