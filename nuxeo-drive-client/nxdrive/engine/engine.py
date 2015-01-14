@@ -6,6 +6,7 @@ from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.engine.queue_manager import QueueManager
 from threading import local
 from time import sleep
 from cookielib import CookieJar
@@ -166,24 +167,15 @@ class Engine(QObject):
         self._local_folder = local_folder
         self._local = local()
         self._client_cache_timestamps = dict()
-        self._dao = self.create_thread(worker=SqliteDAO(self, '/tmp/test.db'))
+        self._dao = SqliteDAO(self, '/tmp/test.db')
         #LocalWatcher(None, None, None)
-        self.local_watcher = self.create_thread(worker=LocalWatcher(self, self._dao.worker))
-        self.remote_watcher = self.create_thread(worker=RemoteWatcher(self, self._dao.worker), start_connect=False)
+        self.local_watcher = self.create_thread(worker=LocalWatcher(self, self._dao))
+        self.remote_watcher = self.create_thread(worker=RemoteWatcher(self, self._dao), start_connect=False)
         self.local_watcher.worker.localScanFinished.connect(self.remote_watcher.worker.run)
-        self.queue_manager = self.create_thread()
-        self.queue_processors = list()
-        for _ in range(0, processors):
-            self.queue_processors.append(self.create_thread())
-        self.gui = self.create_thread()
+        self.queue_manager = QueueManager(self._dao, processors)
         self.threads = list()
-        self.threads.append(self._dao)
         self.threads.append(self.local_watcher)
         self.threads.append(self.remote_watcher)
-        self.threads.append(self.queue_manager)
-        for processor in self.queue_processors:
-            self.threads.append(processor)
-        self.threads.append(self.gui)
 
     def create_thread(self, worker=None, name=None, start_connect=True):
         if worker is None:
@@ -198,99 +190,6 @@ class Engine(QObject):
         for thread in self.threads:
             if thread.isFinished():
                 self.threads.remove(thread)
-
-    @staticmethod
-    def bind_server(self, local_folder, server_url, username, password):
-        """Bind a local folder to a remote nuxeo server"""
-        session = self.get_session()
-        local_folder = normalized_path(local_folder)
-
-        # check the connection to the server by issuing an authentication
-        # request
-        server_url = self._normalize_url(server_url)
-        nxclient = self.remote_doc_client_factory(
-            server_url, username, self.device_id, self.version,
-            proxies=self.proxies, proxy_exceptions=self.proxy_exceptions,
-            password=password, timeout=self.handshake_timeout)
-        token = nxclient.request_token()
-        if token is not None:
-            # The server supports token based identification: do not store the
-            # password in the DB
-            password = None
-        try:
-            try:
-                # Look for an existing server binding for the given local
-                # folder
-                server_binding = session.query(ServerBinding).filter(
-                    ServerBinding.local_folder == local_folder).one()
-                if server_binding.server_url != server_url:
-                    raise RuntimeError(
-                        "%s is already bound to '%s'" % (
-                            local_folder, server_binding.server_url))
-
-                if server_binding.remote_user != username:
-                    # Update username info if required
-                    server_binding.remote_user = username
-                    log.info("Updating username to '%s' on server '%s'",
-                            username, server_url)
-
-                if (token is None
-                    and server_binding.remote_password != password):
-                    # Update password info if required
-                    server_binding.remote_password = password
-                    log.info("Updating password for user '%s' on server '%s'",
-                            username, server_url)
-
-                if token is not None and server_binding.remote_token != token:
-                    log.info("Updating token for user '%s' on server '%s'",
-                            username, server_url)
-                    # Update the token info if required
-                    server_binding.remote_token = token
-
-                    # Ensure that the password is not stored in the DB
-                    if server_binding.remote_password is not None:
-                        server_binding.remote_password = None
-
-                # If the top level state for the server binding doesn't exist,
-                # create the local folder and the top level state. This can be
-                # the case when initializing the DB manually with a SQL script.
-                try:
-                    self.get_top_level_state(local_folder, session=session)
-                except NoResultFound:
-                    self._make_local_folder(local_folder)
-                    self._add_top_level_state(server_binding, session)
-
-            except NoResultFound:
-                # No server binding found for the given local folder
-                # First create local folder in the file system
-                self._make_local_folder(local_folder)
-
-                # Create ServerBinding instance in DB
-                log.info("Binding '%s' to '%s' with account '%s'",
-                         local_folder, server_url, username)
-                server_binding = ServerBinding(local_folder, server_url,
-                                               username,
-                                               remote_password=password,
-                                               remote_token=token)
-                session.add(server_binding)
-
-                # Create the top level state for the server binding
-                self._add_top_level_state(server_binding, session)
-
-            # Set update info
-            self._set_update_info(server_binding, remote_client=nxclient)
-
-        except:
-            # In case an AddonNotInstalled exception is raised, need to
-            # invalidate the remote client cache for it to be aware of the new
-            # operations when the addon gets installed
-            if server_binding is not None:
-                self.invalidate_client_cache(server_binding.server_url)
-            session.rollback()
-            raise
-
-        session.commit()
-        return server_binding
 
     def start(self):
         log.debug("Engine start")
@@ -330,13 +229,13 @@ class Engine(QObject):
         remote_client = self.get_remote_client()
         remote_info = remote_client.get_filesystem_root_info()
 
-        self._dao.worker.insert_local_state(local_info, '')
-        self._dao.worker.commit()
-        row = self._dao.worker.get_state_from_local('/')
-        self._dao.worker.update_remote_state(row, remote_info, '')
+        self._dao.insert_local_state(local_info, '')
+        self._dao.commit()
+        row = self._dao.get_state_from_local('/')
+        self._dao.update_remote_state(row, remote_info, '')
         # Use version+1 as we just update the remote info
-        self._dao.worker.synchronize_state(row, row.version + 1)
-        self._dao.worker.commit()
+        self._dao.synchronize_state(row, row.version + 1)
+        self._dao.commit()
         # The root should also be sync
         #state.update_state('synchronized', 'synchronized')
 
@@ -392,7 +291,7 @@ if __name__ == "__main__":
     #load = ServerLoader(remote, local)
     #load.sync('defaultSyncRootFolderItemFactory#default#238b460a-d4e3-4bde-8849-debadb805d8a', '/')
     #sys.exit()
-    root = engine._dao.worker.get_state_from_local('/')
+    root = engine._dao.get_state_from_local('/')
     if root is None:
         engine._add_top_level_state()
     #engine.remote_watcher.worker._execute()

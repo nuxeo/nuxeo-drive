@@ -47,8 +47,17 @@ class SqliteDAO(Worker):
         '''
         super(SqliteDAO, self).__init__(engine)
         self._db = db
+        # For testing purpose only should always be True
         self.share_connection = True
         self.auto_commit = True
+        self._queue_manager = None
+
+        # If we dont share connection no need to lock
+        if self.share_connection:
+            self._lock = Lock()
+        else:
+            self._lock = FakeLock()
+
         self._conn = sqlite3.connect(self._db, check_same_thread=False)
         # FOR PYTHON 3.3...
         #if log.getEffectiveLevel() < 6:
@@ -63,11 +72,8 @@ class SqliteDAO(Worker):
                   + "remote_can_create_child INTEGER, last_remote_modifier VARCHAR,"
                   + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), PRIMARY KEY (id));")
         self._conn.row_factory = CustomRow
+        self.reinit_processors()
         self._conn.commit()
-        if self.share_connection:
-            self._lock = Lock()
-        else:
-            self._lock = FakeLock()
         self._conns = local()
 
     def _log_trace(self, query):
@@ -115,7 +121,7 @@ class SqliteDAO(Worker):
         pass
 
     def insert_local_state(self, info, parent_path):
-        #print "%s %r" % (info.path, info.last_modification_time)
+        pair_state = PAIR_STATES.get(('created', 'unknown'))
         self._lock.acquire()
         con = self._get_write_connection()
         c = con.cursor()
@@ -124,14 +130,39 @@ class SqliteDAO(Worker):
         c.execute("INSERT INTO States(last_local_updated, local_digest, "
                   + "local_path, local_parent_path, local_name, folderish, local_state, remote_state, pair_state)"
                   + " VALUES(?,?,?,?,?,?,'created','unknown',?)", (info.last_modification_time, digest, info.path,
-                                                parent_path, name, info.folderish, PAIR_STATES.get(('created','unknown'))))
+                                                parent_path, name, info.folderish, pair_state))
         row_id = c.lastrowid
+        self._queue_pair_state(row_id, info.folderish, pair_state)
         if self.auto_commit:
             con.commit()
         self._lock.release()
         return row_id
 
+    def register_queue_manager(self, manager):
+        # Prevent any update while init queue
+        self._lock.acquire()
+        try:
+            self._queue_manager = manager
+            con = self._get_write_connection()
+            c = con.cursor()
+            res = c.execute("SELECT * FROM States WHERE pair_state != 'synchronized'")
+            self._queue_manager.init_queue(res.fetchall())
+        # Dont block everything if queue manager fail
+        # TODO As the error should be fatal not sure we need this
+        finally:
+            self._lock.release()
+
+    def _queue_pair_state(self, row_id, folderish, pair_state):
+        if (self._queue_manager is not None
+             and pair_state != 'synchronized'):
+            self._queue_manager.push_ref(row_id, folderish, pair_state)
+        return
+
+    def _get_pair_state(self, row):
+        return PAIR_STATES.get((row.local_state, row.remote_state))
+
     def update_local_state(self, row, info):
+        pair_state = self._get_pair_state(row)
         self._lock.acquire()
         con = self._get_write_connection()
         c = con.cursor()
@@ -140,7 +171,8 @@ class SqliteDAO(Worker):
                   + "local_state=?, remote_state=?, pair_state=?, version=version+1" +
                   " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, 
                                     os.path.basename(info.path), row.local_state, row.remote_state,
-                                    PAIR_STATES.get((row.local_state,row.remote_state)), row.id))
+                                    pair_state, row.id))
+        self._queue_pair_state(row.id, info.folderish, pair_state)
         if self.auto_commit:
             con.commit()
         self._lock.release()
@@ -162,6 +194,9 @@ class SqliteDAO(Worker):
         return c.execute("SELECT * FROM States WHERE remote_ref=?", (ref,)).fetchall()
 
     def get_state_from_id(self, row_id, from_write=False):
+        # Dont need to read from write as auto_commit is True
+        if from_write and self.auto_commit:
+            from_write = False
         if from_write:
             self._lock.acquire()
             c = self._get_write_connection().cursor()
@@ -177,6 +212,7 @@ class SqliteDAO(Worker):
         return c.execute("SELECT * FROM States WHERE local_path=?", (path,)).fetchone()
 
     def insert_remote_state(self, info, remote_parent_path, local_path, local_parent_path):
+        pair_state = PAIR_STATES.get(('unknown','created'))
         self._lock.acquire()
         con = self._get_write_connection()
         c = con.cursor()
@@ -189,8 +225,9 @@ class SqliteDAO(Worker):
                   (info.uid, info.parent_uid, remote_parent_path, info.name,
                    info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                    info.can_create_child, info.last_contributor, info.digest, info.folderish, info.last_contributor,
-                   local_path, local_parent_path, PAIR_STATES.get(('unknown','created'))))
+                   local_path, local_parent_path, pair_state))
         row_id = c.lastrowid
+        self._queue_pair_state(row_id, info.folderish, pair_state)
         if self.auto_commit:
             con.commit()
         self._lock.release()
@@ -212,6 +249,7 @@ class SqliteDAO(Worker):
         return c.rowcount == 1
 
     def update_remote_state(self, row, info, remote_parent_path):
+        pair_state = self._get_pair_state(row)
         self._lock.acquire()
         con = self._get_write_connection()
         c = con.cursor()
@@ -223,7 +261,8 @@ class SqliteDAO(Worker):
                   (info.uid, info.parent_uid, remote_parent_path, info.name,
                    info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                    info.can_create_child, info.last_contributor, info.digest, row.local_state,
-                   row.remote_state, PAIR_STATES.get((row.local_state,row.remote_state)), info.last_contributor, row.id))
+                   row.remote_state, pair_state, info.last_contributor, row.id))
+        self._queue_pair_state(row.id, info.folderish, pair_state)
         if self.auto_commit:
             con.commit()
         self._lock.release()
