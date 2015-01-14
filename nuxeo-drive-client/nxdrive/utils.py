@@ -4,6 +4,7 @@ import re
 import locale
 import mimetypes
 import psutil
+import time
 from Crypto.Cipher import AES
 from Crypto import Random
 from nxdrive.logging_config import get_logger
@@ -27,6 +28,10 @@ WIN32_PATCHED_MIME_TYPES = {
     'application/x-mspowerpoint.12':
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 }
+
+
+def current_milli_time():
+    return int(round(time.time() * 1000))
 
 
 def normalized_path(path):
@@ -196,6 +201,33 @@ def deprecated(func):
     new_func.__dict__.update(func.__dict__)
     return new_func
 
+
+class ServerLoader(object):
+    def __init__(self, remote_client, local_client):
+        self._remote_client = remote_client
+        self._local_client = local_client
+
+    def sync(self, remote_uid, local):
+        childs = self._local_client.get_children_info(local)
+        rchilds = self._remote_client.get_children_info(remote_uid)
+        existing_childs = dict()
+        for child in rchilds:
+            path = os.path.join(local, child.name)
+            existing_childs[path] = child
+        for child in childs:
+            child_uid = None
+            if not child.path in existing_childs:
+                if child.folderish:
+                    print "Making folder: %s" % child.path
+                    child_uid = self._remote_client.make_folder(remote_uid, child.name)
+                else:
+                    print "Making file: %s" % child.path
+                    self._remote_client.stream_file(remote_uid,
+                                    self._local_client._abspath(child.path))
+            else:
+                child_uid = existing_childs[child.path].uid
+            if child.folderish:
+                self.sync(child_uid, child.path)
 
 class PidLockFile(object):
     """ This class handle the pid lock file"""
