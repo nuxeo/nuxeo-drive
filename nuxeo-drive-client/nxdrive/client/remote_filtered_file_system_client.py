@@ -46,23 +46,3 @@ class RemoteFilteredFileSystemClient(RemoteFileSystemClient):
             else:
                 log.debug("Filtering item %r", item)
         return filtered
-
-    def get_changes(self, server_binding):
-        result = super(RemoteFilteredFileSystemClient, self).get_changes(
-                                                                server_binding)
-        log.trace("result['hasTooManyChanges'] = %r", result['hasTooManyChanges'])
-        # Need to filter the result and add filterevents
-        # Force the scan of the server every time now, need to compare to last
-        # date filter
-        # Need to multiply the last_filter_date by 1000 as the last_sync_date
-        # come from nuxeo
-        log.trace("server_binding.last_filter_date = %r", server_binding.last_filter_date)
-        if server_binding.last_filter_date:
-            log.trace("server_binding.last_sync_date = %r", server_binding.last_sync_date)
-        if (server_binding.last_filter_date
-            and server_binding.last_sync_date < (
-                                    server_binding.last_filter_date * 1000)):
-            log.trace("server_binding.last_sync_date < (server_binding.last_filter_date * 1000)"
-                      " => setting result['hasTooManyChanges'] to True")
-            result['hasTooManyChanges'] = True
-        return result

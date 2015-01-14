@@ -3,7 +3,7 @@
 '''
 import unittest
 import time
-from nxdrive.engine.dao.dao import AlchemyDAO
+from nxdrive.engine.dao.alchemy import AlchemyDAO
 from nxdrive.engine.watcher.local_watcher import LocalWatcher
 from nxdrive.tests.common import IntegrationTestCase
 
