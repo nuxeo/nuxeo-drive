@@ -164,8 +164,7 @@ class LocalWatcher(Worker):
                 # If doc_pair is not None mean
                 # the creation has been catched by scan
                 # As Windows send a delete / create event for reparent
-                local_info = self.client.get_info(rel_path)
-                digest = local_info.get_digest()
+                # Ignore .*.part ?
                 '''
                 for deleted in deleted_files:
                     if deleted.local_digest == digest:
@@ -178,7 +177,12 @@ class LocalWatcher(Worker):
                 '''
                 fragments = rel_path.rsplit('/', 1)
                 name = fragments[1]
+                # Skip the .part as it is Nuxeo temporary download
+                if name.startswith(".") and name.endswith(".part"):
+                    return
                 parent_path = fragments[0]
+                local_info = self.client.get_info(rel_path)
+                digest = local_info.get_digest()
                 # Handle creation of "Locally Edited" folder and its
                 # children
                 '''
@@ -254,6 +258,7 @@ class LocalWatcher(Worker):
                         else:
                         '''
                         # It can be consider as a creation
+                        # TODO Add 3 argument
                         self._dao.insert_local_state(self.client.get_info(
                                                             dst_rel_path))
                     else:

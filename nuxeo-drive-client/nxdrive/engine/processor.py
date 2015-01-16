@@ -21,11 +21,11 @@ class Processor(Worker):
     classdocs
     '''
 
-    def __init__(self, engine, item_getter):
+    def __init__(self, engine, item_getter, name=None):
         '''
         Constructor
         '''
-        super(Processor, self).__init__(engine)
+        super(Processor, self).__init__(engine, name=name)
         self._get_item = item_getter
         self._engine = engine
         self._dao = self._engine.get_dao()
@@ -273,13 +273,13 @@ class Processor(Worker):
         local_parent_path = parent_pair.local_path
         if doc_pair.folderish:
             log.debug("Creating local folder '%s' in '%s'", name,
-                      local_client._abspath(parent_pair.local_parent_path))
+                      local_client._abspath(parent_pair.local_path))
             path = local_client.make_folder(local_parent_path, name)
         else:
             path, os_path, name = local_client.get_new_file(local_parent_path,
                                                             name)
             log.debug("Creating local file '%s' in '%s'", name,
-                      local_client._abspath(parent_pair.local_parent_path))
+                      local_client._abspath(parent_pair.local_path))
             # TODO Check if digest is already somewhere
             tmp_file = remote_client.stream_content(
                                 doc_pair.remote_ref, os_path,
@@ -288,7 +288,7 @@ class Processor(Worker):
             local_client.rename(local_client.get_path(tmp_file), name)
         self._refresh_local(doc_pair, local_client.get_info(path))
         self._handle_readonly(local_client, doc_pair)
-        self._dao.synchronize_state(doc_pair, doc_pair.version + 1)
+        self._dao.synchronize_state(doc_pair, doc_pair.version)
 
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
         try:
@@ -336,7 +336,9 @@ class Processor(Worker):
         pass
 
     def _refresh_local(self, doc_pair, local_info):
-        pass
+        if doc_pair.local_digest is None and not doc_pair.folderish:
+            doc_pair.local_digest = local_info.get_digest()
+        self._dao.update_local_state(doc_pair, local_info, versionned=False)
 
     def _local_rename_with_descendant_states(self, doc_pair, previous_local_path, updated_path):
         """Update the metadata of the descendants of a renamed doc"""

@@ -166,12 +166,11 @@ class Engine(QObject):
         self._threads = list()
         self._client_cache_timestamps = dict()
         self._dao = self._create_dao()
-        #LocalWatcher(None, None, None)
         self.local_watcher = self.create_thread(worker=self._create_local_watcher())
         self.remote_watcher = self.create_thread(worker=self._create_remote_watcher(), start_connect=False)
         self.local_watcher.worker.localScanFinished.connect(self.remote_watcher.worker.run)
         self.queue_manager = self._create_queue_manager(processors)
-        self.remote_watcher.worker.initiate.connect(self.queue_manager.launch_processors)
+        self.remote_watcher.worker.initiate.connect(self.queue_manager.init_processors)
 
     def _create_queue_manager(self, processors):
         from nxdrive.engine.queue_manager import QueueManager
@@ -216,6 +215,7 @@ class Engine(QObject):
         self._start.emit()
 
     def get_status(self):
+        QCoreApplication.processEvents()
         log.debug("Engine status")
         for thread in self._threads:
             log.debug("%r" % thread.worker.get_metrics())
@@ -308,24 +308,30 @@ class Engine(QObject):
             cache[cache_key] = remote_client, client_cache_timestamp
         return cache[cache_key][0]
 
+class TestApplication(QCoreApplication):
+    def init(self):
+        benchmark = u'/Users/looping/nuxeo/sources/nuxeo/addons/nuxeo-drive/tools/benchmark/benchmark_files_local'
+        benchmark_remote = u'/Users/looping/nuxeo/sources/nuxeo/addons/nuxeo-drive/tools/benchmark/benchmark_files_remote'
+        benchmark_empty = u'/Users/looping/nuxeo/sources/nuxeo/addons/nuxeo-drive/tools/benchmark/empty'
+        benchmark = benchmark_empty
+        self._engine = Engine(benchmark, 2)
+        root = self._engine._dao.get_state_from_local('/')
+        if root is None:
+            self._engine._add_top_level_state()
+        QTimer.singleShot(20000, self._engine.get_status)
+        QTimer.singleShot(480000, self._engine.stop)
+        self._engine.start()
+
 if __name__ == "__main__":
     configure(console_level='TRACE')
-    core = QCoreApplication(sys.argv)
-    benchmark = u'/Users/looping/nuxeo/sources/nuxeo/addons/nuxeo-drive/tools/benchmark/benchmark_files_local'
-    benchmark_remote = u'/Users/looping/nuxeo/sources/nuxeo/addons/nuxeo-drive/tools/benchmark/benchmark_files_remote'
-    engine = Engine(benchmark)
+    core = TestApplication(sys.argv)
     #remote = engine.get_remote_client(True)
     #local = LocalClient(benchmark_remote)
     #from nxdrive.utils import ServerLoader
     #load = ServerLoader(remote, local)
     #load.sync('defaultSyncRootFolderItemFactory#default#238b460a-d4e3-4bde-8849-debadb805d8a', '/')
     #sys.exit()
-    root = engine._dao.get_state_from_local('/')
-    if root is None:
-        engine._add_top_level_state()
     #engine.remote_watcher.worker._execute()
-    QTimer.singleShot(20000, engine.get_status)
-    QTimer.singleShot(480000, engine.stop)
     #engine.queue_manager.init_processors()
-    engine.start()
+    core.init()
     core.exec_()

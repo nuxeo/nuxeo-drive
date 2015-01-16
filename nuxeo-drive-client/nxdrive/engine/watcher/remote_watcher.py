@@ -30,7 +30,7 @@ class RemoteWatcher(Worker):
         self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
         self._last_remote_full_scan = self._dao.get_config('remote_last_full_scan')
 
-        self.client = engine.get_remote_client()
+        self._client = engine.get_remote_client()
         self._metrics = dict()
         self._metrics['last_remote_scan_time'] = -1
         self._metrics['last_remote_update_time'] = -1
@@ -180,12 +180,12 @@ class RemoteWatcher(Worker):
 
     def _get_changes(self):
         """Fetch incremental change summary from the server"""
-        summary = self.client.get_changes(self._last_root_definitions,
+        summary = self._client.get_changes(self._last_root_definitions,
                                     self._last_event_log_id, self._last_sync_date)
 
         self._last_root_definitions = summary['activeSynchronizationRootDefinitions']
         self._last_sync_date = summary['syncDate']
-        if self.client.is_event_log_id_available():
+        if self._client.is_event_log_id_available():
             # If available, read 'upperBound' key as last event log id
             # according to the new implementation of the audit change finder,
             # see https://jira.nuxeo.com/browse/NXP-14826.
@@ -220,7 +220,7 @@ class RemoteWatcher(Worker):
                 # A more recent version was already processed
                 continue
             fs_item = change.get('fileSystemItem')
-            new_info = self.client.file_to_info(fs_item) if fs_item else None
+            new_info = self._client.file_to_info(fs_item) if fs_item else None
 
             # Possibly fetch multiple doc pairs as the same doc can be synchronized at 2 places,
             # typically if under a sync root and locally edited.

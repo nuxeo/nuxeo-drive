@@ -1,8 +1,8 @@
-from PyQt4.QtCore import QObject, pyqtSignal
+from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot
 from Queue import Queue
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.processor import Processor
-from threading import Lock
+from threading import Lock, local
 log = get_logger(__name__)
 
 
@@ -30,10 +30,11 @@ class QueueManager(QObject):
         self._local_file_queue = Queue()
         self._remote_file_queue = Queue()
         self._remote_folder_queue = Queue()
-        self._local_folder_thread = 'disable'
+        self._connected = local()
+        self._local_folder_thread = None
         self._local_file_thread = None
-        self._remote_folder_thread = 'disable'
-        self._remote_file_thread = 'disable'
+        self._remote_folder_thread = None
+        self._remote_file_thread = None
         if max_file_processors < 2:
             max_file_processors = 2
         self._max_processors = max_file_processors - 2
@@ -43,8 +44,9 @@ class QueueManager(QObject):
         self._get_file_lock = Lock()
 
     def init_processors(self):
+        log.trace("Init processors")
         self.newItem.connect(self.launch_processors)
-        self.newItem.emit()
+        self.emit()
 
     def init_queue(self, queue):
         # Dont need to change modify as State is compatible with QueueItem
@@ -55,6 +57,10 @@ class QueueManager(QObject):
     def push_ref(self, row_id, folderish, pair_state):
         self.push(QueueItem(row_id, folderish, pair_state))
 
+    def emit(self):
+        log.trace("newItem emission")
+        self.newItem.emit()
+
     def push(self, object):
         log.trace("Pushing %d[f:%d] with state: %s", object.id, object.folderish, object.pair_state)
         if object.pair_state.startswith('locally'):
@@ -62,19 +68,16 @@ class QueueManager(QObject):
                 self._local_folder_queue.put(object)
             else:
                 self._local_file_queue.put(object)
-            self.newItem.emit()
+            self.emit()
         elif object.pair_state.startswith('remotely'):
             if object.folderish:
                 self._remote_folder_queue.put(object)
             else:
                 self._remote_file_queue.put(object)
-            self.newItem.emit()
+            self.emit()
         else:
             # deleted and conflicted
             pass
-
-    def finish_processor(self):
-        pass
 
     def _get_local_folder(self):
         log.trace("get next local folder")
@@ -114,12 +117,11 @@ class QueueManager(QObject):
         self._get_file_lock.release()
         return item
 
+    @pyqtSlot()
     def _thread_finished(self):
         for thread in self._processors_pool:
             if thread.isFinished():
                 self._processors_pool.remove(thread)
-        if True:
-            return
         if (self._local_folder_thread is not None and
                 self._local_folder_thread.isFinished()):
             self._local_folder_thread = None
@@ -133,11 +135,11 @@ class QueueManager(QObject):
                 self._remote_file_thread.isFinished()):
             self._remote_file_thread = None
         if not self._engine.is_paused() and not self._engine.is_stopped():
-            self.launch_processors()
+            self.emit()
 
     def _create_thread(self, item_getter, name=None):
-        processor = Processor(self._engine, item_getter)
-        thread = self._engine.create_thread(worker=processor, start_connect=False, name=None)
+        processor = Processor(self._engine, item_getter, name=name)
+        thread = self._engine.create_thread(worker=processor, start_connect=False)
         thread.finished.connect(self._thread_finished)
         thread.terminated.connect(self._thread_finished)
         thread.started.connect(processor.run)
@@ -150,12 +152,18 @@ class QueueManager(QObject):
         metrics["local_file_queue"] = self._local_file_queue.qsize()
         metrics["remote_folder_queue"] = self._remote_folder_queue.qsize()
         metrics["remote_file_queue"] = self._remote_file_queue.qsize()
+        metrics["remote_file_thread"] = self._remote_file_thread is not None
+        metrics["remote_folder_thread"] = self._remote_folder_thread is not None
+        metrics["local_file_thread"] = self._local_file_thread is not None
+        metrics["local_folder_thread"] = self._local_folder_thread is not None
         metrics["total_queue"] = (metrics["local_folder_queue"] + metrics["local_file_queue"]
                                 + metrics["remote_folder_queue"] + metrics["remote_file_queue"])
         metrics["additional_processors"] = len(self._processors_pool)
         return metrics
 
+    @pyqtSlot()
     def launch_processors(self):
+        log.trace("Launch processors")
         if self._local_folder_thread is None and not self._local_folder_queue.empty():
             log.debug("creating local folder processor")
             self._local_folder_thread = self._create_thread(self._get_local_folder, name="LocalFolderProcessor")
@@ -168,8 +176,8 @@ class QueueManager(QObject):
         if self._remote_file_thread is None and not self._remote_file_queue.empty():
             log.debug("creating remote file processor")
             self._remote_file_thread = self._create_thread(self._get_remote_file, name="RemoteFileProcessor")
-        if self._remote_file_queue.qsize() + self._local_file_queue.qsize() <= 2 or True:
+        if self._remote_file_queue.qsize() + self._local_file_queue.qsize() <= 2:
             return
         while len(self._processors_pool) < self._max_processors:
             log.debug("creating additional file processor")
-            self._processors_pool.append(self._create_thread(self._get_file))
+            self._processors_pool.append(self._create_thread(self._get_file, name="GenericProcessor"))
