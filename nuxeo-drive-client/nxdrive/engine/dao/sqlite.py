@@ -145,7 +145,7 @@ class SqliteDAO(Worker):
             self._queue_manager = manager
             con = self._get_write_connection()
             c = con.cursor()
-            res = c.execute("SELECT * FROM States WHERE pair_state != 'synchronized'")
+            res = c.execute("SELECT * FROM States WHERE pair_state != 'synchronized' AND pair_state != 'unsynchronized'")
             self._queue_manager.init_queue(res.fetchall())
         # Dont block everything if queue manager fail
         # TODO As the error should be fatal not sure we need this
@@ -154,7 +154,7 @@ class SqliteDAO(Worker):
 
     def _queue_pair_state(self, row_id, folderish, pair_state):
         if (self._queue_manager is not None
-             and pair_state != 'synchronized'):
+             and pair_state != 'synchronized' and pair_state != 'unsynchronized'):
             self._queue_manager.push_ref(row_id, folderish, pair_state)
         return
 
@@ -185,6 +185,10 @@ class SqliteDAO(Worker):
         c = self._get_read_connection().cursor()
         return c.execute("SELECT * FROM States WHERE local_parent_path=?", (path,)).fetchall()
 
+    def get_states_from_partial_local(self, path):
+        c = self._get_read_connection().cursor()
+        return c.execute("SELECT * FROM States WHERE local_path LIKE '" + path + "%'").fetchall()
+
     def get_states_from_partial_remote(self, ref):
         c = self._get_read_connection().cursor()
         return c.execute("SELECT * FROM States WHERE remote_ref LIKE '%" + ref + "'").fetchall()
@@ -207,6 +211,33 @@ class SqliteDAO(Worker):
             self._lock.release()
         return state
 
+    def _get_recursive_condition(self, doc_pair):
+        return (" WHERE local_parent_path LIKE '" + doc_pair.local_path + "/%'"
+                    + " OR local_parent_path = '" + doc_pair.local_path + "'")
+
+    def mark_descendants_remotely_created(self, doc_pair):
+        self._lock.acquire()
+        con = self._get_write_connection()
+        c = con.cursor()
+        update = "UPDATE States SET local_digest=NULL, last_local_updated=NULL, local_name=NULL"
+        c.execute(update + " WHERE id=?", doc_pair.id)
+        if doc_pair.folderish:
+            c.execute(update + self._get_recursive_condition(doc_pair))
+        if self.auto_commit:
+            con.commit()
+        self._lock.release()
+
+    def remove_pair(self, doc_pair):
+        self._lock.acquire()
+        con = self._get_write_connection()
+        c = con.cursor()
+        c.execute("DELETE FROM States WHERE id=?", doc_pair.id)
+        if doc_pair.folderish:
+            c.execute("DELETE FROM States" + self._get_recursive_condition(doc_pair))
+        if self.auto_commit:
+            con.commit()
+        self._lock.release()
+
     def get_state_from_local(self, path):
         c = self._get_read_connection().cursor()
         return c.execute("SELECT * FROM States WHERE local_path=?", (path,)).fetchone()
@@ -220,8 +251,8 @@ class SqliteDAO(Worker):
                   "remote_parent_path, remote_name, last_remote_updated, remote_can_rename," +
                   "remote_can_delete, remote_can_update, " +
                   "remote_can_create_child, last_remote_modifier, remote_digest," +
-                  "folderish, last_modifier, local_path, local_parent_path, remote_state, local_state, pair_state)" +
-                  " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,'created','unknown',?)",
+                  "folderish, last_remote_modifier, local_path, local_parent_path, remote_state, local_state, pair_state)" +
+                  " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'created','unknown',?)",
                   (info.uid, info.parent_uid, remote_parent_path, info.name,
                    info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                    info.can_create_child, info.last_contributor, info.digest, info.folderish, info.last_contributor,
@@ -233,16 +264,16 @@ class SqliteDAO(Worker):
         self._lock.release()
         return row_id
 
-    def synchronize_state(self, row, version=None):
+    def synchronize_state(self, row, version=None, state='synchronized'):
         if version is None:
             version = row.version
         self._lock.acquire()
         con = self._get_write_connection()
         c = con.cursor()
         c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                  "pair_state='synchronized', last_sync_date=?, processor = 0 " +
+                  "pair_state=?, last_sync_date=?, processor = 0 " +
                   "WHERE id=? and version=?",
-                  (datetime.utcnow(), row.id, version))
+                  (state, datetime.utcnow(), row.id, version))
         if self.auto_commit:
             con.commit()
         self._lock.release()
@@ -257,7 +288,7 @@ class SqliteDAO(Worker):
                   "remote_parent_path=?, remote_name=?, last_remote_updated=?, remote_can_rename=?," +
                   "remote_can_delete=?, remote_can_update=?, " +
                   "remote_can_create_child=?, last_remote_modifier=?, remote_digest=?, local_state=?," +
-                  "remote_state=?, pair_state=?, last_modifier=?, version=version+1 WHERE id=?",
+                  "remote_state=?, pair_state=?, last_remote_modifier=?, version=version+1 WHERE id=?",
                   (info.uid, info.parent_uid, remote_parent_path, info.name,
                    info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                    info.can_create_child, info.last_contributor, info.digest, row.local_state,

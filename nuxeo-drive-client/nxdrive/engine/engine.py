@@ -6,7 +6,6 @@ from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
-from nxdrive.engine.queue_manager import QueueManager
 from threading import local
 from time import sleep
 from cookielib import CookieJar
@@ -161,52 +160,78 @@ class Engine(QObject):
         # Make all the automation client related to this controller
         # share cookies using threadsafe jar
         self.cookie_jar = CookieJar()
-        from nxdrive.engine.watcher.local_watcher import LocalWatcher
-        from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-        from nxdrive.engine.dao.sqlite import SqliteDAO
         self._local_folder = local_folder
+        self._stopped = True
         self._local = local()
+        self._threads = list()
         self._client_cache_timestamps = dict()
-        self._dao = SqliteDAO(self, '/tmp/test.db')
+        self._dao = self._create_dao()
         #LocalWatcher(None, None, None)
-        self.local_watcher = self.create_thread(worker=LocalWatcher(self, self._dao))
-        self.remote_watcher = self.create_thread(worker=RemoteWatcher(self, self._dao), start_connect=False)
+        self.local_watcher = self.create_thread(worker=self._create_local_watcher())
+        self.remote_watcher = self.create_thread(worker=self._create_remote_watcher(), start_connect=False)
         self.local_watcher.worker.localScanFinished.connect(self.remote_watcher.worker.run)
-        self.queue_manager = QueueManager(self._dao, processors)
-        self.threads = list()
-        self.threads.append(self.local_watcher)
-        self.threads.append(self.remote_watcher)
+        self.queue_manager = self._create_queue_manager(processors)
+
+    def _create_queue_manager(self, processors):
+        from nxdrive.engine.queue_manager import QueueManager
+        return QueueManager(self, self._dao)
+
+    def _create_remote_watcher(self):
+        from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
+        return RemoteWatcher(self, self._dao)
+
+    def _create_local_watcher(self):
+        from nxdrive.engine.watcher.local_watcher import LocalWatcher
+        return LocalWatcher(self, self._dao)
+
+    def _create_dao(self):
+        from nxdrive.engine.dao.sqlite import SqliteDAO
+        return SqliteDAO(self, '/tmp/test.db')
+
+    def get_dao(self):
+        return self._dao
 
     def create_thread(self, worker=None, name=None, start_connect=True):
         if worker is None:
             worker = Worker(self, name=name)
+        thread = worker.get_thread()
         if start_connect:
-            self._start.connect(worker.run)
+            thread.started.connect(worker.run)
         self._stop.connect(worker.quit)
-        worker.get_thread().finished.connect(self._thread_finished)
-        return worker._thread
+        thread.finished.connect(self._thread_finished)
+        self._threads.append(thread)
+        return thread
 
     def _thread_finished(self):
-        for thread in self.threads:
+        for thread in self._threads:
             if thread.isFinished():
-                self.threads.remove(thread)
+                self._threads.remove(thread)
 
     def start(self):
+        self._stopped = False
         log.debug("Engine start")
-        for thread in self.threads:
+        for thread in self._threads:
             thread.start()
         self._start.emit()
 
     def get_status(self):
         log.debug("Engine status")
-        for thread in self.threads:
+        for thread in self._threads:
             log.debug("%r" % thread.worker.get_metrics())
+        log.debug("%r" % self.queue_manager.get_metrics())
         QTimer.singleShot(30000, self.get_status)
 
+    def is_paused(self):
+        return False
+
+    def is_stopped(self):
+        return self._stopped
+
     def stop(self):
+        self._stopped = True
         log.debug("Engine stopping")
         self._stop.emit()
-        for thread in self.threads:
+        for thread in self._threads:
             if not thread.wait(3000):
                 log.warn("Thread is not responding - terminate it")
                 thread.terminate()
@@ -221,6 +246,9 @@ class Engine(QObject):
 
     def get_local_client(self):
         return LocalClient(self._local_folder)
+
+    def local_rollback(self):
+        return False
 
     def _add_top_level_state(self):
         local_client = self.get_local_client()
