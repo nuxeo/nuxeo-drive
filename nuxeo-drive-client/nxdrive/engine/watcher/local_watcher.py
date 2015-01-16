@@ -99,7 +99,7 @@ class LocalWatcher(Worker):
                 self._scan_recursive(child_info)
 
         for deleted in children.values():
-            log.debug("Found deleted file %s", child_info.path)
+            log.debug("Found deleted file %s", deleted.local_path)
             # May need to count the children to be ok
             self._metrics['delete_files'] = self._metrics['delete_files']+1
             self._dao.delete_state(deleted)
@@ -198,7 +198,7 @@ class LocalWatcher(Worker):
                 # An event can be missed inside a new created folder as
                 # watchdog will put listener after it
                 if local_info.folderish:
-                    self._scan_local_recursive(doc_pair, local_info)
+                    self._scan_recursive(local_info)
             elif doc_pair is not None:
                 if (evt.event_type == 'moved'):
                     #remote_client = self.get_remote_fs_client(

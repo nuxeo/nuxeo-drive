@@ -16,7 +16,7 @@ class RemoteFilteredFileSystemClient(RemoteFileSystemClient):
     '''
 
     def __init__(self, server_url, user_id, device_id, client_version,
-                 session, proxies=None, proxy_exceptions=None,
+                 dao, proxies=None, proxy_exceptions=None,
                  password=None, token=None, repository="default",
                  ignored_prefixes=None, ignored_suffixes=None,
                  timeout=20, blob_timeout=None, cookie_jar=None,
@@ -30,11 +30,12 @@ class RemoteFilteredFileSystemClient(RemoteFileSystemClient):
             password, token, repository, ignored_prefixes,
             ignored_suffixes, timeout, blob_timeout, cookie_jar,
             upload_tmp_dir, check_suspended)
-        self.session = session
+        self._doa = dao
 
     def is_filtered(self, path):
-        return Filter.is_filter(self.session, None, path)
-
+        return False
+        #Filter.is_filter(self.session, None, path)
+'''
     def get_children_info(self, fs_item_id):
         result = super(RemoteFilteredFileSystemClient, self).get_children_info(
                                                                     fs_item_id)
@@ -46,3 +47,4 @@ class RemoteFilteredFileSystemClient(RemoteFileSystemClient):
             else:
                 log.debug("Filtering item %r", item)
         return filtered
+'''

@@ -30,10 +30,10 @@ class QueueManager(QObject):
         self._local_file_queue = Queue()
         self._remote_file_queue = Queue()
         self._remote_folder_queue = Queue()
-        self._local_folder_thread = None
+        self._local_folder_thread = 'disable'
         self._local_file_thread = None
-        self._remote_folder_thread = None
-        self._remote_file_thread = None
+        self._remote_folder_thread = 'disable'
+        self._remote_file_thread = 'disable'
         if max_file_processors < 2:
             max_file_processors = 2
         self._max_processors = max_file_processors - 2
@@ -41,7 +41,10 @@ class QueueManager(QObject):
         self._processors_pool = list()
         self._dao.register_queue_manager(self)
         self._get_file_lock = Lock()
-        self.newItem.connect(self.launch_processor)
+
+    def init_processors(self):
+        self.newItem.connect(self.launch_processors)
+        self.newItem.emit()
 
     def init_queue(self, queue):
         # Dont need to change modify as State is compatible with QueueItem
@@ -115,6 +118,8 @@ class QueueManager(QObject):
         for thread in self._processors_pool:
             if thread.isFinished():
                 self._processors_pool.remove(thread)
+        if True:
+            return
         if (self._local_folder_thread is not None and
                 self._local_folder_thread.isFinished()):
             self._local_folder_thread = None
@@ -128,7 +133,7 @@ class QueueManager(QObject):
                 self._remote_file_thread.isFinished()):
             self._remote_file_thread = None
         if not self._engine.is_paused() and not self._engine.is_stopped():
-            self.launch_processor()
+            self.launch_processors()
 
     def _create_thread(self, item_getter, name=None):
         processor = Processor(self._engine, item_getter)
@@ -150,12 +155,10 @@ class QueueManager(QObject):
         metrics["additional_processors"] = len(self._processors_pool)
         return metrics
 
-    def launch_processor(self):
+    def launch_processors(self):
         if self._local_folder_thread is None and not self._local_folder_queue.empty():
             log.debug("creating local folder processor")
             self._local_folder_thread = self._create_thread(self._get_local_folder, name="LocalFolderProcessor")
-        if True:
-            return
         if self._local_file_thread is None and not self._local_file_queue.empty():
             log.debug("creating local file processor")
             self._local_file_thread = self._create_thread(self._get_local_file, name="LocalFileProcessor")
@@ -165,7 +168,7 @@ class QueueManager(QObject):
         if self._remote_file_thread is None and not self._remote_file_queue.empty():
             log.debug("creating remote file processor")
             self._remote_file_thread = self._create_thread(self._get_remote_file, name="RemoteFileProcessor")
-        if self._remote_file_queue.qsize() + self._local_file_queue.qsize() <= 2:
+        if self._remote_file_queue.qsize() + self._local_file_queue.qsize() <= 2 or True:
             return
         while len(self._processors_pool) < self._max_processors:
             log.debug("creating additional file processor")

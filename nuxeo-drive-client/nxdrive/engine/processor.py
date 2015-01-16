@@ -5,6 +5,7 @@ Created on 14 janv. 2015
 '''
 from nxdrive.engine.engine import Worker
 from nxdrive.logging_config import get_logger
+from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 import os
 log = get_logger(__name__)
 
@@ -90,6 +91,7 @@ class Processor(Worker):
                 % doc_pair.local_parent_path)
         parent_ref = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
+            remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
             if doc_pair.folderish:
                 log.debug("Creating remote folder '%s' in folder '%s'",
                           name, parent_pair.remote_name)
@@ -99,7 +101,7 @@ class Processor(Worker):
                           name, parent_pair.remote_name)
                 remote_ref = remote_client.stream_file(
                     parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
-            self._dao.update_remote_state(doc_pair, remote_client.get_info(remote_ref))
+            self._dao.update_remote_state(doc_pair, remote_client.get_info(remote_ref), remote_parent_path)
             self._dao.synchronize_state(doc_pair, doc_pair.version + 1)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
@@ -236,7 +238,7 @@ class Processor(Worker):
                             doc_pair.local_path, doc_pair.remote_name)
                     if is_move or is_renaming:
                         self._local_rename_with_descendant_states(doc_pair, previous_local_path, updated_info.path)
-            self.handle_readonly(local_client, doc_pair)
+            self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
         except (IOError, WindowsError) as e:
             log.warning(
@@ -285,7 +287,7 @@ class Processor(Worker):
             # Rename tmp file
             local_client.rename(local_client.get_path(tmp_file), name)
         self._refresh_local(doc_pair, local_client.get_info(path))
-        self.handle_readonly(local_client, doc_pair)
+        self._handle_readonly(local_client, doc_pair)
         self._dao.synchronize_state(doc_pair, doc_pair.version + 1)
 
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
@@ -327,9 +329,10 @@ class Processor(Worker):
             log.debug("Since the local path is None the synchronizer will"
                       " probably do nothing at next iteration")
 
-    def _refresh_remote(self, doc_pair, remote_info=None):
+    def _refresh_remote(self, doc_pair, remote_client, remote_info=None):
         if remote_info is None:
             remote_info = None # Get from remote_client
+            remote_info = remote_client.get_info(doc_pair.remote_ref)
         pass
 
     def _refresh_local(self, doc_pair, local_info):
@@ -413,3 +416,16 @@ class Processor(Worker):
                 log.error("Can't rollback local modification")
                 log.debug(e)
         return False
+
+    def _is_locally_edited_folder(self, doc_pair):
+        return doc_pair.local_path.endswith(LOCALLY_EDITED_FOLDER_NAME)
+
+    def _handle_readonly(self, local_client, doc_pair):
+        # Don't use readonly on folder for win32 and on Locally Edited
+        if (doc_pair.folderish and os.sys.platform == 'win32'
+            or self._is_locally_edited_folder(doc_pair)):
+            return
+        if doc_pair.is_readonly():
+            local_client.set_readonly(doc_pair.local_path)
+        else:
+            local_client.unset_readonly(doc_pair.local_path)

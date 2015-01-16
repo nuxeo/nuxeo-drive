@@ -14,9 +14,11 @@ from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.remote_file_system_client import RemoteFileInfo
 import os
 log = get_logger(__name__)
+from PyQt4.QtCore import pyqtSignal
 
 
 class RemoteWatcher(Worker):
+    initiate = pyqtSignal()
     def __init__(self, engine, dao):
         super(RemoteWatcher, self).__init__(engine)
         self.unhandle_fs_event = False
@@ -33,7 +35,7 @@ class RemoteWatcher(Worker):
         self._metrics['last_remote_scan_time'] = -1
         self._metrics['last_remote_update_time'] = -1
         self.server_interval = 30
-        self._current_interval = 0
+        self._current_interval = self.server_interval
 
     def get_metrics(self):
         metrics = super(RemoteWatcher, self).get_metrics()
@@ -47,6 +49,9 @@ class RemoteWatcher(Worker):
     def _execute(self):
         if self._last_remote_full_scan is None:
             self._scan_remote()
+        else:
+            self._handle_changes()
+        self.initiate.emit()
         while (1):
             self._interact()
             if self._current_interval == 0:

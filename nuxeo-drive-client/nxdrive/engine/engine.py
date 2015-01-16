@@ -171,6 +171,7 @@ class Engine(QObject):
         self.remote_watcher = self.create_thread(worker=self._create_remote_watcher(), start_connect=False)
         self.local_watcher.worker.localScanFinished.connect(self.remote_watcher.worker.run)
         self.queue_manager = self._create_queue_manager(processors)
+        self.remote_watcher.worker.initiate.connect(self.queue_manager.launch_processors)
 
     def _create_queue_manager(self, processors):
         from nxdrive.engine.queue_manager import QueueManager
@@ -325,5 +326,6 @@ if __name__ == "__main__":
     #engine.remote_watcher.worker._execute()
     QTimer.singleShot(20000, engine.get_status)
     QTimer.singleShot(480000, engine.stop)
+    #engine.queue_manager.init_processors()
     engine.start()
     core.exec_()

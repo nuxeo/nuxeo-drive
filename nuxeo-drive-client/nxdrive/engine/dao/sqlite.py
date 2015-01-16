@@ -16,6 +16,13 @@ class CustomRow(sqlite3.Row):
             return self.custom[name]
         return self[name]
 
+    def is_readonly(self):
+        if self.folderish:
+            return self.remote_can_create_child == 0
+        else:
+            return (self.remote_can_delete & self.remote_can_rename
+                        & self.remote_can_update) == 0
+
     def update_state(self, local_state=None, remote_state=None):
         if local_state is not None:
             self.local_state = local_state
@@ -161,14 +168,17 @@ class SqliteDAO(Worker):
     def _get_pair_state(self, row):
         return PAIR_STATES.get((row.local_state, row.remote_state))
 
-    def update_local_state(self, row, info):
+    def update_local_state(self, row, info, versionned=True):
         pair_state = self._get_pair_state(row)
+        version = ''
+        if versionned:
+            version = ', version=version+1'
         self._lock.acquire()
         con = self._get_write_connection()
         c = con.cursor()
         # Should not update this
         c.execute("UPDATE States SET last_local_updated=?, local_digest=?, local_path=?, local_name=?,"
-                  + "local_state=?, remote_state=?, pair_state=?, version=version+1" +
+                  + "local_state=?, remote_state=?, pair_state=?" + version +
                   " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, 
                                     os.path.basename(info.path), row.local_state, row.remote_state,
                                     pair_state, row.id))
@@ -279,8 +289,13 @@ class SqliteDAO(Worker):
         self._lock.release()
         return c.rowcount == 1
 
-    def update_remote_state(self, row, info, remote_parent_path):
+    def update_remote_state(self, row, info, remote_parent_path=None, versionned=True):
         pair_state = self._get_pair_state(row)
+        if remote_parent_path is None:
+            remote_parent_path = row.remote_parent_path
+        version = ''
+        if versionned:
+            version = ', version=version+1'
         self._lock.acquire()
         con = self._get_write_connection()
         c = con.cursor()
@@ -288,7 +303,7 @@ class SqliteDAO(Worker):
                   "remote_parent_path=?, remote_name=?, last_remote_updated=?, remote_can_rename=?," +
                   "remote_can_delete=?, remote_can_update=?, " +
                   "remote_can_create_child=?, last_remote_modifier=?, remote_digest=?, local_state=?," +
-                  "remote_state=?, pair_state=?, last_remote_modifier=?, version=version+1 WHERE id=?",
+                  "remote_state=?, pair_state=?, last_remote_modifier=?" + version + " WHERE id=?",
                   (info.uid, info.parent_uid, remote_parent_path, info.name,
                    info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                    info.can_create_child, info.last_contributor, info.digest, row.local_state,
