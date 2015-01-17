@@ -32,7 +32,7 @@ class FileInfo(object):
     """Data Transfer Object for file info on the Local FS"""
 
     def __init__(self, root, path, folderish, last_modification_time,
-                 digest_func='md5', check_suspended=None):
+                 digest_func='md5', check_suspended=None, remote_ref=None):
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
@@ -43,6 +43,7 @@ class FileInfo(object):
         self.root = root  # the sync root folder local path
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
+        self.remote_ref = remote_ref
 
         # Last OS modification date of the file
         self.last_modification_time = last_modification_time
@@ -126,6 +127,56 @@ class LocalClient(BaseClient):
         path = self._abspath(ref)
         self.unset_path_readonly(path)
 
+    def remove_remote_id(self, ref):
+     # Can be move to another class
+        path = self._abspath(ref)
+        if sys.platform == 'win32':
+            path = path + ":ndrive"
+            with open(path, "w") as f:
+                f.write("")
+            pass
+        else:
+            import xattr
+            xattr.removexattr(path, 'ndrive')
+
+    def set_remote_id(self, ref, remote_id):
+        # Can be move to another class
+        path = self._abspath(ref)
+        if sys.platform == 'win32':
+            locker = self.unlock_path(path, False)
+            pathAlt = path + ":ndrive"
+            try:
+                with open(pathAlt, "w") as f:
+                    f.write(remote_id)
+            except IOError as e:
+                if e.errno == os.errno.EACCES:
+                    self.unset_path_readonly(path)
+                    with open(pathAlt, "w") as f:
+                        f.write(remote_id)
+                    self.set_path_readonly(path)
+            finally:
+                self.lock_path(path, locker)
+        else:
+            import xattr
+            xattr.setxattr(path, 'ndrive', remote_id)
+
+    def get_remote_id(self, ref):
+        # Can be move to another class
+        path = self._abspath(ref)
+        if sys.platform == 'win32':
+            path = path + ":ndrive"
+            try:
+                with open(path, "r") as f:
+                    return f.read()
+            except:
+                return None
+        else:
+            import xattr
+            try:
+                return xattr.getxattr(path, 'ndrive')
+            except:
+                return None
+
     # Getters
     def get_info(self, ref, raise_if_missing=True):
         os_path = self._abspath(ref)
@@ -137,16 +188,18 @@ class LocalClient(BaseClient):
                 return None
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
-        mtime = datetime.fromtimestamp(stat_info.st_mtime)
+        mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
         path = u'/' + os_path[len(safe_long_path(self.base_folder)) + 1:]
         path = path.replace(os.path.sep, u'/')  # unix style path
+        remote_ref = self.get_remote_id(ref)
         # On unix we could use the inode for file move detection but that won't
         # work on Windows. To reduce complexity of the code and the possibility
         # to have Windows specific bugs, let's not use the unix inode at all.
         # uid = str(stat_info.st_ino)
         return FileInfo(self.base_folder, path, folderish, mtime,
                         digest_func=self._digest_func,
-                        check_suspended=self.check_suspended)
+                        check_suspended=self.check_suspended,
+                        remote_ref=remote_ref)
 
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()
@@ -316,8 +369,9 @@ class LocalClient(BaseClient):
                 target_os_path = self._abspath(os.path.join(parent, new_name))
             else:
                 target_os_path, new_name = self._abspath_deduped(parent,
-                                                                new_name)
-            shutil.move(source_os_path, target_os_path)
+                                                                new_name, old_name)
+            if old_name != new_name:
+                shutil.move(source_os_path, target_os_path)
             if sys.platform == 'win32':
                 import ctypes
                 # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
@@ -372,7 +426,7 @@ class LocalClient(BaseClient):
         os_path = self._abspath(os.path.join(parent, name + suffix))
         return os_path
 
-    def _abspath_deduped(self, parent, orig_name):
+    def _abspath_deduped(self, parent, orig_name, old_name=None):
         """Absolute path on the operating system with deduplicated names"""
         # make name safe by removing invalid chars
         name = safe_filename(orig_name)
@@ -382,6 +436,8 @@ class LocalClient(BaseClient):
 
         for _ in range(1000):
             os_path = self._abspath(os.path.join(parent, name + suffix))
+            if old_name == (name + suffix):
+                return os_path, name + suffix
             if not os.path.exists(os_path):
                 return os_path, name + suffix
 
