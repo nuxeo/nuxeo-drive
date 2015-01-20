@@ -9,6 +9,8 @@ import re
 import sys
 from nxdrive.client.common import BaseClient
 
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import safe_filename
 from nxdrive.client.common import NotFound
@@ -119,6 +121,10 @@ class LocalClient(BaseClient):
             os.rmdir(path)
         return self._case_sensitive
 
+    def is_temp_file(self, filename):
+        return (filename.startswith(DOWNLOAD_TMP_FILE_PREFIX) and
+                            filename.endswith(DOWNLOAD_TMP_FILE_SUFFIX))
+
     def set_readonly(self, ref):
         path = self._abspath(ref)
         self.set_path_readonly(path)
@@ -127,24 +133,33 @@ class LocalClient(BaseClient):
         path = self._abspath(ref)
         self.unset_path_readonly(path)
 
-    def remove_remote_id(self, ref):
-     # Can be move to another class
+    def remove_root_id(self):
+        self.remove_remote_id('/', name='ndriveroot')
+
+    def set_root_id(self, value):
+        self.set_remote_id('/', value, name="ndriveroot")
+
+    def get_root_id(self):
+        self.get_remote_id('/', name="ndriveroot")
+
+    def remove_remote_id(self, ref, name='ndrive'):
+        # Can be move to another class
         path = self._abspath(ref)
         if sys.platform == 'win32':
-            path = path + ":ndrive"
+            path = path + ":" + name
             with open(path, "w") as f:
                 f.write("")
             pass
         else:
             import xattr
-            xattr.removexattr(path, 'ndrive')
+            xattr.removexattr(path, name)
 
-    def set_remote_id(self, ref, remote_id):
+    def set_remote_id(self, ref, remote_id, name='ndrive'):
         # Can be move to another class
         path = self._abspath(ref)
         if sys.platform == 'win32':
             locker = self.unlock_path(path, False)
-            pathAlt = path + ":ndrive"
+            pathAlt = path + ":" + name
             try:
                 with open(pathAlt, "w") as f:
                     f.write(remote_id)
@@ -158,13 +173,13 @@ class LocalClient(BaseClient):
                 self.lock_path(path, locker)
         else:
             import xattr
-            xattr.setxattr(path, 'ndrive', remote_id)
+            xattr.setxattr(path, name, remote_id)
 
-    def get_remote_id(self, ref):
+    def get_remote_id(self, ref, name="ndrive"):
         # Can be move to another class
         path = self._abspath(ref)
         if sys.platform == 'win32':
-            path = path + ":ndrive"
+            path = path + ":" + name
             try:
                 with open(path, "r") as f:
                     return f.read()
@@ -173,7 +188,7 @@ class LocalClient(BaseClient):
         else:
             import xattr
             try:
-                return xattr.getxattr(path, 'ndrive')
+                return xattr.getxattr(path, name)
             except:
                 return None
 
@@ -206,6 +221,10 @@ class LocalClient(BaseClient):
 
     def is_ignored(self, ref, child_name):
         ignore = False
+        # Office temp file
+        # http://support.microsoft.com/kb/211632
+        if child_name.startswith("~") and child_name.endswith(".tmp"):
+            return True
         for suffix in self.ignored_suffixes:
             if child_name.endswith(suffix):
                 ignore = True
@@ -440,7 +459,7 @@ class LocalClient(BaseClient):
                 return os_path, name + suffix
             if not os.path.exists(os_path):
                 return os_path, name + suffix
-
+            #raise ValueError("SHOULD NOT DUPLICATE NOW")
             # the is a duplicated file, try to come with a new name
             m = re.match(DEDUPED_BASENAME_PATTERN, name)
             if m:

@@ -5,6 +5,7 @@ from nxdrive.logging_config import get_logger
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 from nxdrive.engine.engine import Worker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 import sys
 import os
 from time import time
@@ -76,6 +77,7 @@ class LocalWatcher(Worker):
         db_children = self._dao.get_local_children(info.path)
         # Create a list of all children by their name
         children = dict()
+        to_scan = []
         for child in db_children:
             children[child.local_name] = child
 
@@ -93,16 +95,19 @@ class LocalWatcher(Worker):
                         != child_pair.last_local_updated):
                     if not child_info.folderish:
                         child_pair.local_digest = child_info.get_digest()
-                    self._metrics['update_files'] = self._metrics['update_files']+1
+                    self._metrics['update_files'] = self._metrics['update_files'] + 1
                     self._dao.update_local_state(child_pair, child_info)
             if child_info.folderish:
-                self._scan_recursive(child_info)
+                to_scan.append(child_info)
 
         for deleted in children.values():
             log.debug("Found deleted file %s", deleted.local_path)
             # May need to count the children to be ok
-            self._metrics['delete_files'] = self._metrics['delete_files']+1
-            self._dao.delete_state(deleted)
+            self._metrics['delete_files'] = self._metrics['delete_files'] + 1
+            self._dao.delete_local_state(deleted)
+
+        for child_info in to_scan:
+            self._scan_recursive(child_info)
 
     def _setup_watchdog(self):
         from watchdog.observers import Observer
@@ -139,28 +144,71 @@ class LocalWatcher(Worker):
         for evt in sorted_evts:
             self.handle_watchdog_event(evt)
 
+    def _handle_watchdog_event_on_known_pair(self, doc_pair, evt, rel_path):
+        if doc_pair.processor > 0:
+            log.trace("Don't update as in process %r", doc_pair)
+            return
+        if (evt.event_type == 'moved'):
+                    #remote_client = self.get_remote_fs_client(
+                    #                                        server_binding)
+                    #self.handle_move(local_client, remote_client,
+                    #                 doc_pair, src_path,
+                    #            normalize_event_filename(evt.dest_path))
+                    #session.commit()
+            src_path = normalize_event_filename(evt.dest_path)
+            rel_path = self.client.get_path(src_path)
+            local_info = self.client.get_info(rel_path)
+            doc_pair.local_state = 'moved'
+            self._dao.update_local_state(doc_pair, local_info)
+            return
+        if evt.event_type == 'deleted':
+            doc_pair.update_state('deleted', doc_pair.remote_state)
+            if doc_pair.remote_state == 'unknown':
+                self._dao.remove_state(doc_pair)
+            else:
+                self._dao.delete_local_state(doc_pair)
+            return
+        local_info = self.client.get_info(rel_path)
+        if doc_pair.local_state == 'synchronized':
+            doc_pair.local_state = 'modified'
+        queue = not (evt.event_type == 'modified' and doc_pair.folderish
+                                and doc_pair.local_state == 'modified')
+        self._dao.update_local_state(doc_pair, local_info, queue=queue)
+        # No need to change anything on sync folder
+        if (not queue):
+            self._dao.synchronize_state(doc_pair, doc_pair.version + 1)
+
+    def _handle_watchdog_root_event(self, evt):
+        pass
+
     def handle_watchdog_event(self, evt):
-        log.debug("handle_watchdog_event")
+        log.trace("handle_watchdog_event %s on %s", evt.event_type, evt.src_path)
         try:
             src_path = normalize_event_filename(evt.src_path)
             rel_path = self.client.get_path(src_path)
             if len(rel_path) == 0:
-                rel_path = '/'
-            file_name = os.path.basename(src_path)
-            doc_pair = self._dao.get_state_from_local(rel_path)
-            # Ignore unsynchronized doc pairs
-            if (doc_pair is not None
-                and doc_pair.pair_state == 'unsynchronized'):
-                log.debug("Ignoring %s as marked unsynchronized",
-                          doc_pair.local_path)
+                self._handle_watchdog_root_event(evt)
                 return
-            if (doc_pair is not None and
-                    self.client.is_ignored(doc_pair.local_parent_path,
-                                                file_name)
+            file_name = os.path.basename(src_path)
+            parent_path = os.path.dirname(src_path)
+            parent_rel_path = self.client.get_path(parent_path)
+            doc_pair = self._dao.get_state_from_local(rel_path)
+            # Dont care about ignored file, unless it is moved
+            if (self.client.is_ignored(parent_rel_path, file_name)
                   and evt.event_type != 'moved'):
                 return
-            if (evt.event_type == 'created'
-                    and doc_pair is None):
+            if self.client.is_temp_file(file_name):
+                return
+            if doc_pair is not None:
+                if doc_pair.pair_state == 'unsynchronized':
+                    log.debug("Ignoring %s as marked unsynchronized",
+                          doc_pair.local_path)
+                    return
+                self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
+                return
+            if evt.event_type == 'deleted':
+                return
+            if evt.event_type == 'created':
                 # If doc_pair is not None mean
                 # the creation has been catched by scan
                 # As Windows send a delete / create event for reparent
@@ -175,22 +223,15 @@ class LocalWatcher(Worker):
                                                                 rel_path))
                         continue
                 '''
-                fragments = rel_path.rsplit('/', 1)
-                name = fragments[1]
-                # Skip the .part as it is Nuxeo temporary download
-                if name.startswith(".") and name.endswith(".part"):
-                    return
-                parent_path = fragments[0]
                 local_info = self.client.get_info(rel_path)
-                digest = local_info.get_digest()
                 # Handle creation of "Locally Edited" folder and its
                 # children
                 '''
-                if name == LOCALLY_EDITED_FOLDER_NAME:
+                if file_name == LOCALLY_EDITED_FOLDER_NAME:
                     root_pair = self._controller.get_top_level_state(local_folder, session=session)
                     doc_pair = self._scan_local_new_file(session, name,
                                                 local_info, root_pair)
-                elif parent_path.endswith(LOCALLY_EDITED_FOLDER_NAME):
+                elif parent_rel_path.endswith(LOCALLY_EDITED_FOLDER_NAME):
                     parent_pair = session.query(LastKnownState).filter_by(
                         local_path=parent_path,
                         local_folder=local_folder).one()
@@ -198,74 +239,48 @@ class LocalWatcher(Worker):
                                                 local_info, parent_pair)
                 else:
                 '''
-                self._dao.insert_local_state(local_info, parent_path)
+                self._dao.insert_local_state(local_info, parent_rel_path)
                 # An event can be missed inside a new created folder as
                 # watchdog will put listener after it
                 if local_info.folderish:
                     self._scan_recursive(local_info)
-            elif doc_pair is not None:
-                if (evt.event_type == 'moved'):
-                    #remote_client = self.get_remote_fs_client(
-                    #                                        server_binding)
-                    #self.handle_move(local_client, remote_client,
-                    #                 doc_pair, src_path,
-                    #            normalize_event_filename(evt.dest_path))
-                    #session.commit()
-                    doc_pair.local_state = 'moved'
-                    self._dao.update_local_state(doc_pair, local_info)
-                    return
-                if evt.event_type == 'deleted':
-                    doc_pair.update_state('deleted', doc_pair.remote_state)
-                    self._dao.delete_local_state(doc_pair)
-                    return
-                local_info = self.client.get_info(rel_path)
-                self._dao.update_local_state(doc_pair, local_info)
-                if evt.event_type == 'modified' and doc_pair.folderish:
-                    self._dao.synchronize_state(doc_pair, doc_pair.version + 1)
-                    return
-            else:
-                # Event is the reflection of remote deletion
-                if evt.event_type == 'deleted':
-                    return
-                # As you receive an event for every children move also
-                if evt.event_type == 'moved':
-                    # Try to see if it is a move from update
-                    # No previous pair as it was hidden file
-                    # Existing pair (may want to check the pair state)
-                    dst_rel_path = self.client.get_path(
-                                    normalize_event_filename(
-                                                            evt.dest_path))
-                    dst_pair = self._dao.get_state_from_local(dst_rel_path)
-                    # No pair so it must be a filed moved to this folder
-                    if dst_pair is None:
-                        local_info = self.client.get_info(dst_rel_path)
-                        fragments = dst_rel_path.rsplit('/', 1)
-                        name = fragments[1]
-                        parent_path = fragments[0]
-                        # Locally edited patch
-                        '''
-                        if (parent_path
-                            .endswith(LOCALLY_EDITED_FOLDER_NAME)):
-                            parent_pair = (session.query(LastKnownState)
-                                           .filter_by(
-                                                local_path=parent_path,
-                                                local_folder=local_folder)
-                                           .one())
-                            doc_pair = self._scan_local_new_file(
-                                                            local_info,
-                                                            parent_pair)
-                            doc_pair.update_local(local_info)
-                        else:
-                        '''
-                        # It can be consider as a creation
-                        # TODO Add 3 argument
-                        self._dao.insert_local_state(self.client.get_info(
-                                                            dst_rel_path))
+            # As you receive an event for every children move also
+            elif evt.event_type == 'moved':
+                # Try to see if it is a move from update
+                # No previous pair as it was hidden file
+                # Existing pair (may want to check the pair state)
+                dst_rel_path = self.client.get_path(
+                                normalize_event_filename(
+                                                        evt.dest_path))
+                dst_pair = self._dao.get_state_from_local(dst_rel_path)
+                # No pair so it must be a filed moved to this folder
+                if dst_pair is None:
+                    local_info = self.client.get_info(dst_rel_path)
+                    #name = fragments[1]
+                    #parent_path = fragments[0]
+                    # Locally edited patch
+                    '''
+                    if (parent_path
+                        .endswith(LOCALLY_EDITED_FOLDER_NAME)):
+                        parent_pair = (session.query(LastKnownState)
+                                       .filter_by(
+                                            local_path=parent_path,
+                                            local_folder=local_folder)
+                                       .one())
+                        doc_pair = self._scan_local_new_file(
+                                                        local_info,
+                                                        parent_pair)
+                        doc_pair.update_local(local_info)
                     else:
-                        # Must come from a modification
+                    '''
+                    # It can be consider as a creation
+                    self._dao.insert_local_state(local_info, parent_path)
+                else:
+                    # Must come from a modification
+                    if dst_pair.processor == 0:
                         self._dao.update_local_state(dst_pair,
-                                    self.client.get_info(dst_rel_path))
-                    return
+                                self.client.get_info(dst_rel_path))
+                return
                 log.trace('Unhandled case: %r %s %s', evt, rel_path,
                          file_name)
                 self.unhandle_fs_event = True

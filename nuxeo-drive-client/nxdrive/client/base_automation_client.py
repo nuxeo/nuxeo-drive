@@ -35,7 +35,7 @@ CHANGE_SUMMARY_OPERATION = 'NuxeoDrive.GetChangeSummary'
 DEFAULT_NUXEO_TX_TIMEOUT = 300
 
 DOWNLOAD_TMP_FILE_PREFIX = '.'
-DOWNLOAD_TMP_FILE_SUFFIX = '.part'
+DOWNLOAD_TMP_FILE_SUFFIX = '.nxpart'
 
 
 def get_proxies_for_handler(proxy_settings):

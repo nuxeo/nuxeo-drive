@@ -86,6 +86,7 @@ class Worker(QObject):
 
     @pyqtSlot()
     def run(self):
+        reason = ''
         self._thread_id = current_thread().ident
         try:
             self._execute()
@@ -94,13 +95,17 @@ class Worker(QObject):
         except ThreadInterrupt:
             log.debug("Thread %s(%d) interrupted"
                         % (self._name, self._thread_id))
-            pass
+            reason = 'interrupt'
         except Exception as e:
             log.warn("Thread %s(%d) ended with exception : %r"
                             % (self._name, self._thread_id, e))
             log.exception(e)
+            reason = 'exception'
+        self._clean(reason)
         self._thread.exit(0)
 
+    def _clean(self, reason):
+        pass
 
 '''
 ' Just a DummyWorker with infinite loop
@@ -169,8 +174,8 @@ class Engine(QObject):
         self.local_watcher = self.create_thread(worker=self._create_local_watcher())
         self.remote_watcher = self.create_thread(worker=self._create_remote_watcher(), start_connect=False)
         self.local_watcher.worker.localScanFinished.connect(self.remote_watcher.worker.run)
-        self.queue_manager = self._create_queue_manager(processors)
-        self.remote_watcher.worker.initiate.connect(self.queue_manager.init_processors)
+        self._queue_manager = self._create_queue_manager(processors)
+        self.remote_watcher.worker.initiate.connect(self._queue_manager.init_processors)
 
     def _create_queue_manager(self, processors):
         from nxdrive.engine.queue_manager import QueueManager
@@ -187,6 +192,9 @@ class Engine(QObject):
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import SqliteDAO
         return SqliteDAO(self, '/tmp/test.db')
+
+    def get_queue_manager(self):
+        return self._queue_manager
 
     def get_dao(self):
         return self._dao
@@ -219,7 +227,7 @@ class Engine(QObject):
         log.debug("Engine status")
         for thread in self._threads:
             log.debug("%r" % thread.worker.get_metrics())
-        log.debug("%r" % self.queue_manager.get_metrics())
+        log.debug("%r" % self._queue_manager.get_metrics())
         QTimer.singleShot(30000, self.get_status)
 
     def is_paused(self):
@@ -262,6 +270,7 @@ class Engine(QObject):
         self._dao.commit()
         row = self._dao.get_state_from_local('/')
         self._dao.update_remote_state(row, remote_info, '')
+        local_client.set_root_id('http://localhost:8080/nuxeo/|Administrator')
         # Use version+1 as we just update the remote info
         self._dao.synchronize_state(row, row.version + 1)
         self._dao.commit()
@@ -287,7 +296,7 @@ class Engine(QObject):
             if filtered:
                 remote_client = self.remote_filtered_fs_client_factory(
                         server_url, remote_user, device_id,
-                        self.version, None,
+                        self.version, self._dao,
                         proxies=self.proxies,
                         proxy_exceptions=self.proxy_exceptions,
                         password=remote_password, token=remote_token,
@@ -296,7 +305,7 @@ class Engine(QObject):
             else:
                 remote_client = self.remote_fs_client_factory(
                         server_url, remote_user, device_id,
-                        self.version, None,
+                        self.version,
                         proxies=self.proxies,
                         proxy_exceptions=self.proxy_exceptions,
                         password=remote_password, token=remote_token,
@@ -314,16 +323,16 @@ class TestApplication(QCoreApplication):
         benchmark_remote = u'/Users/looping/nuxeo/sources/nuxeo/addons/nuxeo-drive/tools/benchmark/benchmark_files_remote'
         benchmark_empty = u'/Users/looping/nuxeo/sources/nuxeo/addons/nuxeo-drive/tools/benchmark/empty'
         benchmark = benchmark_empty
-        self._engine = Engine(benchmark, 2)
+        self._engine = Engine(benchmark, 4)
         root = self._engine._dao.get_state_from_local('/')
         if root is None:
             self._engine._add_top_level_state()
         QTimer.singleShot(20000, self._engine.get_status)
-        QTimer.singleShot(480000, self._engine.stop)
+        #QTimer.singleShot(480000, self._engine.stop)
         self._engine.start()
 
 if __name__ == "__main__":
-    configure(console_level='TRACE')
+    configure(log_filename="/tmp/trace.log", use_file_handler=True, file_level='TRACE', console_level='DEBUG')
     core = TestApplication(sys.argv)
     #remote = engine.get_remote_client(True)
     #local = LocalClient(benchmark_remote)

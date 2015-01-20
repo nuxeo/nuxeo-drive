@@ -83,6 +83,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
         self.end_action()
         return content
 
+    def is_temp_file(self, filename):
+        return (filename.startswith(DOWNLOAD_TMP_FILE_PREFIX) and
+                            filename.endswith(DOWNLOAD_TMP_FILE_SUFFIX))
+
     def stream_content(self, fs_item_id, file_path, parent_fs_item_id=None):
         """Stream the binary content of a file system item to a tmp file
 

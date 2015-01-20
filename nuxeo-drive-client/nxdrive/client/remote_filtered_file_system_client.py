@@ -30,12 +30,11 @@ class RemoteFilteredFileSystemClient(RemoteFileSystemClient):
             password, token, repository, ignored_prefixes,
             ignored_suffixes, timeout, blob_timeout, cookie_jar,
             upload_tmp_dir, check_suspended)
-        self._doa = dao
+        self._dao = dao
 
     def is_filtered(self, path):
-        return False
-        #Filter.is_filter(self.session, None, path)
-'''
+        return self._dao.is_filter(path)
+
     def get_children_info(self, fs_item_id):
         result = super(RemoteFilteredFileSystemClient, self).get_children_info(
                                                                     fs_item_id)
@@ -47,4 +46,3 @@ class RemoteFilteredFileSystemClient(RemoteFileSystemClient):
             else:
                 log.debug("Filtering item %r", item)
         return filtered
-'''

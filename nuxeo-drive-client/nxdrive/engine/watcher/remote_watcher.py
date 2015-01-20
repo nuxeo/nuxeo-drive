@@ -124,13 +124,13 @@ class RemoteWatcher(Worker):
 
         db_children = self._dao.get_remote_children(doc_pair.remote_ref)
         children = dict()
+        to_scan = []
         for child in db_children:
             children[child.remote_ref] = child
 
         for child_info in children_info:
             child_pair = None
             remote_parent_path = doc_pair.remote_parent_path + '/' + child_info.uid
-            log.debug("Remote Parent Path: %s" % remote_parent_path)
             new_pair = False
             if child_info.uid in children:
                 child_pair = children.pop(child_info.uid)
@@ -140,12 +140,15 @@ class RemoteWatcher(Worker):
                                                             doc_pair, child_info)
             if ((new_pair or force_recursion)
                 and remote_info.folderish):
-                    self._scan_remote_recursive(child_pair, child_info, mark_unknown=False)
+                    to_scan.append((child_pair, child_info))
 
         # Delete remaining
         for deleted in children.values():
             # TODO Should be DAO
             self._mark_deleted_remote_recursive(deleted)
+
+        for folder in to_scan:
+            self._scan_remote_recursive(folder[0], folder[1], mark_unknown=False)
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info):
         local_path = os.path.join(parent_pair.local_path, child_info.name)

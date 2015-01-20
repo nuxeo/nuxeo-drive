@@ -26,30 +26,62 @@ class Processor(Worker):
         Constructor
         '''
         super(Processor, self).__init__(engine, name=name)
+        self._current_item = None
         self._get_item = item_getter
         self._engine = engine
         self._dao = self._engine.get_dao()
 
+    def _clean(self, reason):
+        if reason == 'exception':
+            # Add it back to the queue ? Add the error delay
+            self.republish()
+
+    def republish(self, doc_pair=None):
+            from time import sleep
+            sleep(10)
+            if doc_pair is None:
+                doc_pair = self._current_item
+            if doc_pair is not None:
+                self._engine.get_queue_manager().push(doc_pair)
+
+    def acquire_state(self, row_id):
+        if self._dao.acquire_processor(self._thread_id, row_id):
+            return self._dao.get_state_from_id(row_id)
+        return None
+
+    def release_state(self):
+        self._dao.release_processor(self._thread_id)
+
     def _execute(self):
-        row = self._get_item()
+        self._current_item = self._get_item()
         local_client = self._engine.get_local_client()
         remote_client = self._engine.get_remote_client()
-        while (row != None):
-            doc_pair = self._dao.get_state_from_id(row.id)
-            if doc_pair.pair_state == 'synchronized' or doc_pair.pair_state == 'unsynchronized':
-                row = self._get_item()
-                continue
-            handler_name = '_synchronize_' + doc_pair.pair_state
-            sync_handler = getattr(self, handler_name, None)
-            if sync_handler is None:
-                raise RuntimeError("Unhandled pair_state: %r for %r",
-                                   doc_pair.pair_state, doc_pair)
-            else:
-                log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
-                sync_handler(doc_pair, local_client, remote_client)
-
+        while (self._current_item != None):
+            doc_pair = self.acquire_state(self._current_item.id)
+            try:
+                if (doc_pair is None or
+                    doc_pair.pair_state == 'synchronized'
+                    or doc_pair.pair_state == 'unsynchronized'):
+                    log.trace("Skip as pair is None or synchronized: %r", doc_pair)
+                    self._current_item = self._get_item()
+                    continue
+                if not local_client.exists(doc_pair.local_parent_path):
+                    log.trace("Republish as parent doesn't exist : %r", doc_pair)
+                    self.republish(doc_pair)
+                    continue
+                handler_name = '_synchronize_' + doc_pair.pair_state
+                sync_handler = getattr(self, handler_name, None)
+                if sync_handler is None:
+                    raise RuntimeError("Unhandled pair_state: %r for %r",
+                                       doc_pair.pair_state, doc_pair)
+                else:
+                    log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
+                    sync_handler(doc_pair, local_client, remote_client)
+                    log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
+            finally:
+                self.release_state()
             self._interact()
-            row = self._get_item()
+            self._current_item = self._get_item()
 
     def _synchronize_locally_modified(self, doc_pair, local_client, remote_client):
         if doc_pair.remote_digest != doc_pair.local_digest:
@@ -76,14 +108,22 @@ class Processor(Worker):
                 return
         self._dao.synchronize_state(doc_pair)
 
+    def _get_normal_state_from_remote_ref(self, ref):
+        # TODO Select the only states that is not a collection
+        return self._dao.get_states_from_remote(ref)[0]
 
     def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
         name = os.path.basename(doc_pair.local_path)
         # Find the parent pair to find the ref of the remote folder to
         # create the document
         parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
-        if parent_pair is None or (parent_pair.remote_can_create_child
-                                   and parent_pair.remote_ref is None):
+        if parent_pair is None:
+            # Try to get it from xattr
+            log.trace("Fallback to xattr")
+            if local_client.exists(doc_pair.local_parent_path):
+                parent_ref = local_client.get_remote_id(doc_pair.local_parent_path)
+                parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
+        if parent_pair is None or parent_pair.remote_ref is None:
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             raise ValueError(
@@ -102,6 +142,7 @@ class Processor(Worker):
                 remote_ref = remote_client.stream_file(
                     parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
             self._dao.update_remote_state(doc_pair, remote_client.get_info(remote_ref), remote_parent_path)
+            local_client.set_remote_id(doc_pair.local_path, remote_ref)
             self._dao.synchronize_state(doc_pair, doc_pair.version + 1)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
@@ -180,6 +221,24 @@ class Processor(Worker):
                   doc_pair)
         self._dao.remove_state(doc_pair)
 
+    def _download_content(self, local_client, remote_client, doc_pair, file_path):
+        # Check if the file is already on the HD
+        pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
+        if pair:
+            import shutil
+            from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
+            from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
+            file_dir = os.path.dirname(file_path)
+            file_name = os.path.basename(file_path)
+            file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
+                                + DOWNLOAD_TMP_FILE_SUFFIX)
+            shutil.copy(local_client._abspath(pair.local_path), file_out)
+            return file_out
+        tmp_file = remote_client.stream_content(
+                                doc_pair.remote_ref, file_path,
+                                parent_fs_item_id=doc_pair.remote_parent_ref)
+        return tmp_file
+
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
         try:
             is_renaming = doc_pair.remote_name != doc_pair.local_name
@@ -194,9 +253,7 @@ class Processor(Worker):
                     new_os_path = os_path
                     log.debug("Updating content of local file '%s'.",
                               os_path)
-                tmp_file = remote_client.stream_content(
-                                doc_pair.remote_ref, new_os_path,
-                                parent_fs_item_id=doc_pair.remote_parent_ref)
+                tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
                 # Delete original file and rename tmp file
                 local_client.delete(doc_pair.local_path)
                 updated_info = local_client.rename(
@@ -280,15 +337,14 @@ class Processor(Worker):
                                                             name)
             log.debug("Creating local file '%s' in '%s'", name,
                       local_client._abspath(parent_pair.local_path))
-            # TODO Check if digest is already somewhere
-            tmp_file = remote_client.stream_content(
-                                doc_pair.remote_ref, os_path,
-                                parent_fs_item_id=doc_pair.remote_parent_ref)
+            tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
             # Rename tmp file
             local_client.rename(local_client.get_path(tmp_file), name)
-        self._refresh_local(doc_pair, local_client.get_info(path))
+        local_client.set_remote_id(path, doc_pair.remote_ref)
         self._handle_readonly(local_client, doc_pair)
-        self._dao.synchronize_state(doc_pair, doc_pair.version)
+        self._refresh_local_state(doc_pair, local_client.get_info(path))
+        if not self._dao.synchronize_state(doc_pair, doc_pair.version):
+            log.debug("Pair is not in synchronized state (version issue): %r", doc_pair)
 
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
         try:
@@ -336,6 +392,9 @@ class Processor(Worker):
         pass
 
     def _refresh_local(self, doc_pair, local_info):
+        pass
+
+    def _refresh_local_state(self, doc_pair, local_info):
         if doc_pair.local_digest is None and not doc_pair.folderish:
             doc_pair.local_digest = local_info.get_digest()
         self._dao.update_local_state(doc_pair, local_info, versionned=False)

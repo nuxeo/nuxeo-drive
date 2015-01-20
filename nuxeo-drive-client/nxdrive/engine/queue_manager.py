@@ -12,6 +12,11 @@ class QueueItem(object):
         self.folderish = folderish
         self.pair_state = pair_state
 
+    def __repr__(self):
+        return "%s[%d](Folderish:%d, State: %s)" % (
+                        self.__class__.__name__, self.id,
+                        self.folderish, self.pair_state)
+
 
 class QueueManager(QObject):
     # Always create thread from the main thread
@@ -46,35 +51,33 @@ class QueueManager(QObject):
     def init_processors(self):
         log.trace("Init processors")
         self.newItem.connect(self.launch_processors)
-        self.emit()
+        self.newItem.emit()
 
     def init_queue(self, queue):
         # Dont need to change modify as State is compatible with QueueItem
         for item in queue:
             self.push(item)
-        pass
 
     def push_ref(self, row_id, folderish, pair_state):
         self.push(QueueItem(row_id, folderish, pair_state))
 
-    def emit(self):
-        log.trace("newItem emission")
-        self.newItem.emit()
-
-    def push(self, object):
-        log.trace("Pushing %d[f:%d] with state: %s", object.id, object.folderish, object.pair_state)
-        if object.pair_state.startswith('locally'):
-            if object.folderish:
-                self._local_folder_queue.put(object)
+    def push(self, state):
+        if state.pair_state is None:
+            log.trace("Don't push an empty pair_state: %r", state)
+            return
+        log.trace("Pushing %r[f:%d]", state, state.folderish)
+        if state.pair_state.startswith('locally'):
+            if state.folderish:
+                self._local_folder_queue.put(state)
             else:
-                self._local_file_queue.put(object)
-            self.emit()
-        elif object.pair_state.startswith('remotely'):
-            if object.folderish:
-                self._remote_folder_queue.put(object)
+                self._local_file_queue.put(state)
+            self.newItem.emit()
+        elif state.pair_state.startswith('remotely'):
+            if state.folderish:
+                self._remote_folder_queue.put(state)
             else:
-                self._remote_file_queue.put(object)
-            self.emit()
+                self._remote_file_queue.put(state)
+            self.newItem.emit()
         else:
             # deleted and conflicted
             pass
@@ -82,40 +85,54 @@ class QueueManager(QObject):
     def _get_local_folder(self):
         log.trace("get next local folder")
         if self._local_folder_queue.empty():
+            log.trace("return state: None")
             return None
-        return self._local_folder_queue.get()
+        state = self._local_folder_queue.get()
+        log.trace("return state: %r", state)
+        return state
 
     def _get_local_file(self):
         log.trace("get next local file")
         if self._local_file_queue.empty():
+            log.trace("return state: None")
             return None
-        return self._local_file_queue.get()
+        state = self._local_file_queue.get()
+        log.trace("return state: %r", state)
+        return state
 
     def _get_remote_folder(self):
         log.trace("get next remote folder")
         if self._remote_folder_queue.empty():
+            log.trace("return state: None")
             return None
-        return self._remote_folder_queue.get()
+        state = self._remote_folder_queue.get()
+        log.trace("return state: %r", state)
+        return state
 
     def _get_remote_file(self):
         log.trace("get next remote file")
         if self._remote_file_queue.empty():
+            log.trace("return state: None")
             return None
-        return self._remote_file_queue.get()
+        state = self._remote_file_queue.get()
+        log.trace("return state: %r", state)
+        return state
 
     def _get_file(self):
         log.trace("get next file")
         self._get_file_lock.acquire()
         if self._remote_file_queue.empty() and self._local_file_queue.empty():
             self._get_file_lock.release()
+            log.trace("return state: None")
             return None
-        item = None
+        state = None
         if (self._remote_file_queue.qsize() > self._local_file_queue.qsize()):
-            item = self._remote_file_queue.get()
+            state = self._remote_file_queue.get()
         else:
-            item = self._local_file_queue.get()
+            state = self._local_file_queue.get()
         self._get_file_lock.release()
-        return item
+        log.trace("return state: %r", state)
+        return state
 
     @pyqtSlot()
     def _thread_finished(self):
@@ -135,7 +152,7 @@ class QueueManager(QObject):
                 self._remote_file_thread.isFinished()):
             self._remote_file_thread = None
         if not self._engine.is_paused() and not self._engine.is_stopped():
-            self.emit()
+            self.newItem.emit()
 
     def _create_thread(self, item_getter, name=None):
         processor = Processor(self._engine, item_getter, name=name)

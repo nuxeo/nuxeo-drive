@@ -9,11 +9,14 @@ log = get_logger(__name__)
 
 
 class CustomRow(sqlite3.Row):
-    custom = dict()
+    _custom = None
+    def __init__(self, arg1, arg2):
+        super(CustomRow, self).__init__(arg1, arg2)
+        self._custom = dict()
 
     def __getattr__(self, name):
-        if name in self.custom:
-            return self.custom[name]
+        if name in self._custom:
+            return self._custom[name]
         return self[name]
 
     def is_readonly(self):
@@ -30,10 +33,20 @@ class CustomRow(sqlite3.Row):
             self.remote_state = remote_state
 
     def __setattr__(self, name, value):
-        self.custom[name] = value
+        if name.startswith('_'):
+            super(CustomRow, self).__setattr__(name,value)
+        else:
+            self._custom[name] = value
 
     def __delattr__(self, name):
-        del self.custom[name]
+        if name.startswith('_'):
+            super(CustomRow, self).__detattr__(name)
+        else:
+            del self._custom[name]
+
+    def __repr__(self):
+        return "%s[%d](Local:%s, Remote:%s, State: %s)" % (self.__class__.__name__, self.id,
+                                                        self.local_path, self.remote_ref, self.pair_state)
 
 
 class FakeLock(object):
@@ -105,14 +118,25 @@ class SqliteDAO(Worker):
         self._get_write_connection().commit()
         self._lock.release()
 
+    def release_processor(self, processor_id):
+        self._lock.acquire()
+        con = self._get_write_connection()
+        c = con.cursor()
+        c.execute("UPDATE States SET processor=0 WHERE processor=?", (processor_id,))
+        if self.auto_commit:
+            con.commit()
+        self._lock.release()
+        return c.rowcount == 1
+
     def acquire_processor(self, thread_id, row_id):
         self._lock.acquire()
         con = self._get_write_connection()
         c = con.cursor()
-        c.execute("UPDATE States SET processor=? WHERE id=?", (thread_id, row_id))
+        c.execute("UPDATE States SET processor=? WHERE id=? AND processor=0", (thread_id, row_id))
         if self.auto_commit:
             con.commit()
         self._lock.release()
+        return c.rowcount == 1
 
     def reinit_processors(self):
         self._lock.acquire()
@@ -123,16 +147,16 @@ class SqliteDAO(Worker):
             con.commit()
         self._lock.release()
 
-    def delete_state(self, row):
+    def delete_local_state(self, row):
         print "SHOULD NOT DELETE YET"
         pass
 
     def insert_local_state(self, info, parent_path):
         pair_state = PAIR_STATES.get(('created', 'unknown'))
+        digest = info.get_digest()
         self._lock.acquire()
         con = self._get_write_connection()
         c = con.cursor()
-        digest = info.get_digest()
         name = os.path.basename(info.path)
         c.execute("INSERT INTO States(last_local_updated, local_digest, "
                   + "local_path, local_parent_path, local_name, folderish, local_state, remote_state, pair_state)"
@@ -168,7 +192,7 @@ class SqliteDAO(Worker):
     def _get_pair_state(self, row):
         return PAIR_STATES.get((row.local_state, row.remote_state))
 
-    def update_local_state(self, row, info, versionned=True):
+    def update_local_state(self, row, info, versionned=True, queue=True):
         pair_state = self._get_pair_state(row)
         version = ''
         if versionned:
@@ -182,10 +206,15 @@ class SqliteDAO(Worker):
                   " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, 
                                     os.path.basename(info.path), row.local_state, row.remote_state,
                                     pair_state, row.id))
-        self._queue_pair_state(row.id, info.folderish, pair_state)
+        if row.pair_state != pair_state and queue:
+            self._queue_pair_state(row.id, info.folderish, pair_state)
         if self.auto_commit:
             con.commit()
         self._lock.release()
+
+    def get_valid_duplicate_file(self, digest):
+        c = self._get_read_connection().cursor()
+        return c.execute("SELECT * FROM States WHERE remote_digest=? AND pair_state='synchronized'", (digest,)).fetchone()
 
     def get_remote_children(self, ref):
         c = self._get_read_connection().cursor()
@@ -279,6 +308,7 @@ class SqliteDAO(Worker):
             version = row.version
         self._lock.acquire()
         con = self._get_write_connection()
+        log.trace("Put sync pair [%d] as %s", row.id, state)
         c = con.cursor()
         c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
                   "pair_state=?, last_sync_date=?, processor = 0 " +
@@ -308,10 +338,14 @@ class SqliteDAO(Worker):
                    info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                    info.can_create_child, info.last_contributor, info.digest, row.local_state,
                    row.remote_state, pair_state, info.last_contributor, row.id))
-        self._queue_pair_state(row.id, info.folderish, pair_state)
+        if row.pair_state != pair_state:
+            self._queue_pair_state(row.id, info.folderish, pair_state)
         if self.auto_commit:
             con.commit()
         self._lock.release()
+
+    def is_filter(self, path):
+        pass
 
     def get_filter(self):
         pass
