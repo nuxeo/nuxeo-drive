@@ -27,11 +27,22 @@ class Action(object):
         return Action.actions.copy()
 
     @staticmethod
+    def get_current_action(thread_id):
+        if thread_id in Action.actions:
+            return Action.actions[thread_id]
+
+    @staticmethod
     def finish_action():
         if (current_thread().ident in Action.actions and
             Action.actions[current_thread().ident] is not None):
             Action.actions[current_thread().ident].finished = True
         Action.actions[current_thread().ident] = None
+
+    def __repr__(self):
+        if self.progress is None:
+            return "%s" % (self.type)
+        else:
+            return "%s(%s%%)" % (self.type, self.progress)
 
 
 class FileAction(Action):
@@ -59,5 +70,11 @@ class FileAction(Action):
         else:
             return self.progress * 100 / self.size
 
+    def __repr__(self):
+        percent = self.get_percent()
+        if percent is None:
+            return "%s(%s[%d])" % (self.type, self.filename, self.size)
+        else:
+            return "%s(%s[%d]-%f%%)" % (self.type, self.filename, self.size, percent)
 
 Action.actions = dict()

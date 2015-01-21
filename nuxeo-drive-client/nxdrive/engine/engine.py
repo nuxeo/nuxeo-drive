@@ -6,9 +6,11 @@ from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.engine.activity import Action
 from threading import local
 from time import sleep
 from cookielib import CookieJar
+#from nxdrive.engine.activity import Action.actions
 
 log = get_logger(__name__)
 
@@ -46,6 +48,10 @@ class Worker(QObject):
     def quit(self):
         self._continue = False
 
+    def _end_action(self):
+        Action.finish_action()
+        self._action = None
+
     def resume(self):
         self._pause = False
 
@@ -79,7 +85,11 @@ class Worker(QObject):
         metrics = dict()
         metrics['name'] = self._name
         metrics['thread_id'] = self._thread_id
-        metrics['action'] = self._action
+        # Get action from activity as methods can have its own Action
+        action = Action.get_current_action(self._thread_id)
+        if action is None:
+            action = self._action
+        metrics['action'] = action
         if hasattr(self, '_metrics'):
             metrics = dict(metrics.items() + self._metrics.items())
         return metrics
@@ -231,7 +241,6 @@ class Engine(QObject):
         for thread in self._threads:
             log.debug("%r" % thread.worker.get_metrics())
         log.debug("%r" % self._queue_manager.get_metrics())
-        QTimer.singleShot(30000, self.get_status)
 
     def is_paused(self):
         return False
@@ -330,11 +339,16 @@ class TestApplication(QCoreApplication):
         root = self._engine._dao.get_state_from_local('/')
         if root is None:
             self._engine._add_top_level_state()
-        QTimer.singleShot(20000, self._engine.get_status)
-        #QTimer.singleShot(480000, self._engine.stop)
+        #QTimer.singleShot(1000, self._engine.get_status)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self._engine.get_status)
+        self.timer.start(1000)
+        QTimer.singleShot(480000, self._engine.stop)
         self._engine.start()
 
 if __name__ == "__main__":
+    import signal
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     configure(log_filename="/tmp/trace.log", use_file_handler=True, file_level='TRACE', console_level='DEBUG')
     core = TestApplication(sys.argv)
     #remote = engine.get_remote_client(True)
@@ -346,4 +360,7 @@ if __name__ == "__main__":
     #engine.remote_watcher.worker._execute()
     #engine.queue_manager.init_processors()
     core.init()
-    core.exec_()
+    try:
+        core.exec_()
+    except KeyboardInterrupt:
+        core.quit()

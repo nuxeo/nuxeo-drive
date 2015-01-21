@@ -12,6 +12,7 @@ from datetime import datetime
 from nxdrive.client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.remote_file_system_client import RemoteFileInfo
+from nxdrive.engine.activity import Action
 import os
 log = get_logger(__name__)
 from PyQt4.QtCore import pyqtSignal
@@ -48,7 +49,9 @@ class RemoteWatcher(Worker):
 
     def _execute(self):
         if self._last_remote_full_scan is None:
+            self._action = Action("Remote scanning")
             self._scan_remote()
+            self._end_action()
         else:
             self._handle_changes()
         self.initiate.emit()
@@ -99,7 +102,8 @@ class RemoteWatcher(Worker):
 
         # Check if synchronization thread was suspended
         self._interact()
-
+        if doc_pair.local_path is not None:
+            self._action = Action("Remote scanning : " + doc_pair.local_path)
         if remote_info is None:
             raise ValueError("Cannot bind %r to missing remote info" %
                              doc_pair)
@@ -148,6 +152,7 @@ class RemoteWatcher(Worker):
             self._mark_deleted_remote_recursive(deleted)
 
         for folder in to_scan:
+            # TODO Optimize by multithreading this too ?
             self._scan_remote_recursive(folder[0], folder[1], mark_unknown=False)
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info):
@@ -173,8 +178,10 @@ class RemoteWatcher(Worker):
         return child_pair, True
 
     def _handle_changes(self):
+        self._action = Action("Handle remote changes")
         self._update_remote_states()
         self._save_changes_state()
+        self._action = None
 
     def _save_changes_state(self):
         self._dao.update_config('remote_last_sync_date', self._last_sync_date)

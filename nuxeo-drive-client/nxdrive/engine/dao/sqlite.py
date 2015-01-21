@@ -333,6 +333,21 @@ class SqliteDAO(Worker):
         finally:
             self._lock.release()
 
+    def mark_descendants_remotely_deleted(self, doc_pair):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            update = "UPDATE States SET local_digest=NULL, last_local_updated=NULL, local_name=NULL, remote_state='deleted', pair_state='remotely_deleted'"
+            c.execute(update + " WHERE id=?", doc_pair.id)
+            if doc_pair.folderish:
+                c.execute(update + self._get_recursive_condition(doc_pair))
+            if self.auto_commit:
+                con.commit()
+            self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair)
+        finally:
+            self._lock.release()
+
     def mark_descendants_remotely_created(self, doc_pair):
         self._lock.acquire()
         try:
@@ -342,11 +357,16 @@ class SqliteDAO(Worker):
             c.execute(update + " WHERE id=?", doc_pair.id)
             if doc_pair.folderish:
                 c.execute(update + self._get_recursive_condition(doc_pair))
-            # TODO Push everything back in queue
             if self.auto_commit:
                 con.commit()
+            self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair)
         finally:
             self._lock.release()
+        con = self._get_read_connection()
+        c = con.cursor()
+        rows = c.execute("SELECT * FROM States" + self._get_recursive_condition(doc_pair)).fetchall()
+        for row in rows:
+            self._queue_pair_state(row.id, row.folderish, row)
 
     def remove_pair(self, doc_pair):
         self._lock.acquire()
@@ -382,9 +402,9 @@ class SqliteDAO(Worker):
                        info.can_create_child, info.last_contributor, info.digest, info.folderish, info.last_contributor,
                        local_path, local_parent_path, pair_state))
             row_id = c.lastrowid
-            self._queue_pair_state(row_id, info.folderish, pair_state)
             if self.auto_commit:
                 con.commit()
+            self._queue_pair_state(row_id, info.folderish, pair_state)
         finally:
             self._lock.release()
         return row_id
@@ -427,10 +447,10 @@ class SqliteDAO(Worker):
                        info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                        info.can_create_child, info.last_contributor, info.digest, row.local_state,
                        row.remote_state, pair_state, info.last_contributor, row.id))
-            if row.pair_state != pair_state:
-                self._queue_pair_state(row.id, info.folderish, pair_state)
             if self.auto_commit:
                 con.commit()
+            if row.pair_state != pair_state:
+                self._queue_pair_state(row.id, info.folderish, pair_state)
         finally:
             self._lock.release()
 

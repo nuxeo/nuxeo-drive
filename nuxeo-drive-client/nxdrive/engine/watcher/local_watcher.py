@@ -6,6 +6,7 @@ from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 from nxdrive.engine.engine import Worker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
+from nxdrive.engine.activity import Action
 import sys
 import os
 from time import time
@@ -29,6 +30,7 @@ class LocalWatcher(Worker):
         super(LocalWatcher, self).__init__(engine)
         self.unhandle_fs_event = False
         self.local_full_scan = dict()
+        self._local_scan_finished = False
         self._dao = dao
         self.client = engine.get_local_client()
         self._metrics = dict()
@@ -40,8 +42,11 @@ class LocalWatcher(Worker):
 
     def _execute(self):
         try:
+            self._action = Action("Setup watchdog")
             self._setup_watchdog()
+            self._action = Action("Full local scan")
             self._scan()
+            self._end_action()
             while (1):
                 self._interact()
                 sleep(1)
@@ -58,6 +63,7 @@ class LocalWatcher(Worker):
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
         log.debug("Full scan finished in %dms",
                     self._metrics['last_local_scan_time'])
+        self._local_scan_finished = True
         self.localScanFinished.emit()
 
     def get_metrics(self):
@@ -184,6 +190,7 @@ class LocalWatcher(Worker):
         pass
 
     def handle_watchdog_event(self, evt):
+        self._action = Action("Handle watchdog event")
         log.trace("handle_watchdog_event %s on %s", evt.event_type, evt.src_path)
         try:
             src_path = normalize_event_filename(evt.src_path)
@@ -290,6 +297,8 @@ class LocalWatcher(Worker):
         except Exception as e:
             log.warn("Watchdog exception : %r" % e)
             log.exception(e)
+        finally:
+            self._action = None
 
 
 class DriveFSEventHandler(FileSystemEventHandler):

@@ -6,6 +6,7 @@ Created on 14 janv. 2015
 from nxdrive.engine.engine import Worker
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
+from nxdrive.engine.activity import Action
 import os
 log = get_logger(__name__)
 
@@ -65,6 +66,10 @@ class Processor(Worker):
                     log.trace("Skip as pair is None or in non-processable state: %r", doc_pair)
                     self._current_item = self._get_item()
                     continue
+                # TODO While the server dont take hash in modify code
+                #if doc_pair.pair_state.startswith("locally"):
+                #    self._refresh_remote(doc_pair, remote_client)
+                #    doc_pair = self._dao.get_state_from_id(doc_pair.id)
                 parent_path = doc_pair.local_parent_path
                 if (parent_path == ''):
                     parent_path = "/"
@@ -73,6 +78,7 @@ class Processor(Worker):
                     self.republish(doc_pair)
                     continue
                 handler_name = '_synchronize_' + doc_pair.pair_state
+                self._action = Action(handler_name)
                 sync_handler = getattr(self, handler_name, None)
                 if sync_handler is None:
                     raise RuntimeError("Unhandled pair_state: %r for %r",
@@ -202,7 +208,6 @@ class Processor(Worker):
                 remote_info = remote_client.rename(doc_pair.remote_ref,
                                                         doc_pair.local_name)
                 self._refresh_remote(doc_pair, remote_client, remote_info=remote_info)
-                doc_pair.version = doc_pair.version + 1
             except Exception as e:
                 log.debug(e)
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
@@ -216,9 +221,9 @@ class Processor(Worker):
             parent_path = parent_pair.remote_path + "/" + parent_pair.remote_ref
             remote_info = remote_client.move(doc_pair.remote_ref,
                         parent_pair.remote_ref)
-            self._dao.update_remote_state(doc_pair, remote_info, parent_path)
-            doc_pair.version = doc_pair.version + 1
-        self._dao.synchronize_state(doc_pair)
+            self._dao.update_remote_state(doc_pair, remote_info, parent_path, versionned=False)
+        if not self._dao.synchronize_state(doc_pair):
+            log.warn("Cant put pair as synchronized may result in issues : %r", doc_pair)
 
     def _synchronize_deleted_unknown(self, doc_pair, local_client, remote_client):
         # Somehow a pair can get to an inconsistent state:
