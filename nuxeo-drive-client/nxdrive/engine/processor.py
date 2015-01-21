@@ -62,10 +62,13 @@ class Processor(Worker):
                 if (doc_pair is None or
                     doc_pair.pair_state == 'synchronized'
                     or doc_pair.pair_state == 'unsynchronized'):
-                    log.trace("Skip as pair is None or synchronized: %r", doc_pair)
+                    log.trace("Skip as pair is None or in non-processable state: %r", doc_pair)
                     self._current_item = self._get_item()
                     continue
-                if not local_client.exists(doc_pair.local_parent_path):
+                parent_path = doc_pair.local_parent_path
+                if (parent_path == ''):
+                    parent_path = "/"
+                if not local_client.exists(parent_path):
                     log.trace("Republish as parent doesn't exist : %r", doc_pair)
                     self.republish(doc_pair)
                     continue
@@ -83,6 +86,13 @@ class Processor(Worker):
             self._interact()
             self._current_item = self._get_item()
 
+    def _synchronize_conflicted(self, doc_pair, local_client, remote_client):
+        # Auto-resolve conflict
+        if not doc_pair.folderish:
+            if doc_pair.remote_digest == doc_pair.local_digest:
+                log.debug("Auto-resolve conflict has digest are the same")
+                self._dao.synchronize_state(doc_pair)
+
     def _synchronize_locally_modified(self, doc_pair, local_client, remote_client):
         if doc_pair.remote_digest != doc_pair.local_digest:
             if doc_pair.remote_can_update:
@@ -94,7 +104,7 @@ class Processor(Worker):
                     parent_fs_item_id=doc_pair.remote_parent_ref,
                     filename=doc_pair.remote_name,
                 )
-                self._refresh_remote(doc_pair)
+                self._refresh_remote(doc_pair, remote_client)
                 # TODO refresh_client
             else:
                 log.debug("Skip update of remote document '%s'"\
@@ -137,6 +147,7 @@ class Processor(Worker):
                           name, parent_pair.remote_name)
                 remote_ref = remote_client.make_folder(parent_ref, name)
             else:
+                # TODO Check if the file is already on the server with the good digest
                 log.debug("Creating remote document '%s' in folder '%s'",
                           name, parent_pair.remote_name)
                 remote_ref = remote_client.stream_file(
@@ -157,14 +168,14 @@ class Processor(Worker):
             else:
                 self._dao.synchronize_state(doc_pair, state='unsynchronized')
 
-
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):
         if doc_pair.remote_ref is not None:
             if doc_pair.remote_can_delete:
                 log.debug("Deleting or unregistering remote document"
                           " '%s' (%s)",
                           doc_pair.remote_name, doc_pair.remote_ref)
-                remote_client.delete(doc_pair.remote_ref,
+                if doc_pair.remote_state != 'deleted':
+                    remote_client.delete(doc_pair.remote_ref,
                                 parent_fs_item_id=doc_pair.remote_parent_ref)
                 self._dao.remove_pair(doc_pair)
             else:
@@ -173,7 +184,8 @@ class Processor(Worker):
                           " it is readonly or it is a virtual folder that"
                           " doesn't exist in the server hierarchy",
                           doc_pair, doc_pair.remote_name, doc_pair.remote_ref)
-                self._dao.mark_descendants_remotely_created(doc_pair)
+                if doc_pair.remote_state != 'deleted':
+                    self._dao.mark_descendants_remotely_created(doc_pair)
 
 
     def _synchronize_locally_moved_created(self, doc_pair, local_client, remote_client):
@@ -189,9 +201,10 @@ class Processor(Worker):
                                                     doc_pair)
                 remote_info = remote_client.rename(doc_pair.remote_ref,
                                                         doc_pair.local_name)
-                self._refresh_remote(doc_pair, remote_info)
+                self._refresh_remote(doc_pair, remote_client, remote_info=remote_info)
                 doc_pair.version = doc_pair.version + 1
-            except:
+            except Exception as e:
+                log.debug(e)
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
                 return
         parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
@@ -259,8 +272,7 @@ class Processor(Worker):
                 updated_info = local_client.rename(
                                             local_client.get_path(tmp_file),
                                             doc_pair.remote_name)
-                self._refresh_local(doc_pair,
-                                       local_path=updated_info.path)
+                self._refresh_local_state(doc_pair, updated_info)
             else:
                 # digest agree so this might be a renaming and/or a move,
                 # and no need to transfer additional bytes over the network
@@ -280,21 +292,27 @@ class Processor(Worker):
                         log.debug("Moving local %s '%s' to '%s'.",
                             file_or_folder, local_client._abspath(doc_pair.local_path),
                             local_client._abspath(new_parent_pair.local_path))
-                        self._update_remote_parent_path_recursive(doc_pair, doc_pair.remote_parent_path)
+                        # May need to add a lock for move
                         updated_info = local_client.move(doc_pair.local_path,
                                           new_parent_pair.local_path)
+                        new_parent_path = new_parent_pair.remote_parent_path + "/" + new_parent_pair.remote_ref
+                        self._dao.update_remote_parent_path(doc_pair, new_parent_path)
                         # refresh doc pair for the case of a
                         # simultaneous move and renaming
-                        self._refresh_local(doc_pair, local_path=updated_info.path)
+                        previous_local_path = updated_info.path
                     if is_renaming:
                         # renaming
                         log.debug("Renaming local %s '%s' to '%s'.",
-                            file_or_folder, local_client._abspath(doc_pair.get_local_abspath),
+                            file_or_folder, local_client._abspath(previous_local_path),
                             doc_pair.remote_name)
                         updated_info = local_client.rename(
                             doc_pair.local_path, doc_pair.remote_name)
                     if is_move or is_renaming:
-                        self._local_rename_with_descendant_states(doc_pair, previous_local_path, updated_info.path)
+                        # Should call a DAO method
+                        self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path),
+                                                           os.path.dirname(updated_info.path))
+                        self._refresh_local_state(doc_pair, updated_info)
+                        #self._local_rename_with_descendant_states(doc_pair, previous_local_path, updated_info.path)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
         except (IOError, WindowsError) as e:
@@ -348,10 +366,12 @@ class Processor(Worker):
 
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
         try:
-            pass
-            # TODO: Code it back just trash and remove from state ?
-            # XXX: shall we also delete all the subcontent / folder at
-            # once in the metadata table?
+            if doc_pair.local_state != 'deleted':
+                if self._engine.use_trash():
+                    local_client.delete(doc_pair.local_path)
+                else:
+                    local_client.delete_final(doc_pair.local_path)
+            self._dao.remove_pair(doc_pair)
         except (IOError, WindowsError) as e:
             # Under Windows deletion can be impossible while another
             # process is accessing the same file (e.g. word processor)
@@ -389,34 +409,15 @@ class Processor(Worker):
         if remote_info is None:
             remote_info = None # Get from remote_client
             remote_info = remote_client.get_info(doc_pair.remote_ref)
-        pass
-
-    def _refresh_local(self, doc_pair, local_info):
-        pass
+        self._dao.update_remote_state(doc_pair, remote_info, versionned=False)
 
     def _refresh_local_state(self, doc_pair, local_info):
         if doc_pair.local_digest is None and not doc_pair.folderish:
             doc_pair.local_digest = local_info.get_digest()
         self._dao.update_local_state(doc_pair, local_info, versionned=False)
-
-    def _local_rename_with_descendant_states(self, doc_pair, previous_local_path, updated_path):
-        """Update the metadata of the descendants of a renamed doc"""
-
-        # Check if synchronization thread was suspended
-        self.check_suspended('Update recursively the descendant states of a'
-                             ' remotely renamed document')
-
-        # rename local descendants first
-        if doc_pair.local_path is None:
-            raise ValueError("Cannot apply renaming to %r due to"
-                             "missing local path" %
-                doc_pair)
-        local_children = dict()
-        for child in local_children:
-            child_path = updated_path + '/' + child.local_name
-            self._local_rename_with_descendant_states(child, child.local_path, child_path)
-        #doc_pair.update_state(local_state='synchronized')
-        self._refresh_local(doc_pair, local_path=updated_path)
+        doc_pair.local_path = local_info.path
+        doc_pair.local_name = os.path.basename(local_info.path)
+        doc_pair.last_local_updated = local_info.last_modification_time
 
     def _is_remote_move(self, doc_pair):
         local_parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
@@ -426,33 +427,13 @@ class Processor(Worker):
                 and local_parent_pair.id != remote_parent_pair.id,
                 remote_parent_pair)
 
-    def _update_remote_parent_path_recursive(self, session, doc_pair,
-        updated_path):
-        """Update the remote parent path of the descendants of a moved doc"""
-        # update local descendants first
-        if doc_pair.remote_ref is None:
-            raise ValueError("Cannot apply parent path update to %r "
-                             "due to missing remote_ref" % doc_pair)
-        local_children = dict()
-        # TODO: Create the query there
-        #session.query(LastKnownState).filter_by(
-        #    local_folder=doc_pair.local_folder,
-        #    remote_parent_ref=doc_pair.remote_ref).all()
-        for child in local_children:
-            child_path = updated_path + '/' + child.remote_ref
-            self._update_remote_parent_path_recursive(session, child,
-                child_path)
-
-        doc_pair.remote_parent_path = updated_path
-
     def _handle_failed_remote_rename(self, source_pair, target_pair):
         # An error occurs return false
         log.error("Renaming from %s to %s canceled",
                             target_pair.remote_name, target_pair.local_name)
-        if self._controller.local_rollback():
+        if self._engine.local_rollback():
             try:
-                local_client = self._controller.get_local_client(
-                                                    target_pair.local_folder)
+                local_client = self._engine.get_local_client()
                 info = local_client.rename(target_pair.local_path,
                                             target_pair.remote_name)
                 self._dao.update_local_state(source_pair, info)

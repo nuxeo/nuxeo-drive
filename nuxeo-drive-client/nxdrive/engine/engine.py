@@ -199,6 +199,9 @@ class Engine(QObject):
     def get_dao(self):
         return self._dao
 
+    def local_rollback(self):
+        return False
+
     def create_thread(self, worker=None, name=None, start_connect=True):
         if worker is None:
             worker = Worker(self, name=name)
@@ -253,11 +256,11 @@ class Engine(QObject):
             self._local.remote_clients = dict()
         return self._local.remote_clients
 
+    def use_trash(self):
+        return True
+
     def get_local_client(self):
         return LocalClient(self._local_folder)
-
-    def local_rollback(self):
-        return False
 
     def _add_top_level_state(self):
         local_client = self.get_local_client()

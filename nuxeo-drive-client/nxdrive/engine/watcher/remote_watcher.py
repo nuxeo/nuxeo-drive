@@ -245,13 +245,13 @@ class RemoteWatcher(Worker):
                         if eventId == 'deleted':
                             log.debug("Marking doc_pair '%s' as deleted",
                                       doc_pair_repr)
-                            doc_pair.update_state(remote_state='deleted')
+                            self._dao.delete_remote_state(doc_pair)
                         elif eventId == 'securityUpdated':
                             log.debug("Security has been updated for"
                                       " doc_pair '%s' denying Read access,"
                                       " marking it as deleted",
                                       doc_pair_repr)
-                            doc_pair.update_state(remote_state='deleted')
+                            self._dao.delete_remote_state(doc_pair)
                         else:
                             log.debug("Unknow event: '%s'", eventId)
                     else:
@@ -269,7 +269,7 @@ class RemoteWatcher(Worker):
                               and new_info_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME):
                             # If moved from a sync root to a non sync root, delete from local sync root
                             log.debug("Marking doc_pair '%s' as deleted", doc_pair_repr)
-                            doc_pair.update_state(remote_state='deleted')
+                            self._dao.delete_remote_state(doc_pair)
                         else:
                             # Make new_info consistent with actual doc pair parent path for a doc member of a
                             # collection (typically the Locally Edited one) that is also under a sync root.
@@ -293,6 +293,7 @@ class RemoteWatcher(Worker):
                             log.debug("Refreshing remote state info"
                                       " for doc_pair '%s'", doc_pair_repr)
                             eventId = change.get('eventId')
+                            doc_pair.remote_state = 'modified'
                             self._scan_remote_recursive(
                                 doc_pair, consistent_new_info,
                                 force_recursion=(eventId == "securityUpdated"))

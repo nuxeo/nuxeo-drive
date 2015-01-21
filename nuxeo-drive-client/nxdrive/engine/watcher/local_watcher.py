@@ -170,6 +170,8 @@ class LocalWatcher(Worker):
             return
         local_info = self.client.get_info(rel_path)
         if doc_pair.local_state == 'synchronized':
+            # TO_REVIEW Might want run those digester in a separate thread
+            doc_pair.local_digest = local_info.get_digest()
             doc_pair.local_state = 'modified'
         queue = not (evt.event_type == 'modified' and doc_pair.folderish
                                 and doc_pair.local_state == 'modified')
@@ -255,6 +257,8 @@ class LocalWatcher(Worker):
                 dst_pair = self._dao.get_state_from_local(dst_rel_path)
                 # No pair so it must be a filed moved to this folder
                 if dst_pair is None:
+                    if self.client.is_ignored(dst_rel_path, os.path.basename(dst_rel_path)):
+                        return
                     local_info = self.client.get_info(dst_rel_path)
                     #name = fragments[1]
                     #parent_path = fragments[0]
@@ -280,7 +284,6 @@ class LocalWatcher(Worker):
                     if dst_pair.processor == 0:
                         self._dao.update_local_state(dst_pair,
                                 self.client.get_info(dst_rel_path))
-                return
                 log.trace('Unhandled case: %r %s %s', evt, rel_path,
                          file_name)
                 self.unhandle_fs_event = True

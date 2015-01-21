@@ -115,58 +115,98 @@ class SqliteDAO(Worker):
 
     def commit(self):
         self._lock.acquire()
-        self._get_write_connection().commit()
-        self._lock.release()
+        try:
+            self._get_write_connection().commit()
+        finally:
+            self._lock.release()
 
     def release_processor(self, processor_id):
         self._lock.acquire()
-        con = self._get_write_connection()
-        c = con.cursor()
-        c.execute("UPDATE States SET processor=0 WHERE processor=?", (processor_id,))
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET processor=0 WHERE processor=?", (processor_id,))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
         return c.rowcount == 1
 
     def acquire_processor(self, thread_id, row_id):
         self._lock.acquire()
-        con = self._get_write_connection()
-        c = con.cursor()
-        c.execute("UPDATE States SET processor=? WHERE id=? AND processor=0", (thread_id, row_id))
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET processor=? WHERE id=? AND processor=0", (thread_id, row_id))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
         return c.rowcount == 1
 
     def reinit_processors(self):
         self._lock.acquire()
-        con = self._get_write_connection()
-        c = con.cursor()
-        c.execute("UPDATE States SET processor=0")
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET processor=0")
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
 
-    def delete_local_state(self, row):
-        print "SHOULD NOT DELETE YET"
-        pass
+    def delete_remote_state(self, doc_pair):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            update = "UPDATE States SET remote_state='deleted', pair_state='remotely_deleted'"
+            c.execute(update + " WHERE id=?", (doc_pair.id,))
+            if doc_pair.folderish:
+                # TO_REVIEW New state recursive_remotely_deleted
+                c.execute(update + self._get_recursive_condition(doc_pair))
+            # Only queue parent
+            self._queue_pair_state(doc_pair.id, doc_pair.folderish, 'remotely_deleted')
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def delete_local_state(self, doc_pair):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            update = "UPDATE States SET local_state='deleted', pair_state='locally_deleted'"
+            c.execute(update + " WHERE id=?", (doc_pair.id,))
+            if doc_pair.folderish:
+                # TO_REVIEW New state recursive_locally_deleted
+                c.execute(update + self._get_recursive_condition(doc_pair))
+            # Only queue parent
+            self._queue_pair_state(doc_pair.id, doc_pair.folderish, 'locally_deleted')
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
 
     def insert_local_state(self, info, parent_path):
         pair_state = PAIR_STATES.get(('created', 'unknown'))
         digest = info.get_digest()
         self._lock.acquire()
-        con = self._get_write_connection()
-        c = con.cursor()
-        name = os.path.basename(info.path)
-        c.execute("INSERT INTO States(last_local_updated, local_digest, "
-                  + "local_path, local_parent_path, local_name, folderish, local_state, remote_state, pair_state)"
-                  + " VALUES(?,?,?,?,?,?,'created','unknown',?)", (info.last_modification_time, digest, info.path,
-                                                parent_path, name, info.folderish, pair_state))
-        row_id = c.lastrowid
-        self._queue_pair_state(row_id, info.folderish, pair_state)
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            name = os.path.basename(info.path)
+            c.execute("INSERT INTO States(last_local_updated, local_digest, "
+                      + "local_path, local_parent_path, local_name, folderish, local_state, remote_state, pair_state)"
+                      + " VALUES(?,?,?,?,?,?,'created','unknown',?)", (info.last_modification_time, digest, info.path,
+                                                    parent_path, name, info.folderish, pair_state))
+            row_id = c.lastrowid
+            self._queue_pair_state(row_id, info.folderish, pair_state)
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
         return row_id
 
     def register_queue_manager(self, manager):
@@ -198,19 +238,21 @@ class SqliteDAO(Worker):
         if versionned:
             version = ', version=version+1'
         self._lock.acquire()
-        con = self._get_write_connection()
-        c = con.cursor()
-        # Should not update this
-        c.execute("UPDATE States SET last_local_updated=?, local_digest=?, local_path=?, local_name=?,"
-                  + "local_state=?, remote_state=?, pair_state=?" + version +
-                  " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, 
-                                    os.path.basename(info.path), row.local_state, row.remote_state,
-                                    pair_state, row.id))
-        if row.pair_state != pair_state and queue:
-            self._queue_pair_state(row.id, info.folderish, pair_state)
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            # Should not update this
+            c.execute("UPDATE States SET last_local_updated=?, local_digest=?, local_path=?, local_name=?,"
+                      + "local_state=?, remote_state=?, pair_state=?" + version +
+                      " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, 
+                                        os.path.basename(info.path), row.local_state, row.remote_state,
+                                        pair_state, row.id))
+            if row.pair_state != pair_state and queue:
+                self._queue_pair_state(row.id, info.folderish, pair_state)
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
 
     def get_valid_duplicate_file(self, digest):
         c = self._get_read_connection().cursor()
@@ -240,42 +282,84 @@ class SqliteDAO(Worker):
         # Dont need to read from write as auto_commit is True
         if from_write and self.auto_commit:
             from_write = False
-        if from_write:
-            self._lock.acquire()
-            c = self._get_write_connection().cursor()
-        else:
-            c = self._get_read_connection().cursor()
-        state = c.execute("SELECT * FROM States WHERE id=?", (row_id,)).fetchone()
-        if from_write:
-            self._lock.release()
+        try:
+            if from_write:
+                self._lock.acquire()
+                c = self._get_write_connection().cursor()
+            else:
+                c = self._get_read_connection().cursor()
+            state = c.execute("SELECT * FROM States WHERE id=?", (row_id,)).fetchone()
+        finally:
+            if from_write:
+                self._lock.release()
         return state
 
     def _get_recursive_condition(self, doc_pair):
         return (" WHERE local_parent_path LIKE '" + doc_pair.local_path + "/%'"
                     + " OR local_parent_path = '" + doc_pair.local_path + "'")
 
+    def update_remote_parent_path(self, doc_pair, new_path):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            if doc_pair.folderish:
+                remote_path = doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
+                query = "UPDATE States SET remote_parent_path='%s/%s' || substr(remote_parent_path,%d)" % (new_path, doc_pair.remote_ref, len(remote_path)+1)
+                query = query + self._get_recursive_condition(doc_pair)
+                log.trace("Update remote_parent_path: " + query)
+                c.execute(query)
+            c.execute("UPDATE States SET remote_parent_path=? WHERE id=?", (new_path, doc_pair.id))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def update_local_parent_path(self, doc_pair, new_name, new_path):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            if doc_pair.folderish:
+                query = ("UPDATE States SET local_parent_path='%s/%s' || substr(local_parent_path,%d), local_path='%s/%s' || substr(local_path,%d)" %
+                                (new_path, new_name, len(doc_pair.local_path)+1,new_path, new_name, len(doc_pair.local_path)+1)) 
+                query = query + self._get_recursive_condition(doc_pair)
+                log.trace("Update remote_parent_path: " + query)
+                c.execute(query)
+            # Dont need to update the path as it is refresh later
+            c.execute("UPDATE States SET local_parent_path=? WHERE id=?", (new_path, doc_pair.id))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
     def mark_descendants_remotely_created(self, doc_pair):
         self._lock.acquire()
-        con = self._get_write_connection()
-        c = con.cursor()
-        update = "UPDATE States SET local_digest=NULL, last_local_updated=NULL, local_name=NULL"
-        c.execute(update + " WHERE id=?", doc_pair.id)
-        if doc_pair.folderish:
-            c.execute(update + self._get_recursive_condition(doc_pair))
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            update = "UPDATE States SET local_digest=NULL, last_local_updated=NULL, local_name=NULL, remote_state='created', pair_state='remotely_created'"
+            c.execute(update + " WHERE id=?", doc_pair.id)
+            if doc_pair.folderish:
+                c.execute(update + self._get_recursive_condition(doc_pair))
+            # TODO Push everything back in queue
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
 
     def remove_pair(self, doc_pair):
         self._lock.acquire()
-        con = self._get_write_connection()
-        c = con.cursor()
-        c.execute("DELETE FROM States WHERE id=?", doc_pair.id)
-        if doc_pair.folderish:
-            c.execute("DELETE FROM States" + self._get_recursive_condition(doc_pair))
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("DELETE FROM States WHERE id=?", (doc_pair.id,))
+            if doc_pair.folderish:
+                c.execute("DELETE FROM States" + self._get_recursive_condition(doc_pair))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
 
     def get_state_from_local(self, path):
         c = self._get_read_connection().cursor()
@@ -284,39 +368,43 @@ class SqliteDAO(Worker):
     def insert_remote_state(self, info, remote_parent_path, local_path, local_parent_path):
         pair_state = PAIR_STATES.get(('unknown','created'))
         self._lock.acquire()
-        con = self._get_write_connection()
-        c = con.cursor()
-        c.execute("INSERT INTO States (remote_ref, remote_parent_ref, " +
-                  "remote_parent_path, remote_name, last_remote_updated, remote_can_rename," +
-                  "remote_can_delete, remote_can_update, " +
-                  "remote_can_create_child, last_remote_modifier, remote_digest," +
-                  "folderish, last_remote_modifier, local_path, local_parent_path, remote_state, local_state, pair_state)" +
-                  " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'created','unknown',?)",
-                  (info.uid, info.parent_uid, remote_parent_path, info.name,
-                   info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
-                   info.can_create_child, info.last_contributor, info.digest, info.folderish, info.last_contributor,
-                   local_path, local_parent_path, pair_state))
-        row_id = c.lastrowid
-        self._queue_pair_state(row_id, info.folderish, pair_state)
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("INSERT INTO States (remote_ref, remote_parent_ref, " +
+                      "remote_parent_path, remote_name, last_remote_updated, remote_can_rename," +
+                      "remote_can_delete, remote_can_update, " +
+                      "remote_can_create_child, last_remote_modifier, remote_digest," +
+                      "folderish, last_remote_modifier, local_path, local_parent_path, remote_state, local_state, pair_state)" +
+                      " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'created','unknown',?)",
+                      (info.uid, info.parent_uid, remote_parent_path, info.name,
+                       info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
+                       info.can_create_child, info.last_contributor, info.digest, info.folderish, info.last_contributor,
+                       local_path, local_parent_path, pair_state))
+            row_id = c.lastrowid
+            self._queue_pair_state(row_id, info.folderish, pair_state)
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
         return row_id
 
     def synchronize_state(self, row, version=None, state='synchronized'):
         if version is None:
             version = row.version
         self._lock.acquire()
-        con = self._get_write_connection()
-        log.trace("Put sync pair [%d] as %s", row.id, state)
-        c = con.cursor()
-        c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                  "pair_state=?, last_sync_date=?, processor = 0 " +
-                  "WHERE id=? and version=?",
-                  (state, datetime.utcnow(), row.id, version))
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            log.trace("Put sync pair [%d] as %s", row.id, state)
+            c = con.cursor()
+            c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
+                      "pair_state=?, last_sync_date=?, processor = 0 " +
+                      "WHERE id=? and version=?",
+                      (state, datetime.utcnow(), row.id, version))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
         return c.rowcount == 1
 
     def update_remote_state(self, row, info, remote_parent_path=None, versionned=True):
@@ -327,22 +415,24 @@ class SqliteDAO(Worker):
         if versionned:
             version = ', version=version+1'
         self._lock.acquire()
-        con = self._get_write_connection()
-        c = con.cursor()
-        c.execute("UPDATE States SET remote_ref=?, remote_parent_ref=?, " +
-                  "remote_parent_path=?, remote_name=?, last_remote_updated=?, remote_can_rename=?," +
-                  "remote_can_delete=?, remote_can_update=?, " +
-                  "remote_can_create_child=?, last_remote_modifier=?, remote_digest=?, local_state=?," +
-                  "remote_state=?, pair_state=?, last_remote_modifier=?" + version + " WHERE id=?",
-                  (info.uid, info.parent_uid, remote_parent_path, info.name,
-                   info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
-                   info.can_create_child, info.last_contributor, info.digest, row.local_state,
-                   row.remote_state, pair_state, info.last_contributor, row.id))
-        if row.pair_state != pair_state:
-            self._queue_pair_state(row.id, info.folderish, pair_state)
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET remote_ref=?, remote_parent_ref=?, " +
+                      "remote_parent_path=?, remote_name=?, last_remote_updated=?, remote_can_rename=?," +
+                      "remote_can_delete=?, remote_can_update=?, " +
+                      "remote_can_create_child=?, last_remote_modifier=?, remote_digest=?, local_state=?," +
+                      "remote_state=?, pair_state=?, last_remote_modifier=?" + version + " WHERE id=?",
+                      (info.uid, info.parent_uid, remote_parent_path, info.name,
+                       info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
+                       info.can_create_child, info.last_contributor, info.digest, row.local_state,
+                       row.remote_state, pair_state, info.last_contributor, row.id))
+            if row.pair_state != pair_state:
+                self._queue_pair_state(row.id, info.folderish, pair_state)
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
 
     def is_filter(self, path):
         pass
@@ -361,13 +451,15 @@ class SqliteDAO(Worker):
 
     def update_config(self, name, value):
         self._lock.acquire()
-        con = self._get_write_connection()
-        c = con.cursor()
-        c.execute("UPDATE OR IGNORE Configuration SET value=? WHERE name=?",(value,name))
-        c.execute("INSERT OR IGNORE INTO Configuration(value,name) VALUES(?,?)",(value,name))
-        if self.auto_commit:
-            con.commit()
-        self._lock.release()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE OR IGNORE Configuration SET value=? WHERE name=?",(value,name))
+            c.execute("INSERT OR IGNORE INTO Configuration(value,name) VALUES(?,?)",(value,name))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
 
     def get_config(self, name, default=None):
         c = self._get_read_connection().cursor()
