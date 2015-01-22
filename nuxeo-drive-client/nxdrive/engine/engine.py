@@ -200,8 +200,8 @@ class Engine(QObject):
         return LocalWatcher(self, self._dao)
 
     def _create_dao(self):
-        from nxdrive.engine.dao.sqlite import SqliteDAO
-        return SqliteDAO(self, '/tmp/test.db')
+        from nxdrive.engine.dao.sqlite import EngineDAO
+        return EngineDAO(self, '/tmp/test.db')
 
     def get_queue_manager(self):
         return self._queue_manager

@@ -38,6 +38,7 @@ class Processor(Worker):
             self.republish()
 
     def republish(self, doc_pair=None):
+         # TODO Add error handler back
             from time import sleep
             sleep(10)
             if doc_pair is None:
@@ -75,7 +76,13 @@ class Processor(Worker):
                 # TODO Update as the server dont take hash to avoid conflict yet
                 if (doc_pair.pair_state.startswith("locally")
                         and doc_pair.remote_ref is not None):
-                    self._refresh_remote(doc_pair, remote_client)
+                    remote_info = remote_client.get_info(doc_pair.remote_ref)
+                    if remote_info.digest != doc_pair.remote_digest:
+                        doc_pair.remote_state = 'modified'
+                    self._refresh_remote(doc_pair, remote_client, remote_info)
+                    # Can run into conflict
+                    if doc_pair.pair_state == 'conflicted':
+                        return
                     doc_pair = self._dao.get_state_from_id(doc_pair.id)
                 parent_path = doc_pair.local_parent_path
                 if (parent_path == ''):
@@ -215,7 +222,8 @@ class Processor(Worker):
                           doc_pair, doc_pair.remote_name, doc_pair.remote_ref)
                 if doc_pair.remote_state != 'deleted':
                     self._dao.mark_descendants_remotely_created(doc_pair)
-
+        else:
+            self._dao.remove_pair(doc_pair)
 
     def _synchronize_locally_moved_created(self, doc_pair, local_client, remote_client):
         doc_pair.remote_ref = None
