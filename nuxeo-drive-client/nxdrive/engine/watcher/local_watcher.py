@@ -96,9 +96,9 @@ class LocalWatcher(Worker):
                 self._dao.insert_local_state(child_info, info.path)
             else:
                 child_pair = children.pop(child_name)
-                log.trace("Update file %s", child_info.path)
                 if (unicode(child_info.last_modification_time.strftime("%Y-%m-%d %H:%M:%S"))
                         != child_pair.last_local_updated):
+                    log.trace("Update file %s", child_info.path)
                     if not child_info.folderish:
                         child_pair.local_digest = child_info.get_digest()
                     self._metrics['update_files'] = self._metrics['update_files'] + 1

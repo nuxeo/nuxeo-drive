@@ -76,11 +76,11 @@ class ConfigurationDAO(Worker):
         '''
         super(ConfigurationDAO, self).__init__(engine)
         self._db = db
-                
+
         # For testing purpose only should always be True
         self.share_connection = True
         self.auto_commit = True
-        
+
         # If we dont share connection no need to lock
         if self.share_connection:
             self._lock = Lock()
@@ -96,7 +96,7 @@ class ConfigurationDAO(Worker):
         # FOR PYTHON 3.3...
         #if log.getEffectiveLevel() < 6:
         #    self._conn.set_trace_callback(self._log_trace)
-        
+
     def _init_db(self, cursor):
         cursor.execute("CREATE TABLE if not exists Configuration(name VARCHAR NOT NULL, value VARCHAR, PRIMARY KEY (name))")
 
@@ -115,7 +115,7 @@ class ConfigurationDAO(Worker):
         self._conns._conn.row_factory = factory
             # Python3.3 feature
             #if log.getEffectiveLevel() < 6:
-            #    self._conns._conn.set_trace_callback(self._log_trace)            
+            #    self._conns._conn.set_trace_callback(self._log_trace)
         return self._conns._conn
 
     def commit(self):
@@ -132,8 +132,8 @@ class ConfigurationDAO(Worker):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE OR IGNORE Configuration SET value=? WHERE name=?",(value,name))
-            c.execute("INSERT OR IGNORE INTO Configuration(value,name) VALUES(?,?)",(value,name))
+            c.execute("UPDATE OR IGNORE Configuration SET value=? WHERE name=?", (value,name))
+            c.execute("INSERT OR IGNORE INTO Configuration(value,name) VALUES(?,?)", (value,name))
             if self.auto_commit:
                 con.commit()
         finally:
@@ -171,13 +171,14 @@ class EngineDAO(ConfigurationDAO):
                   + "local_name VARCHAR, remote_name VARCHAR, folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
                   + "pair_state VARCHAR DEFAULT('unknown'), remote_can_rename INTEGER, remote_can_delete INTEGER, remote_can_update INTEGER,"
                   + "remote_can_create_child INTEGER, last_remote_modifier VARCHAR,"
-                  + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), PRIMARY KEY (id));")
+                  + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), PRIMARY KEY (id));")
 
     def release_processor(self, processor_id):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
+            # TO_REVIEW Might go back to primary key id
             c.execute("UPDATE States SET processor=0 WHERE processor=?", (processor_id,))
             if self.auto_commit:
                 con.commit()
@@ -203,8 +204,12 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("UPDATE States SET processor=0")
+            c.execute("UPDATE States SET error_count=0, last_sync_error_date=NULL, last_error = NULL WHERE pair_state='synchronized'")
             if self.auto_commit:
                 con.commit()
+            log.trace("Vacuum sqlite")
+            con.execute("VACUUM")
+            log.trace("Vacuum sqlite finished")
         finally:
             self._lock.release()
 
@@ -467,6 +472,38 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
         return row_id
 
+    def increase_error(self, row, error):
+        error_date = datetime.utcnow()
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET last_error=?, last_sync_error_date=?, error_count = error_count + 1 " +
+                      "WHERE id=?", (error, error_date, row.id))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+        row.last_error = error
+        row.error_count = row.error_count + 1
+        row.last_sync_error_date = error_date
+
+    def reset_error(self, row, error):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            error_date = datetime.utcnow()
+            c.execute("UPDATE States SET last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
+                      "WHERE id=?", (row.id,))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+        row.last_error = None
+        row.error_count = 0
+        row.last_sync_error_date = None
+
     def synchronize_state(self, row, version=None, state='synchronized'):
         if version is None:
             version = row.version
@@ -475,7 +512,7 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                      "pair_state=?, last_sync_date=?, processor = 0 " +
+                      "pair_state=?, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL" +
                       "WHERE id=? and version=?",
                       (state, datetime.utcnow(), row.id, version))
             if self.auto_commit:

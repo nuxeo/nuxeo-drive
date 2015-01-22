@@ -1,8 +1,9 @@
-from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot
+from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
 from Queue import Queue
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.processor import Processor
 from threading import Lock, local
+import time
 log = get_logger(__name__)
 
 
@@ -21,6 +22,7 @@ class QueueItem(object):
 class QueueManager(QObject):
     # Always create thread from the main thread
     newItem = pyqtSignal()
+    newError = pyqtSignal()
     '''
     classdocs
     '''
@@ -40,13 +42,24 @@ class QueueManager(QObject):
         self._local_file_thread = None
         self._remote_folder_thread = None
         self._remote_file_thread = None
+        self._error_threshold = 3
+        self._error_interval = 60
         if max_file_processors < 2:
             max_file_processors = 2
         self._max_processors = max_file_processors - 2
         self._threads_pool = list()
         self._processors_pool = list()
-        self._dao.register_queue_manager(self)
         self._get_file_lock = Lock()
+
+        # ERROR HANDLING
+        self._error_lock = Lock()
+        self._on_error_queue = dict()
+        self._error_timer = QTimer()
+        self._error_timer.timeout.connect(self._on_error_timer)
+        self.newError.connect(self._on_new_error)
+
+        # LAST ACTION
+        self._dao.register_queue_manager(self)
 
     def init_processors(self):
         log.trace("Init processors")
@@ -65,7 +78,7 @@ class QueueManager(QObject):
         if state.pair_state is None:
             log.trace("Don't push an empty pair_state: %r", state)
             return
-        log.trace("Pushing %r[f:%d]", state, state.folderish)
+        log.trace("Pushing %r", state)
         if state.pair_state.startswith('locally'):
             if state.folderish:
                 self._local_folder_queue.put(state)
@@ -80,50 +93,73 @@ class QueueManager(QObject):
             self.newItem.emit()
         else:
             # deleted and conflicted
-            pass
+            log.debug("Not processable state: %r", state)
+
+    @pyqtSlot()
+    def _on_error_timer(self):
+        cur_time = int(time.time())
+        self._error_lock.acquire()
+        try:
+            for doc_pair in self._on_error_queue.values():
+                if doc_pair.error_next_try < cur_time:
+                    queueItem = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
+                    del self._on_error_queue[doc_pair.id]
+                    self.push(queueItem)
+            if len(self._on_error_queue) == 0:
+                self._error_timer.stop()
+        finally:
+            self._error_lock.release()
+
+    @pyqtSlot()
+    def _on_new_error(self):
+        self._error_timer.start(1000)
+
+    def push_error(self, doc_pair):
+        if doc_pair.error_count >= self._error_threshold:
+            log.debug("Giving up on pair : %r", doc_pair)
+            return
+        interval = self._error_interval * doc_pair.error_count
+        doc_pair.error_next_try = interval + int(time.time())
+        log.debug("Blacklisting pair %r for %ds", doc_pair, interval)
+        self._error_lock.acquire()
+        try:
+            emit_sig = False
+            if len(self._on_error_queue) == 0:
+                emit_sig = True
+            self._on_error_queue[doc_pair.id] = doc_pair
+            if emit_sig:
+                self.newError.emit()
+        finally:
+            self._error_lock.release()
 
     def _get_local_folder(self):
-        log.trace("get next local folder")
         if self._local_folder_queue.empty():
-            log.trace("return state: None")
             return None
         state = self._local_folder_queue.get()
-        log.trace("return state: %r", state)
         return state
 
     def _get_local_file(self):
-        log.trace("get next local file")
         if self._local_file_queue.empty():
-            log.trace("return state: None")
             return None
         state = self._local_file_queue.get()
-        log.trace("return state: %r", state)
         return state
 
     def _get_remote_folder(self):
-        log.trace("get next remote folder")
         if self._remote_folder_queue.empty():
-            log.trace("return state: None")
             return None
         state = self._remote_folder_queue.get()
-        log.trace("return state: %r", state)
         return state
 
     def _get_remote_file(self):
-        log.trace("get next remote file")
         if self._remote_file_queue.empty():
-            log.trace("return state: None")
             return None
         state = self._remote_file_queue.get()
-        log.trace("return state: %r", state)
         return state
 
     def _get_file(self):
-        log.trace("get next file")
         self._get_file_lock.acquire()
         if self._remote_file_queue.empty() and self._local_file_queue.empty():
             self._get_file_lock.release()
-            log.trace("return state: None")
             return None
         state = None
         if (self._remote_file_queue.qsize() > self._local_file_queue.qsize()):
@@ -131,7 +167,6 @@ class QueueManager(QObject):
         else:
             state = self._local_file_queue.get()
         self._get_file_lock.release()
-        log.trace("return state: %r", state)
         return state
 
     @pyqtSlot()
@@ -173,6 +208,7 @@ class QueueManager(QObject):
         metrics["remote_folder_thread"] = self._remote_folder_thread is not None
         metrics["local_file_thread"] = self._local_file_thread is not None
         metrics["local_folder_thread"] = self._local_folder_thread is not None
+        metrics["error_queue"] = len(self._on_error_queue)
         metrics["total_queue"] = (metrics["local_folder_queue"] + metrics["local_file_queue"]
                                 + metrics["remote_folder_queue"] + metrics["remote_file_queue"])
         metrics["additional_processors"] = len(self._processors_pool)

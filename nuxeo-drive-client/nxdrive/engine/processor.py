@@ -35,16 +35,7 @@ class Processor(Worker):
     def _clean(self, reason):
         if reason == 'exception':
             # Add it back to the queue ? Add the error delay
-            self.republish()
-
-    def republish(self, doc_pair=None):
-         # TODO Add error handler back
-            from time import sleep
-            sleep(10)
-            if doc_pair is None:
-                doc_pair = self._current_item
-            if doc_pair is not None:
-                self._engine.get_queue_manager().push(doc_pair)
+            self._increase_error(self._current_item, "EXCEPTION")
 
     def acquire_state(self, row_id):
         if self._dao.acquire_processor(self._thread_id, row_id):
@@ -54,11 +45,9 @@ class Processor(Worker):
     def release_state(self):
         self._dao.release_processor(self._thread_id)
 
-    def _reset_error(self, doc_pair):
-        pass
-
-    def _increase_error(self, doc_pair, for_sec=None):
-        pass
+    def _increase_error(self, doc_pair, error):
+        self._dao.increase_error(doc_pair, error)
+        self._engine.get_queue_manager().push_error(doc_pair)
 
     def _execute(self):
         self._current_item = self._get_item()
@@ -82,29 +71,33 @@ class Processor(Worker):
                     self._refresh_remote(doc_pair, remote_client, remote_info)
                     # Can run into conflict
                     if doc_pair.pair_state == 'conflicted':
-                        return
+                        self._current_item = self._get_item()
+                        continue
                     doc_pair = self._dao.get_state_from_id(doc_pair.id)
                 parent_path = doc_pair.local_parent_path
                 if (parent_path == ''):
                     parent_path = "/"
                 if not local_client.exists(parent_path):
                     log.trace("Republish as parent doesn't exist : %r", doc_pair)
-                    self.republish(doc_pair)
+                    self._increase_error(doc_pair, error="NO_PARENT")
+                    self._current_item = self._get_item()
                     continue
                 handler_name = '_synchronize_' + doc_pair.pair_state
                 self._action = Action(handler_name)
                 sync_handler = getattr(self, handler_name, None)
                 if sync_handler is None:
-                    raise RuntimeError("Unhandled pair_state: %r for %r",
+                    log.trace("Unhandled pair_state: %r for %r",
                                        doc_pair.pair_state, doc_pair)
+                    self._increase_error(doc_pair, "ILLEGAL_STATE")
+                    self._current_item = self._get_item()
+                    continue
                 else:
                     log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
                     sync_handler(doc_pair, local_client, remote_client)
-                    self._reset_error(doc_pair)
+                    # TO_REVIEW May have a call to reset_error
                     log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
             except Exception as e:
-                log.trace("Increase doc_pair error count")
-                self._increase_error(doc_pair)
+                self._increase_error(doc_pair, "EXCEPTION")
                 log.exception(e)
                 raise e
             finally:
