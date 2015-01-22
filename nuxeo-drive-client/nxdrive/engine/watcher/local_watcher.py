@@ -155,16 +155,16 @@ class LocalWatcher(Worker):
             log.trace("Don't update as in process %r", doc_pair)
             return
         if (evt.event_type == 'moved'):
-                    #remote_client = self.get_remote_fs_client(
-                    #                                        server_binding)
-                    #self.handle_move(local_client, remote_client,
-                    #                 doc_pair, src_path,
-                    #            normalize_event_filename(evt.dest_path))
-                    #session.commit()
             src_path = normalize_event_filename(evt.dest_path)
             rel_path = self.client.get_path(src_path)
             local_info = self.client.get_info(rel_path)
-            doc_pair.local_state = 'moved'
+            # Ignore inner movement
+            remote_parent_ref = self.client.get_remote_id(self.client.get_path(
+                                                        os.path.dirname(src_path)))
+            if not (local_info.name == doc_pair.local_name and
+                    doc_pair.remote_parent_ref == remote_parent_ref):
+                log.debug("Detect move for %s (%r)", local_info.name, doc_pair)
+                doc_pair.local_state = 'moved'
             self._dao.update_local_state(doc_pair, local_info)
             return
         if evt.event_type == 'deleted':

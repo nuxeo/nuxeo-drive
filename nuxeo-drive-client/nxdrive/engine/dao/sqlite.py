@@ -5,11 +5,14 @@ from threading import Lock, local
 from nxdrive.engine.dao.model import PAIR_STATES
 from datetime import datetime
 from nxdrive.logging_config import get_logger
+from PyQt4.QtCore import pyqtSignal
 log = get_logger(__name__)
 
 
 class CustomRow(sqlite3.Row):
+    new_confict = pyqtSignal(object)
     _custom = None
+
     def __init__(self, arg1, arg2):
         super(CustomRow, self).__init__(arg1, arg2)
         self._custom = dict()
@@ -114,6 +117,8 @@ class SqliteDAO(Worker):
         return self._conns._conn
 
     def commit(self):
+        if self.auto_commit:
+            return
         self._lock.acquire()
         try:
             self._get_write_connection().commit()
@@ -226,7 +231,10 @@ class SqliteDAO(Worker):
     def _queue_pair_state(self, row_id, folderish, pair_state):
         if (self._queue_manager is not None
              and pair_state != 'synchronized' and pair_state != 'unsynchronized'):
-            self._queue_manager.push_ref(row_id, folderish, pair_state)
+            if pair_state == 'conflicted':
+                self.new_conflict.emit(row_id)
+            else:
+                self._queue_manager.push_ref(row_id, folderish, pair_state)
         return
 
     def _get_pair_state(self, row):
@@ -242,9 +250,9 @@ class SqliteDAO(Worker):
             con = self._get_write_connection()
             c = con.cursor()
             # Should not update this
-            c.execute("UPDATE States SET last_local_updated=?, local_digest=?, local_path=?, local_name=?,"
+            c.execute("UPDATE States SET last_local_updated=?, local_digest=?, local_path=?, local_parent_path=?, local_name=?,"
                       + "local_state=?, remote_state=?, pair_state=?" + version +
-                      " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, 
+                      " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, os.path.dirname(info.path),
                                         os.path.basename(info.path), row.local_state, row.remote_state,
                                         pair_state, row.id))
             if row.pair_state != pair_state and queue:

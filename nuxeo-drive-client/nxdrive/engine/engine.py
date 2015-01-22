@@ -342,7 +342,7 @@ class TestApplication(QCoreApplication):
         #QTimer.singleShot(1000, self._engine.get_status)
         self.timer = QTimer()
         self.timer.timeout.connect(self._engine.get_status)
-        self.timer.start(1000)
+        self.timer.start(30000)
         QTimer.singleShot(480000, self._engine.stop)
         self._engine.start()
 

@@ -206,6 +206,7 @@ class LocalClient(BaseClient):
         mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
         path = u'/' + os_path[len(safe_long_path(self.base_folder)) + 1:]
         path = path.replace(os.path.sep, u'/')  # unix style path
+        # TODO Do we need to load it everytime ?
         remote_ref = self.get_remote_id(ref)
         # On unix we could use the inode for file move detection but that won't
         # work on Windows. To reduce complexity of the code and the possibility

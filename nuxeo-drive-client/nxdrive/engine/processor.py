@@ -53,6 +53,12 @@ class Processor(Worker):
     def release_state(self):
         self._dao.release_processor(self._thread_id)
 
+    def _reset_error(self, doc_pair):
+        pass
+
+    def _increase_error(self, doc_pair, for_sec=None):
+        pass
+
     def _execute(self):
         self._current_item = self._get_item()
         local_client = self._engine.get_local_client()
@@ -66,10 +72,11 @@ class Processor(Worker):
                     log.trace("Skip as pair is None or in non-processable state: %r", doc_pair)
                     self._current_item = self._get_item()
                     continue
-                # TODO While the server dont take hash in modify code
-                #if doc_pair.pair_state.startswith("locally"):
-                #    self._refresh_remote(doc_pair, remote_client)
-                #    doc_pair = self._dao.get_state_from_id(doc_pair.id)
+                # TODO Update as the server dont take hash to avoid conflict yet
+                if (doc_pair.pair_state.startswith("locally")
+                        and doc_pair.remote_ref is not None):
+                    self._refresh_remote(doc_pair, remote_client)
+                    doc_pair = self._dao.get_state_from_id(doc_pair.id)
                 parent_path = doc_pair.local_parent_path
                 if (parent_path == ''):
                     parent_path = "/"
@@ -86,7 +93,13 @@ class Processor(Worker):
                 else:
                     log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
                     sync_handler(doc_pair, local_client, remote_client)
+                    self._reset_error(doc_pair)
                     log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
+            except Exception as e:
+                log.trace("Increase doc_pair error count")
+                self._increase_error(doc_pair)
+                log.exception(e)
+                raise e
             finally:
                 self.release_state()
             self._interact()
@@ -126,10 +139,20 @@ class Processor(Worker):
 
     def _get_normal_state_from_remote_ref(self, ref):
         # TODO Select the only states that is not a collection
-        return self._dao.get_states_from_remote(ref)[0]
+        states = self._dao.get_states_from_remote(ref)
+        if len(states) == 0:
+            return None
+        return states[0]
 
     def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
         name = os.path.basename(doc_pair.local_path)
+        remote_ref = local_client.get_remote_id(doc_pair.local_path)
+        if remote_ref is not None:
+            # TODO Decide what to do
+            log.warn("This document %r has remote_ref %s", doc_pair, remote_ref)
+            # Get the remote doc
+            # Verify it is not already synced elsewhere ( a missed move ? )
+            # If same hash dont do anything and reconcile
         # Find the parent pair to find the ref of the remote folder to
         # create the document
         parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
@@ -201,26 +224,36 @@ class Processor(Worker):
     def _synchronize_locally_moved(self, doc_pair, local_client, remote_client):
         # A file has been moved locally, and an error occurs when tried to
         # move on the server
+        renamed = False
+        moved = False
         if doc_pair.local_name != doc_pair.remote_name:
             try:
                 log.debug('Renaming remote file according to local : %r',
                                                     doc_pair)
                 remote_info = remote_client.rename(doc_pair.remote_ref,
                                                         doc_pair.local_name)
+                renamed = True
                 self._refresh_remote(doc_pair, remote_client, remote_info=remote_info)
             except Exception as e:
                 log.debug(e)
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
                 return
-        parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
-        if (parent_pair is not None
-            and parent_pair.remote_ref != doc_pair.remote_parent_ref):
+        parent_pair = None
+        parent_ref = local_client.get_remote_id(doc_pair.local_parent_path)
+        if parent_ref is None:
+            parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
+        else:
+            parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
+        if parent_pair is None:
+            raise Exception("Should have a parent pair")
+        if parent_ref != doc_pair.remote_parent_ref:
             log.debug('Moving remote file according to local : %r', doc_pair)
             # Bug if move in a parent with no rights / partial move
             # if rename at the same time
-            parent_path = parent_pair.remote_path + "/" + parent_pair.remote_ref
+            parent_path = parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
             remote_info = remote_client.move(doc_pair.remote_ref,
                         parent_pair.remote_ref)
+            moved = True
             self._dao.update_remote_state(doc_pair, remote_info, parent_path, versionned=False)
         if not self._dao.synchronize_state(doc_pair):
             log.warn("Cant put pair as synchronized may result in issues : %r", doc_pair)
@@ -273,51 +306,51 @@ class Processor(Worker):
                               os_path)
                 tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
                 # Delete original file and rename tmp file
+                # TO_REVIEW delete_final ?
                 local_client.delete(doc_pair.local_path)
                 updated_info = local_client.rename(
                                             local_client.get_path(tmp_file),
                                             doc_pair.remote_name)
                 self._refresh_local_state(doc_pair, updated_info)
+            # digest agree so this might be a renaming and/or a move,
+            # and no need to transfer additional bytes over the network
+            is_move, new_parent_pair = self._is_remote_move(doc_pair)
+            if remote_client.is_filtered(doc_pair.remote_parent_path):
+                # A move to a filtered parent ( treat it as deletion )
+                self._synchronize_remotely_deleted(doc_pair, local_client, remote_client)
+                return
+            if not is_move and not is_renaming:
+                log.debug("No local impact of metadata update on"
+                          " document '%s'.", doc_pair.remote_name)
             else:
-                # digest agree so this might be a renaming and/or a move,
-                # and no need to transfer additional bytes over the network
-                is_move, new_parent_pair = self._is_remote_move(doc_pair)
-                if remote_client.is_filtered(doc_pair.remote_parent_path):
-                    # A move to a filtered parent ( treat it as deletion )
-                    self._synchronize_remotely_deleted(doc_pair, local_client, remote_client)
-                    return
-                if not is_move and not is_renaming:
-                    log.debug("No local impact of metadata update on"
-                              " document '%s'.", doc_pair.remote_name)
-                else:
-                    file_or_folder = 'folder' if doc_pair.folderish else 'file'
-                    previous_local_path = doc_pair.local_path
-                    if is_move:
-                        # move
-                        log.debug("Moving local %s '%s' to '%s'.",
-                            file_or_folder, local_client._abspath(doc_pair.local_path),
-                            local_client._abspath(new_parent_pair.local_path))
-                        # May need to add a lock for move
-                        updated_info = local_client.move(doc_pair.local_path,
-                                          new_parent_pair.local_path)
-                        new_parent_path = new_parent_pair.remote_parent_path + "/" + new_parent_pair.remote_ref
-                        self._dao.update_remote_parent_path(doc_pair, new_parent_path)
-                        # refresh doc pair for the case of a
-                        # simultaneous move and renaming
-                        previous_local_path = updated_info.path
-                    if is_renaming:
-                        # renaming
-                        log.debug("Renaming local %s '%s' to '%s'.",
-                            file_or_folder, local_client._abspath(previous_local_path),
-                            doc_pair.remote_name)
-                        updated_info = local_client.rename(
-                            doc_pair.local_path, doc_pair.remote_name)
-                    if is_move or is_renaming:
-                        # Should call a DAO method
-                        self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path),
-                                                           os.path.dirname(updated_info.path))
-                        self._refresh_local_state(doc_pair, updated_info)
-                        #self._local_rename_with_descendant_states(doc_pair, previous_local_path, updated_info.path)
+                file_or_folder = 'folder' if doc_pair.folderish else 'file'
+                previous_local_path = doc_pair.local_path
+                if is_move:
+                    # move
+                    log.debug("Moving local %s '%s' to '%s'.",
+                        file_or_folder, local_client._abspath(doc_pair.local_path),
+                        local_client._abspath(new_parent_pair.local_path))
+                    # May need to add a lock for move
+                    updated_info = local_client.move(doc_pair.local_path,
+                                      new_parent_pair.local_path)
+                    new_parent_path = new_parent_pair.remote_parent_path + "/" + new_parent_pair.remote_ref
+                    self._dao.update_remote_parent_path(doc_pair, new_parent_path)
+                    # refresh doc pair for the case of a
+                    # simultaneous move and renaming
+                    previous_local_path = updated_info.path
+                if is_renaming:
+                    # renaming
+                    log.debug("Renaming local %s '%s' to '%s'.",
+                        file_or_folder, local_client._abspath(previous_local_path),
+                        doc_pair.remote_name)
+                    updated_info = local_client.rename(
+                        doc_pair.local_path, doc_pair.remote_name)
+                if is_move or is_renaming:
+                    # Should call a DAO method
+                    self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path),
+                                                       os.path.dirname(updated_info.path))
+                    self._refresh_local_state(doc_pair, updated_info)
+                    #self._local_rename_with_descendant_states(doc_pair, previous_local_path, updated_info.path)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
         except (IOError, WindowsError) as e:
@@ -332,7 +365,7 @@ class Processor(Worker):
         name = doc_pair.remote_name
         # Find the parent pair to find the path of the local folder to
         # create the document into
-        parent_pair = self._dao.get_states_from_remote(doc_pair.remote_parent_ref)[0]
+        parent_pair = self._get_normal_state_from_remote_ref(doc_pair.remote_parent_ref)
         if parent_pair is None:
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
@@ -426,7 +459,7 @@ class Processor(Worker):
 
     def _is_remote_move(self, doc_pair):
         local_parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
-        remote_parent_pair = self._dao.get_states_from_remote(doc_pair.remote_parent_ref)[0]
+        remote_parent_pair = self._get_normal_state_from_remote_ref(doc_pair.remote_parent_ref)
         return (local_parent_pair is not None
                 and remote_parent_pair is not None
                 and local_parent_pair.id != remote_parent_pair.id,
