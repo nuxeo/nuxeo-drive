@@ -35,7 +35,8 @@ class Processor(Worker):
     def _clean(self, reason):
         if reason == 'exception':
             # Add it back to the queue ? Add the error delay
-            self._increase_error(self._current_item, "EXCEPTION")
+            if self._current_doc_pair is not None:
+                self._increase_error(self._current_doc_pair, "EXCEPTION")
 
     def acquire_state(self, row_id):
         if self._dao.acquire_processor(self._thread_id, row_id):
@@ -55,10 +56,13 @@ class Processor(Worker):
         remote_client = self._engine.get_remote_client()
         while (self._current_item != None):
             doc_pair = self.acquire_state(self._current_item.id)
+            self._current_doc_pair = doc_pair
             try:
                 if (doc_pair is None or
                     doc_pair.pair_state == 'synchronized'
-                    or doc_pair.pair_state == 'unsynchronized'):
+                    or doc_pair.pair_state == 'unsynchronized'
+                    or doc_pair.pair_state is None
+                    or doc_pair.pair_state.startswith('parent_')):
                     log.trace("Skip as pair is None or in non-processable state: %r", doc_pair)
                     self._current_item = self._get_item()
                     continue
@@ -111,24 +115,27 @@ class Processor(Worker):
             if doc_pair.remote_digest == doc_pair.local_digest:
                 log.debug("Auto-resolve conflict has digest are the same")
                 self._dao.synchronize_state(doc_pair)
+        elif local_client.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref:
+            log.debug("Auto-resolve conflict has folder has same remote_id")
+            self._dao.synchronize_state(doc_pair)
 
     def _synchronize_locally_modified(self, doc_pair, local_client, remote_client):
         if doc_pair.remote_digest != doc_pair.local_digest:
             if doc_pair.remote_can_update:
                 log.debug("Updating remote document '%s'.",
-                          doc_pair.remote_name)
+                          doc_pair.local_name)
                 remote_client.stream_update(
                     doc_pair.remote_ref,
                     local_client._abspath(doc_pair.local_path),
                     parent_fs_item_id=doc_pair.remote_parent_ref,
-                    filename=doc_pair.remote_name,
+                    filename=doc_pair.local_name,
                 )
                 self._refresh_remote(doc_pair, remote_client)
                 # TODO refresh_client
             else:
                 log.debug("Skip update of remote document '%s'"\
                              " as it is readonly.",
-                          doc_pair.remote_name)
+                          doc_pair.local_name)
                 if self._controller.local_rollback():
                     local_client.delete(doc_pair.local_path)
                     self._dao.mark_descendants_remotely_created(doc_pair)
@@ -139,10 +146,7 @@ class Processor(Worker):
 
     def _get_normal_state_from_remote_ref(self, ref):
         # TODO Select the only states that is not a collection
-        states = self._dao.get_states_from_remote(ref)
-        if len(states) == 0:
-            return None
-        return states[0]
+        return self._dao.get_normal_state_from_remote(ref)
 
     def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
         name = os.path.basename(doc_pair.local_path)
@@ -256,8 +260,8 @@ class Processor(Worker):
                         parent_pair.remote_ref)
             moved = True
             self._dao.update_remote_state(doc_pair, remote_info, parent_path, versionned=False)
-        if not self._dao.synchronize_state(doc_pair):
-            log.warn("Cant put pair as synchronized may result in issues : %r", doc_pair)
+        # Handle modification at the same time if needed
+        self._synchronize_locally_modified(doc_pair, local_client, remote_client)
 
     def _synchronize_deleted_unknown(self, doc_pair, local_client, remote_client):
         # Somehow a pair can get to an inconsistent state:

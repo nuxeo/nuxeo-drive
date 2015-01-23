@@ -1,7 +1,7 @@
 from nxdrive.engine.engine import Worker
 import sqlite3
 import os
-from threading import Lock, local
+from threading import Lock, local, current_thread
 from nxdrive.engine.dao.model import PAIR_STATES
 from datetime import datetime
 from nxdrive.logging_config import get_logger
@@ -34,7 +34,6 @@ class CustomRow(sqlite3.Row):
 
 
 class StateRow(CustomRow):
-    new_conflict = pyqtSignal(object)
     _custom = None
 
     def is_readonly(self):
@@ -80,7 +79,8 @@ class ConfigurationDAO(Worker):
         # For testing purpose only should always be True
         self.share_connection = True
         self.auto_commit = True
-
+        self.in_tx = None
+        self._tx_lock = Lock()
         # If we dont share connection no need to lock
         if self.share_connection:
             self._lock = Lock()
@@ -104,12 +104,22 @@ class ConfigurationDAO(Worker):
         log.trace(query)
 
     def _get_write_connection(self, factory=CustomRow):
-        if self.share_connection:
+        if self.share_connection or self.in_tx:
             self._conn.row_factory = factory
             return self._conn
         return self._get_read_connection(factory)
 
     def _get_read_connection(self, factory=CustomRow):
+        # If in transaction
+        if self.in_tx is not None:
+            if current_thread().ident != self.in_tx:
+                log.trace("In transaction wait for read connection")
+                # Wait for the thread in transaction to finished
+                self._tx_lock.acquire()
+                self._tx_lock.release()
+            else:
+                # Return the write connection
+                return self._conn
         if not hasattr(self._conns, '_conn'):
             self._conns._conn = sqlite3.connect(self._db)
         self._conns._conn.row_factory = factory
@@ -117,6 +127,17 @@ class ConfigurationDAO(Worker):
             #if log.getEffectiveLevel() < 6:
             #    self._conns._conn.set_trace_callback(self._log_trace)
         return self._conns._conn
+
+    def begin_transaction(self):
+        self.auto_commit = False
+        self._tx_lock.acquire()
+        self.in_tx = current_thread().ident
+
+    def end_transaction(self):
+        self.auto_commit = True
+        self._get_write_connection().commit()
+        self._tx_lock.release()
+        self.in_tx = None
 
     def commit(self):
         if self.auto_commit:
@@ -151,7 +172,7 @@ class EngineDAO(ConfigurationDAO):
     '''
     classdocs
     '''
-
+    new_conflict = pyqtSignal(object)
     def __init__(self, engine, db):
         '''
         Constructor
@@ -218,11 +239,11 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            update = "UPDATE States SET remote_state='deleted', pair_state='remotely_deleted'"
-            c.execute(update + " WHERE id=?", (doc_pair.id,))
+            update = "UPDATE States SET remote_state='deleted', pair_state=?"
+            c.execute(update + " WHERE id=?", ('remotely_deleted',doc_pair.id))
             if doc_pair.folderish:
                 # TO_REVIEW New state recursive_remotely_deleted
-                c.execute(update + self._get_recursive_condition(doc_pair))
+                c.execute(update + self._get_recursive_condition(doc_pair), ('parent_remotely_deleted',))
             # Only queue parent
             self._queue_pair_state(doc_pair.id, doc_pair.folderish, 'remotely_deleted')
             if self.auto_commit:
@@ -235,11 +256,11 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            update = "UPDATE States SET local_state='deleted', pair_state='locally_deleted'"
-            c.execute(update + " WHERE id=?", (doc_pair.id,))
+            update = "UPDATE States SET local_state='deleted', pair_state=?"
+            c.execute(update + " WHERE id=?", ('locally_deleted',doc_pair.id))
             if doc_pair.folderish:
                 # TO_REVIEW New state recursive_locally_deleted
-                c.execute(update + self._get_recursive_condition(doc_pair))
+                c.execute(update + self._get_recursive_condition(doc_pair), ('parent_locally_deleted',))
             # Only queue parent
             self._queue_pair_state(doc_pair.id, doc_pair.folderish, 'locally_deleted')
             if self.auto_commit:
@@ -336,6 +357,13 @@ class EngineDAO(ConfigurationDAO):
     def get_states_from_partial_remote(self, ref):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_ref LIKE '%" + ref + "'").fetchall()
+
+    def get_normal_state_from_remote(self, ref):
+        # TODO Select the only states that is not a collection
+        states = self.get_states_from_remote(ref)
+        if len(states) == 0:
+            return None
+        return states[0]
 
     def get_states_from_remote(self, ref):
         c = self._get_read_connection(factory=StateRow).cursor()
@@ -512,7 +540,7 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                      "pair_state=?, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL" +
+                      "pair_state=?, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
                       "WHERE id=? and version=?",
                       (state, datetime.utcnow(), row.id, version))
             if self.auto_commit:

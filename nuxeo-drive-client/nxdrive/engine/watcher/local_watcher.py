@@ -57,9 +57,22 @@ class LocalWatcher(Worker):
     def _scan(self):
         log.debug("Full scan started")
         start_ms = current_milli_time()
-        info = self.client.get_info(u'/')
-        self._scan_recursive(info)
-        self._dao.commit()
+        self._delete_files = dict()
+        self._protected_files = dict()
+
+        # Use the specific transaction from dao
+        # Disable auto-commit
+        self._dao.begin_transaction()
+        try:
+            info = self.client.get_info(u'/')
+            self._scan_recursive(info)
+            for deleted in self._delete_files:
+                if deleted in self._protected_files:
+                    continue
+                self._dao.delete_local_state(self._delete_files[deleted])
+        finally:
+            # Dont rollback
+            self._dao.end_transaction()
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
         log.debug("Full scan finished in %dms",
                     self._metrics['last_local_scan_time'])
@@ -91,16 +104,79 @@ class LocalWatcher(Worker):
         for child_info in fs_children_info:
             child_name = os.path.basename(child_info.path)
             if not child_name in children:
-                log.debug("Found new file %s", child_info.path)
-                self._metrics['new_files'] = self._metrics['new_files'] + 1
-                self._dao.insert_local_state(child_info, info.path)
+                remote_id = self.client.get_remote_id(child_info.path)
+                if remote_id is None:
+                    log.debug("Found new file %s", child_info.path)
+                    self._metrics['new_files'] = self._metrics['new_files'] + 1
+                    self._dao.insert_local_state(child_info, info.path)
+                else:
+                    log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
+                    doc_pair = self._dao.get_normal_state_from_remote(remote_id)
+                    if doc_pair is None:
+                        log.debug("Can't found reference put in locally_created state")
+                        self._metrics['new_files'] = self._metrics['new_files'] + 1
+                        self._dao.insert_local_state(child_info, info.path)
+                        self._protected_files[remote_id]=True
+                    elif not self.client.exists(doc_pair.local_path):
+                        log.debug("Found a moved file")
+                        doc_pair.local_state = 'moved'
+                        self._dao.update_local_state(doc_pair, child_info)
+                        self._protected_files[doc_pair.remote_ref]=True
+                    else:
+                        # File still exists - must check the remote_id
+                        old_remote_id = self.client.get_remote_id(doc_pair.local_path)
+                        if old_remote_id == remote_id:
+                            # Local copy paste
+                            log.debug("Found a copy-paste of document")
+                            self.client.remove_remote_id(child_info.path)
+                            self._dao.insert_local_state(child_info, info.path)
+                        else:
+                            # Moved and renamed
+                            log.debug("Moved and renamed")
+                            old_pair = self._dao.get_normal_state_from_remote(old_remote_id)
+                            if not old_pair is None:
+                                old_pair.local_state = 'moved'
+                                # Check digest also
+                                digest = child_info.get_digest()
+                                if old_pair.local_digest != digest:
+                                    old_pair.local_digest = digest
+                                self._dao.update_local_state(old_pair, self.client.get_info(doc_pair.local_path))
+                                self._protected_files[old_pair.remote_ref]=True
+                            doc_pair.local_state = 'moved'
+                            # Check digest also
+                            digest = child_info.get_digest()
+                            if doc_pair.local_digest != digest:
+                                doc_pair.local_digest = digest
+                            self._dao.update_local_state(doc_pair, child_info)
+                            self._protected_files[doc_pair.remote_ref]=True
+                    # Dont browse content yet
             else:
                 child_pair = children.pop(child_name)
                 if (unicode(child_info.last_modification_time.strftime("%Y-%m-%d %H:%M:%S"))
                         != child_pair.last_local_updated):
                     log.trace("Update file %s", child_info.path)
+                    remote_ref = self.client.get_remote_id(child_pair.local_path)
+                    if remote_ref != child_pair.remote_ref:
+                        # TO_REVIEW
+                        # Load correct doc_pair | Put the others one back to children
+                        log.warn("Detected file substitution")
+                        old_pair = self._dao.get_normal_state_from_remote(remote_ref)
+                        if old_pair is None:
+                            self._dao.insert_local_state(child_info, info.path)
+                        else:
+                            old_pair.local_state = 'moved'
+                            # Check digest also
+                            digest = child_info.get_digest()
+                            if old_pair.local_digest != digest:
+                                old_pair.local_digest = digest
+                            self._dao.update_local_state(old_pair, child_info)
+                            self._protected_files[old_pair.remote_ref]=True
+                        self._delete_files[child_pair.remote_ref] = child_pair
                     if not child_info.folderish:
-                        child_pair.local_digest = child_info.get_digest()
+                        digest = child_info.get_digest()
+                        if child_pair.local_digest != digest:
+                            child_pair.local_digest = digest
+                            child_pair.local_state = 'modified'
                     self._metrics['update_files'] = self._metrics['update_files'] + 1
                     self._dao.update_local_state(child_pair, child_info)
             if child_info.folderish:
@@ -110,7 +186,10 @@ class LocalWatcher(Worker):
             log.debug("Found deleted file %s", deleted.local_path)
             # May need to count the children to be ok
             self._metrics['delete_files'] = self._metrics['delete_files'] + 1
-            self._dao.delete_local_state(deleted)
+            if deleted.remote_ref is None:
+                self._dao.remove_state(deleted)
+            else:
+                self._delete_files[deleted.remote_ref] = deleted
 
         for child_info in to_scan:
             self._scan_recursive(child_info)

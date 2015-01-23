@@ -475,6 +475,11 @@ class CliHandler(object):
                 self.log.error("Error executing '%s': %s", command, msg,
                           exc_info=True)
 
+    def get_application(self, options):
+        from nxdrive.gui.application import Application
+        app = Application(self.controller, options)
+        return app
+
     def launch(self, options=None):
         """Launch the Qt app in the main thread and sync in another thread."""
         # TODO: use the start method as default once implemented
@@ -483,8 +488,7 @@ class CliHandler(object):
         if lock.lock() is not None:
             self.log.warning("Qt application already running: exiting")
             return
-        from nxdrive.gui.application import Application
-        app = Application(self.controller, options)
+        app = self._get_application(options)
         exit_code = app.exec_()
         lock.unlock()
         self.log.debug("Qt application exited with code %r", exit_code)
@@ -672,8 +676,10 @@ def dumpstacks(signal, frame):
 def main(argv=None):
     # Print thread dump when receiving SIGUSR1,
     # except under Windows (no SIGUSR1)
+    import signal
+    # Get the Ctrl+C to interrupt application
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     if sys.platform != 'win32':
-        import signal
         signal.signal(signal.SIGUSR1, dumpstacks)
     if argv is None:
         argv = sys.argv

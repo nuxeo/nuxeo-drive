@@ -360,7 +360,4 @@ if __name__ == "__main__":
     #engine.remote_watcher.worker._execute()
     #engine.queue_manager.init_processors()
     core.init()
-    try:
-        core.exec_()
-    except KeyboardInterrupt:
-        core.quit()
+    core.exec_()
