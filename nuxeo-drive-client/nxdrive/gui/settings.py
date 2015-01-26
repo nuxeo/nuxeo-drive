@@ -4,9 +4,9 @@ from nxdrive.client import Unauthorized
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.controller import NUXEO_DRIVE_FOLDER_NAME
-from nxdrive.engine.controller import ProxySettings
-from nxdrive.engine.controller import GeneralSettings
-from nxdrive.engine.controller import MissingToken
+from nxdrive.manager import ProxySettings
+from nxdrive.manager import GeneralSettings
+from nxdrive.manager import MissingToken
 from nxdrive.client import AddonNotInstalled
 from nxdrive.client.local_client import BaseClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
@@ -207,7 +207,12 @@ class SettingsDialog(QDialog):
             log.debug('Selected %s as the Nuxeo Drive folder location',
                       dir_path)
             self.file_dialog_dir = dir_path
-            local_folder_path = os.path.join(dir_path, NUXEO_DRIVE_FOLDER_NAME)
+            # Dont append if it is already
+            # TO_REVIEW not forcing the name will be better no ?
+            if not dir_path.endswith(NUXEO_DRIVE_FOLDER_NAME):
+                local_folder_path = os.path.join(dir_path, NUXEO_DRIVE_FOLDER_NAME)
+            else:
+                local_folder_path = dir_path
             self.sb_fields['local_folder'].setText(local_folder_path)
 
     def get_proxy_box(self, field_spec):
@@ -634,8 +639,7 @@ def prompt_settings(controller, sb_settings, proxy_settings, general_settings,
         dialog.show_message("Connecting to %s ..." % url)
         try:
             controller.refresh_proxies(proxy_settings)
-            controller.bind_server(local_folder, url, username,
-                                   password)
+            controller.bind_server(local_folder, url, username, password)
             return True
         except AddonNotInstalled:
             return handle_error(

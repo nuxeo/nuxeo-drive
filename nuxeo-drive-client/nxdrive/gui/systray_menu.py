@@ -156,7 +156,8 @@ class SystrayMenu(QtGui.QMenu):
 
     def create_bind_server_menu(self, server_binding):
         binding_info = self.application.get_binding_info(server_binding)
-        last_ended_sync_date = server_binding.last_ended_sync_date
+        # TO_REVIEW remove this info as it is live now
+        last_ended_sync_date = None
         sb_actions = {}
         # Separator
         binding_separator = QtGui.QAction(self)
@@ -210,7 +211,8 @@ class SystrayMenu(QtGui.QMenu):
 
     def update_bind_server_menu(self, server_binding, sb_actions):
         binding_info = self.application.get_binding_info(server_binding)
-        last_ended_sync_date = server_binding.last_ended_sync_date
+        # TO_REVIEW Live sync now
+        last_ended_sync_date = None
         # Update pending status
         status_action = sb_actions['pending_status']
         self._set_pending_status(status_action, binding_info, server_binding)

@@ -5,6 +5,7 @@ import locale
 import mimetypes
 import psutil
 import time
+import base64
 from Crypto.Cipher import AES
 from Crypto import Random
 from nxdrive.logging_config import get_logger
@@ -147,7 +148,7 @@ def encrypt(plaintext, secret, lazy=True):
     secret = _lazysecret(secret) if lazy else secret
     iv = Random.new().read(AES.block_size)
     encobj = AES.new(secret, AES.MODE_CFB, iv)
-    return iv + encobj.encrypt(plaintext)
+    return base64.b64encode(iv + encobj.encrypt(plaintext))
 
 
 def decrypt(ciphertext, secret, lazy=True):
@@ -156,7 +157,7 @@ def decrypt(ciphertext, secret, lazy=True):
     iv = ciphertext[:AES.block_size]
     ciphertext = ciphertext[AES.block_size:]
     encobj = AES.new(secret, AES.MODE_CFB, iv)
-    return encobj.decrypt(ciphertext)
+    return encobj.decrypt(base64.b64decode(ciphertext))
 
 
 def _lazysecret(secret, blocksize=32, padding='}'):

@@ -398,27 +398,6 @@ class CliHandler(object):
             print e
             sys.exit(0)
 
-    def get_controller(self, options):
-        nb_tries = 1
-        while (nb_tries <= GET_CTL_MAX_NB_TRIES):
-            try:
-                return Controller(options.nxdrive_home,
-                            handshake_timeout=options.handshake_timeout,
-                            timeout=options.timeout,
-                            max_errors=options.max_errors,
-                            update_url=options.update_site_url)
-            except OperationalError as e:
-                self.log.error("OperationalError during try #%d to get"
-                               " controller, waiting for %d seconds and"
-                               " retrying at most %d times" %
-                               (nb_tries, GET_CTL_SLEEP_DURATION,
-                                GET_CTL_MAX_NB_TRIES - nb_tries),
-                               exc_info=True)
-                time.sleep(GET_CTL_SLEEP_DURATION)
-                nb_tries += 1
-        if nb_tries > 1:
-            raise e
-
     def handle(self, argv):
         """Parse options, setup logs and controller and dispatch execution."""
         options = self.parse_cli(argv)
@@ -442,7 +421,7 @@ class CliHandler(object):
         if command != 'test':
             # Initialize a controller for this process, except for the tests
             # as they initialize their own
-            self.controller = self.get_controller(options)
+            self.manager = self.get_manager(options)
 
         # Find the command to execute based on the
         handler = getattr(self, command, None)
@@ -475,16 +454,20 @@ class CliHandler(object):
                 self.log.error("Error executing '%s': %s", command, msg,
                           exc_info=True)
 
-    def get_application(self, options):
+    def get_manager(self, options):
+        from nxdrive.manager import Manager
+        return Manager(options)
+
+    def _get_application(self, options):
         from nxdrive.gui.application import Application
-        app = Application(self.controller, options)
+        app = Application(self.manager, options)
         return app
 
     def launch(self, options=None):
         """Launch the Qt app in the main thread and sync in another thread."""
         # TODO: use the start method as default once implemented
         from nxdrive.utils import PidLockFile
-        lock = PidLockFile(self.controller.config_folder, "qt")
+        lock = PidLockFile(self.manager.get_configuration_folder(), "qt")
         if lock.lock() is not None:
             self.log.warning("Qt application already running: exiting")
             return
@@ -499,9 +482,10 @@ class CliHandler(object):
         self.controller.dispose()
         daemonize()
 
-        self.controller = self.get_controller(options)
+        self.manager = self.get_manager(options)
         self._configure_logger(options)
         self.log.debug("Synchronization daemon started.")
+        # TODO Add back the delay and max_sync ?
         self.controller.synchronizer.loop(
             delay=getattr(options, 'delay', DEFAULT_DELAY),
             max_sync_step=getattr(options, 'max_sync_step',

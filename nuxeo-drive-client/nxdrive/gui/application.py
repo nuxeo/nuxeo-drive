@@ -646,29 +646,7 @@ class Application(QApplication):
         return settings_accepted
 
     def start_synchronization_thread(self):
-        # Make sure an application update is not required and synchronization
-        # thread is not already started before actually starting it
-        if (not self._is_update_required()
-            and not self._is_sync_thread_started()):
-            delay = getattr(self.options, 'delay', DEFAULT_DELAY)
-            max_sync_step = getattr(self.options, 'max_sync_step', 10)
-            update_check_delay = getattr(self.options, 'update_check_delay',
-                                         3600)
-            # Controller and its database session pool are thread safe,
-            # hence reuse it directly
-            self.controller.synchronizer.register_frontend(self)
-            self.controller.synchronizer.delay = delay
-            self.controller.synchronizer.max_sync_step = max_sync_step
-            self.controller.synchronizer.update_check_delay = (
-                                                update_check_delay)
-
-            self.launch_synchronization_thread()
-
-    def launch_synchronization_thread(self):
-        self.sync_thread = SynchronizerThread(self.controller)
-        log.info("Starting new synchronization thread %r", self.sync_thread)
-        self.sync_thread.start()
-        log.info("Synchronization thread %r started", self.sync_thread)
+        self.controller.start()
 
     def _is_sync_thread_started(self):
         return self.sync_thread is not None and self.sync_thread.isAlive()

@@ -1,11 +1,10 @@
-from nxdrive.engine.engine import Worker
 import sqlite3
 import os
 from threading import Lock, local, current_thread
 from nxdrive.engine.dao.model import PAIR_STATES
 from datetime import datetime
 from nxdrive.logging_config import get_logger
-from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import pyqtSignal, QObject
 log = get_logger(__name__)
 
 
@@ -64,16 +63,16 @@ class FakeLock(object):
     def release(self):
         pass
 
-class ConfigurationDAO(Worker):
+class ConfigurationDAO(QObject):
     '''
     classdocs
     '''
 
-    def __init__(self, engine, db):
+    def __init__(self, db):
         '''
         Constructor
         '''
-        super(ConfigurationDAO, self).__init__(engine)
+        super(ConfigurationDAO, self).__init__()
         self._db = db
 
         # For testing purpose only should always be True
@@ -168,18 +167,55 @@ class ConfigurationDAO(Worker):
         return obj.value
 
 
+class ManagerDAO(ConfigurationDAO):
+    def __init__(self, db):
+        super(ManagerDAO, self).__init__(db)
+
+    def _init_db(self, cursor):
+        super(ManagerDAO, self)._init_db(cursor)
+        cursor.execute("CREATE TABLE if not exists Engines(uid VARCHAR, engine VARCHAR NOT NULL, local_folder VARCHAR NOT NULL UNIQUE, PRIMARY KEY(uid))")
+
+    def get_engines(self):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM Engines").fetchall()
+
+    def add_engine(self, engine, path, key):
+        result = None
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("INSERT INTO Engines(local_folder, engine, uid) VALUES(?,?,?)", (path, engine, key))
+            if self.auto_commit:
+                con.commit()
+            result = c.execute("SELECT * FROM Engines WHERE uid=?", (key,)).fetchone()
+        finally:
+            self._lock.release()
+        return result
+
+    def delete_engine(self, uid):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("DELETE FROM Engines WHERE uid=?", (uid,))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
 class EngineDAO(ConfigurationDAO):
     '''
     classdocs
     '''
     new_conflict = pyqtSignal(object)
-    def __init__(self, engine, db):
+    def __init__(self, db):
         '''
         Constructor
         '''
         self._filters = None
         self._queue_manager = None
-        super(EngineDAO, self).__init__(engine, db)
+        super(EngineDAO, self).__init__(db)
         self._filters = self.get_filters()
         self.reinit_processors()
 
