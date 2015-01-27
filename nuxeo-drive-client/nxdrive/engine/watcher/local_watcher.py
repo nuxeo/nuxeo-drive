@@ -187,7 +187,7 @@ class LocalWatcher(Worker):
             # May need to count the children to be ok
             self._metrics['delete_files'] = self._metrics['delete_files'] + 1
             if deleted.remote_ref is None:
-                self._dao.remove_state(deleted)
+                self._dao.remove_pair(deleted)
             else:
                 self._delete_files[deleted.remote_ref] = deleted
 

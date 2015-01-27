@@ -7,6 +7,7 @@ from nxdrive.engine.engine import Worker
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.engine.activity import Action
+from PyQt4.QtCore import pyqtSignal
 import os
 log = get_logger(__name__)
 
@@ -21,6 +22,7 @@ class Processor(Worker):
     '''
     classdocs
     '''
+    pairSync = pyqtSignal(object, object)
 
     def __init__(self, engine, item_getter, name=None):
         '''
@@ -98,6 +100,7 @@ class Processor(Worker):
                 else:
                     log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
                     sync_handler(doc_pair, local_client, remote_client)
+                    self.pairSync.emit(doc_pair, handler_name)
                     # TO_REVIEW May have a call to reset_error
                     log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
             except Exception as e:

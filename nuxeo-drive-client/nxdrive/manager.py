@@ -98,7 +98,7 @@ class ProxySettings(object):
         self.username = dao.get_config("proxy_username", None)
         self.password = dao.get_config("proxy_password", None)
         self.exceptions = dao.get_config("proxy_exceptions", None)
-        self.authenticated = dao.get_config("proxy_authenticated", None)
+        self.authenticated = (dao.get_config("proxy_authenticated", "False") == "True")
         if token is None:
             token = dao.get_config("device_id", None)
         if self.password is not None and token is not None:
@@ -160,8 +160,31 @@ class Manager(QObject):
         from nxdrive.engine.dao.sqlite import ManagerDAO
         return ManagerDAO(self._get_db())
 
-    def start(self):
+    def resume(self, euid=None):
         for uid, engine in self._engines.items():
+            if euid is not None and euid != uid:
+                continue
+            log.debug("Resume engine %s", uid)
+            engine.resume()
+
+    def suspend(self, euid=None):
+        for uid, engine in self._engines.items():
+            if euid is not None and euid != uid:
+                continue
+            log.debug("Suspend engine %s", uid)
+            engine.suspend()
+
+    def stop(self, euid=None):
+        for uid, engine in self._engines.items():
+            if euid is not None and euid != uid:
+                continue
+            log.debug("Stop engine %s", uid)
+            engine.stop()
+
+    def start(self, euid=None):
+        for uid, engine in self._engines.items():
+            if euid is not None and euid != uid:
+                continue
             log.debug("Launch engine %s", uid)
             engine.start()
 
@@ -308,6 +331,9 @@ class Manager(QObject):
         # TO_REVIEW Might need to remove it
         pass
 
+    def set_auto_update(self, value):
+        self._dao.update_config("auto_update", value)
+
     def set_general_settings(self, settings):
         self._dao.update_config("auto_update", settings.auto_update)
 
@@ -384,6 +410,9 @@ class Manager(QObject):
         for engine in self._engine_definitions:
             self.unbind_engine(engine.uid)
 
+    def get_engines(self):
+        return self._engines
+
     def get_engines_type(self):
         return self._engine_types
 
@@ -401,6 +430,9 @@ class Manager(QObject):
             self.get_session().commit()
             return True
         return False
+
+    def is_started(self):
+        return True
 
     def is_updated(self):
         return self.updated

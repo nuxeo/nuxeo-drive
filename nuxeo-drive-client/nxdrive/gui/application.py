@@ -98,13 +98,12 @@ class BindingInfo(object):
 class Application(QApplication):
     """Main Nuxeo drive application controlled by a system tray icon + menu"""
 
-    sync_thread = None
-
     def __init__(self, controller, options, argv=()):
         super(Application, self).__init__(list(argv))
         self.controller = controller
         self.options = options
         self.binding_info = {}
+        self.engineWidget = None
 
         # Put communication channel in place for intra and inter-thread
         # communication for UI change notifications
@@ -148,6 +147,14 @@ class Application(QApplication):
 
         # Check if actions is required, separate method so it can be override
         self.init_checks()
+        self.engineWidget = None
+        if options.debug:
+            self.show_activities()
+
+    def show_activities(self):
+        from nxdrive.gui.activity_dialog import ActivityDialog
+        self.engineWidget = ActivityDialog(self.controller)
+        self.engineWidget.show()
 
     def init_checks(self):
         if self.controller.is_credentials_update_required():
@@ -233,7 +240,7 @@ class Application(QApplication):
                              " server version, an upgrade or downgrade is"
                              " needed. Synchronization thread won't start"
                              " until then.")
-                    self.stop_sync_thread()
+                    self.controller.stop()
                 elif (self._is_update_available()
                       and self.controller.is_auto_update()):
                     # Update available and auto-update checked, let's process
@@ -339,7 +346,7 @@ class Application(QApplication):
     def suspend_resume(self):
         if self.state != 'paused':
             # Suspend sync
-            if self._is_sync_thread_started():
+            if self.controller.is_started():
                 # A sync thread is active, first update last state, current
                 # state, icon and menu.
                 self.last_state = self.state
@@ -355,7 +362,7 @@ class Application(QApplication):
                 # Suspend the synchronizer thread: it will call
                 # notify_sync_suspended() then wait until it gets notified by
                 # a call to resume().
-                self.sync_thread.suspend()
+                self.controller.suspend()
             else:
                 self.state = 'paused'
                 log.debug('No active synchronization thread, suspending sync'
@@ -367,10 +374,7 @@ class Application(QApplication):
             self.update_running_icon()
             self.communicator.menu.emit()
             # Resume sync
-            if self.sync_thread is None:
-                self.launch_synchronization_thread()
-            else:
-                self.sync_thread.resume()
+            self.controller.resume()
 
     def action_quit(self):
         self.quit_app_after_sync_stopped = True
@@ -405,16 +409,14 @@ class Application(QApplication):
         self._stop()
 
     def _stop(self):
-        if self._is_sync_thread_started():
+        if self.controller.is_started():
             # A sync thread is active, first update state, icon and menu
             if self.quit_app_after_sync_stopped:
                 self.state = 'stopping'
                 self.update_running_icon()
                 self.communicator.menu.emit()
-            # Resume the sync thread so it checks the stop signal
-            self.sync_thread.resume()
             # Stop the thread
-            self.sync_thread.stop()
+            self.controller.stop()
         else:
             # Quit directly
             self.handle_stop()
@@ -647,9 +649,6 @@ class Application(QApplication):
 
     def start_synchronization_thread(self):
         self.controller.start()
-
-    def _is_sync_thread_started(self):
-        return self.sync_thread is not None and self.sync_thread.isAlive()
 
     def event(self, event):
         """Handle URL scheme events under OSX"""

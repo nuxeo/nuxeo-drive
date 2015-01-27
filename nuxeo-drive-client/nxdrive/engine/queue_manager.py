@@ -23,6 +23,7 @@ class QueueManager(QObject):
     # Always create thread from the main thread
     newItem = pyqtSignal()
     newError = pyqtSignal()
+    queueEmpty = pyqtSignal()
     '''
     classdocs
     '''
@@ -216,6 +217,9 @@ class QueueManager(QObject):
 
     @pyqtSlot()
     def launch_processors(self):
+        if (self._local_folder_queue.empty() and self._local_file_queue.empty()
+                and self._remote_file_queue.empty() and self._local_file_queue.qsize()):
+            self.queueEmpty.emit()
         log.trace("Launch processors")
         if self._local_folder_thread is None and not self._local_folder_queue.empty():
             log.debug("creating local folder processor")

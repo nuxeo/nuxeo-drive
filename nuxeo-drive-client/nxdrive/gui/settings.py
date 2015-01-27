@@ -340,30 +340,26 @@ class SettingsDialog(QDialog):
         return box
 
     def apply_filters(self):
-        session = self.controller.get_session()
         for item in self.treeview.getDirtyItems():
             path = item.get_path()
             if (item.get_checkstate() == QtCore.Qt.Unchecked):
                 log.debug("Add a filter on : " + path)
-                Filter.add(session, self.server_binding, path)
             elif (item.get_checkstate() == QtCore.Qt.Checked):
                 log.debug("Remove a filter on : " + item.get_path())
-                Filter.remove(session, self.server_binding, path)
-            elif item.get_old_value() == QtCore.Qt.Unchecked:
+            #elif item.get_old_value() == QtCore.Qt.Unchecked:
                 # Now partially checked and was before a filter
 
                 # Remove current parent filter and need to commit to enable the
                 # add
-                Filter.remove(session, self.server_binding, path)
+                #Filter.remove(session, self.server_binding, path)
                 # We need to browse every child and create a filter for
                 # unchecked as they are not dirty but has become root filter
-                for child in item.get_children():
-                    if child.get_checkstate() == QtCore.Qt.Unchecked:
-                        Filter.add(session, self.server_binding,
-                                   child.get_path())
-        session.commit()
+                #for child in item.get_children():
+                #    if child.get_checkstate() == QtCore.Qt.Unchecked:
+                #        Filter.add(session, self.server_binding,
+                #                   child.get_path())
         # Need to refresh the client for now
-        self.controller.invalidate_client_cache()
+        #self.controller.invalidate_client_cache()
 
     def accept(self):
         if self.callback is not None:

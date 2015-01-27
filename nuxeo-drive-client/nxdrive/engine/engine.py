@@ -178,6 +178,7 @@ class Engine(QObject):
         # Remove remote client cache on proxy update
         self._manager.proxy_updated.connect(self.invalidate_client_cache)
         self._local_folder = definition.local_folder
+        self._type = "NXDRIVE"
         self._uid = definition.uid
         self._stopped = True
         self._local = local()
@@ -274,6 +275,9 @@ class Engine(QObject):
             thread.start()
         self._start.emit()
 
+    def get_threads(self):
+        return self._threads
+
     def get_status(self):
         QCoreApplication.processEvents()
         log.debug("Engine status")
@@ -333,7 +337,8 @@ class Engine(QObject):
         root = self._dao.get_state_from_local("/")
         if root is None:
             from nxdrive.client.common import BaseClient
-            BaseClient.unset_path_readonly(self._local_folder)
+            if os.path.exists(self._local_folder):
+                BaseClient.unset_path_readonly(self._local_folder)
             self._make_local_folder(self._local_folder)
             self._add_top_level_state()
             BaseClient.set_path_readonly(self._local_folder)
