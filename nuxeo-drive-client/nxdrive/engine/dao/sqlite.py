@@ -559,7 +559,7 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             error_date = datetime.utcnow()
             c.execute("UPDATE States SET last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
-                      "WHERE id=?", (row.id,))
+                      " WHERE id=?", (row.id,))
             if self.auto_commit:
                 con.commit()
         finally:
@@ -567,6 +567,34 @@ class EngineDAO(ConfigurationDAO):
         row.last_error = None
         row.error_count = 0
         row.last_sync_error_date = None
+
+    def force_remote(self, row):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET local_state='synchronized', remote_state='modified', pair_state='remotely_modified', last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
+                      " WHERE id=? AND version=?", (row.id, row.version))
+            self._queue_pair_state(row.id, row.folderish, "remotely_modified")
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+        return c.rowcount == 1
+
+    def force_local(self, row):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET local_state='created', remote_state='unknown', pair_state='locally_created', last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
+                      " WHERE id=? AND version=?", (row.id, row.version))
+            self._queue_pair_state(row.id, row.folderish, "locally_created")
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+        return c.rowcount == 1
 
     def synchronize_state(self, row, version=None, state='synchronized'):
         if version is None:

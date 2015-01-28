@@ -150,6 +150,14 @@ class Application(QApplication):
         self.engineWidget = None
         if options.debug:
             self.show_activities()
+            self.show_file_status()
+
+    def show_file_status(self):
+        from nxdrive.gui.status_dialog import StatusDialog
+        for _, engine in self.controller.get_engines().iteritems():
+            self.statusDialog = StatusDialog(engine.get_dao())
+            self.statusDialog.show()
+            return
 
     def show_activities(self):
         from nxdrive.gui.activity_dialog import ActivityDialog
