@@ -183,6 +183,8 @@ class LocalWatcher(Worker):
                 to_scan.append(child_info)
 
         for deleted in children.values():
+            if deleted.pair_state == "remotely_created":
+                continue
             log.debug("Found deleted file %s", deleted.local_path)
             # May need to count the children to be ok
             self._metrics['delete_files'] = self._metrics['delete_files'] + 1

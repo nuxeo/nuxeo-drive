@@ -173,6 +173,9 @@ class LocalClient(BaseClient):
                 self.lock_path(path, locker)
         else:
             import xattr
+            if type(remote_id).__name__ == "unicode":
+                import unicodedata
+                remote_id = unicodedata.normalize('NFC', remote_id).encode('ascii','ignore')
             xattr.setxattr(path, name, remote_id)
 
     def get_remote_id(self, ref, name="ndrive"):
@@ -188,7 +191,10 @@ class LocalClient(BaseClient):
         else:
             import xattr
             try:
-                return xattr.getxattr(path, name)
+                value = xattr.getxattr(path, name)
+                if type(value).__name__ == "unicode":
+                    value = unicode(value)
+                return value
             except:
                 return None
 

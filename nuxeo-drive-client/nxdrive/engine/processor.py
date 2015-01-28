@@ -188,9 +188,10 @@ class Processor(Worker):
                           name, parent_pair.remote_name)
                 remote_ref = remote_client.stream_file(
                     parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
-            self._dao.update_remote_state(doc_pair, remote_client.get_info(remote_ref), remote_parent_path)
+            self._dao.update_remote_state(doc_pair, remote_client.get_info(remote_ref), remote_parent_path, versionned=False)
+            log.trace("Put remote_ref in %s", remote_ref)
             local_client.set_remote_id(doc_pair.local_path, remote_ref)
-            self._dao.synchronize_state(doc_pair, doc_pair.version + 1)
+            self._dao.synchronize_state(doc_pair, doc_pair.version)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
             log.warning("Won't synchronize %s '%s' created in"
