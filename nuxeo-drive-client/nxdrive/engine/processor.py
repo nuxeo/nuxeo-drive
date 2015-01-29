@@ -34,7 +34,7 @@ class Processor(Worker):
         self._engine = engine
         self._dao = self._engine.get_dao()
 
-    def _clean(self, reason):
+    def _clean(self, reason, e=None):
         if reason == 'exception':
             # Add it back to the queue ? Add the error delay
             if self._current_doc_pair is not None:

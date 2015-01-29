@@ -20,6 +20,8 @@ from PyQt4.QtCore import pyqtSignal
 
 class RemoteWatcher(Worker):
     initiate = pyqtSignal()
+    updated = pyqtSignal()
+
     def __init__(self, engine, dao):
         super(RemoteWatcher, self).__init__(engine)
         self.unhandle_fs_event = False
@@ -181,6 +183,7 @@ class RemoteWatcher(Worker):
         self._action = Action("Handle remote changes")
         self._update_remote_states()
         self._save_changes_state()
+        self.updated.emit()
         self._action = None
 
     def _save_changes_state(self):
@@ -300,7 +303,9 @@ class RemoteWatcher(Worker):
                             log.debug("Refreshing remote state info"
                                       " for doc_pair '%s'", doc_pair_repr)
                             eventId = change.get('eventId')
-                            doc_pair.remote_state = 'modified'
+                            if (new_info.digest != doc_pair.local_digest or
+                                 new_info.name != doc_pair.local_name):
+                                doc_pair.remote_state = 'modified'
                             self._scan_remote_recursive(
                                 doc_pair, consistent_new_info,
                                 force_recursion=(eventId == "securityUpdated"))

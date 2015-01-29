@@ -21,9 +21,10 @@ class QueueItem(object):
 
 class QueueManager(QObject):
     # Always create thread from the main thread
-    newItem = pyqtSignal()
-    newError = pyqtSignal()
+    newItem = pyqtSignal(object)
+    newError = pyqtSignal(object)
     queueEmpty = pyqtSignal()
+    queueProcessing = pyqtSignal()
     '''
     classdocs
     '''
@@ -58,14 +59,14 @@ class QueueManager(QObject):
         self._error_timer = QTimer()
         self._error_timer.timeout.connect(self._on_error_timer)
         self.newError.connect(self._on_new_error)
-
+        self.queueProcessing.connect(self.launch_processors)
         # LAST ACTION
         self._dao.register_queue_manager(self)
 
     def init_processors(self):
         log.trace("Init processors")
         self.newItem.connect(self.launch_processors)
-        self.newItem.emit()
+        self.queueProcessing.emit()
 
     def init_queue(self, queue):
         # Dont need to change modify as State is compatible with QueueItem
@@ -80,18 +81,19 @@ class QueueManager(QObject):
             log.trace("Don't push an empty pair_state: %r", state)
             return
         log.trace("Pushing %r", state)
+        row_id = state.id
         if state.pair_state.startswith('locally'):
             if state.folderish:
                 self._local_folder_queue.put(state)
             else:
                 self._local_file_queue.put(state)
-            self.newItem.emit()
+            self.newItem.emit(row_id)
         elif state.pair_state.startswith('remotely'):
             if state.folderish:
                 self._remote_folder_queue.put(state)
             else:
                 self._remote_file_queue.put(state)
-            self.newItem.emit()
+            self.newItem.emit(row_id)
         else:
             # deleted and conflicted
             log.debug("Not processable state: %r", state)
@@ -129,7 +131,7 @@ class QueueManager(QObject):
                 emit_sig = True
             self._on_error_queue[doc_pair.id] = doc_pair
             if emit_sig:
-                self.newError.emit()
+                self.newError.emit(doc_pair.id)
         finally:
             self._error_lock.release()
 
@@ -188,7 +190,7 @@ class QueueManager(QObject):
                 self._remote_file_thread.isFinished()):
             self._remote_file_thread = None
         if not self._engine.is_paused() and not self._engine.is_stopped():
-            self.newItem.emit()
+            self.newItem.emit(None)
 
     def _create_thread(self, item_getter, name=None):
         processor = Processor(self._engine, item_getter, name=name)
@@ -214,6 +216,10 @@ class QueueManager(QObject):
                                 + metrics["remote_folder_queue"] + metrics["remote_file_queue"])
         metrics["additional_processors"] = len(self._processors_pool)
         return metrics
+
+    def get_overall_size(self):
+        return (self._local_folder_queue.qsize() + self._local_file_queue.qsize()
+                + self._remote_folder_queue.qsize() + self._remote_file_queue.qsize())
 
     @pyqtSlot()
     def launch_processors(self):

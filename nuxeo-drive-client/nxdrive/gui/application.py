@@ -4,8 +4,6 @@ import os
 import time
 import sys
 import subprocess
-from nxdrive.engine.synchronizer import SynchronizerThread
-from nxdrive.engine.synchronizer import DEFAULT_DELAY
 from nxdrive.osi.protocol import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.gui.settings import prompt_settings
@@ -21,7 +19,6 @@ from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
-
 
 log = get_logger(__name__)
 
@@ -100,8 +97,15 @@ class Application(QApplication):
 
     def __init__(self, controller, options, argv=()):
         super(Application, self).__init__(list(argv))
-        self.controller = controller
+        self.manager = controller
         self.options = options
+        for _, engine in self.manager.get_engines().iteritems():
+            self.mainEngine = engine
+            break
+        if self.mainEngine is not None and options.debug:
+            from nxdrive.engine.engine import EngineLogger
+            log.error("INSTALL ENGINE LOGGER")
+            self.engineLogger = EngineLogger(self.mainEngine)
         self.binding_info = {}
         self.engineWidget = None
 
@@ -142,8 +146,8 @@ class Application(QApplication):
         self.systray_update_timer.start(750)
 
         # Application update notification
-        if self.controller.is_updated():
-            notify_updated(self.controller.get_version())
+        if self.manager.is_updated():
+            notify_updated(self.manager.get_version())
 
         # Check if actions is required, separate method so it can be override
         self.init_checks()
@@ -152,20 +156,25 @@ class Application(QApplication):
             self.show_activities()
             self.show_file_status()
 
+    def show_websettings(self):
+        from nxdrive.gui.websettings import WebSettingsDialog
+        self.webSettingsDialog = WebSettingsDialog(self.manager)
+        self.webSettingsDialog.show()
+
     def show_file_status(self):
         from nxdrive.gui.status_dialog import StatusDialog
-        for _, engine in self.controller.get_engines().iteritems():
+        for _, engine in self.manager.get_engines().iteritems():
             self.statusDialog = StatusDialog(engine.get_dao())
             self.statusDialog.show()
             return
 
     def show_activities(self):
         from nxdrive.gui.activity_dialog import ActivityDialog
-        self.engineWidget = ActivityDialog(self.controller)
+        self.engineWidget = ActivityDialog(self.manager)
         self.engineWidget.show()
 
     def init_checks(self):
-        if self.controller.is_credentials_update_required():
+        if self.manager.is_credentials_update_required():
             # Prompt for settings if needed (performs a check for application
             # update)
             self.settings()
@@ -174,10 +183,10 @@ class Application(QApplication):
             # be done by the synchronizer thread)
             self.refresh_update_status()
             # Start long running synchronization thread
-            self.start_synchronization_thread()
+            self.manager.start()
 
     def get_systray_menu(self):
-        return SystrayMenu(self, self.controller.list_server_bindings())
+        return SystrayMenu(self, self.manager.list_server_bindings())
 
     def get_version_finder(self, update_url):
         # Used by extended application to inject version finder
@@ -190,14 +199,14 @@ class Application(QApplication):
     def refresh_update_status(self):
         # TODO: first read update site URL from local configuration
         # See https://jira.nuxeo.com/browse/NXP-14403
-        server_bindings = self.controller.list_server_bindings()
+        server_bindings = self.manager.list_server_bindings()
         if not server_bindings:
             log.warning("Found no server binding, thus no update site URL,"
                         " can't check for application update")
         elif self.state != 'paused':
             # Let's refresh_update_info of the first server binding
             sb = server_bindings[0]
-            self.controller.refresh_update_info(sb.local_folder)
+            self.manager.refresh_update_info(sb.local_folder)
             # Use server binding's update site URL as a version finder to
             # build / update the application updater.
             update_url = sb.update_url
@@ -223,7 +232,7 @@ class Application(QApplication):
             # Set update status and update version
             self.update_status, self.update_version = (
                         self.updater.get_update_status(
-                            self.controller.get_version(), server_version))
+                            self.manager.get_version(), server_version))
             if self.update_status == UPDATE_STATUS_UNAVAILABLE_SITE:
                 # Update site unavailable
                 log.warning("Update site is unavailable, as a consequence"
@@ -248,9 +257,9 @@ class Application(QApplication):
                              " server version, an upgrade or downgrade is"
                              " needed. Synchronization thread won't start"
                              " until then.")
-                    self.controller.stop()
+                    self.manager.stop()
                 elif (self._is_update_available()
-                      and self.controller.is_auto_update()):
+                      and self.manager.is_auto_update()):
                     # Update available and auto-update checked, let's process
                     # update
                     log.info("An application update is available and"
@@ -258,7 +267,7 @@ class Application(QApplication):
                     self.action_update(auto_update=True)
                     return
                 elif (self._is_update_available()
-                      and not self.controller.is_auto_update()):
+                      and not self.manager.is_auto_update()):
                     # Update available and auto-update not checked, let's just
                     # update the systray icon and menu and let the user
                     # explicitly choose to  update
@@ -354,7 +363,7 @@ class Application(QApplication):
     def suspend_resume(self):
         if self.state != 'paused':
             # Suspend sync
-            if self.controller.is_started():
+            if self.manager.is_started():
                 # A sync thread is active, first update last state, current
                 # state, icon and menu.
                 self.last_state = self.state
@@ -370,7 +379,7 @@ class Application(QApplication):
                 # Suspend the synchronizer thread: it will call
                 # notify_sync_suspended() then wait until it gets notified by
                 # a call to resume().
-                self.controller.suspend()
+                self.manager.suspend()
             else:
                 self.state = 'paused'
                 log.debug('No active synchronization thread, suspending sync'
@@ -382,7 +391,7 @@ class Application(QApplication):
             self.update_running_icon()
             self.communicator.menu.emit()
             # Resume sync
-            self.controller.resume()
+            self.manager.resume()
 
     def action_quit(self):
         self.quit_app_after_sync_stopped = True
@@ -399,11 +408,11 @@ class Application(QApplication):
                 log.warning("An error occurred while trying to automatically"
                             " update Nuxeo Drive to version %s, setting"
                             " 'Auto update' to False", self.update_version)
-                self.controller.set_auto_update(False)
+                self.manager.set_auto_update(False)
         else:
-            updated = prompt_update(self.controller,
+            updated = prompt_update(self.manager,
                                     self._is_update_required(),
-                                    self.controller.get_version(),
+                                    self.manager.get_version(),
                                     self.update_version, self.updater)
         if updated:
             log.info("Will quit Nuxeo Drive and restart updated version %s",
@@ -417,14 +426,14 @@ class Application(QApplication):
         self._stop()
 
     def _stop(self):
-        if self.controller.is_started():
+        if self.manager.is_started():
             # A sync thread is active, first update state, icon and menu
             if self.quit_app_after_sync_stopped:
                 self.state = 'stopping'
                 self.update_running_icon()
                 self.communicator.menu.emit()
             # Stop the thread
-            self.controller.stop()
+            self.manager.stop()
         else:
             # Quit directly
             self.handle_stop()
@@ -436,7 +445,7 @@ class Application(QApplication):
             # Close thread-local Session
             log.debug("Calling Controller.dispose() from Qt Application to"
                       " close thread-local Session")
-            self.controller.dispose()
+            self.manager.dispose()
             if self.restart_updated_app:
                 # Restart application by loading updated executable into
                 # current process
@@ -594,7 +603,7 @@ class Application(QApplication):
                                             time.localtime(current_time)),
                               local_folder)
                     server_binding.last_ended_sync_date = current_time
-                    self.controller.get_session().commit()
+                    self.manager.get_session().commit()
                 self.communicator.menu.emit()
             # Update pending stats
             info.n_pending = n_pending
@@ -627,36 +636,40 @@ class Application(QApplication):
         self.update_running_icon()
         self._tray_icon.show()
         self.tray_icon_menu = self.get_systray_menu()
-        self._tray_icon.setContextMenu(self.tray_icon_menu)
+        #self._tray_icon.setContextMenu(self.tray_icon_menu)
+        
+        from nxdrive.gui.websystray import WebSystray
+        self._tray_icon.setContextMenu(WebSystray(self._tray_icon))
+        
         self.communicator.menu.connect(self.update_menu)
 
     def update_menu(self):
-        self.tray_icon_menu.update_menu(self.controller.list_server_bindings())
+        self.tray_icon_menu.update_menu(self.manager.list_server_bindings())
 
     @QtCore.pyqtSlot(str)
     def handle_invalid_credentials(self, local_folder):
-        sb = self.controller.get_server_binding(unicode(local_folder))
+        # TODO Recode
+        """
+        sb = self.manager.get_server_binding(unicode(local_folder))
         sb.invalidate_credentials()
-        self.controller.get_session().commit()
+        self.manager.get_session().commit()
+        """
         self.communicator.menu.emit()
 
     def settings(self):
-        sb_settings = self.controller.get_server_binding_settings()
-        proxy_settings = self.controller.get_proxy_settings()
-        general_settings = self.controller.get_general_settings()
-        version = self.controller.get_version()
-        settings_accepted = prompt_settings(self.controller, sb_settings,
+        sb_settings = self.manager.get_server_binding_settings()
+        proxy_settings = self.manager.get_proxy_settings()
+        general_settings = self.manager.get_general_settings()
+        version = self.manager.get_version()
+        settings_accepted = prompt_settings(self.manager, sb_settings,
                                             proxy_settings, general_settings,
                                             version)
         if settings_accepted:
             # Check for application udpate
             self.refresh_update_status()
             # Start synchronization thread if needed
-            self.start_synchronization_thread()
+            self.manager.start()
         return settings_accepted
-
-    def start_synchronization_thread(self):
-        self.controller.start()
 
     def event(self, event):
         """Handle URL scheme events under OSX"""
@@ -671,11 +684,11 @@ class Application(QApplication):
                     log.debug("Received nxdrive URL scheme event: %s", url)
                     if info.get('command') == 'download_edit':
                         # This is a quick operation, no need to fork a QThread
-                        self.controller.download_edit(
+                        self.manager.download_edit(
                             info['server_url'], info['repo'], info['doc_id'],
                             info['filename'])
                     elif info.get('command') == 'edit':
-                        self.controller.edit(
+                        self.manager.edit(
                             info['server_url'], info['item_id'])
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)

@@ -208,7 +208,7 @@ class EngineDAO(ConfigurationDAO):
     '''
     classdocs
     '''
-    new_conflict = pyqtSignal(object)
+    newConflict = pyqtSignal(object)
     def __init__(self, db):
         '''
         Constructor
@@ -228,7 +228,7 @@ class EngineDAO(ConfigurationDAO):
                   + "local_name VARCHAR, remote_name VARCHAR, folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
                   + "pair_state VARCHAR DEFAULT('unknown'), remote_can_rename INTEGER, remote_can_delete INTEGER, remote_can_update INTEGER,"
                   + "remote_can_create_child INTEGER, last_remote_modifier VARCHAR,"
-                  + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), PRIMARY KEY (id));")
+                  + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, last_error_details TEXT, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), PRIMARY KEY (id));")
 
     def release_processor(self, processor_id):
         self._lock.acquire()
@@ -344,7 +344,7 @@ class EngineDAO(ConfigurationDAO):
         if (self._queue_manager is not None
              and pair_state != 'synchronized' and pair_state != 'unsynchronized'):
             if pair_state == 'conflicted':
-                self.new_conflict.emit(row_id)
+                self.newConflict.emit(row_id)
             else:
                 self._queue_manager.push_ref(row_id, folderish, pair_state)
         return
@@ -536,14 +536,14 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
         return row_id
 
-    def increase_error(self, row, error):
+    def increase_error(self, row, error, details=None):
         error_date = datetime.utcnow()
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET last_error=?, last_sync_error_date=?, error_count = error_count + 1 " +
-                      "WHERE id=?", (error, error_date, row.id))
+            c.execute("UPDATE States SET last_error=?, last_sync_error_date=?, error_count = error_count + 1, last_error_details=? " +
+                      "WHERE id=?", (error, error_date, details, row.id))
             if self.auto_commit:
                 con.commit()
         finally:

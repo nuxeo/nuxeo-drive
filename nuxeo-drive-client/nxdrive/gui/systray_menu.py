@@ -27,7 +27,7 @@ class SystrayMenu(QtGui.QMenu):
         self.update_action = None
 
         self.application = application
-        self.controller = application.controller
+        self._manager = application.manager
         self.binding_menu_actions = {}
         self.global_menu_actions = {}
         self.create_menu(server_bindings)
@@ -169,7 +169,7 @@ class SystrayMenu(QtGui.QMenu):
         open_folder_msg = ("Open %s folder"
                                    % binding_info.short_name)
         open_folder = (lambda folder_path=binding_info.folder_path:
-                               self.controller.open_local_file(folder_path))
+                               self._manager.open_local_file(folder_path))
         open_folder_action = QtGui.QAction(open_folder_msg,
                                                    self)
         # Cant use the normal connect as we use lambda function
@@ -183,7 +183,7 @@ class SystrayMenu(QtGui.QMenu):
         server_link_msg = "Browse Nuxeo server"
         open_server_link = (
                         lambda server_link=binding_info.server_link:
-                        self.controller.open_local_file(server_link))
+                        self._manager.open_local_file(server_link))
         server_link_action = QtGui.QAction(server_link_msg, self)
         # Cant use the normal connect as we use lambda function
         self.connect(server_link_action, QtCore.SIGNAL('triggered()'),

@@ -9,6 +9,7 @@ from nxdrive.engine.activity import Action
 from threading import local
 from time import sleep
 import os
+import datetime
 from cookielib import CookieJar
 #from nxdrive.engine.activity import Action.actions
 
@@ -29,7 +30,7 @@ class Worker(QObject):
     _thread_id = None
     _engine = None
     _pause = False
-    action_update = pyqtSignal(object)
+    actionUpdate = pyqtSignal(object)
 
     def __init__(self, engine, thread=None, name=None):
         super(Worker, self).__init__()
@@ -79,7 +80,7 @@ class Worker(QObject):
                     % (self._name, self._thread_id))
 
     def _update_action(self, action):
-        self.action_update.emit(action)
+        self.actionUpdate.emit(action)
 
     def get_metrics(self):
         metrics = dict()
@@ -98,6 +99,7 @@ class Worker(QObject):
     def run(self):
         reason = ''
         self._thread_id = current_thread().ident
+        e = None
         try:
             self._execute()
             log.debug("Thread %s(%d) end"
@@ -106,15 +108,16 @@ class Worker(QObject):
             log.debug("Thread %s(%d) interrupted"
                         % (self._name, self._thread_id))
             reason = 'interrupt'
-        except Exception as e:
+        except Exception as ex:
             log.warn("Thread %s(%d) ended with exception : %r"
-                            % (self._name, self._thread_id, e))
-            log.exception(e)
+                            % (self._name, self._thread_id, ex))
+            log.exception(ex)
+            e = ex
             reason = 'exception'
-        self._clean(reason)
+        self._clean(reason, e)
         self._thread.exit(0)
 
-    def _clean(self, reason):
+    def _clean(self, reason, e = None):
         pass
 
 '''
@@ -152,12 +155,64 @@ class ProgressWorker(Worker):
         return metrics
 
 
+class EngineLogger(QObject):
+    def __init__(self, engine):
+        super(EngineLogger, self).__init__()
+        self._dao = engine.get_dao()
+        self._engine = engine
+        self._engine.logger = self
+        self._level = 40
+        self._engine.syncStarted.connect(self.logSyncStart)
+        self._engine.syncCompleted.connect(self.logSyncComplete)
+        self._engine.newConflict.connect(self.logConflict)
+        self._engine.newSync.connect(self.logSync)
+        self._engine.newError.connect(self.logError)
+        self._engine.newQueueItem.connect(self.logQueueItem)
+
+    def _log_pair(self, row_id, msg, handler = None):
+        pair = self._dao.get_state_from_id(row_id)
+        if handler is not None:
+            log.log(self._level, msg, pair, handler)
+        else:
+            log.log(self._level, msg, pair)
+
+    @pyqtSlot()
+    def logSyncComplete(self):
+        log.log(self._level, "Synchronization is complete")
+
+    @pyqtSlot(object)
+    def logSyncStart(self):
+        log.log(self._level, "Synchronization starts (%d items)", object)
+
+    @pyqtSlot(object)
+    def logConflict(self, row_id):
+        self._log_pair(row_id, "Conflict on %r")
+
+    @pyqtSlot(object, object)
+    def logSync(self, row, handler):
+        log.log(self._level,"Sync on %r with %s", row, handler)
+
+    @pyqtSlot(object)
+    def logError(self, row_id):
+        self._log_pair(row_id, "Error on %r")
+
+    @pyqtSlot(object)
+    def logQueueItem(self, row_id):
+        self._log_pair(row_id, "QueueItem on %r")
+
 '''
 ' Used for threads interaction
 '''
 class Engine(QObject):
     _start = pyqtSignal()
     _stop = pyqtSignal()
+    syncStarted = pyqtSignal(object)
+    syncCompleted = pyqtSignal()
+    invalidAuthentication = pyqtSignal()
+    newConflict = pyqtSignal(object)
+    newSync = pyqtSignal(object, object)
+    newError = pyqtSignal(object)
+    newQueueItem = pyqtSignal(object)
     # Used for binding server / roots and managing tokens
     remote_doc_client_factory = RemoteDocumentClient
 
@@ -181,6 +236,7 @@ class Engine(QObject):
         self._type = "NXDRIVE"
         self._uid = definition.uid
         self._stopped = True
+        self._sync_started = False
         self._local = local()
         self._threads = list()
         self._client_cache_timestamps = dict()
@@ -188,11 +244,32 @@ class Engine(QObject):
         if binder is not None:
             self.bind(binder)
         self._load_configuration()
-        self.local_watcher = self.create_thread(worker=self._create_local_watcher())
-        self.remote_watcher = self.create_thread(worker=self._create_remote_watcher(), start_connect=False)
-        self.local_watcher.worker.localScanFinished.connect(self.remote_watcher.worker.run)
+        self._local_watcher = self._create_local_watcher()
+        self.create_thread(worker=self._local_watcher)
+        self._remote_watcher = self._create_remote_watcher()
+        self.create_thread(worker=self._remote_watcher, start_connect=False)
+        # Launch remote_watcher after first local scan
+        self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
         self._queue_manager = self._create_queue_manager(processors)
-        self.remote_watcher.worker.initiate.connect(self._queue_manager.init_processors)
+        # Launch queue processors after first remote_watcher pass
+        self._remote_watcher.initiate.connect(self._queue_manager.init_processors)
+        # Connect last_sync checked
+        self._remote_watcher.updated.connect(self._check_last_sync)
+        # Connect for sync start
+        self.newQueueItem.connect(self._check_sync_start)
+        self._queue_manager.newItem.connect(self._check_sync_start)
+        # Connect components signals to engine signals
+        self._queue_manager.newItem.connect(self.newQueueItem)
+        self._queue_manager.newError.connect(self.newError)
+        self._dao.newConflict.connect(self.newConflict)
+
+    @pyqtSlot(object)
+    def _check_sync_start(self, row_id):
+        if not self._sync_started:
+            queue_size = self._queue_manager.get_overall_size()
+            if queue_size > 0:
+                self._sync_started = True
+                self.syncStarted.emit(queue_size)
 
     def _normalize_url(self, url):
         """Ensure that user provided url always has a trailing '/'"""
@@ -255,6 +332,10 @@ class Engine(QObject):
     def create_thread(self, worker=None, name=None, start_connect=True):
         if worker is None:
             worker = Worker(self, name=name)
+        # If subclass of Processor then connect the newSync signal
+        from nxdrive.engine.processor import Processor
+        if isinstance(worker, Processor):
+            worker.pairSync.connect(self.newSync)
         thread = worker.get_thread()
         if start_connect:
             thread.started.connect(worker.run)
@@ -262,6 +343,17 @@ class Engine(QObject):
         thread.finished.connect(self._thread_finished)
         self._threads.append(thread)
         return thread
+
+    def get_last_sync(self):
+        return self._dao.get_config("last_sync_date", None)
+
+    @pyqtSlot()
+    def _check_last_sync(self):
+        if self._queue_manager.get_overall_size() == 0:
+            self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
+            if self._sync_started:
+                self._sync_started = False
+            self.syncCompleted.emit()
 
     def _thread_finished(self):
         for thread in self._threads:
