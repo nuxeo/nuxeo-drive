@@ -6,6 +6,39 @@
 .list-group-item:hover .glyphicon-folder-close:before {
   content: "\e118" !important;
 }
+.engine-navbar {
+	margin: 0;
+	list-style: none;
+	float: right;
+	padding: 0px;
+}
+.engine-navbar > li {
+	display: block;
+	position: relative;
+	float: left;
+	margin-top: -10px;
+	margin-bottom: 0px;
+	height: 40px;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+.engine-navbar > li:hover {
+	background-color: #ccc;
+	border-bottom: 1px solid #17384e;
+}
+.currentEngine:hover {
+	border-bottom: 0px solid #17384e !important;
+}
+.currentEngine {
+	background-color: #ccc;
+	border-left: 1px solid #17384e;
+	border-right: 1px solid #17384e;
+}
+.engine-navbar > li > a {
+	padding: 10px 5px;
+	display: block;
+	line-height: 20px;
+}
 </style>
 <script src="js/angular.min.js"></script>
 <script>
@@ -56,6 +89,12 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
 		$scope.bind = false;
 		drive.resize(300, 225);
 	}
+	$scope.getEngineClass = function(engine) {
+		if (engine == $scope.engine) {
+			return "currentEngine";
+		}
+		return "";
+	}
 	$scope.open_remote = function() {
 		drive.open_remote($scope.engine.uid);
 	}	
@@ -80,8 +119,18 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
 </div>
 </div>
 <div ng-show="bind">
-<div class="navbar navbar-fixed-top" style="padding: 10px; min-height: 40px;border-bottom: 1px solid #17384e; background-color: #dfdfdf;">
-  <div>{{ engine.username }}<span class="glyphicon glyphicon-option-vertical" style="float:right; margin-left: 20px;" ng-click="advanced_systray()"></span><img style="float:right;margin-right: 4px;" title="{{ engine.name }}" ng-click="setEngine(engine)" src="imgs/{{ engine.type }}.png" ng-repeat="engine in engines" ng-show="engines.length > 1"/></div>
+<div class="navbar navbar-fixed-top" style="padding: 10px; min-height: 40px; height: 40px;border-bottom: 1px solid #17384e; background-color: #dfdfdf;">
+  <div>
+  	<span>{{ engine.username }}</span>
+  	<span class="glyphicon glyphicon-option-vertical" style="float:right; margin-left: 20px;" ng-click="advanced_systray()"></span>
+  	<ul class="engine-navbar" ng-show="engines.length > 1">
+  		<li ng-repeat="engine in engines" ng-class="getEngineClass(engine)">
+  		  <a href="#" ng-click="setEngine(engine)">
+  			<img title="{{ engine.name }}" src="imgs/{{ engine.type }}.png"/>
+  		  </a>
+  		</li>
+  	</ul>
+  </div>
  </div>
 <div class="navbar navbar-fixed-bottom" style="padding: 10px; height: 40px; min-height: 40px; border-top: 1px solid #17384e;background-color: #dfdfdf;">
   <div align="right" ng-show="engine.syncing != 'syncing'">
