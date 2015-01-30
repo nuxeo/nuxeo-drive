@@ -1,0 +1,38 @@
+<html>
+<head>
+<link rel="stylesheet" href="css/bootstrap.min.css" media="screen">
+<link rel="stylesheet" href="css/ndrive.css">
+<script src="js/angular.min.js"></script>
+<script>
+app = angular.module("DriveActivity", []);
+app.controller("DriveActivityCtl", function($scope, $interval) {
+	$scope.engines = angular.fromJson(drive.get_engines());
+	refresh = $interval(function() {
+		$scope.engines = angular.fromJson(drive.get_engines());
+		drive.resize(400, document.getElementById("content").offsetHeight)
+	}, 1000);
+})
+</script>
+</head>
+<body style="overflow: hidden;" ng-app="DriveActivity">
+<div id="content" ng-controller="DriveActivityCtl">
+	<div class="panel panel-default" ng-repeat="engine in engines">
+  		<div class="panel-heading">
+  			<img style="float: left;margin-right: 10px;" src="imgs/nuxeo_drive_icon_32.png" ng-if="engine.type == 'NXDRIVE'"/><div><b>{{engine.name}}</b><br /><span style="font-size:10px;">{{engine.local_folder}}</span></div>
+  		</div>
+  		<div>
+    		<table class="table table-hover">
+    			<tbody>
+				<tr ng-repeat="thread in engine.threads">
+					<td>
+					{{thread.name}}<br />
+					{{thread.action.name}}
+					</td>
+				</tr>
+				</tbody>
+			</table>
+  		</div>
+	</div>
+</div>
+</body>
+</html>

@@ -5,7 +5,7 @@ from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
-from nxdrive.engine.activity import Action
+from nxdrive.engine.activity import Action, IdleAction
 from threading import local
 from time import sleep
 import os
@@ -82,15 +82,20 @@ class Worker(QObject):
     def _update_action(self, action):
         self.actionUpdate.emit(action)
 
+    def get_action(self):
+        action = Action.get_current_action(self._thread_id)
+        if action is None:
+            action = self._action
+        if action is None:
+            action = IdleAction()
+        return action
+
     def get_metrics(self):
         metrics = dict()
         metrics['name'] = self._name
         metrics['thread_id'] = self._thread_id
         # Get action from activity as methods can have its own Action
-        action = Action.get_current_action(self._thread_id)
-        if action is None:
-            action = self._action
-        metrics['action'] = action
+        metrics['action'] = self.get_action()
         if hasattr(self, '_metrics'):
             metrics = dict(metrics.items() + self._metrics.items())
         return metrics
@@ -231,10 +236,11 @@ class Engine(QObject):
         self.cookie_jar = CookieJar()
         self._manager = manager
         # Remove remote client cache on proxy update
-        self._manager.proxy_updated.connect(self.invalidate_client_cache)
+        self._manager.proxyUpdated.connect(self.invalidate_client_cache)
         self._local_folder = definition.local_folder
         self._type = "NXDRIVE"
         self._uid = definition.uid
+        self._name = definition.name
         self._stopped = True
         self._sync_started = False
         self._local = local()
@@ -270,6 +276,12 @@ class Engine(QObject):
             if queue_size > 0:
                 self._sync_started = True
                 self.syncStarted.emit(queue_size)
+
+    def get_last_files(self, number, direction=None):
+        return self._dao.get_last_files(number, direction)
+
+    def is_syncing(self):
+        return self._sync_started
 
     def _normalize_url(self, url):
         """Ensure that user provided url always has a trailing '/'"""
@@ -307,6 +319,19 @@ class Engine(QObject):
         db = os.path.join(self._manager.get_configuration_folder(),
                                 "ndrive_" + self._uid + ".db")
         return EngineDAO(db)
+
+    def get_remote_url(self):
+        server_link = self._dao.get_config("server_url", "")
+        repository = "default"
+        if not server_link.endswith('/'):
+            server_link += '/'
+        url_suffix = ('@view_home?tabIds=MAIN_TABS:home,'
+                      'USER_CENTER:userCenterNuxeoDrive')
+        server_link += 'nxhome/' + repository + url_suffix
+        return server_link
+
+    def get_abspath(self, path):
+        return self.get_local_client()._abspath(path)
 
     def get_binder(self):
         from nxdrive.manager import ServerBindingSettings

@@ -6,8 +6,6 @@ import sys
 import subprocess
 from nxdrive.osi.protocol import parse_protocol_url
 from nxdrive.logging_config import get_logger
-from nxdrive.gui.settings import prompt_settings
-from systray_menu import SystrayMenu
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
 from nxdrive.gui.update_prompt import prompt_update
@@ -35,22 +33,6 @@ try:
 except ImportError:
     log.warning("Qt / PyQt4 is not installed: GUI is disabled")
     pass
-
-
-class Communicator(QObject):
-    """Handle communication between sync and main GUI thread
-
-    Use a signal to notify the main thread event loops about states update by
-    the synchronization thread.
-
-    """
-    # (event name, new icon, rebuild menu)
-    icon = QtCore.pyqtSignal(str)
-    menu = QtCore.pyqtSignal()
-    stop = QtCore.pyqtSignal()
-    change = QtCore.pyqtSignal(object, str)
-    invalid_credentials = QtCore.pyqtSignal(str)
-    update_check = QtCore.pyqtSignal()
 
 
 class BindingInfo(object):
@@ -108,17 +90,6 @@ class Application(QApplication):
         self.binding_info = {}
         self.engineWidget = None
 
-        # Put communication channel in place for intra and inter-thread
-        # communication for UI change notifications
-        self.communicator = Communicator()
-        self.communicator.icon.connect(self.set_icon_state)
-        self.communicator.stop.connect(self.handle_stop)
-        self.communicator.change.connect(self.handle_change)
-        self.communicator.invalid_credentials.connect(
-            self.handle_invalid_credentials)
-        self.communicator.update_check.connect(
-            self.refresh_update_status)
-
         # Timer to spin the transferring icon
         self.icon_spin_timer = QtCore.QTimer()
         self.icon_spin_timer.timeout.connect(self.spin_transferring_icon)
@@ -151,15 +122,11 @@ class Application(QApplication):
         # Check if actions is required, separate method so it can be override
         self.init_checks()
         self.engineWidget = None
-        if options.debug:
-            self.show_activities()
-            self.show_webactivities()
-            self.show_file_status()
-            self.show_websettings()
 
-    def show_websettings(self):
+    @QtCore.pyqtSlot()
+    def show_settings(self, section="Accounts"):
         from nxdrive.wui.settings import WebSettingsDialog
-        self.webSettingsDialog = WebSettingsDialog(self)
+        self.webSettingsDialog = WebSettingsDialog(self, section)
         self.webSettingsDialog.show()
 
     def show_file_status(self):
@@ -169,21 +136,16 @@ class Application(QApplication):
             self.statusDialog.show()
             return
 
-    def show_webactivities(self):
+    def show_activities(self):
         from nxdrive.wui.activity import WebActivityDialog
         self.webEngineWidget = WebActivityDialog(self)
         self.webEngineWidget.show()
-
-    def show_activities(self):
-        from nxdrive.gui.activity_dialog import ActivityDialog
-        self.engineWidget = ActivityDialog(self.manager)
-        self.engineWidget.show()
 
     def init_checks(self):
         if self.manager.is_credentials_update_required():
             # Prompt for settings if needed (performs a check for application
             # update)
-            self.settings()
+            self.show_settings()
         else:
             # Initial check for application update (then periodic checks will
             # be done by the synchronizer thread)
@@ -192,7 +154,8 @@ class Application(QApplication):
             self.manager.start()
 
     def get_systray_menu(self):
-        return SystrayMenu(self, self.manager.list_server_bindings())
+        from nxdrive.wui.systray import WebSystray
+        return WebSystray(self, self._tray_icon)
 
     def get_version_finder(self, update_url):
         # Used by extended application to inject version finder
@@ -346,6 +309,7 @@ class Application(QApplication):
         if actions is None or len(actions) == 0:
             return self.get_default_tooltip()
         # Display only the first action for now
+        # TODO Get all actions ? or just file action
         action = actions.itervalues().next()
         if action is None:
             return self.get_default_tooltip()
@@ -381,7 +345,6 @@ class Application(QApplication):
                 else:
                     self.state = 'suspending'
                 self.update_running_icon()
-                self.communicator.menu.emit()
                 # Suspend the synchronizer thread: it will call
                 # notify_sync_suspended() then wait until it gets notified by
                 # a call to resume().
@@ -395,14 +358,8 @@ class Application(QApplication):
             # Update state, icon and menu
             self.state = self.last_state
             self.update_running_icon()
-            self.communicator.menu.emit()
             # Resume sync
             self.manager.resume()
-
-    def action_quit(self):
-        self.quit_app_after_sync_stopped = True
-        self.restart_updated_app = False
-        self._stop()
 
     def action_update(self, auto_update=False):
         updated = False
@@ -426,10 +383,6 @@ class Application(QApplication):
             self.quit_app_after_sync_stopped = True
             self.restart_updated_app = True
             self._stop()
-
-    def stop_sync_thread(self):
-        self.quit_app_after_sync_stopped = False
-        self._stop()
 
     def _stop(self):
         if self.manager.is_started():
@@ -484,14 +437,15 @@ class Application(QApplication):
         return 'ndrive'
 
     def update_running_icon(self):
+        # TODO Define is direct call to set_icon_state
         if self.state not in ['enabled', 'update_available', 'transferring']:
-            self.communicator.icon.emit(self.state)
+            self.set_icon_state(self.state)
             return
         infos = self.binding_info.values()
         if len(infos) > 0 and any(i.online for i in infos):
-            self.communicator.icon.emit(self.state)
+            self.set_icon_state(self.state)
         else:
-            self.communicator.icon.emit('disabled')
+            self.set_icon_state("disabled")
 
     def notify_change(self, doc_pair, old_state):
         self.communicator.change.emit(doc_pair, old_state)
@@ -642,38 +596,7 @@ class Application(QApplication):
         self.update_running_icon()
         self._tray_icon.show()
         self.tray_icon_menu = self.get_systray_menu()
-        #self._tray_icon.setContextMenu(self.tray_icon_menu)
-        from nxdrive.wui.systray import WebSystray
-        self._tray_icon.setContextMenu(WebSystray(self, self._tray_icon))
-        self.communicator.menu.connect(self.update_menu)
-
-    def update_menu(self):
-        self.tray_icon_menu.update_menu(self.manager.list_server_bindings())
-
-    @QtCore.pyqtSlot(str)
-    def handle_invalid_credentials(self, local_folder):
-        # TODO Recode
-        """
-        sb = self.manager.get_server_binding(unicode(local_folder))
-        sb.invalidate_credentials()
-        self.manager.get_session().commit()
-        """
-        self.communicator.menu.emit()
-
-    def settings(self):
-        sb_settings = self.manager.get_server_binding_settings()
-        proxy_settings = self.manager.get_proxy_settings()
-        general_settings = self.manager.get_general_settings()
-        version = self.manager.get_version()
-        settings_accepted = prompt_settings(self.manager, sb_settings,
-                                            proxy_settings, general_settings,
-                                            version)
-        if settings_accepted:
-            # Check for application udpate
-            self.refresh_update_status()
-            # Start synchronization thread if needed
-            self.manager.start()
-        return settings_accepted
+        self._tray_icon.setContextMenu(self.tray_icon_menu)
 
     def event(self, event):
         """Handle URL scheme events under OSX"""

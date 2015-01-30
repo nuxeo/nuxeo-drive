@@ -184,7 +184,7 @@ class RemoteWatcher(Worker):
         self._update_remote_states()
         self._save_changes_state()
         self.updated.emit()
-        self._action = None
+        self._end_action()
 
     def _save_changes_state(self):
         self._dao.update_config('remote_last_sync_date', self._last_sync_date)

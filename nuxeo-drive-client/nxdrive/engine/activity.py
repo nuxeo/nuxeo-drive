@@ -44,6 +44,12 @@ class Action(object):
         else:
             return "%s(%s%%)" % (self.type, self.progress)
 
+class IdleAction(object):
+    def __init__(self):
+        self.type = "Idle"
+
+    def get_percent(self):
+        return None
 
 class FileAction(Action):
     filepath = None

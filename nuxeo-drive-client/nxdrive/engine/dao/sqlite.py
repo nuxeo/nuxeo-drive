@@ -173,19 +173,19 @@ class ManagerDAO(ConfigurationDAO):
 
     def _init_db(self, cursor):
         super(ManagerDAO, self)._init_db(cursor)
-        cursor.execute("CREATE TABLE if not exists Engines(uid VARCHAR, engine VARCHAR NOT NULL, local_folder VARCHAR NOT NULL UNIQUE, PRIMARY KEY(uid))")
+        cursor.execute("CREATE TABLE if not exists Engines(uid VARCHAR, engine VARCHAR NOT NULL, name VARCHAR, local_folder VARCHAR NOT NULL UNIQUE, PRIMARY KEY(uid))")
 
     def get_engines(self):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM Engines").fetchall()
 
-    def add_engine(self, engine, path, key):
+    def add_engine(self, engine, path, key, name):
         result = None
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("INSERT INTO Engines(local_folder, engine, uid) VALUES(?,?,?)", (path, engine, key))
+            c.execute("INSERT INTO Engines(local_folder, engine, uid, name) VALUES(?,?,?,?)", (path, engine, key, name))
             if self.auto_commit:
                 con.commit()
             result = c.execute("SELECT * FROM Engines WHERE uid=?", (key,)).fetchone()
@@ -324,6 +324,14 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
         return row_id
 
+    def get_last_files(self, number, direction):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        condition = ""
+        if direction == "local":
+            condition = " AND last_local_updated < last_remote_updated"
+        elif direction == "remote":
+            condition = " AND last_local_updated > last_remote_updated"
+        return c.execute("SELECT * FROM States WHERE pair_state='synchronized' AND folderish=0" + condition + " ORDER BY last_sync_date DESC LIMIT " + str(number)).fetchall()
 
     def register_queue_manager(self, manager):
         # Prevent any update while init queue

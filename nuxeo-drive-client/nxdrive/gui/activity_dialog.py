@@ -35,7 +35,7 @@ class ThreadWidget(QtGui.QFrame):
 
     def update(self):
         self._thread_label.setText(self._worker._name)
-        action = self._worker._action
+        action = self._worker.get_action()
         if action is not None:
             text = action.type
             if isinstance(action, FileAction):

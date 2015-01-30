@@ -120,9 +120,9 @@ class Manager(QObject):
     '''
     classdocs
     '''
-    proxy_updated = pyqtSignal(object)
-    client_updated = pyqtSignal(object, object)
-    engine_not_found = pyqtSignal(object)
+    proxyUpdated = pyqtSignal(object)
+    clientUpdated = pyqtSignal(object, object)
+    engineNotFound = pyqtSignal(object)
     _singleton = None
 
     @staticmethod
@@ -198,7 +198,7 @@ class Manager(QObject):
                 log.warn("Can't find engine %s anymore", engine.engine)
                 if not engine.engine in in_error:
                     in_error[engine.engine] = True
-                    self.engine_not_found.emit(engine)
+                    self.engineNotFound.emit(engine)
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
 
     def _get_default_nuxeo_drive_name(self):
@@ -305,7 +305,7 @@ class Manager(QObject):
     def check_update(self):
         last_version = self._dao.get_config("client_version")
         if last_version != self.client_version:
-            self.client_updated.emit(last_version, self.client_version)
+            self.clientUpdated.emit(last_version, self.client_version)
 
     def generate_device_id(self):
         self.device_id = uuid.uuid1().hex
@@ -354,7 +354,7 @@ class Manager(QObject):
                           else self.get_proxy_settings())
         self.proxies, self.proxy_exceptions = get_proxies_for_handler(
                                                             proxy_settings)
-        self.proxy_updated.emit(proxy_settings)
+        self.proxyUpdated.emit(proxy_settings)
 
     def get_engine(self, local_folder):
         if self._engines is None:
@@ -364,17 +364,20 @@ class Manager(QObject):
                 return self._engines[engine_def.uid]
         return None
 
-    def bind_server(self, local_folder, url, username, password):
+    def bind_server(self, local_folder, url, username, password, name=None):
         # TO_REVIEW Retro-compatibility with GUI
         from collections import namedtuple
+        if name is None:
+            import urlparse
+            urlp = urlparse.urlparse(url)
+            name = urlp.hostname()
         binder = namedtuple('binder',['username','password','url'])
         binder.username = username
         binder.password = password
         binder.url = url
-        self.bind_engine('NXDRIVE', local_folder, binder, starts=False)
-        pass
+        self.bind_engine('NXDRIVE', local_folder, name, binder, starts=False)
 
-    def bind_engine(self, engine_type, local_folder, binder, starts=True):
+    def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
         """Bind a local folder to a remote nuxeo server"""
         if not engine_type in self._engine_types:
             raise EngineTypeMissing()
@@ -383,7 +386,7 @@ class Manager(QObject):
         local_folder = normalized_path(local_folder)
         uid = uuid.uuid1().hex
         # TODO Check that engine is not inside another or same position
-        engine_def = self._dao.add_engine(engine_type, local_folder, uid)
+        engine_def = self._dao.add_engine(engine_type, local_folder, uid, name)
         try:
             self._engines[uid] = self._engine_types[engine_type](self, engine_def, binder=binder)
             self._engine_definitions.append(engine_def)

@@ -459,7 +459,7 @@ class CliHandler(object):
         return Manager(options)
 
     def _get_application(self, options):
-        from nxdrive.gui.application import Application
+        from nxdrive.wui.application import Application
         app = Application(self.manager, options)
         return app
 
