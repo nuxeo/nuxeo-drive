@@ -81,6 +81,7 @@ class Application(QApplication):
         super(Application, self).__init__(list(argv))
         self.manager = controller
         self.options = options
+        self.mainEngine = None
         for _, engine in self.manager.get_engines().iteritems():
             self.mainEngine = engine
             break

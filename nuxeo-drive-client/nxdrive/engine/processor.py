@@ -30,6 +30,7 @@ class Processor(Worker):
         '''
         super(Processor, self).__init__(engine, name=name)
         self._current_item = None
+        self._current_doc_pair = None
         self._get_item = item_getter
         self._engine = engine
         self._dao = self._engine.get_dao()
