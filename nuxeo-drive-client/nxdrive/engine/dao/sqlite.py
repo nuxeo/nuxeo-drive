@@ -225,7 +225,7 @@ class EngineDAO(ConfigurationDAO):
         cursor.execute("CREATE TABLE if not exists States(id INTEGER NOT NULL, last_local_updated TIMESTAMP,"
                   + "last_remote_updated TIMESTAMP, local_digest VARCHAR, remote_digest VARCHAR, local_path VARCHAR,"
                   + "remote_ref VARCHAR, local_parent_path VARCHAR, remote_parent_ref VARCHAR, remote_parent_path VARCHAR,"
-                  + "local_name VARCHAR, remote_name VARCHAR, folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
+                  + "local_name VARCHAR, remote_name VARCHAR, size INTEGER DEFAULT (0), folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
                   + "pair_state VARCHAR DEFAULT('unknown'), remote_can_rename INTEGER, remote_can_delete INTEGER, remote_can_update INTEGER,"
                   + "remote_can_create_child INTEGER, last_remote_modifier VARCHAR,"
                   + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, last_error_details TEXT, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), PRIMARY KEY (id));")
@@ -313,9 +313,9 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             name = os.path.basename(info.path)
             c.execute("INSERT INTO States(last_local_updated, local_digest, "
-                      + "local_path, local_parent_path, local_name, folderish, local_state, remote_state, pair_state)"
-                      + " VALUES(?,?,?,?,?,?,'created','unknown',?)", (info.last_modification_time, digest, info.path,
-                                                    parent_path, name, info.folderish, pair_state))
+                      + "local_path, local_parent_path, local_name, folderish, size, local_state, remote_state, pair_state)"
+                      + " VALUES(?,?,?,?,?,?,?,'created','unknown',?)", (info.last_modification_time, digest, info.path,
+                                                    parent_path, name, info.folderish, info.size, pair_state))
             row_id = c.lastrowid
             self._queue_pair_state(row_id, info.folderish, pair_state)
             if self.auto_commit:
@@ -371,9 +371,9 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             # Should not update this
             c.execute("UPDATE States SET last_local_updated=?, local_digest=?, local_path=?, local_parent_path=?, local_name=?,"
-                      + "local_state=?, remote_state=?, pair_state=?" + version +
+                      + "local_state=?, size=?, remote_state=?, pair_state=?" + version +
                       " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, os.path.dirname(info.path),
-                                        os.path.basename(info.path), row.local_state, row.remote_state,
+                                        os.path.basename(info.path), row.local_state, info.size, row.remote_state,
                                         pair_state, row.id))
             if row.pair_state != pair_state and queue:
                 self._queue_pair_state(row.id, info.folderish, pair_state)

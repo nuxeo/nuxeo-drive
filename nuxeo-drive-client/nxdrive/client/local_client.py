@@ -33,13 +33,13 @@ DEDUPED_BASENAME_PATTERN = ur'^(.*)__(\d{1,3})$'
 class FileInfo(object):
     """Data Transfer Object for file info on the Local FS"""
 
-    def __init__(self, root, path, folderish, last_modification_time,
+    def __init__(self, root, path, folderish, last_modification_time, size=0,
                  digest_func='md5', check_suspended=None, remote_ref=None):
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
-
+        self.size = size
         root = unicodedata.normalize('NFC', root)
         path = unicodedata.normalize('NFC', path)
         self.root = root  # the sync root folder local path
@@ -209,6 +209,10 @@ class LocalClient(BaseClient):
                 return None
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
+        if folderish:
+            size = 0
+        else:
+            size = stat_info.st_size
         mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
         path = u'/' + os_path[len(safe_long_path(self.base_folder)) + 1:]
         path = path.replace(os.path.sep, u'/')  # unix style path
@@ -221,7 +225,7 @@ class LocalClient(BaseClient):
         return FileInfo(self.base_folder, path, folderish, mtime,
                         digest_func=self._digest_func,
                         check_suspended=self.check_suspended,
-                        remote_ref=remote_ref)
+                        remote_ref=remote_ref, size=size)
 
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()
