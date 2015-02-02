@@ -264,6 +264,10 @@ class BaseAutomationClient(BaseClient):
         self.operations = {}
         for operation in response["operations"]:
             self.operations[operation['id']] = operation
+            op_aliases = operation.get('aliases')
+            if op_aliases:
+                for op_alias in op_aliases:
+                    self.operations[op_alias] = operation
 
         # Is event log id available in change summary?
         # See https://jira.nuxeo.com/browse/NXP-14826
