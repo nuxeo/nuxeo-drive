@@ -18,7 +18,7 @@ Uses the [ant-assembly-maven-plugin](https://github.com/nuxeo/ant-assembly-maven
 
   - Under Windows: extracts the MSI package expected to be built in the `dist` directory and run the tests from the extracted MSI package with `ndrive.exe test`.
 
-  - Under Linux / OS X: runs the tests from sources with `nosetests -v`.
+  - Under Linux / OS X: runs the tests from sources with `nosetests -v -x`.
 
 - Stop the Nuxeo server.
 

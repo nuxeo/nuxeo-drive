@@ -615,6 +615,7 @@ class CliHandler(object):
         argv = [
             '',
             '--verbose',
+            '--stop',
         ]
 
         if options.w:
