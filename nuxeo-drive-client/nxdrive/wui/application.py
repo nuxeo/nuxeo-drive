@@ -112,9 +112,6 @@ class Application(QApplication):
         self.setup_systray()
 
         # Update systray every xs
-        self.systray_update_timer = QtCore.QTimer()
-        self.systray_update_timer.timeout.connect(self.update_tooltip)
-        self.systray_update_timer.start(750)
 
         # Application update notification
         if self.manager.is_updated():
@@ -123,6 +120,19 @@ class Application(QApplication):
         # Check if actions is required, separate method so it can be override
         self.init_checks()
         self.engineWidget = None
+
+    @QtCore.pyqtSlot()
+    def change_systray_icon(self):
+        syncing = False
+        engines = self.manager.get_engines()
+        for _, engine in engines.iteritems():
+            syncing = syncing | engine.is_syncing()
+        new_state = "asleep"
+        if len(engines) == 0:
+            new_state = "disabled"
+        if syncing:
+            new_state = 'transferring'
+        self.set_icon_state(new_state)
 
     @QtCore.pyqtSlot()
     def show_settings(self, section="Accounts"):
@@ -143,6 +153,9 @@ class Application(QApplication):
         self.webEngineWidget.show()
 
     def init_checks(self):
+        for _, engine in self.manager.get_engines().iteritems():
+            engine.syncStarted.connect(self.change_systray_icon)
+            engine.syncCompleted.connect(self.change_systray_icon)
         if self.manager.is_credentials_update_required():
             # Prompt for settings if needed (performs a check for application
             # update)
