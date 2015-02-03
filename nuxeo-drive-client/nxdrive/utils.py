@@ -154,10 +154,11 @@ def encrypt(plaintext, secret, lazy=True):
 def decrypt(ciphertext, secret, lazy=True):
     """Symetric decryption using AES"""
     secret = _lazysecret(secret) if lazy else secret
+    ciphertext = base64.b64decode(ciphertext)
     iv = ciphertext[:AES.block_size]
     ciphertext = ciphertext[AES.block_size:]
     encobj = AES.new(secret, AES.MODE_CFB, iv)
-    return encobj.decrypt(base64.b64decode(ciphertext))
+    return encobj.decrypt(ciphertext)
 
 
 def _lazysecret(secret, blocksize=32, padding='}'):
