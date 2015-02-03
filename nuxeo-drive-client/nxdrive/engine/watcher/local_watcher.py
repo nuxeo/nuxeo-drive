@@ -53,6 +53,8 @@ class LocalWatcher(Worker):
         except ThreadInterrupt:
             self._stop_watchdog()
             raise
+        finally:
+            self._stop_watchdog()
 
     def _scan(self):
         log.debug("Full scan started")
@@ -206,6 +208,8 @@ class LocalWatcher(Worker):
         self._observer.start()
 
     def _stop_watchdog(self, raise_on_error=True):
+        if self._observer is None:
+            return
         log.info("Stopping FS Observer thread")
         try:
             self._observer.stop()
@@ -217,7 +221,7 @@ class LocalWatcher(Worker):
         except Exception as e:
             log.warn("Can't join FS observer : %r", e)
         # Delete all observers
-        del self._observer
+        self._observer = None
 
     def handle_local_changes(self, event):
         sorted_evts = []

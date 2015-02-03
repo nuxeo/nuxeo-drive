@@ -96,14 +96,14 @@ class ProxySettings(object):
         self.port = dao.get_config("proxy_port", None)
         self.server = dao.get_config("proxy_server", None)
         self.username = dao.get_config("proxy_username", None)
-        self.password = dao.get_config("proxy_password", None)
+        password = dao.get_config("proxy_password", None)
         self.exceptions = dao.get_config("proxy_exceptions", None)
-        self.authenticated = (dao.get_config("proxy_authenticated", "False") == "True")
+        self.authenticated = (dao.get_config("proxy_authenticated", "0") == "1")
         if token is None:
             token = dao.get_config("device_id", None)
-        if self.password is not None and token is not None:
+        if password is not None and token is not None:
             token = token + "_proxy"
-            self.password = decrypt(self.password, token)
+            self.password = decrypt(password, token)
         else:
             # If no server binding or no token available
             # (possibly after token revocation) reset password
@@ -344,8 +344,6 @@ class Manager(QObject):
         proxy_settings.save(self._dao)
         self.refresh_proxies(proxy_settings)
         log.info("Proxy settings successfully updated: %r", proxy_settings)
-        # Should run that on all engine
-        #self.invalidate_client_cache()
 
     def refresh_proxies(self, proxy_settings=None, device_config=None):
         """Refresh current proxies with the given settings"""
@@ -371,7 +369,7 @@ class Manager(QObject):
             import urlparse
             urlp = urlparse.urlparse(url)
             name = urlp.hostname()
-        binder = namedtuple('binder',['username','password','url'])
+        binder = namedtuple('binder', ['username','password','url'])
         binder.username = username
         binder.password = password
         binder.url = url

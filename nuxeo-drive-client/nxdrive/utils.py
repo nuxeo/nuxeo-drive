@@ -157,8 +157,12 @@ def decrypt(ciphertext, secret, lazy=True):
     ciphertext = base64.b64decode(ciphertext)
     iv = ciphertext[:AES.block_size]
     ciphertext = ciphertext[AES.block_size:]
-    encobj = AES.new(secret, AES.MODE_CFB, iv)
-    return encobj.decrypt(ciphertext)
+    # Dont fail on decrypt
+    try:
+        encobj = AES.new(secret, AES.MODE_CFB, iv)
+        return encobj.decrypt(ciphertext)
+    except:
+        return None
 
 
 def _lazysecret(secret, blocksize=32, padding='}'):

@@ -8,6 +8,7 @@ from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
 
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
+from nxdrive.manager import ProxySettings
 
 
 class WebSettingsApi(WebDriveApi):
@@ -29,6 +30,35 @@ class WebSettingsApi(WebDriveApi):
         except Exception as e:
             log.debug(e)
             return "ERROR"
+        return ""
+
+    @QtCore.pyqtSlot(result=str)
+    def get_proxy_settings(self):
+        result = dict()
+        settings = self._manager.get_proxy_settings()
+        result["config"] = settings.config
+        result["type"] = settings.proxy_type
+        result["server"] = settings.server
+        result["username"] = settings.username
+        result["authenticated"] = (settings.authenticated == 1)
+        result["password"] = settings.password
+        result["port"] = settings.port
+        return self._json(result)
+
+    @QtCore.pyqtSlot(str, str, str, str, str, str, str, result=str)
+    def set_proxy_settings(self, config='System', proxy_type=None,
+                 server=None, port=None,
+                 authenticated=False, username=None, password=None):
+        config = str(config)
+        proxy_type = str(proxy_type)
+        server = str(server)
+        port = int(str(port))
+        authenticated = "true" == authenticated
+        username = str(username)
+        password = str(password)
+        settings = ProxySettings(config=config, proxy_type=proxy_type, port=port, server=server,
+                                 authenticated=authenticated, username=username, password=password)
+        self._manager.set_proxy_settings(settings)
         return ""
 
 class WebSettingsDialog(WebDialog):
