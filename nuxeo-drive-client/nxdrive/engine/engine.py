@@ -425,8 +425,6 @@ class Engine(QObject):
                 log.warn("Thread is not responding - terminate it")
                 thread.terminate()
         log.debug("Engine stopped")
-        # For test purpose only should be remove
-        QCoreApplication.exit()
 
     def _get_client_cache(self):
         if not hasattr(self._local, 'remote_clients'):
