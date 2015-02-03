@@ -15,7 +15,7 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 	$scope.local_folder = "";
 	$scope.currentAccount = "";
 	$scope.show_activities = drive.show_activities;
-	
+	$scope.auto_update = drive.get_auto_update()
 	$scope.engines = angular.fromJson(drive.get_engines());
 	$scope.proxy = angular.fromJson(drive.get_proxy_settings());
 	console.log($scope.proxy)
@@ -49,6 +49,9 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 	}
 	$scope.saveProxy = function() {
 		drive.set_proxy_settings($scope.proxy.config, $scope.proxy.type, $scope.proxy.server, 0, $scope.proxy.authenticated, $scope.proxy.username, $scope.proxy.password)
+	}
+	$scope.setAutoUpdate = function() {
+		drive.set_auto_update($scope.auto_update)
 	}
 	$scope.changeSection = function(section) {
 		if (section == $scope.section) {
@@ -93,15 +96,17 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 </nav>
 <div class="container-fluid" style="padding-top: 80px;">
 <div class="container" ng-show="section == 'General'">
+	<!-- TO IMPLEMENT
 	<div class="checkbox">
 	<label>
 		<input type="checkbox" value="" ng-model="on_start">
 		Start Nuxeo Drive on boot
 	</label>
 	</div>
+	-->
 	<div class="checkbox">
 	<label>
-		<input type="checkbox" value="" ng-model="auto_update">
+		<input type="checkbox" value="" ng-model="auto_update" ng-click="setAutoUpdate()">
 		Automatically update Nuxeo Drive
 	</label>
 	</div>

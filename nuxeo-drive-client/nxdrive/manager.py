@@ -331,6 +331,9 @@ class Manager(QObject):
         # TO_REVIEW Might need to remove it
         pass
 
+    def get_auto_update(self):
+        return self._dao.get_config("auto_update", "0") == "1"
+
     def set_auto_update(self, value):
         self._dao.update_config("auto_update", value)
 

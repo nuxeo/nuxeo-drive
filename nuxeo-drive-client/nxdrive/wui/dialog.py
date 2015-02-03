@@ -127,6 +127,15 @@ class WebDriveApi(QtCore.QObject):
             return "syncing"
         return "synced"
 
+    @QtCore.pyqtSlot(bool, result=str)
+    def set_auto_update(self, value):
+        self._manager.set_auto_update(value)
+        return ""
+
+    @QtCore.pyqtSlot(result=bool)
+    def get_auto_update(self):
+        return self._manager.get_auto_update()
+
     @QtCore.pyqtSlot(str, result=str)
     def open_remote(self, uid):
         engine = self._get_engine(uid)
