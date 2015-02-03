@@ -12,6 +12,10 @@ from nxdrive.manager import ProxySettings
 
 
 class WebSettingsApi(WebDriveApi):
+    def __init__(self, dlg, application):
+        super(WebSettingsApi, self).__init__(dlg, application)
+        self.filters_dlg = None
+
     @QtCore.pyqtSlot(result=str)
     def get_default_section(self):
         return self._dialog._section
@@ -19,6 +23,19 @@ class WebSettingsApi(WebDriveApi):
     @QtCore.pyqtSlot(str, result=str)
     def unbind_server(self, uid):
         self._manager.unbind_engine(str(uid))
+        return ""
+
+    @QtCore.pyqtSlot(str, result=str)
+    def filters_dialog(self, uid):
+        engine = self._get_engine(uid)
+        if engine is None:
+            return "ERROR"
+        from nxdrive.gui.folders_dialog import FiltersDialog
+        if self.filters_dlg is not None:
+            self.filters_dlg.close()
+            self.filters_dlg = None
+        self.filters_dlg = FiltersDialog(engine)
+        self.filters_dlg.show()
         return ""
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)

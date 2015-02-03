@@ -58,6 +58,9 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 		button.removeClass("btn-danger");
 		button.html("Disconnect");
 	}
+	$scope.filters = function() {
+		drive.filters_dialog($scope.currentAccount.uid);
+	}
 	$scope.unbindServer = function() {
 		button = angular.element(document.querySelector('#unbindButton'));
 		if (button.hasClass("btn-danger")) {
@@ -182,7 +185,7 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
       <button type="button" class="btn btn-default btn-primary" ng-show="currentAccount.initialized">Update</button>
       <button type="button" ng-blur="unbindBlur()" id="unbindButton" class="btn btn-default" ng-click="unbindServer(this)" ng-show="currentAccount.uid != null">Disconnect</button>
       <button type="button" class="btn btn-default btn-primary" ng-show="!currentAccount.initialized" ng-disabled="!validForm()" ng-click="bindServer()">Connect</button>
-      <button style="float:right;" type="button" class="btn btn-default" ng-show="currentAccount.uid != null">Select Sync Folders</button>
+      <button style="float:right;" type="button" class="btn btn-default" ng-show="currentAccount.uid != null" ng-click="filters()">Select Sync Folders</button>
     </div>
   </div>
 </form>
