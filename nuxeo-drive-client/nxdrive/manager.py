@@ -13,6 +13,19 @@ import sys
 log = get_logger(__name__)
 
 
+try:
+    # Set the cffi tmp path to lib for xattr
+    if sys.platform != "win32":
+        from cffi.verifier import set_tmpdir
+        import nxdrive
+        nxdrive_path = os.path.dirname(nxdrive.__file__)
+        nxdrive_path = os.path.dirname(nxdrive_path)
+        nxdrive_path = os.path.dirname(nxdrive_path)
+        lib_path = os.path.join(nxdrive_path, 'lib-dynload')
+        set_tmpdir(lib_path)
+except Exception as e:
+    pass
+
 class EngineTypeMissing(Exception):
     pass
 
@@ -376,7 +389,7 @@ class Manager(QObject):
         binder.username = username
         binder.password = password
         binder.url = url
-        self.bind_engine('NXDRIVE', local_folder, name, binder, starts=False)
+        self.bind_engine('NXDRIVE', local_folder, name, binder, starts=True)
 
     def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
         """Bind a local folder to a remote nuxeo server"""

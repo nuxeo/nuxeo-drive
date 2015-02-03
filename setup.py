@@ -264,6 +264,8 @@ class NuxeoDriveSetup(object):
 
         attribs = driveAttributes
         freeze_options = {}
+        ext_modules = []
+        ext_package = None
 
         script = attribs.get_script()
         scripts = attribs.get_scripts()
@@ -342,6 +344,8 @@ class NuxeoDriveSetup(object):
             "PyQt4.QtGui",
             "atexit",  # implicitly required by PyQt4
             "sqlalchemy.dialects.sqlite",
+            "cffi",
+            "xattr",
         ]
         attribs.append_includes(includes)
         excludes = [
@@ -431,7 +435,10 @@ class NuxeoDriveSetup(object):
             # - argv_emulation=True for nxdrive:// URL scheme handling
             # - easy Info.plist customization
             import py2app  # install the py2app command
-
+            import xattr
+            ext_packages = "xattr"
+            ext_modules = [xattr.lib.ffi.verifier.get_extension()]
+            includes.append("_cffi__x282d9483x6ee6f75")
             name = attribs.get_CFBundleName()
             py2app_options = dict(
                 iconfile=icon,
@@ -476,6 +483,8 @@ class NuxeoDriveSetup(object):
             scripts=scripts,
             long_description=attribs.get_long_description(),
             data_files=data_files,
+            ext_package=ext_package,
+            ext_modules=ext_modules,
             **freeze_options
         )
 
