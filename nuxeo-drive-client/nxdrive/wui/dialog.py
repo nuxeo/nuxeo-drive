@@ -202,6 +202,10 @@ class WebDriveApi(QtCore.QObject):
                 local_folder_path = dir_path
         return local_folder_path
 
+    @QtCore.pyqtSlot()
+    def show_file_status(self):
+        self._application.show_file_status()
+
     @QtCore.pyqtSlot(result=str)
     def get_version(self):
         return self._manager.get_version()

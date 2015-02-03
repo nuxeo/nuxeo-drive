@@ -126,7 +126,12 @@ class StatusTreeview(QtGui.QTreeView):
         # Remove loading child
         parent.removeRows(0, parent.rowCount())
         for child in childs:
-            subitem = QtGui.QStandardItem(child.local_name)
+            name = child.local_name
+            if name is None:
+                name = child.remote_name
+            if name is None:
+                continue
+            subitem = QtGui.QStandardItem(name)
             on_error = child.error_count > 3
             on_conflicted = child.pair_state == "conflicted"
             if (on_error):
