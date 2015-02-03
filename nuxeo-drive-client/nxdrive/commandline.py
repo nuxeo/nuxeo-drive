@@ -1,12 +1,10 @@
 """Utilities to operate Nuxeo Drive from the command line"""
 import os
 import sys
-import time
 import argparse
 from getpass import getpass
 import traceback
 import threading
-from sqlalchemy.exc import OperationalError
 try:
     import ipdb
     debugger = ipdb
@@ -15,7 +13,6 @@ except ImportError:
     debugger = pdb
 
 from nxdrive.utils import normalized_path
-from nxdrive.engine.controller import Controller
 from nxdrive.engine.synchronizer import DEFAULT_DELAY
 from nxdrive.osi.command.daemon import daemonize
 from nxdrive.engine.controller import default_nuxeo_drive_folder
@@ -46,8 +43,6 @@ Possible commands:
 - stop
 - bind-server
 - unbind-server
-- bind-root
-- unbind-root
 - local_folders
 - status
 - metadata
@@ -203,35 +198,6 @@ class CliHandler(object):
             default=DEFAULT_NX_DRIVE_FOLDER,
         )
 
-        # Bind root folders
-        bind_root_parser = subparsers.add_parser(
-            'bind-root',
-            help='Attach a local folder as a root for synchronization.',
-            parents=[common_parser],
-        )
-        bind_root_parser.set_defaults(command='bind_root')
-        bind_root_parser.add_argument(
-            "remote_root",
-            help="Remote path or id reference of a folder to synchronize.")
-        bind_root_parser.add_argument(
-            "--local-folder",
-            help="Local folder that will host the list of synchronized"
-            " workspaces with a remote Nuxeo server. Must be bound with the"
-            " 'bind-server' command.",
-            default=DEFAULT_NX_DRIVE_FOLDER,
-        )
-        bind_root_parser.add_argument(
-            "--remote-repo", default='default',
-            help="Name of the remote repository.")
-
-        # Unlink from a remote Nuxeo root
-        unbind_root_parser = subparsers.add_parser(
-            'unbind-root', help='Detach from a remote Nuxeo root.',
-            parents=[common_parser],
-        )
-        unbind_root_parser.set_defaults(command='unbind_root')
-        unbind_root_parser.add_argument(
-            "local_root", help="Local sub-folder to de-synchronize.")
         uninstall_parser = subparsers.add_parser(
             'uninstall', help='Remove app data',
             parents=[common_parser],
@@ -538,24 +504,15 @@ class CliHandler(object):
             password = getpass()
         else:
             password = options.password
-        self.controller.bind_server(options.local_folder, options.nuxeo_url,
+        self.manager.bind_server(options.local_folder, options.nuxeo_url,
                                     options.username, password)
-        for root in options.remote_roots:
-            self.controller.bind_root(options.local_folder, root,
-                                      repository=options.remote_repo)
         return 0
 
     def unbind_server(self, options):
-        self.controller.unbind_server(options.local_folder)
-        return 0
-
-    def bind_root(self, options):
-        self.controller.bind_root(options.local_folder, options.remote_root,
-                                  repository=options.remote_repo)
-        return 0
-
-    def unbind_root(self, options):
-        self.controller.unbind_root(options.local_root)
+        for uid, engine in self.manager.get_engines().iteritems():
+            if engine.local_folder == options.local_folder:
+                self.manager.unbind_engine(uid)
+                return 0
         return 0
 
     def test(self, options):
