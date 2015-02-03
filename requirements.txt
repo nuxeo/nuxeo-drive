@@ -11,3 +11,4 @@ pycrypto
 SQLAlchemy==0.9.4
 Send2Trash==1.3.0
 watchdog==0.8.1
+xattr
