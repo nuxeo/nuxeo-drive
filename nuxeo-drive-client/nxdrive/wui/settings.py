@@ -9,6 +9,8 @@ log = get_logger(__name__)
 
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.manager import ProxySettings
+from nxdrive.client.base_automation_client import Unauthorized
+import urllib2
 
 
 class WebSettingsApi(WebDriveApi):
@@ -49,8 +51,17 @@ class WebSettingsApi(WebDriveApi):
             name = None
         try:
             self._manager.bind_server(local_folder, url, username, password, name)
+        except Unauthorized:
+            return "UNAUTHORIZED"
+        except urllib2.URLError as e:
+            if e.errno == 61:
+                return "CONNECTION_REFUSED"
+            return "CONNECTION_ERROR"
+        except urllib2.HTTPError as e:
+            return "CONNECTION_ERROR"
         except Exception as e:
             log.debug(e)
+            # Map error here
             return "ERROR"
         return ""
 

@@ -390,6 +390,14 @@ class EngineDAO(ConfigurationDAO):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_ref=?", (ref,)).fetchall()
 
+    def get_conflicts(self):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM States WHERE pair_state='conflicted'").fetchall()
+
+    def get_errors(self, limit):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM States WHERE error_count>?", (limit,)).fetchall()
+
     def get_local_children(self, path):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE local_parent_path=?", (path,)).fetchall()

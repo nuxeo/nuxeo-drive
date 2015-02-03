@@ -421,6 +421,9 @@ class Manager(QObject):
             self.load()
         self._engines[uid].unbind()
         self._dao.delete_engine(uid)
+        # Refresh the engines definition
+        del self._engines[uid]
+        self._engine_definitions = self._dao.get_engines()
 
     def unbind_all(self):
         if self._engines is None:

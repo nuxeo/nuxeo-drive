@@ -23,12 +23,22 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 		drive.show_file_status();
 	}
 	$scope.bindServer = function() {
+		$scope.reinitMsgs();
 		res = drive.bind_server($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.username, $scope.password, $scope.currentAccount.name);
+		console.log("bind server result is " + res);
 		if (res == "") {
 			$scope.engines = angular.fromJson(drive.get_engines());
 			$scope.newAccount = {initialized: false};
+			$scope.changeAccount($scope.engines[$scope.engines.length-1]);
+			$scope.setSuccessMessage("Server successfully connected");
+		} else if (res == "UNAUTHORIZED") {
+			$scope.setErrorMessage("Incorrect credentials");
+		} else if (res == "CONNECTION_REFUSED") {
+			$scope.setErrorMessage("Connection refused");
+		} else if (res == "CONNECTION_ERROR") {
+			$scope.setErrorMessage("Connection error: please check server URL");
 		} else {
-			// DISPLAY ERRROR
+			$scope.setErrorMessage("Unknown error occurs while trying to connect");
 		}
 	}
 	$scope.validForm = function() {
@@ -36,12 +46,14 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 					&& $scope.currentAccount.local_folder != '' && $scope.currentAccount.server_url != '');
 	}
 	$scope.browse = function() {
+		$scope.reinitMsgs();
 		if ($scope.currentAccount.initialized) {
 			return
 		}
 		$scope.currentAccount.local_folder = drive.browse_folder($scope.currentAccount.local_folder);
 	}
 	$scope.open_local = function(path) {
+		$scope.reinitMsgs();
 		drive.open_local('', path);
 	}
 	$scope.getSectionClass = function(section) {
@@ -51,19 +63,39 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 		return "";
 	}
 	$scope.saveProxy = function() {
+		$scope.reinitMsgs();
 		drive.set_proxy_settings($scope.proxy.config, $scope.proxy.type, $scope.proxy.server, 0, $scope.proxy.authenticated, $scope.proxy.username, $scope.proxy.password)
 	}
 	$scope.setAutoUpdate = function() {
+		$scope.reinitMsgs();
 		drive.set_auto_update($scope.auto_update)
 	}
 	$scope.unbindBlur = function() {
+		$scope.reinitMsgs();
 		button = angular.element(document.querySelector('#unbindButton'));
 		button.removeClass("btn-danger");
 		button.html("Disconnect");
 	}
 	$scope.filters = function() {
+		$scope.reinitMsgs();
 		drive.filters_dialog($scope.currentAccount.uid);
 	}
+	$scope.setSuccessMessage = function(msg, type) {
+		$scope.setMessage(msg, 'success');
+	}
+	$scope.setErrorMessage = function(msg, type) {
+		$scope.setMessage(msg, 'danger');
+	}
+	$scope.setMessage = function(msg, type) {
+		console.log("Message " + type + " : " + msg);
+		$scope.message = msg;
+		$scope.message_type = type;
+	}
+	$scope.reinitMsgs = function() {
+		$scope.message = "";
+		$scope.message_type = "";
+	}
+	$scope.reinitMsgs();
 	$scope.unbindServer = function() {
 		button = angular.element(document.querySelector('#unbindButton'));
 		if (button.hasClass("btn-danger")) {
@@ -86,9 +118,11 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 		if (section == $scope.section) {
 			return;
 		}
+		$scope.reinitMsgs();
 		$scope.section = section;
 	}
 	$scope.changeAccount = function(account) {
+		$scope.reinitMsgs();
 		$scope.currentAccount = account;
 	}
 	$scope.getAccountClass = function(account) {
@@ -190,6 +224,9 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
       <button type="button" class="btn btn-default btn-primary" ng-show="!currentAccount.initialized" ng-disabled="!validForm()" ng-click="bindServer()">Connect</button>
       <button style="float:right;" type="button" class="btn btn-default" ng-show="currentAccount.uid != null" ng-click="filters()">Select Sync Folders</button>
     </div>
+  </div>
+  <div class="alert alert-{{ message_type }}" role="alert" ng-show="message != ''">
+  	 {{ message }}
   </div>
 </form>
 </div>
