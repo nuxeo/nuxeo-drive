@@ -79,6 +79,7 @@ class data_file_dir(object):
         self.home_dir = home_dir
         self.subfolderName = subfolderName
         self.include_files = include_files
+        self.recursive_result = None
 
     def load(self):
         result = []
@@ -90,6 +91,23 @@ class data_file_dir(object):
                 result.append(filepath)
         return result
 
+    def load_recursive(self, path=None, shortpath=None):
+        if path is None:
+            self.recursive_result = []
+            shortpath = self.subfolderName
+            path = self.home_dir
+        result = []
+        for filename in os.listdir(os.path.normpath(path)):
+            filepath = os.path.join(path, filename)
+            childshortpath = os.path.join(shortpath, filename)
+            if os.path.isfile(filepath):
+                self.include_files.append(
+                        (filepath, childshortpath))
+                result.append(filepath)
+            elif os.path.isdir(filepath):
+                self.load_recursive(filepath, childshortpath)
+        self.recursive_result.append((shortpath, result))
+        return self.recursive_result
 
 class NuxeoDriveAttributes(object):
 
@@ -121,6 +139,7 @@ class NuxeoDriveAttributes(object):
         package_data = {
                 self.rubric_3rd_dir() + '.data.icons': ['*.png', '*.svg',
                                                         '*.ico', '*.icns'],
+		self.rubric_3rd_dir() + '.data.ui5': ['*'],
         }
         return package_data
 
@@ -141,6 +160,10 @@ class NuxeoDriveAttributes(object):
 
     def get_app(self):
         return self.get_scripts()
+
+    def get_ui5_home(self):
+        return os.path.join(self.rubric_2nd_dir(), self.rubric_3rd_dir(),
+                            'data', 'ui5')
 
     def get_icons_home(self):
         return os.path.join(self.rubric_2nd_dir(), self.rubric_3rd_dir(),
@@ -253,6 +276,7 @@ class NuxeoDriveSetup(object):
             packages.remove('nxdrive.data.icons')
         package_data = attribs.get_package_data()
         icons_home = attribs.get_icons_home()
+        ui5_home = attribs.get_ui5_home()
         alembic_home = attribs.get_alembic_home()
         alembic_versions_home = attribs.get_alembic_versions_home()
 
@@ -280,9 +304,10 @@ class NuxeoDriveSetup(object):
         alembic_version_files = data_file_dir(
                                 alembic_versions_home,
                                 'alembic/versions', include_files).load()
-
+        ui5_files = data_file_dir(ui5_home, 'ui5', include_files).load_recursive()
         data_files = [('icons', icon_files), ('alembic', alembic_files),
                                  ('alembic/versions', alembic_version_files)]
+        data_files.extend(ui5_files)
         data_files.extend(attribs.get_data_files())
         old_version = None
         init_file = attribs.get_init_file()
