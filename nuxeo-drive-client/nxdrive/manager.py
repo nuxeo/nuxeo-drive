@@ -407,6 +407,7 @@ class Manager(QObject):
         if self._engines is None:
             self.load()
         self._engines[uid].unbind()
+        self._dao.delete_engine(uid)
 
     def unbind_all(self):
         if self._engines is None:

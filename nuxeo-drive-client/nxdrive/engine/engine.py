@@ -283,6 +283,12 @@ class Engine(QObject):
     def is_syncing(self):
         return self._sync_started
 
+    def unbind(self):
+        self.stop()
+        # Remove DB
+        os.remove(self._get_db_file())
+        return
+
     def _normalize_url(self, url):
         """Ensure that user provided url always has a trailing '/'"""
         if url is None or not url:
@@ -314,11 +320,13 @@ class Engine(QObject):
         from nxdrive.engine.watcher.local_watcher import LocalWatcher
         return LocalWatcher(self, self._dao)
 
-    def _create_dao(self):
-        from nxdrive.engine.dao.sqlite import EngineDAO
-        db = os.path.join(self._manager.get_configuration_folder(),
+    def _get_db_file(self):
+        return os.path.join(self._manager.get_configuration_folder(),
                                 "ndrive_" + self._uid + ".db")
-        return EngineDAO(db)
+
+    def _create_dao(self):
+        from nxdrive.engine.dao.sqlite import EngineDAO 
+        return EngineDAO(self._get_db_file())
 
     def get_remote_url(self):
         server_link = self._dao.get_config("server_url", "")

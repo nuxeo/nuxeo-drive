@@ -16,6 +16,11 @@ class WebSettingsApi(WebDriveApi):
     def get_default_section(self):
         return self._dialog._section
 
+    @QtCore.pyqtSlot(str, result=str)
+    def unbind_server(self, uid):
+        self._manager.unbind_engine(str(uid))
+        return ""
+
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
     def bind_server(self, local_folder, url, username, password, name):
         local_folder = str(local_folder)
