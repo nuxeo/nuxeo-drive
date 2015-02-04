@@ -11,6 +11,7 @@ from Crypto import Random
 from nxdrive.logging_config import get_logger
 
 
+NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 log = get_logger(__name__)
 
 WIN32_SUFFIX = os.path.join('library.zip', 'nxdrive')
@@ -61,6 +62,63 @@ def safe_long_path(path):
         path = u"\\\\?\\" + path
     return path
 
+
+
+def default_nuxeo_drive_folder():
+    """Find a reasonable location for the root Nuxeo Drive folder
+
+    This folder is user specific, typically under the home folder.
+
+    Under Windows, try to locate My Documents as a home folder, using the
+    win32com shell API if allowed, else falling back on a manual detection.
+
+    Note that we need to decode the path returned by os.path.expanduser with
+    the local encoding because the value of the HOME environment variable is
+    read as a byte string. Using os.path.expanduser(u'~') fails if the home
+    path contains non ASCII characters since Unicode coercion attempts to
+    decode the byte string as an ASCII string.
+    """
+    if sys.platform == "win32":
+        from win32com.shell import shell, shellcon
+        try:
+            my_documents = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL,
+                                                 None, 0)
+        except:
+            # In some cases (not really sure how this happens) the current user
+            # is not allowed to access its 'My Documents' folder path through
+            # the win32com shell API, which raises the following error:
+            # com_error: (-2147024891, 'Access is denied.', None, None)
+            # We noticed that in this case the 'Location' tab is missing in the
+            # Properties window of 'My Documents' accessed through the
+            # Explorer.
+            # So let's fall back on a manual (and poor) detection.
+            # WARNING: it's important to check 'Documents' first as under
+            # Windows 7 there also exists a 'My Documents' folder invisible in
+            # the Explorer and cmd / powershell but visible from Python.
+            # First try regular location for documents under Windows 7 and up
+            log.debug("Access denied to win32com shell API: SHGetFolderPath,"
+                      " falling back on manual detection of My Documents")
+            my_documents = os.path.expanduser(r'~\Documents')
+            my_documents = unicode(my_documents.decode(ENCODING))
+            if not os.path.exists(my_documents):
+                # Compatibility for Windows XP
+                my_documents = os.path.expanduser(r'~\My Documents')
+                my_documents = unicode(my_documents.decode(ENCODING))
+
+        if os.path.exists(my_documents):
+            nuxeo_drive_folder = os.path.join(my_documents,
+                                              NUXEO_DRIVE_FOLDER_NAME)
+            log.info("Will use '%s' as default Nuxeo Drive folder location"
+                     " under Windows", nuxeo_drive_folder)
+            return nuxeo_drive_folder
+
+    # Fall back on home folder otherwise
+    user_home = os.path.expanduser('~')
+    user_home = unicode(user_home.decode(ENCODING))
+    nuxeo_drive_folder = os.path.join(user_home, NUXEO_DRIVE_FOLDER_NAME)
+    log.info("Will use '%s' as default Nuxeo Drive folder location",
+             nuxeo_drive_folder)
+    return nuxeo_drive_folder
 
 def find_resource_dir(directory, default_path):
     """Find the FS path of a directory in various OS binary packages"""

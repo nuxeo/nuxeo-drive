@@ -390,6 +390,31 @@ class EngineDAO(ConfigurationDAO):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_ref=?", (ref,)).fetchall()
 
+    def get_conflict_count(self):
+        return self.get_count("pair_state='conflicted'")
+
+    def get_error_count(self, threshold=3):
+        return self.get_count("error_count > " + str(threshold))
+
+    def get_sync_count(self, filetype=None):
+        query = "pair_state='synchronized'"
+        if filetype == "file":
+            query = query + " AND folderish=0"
+        elif filetype == "folder":
+            query = query + " AND folderish=1"
+        return self.get_count(query)
+
+    def get_count(self, condition=None):
+        query = "SELECT COUNT(*) as count FROM States"
+        if condition is not None:
+            query = query + " WHERE " + condition
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute(query).fetchone().count
+
+    def get_global_size(self):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT SUM(size) as sum FROM States WHERE pair_state='synchronized'").fetchone().sum
+
     def get_conflicts(self):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE pair_state='conflicted'").fetchall()

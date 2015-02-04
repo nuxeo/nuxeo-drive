@@ -136,6 +136,9 @@ class Manager(QObject):
     proxyUpdated = pyqtSignal(object)
     clientUpdated = pyqtSignal(object, object)
     engineNotFound = pyqtSignal(object)
+    newEngine = pyqtSignal(object)
+    dropEngine = pyqtSignal(object)
+    started = pyqtSignal()
     _singleton = None
 
     @staticmethod
@@ -165,6 +168,22 @@ class Manager(QObject):
         from nxdrive.engine.engine import Engine
         self._engine_types["NXDRIVE"] = Engine
         self.load()
+        # Setup analytics tracker
+        if self.get_tracking():
+            self._create_tracker()
+
+    def get_device_id(self):
+        return self.device_id
+
+    def _create_tracker(self):
+        from nxdrive.engine.tracker import Tracker
+        self._tracker = Tracker(self)
+        # Start the tracker when we launch
+        self.started.connect(self._tracker._thread.start)
+        return self._tracker
+
+    def get_tracker(self):
+        return self._tracker
 
     def _get_db(self):
         return os.path.join(self.nxdrive_home, "manager.db")
@@ -200,6 +219,8 @@ class Manager(QObject):
                 continue
             log.debug("Launch engine %s", uid)
             engine.start()
+        log.debug("Emitting started")
+        self.started.emit()
 
     def load(self):
         if self._engine_definitions is None:
@@ -350,6 +371,17 @@ class Manager(QObject):
     def set_auto_update(self, value):
         self._dao.update_config("auto_update", value)
 
+    def get_tracking(self):
+        return self._dao.get_config("tracking", "1") == "1"
+
+    def set_tracking(self, value):
+        self._dao.update_config("tracking", value)
+        if value:
+            self._create_tracker()
+        elif self._tracker is not None:
+            self._tracker._thread.quit()
+            self._tracker = None
+
     def set_general_settings(self, settings):
         self._dao.update_config("auto_update", settings.auto_update)
 
@@ -411,6 +443,7 @@ class Manager(QObject):
             raise e
         if starts:
             self._engines[uid].start()
+        self.newEngine.emit(self._engines[uid])
         return self._engines[uid]
         #server_url, username, password
         # check the connection to the server by issuing an authentication
@@ -423,6 +456,7 @@ class Manager(QObject):
         self._dao.delete_engine(uid)
         # Refresh the engines definition
         del self._engines[uid]
+        self.dropEngine.emit(uid)
         self._engine_definitions = self._dao.get_engines()
 
     def unbind_all(self):

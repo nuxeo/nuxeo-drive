@@ -73,7 +73,10 @@ class Worker(QObject):
             raise ThreadInterrupt()
 
     def _execute(self):
-        pass
+        while (1):
+            self._interact()
+            sleep(1)
+
 
     def _terminated(self):
         log.debug("Thread %s(%d) terminated"
@@ -187,15 +190,15 @@ class EngineLogger(QObject):
 
     @pyqtSlot(object)
     def logSyncStart(self):
-        log.log(self._level, "Synchronization starts (%d items)", object)
+        log.log(self._level, "Synchronization starts ( items)")
 
     @pyqtSlot(object)
     def logConflict(self, row_id):
         self._log_pair(row_id, "Conflict on %r")
 
     @pyqtSlot(object, object)
-    def logSync(self, row, handler):
-        log.log(self._level,"Sync on %r with %s", row, handler)
+    def logSync(self, row, metrics):
+        log.log(self._level,"Sync on %r with %r", row, metrics)
 
     @pyqtSlot(object)
     def logError(self, row_id):
@@ -409,6 +412,15 @@ class Engine(QObject):
         for thread in self._threads:
             log.debug("%r" % thread.worker.get_metrics())
         log.debug("%r" % self._queue_manager.get_metrics())
+
+    def get_metrics(self):
+        metrics = dict()
+        metrics["sync_folders"] = self._dao.get_sync_count(filetype="folder")
+        metrics["sync_files"] = self._dao.get_sync_count(filetype="file")
+        metrics["error_files"] = self._dao.get_error_count()
+        metrics["conflicted_files"] = self._dao.get_conflict_count()
+        metrics["files_size"] = self._dao.get_global_size()
+        return metrics
 
     def is_paused(self):
         return False

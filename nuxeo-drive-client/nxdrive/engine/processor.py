@@ -7,8 +7,10 @@ from nxdrive.engine.engine import Worker
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.engine.activity import Action
+from nxdrive.utils import current_milli_time
 from PyQt4.QtCore import pyqtSignal
 import os
+import time
 log = get_logger(__name__)
 
 WindowsError = None
@@ -54,6 +56,7 @@ class Processor(Worker):
         self._engine.get_queue_manager().push_error(doc_pair)
 
     def _execute(self):
+        self._current_metrics = dict()
         self._current_item = self._get_item()
         local_client = self._engine.get_local_client()
         remote_client = self._engine.get_remote_client()
@@ -89,6 +92,7 @@ class Processor(Worker):
                     self._increase_error(doc_pair, error="NO_PARENT")
                     self._current_item = self._get_item()
                     continue
+                self._current_metrics = dict()
                 handler_name = '_synchronize_' + doc_pair.pair_state
                 self._action = Action(handler_name)
                 sync_handler = getattr(self, handler_name, None)
@@ -99,9 +103,13 @@ class Processor(Worker):
                     self._current_item = self._get_item()
                     continue
                 else:
+                    self._current_metrics = dict()
+                    self._current_metrics["handler"] = doc_pair.pair_state
+                    self._current_metrics["start_time"] = current_milli_time()
                     log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
                     sync_handler(doc_pair, local_client, remote_client)
-                    self.pairSync.emit(doc_pair, handler_name)
+                    self._current_metrics["end_time"] = current_milli_time()
+                    self.pairSync.emit(doc_pair, self._current_metrics)
                     # TO_REVIEW May have a call to reset_error
                     log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
             except Exception as e:
@@ -123,6 +131,14 @@ class Processor(Worker):
             log.debug("Auto-resolve conflict has folder has same remote_id")
             self._dao.synchronize_state(doc_pair)
 
+    def _update_speed_metrics(self):
+        action = Action.get_last_file_action()
+        if action:
+            duration = action.end_time - action.start_time
+            speed = (action.size / duration) * 1000
+            log.trace("Transfer speed %d ko/s", speed/1024)
+            self._current_metrics["speed"] = speed
+
     def _synchronize_locally_modified(self, doc_pair, local_client, remote_client):
         if doc_pair.remote_digest != doc_pair.local_digest:
             if doc_pair.remote_can_update:
@@ -134,6 +150,7 @@ class Processor(Worker):
                     parent_fs_item_id=doc_pair.remote_parent_ref,
                     filename=doc_pair.local_name,
                 )
+                self._update_speed_metrics()
                 self._refresh_remote(doc_pair, remote_client)
                 # TODO refresh_client
             else:
@@ -189,6 +206,7 @@ class Processor(Worker):
                           name, parent_pair.remote_name)
                 remote_ref = remote_client.stream_file(
                     parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
+                self._update_speed_metrics()
             self._dao.update_remote_state(doc_pair, remote_client.get_info(remote_ref), remote_parent_path, versionned=False)
             log.trace("Put remote_ref in %s", remote_ref)
             local_client.set_remote_id(doc_pair.local_path, remote_ref)
@@ -298,6 +316,7 @@ class Processor(Worker):
         tmp_file = remote_client.stream_content(
                                 doc_pair.remote_ref, file_path,
                                 parent_fs_item_id=doc_pair.remote_parent_ref)
+        self._update_speed_metrics()
         return tmp_file
 
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):

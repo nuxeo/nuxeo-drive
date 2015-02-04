@@ -22,6 +22,13 @@ class WebSettingsApi(WebDriveApi):
     def get_default_section(self):
         return self._dialog._section
 
+    @QtCore.pyqtSlot(result=str)
+    def get_default_nuxeo_drive_folder(self):
+        from nxdrive.utils import default_nuxeo_drive_folder
+        folder = default_nuxeo_drive_folder()
+        # TO_REVIEW Must change if already used
+        return folder
+
     @QtCore.pyqtSlot(str, result=str)
     def unbind_server(self, uid):
         self._manager.unbind_engine(str(uid))

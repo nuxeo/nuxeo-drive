@@ -5,6 +5,7 @@ Created on 17 sept. 2014
 '''
 import os
 from threading import current_thread
+from nxdrive.utils import current_milli_time
 
 
 class Action(object):
@@ -27,15 +28,30 @@ class Action(object):
         return Action.actions.copy()
 
     @staticmethod
-    def get_current_action(thread_id):
+    def get_current_action(thread_id=None):
+        if thread_id is None:
+            thread_id = current_thread().ident
         if thread_id in Action.actions:
             return Action.actions[thread_id]
+        return None
+
+    @staticmethod
+    def get_last_file_action(thread_id=None):
+        if thread_id is None:
+            thread_id = current_thread().ident
+        if thread_id in Action.lastFileActions:
+            return Action.lastFileActions[thread_id]
+        return None
 
     @staticmethod
     def finish_action():
         if (current_thread().ident in Action.actions and
             Action.actions[current_thread().ident] is not None):
             Action.actions[current_thread().ident].finished = True
+            if isinstance(Action.actions[current_thread().ident], FileAction):
+                Action.actions[current_thread().ident].end_time = current_milli_time()
+                # Save last file actions
+                Action.lastFileActions[current_thread().ident] = Action.actions[current_thread().ident]
         Action.actions[current_thread().ident] = None
 
     def __repr__(self):
@@ -67,6 +83,8 @@ class FileAction(Action):
             self.size = os.path.getsize(filepath)
         else:
             self.size = size
+        self.start_time = current_milli_time()
+        self.end_time = None
 
     def get_percent(self):
         if self.size <= 0:
@@ -84,3 +102,4 @@ class FileAction(Action):
             return "%s(%s[%d]-%f%%)" % (self.type, self.filename, self.size, percent)
 
 Action.actions = dict()
+Action.lastFileActions = dict()

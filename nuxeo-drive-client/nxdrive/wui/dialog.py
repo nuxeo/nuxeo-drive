@@ -129,12 +129,22 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(bool, result=str)
     def set_auto_update(self, value):
+        self._manager.get_configuration()
         self._manager.set_auto_update(value)
         return ""
 
     @QtCore.pyqtSlot(result=bool)
     def get_auto_update(self):
         return self._manager.get_auto_update()
+
+    @QtCore.pyqtSlot(bool, result=str)
+    def set_tracking(self, value):
+        self._manager.set_tracking(value)
+        return ""
+
+    @QtCore.pyqtSlot(result=bool)
+    def get_tracking(self):
+        return self._manager.get_tracking()
 
     @QtCore.pyqtSlot(str, result=str)
     def open_remote(self, uid):
@@ -195,7 +205,7 @@ class WebDriveApi(QtCore.QObject):
             self.file_dialog_dir = dir_path
             # Dont append if it is already
             # TO_REVIEW not forcing the name will be better no ?
-            from nxdrive.engine.controller import NUXEO_DRIVE_FOLDER_NAME
+            from nxdrive.utils import NUXEO_DRIVE_FOLDER_NAME
             if not dir_path.endswith(NUXEO_DRIVE_FOLDER_NAME):
                 local_folder_path = os.path.join(dir_path, NUXEO_DRIVE_FOLDER_NAME)
             else:

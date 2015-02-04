@@ -15,12 +15,17 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 	$scope.local_folder = "";
 	$scope.currentAccount = "";
 	$scope.show_activities = drive.show_activities;
-	$scope.auto_update = drive.get_auto_update()
+	$scope.auto_update = drive.get_auto_update();
+	$scope.tracking = drive.get_tracking();
 	$scope.engines = angular.fromJson(drive.get_engines());
 	$scope.proxy = angular.fromJson(drive.get_proxy_settings());
 
 	$scope.show_file_status = function () {
 		drive.show_file_status();
+	}
+	reinitNewAccount = function() {
+		$scope.newAccount = {initialized: false};
+		$scope.newAccount.local_folder = drive.get_default_nuxeo_drive_folder();
 	}
 	$scope.bindServer = function() {
 		$scope.reinitMsgs();
@@ -28,7 +33,7 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 		console.log("bind server result is " + res);
 		if (res == "") {
 			$scope.engines = angular.fromJson(drive.get_engines());
-			$scope.newAccount = {initialized: false};
+			reinitNewAccount();
 			$scope.changeAccount($scope.engines[$scope.engines.length-1]);
 			$scope.setSuccessMessage("Server successfully connected");
 		} else if (res == "UNAUTHORIZED") {
@@ -65,6 +70,10 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 	$scope.saveProxy = function() {
 		$scope.reinitMsgs();
 		drive.set_proxy_settings($scope.proxy.config, $scope.proxy.type, $scope.proxy.server, 0, $scope.proxy.authenticated, $scope.proxy.username, $scope.proxy.password)
+	}
+	$scope.setTracking = function() {
+		$scope.reinitMsgs();
+		drive.set_tracking($scope.tracking);
 	}
 	$scope.setAutoUpdate = function() {
 		$scope.reinitMsgs();
@@ -131,7 +140,7 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 		}
 		return "";
 	}
-	$scope.newAccount = {initialized: false}
+	reinitNewAccount();
 	$scope.changeSection(drive.get_default_section());
 	if ($scope.engines.length > 0) {
 		$scope.changeAccount($scope.engines[0]);	
@@ -171,6 +180,12 @@ app.controller("DriveSettingsCtl", function($scope, $interval) {
 	<label>
 		<input type="checkbox" value="" ng-model="auto_update" ng-click="setAutoUpdate()">
 		Automatically update Nuxeo Drive
+	</label>
+	</div>
+	<div class="checkbox">
+	<label>
+		<input type="checkbox" value="" ng-model="tracking" ng-click="setTracking()">
+		Report anonymous usage statistics
 	</label>
 	</div>
 </div>

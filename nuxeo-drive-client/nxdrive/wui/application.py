@@ -152,10 +152,15 @@ class Application(QApplication):
         self.webEngineWidget = WebActivityDialog(self)
         self.webEngineWidget.show()
 
+    @QtCore.pyqtSlot(object)
+    def _connect_engine(self, engine):
+        engine.syncStarted.connect(self.change_systray_icon)
+        engine.syncCompleted.connect(self.change_systray_icon)
+
     def init_checks(self):
         for _, engine in self.manager.get_engines().iteritems():
-            engine.syncStarted.connect(self.change_systray_icon)
-            engine.syncCompleted.connect(self.change_systray_icon)
+            self._connect_engine(engine)
+        self.manager.newEngine.connect(self._connect_engine)
         if self.manager.is_credentials_update_required():
             # Prompt for settings if needed (performs a check for application
             # update)

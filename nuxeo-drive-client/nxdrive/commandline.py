@@ -15,7 +15,7 @@ except ImportError:
 from nxdrive.utils import normalized_path
 from nxdrive.engine.synchronizer import DEFAULT_DELAY
 from nxdrive.osi.command.daemon import daemonize
-from nxdrive.engine.controller import default_nuxeo_drive_folder
+from nxdrive.utils import default_nuxeo_drive_folder
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
 from nxdrive.osi.protocol import parse_protocol_url
