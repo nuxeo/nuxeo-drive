@@ -1,5 +1,7 @@
 #!/bin/bash -xe
 
+GIT_DESC=`git describe --all`
+BRANCH=${GIT_DESC#*/}
 MAJOR_VERSION=${MAJOR_VERSION:-$1}
 MINOR_VERSION=${MINOR_VERSION:-$2}
 RELEASE_VERSION=${RELEASE_VERSION:-$3}
@@ -26,6 +28,6 @@ sed -i "s/'.*'/'$MAJOR_VERSION.$MINOR_VERSION-dev'/g" nuxeo-drive-client/nxdrive
 git commit -am"Post release $VERSION"
 
 # Push to GitHub
-git push origin master
+git push origin $BRANCH
 git push -f --tags origin release-$VERSION
 
