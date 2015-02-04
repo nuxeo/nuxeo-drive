@@ -74,7 +74,7 @@ can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
 ``nuxeo-drive-<version>-win32.msi``
-windows installer from the `Continuous Integration <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-msi/>`_.
+windows installer from the `Continuous Integration <http://qa.nuxeo.org/jenkins/job/nuxeo-drive-msi/>`_.
 
 Once you installed the package (Administrator rights required) the new folder
 holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
@@ -95,8 +95,8 @@ Once the marketplace package is installed, the OSX desktop client package
 can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
-`Nuxeo Drive.dmg
-<https://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-dmg/lastSuccessfulBuild/artifact/dist/Nuxeo%20Drive.dmg>`_
+`OS X
+<https://qa.nuxeo.org/jenkins/job/nuxeo-drive-dmg>`_
 from the Continous Integration.
 
 

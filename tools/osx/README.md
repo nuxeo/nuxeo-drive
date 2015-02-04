@@ -11,10 +11,10 @@ Doing so makes OSX update a `.DS_Store` file (binary format). This file can
 then be extracted from the volume and saved to be reused to actually generate
 the final `dmg` file using `create-dmg.sh`. This second script does not require
 and active graphical session hence can be run by the Jenkins slave managing the
-`IT-nuxeo-drive-master-osx` job in charge of the generation of the `Nuxeo
+`nuxeo-drive-dmg` job in charge of the generation of the `Nuxeo
 Drive.dmg` package:
 
-  http://qa.nuxeo.org/jenkins/job/IT-nuxeo-drive-master-osx/
+  http://qa.nuxeo.org/jenkins/job/nuxeo-drive-dmg/
 
 ## Background png resolution
 
