@@ -152,7 +152,10 @@ class LocalClient(BaseClient):
             pass
         else:
             import xattr
-            xattr.removexattr(path, name)
+            if sys.platform == 'darwin':
+                xattr.removexattr(path, name)
+            else:
+                xattr.removexattr(path, 'user.' + name)
 
     def set_remote_id(self, ref, remote_id, name='ndrive'):
         # Can be move to another class
@@ -176,7 +179,10 @@ class LocalClient(BaseClient):
             if type(remote_id).__name__ == "unicode":
                 import unicodedata
                 remote_id = unicodedata.normalize('NFC', remote_id).encode('ascii','ignore')
-            xattr.setxattr(path, name, remote_id)
+            if sys.platform == 'darwin':
+                xattr.setxattr(path, name, remote_id)
+            else:
+                xattr.setxattr(path, 'user.' + name, remote_id)
 
     def get_remote_id(self, ref, name="ndrive"):
         # Can be move to another class
@@ -191,7 +197,10 @@ class LocalClient(BaseClient):
         else:
             import xattr
             try:
-                value = xattr.getxattr(path, name)
+                if sys.platform == 'darwin':
+                    value = xattr.getxattr(path, name)
+                else:
+                    value = xattr.getxattr(path, 'user.' + name)
                 if type(value).__name__ == "unicode":
                     value = unicode(value)
                 return value
