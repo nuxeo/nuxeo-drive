@@ -416,7 +416,7 @@ class Manager(QObject):
         if name is None:
             import urlparse
             urlp = urlparse.urlparse(url)
-            name = urlp.hostname()
+            name = urlp.hostname
         binder = namedtuple('binder', ['username','password','url'])
         binder.username = username
         binder.password = password
