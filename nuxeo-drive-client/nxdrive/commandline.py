@@ -505,7 +505,7 @@ class CliHandler(object):
         else:
             password = options.password
         self.manager.bind_server(options.local_folder, options.nuxeo_url,
-                                    options.username, password)
+                                    options.username, password, start_engine=False)
         return 0
 
     def unbind_server(self, options):
