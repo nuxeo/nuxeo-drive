@@ -102,13 +102,21 @@ from the Continous Integration.
 
 Ubuntu/Debian (and other Linux variants) Client
 -----------------------------------------------
+The ``.deb`` package of the client is not yet available. In the mean time you can install it from source.
 
-The ``.deb`` package of the client is not yet available. In the mean time you
-can install it from source::
+First note that Nuxeo Drive uses `Extended file attributes <http://en.wikipedia.org/wiki/Extended_file_attributes>`_ through the `xattr <https://pypi.python.org/pypi/xattr/>`_ Python wrapper.
 
-  sudo apt-get install python-pip python-dev python-qt4 libffi-dev
-  sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
-  sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
+On Linux, FreeBSD, and Mac OS X, xattrs are enabled in the default kernel.
+
+On Linux, depending on the distribution, you may need a special mount option (user_xattr) to enable them for a given file system, e.g.::
+
+    sudo mount -oremount,user_xattr /dev/sda3
+
+Then install the required system and Python packages and the Nuxeo Drive code itself::
+
+    sudo apt-get install python-pip python-dev python-qt4 libffi-dev
+    sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
+    sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
 
 Waiting for `NXP-13633 <https://jira.nuxeo.com/browse/NXP-13633>`_ to be resolved you need to run this command for Nuxeo Drive to work fine::
 
