@@ -1,4 +1,5 @@
-from PyQt4.QtCore import QThread, QObject, QCoreApplication, pyqtSlot, pyqtSignal, QMutex
+from PyQt4.QtCore import QThread, QObject, QCoreApplication
+from PyQt4.QtCore import pyqtSlot, pyqtSignal
 from threading import current_thread
 from nxdrive.logging_config import get_logger
 from nxdrive.client import LocalClient
@@ -22,6 +23,8 @@ class ThreadInterrupt(Exception):
 '''
 ' Utility class that handle one thread
 '''
+
+
 class Worker(QObject):
     _thread = None
     _continue = True
@@ -77,7 +80,6 @@ class Worker(QObject):
             self._interact()
             sleep(1)
 
-
     def _terminated(self):
         log.debug("Thread %s(%d) terminated"
                     % (self._name, self._thread_id))
@@ -125,12 +127,14 @@ class Worker(QObject):
         self._clean(reason, e)
         self._thread.exit(0)
 
-    def _clean(self, reason, e = None):
+    def _clean(self, reason, e=None):
         pass
 
 '''
 ' Just a DummyWorker with infinite loop
 '''
+
+
 class DummyWorker(Worker):
     def _execute(self):
         while (1):
@@ -141,6 +145,8 @@ class DummyWorker(Worker):
 '''
 ' Just a CrazyWorker with infinite loop - no control
 '''
+
+
 class CrazyWorker(Worker):
     def _execute(self):
         while (1):
@@ -149,6 +155,8 @@ class CrazyWorker(Worker):
 '''
 ' Just a DummyWorker with progression from 0 to 100
 '''
+
+
 class ProgressWorker(Worker):
     def _execute(self):
         self._progress = 0
@@ -169,7 +177,7 @@ class EngineLogger(QObject):
         self._dao = engine.get_dao()
         self._engine = engine
         self._engine.logger = self
-        self._level = 40
+        self._level = 10
         self._engine.syncStarted.connect(self.logSyncStart)
         self._engine.syncCompleted.connect(self.logSyncComplete)
         self._engine.newConflict.connect(self.logConflict)
@@ -177,7 +185,7 @@ class EngineLogger(QObject):
         self._engine.newError.connect(self.logError)
         self._engine.newQueueItem.connect(self.logQueueItem)
 
-    def _log_pair(self, row_id, msg, handler = None):
+    def _log_pair(self, row_id, msg, handler=None):
         pair = self._dao.get_state_from_id(row_id)
         if handler is not None:
             log.log(self._level, msg, pair, handler)
@@ -198,7 +206,7 @@ class EngineLogger(QObject):
 
     @pyqtSlot(object, object)
     def logSync(self, row, metrics):
-        log.log(self._level,"Sync on %r with %r", row, metrics)
+        log.log(self._level, "Sync on %r with %r", row, metrics)
 
     @pyqtSlot(object)
     def logError(self, row_id):
@@ -211,6 +219,8 @@ class EngineLogger(QObject):
 '''
 ' Used for threads interaction
 '''
+
+
 class Engine(QObject):
     _start = pyqtSignal()
     _stop = pyqtSignal()
@@ -328,7 +338,7 @@ class Engine(QObject):
                                 "ndrive_" + self._uid + ".db")
 
     def _create_dao(self):
-        from nxdrive.engine.dao.sqlite import EngineDAO 
+        from nxdrive.engine.dao.sqlite import EngineDAO
         return EngineDAO(self._get_db_file())
 
     def get_remote_url(self):
@@ -504,8 +514,8 @@ class Engine(QObject):
         self._dao.insert_local_state(local_info, '')
         row = self._dao.get_state_from_local('/')
         self._dao.update_remote_state(row, remote_info, '', versionned=False)
-        local_client.set_root_id(self._server_url + "|" + self._remote_user + "|" +
-                                    self._manager.device_id + "|" + self._uid)
+        local_client.set_root_id(self._server_url + "|" + self._remote_user +
+                            "|" + self._manager.device_id + "|" + self._uid)
         # Use version+1 as we just update the remote info
         self._dao.synchronize_state(row)
         # The root should also be sync
@@ -530,22 +540,22 @@ class Engine(QObject):
         if remote_client_cache is None or timestamp < client_cache_timestamp:
             if filtered:
                 remote_client = self.remote_filtered_fs_client_factory(
-                        self._server_url, self._remote_user, self._manager.device_id,
-                        self.version, self._dao,
+                        self._server_url, self._remote_user,
+                        self._manager.device_id, self.version, self._dao,
                         proxies=self._manager.proxies,
                         proxy_exceptions=self._manager.proxy_exceptions,
-                        password=self._remote_password, token=self._remote_token,
+                        password=self._remote_password,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
-                        check_suspended=None)
+                        token=self._remote_token, check_suspended=None)
             else:
                 remote_client = self.remote_fs_client_factory(
-                        self._server_url, self._remote_user, self._manager.device_id,
-                        self.version,
+                        self._server_url, self._remote_user,
+                        self._manager.device_id, self.version,
                         proxies=self._manager.proxies,
                         proxy_exceptions=self._manager.proxy_exceptions,
-                        password=self._remote_password, token=self._remote_token,
+                        password=self._remote_password,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
-                        check_suspended=None)
+                        token=self._remote_token, check_suspended=None)
             if client_cache_timestamp is None:
                 client_cache_timestamp = 0
                 self._client_cache_timestamps[cache_key] = 0
