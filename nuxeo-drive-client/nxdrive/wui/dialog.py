@@ -240,7 +240,10 @@ class WebDialog(QtGui.QDialog):
         super(WebDialog, self).__init__()
         self._view = QtWebKit.QWebView()
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-        QtWebKit.QWebSettings.globalSettings().setAttribute(QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
+        if application.manager.is_debug():
+            QtWebKit.QWebSettings.globalSettings().setAttribute(QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
+        else:
+            self._view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         icon = find_icon('nuxeo_drive_icon_64.png')
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
@@ -258,11 +261,11 @@ class WebDialog(QtGui.QDialog):
             self._api = api
         self._attachJsApi()
         self._frame.javaScriptWindowObjectCleared.connect(self._attachJsApi)
-        self.resize(400,400)
-        self._view.resize(400,400)
+        self.resize(400, 400)
+        self._view.resize(400, 400)
         self.setLayout(QtGui.QVBoxLayout())
         self.layout().addWidget(self._view)
-        self.layout().setContentsMargins(0,0,0,0)
+        self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
         self.activateWindow()
 

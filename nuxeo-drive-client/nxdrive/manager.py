@@ -154,6 +154,7 @@ class Manager(QObject):
         Manager._singleton = self
         super(Manager, self).__init__()
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
+        self._debug = options.debug
         self._dao = self._create_dao()
         self.proxies = None
         self.proxy_exceptions = None
@@ -161,7 +162,7 @@ class Manager(QObject):
         self._engine_definitions = None
         self._engine_types = dict()
         self.device_id = self._dao.get_config("device_id")
-        self.updated = True#self.update_version()
+        self.updated = False#self.update_version()
         if self.device_id is None:
             self.generate_device_id()
         self.client_version = __version__
@@ -171,6 +172,9 @@ class Manager(QObject):
         # Setup analytics tracker
         if self.get_tracking():
             self._create_tracker()
+
+    def is_debug(self):
+        return self._debug
 
     def get_device_id(self):
         return self.device_id
