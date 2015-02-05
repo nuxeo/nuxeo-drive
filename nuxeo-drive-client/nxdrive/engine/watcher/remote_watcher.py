@@ -16,6 +16,7 @@ from nxdrive.engine.activity import Action
 import os
 log = get_logger(__name__)
 from PyQt4.QtCore import pyqtSignal
+from nxdrive.engine.engine import ThreadInterrupt
 
 
 class RemoteWatcher(Worker):
@@ -67,7 +68,6 @@ class RemoteWatcher(Worker):
             sleep(1)
 
     def _scan_remote(self, from_state=None):
-        local_path = None
         """Recursively scan the bound remote folder looking for updates"""
         start_ms = current_milli_time()
 
@@ -93,9 +93,8 @@ class RemoteWatcher(Worker):
         self._dao.commit()
         self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
 
-
     def _scan_remote_recursive(self, doc_pair, remote_info,
-        force_recursion=True, mark_unknown=True):
+                               force_recursion=True, mark_unknown=True):
         """Recursively scan the bound remote folder looking for updates
 
         If force_recursion is True, recursion is done even on
@@ -180,11 +179,17 @@ class RemoteWatcher(Worker):
         return child_pair, True
 
     def _handle_changes(self):
-        self._action = Action("Handle remote changes")
-        self._update_remote_states()
-        self._save_changes_state()
-        self.updated.emit()
-        self._end_action()
+        try:
+            self._action = Action("Handle remote changes")
+            self._update_remote_states()
+            self._save_changes_state()
+            self.updated.emit()
+        except ThreadInterrupt as e:
+            raise e
+        except Exception as e:
+            log.exception(e)
+        finally:
+            self._end_action()
 
     def _save_changes_state(self):
         self._dao.update_config('remote_last_sync_date', self._last_sync_date)
