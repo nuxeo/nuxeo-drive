@@ -133,6 +133,24 @@ class LocalClient(BaseClient):
         path = self._abspath(ref)
         self.unset_path_readonly(path)
 
+    def clean_xattr_root(self):
+        self.unlock_ref(u'/', unlock_parent=False)
+        try:
+            self.remove_root_id()
+        except Exception as e:
+            pass
+        finally:
+            pass
+        self.clean_xattr_folder_recursive(u'/')
+
+    def clean_xattr_folder_recursive(self, path):
+        for child in self.get_children_info(path):
+            self.unlock_ref(child.path, unlock_parent=False)
+            if child.remote_ref is not None:
+                self.remove_remote_id(child.path)
+            if child.folderish:
+                self.clean_xattr_folder_recursive(child.path)
+
     def remove_root_id(self):
         self.remove_remote_id('/', name='ndriveroot')
 

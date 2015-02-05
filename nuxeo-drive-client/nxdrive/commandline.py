@@ -44,6 +44,7 @@ Possible commands:
 - bind-server
 - unbind-server
 - local_folders
+- clean_folder
 - status
 - metadata
 
@@ -230,6 +231,18 @@ class CliHandler(object):
             parents=[common_parser],
         )
         local_folder_parser.set_defaults(command='local_folders')
+
+        # Get the local folders bound to a Nuxeo server
+        clean_parser = subparsers.add_parser(
+            'clean_folder',
+            help='Remove all ndrive attribute from this folder and childs.',
+            parents=[common_parser],
+        )
+        clean_parser.add_argument(
+            "--local-folder",
+            help="Local folder to clean.",
+        )
+        clean_parser.set_defaults(command='clean_folder')
 
         # Get the children status of the given folder
         # Default is the Drive local folder
@@ -456,6 +469,15 @@ class CliHandler(object):
             delay=getattr(options, 'delay', DEFAULT_DELAY),
             max_sync_step=getattr(options, 'max_sync_step',
                                   DEFAULT_MAX_SYNC_STEP))
+        return 0
+
+    def clean_folder(self, options):
+        from nxdrive.client.local_client import LocalClient
+        if options.local_folder is None:
+            print "A folder must be specified"
+            return 0
+        client = LocalClient(unicode(options.local_folder))
+        client.clean_xattr_root()
         return 0
 
     def console(self, options):
