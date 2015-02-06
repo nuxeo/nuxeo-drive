@@ -53,6 +53,7 @@ class RemoteWatcher(Worker):
 
     def _execute(self):
         if self._last_remote_full_scan is None:
+            log.debug("Remote full scan")
             self._action = Action("Remote scanning")
             self._scan_remote()
             self._end_action()
@@ -84,7 +85,6 @@ class RemoteWatcher(Worker):
             self._dao.commit()
             self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
             return
-
         self._get_changes()
         self._save_changes_state()
         # recursive update
@@ -93,6 +93,7 @@ class RemoteWatcher(Worker):
         self._dao.update_config('remote_last_full_scan', self._last_remote_full_scan)
         self._dao.commit()
         self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
+        log.debug("end of remote scan")
 
     def _scan_remote_recursive(self, doc_pair, remote_info,
                                force_recursion=True, mark_unknown=True):
@@ -101,7 +102,7 @@ class RemoteWatcher(Worker):
         If force_recursion is True, recursion is done even on
         non newly created children.
         """
-
+        log.debug("scan_recursive: %r", remote_info)
         # Check if synchronization thread was suspended
         self._interact()
         if doc_pair.local_path is not None:
@@ -147,7 +148,6 @@ class RemoteWatcher(Worker):
             if ((new_pair or force_recursion)
                 and remote_info.folderish):
                     to_scan.append((child_pair, child_info))
-
         # Delete remaining
         for deleted in children.values():
             # TODO Should be DAO
@@ -182,6 +182,7 @@ class RemoteWatcher(Worker):
         return child_pair, True
 
     def _handle_changes(self):
+        log.debug("Handle remote changes")
         try:
             self._action = Action("Handle remote changes")
             self._update_remote_states()

@@ -267,7 +267,6 @@ class LocalWatcher(Worker):
             return
         local_info = self.client.get_info(rel_path)
         if doc_pair.local_state == 'synchronized':
-            # TO_REVIEW Might want run those digester in a separate thread
             doc_pair.local_digest = local_info.get_digest()
             doc_pair.local_state = 'modified'
         queue = not (evt.event_type == 'modified' and doc_pair.folderish

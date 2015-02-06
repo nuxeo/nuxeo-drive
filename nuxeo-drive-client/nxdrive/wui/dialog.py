@@ -203,13 +203,7 @@ class WebDriveApi(QtCore.QObject):
             log.debug('Selected %s as the Nuxeo Drive folder location',
                       dir_path)
             self.file_dialog_dir = dir_path
-            # Dont append if it is already
-            # TO_REVIEW not forcing the name will be better no ?
-            from nxdrive.utils import NUXEO_DRIVE_FOLDER_NAME
-            if not dir_path.endswith(NUXEO_DRIVE_FOLDER_NAME):
-                local_folder_path = os.path.join(dir_path, NUXEO_DRIVE_FOLDER_NAME)
-            else:
-                local_folder_path = dir_path
+            local_folder_path = dir_path
         return local_folder_path
 
     @QtCore.pyqtSlot()

@@ -101,6 +101,7 @@ class WebSettingsApi(WebDriveApi):
         self._manager.set_proxy_settings(settings)
         return ""
 
+
 class WebSettingsDialog(WebDialog):
     '''
     classdocs

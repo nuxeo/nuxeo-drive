@@ -418,7 +418,6 @@ class Manager(QObject):
         return None
 
     def bind_server(self, local_folder, url, username, password, name=None, start_engine=True):
-        # TO_REVIEW Retro-compatibility with GUI
         from collections import namedtuple
         if name is None:
             import urlparse
@@ -428,7 +427,7 @@ class Manager(QObject):
         binder.username = username
         binder.password = password
         binder.url = url
-        self.bind_engine('NXDRIVE', local_folder, name, binder, starts=start_engine)
+        return self.bind_engine('NXDRIVE', local_folder, name, binder, starts=start_engine)
 
     def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
         """Bind a local folder to a remote nuxeo server"""
