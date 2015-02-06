@@ -1,0 +1,189 @@
+<html>
+<head>
+<link rel="stylesheet" href="css/bootstrap.min.css">
+<link rel="stylesheet" href="css/bootstrap-theme.css">
+<link rel="stylesheet" href="css/ndrive.css">
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-81135-23', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+<script src="js/angular.min.js"></script>
+<script src="js/jquery-2.1.3.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script>
+if (typeof(drive) != "undefined") {
+	drive.resize(1200,715);
+}
+app = angular.module("DriveDebug", []);
+app.controller("DriveDebugCtl", function($scope, $interval) {
+	$scope.engines = angular.fromJson(drive.get_engines());
+	$scope.engine = null;
+	$scope.current_actions = [];
+	$scope.last_files = [];	
+	$scope.updateFiles = function() {
+		if ($scope.current_actions.length < 5) {
+			$scope.last_files = angular.fromJson(drive.get_last_files($scope.engine.uid, 5-$scope.current_actions.length, "remote")); 
+		} else {
+			$scope.last_files = [];	
+		}
+	}
+	$scope.update = function() {
+		$scope.sync = drive.is_syncing($scope.engine.uid);
+		if ($scope.sync == $scope.engine.syncing && $scope.sync != 'syncing') {
+			// Nothing to update
+			return;
+		}
+		$scope.engine.syncing = $scope.sync;
+		if ($scope.engine.syncing == 'syncing') {
+			$scope.current_actions = angular.fromJson(drive.get_actions($scope.engine.uid));
+		} else {
+			$scope.current_actions = [];
+		}
+		$scope.updateFiles();
+	}
+	$scope.setEngine = function(engine) {
+		$scope.engine = engine;
+		$scope.sync = drive.is_syncing($scope.engine.uid);
+		$scope.updateFiles();
+		if ($scope.interval == null) {
+			$scope.interval = $interval($scope.update, 1000);
+		}
+	}
+	if ($scope.engines.length > 0) {
+		$scope.setEngine($scope.engines[0]);
+	}
+})
+</script>
+</head>
+<body ng-app="DriveDebug" ng-controller="DriveDebugCtl">
+<nav class="navbar navbar-default navbar-fixed-top">
+  <div class="container">
+  	<div class="navbar-header">
+  	  <a class="navbar-brand" href="#">
+        <img alt="Brand" src="imgs/nuxeo_logo.png" height="20">
+        Debug
+      </a>
+    </div>
+    <ul class="nav navbar-nav">
+    	<li><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Pause</a></li>
+    </ul>
+  	<ul class="nav navbar-nav navbar-right">
+  		<li><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Local Watcher</a></li>
+  		<li><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Remote Watcher</a></li>
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><b>{{ engine.name }}</b><span class="caret"></span></a>
+          <ul class="dropdown-menu" role="menu">
+            <li ng-repeat="engine in engines" ng-click="setEngine(engine)"><a href="#">{{ engine.name }}</a></li>
+          </ul>
+        </li>
+      </ul>
+  </div>
+</nav>
+<div class="container-fluid" style="padding-top: 80px;">
+	<div class="row">
+		<div class="col-xs-3">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Local Folders</a><span class="badge pull-right">3</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>File</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="col-xs-3">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Local Files</a><span class="badge pull-right">18</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>File</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="col-xs-3">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Remote Folders</a><span class="badge pull-right">83</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>File</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="col-xs-3">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Remote Files</a><span class="badge pull-right">8</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>File</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-xs-6">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th><a href="#" ng-click="refreshLogs()"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;Logs</a></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>line of logss.....</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="col-xs-6">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th>
+						<ul style="margin-bottom: 0px; padding-left: 0px;"><li style="list-style-type: none;" class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span class="glyphicon glyphicon-equalizer">&nbsp;</span>Metrics <span class="caret"></span></a>
+			          <ul class="dropdown-menu" role="menu">
+			            <li><a href="#">QueueManager</a></li>
+			            <li><a href="#">Engine</a></li>
+			            <li><a href="#">Thread-xxx</a></li>
+			          </ul></li>
+			          </ul>
+          			</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>metrics_a: 54</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+	</div>
+</div>
+</body>
+</html>

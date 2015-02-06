@@ -637,6 +637,19 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
         return c.rowcount == 1
 
+    def set_conflict_state(self, row):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET pair_state='conflicted' WHERE id=?",
+                      (row.id, ))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+        return c.rowcount == 1
+
     def synchronize_state(self, row, version=None, state='synchronized'):
         if version is None:
             version = row.version

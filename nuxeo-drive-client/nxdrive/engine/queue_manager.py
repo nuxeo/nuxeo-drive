@@ -3,6 +3,7 @@ from Queue import Queue
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.processor import Processor
 from threading import Lock, local
+from copy import deepcopy
 import time
 log = get_logger(__name__)
 
@@ -40,6 +41,10 @@ class QueueManager(QObject):
         self._remote_file_queue = Queue()
         self._remote_folder_queue = Queue()
         self._connected = local()
+        self._local_folder_enable = True
+        self._local_file_enable = True
+        self._remote_folder_enable = True
+        self._remote_file_enable = True
         self._local_folder_thread = None
         self._local_file_thread = None
         self._remote_folder_thread = None
@@ -72,6 +77,23 @@ class QueueManager(QObject):
         # Dont need to change modify as State is compatible with QueueItem
         for item in queue:
             self.push(item)
+
+    def _copy_queue(self, queue):
+        result = deepcopy(self._local_file_queue.queue)
+        result.reverse()
+        return result
+
+    def get_local_file_queue(self):
+        return self._copy_queue(self._local_file_queue)
+
+    def get_remote_file_queue(self):
+        return self._copy_queue(self._remote_file_queue)
+
+    def get_local_folder_queue(self):
+        return self._copy_queue(self._local_folder_queue)
+
+    def get_remote_folder_queue(self):
+        return self._copy_queue(self._remote_folder_queue)
 
     def push_ref(self, row_id, folderish, pair_state):
         self.push(QueueItem(row_id, folderish, pair_state))
@@ -227,16 +249,16 @@ class QueueManager(QObject):
                 and self._remote_file_queue.empty() and self._local_file_queue.qsize()):
             self.queueEmpty.emit()
         log.trace("Launch processors")
-        if self._local_folder_thread is None and not self._local_folder_queue.empty():
+        if self._local_folder_thread is None and not self._local_folder_queue.empty() and self._local_folder_enable:
             log.debug("creating local folder processor")
             self._local_folder_thread = self._create_thread(self._get_local_folder, name="LocalFolderProcessor")
-        if self._local_file_thread is None and not self._local_file_queue.empty():
+        if self._local_file_thread is None and not self._local_file_queue.empty() and self._local_file_enable:
             log.debug("creating local file processor")
             self._local_file_thread = self._create_thread(self._get_local_file, name="LocalFileProcessor")
-        if self._remote_folder_thread is None and not self._remote_folder_queue.empty():
+        if self._remote_folder_thread is None and not self._remote_folder_queue.empty() and self._remote_folder_enable:
             log.debug("creating remote folder processor")
             self._remote_folder_thread = self._create_thread(self._get_remote_folder, name="RemoteFolderProcessor")
-        if self._remote_file_thread is None and not self._remote_file_queue.empty():
+        if self._remote_file_thread is None and not self._remote_file_queue.empty() and self._remote_file_enable:
             log.debug("creating remote file processor")
             self._remote_file_thread = self._create_thread(self._get_remote_file, name="RemoteFileProcessor")
         if self._remote_file_queue.qsize() + self._local_file_queue.qsize() <= 2:

@@ -160,6 +160,10 @@ class Application(QApplication):
         engine.syncCompleted.connect(self.change_systray_icon)
 
     def init_checks(self):
+        if self.manager.is_debug():
+            from nxdrive.debug.wui.engine import EngineDialog
+            self.debug_windows = EngineDialog(self)
+            self.debug_windows.show()
         if self._gui:
             for _, engine in self.manager.get_engines().iteritems():
                 self._connect_engine(engine)

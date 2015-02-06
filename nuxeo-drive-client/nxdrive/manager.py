@@ -222,7 +222,8 @@ class Manager(QObject):
             if euid is not None and euid != uid:
                 continue
             log.debug("Launch engine %s", uid)
-            engine.start()
+            if not self.is_debug():
+                engine.start()
         log.debug("Emitting started")
         self.started.emit()
 

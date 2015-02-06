@@ -323,6 +323,8 @@ class Engine(QObject):
 
     def _create_queue_manager(self, processors):
         from nxdrive.engine.queue_manager import QueueManager
+        if self._manager.is_debug():
+            return QueueManager(self, self._dao, max_file_processors=2)
         return QueueManager(self, self._dao)
 
     def _create_remote_watcher(self):
