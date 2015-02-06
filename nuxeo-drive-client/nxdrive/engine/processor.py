@@ -335,8 +335,7 @@ class Processor(Worker):
                               os_path)
                 tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
                 # Delete original file and rename tmp file
-                # TO_REVIEW delete_final ?
-                local_client.delete(doc_pair.local_path)
+                local_client.delete_final(doc_pair.local_path)
                 updated_info = local_client.rename(
                                             local_client.get_path(tmp_file),
                                             doc_pair.remote_name)
@@ -413,8 +412,9 @@ class Processor(Worker):
             self._dao.remove_state(doc_pair)
             return
         if not local_client.exists(doc_pair.local_path):
-            self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
+            path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
         else:
+            path = doc_pair.local_path
             remote_ref = local_client.get_remote_id(doc_pair.local_path)
             if remote_ref is not None and remote_ref == doc_pair.remote_ref:
                 # Set conflict state for now
@@ -432,15 +432,16 @@ class Processor(Worker):
         if doc_pair.folderish:
             log.debug("Creating local folder '%s' in '%s'", name,
                       local_client._abspath(parent_pair.local_path))
-            local_client.make_folder(local_parent_path, name)
+            path = local_client.make_folder(local_parent_path, name)
         else:
-            _, os_path, name = local_client.get_new_file(local_parent_path,
+            path, os_path, name = local_client.get_new_file(local_parent_path,
                                                             name)
             log.debug("Creating local file '%s' in '%s'", name,
                       local_client._abspath(parent_pair.local_path))
             tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
             # Rename tmp file
             local_client.rename(local_client.get_path(tmp_file), name)
+        return path
 
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
         try:
