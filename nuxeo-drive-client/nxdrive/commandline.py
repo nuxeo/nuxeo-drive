@@ -232,7 +232,6 @@ class CliHandler(object):
         )
         local_folder_parser.set_defaults(command='local_folders')
 
-        # Get the local folders bound to a Nuxeo server
         clean_parser = subparsers.add_parser(
             'clean_folder',
             help='Remove all ndrive attribute from this folder and childs.',
