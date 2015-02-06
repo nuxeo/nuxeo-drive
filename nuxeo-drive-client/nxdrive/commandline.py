@@ -38,7 +38,6 @@ If no command is provided, the graphical application is started along with a
 synchronization process.
 
 Possible commands:
-- console
 - start
 - stop
 - bind-server
@@ -87,6 +86,10 @@ class CliHandler(object):
             "--nxdrive-home",
             default=self.default_home,
             help="Folder to store the Nuxeo Drive configuration."
+        )
+        common_parser.add_argument(
+            "--no-gui", default=False, action="store_true",
+            help="Start in GUI-less mode."
         )
         common_parser.add_argument(
             "--log-level-file",
@@ -216,13 +219,6 @@ class CliHandler(object):
             parents=[common_parser],
         )
         stop_parser.set_defaults(command='stop')
-        console_parser = subparsers.add_parser(
-            'console',
-            help='Start a GUI-less synchronization without'
-                ' detaching the process.',
-            parents=[common_parser],
-        )
-        console_parser.set_defaults(command='console')
 
         # Get the local folders bound to a Nuxeo server
         local_folder_parser = subparsers.add_parser(
@@ -477,13 +473,6 @@ class CliHandler(object):
             return 0
         client = LocalClient(unicode(options.local_folder))
         client.clean_xattr_root()
-        return 0
-
-    def console(self, options):
-        self.controller.synchronizer.loop(
-            delay=getattr(options, 'delay', DEFAULT_DELAY),
-            max_sync_step=getattr(options, 'max_sync_step',
-                                  DEFAULT_MAX_SYNC_STEP))
         return 0
 
     def stop(self, options=None):

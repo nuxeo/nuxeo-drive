@@ -79,6 +79,7 @@ class Application(QApplication):
 
     def __init__(self, controller, options, argv=()):
         super(Application, self).__init__(list(argv))
+        self._gui = not options.no_gui
         self.manager = controller
         self.options = options
         self.mainEngine = None
@@ -91,31 +92,32 @@ class Application(QApplication):
         self.binding_info = {}
         self.engineWidget = None
 
-        # Timer to spin the transferring icon
-        self.icon_spin_timer = QtCore.QTimer()
-        self.icon_spin_timer.timeout.connect(self.spin_transferring_icon)
-        self.icon_spin_count = 0
-
         # Application update
         self.updater = None
         self.update_status = None
         self.update_version = None
         self.restart_updated_app = False
 
-        # This is a windowless application mostly using the system tray
-        self.setQuitOnLastWindowClosed(False)
         # Current state
         self.state = 'disabled'
         # Last state before suspend
         self.last_state = 'enabled'
 
-        self.setup_systray()
+        if self._gui:
+            # Timer to spin the transferring icon
+            self.icon_spin_timer = QtCore.QTimer()
+            self.icon_spin_timer.timeout.connect(self.spin_transferring_icon)
+            self.icon_spin_count = 0
 
-        # Update systray every xs
+            # This is a windowless application mostly using the system tray
+            self.setQuitOnLastWindowClosed(False)
 
-        # Application update notification
-        if self.manager.is_updated():
-            notify_updated(self.manager.get_version())
+            self.setup_systray()
+            # Update systray every xs
+
+            # Application update notification
+            if self.manager.is_updated():
+                notify_updated(self.manager.get_version())
 
         # Check if actions is required, separate method so it can be override
         self.init_checks()
@@ -158,10 +160,11 @@ class Application(QApplication):
         engine.syncCompleted.connect(self.change_systray_icon)
 
     def init_checks(self):
-        for _, engine in self.manager.get_engines().iteritems():
-            self._connect_engine(engine)
-        self.manager.newEngine.connect(self._connect_engine)
-        if self.manager.is_credentials_update_required():
+        if self._gui:
+            for _, engine in self.manager.get_engines().iteritems():
+                self._connect_engine(engine)
+            self.manager.newEngine.connect(self._connect_engine)
+        if self._gui and self.manager.is_credentials_update_required():
             # Prompt for settings if needed (performs a check for application
             # update)
             self.show_settings()
@@ -267,8 +270,9 @@ class Application(QApplication):
                     # Application is up-to-date
                     log.info("Application is up-to-date")
             self.state = self._get_current_active_state()
-            self.update_running_icon()
-            self.communicator.menu.emit()
+            if self._gui:
+                self.update_running_icon()
+                self.communicator.menu.emit()
 
     def _is_update_required(self):
         return self.update_status in [UPDATE_STATUS_UPGRADE_NEEDED,
