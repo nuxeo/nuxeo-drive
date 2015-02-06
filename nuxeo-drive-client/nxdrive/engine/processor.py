@@ -136,7 +136,7 @@ class Processor(Worker):
         if action:
             duration = action.end_time - action.start_time
             speed = (action.size / duration) * 1000
-            log.trace("Transfer speed %d ko/s", speed/1024)
+            log.trace("Transfer speed %d ko/s", speed / 1024)
             self._current_metrics["speed"] = speed
 
     def _synchronize_locally_modified(self, doc_pair, local_client, remote_client):
@@ -412,24 +412,35 @@ class Processor(Worker):
             # It is filtered so skip and remove from the LastKnownState
             self._dao.remove_state(doc_pair)
             return
+        if not local_client.exists(doc_pair.local_path):
+            self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
+        else:
+            remote_ref = local_client.get_remote_id(doc_pair.local_path)
+            if remote_ref is not None and remote_ref == doc_pair.remote_ref:
+                # Set conflict state for now
+                # TO_REVIEW May need to overwrite
+                self._dao.set_conflict_state(doc_pair)
+                return
+        local_client.set_remote_id(path, doc_pair.remote_ref)
+        self._handle_readonly(local_client, doc_pair)
+        self._refresh_local_state(doc_pair, local_client.get_info(path))
+        if not self._dao.synchronize_state(doc_pair, doc_pair.version):
+            log.debug("Pair is not in synchronized state (version issue): %r", doc_pair)
+
+    def _create_remotely(self, local_client, remote_client, doc_pair, parent_pair, name):
         local_parent_path = parent_pair.local_path
         if doc_pair.folderish:
             log.debug("Creating local folder '%s' in '%s'", name,
                       local_client._abspath(parent_pair.local_path))
-            path = local_client.make_folder(local_parent_path, name)
+            local_client.make_folder(local_parent_path, name)
         else:
-            path, os_path, name = local_client.get_new_file(local_parent_path,
+            _, os_path, name = local_client.get_new_file(local_parent_path,
                                                             name)
             log.debug("Creating local file '%s' in '%s'", name,
                       local_client._abspath(parent_pair.local_path))
             tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
             # Rename tmp file
             local_client.rename(local_client.get_path(tmp_file), name)
-        local_client.set_remote_id(path, doc_pair.remote_ref)
-        self._handle_readonly(local_client, doc_pair)
-        self._refresh_local_state(doc_pair, local_client.get_info(path))
-        if not self._dao.synchronize_state(doc_pair, doc_pair.version):
-            log.debug("Pair is not in synchronized state (version issue): %r", doc_pair)
 
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
         try:
@@ -474,7 +485,7 @@ class Processor(Worker):
 
     def _refresh_remote(self, doc_pair, remote_client, remote_info=None):
         if remote_info is None:
-            remote_info = None # Get from remote_client
+            remote_info = None  # Get from remote_client
             remote_info = remote_client.get_info(doc_pair.remote_ref)
         self._dao.update_remote_state(doc_pair, remote_info, versionned=False)
 

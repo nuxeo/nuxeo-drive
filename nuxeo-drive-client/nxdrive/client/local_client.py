@@ -178,6 +178,7 @@ class LocalClient(BaseClient):
     def set_remote_id(self, ref, remote_id, name='ndrive'):
         # Can be move to another class
         path = self._abspath(ref)
+        locker = self.unlock_path(path, False)
         if sys.platform == 'win32':
             locker = self.unlock_path(path, False)
             pathAlt = path + ":" + name
@@ -193,14 +194,16 @@ class LocalClient(BaseClient):
             finally:
                 self.lock_path(path, locker)
         else:
-            import xattr
-            if type(remote_id).__name__ == "unicode":
-                import unicodedata
-                remote_id = unicodedata.normalize('NFC', remote_id).encode('ascii','ignore')
-            if sys.platform == 'darwin':
-                xattr.setxattr(path, name, remote_id)
-            else:
-                xattr.setxattr(path, 'user.' + name, remote_id)
+            try:
+                import xattr
+                if type(remote_id).__name__ == "unicode":
+                    remote_id = unicodedata.normalize('NFC', remote_id).encode('ascii','ignore')
+                if sys.platform == 'darwin':
+                    xattr.setxattr(path, name, remote_id)
+                else:
+                    xattr.setxattr(path, 'user.' + name, remote_id)
+            finally:
+                self.lock_path(path, locker)
 
     def get_remote_id(self, ref, name="ndrive"):
         # Can be move to another class

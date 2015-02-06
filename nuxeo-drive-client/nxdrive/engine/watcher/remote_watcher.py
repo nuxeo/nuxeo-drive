@@ -35,6 +35,7 @@ class RemoteWatcher(Worker):
         self._last_remote_full_scan = self._dao.get_config('remote_last_full_scan')
 
         self._client = engine.get_remote_client()
+        self._local_client = engine.get_local_client()
         self._metrics = dict()
         self._metrics['last_remote_scan_time'] = -1
         self._metrics['last_remote_update_time'] = -1
@@ -171,6 +172,8 @@ class RemoteWatcher(Worker):
                     and child_pair.local_digest == child_info.digest):
                     # Use version+1 as we just update the remote info
                     self._dao.synchronize_state(child_pair, child_pair.version + 1)
+                    # Push the remote_Id
+                    self._local_client.set_remote_id(local_path, child_info.uid)
                 child_pair = self._dao.get_state_from_id(child_pair.id, from_write=True)
                 return child_pair, False
         row_id = self._dao.insert_remote_state(child_info, remote_parent_path,
