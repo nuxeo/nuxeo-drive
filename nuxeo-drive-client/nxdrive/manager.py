@@ -138,6 +138,7 @@ class Manager(QObject):
     engineNotFound = pyqtSignal(object)
     newEngine = pyqtSignal(object)
     dropEngine = pyqtSignal(object)
+    initEngine = pyqtSignal(object)
     started = pyqtSignal()
     _singleton = None
 
@@ -239,6 +240,7 @@ class Manager(QObject):
                     in_error[engine.engine] = True
                     self.engineNotFound.emit(engine)
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
+            self.initEngine.emit(self._engines[engine.uid])
 
     def _get_default_nuxeo_drive_name(self):
         return 'Nuxeo Drive'
