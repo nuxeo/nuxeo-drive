@@ -84,8 +84,8 @@ class TestWatchers(UnitTestCase):
         # Test the deletion after first local scan
         self.test_local_scan()
         path = self._delete_folder_1()
-        childrens = self.engine_1.get_dao().get_states_from_partial_local(path)
-        self.assertEquals(len(childrens), 0)
+        children = self.engine_1.get_dao().get_states_from_partial_local(path)
+        self.assertEquals(len(children), 0)
 
     def test_local_scan_delete_non_synced(self):
         # Test the deletion after first local scan
@@ -95,5 +95,33 @@ class TestWatchers(UnitTestCase):
         path = self._delete_folder_1()
         self.engine_1.start()
         self._interact(1)
-        childrens = self.engine_1.get_dao().get_states_from_partial_local(path)
-        self.assertEquals(len(childrens), 0)
+        children = self.engine_1.get_dao().get_states_from_partial_local(path)
+        self.assertEquals(len(children), 0)
+
+    def test_local_watchdog_delete_synced(self):
+        # Test the deletion after first local scan
+        self.test_reconcile_scan()
+        path = self._delete_folder_1()
+        self._interact(1)
+        child = self.engine_1.get_dao().get_state_from_local(path[:-1])
+        self.assertEqual(child.pair_state, 'locally_deleted')
+        children = self.engine_1.get_dao().get_states_from_partial_local(path)
+        self.assertEqual(len(children), 5)
+        for child in children:
+            print "%r" % child
+            self.assertEqual(child.pair_state, 'parent_locally_deleted')
+
+    def test_local_scan_delete_synced(self):
+        # Test the deletion after first local scan
+        self.test_reconcile_scan()
+        self.engine_1.stop()
+        self._interact(1)
+        path = self._delete_folder_1()
+        self.engine_1.start()
+        self._interact(1)
+        children = self.engine_1.get_dao().get_states_from_partial_local(path)
+        self.assertEqual(len(children), 5)
+        for child in children:
+            self.assertEqual(child.pair_state, 'parent_locally_deleted')
+        child = self.engine_1.get_dao().get_state_from_local(path[:-1])
+        self.assertEqual(child.pair_state, 'locally_deleted')

@@ -293,13 +293,20 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
+            # Check parent to see current pair state
+            parent = c.execute("SELECT * FROM States WHERE local_path=?", (doc_pair.local_parent_path,)).fetchone()
+            if parent.pair_state == 'locally_deleted' or parent.pair_state == 'parent_locally_deleted':
+                current_state = 'parent_locally_deleted'
+            else:
+                current_state = 'locally_deleted'
             update = "UPDATE States SET local_state='deleted', pair_state=?"
-            c.execute(update + " WHERE id=?", ('locally_deleted',doc_pair.id))
+            c.execute(update + " WHERE id=?", (current_state, doc_pair.id))
             if doc_pair.folderish:
                 # TO_REVIEW New state recursive_locally_deleted
                 c.execute(update + self._get_recursive_condition(doc_pair), ('parent_locally_deleted',))
             # Only queue parent
-            self._queue_pair_state(doc_pair.id, doc_pair.folderish, 'locally_deleted')
+            if current_state == "locally_deleted":
+                self._queue_pair_state(doc_pair.id, doc_pair.folderish, current_state)
             if self.auto_commit:
                 con.commit()
         finally:
