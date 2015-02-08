@@ -220,7 +220,7 @@ class Processor(Worker):
                 doc_pair.remote_can_create_child = False
             if self._engine.local_rollback():
                 local_client.delete(doc_pair.local_path)
-                self._dao.remove_pair(doc_pair)
+                self._dao.remove_state(doc_pair)
             else:
                 self._dao.synchronize_state(doc_pair, state='unsynchronized')
 
@@ -233,7 +233,7 @@ class Processor(Worker):
                 if doc_pair.remote_state != 'deleted':
                     remote_client.delete(doc_pair.remote_ref,
                                 parent_fs_item_id=doc_pair.remote_parent_ref)
-                self._dao.remove_pair(doc_pair)
+                self._dao.remove_state(doc_pair)
             else:
                 log.debug("Marking %s as remotely created since remote"
                           " document '%s' (%s) can not be deleted: either"
@@ -243,7 +243,7 @@ class Processor(Worker):
                 if doc_pair.remote_state != 'deleted':
                     self._dao.mark_descendants_remotely_created(doc_pair)
         else:
-            self._dao.remove_pair(doc_pair)
+            self._dao.remove_state(doc_pair)
 
     def _synchronize_locally_moved_created(self, doc_pair, local_client, remote_client):
         doc_pair.remote_ref = None
@@ -450,7 +450,7 @@ class Processor(Worker):
                     local_client.delete(doc_pair.local_path)
                 else:
                     local_client.delete_final(doc_pair.local_path)
-            self._dao.remove_pair(doc_pair)
+            self._dao.remove_state(doc_pair)
         except (IOError, WindowsError) as e:
             # Under Windows deletion can be impossible while another
             # process is accessing the same file (e.g. word processor)

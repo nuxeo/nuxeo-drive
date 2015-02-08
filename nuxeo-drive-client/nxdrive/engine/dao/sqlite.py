@@ -204,6 +204,7 @@ class ManagerDAO(ConfigurationDAO):
         finally:
             self._lock.release()
 
+
 class EngineDAO(ConfigurationDAO):
     '''
     classdocs
@@ -536,7 +537,7 @@ class EngineDAO(ConfigurationDAO):
         for row in rows:
             self._queue_pair_state(row.id, row.folderish, row)
 
-    def remove_pair(self, doc_pair):
+    def remove_state(self, doc_pair):
         self._lock.acquire()
         try:
             con = self._get_write_connection()

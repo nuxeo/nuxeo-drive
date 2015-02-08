@@ -107,6 +107,8 @@ class Worker(QObject):
 
     @pyqtSlot()
     def run(self):
+        self._continue = True
+        self._pause = False
         reason = ''
         self._thread_id = current_thread().ident
         e = None
@@ -405,6 +407,10 @@ class Engine(QObject):
 
     def _thread_finished(self):
         for thread in self._threads:
+            if thread == self._local_watcher._thread:
+                continue
+            if thread == self._remote_watcher._thread:
+                continue
             if thread.isFinished():
                 self._threads.remove(thread)
 

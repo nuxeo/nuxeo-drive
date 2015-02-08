@@ -53,3 +53,47 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(metrics["remote_file_queue"], files)
         self.assertEquals(metrics["local_file_queue"], 0)
         self.assertEquals(metrics["local_folder_queue"], 0)
+
+    def test_local_watchdog_creation(self):
+        # Test the creation after first local scan
+        self.queue_manager_1.pause()
+        self.engine_1.start()
+        self._interact(1)
+        metrics = self.queue_manager_1.get_metrics()
+        self.assertEquals(metrics["total_queue"], 0)
+        self.assertEquals(metrics["local_folder_queue"], 0)
+        self.assertEquals(metrics["local_file_queue"], 0)
+        self.assertEquals(metrics["remote_file_queue"], 0)
+        self.assertEquals(metrics["remote_folder_queue"], 0)
+        files, folders = self.make_local_tree()
+        self._interact(1)
+        metrics = self.queue_manager_1.get_metrics()
+        self.assertEquals(metrics["total_queue"], folders + files)
+        self.assertEquals(metrics["local_folder_queue"], folders)
+        self.assertEquals(metrics["local_file_queue"], files)
+        self.assertEquals(metrics["remote_file_queue"], 0)
+        self.assertEquals(metrics["remote_folder_queue"], 0)
+
+    def _delete_folder_1(self):
+        path = '/' + self.workspace_title + '/Folder 1'
+        self.local_client_1.delete_final(path)
+        self._interact(1)
+        return path + '/'
+
+    def test_local_watchdog_delete_non_synced(self):
+        # Test the deletion after first local scan
+        self.test_local_scan()
+        path = self._delete_folder_1()
+        childrens = self.engine_1.get_dao().get_states_from_partial_local(path)
+        self.assertEquals(len(childrens), 0)
+
+    def test_local_scan_delete_non_synced(self):
+        # Test the deletion after first local scan
+        self.test_local_scan()
+        self.engine_1.stop()
+        self._interact(1)
+        path = self._delete_folder_1()
+        self.engine_1.start()
+        self._interact(1)
+        childrens = self.engine_1.get_dao().get_states_from_partial_local(path)
+        self.assertEquals(len(childrens), 0)
