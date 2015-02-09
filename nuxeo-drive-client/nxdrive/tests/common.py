@@ -1,4 +1,5 @@
 """Common test utilities"""
+import sys
 import os
 import unittest
 import tempfile
@@ -6,6 +7,7 @@ import hashlib
 import shutil
 import time
 
+import nxdrive
 from nxdrive.utils import safe_long_path
 from nxdrive.engine.dao.model import LastKnownState
 from nxdrive.client import RemoteDocumentClient
@@ -13,17 +15,34 @@ from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
 from nxdrive.engine.controller import Controller
 from nxdrive.logging_config import configure
+from nxdrive.logging_config import get_logger
+
+DEFAULT_CONSOLE_LOG_LEVEL = 'DEBUG'
+DEFAULT_FILE_LOG_LEVEL = 'DEBUG'
 
 
 def configure_logger():
     configure(
-        file_level='DEBUG',
-        console_level='DEBUG',
+        file_level=DEFAULT_FILE_LOG_LEVEL,
+        console_level=DEFAULT_CONSOLE_LOG_LEVEL,
         command_name='test',
     )
 
 # Configure test logger
 configure_logger()
+log = get_logger(__name__)
+
+
+def execute(cmd, exit_on_failure=True):
+    log.debug("Launched command: %s", cmd)
+    code = os.system(cmd)
+    if hasattr(os, 'WEXITSTATUS'):
+        # Find the exit code in from the POSIX status that also include
+        # the kill signal if any (only under POSIX)
+        code = os.WEXITSTATUS(code)
+    if code != 0 and exit_on_failure:
+        log.error("Command %s returned with code %d", cmd, code)
+        sys.exit(code)
 
 
 class IntegrationTestCase(unittest.TestCase):
@@ -53,6 +72,9 @@ class IntegrationTestCase(unittest.TestCase):
 
     # Nuxeo max length for document name
     DOC_NAME_MAX_LENGTH = 24
+
+    # Default quit timeout used for tests
+    TEST_DEFAULT_QUIT_TIMEOUT = 10
 
     def _synchronize(self, syn, delay=0.1, loops=1):
         self.wait_audit_change_finder_if_needed()
@@ -162,6 +184,16 @@ class IntegrationTestCase(unittest.TestCase):
         self.remote_file_system_client_1 = remote_file_system_client_1
         self.remote_file_system_client_2 = remote_file_system_client_2
 
+        ndrive_path = os.path.dirname(nxdrive.__file__)
+        ndrive_exec = os.path.join(ndrive_path, '..', 'scripts', 'ndrive.py')
+        cmdline = ndrive_exec
+        if os.environ.get('PYDEV_DEBUG') == 'True':
+            cmdline += ' --debug-pydev'
+        cmdline += ' --log-level-console=%s' % DEFAULT_CONSOLE_LOG_LEVEL
+        cmdline += ' --nxdrive-home="%s"'
+        self.ndrive_1 = cmdline % self.nxdrive_conf_folder_1
+        self.ndrive_2 = cmdline % self.nxdrive_conf_folder_2
+
     def tearDown(self):
         # Force to clean all observers
         self.controller_1.synchronizer.stop_observers(raise_on_error=False)
@@ -258,3 +290,13 @@ class IntegrationTestCase(unittest.TestCase):
     def wait_audit_change_finder_if_needed(self):
         if not self.root_remote_client.is_event_log_id_available():
             time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+
+    def bind_server(self, ndrive_cmd, user, server_url, local_folder, password):
+        cmdline = '%s bind-server %s %s --local-folder="%s" --password=%s' % (
+            ndrive_cmd, user, server_url, local_folder, password)
+        execute(cmdline)
+
+    def ndrive(self, ndrive_cmd, quit_timeout=None):
+        quit_timeout = quit_timeout if quit_timeout is not None else self.TEST_DEFAULT_QUIT_TIMEOUT
+        cmdline = '%s console --quit-timeout=%d' % (ndrive_cmd, quit_timeout)
+        execute(cmdline)
