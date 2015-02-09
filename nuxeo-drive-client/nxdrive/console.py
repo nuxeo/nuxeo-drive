@@ -29,9 +29,7 @@ class ConsoleApplication(QCoreApplication):
         if self.quit_timeout >= 0:
             # If a quit timeout is passed start a timer and connect engines to a signal allowing to
             # quit application if synchronization is over
-            self.quit_timer = QtCore.QTimer()
-            self.quit_timer.start(1000 * self.quit_timeout)
-            self.quit_timer.timeout.connect(self.quit_after_timeout)
+            self.quit_timer = QtCore.QTimer().singleShot(1000 * self.quit_timeout, self.quit_after_timeout)
             for engine in self.manager.get_engines().values():
                 engine.syncCompleted.connect(self.quit_if_sync_completed)
 
