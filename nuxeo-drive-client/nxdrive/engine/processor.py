@@ -6,6 +6,7 @@ Created on 14 janv. 2015
 from nxdrive.engine.engine import Worker
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
+from nxdrive.client.common import NotFound
 from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time
 from PyQt4.QtCore import pyqtSignal
@@ -75,15 +76,18 @@ class Processor(Worker):
                 # TODO Update as the server dont take hash to avoid conflict yet
                 if (doc_pair.pair_state.startswith("locally")
                         and doc_pair.remote_ref is not None):
-                    remote_info = remote_client.get_info(doc_pair.remote_ref)
-                    if remote_info.digest != doc_pair.remote_digest:
-                        doc_pair.remote_state = 'modified'
-                    self._refresh_remote(doc_pair, remote_client, remote_info)
-                    # Can run into conflict
-                    if doc_pair.pair_state == 'conflicted':
-                        self._current_item = self._get_item()
-                        continue
-                    doc_pair = self._dao.get_state_from_id(doc_pair.id)
+                    try:
+                        remote_info = remote_client.get_info(doc_pair.remote_ref)
+                        if remote_info.digest != doc_pair.remote_digest:
+                            doc_pair.remote_state = 'modified'
+                        self._refresh_remote(doc_pair, remote_client, remote_info)
+                        # Can run into conflict
+                        if doc_pair.pair_state == 'conflicted':
+                            self._current_item = self._get_item()
+                            continue
+                        doc_pair = self._dao.get_state_from_id(doc_pair.id)
+                    except NotFound:
+                        doc_pair.remote_ref = None
                 parent_path = doc_pair.local_parent_path
                 if (parent_path == ''):
                     parent_path = "/"
@@ -424,6 +428,8 @@ class Processor(Worker):
         local_client.set_remote_id(path, doc_pair.remote_ref)
         self._handle_readonly(local_client, doc_pair)
         self._refresh_local_state(doc_pair, local_client.get_info(path))
+        if doc_pair.folderish:
+            self._dao.queue_file_children(doc_pair)
         if not self._dao.synchronize_state(doc_pair, doc_pair.version):
             log.debug("Pair is not in synchronized state (version issue): %r", doc_pair)
 

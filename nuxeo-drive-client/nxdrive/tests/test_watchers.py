@@ -12,11 +12,15 @@ class TestWatchers(UnitTestCase):
         self.engine_1.start()
         self._interact(1)
         metrics = self.queue_manager_1.get_metrics()
-        self.assertEquals(metrics["total_queue"], folders + files)
+        # Only one file is in the root
+        self.assertEquals(metrics["total_queue"], folders)
         self.assertEquals(metrics["local_folder_queue"], folders)
-        self.assertEquals(metrics["local_file_queue"], files)
+        self.assertEquals(metrics["local_file_queue"], 0)
         self.assertEquals(metrics["remote_file_queue"], 0)
         self.assertEquals(metrics["remote_folder_queue"], 0)
+        res = self.engine_1.get_dao().get_states_from_partial_local('/')
+        # With root
+        self.assertEquals(len(res), folders + files + 1)
 
     def test_reconcile_scan(self):
         files, folders = self.make_local_tree()
@@ -26,11 +30,12 @@ class TestWatchers(UnitTestCase):
         self._interact(10)
         metrics = self.queue_manager_1.get_metrics()
         # Remote as one more file
-        self.assertEquals(metrics["total_queue"], folders + files + 1)
+        self.assertEquals(metrics["total_queue"], folders + 1)
         self.assertEquals(metrics["local_folder_queue"], folders)
-        self.assertEquals(metrics["local_file_queue"], files)
+        self.assertEquals(metrics["local_file_queue"], 0)
         self.assertEquals(metrics["remote_file_queue"], 1)
         self.assertEquals(metrics["remote_folder_queue"], 0)
+        self.assertEquals(self.engine_1.get_dao().get_sync_count(), folders + files + 1)
         # Verify it has been reconcile
         queue = self.get_full_queue(self.queue_manager_1.get_local_file_queue())
         for item in queue:
@@ -48,11 +53,14 @@ class TestWatchers(UnitTestCase):
         self._interact(10)
         # Metrics should be the same as the local scan
         metrics = self.queue_manager_1.get_metrics()
-        self.assertEquals(metrics["total_queue"], folders + files)
+        self.assertEquals(metrics["total_queue"], folders)
         self.assertEquals(metrics["remote_folder_queue"], folders)
-        self.assertEquals(metrics["remote_file_queue"], files)
+        self.assertEquals(metrics["remote_file_queue"], 0)
         self.assertEquals(metrics["local_file_queue"], 0)
         self.assertEquals(metrics["local_folder_queue"], 0)
+        res = self.engine_1.get_dao().get_states_from_partial_local('/')
+        # With root
+        self.assertEquals(len(res), folders + files + 1)
 
     def test_local_watchdog_creation(self):
         # Test the creation after first local scan

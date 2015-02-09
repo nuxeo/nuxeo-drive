@@ -325,7 +325,10 @@ class EngineDAO(ConfigurationDAO):
                       + " VALUES(?,?,?,?,?,?,?,'created','unknown',?)", (info.last_modification_time, digest, info.path,
                                                     parent_path, name, info.folderish, info.size, pair_state))
             row_id = c.lastrowid
-            self._queue_pair_state(row_id, info.folderish, pair_state)
+            parent = c.execute("SELECT * FROM States WHERE local_path=?", (parent_path,)).fetchone()
+            # Dont queue if parent is not yet created
+            if info.folderish == 1 or parent is None or (parent.pair_state != "locally_created" and not info.folderish):
+                self._queue_pair_state(row_id, info.folderish, pair_state)
             if self.auto_commit:
                 con.commit()
         finally:
@@ -341,6 +344,9 @@ class EngineDAO(ConfigurationDAO):
             condition = " AND last_local_updated > last_remote_updated"
         return c.execute("SELECT * FROM States WHERE pair_state='synchronized' AND folderish=0" + condition + " ORDER BY last_sync_date DESC LIMIT " + str(number)).fetchall()
 
+    def _get_to_sync_condition(self):
+        return "pair_state != 'synchronized' AND pair_state != 'unsynchronized'"
+
     def register_queue_manager(self, manager):
         # Prevent any update while init queue
         self._lock.acquire()
@@ -349,8 +355,24 @@ class EngineDAO(ConfigurationDAO):
             self._queue_manager = manager
             con = self._get_write_connection(factory=StateRow)
             c = con.cursor()
-            res = c.execute("SELECT * FROM States WHERE pair_state != 'synchronized' AND pair_state != 'unsynchronized'")
-            self._queue_manager.init_queue(res.fetchall())
+            pairs = c.execute("SELECT * FROM States WHERE " + self._get_to_sync_condition())
+            folders = dict()
+            files = []
+            for pair in pairs:
+                # Add all the folders
+                if pair.folderish:
+                    folders[pair.local_path] = True
+                    self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
+                # For file check if the folders is found or not
+                else:
+                    if pair.local_parent_path in folders:
+                        self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
+                    else:
+                        # postpone the check
+                        files.append(pair)
+            for pair in files:
+                if pair.local_parent_path in folders:
+                    self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
         # Dont block everything if queue manager fail
         # TODO As the error should be fatal not sure we need this
         finally:
@@ -580,10 +602,25 @@ class EngineDAO(ConfigurationDAO):
             row_id = c.lastrowid
             if self.auto_commit:
                 con.commit()
-            self._queue_pair_state(row_id, info.folderish, pair_state)
+            # Check if parent is not in creation
+            parent = c.execute("SELECT * FROM States WHERE local_path=?", (local_parent_path,)).fetchone()
+            if info.folderish == 1 or parent is None or (parent.pair_state != "remotely_created" and not info.folderish):
+                self._queue_pair_state(row_id, info.folderish, pair_state)
         finally:
             self._lock.release()
         return row_id
+
+    def queue_file_children(self, row):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            children = c.execute("SELECT * FROM States WHERE folderish=0 AND local_parent_path=? AND " +
+                                    self._get_to_sync_condition(), (row.local_path, )).fetchall()
+            for child in children:
+                self._queue_pair_state(child.id, child.folderish, child.pair_state)
+        finally:
+            self._lock.release()
 
     def increase_error(self, row, error, details=None):
         error_date = datetime.utcnow()
@@ -606,7 +643,6 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            error_date = datetime.utcnow()
             c.execute("UPDATE States SET last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
                       " WHERE id=?", (row.id,))
             if self.auto_commit:
@@ -728,6 +764,7 @@ class EngineDAO(ConfigurationDAO):
             c.execute("DELETE FROM Filters WHERE path LIKE '" + path + "%'")
             # ADD IT
             c.execute("INSERT INTO Filters(path) VALUES('" + path + "')")
+            # TODO ADD THIS path AS remotely_deleted
             if self.auto_commit:
                 con.commit()
             self._filters = self.get_filters()
