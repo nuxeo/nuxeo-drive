@@ -25,7 +25,7 @@ class TestIntegrationCopy(IntegrationTestCase):
         remote.copy('/test.odt', '/Test folder')
 
         # Launch ndrive, expecting 4 synchronized items
-        self.ndrive(self.ndrive_1, quit_timeout=300)
+        self.ndrive(self.ndrive_1)
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/test.odt'))
