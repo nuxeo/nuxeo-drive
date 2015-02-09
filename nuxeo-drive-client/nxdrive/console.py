@@ -1,19 +1,10 @@
 """Console mode application"""
 
+from PyQt4 import QtCore
+from PyQt4.QtCore import QCoreApplication
 from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)
-
-# Keep Qt an optional dependency for now
-QCoreApplication, QObject = object, object
-try:
-    from PyQt4 import QtCore
-    QCoreApplication = QtCore.QCoreApplication
-    QObject = QtCore.QObject
-    log.debug("Qt / PyQt4 successfully imported")
-except ImportError:
-    log.warning("Qt / PyQt4 is not installed: GUI is disabled")
-    pass
 
 
 class ConsoleApplication(QCoreApplication):
