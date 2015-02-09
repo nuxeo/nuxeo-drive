@@ -497,3 +497,15 @@ class Manager(QObject):
 
     def is_updated(self):
         return self.updated
+
+    def is_syncing(self):
+        syncing_engines = []
+        for uid, engine in self._engines.items():
+            if engine.is_syncing():
+                syncing_engines.append(uid)
+        if syncing_engines:
+            log.debug("Some engines are currently synchronizing: %s", syncing_engines)
+            return True
+        else:
+            log.debug("No engine currently synchronizing")
+            return False

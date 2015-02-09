@@ -27,6 +27,7 @@ from nxdrive import __version__
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 DEFAULT_MAX_SYNC_STEP = 10
+DEFAULT_QUIT_TIMEOUT = -1
 DEFAULT_HANDSHAKE_TIMEOUT = 60
 DEFAULT_TIMEOUT = 20
 DEFAULT_UPDATE_CHECK_DELAY = 3600
@@ -38,6 +39,7 @@ If no command is provided, the graphical application is started along with a
 synchronization process.
 
 Possible commands:
+- console
 - start
 - stop
 - bind-server
@@ -88,10 +90,6 @@ class CliHandler(object):
             help="Folder to store the Nuxeo Drive configuration."
         )
         common_parser.add_argument(
-            "--no-gui", default=False, action="store_true",
-            help="Start in GUI-less mode."
-        )
-        common_parser.add_argument(
             "--log-level-file",
             default=self.default_log_file_level,
             help="Minimum log level for the file log"
@@ -115,6 +113,10 @@ class CliHandler(object):
         common_parser.add_argument(
             "--debug", default=False, action="store_true",
             help="Fire a debugger (ipdb or pdb) one uncaught error."
+        )
+        common_parser.add_argument(
+            "--debug-pydev", default=False, action="store_true",
+            help="Allow debugging with a PyDev server."
         )
         common_parser.add_argument(
             "--delay", default=self.default_delay, type=float,
@@ -219,6 +221,16 @@ class CliHandler(object):
             parents=[common_parser],
         )
         stop_parser.set_defaults(command='stop')
+        console_parser = subparsers.add_parser(
+            'console',
+            help='Start in GUI-less mode.',
+            parents=[common_parser],
+        )
+        console_parser.set_defaults(command='console')
+        console_parser.add_argument(
+            "--quit-timeout", default=DEFAULT_QUIT_TIMEOUT, type=int,
+            help="Maximum uptime in seconds before quitting."
+        )
 
         # Get the local folders bound to a Nuxeo server
         local_folder_parser = subparsers.add_parser(
@@ -432,12 +444,15 @@ class CliHandler(object):
         from nxdrive.manager import Manager
         return Manager(options)
 
-    def _get_application(self, options):
-        from nxdrive.wui.application import Application
-        app = Application(self.manager, options)
-        return app
+    def _get_application(self, options, console=False):
+        if console:
+            from nxdrive.console import ConsoleApplication
+            return ConsoleApplication(self.manager, options)
+        else:
+            from nxdrive.wui.application import Application
+            return Application(self.manager, options)
 
-    def launch(self, options=None):
+    def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
         # TODO: use the start method as default once implemented
         from nxdrive.utils import PidLockFile
@@ -445,10 +460,11 @@ class CliHandler(object):
         if lock.lock() is not None:
             self.log.warning("Qt application already running: exiting")
             return
-        app = self._get_application(options)
+        app = self._get_application(options, console=console)
         exit_code = app.exec_()
         lock.unlock()
         self.log.debug("Qt application exited with code %r", exit_code)
+        return exit_code
 
     def start(self, options=None):
         """Launch the synchronization in a daemonized process (under POSIX)"""
@@ -474,6 +490,12 @@ class CliHandler(object):
         client = LocalClient(unicode(options.local_folder))
         client.clean_xattr_root()
         return 0
+
+    def console(self, options):
+        if options.debug_pydev:
+            from pydev import pydevd
+            pydevd.settrace()
+        return self.launch(options=options, console=True)
 
     def stop(self, options=None):
         self.controller.stop()
