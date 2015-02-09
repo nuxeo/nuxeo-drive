@@ -13,6 +13,7 @@ from nxdrive.client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.remote_file_system_client import RemoteFileInfo
 from nxdrive.engine.activity import Action
+from nxdrive.client.common import safe_filename
 import os
 log = get_logger(__name__)
 from PyQt4.QtCore import pyqtSignal
@@ -158,7 +159,7 @@ class RemoteWatcher(Worker):
             self._scan_remote_recursive(folder[0], folder[1], mark_unknown=False)
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info):
-        local_path = os.path.join(parent_pair.local_path, child_info.name)
+        local_path = os.path.join(parent_pair.local_path, safe_filename(child_info.name))
         remote_parent_path = parent_pair.remote_parent_path + '/' + child_info.uid
         # Try to get the local definition if not linked
         child_pair = self._dao.get_state_from_local(local_path)
@@ -313,7 +314,7 @@ class RemoteWatcher(Worker):
                                       " for doc_pair '%s'", doc_pair_repr)
                             eventId = change.get('eventId')
                             if (new_info.digest != doc_pair.local_digest or
-                                 new_info.name != doc_pair.local_name):
+                                 safe_filename(new_info.name) != doc_pair.local_name):
                                 doc_pair.remote_state = 'modified'
                             self._scan_remote_recursive(
                                 doc_pair, consistent_new_info,
