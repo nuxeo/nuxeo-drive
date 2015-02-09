@@ -38,6 +38,7 @@ If no command is provided, the graphical application is started along with a
 synchronization process.
 
 Possible commands:
+- console
 - start
 - stop
 - bind-server
@@ -86,10 +87,6 @@ class CliHandler(object):
             "--nxdrive-home",
             default=self.default_home,
             help="Folder to store the Nuxeo Drive configuration."
-        )
-        common_parser.add_argument(
-            "--no-gui", default=False, action="store_true",
-            help="Start in GUI-less mode."
         )
         common_parser.add_argument(
             "--log-level-file",
@@ -219,6 +216,12 @@ class CliHandler(object):
             parents=[common_parser],
         )
         stop_parser.set_defaults(command='stop')
+        console_parser = subparsers.add_parser(
+            'console',
+            help='Start in GUI-less mode.',
+            parents=[common_parser],
+        )
+        console_parser.set_defaults(command='console')
 
         # Get the local folders bound to a Nuxeo server
         local_folder_parser = subparsers.add_parser(
@@ -432,12 +435,15 @@ class CliHandler(object):
         from nxdrive.manager import Manager
         return Manager(options)
 
-    def _get_application(self, options):
-        from nxdrive.wui.application import Application
-        app = Application(self.manager, options)
-        return app
+    def _get_application(self, options, console=False):
+        if console:
+            from nxdrive.console import ConsoleApplication
+            return ConsoleApplication(self.manager, options)
+        else:
+            from nxdrive.wui.application import Application
+            return Application(self.manager, options)
 
-    def launch(self, options=None):
+    def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
         # TODO: use the start method as default once implemented
         from nxdrive.utils import PidLockFile
@@ -445,7 +451,7 @@ class CliHandler(object):
         if lock.lock() is not None:
             self.log.warning("Qt application already running: exiting")
             return
-        app = self._get_application(options)
+        app = self._get_application(options, console=console)
         exit_code = app.exec_()
         lock.unlock()
         self.log.debug("Qt application exited with code %r", exit_code)
@@ -474,6 +480,9 @@ class CliHandler(object):
         client = LocalClient(unicode(options.local_folder))
         client.clean_xattr_root()
         return 0
+
+    def console(self, options):
+        return self.launch(options=options, console=True)
 
     def stop(self, options=None):
         self.controller.stop()
