@@ -91,6 +91,8 @@ class Application(QApplication):
         self.binding_info = {}
         self.engineWidget = None
 
+        self.aboutToQuit.connect(self.manager.stop)
+
         # Timer to spin the transferring icon
         self.icon_spin_timer = QtCore.QTimer()
         self.icon_spin_timer.timeout.connect(self.spin_transferring_icon)

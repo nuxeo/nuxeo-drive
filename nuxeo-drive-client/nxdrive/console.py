@@ -22,6 +22,7 @@ class ConsoleApplication(QCoreApplication):
             from nxdrive.engine.engine import EngineLogger
             self.engineLogger = EngineLogger(self.mainEngine)
 
+        self.aboutToQuit.connect(self.manager.stop)
         log.info('Starting console mode application')
         self.manager.start()
 
