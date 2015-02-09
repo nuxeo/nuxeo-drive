@@ -448,13 +448,13 @@ class Engine(QObject):
 
     def stop(self):
         self._stopped = True
-        log.debug("Engine stopping")
+        log.debug("Engine %s stopping", self._uid)
         self._stop.emit()
         for thread in self._threads:
             if not thread.wait(3000):
                 log.warn("Thread is not responding - terminate it")
                 thread.terminate()
-        log.debug("Engine stopped")
+        log.debug("Engine %s stopped", self._uid)
 
     def _get_client_cache(self):
         if not hasattr(self._local, 'remote_clients'):
