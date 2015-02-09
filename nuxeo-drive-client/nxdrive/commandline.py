@@ -27,6 +27,7 @@ from nxdrive import __version__
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 DEFAULT_MAX_SYNC_STEP = 10
+DEFAULT_QUIT_TIMEOUT = -1
 DEFAULT_HANDSHAKE_TIMEOUT = 60
 DEFAULT_TIMEOUT = 20
 DEFAULT_UPDATE_CHECK_DELAY = 3600
@@ -222,6 +223,10 @@ class CliHandler(object):
             parents=[common_parser],
         )
         console_parser.set_defaults(command='console')
+        console_parser.add_argument(
+            "--quit-timeout", default=DEFAULT_QUIT_TIMEOUT, type=int,
+            help="Maximum uptime in seconds before quitting."
+        )
 
         # Get the local folders bound to a Nuxeo server
         local_folder_parser = subparsers.add_parser(
@@ -455,6 +460,7 @@ class CliHandler(object):
         exit_code = app.exec_()
         lock.unlock()
         self.log.debug("Qt application exited with code %r", exit_code)
+        return exit_code
 
     def start(self, options=None):
         """Launch the synchronization in a daemonized process (under POSIX)"""
