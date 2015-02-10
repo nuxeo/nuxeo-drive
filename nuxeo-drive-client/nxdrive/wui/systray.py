@@ -40,9 +40,22 @@ class WebSystrayApi(WebDriveApi):
         self._dialog.hide()
 
     @QtCore.pyqtSlot()
+    def suspend(self):
+        self._manager.suspend()
+
+    @QtCore.pyqtSlot()
+    def resume(self):
+        self._manager.resume()
+
+    @QtCore.pyqtSlot()
     def advanced_systray(self):
         menu = QtGui.QMenu()
         menu.setFocusProxy(self._dialog)
+        if self._manager.is_paused():
+            menu.addAction("Resume", self.resume)
+        else:
+            menu.addAction("Suspend", self.suspend)
+        menu.addSeparator()
         menu.addAction("About", self.open_about)
         menu.addAction("Help", self.open_help)
         menu.addSeparator()

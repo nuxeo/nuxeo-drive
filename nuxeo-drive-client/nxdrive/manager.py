@@ -140,6 +140,9 @@ class Manager(QObject):
     dropEngine = pyqtSignal(object)
     initEngine = pyqtSignal(object)
     started = pyqtSignal()
+    stopped = pyqtSignal()
+    suspended = pyqtSignal()
+    resumed = pyqtSignal()
     _singleton = None
 
     @staticmethod
@@ -160,6 +163,8 @@ class Manager(QObject):
         self.proxies = None
         self.proxy_exceptions = None
         self._engines = None
+        # Pause if in debug
+        self._pause = self.is_debug()
         self._engine_definitions = None
         self._engine_types = dict()
         self.device_id = self._dao.get_config("device_id")
@@ -197,19 +202,30 @@ class Manager(QObject):
         from nxdrive.engine.dao.sqlite import ManagerDAO
         return ManagerDAO(self._get_db())
 
+    def is_paused(self):
+        return self._pause
+
     def resume(self, euid=None):
+        if not self._pause:
+            return
+        self._pause = False
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
             log.debug("Resume engine %s", uid)
             engine.resume()
+        self.resumed.emit()
 
     def suspend(self, euid=None):
+        if self._pause:
+            return
+        self._pause = True
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
             log.debug("Suspend engine %s", uid)
             engine.suspend()
+        self.suspended.emit()
 
     def stop(self, euid=None):
         for uid, engine in self._engines.items():
@@ -217,13 +233,14 @@ class Manager(QObject):
                 continue
             log.debug("Stop engine %s", uid)
             engine.stop()
+        self.stopped.emit()
 
     def start(self, euid=None):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
             log.debug("Launch engine %s", uid)
-            if not self.is_debug():
+            if not self._pause:
                 engine.start()
         log.debug("Emitting started")
         self.started.emit()

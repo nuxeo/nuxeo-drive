@@ -53,15 +53,15 @@ class Worker(QObject):
     def quit(self):
         self._continue = False
 
-    def _end_action(self):
-        Action.finish_action()
-        self._action = None
-
     def resume(self):
         self._pause = False
 
-    def pause(self):
+    def suspend(self):
         self._pause = True
+
+    def _end_action(self):
+        Action.finish_action()
+        self._action = None
 
     def get_thread(self):
         return self._thread
@@ -260,6 +260,7 @@ class Engine(QObject):
         self._uid = definition.uid
         self._name = definition.name
         self._stopped = True
+        self._pause = False
         self._sync_started = False
         self._local = local()
         self._threads = list()
@@ -322,6 +323,19 @@ class Engine(QObject):
 
     def is_syncing(self):
         return self._sync_started
+
+    def resume(self):
+        self._pause = False
+        for thread in self._threads:
+            if thread.isRunning():
+                thread.worker.resume()
+            else:
+                thread.start()
+
+    def suspend(self):
+        self._pause = True
+        for thread in self._threads:
+            thread.worker.suspend()
 
     def unbind(self):
         self.stop()
