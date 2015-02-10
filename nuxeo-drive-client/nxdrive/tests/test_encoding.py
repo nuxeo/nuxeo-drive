@@ -4,10 +4,10 @@ from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 
 
-class TestIntegrationEncoding(IntegrationTestCase):
+class TestEncoding(IntegrationTestCase):
 
     def setUp(self):
-        super(TestIntegrationEncoding, self).setUp()
+        super(TestEncoding, self).setUp()
 
         # Bind the server and root workspace
         self.setUpDrive_1(True)

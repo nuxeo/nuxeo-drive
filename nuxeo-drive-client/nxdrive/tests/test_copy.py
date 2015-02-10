@@ -2,7 +2,7 @@
 from nxdrive.tests.common import IntegrationTestCase
 
 
-class TestIntegrationCopy(IntegrationTestCase):
+class TestCopy(IntegrationTestCase):
 
     def test_synchronize_remote_copy(self):
         # Get local and remote clients
