@@ -1,7 +1,5 @@
-import os
 
 from nxdrive.tests.common import IntegrationTestCase
-from nxdrive.client import LocalClient
 
 
 class TestIntegrationCopy(IntegrationTestCase):
@@ -12,6 +10,7 @@ class TestIntegrationCopy(IntegrationTestCase):
         remote = self.remote_document_client_1
 
         self.setUpDrive_1()
+
         # Create a file and a folder in the remote root workspace
         remote.make_file('/', 'test.odt', 'Some content.')
         remote.make_folder('/', 'Test folder')
@@ -20,7 +19,7 @@ class TestIntegrationCopy(IntegrationTestCase):
         remote.copy('/test.odt', '/Test folder')
 
         # Launch ndrive, expecting 4 synchronized items
-        self.ndrive(self.ndrive_1)
+        self.ndrive()
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/test.odt'))
