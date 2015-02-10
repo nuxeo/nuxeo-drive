@@ -118,9 +118,7 @@ class IntegrationTestCase(unittest.TestCase):
             self.local_test_folder_2, u'nuxeo-drive-conf')
         os.mkdir(self.nxdrive_conf_folder_2)
 
-        # Set echo to True to enable SQL statements and transactions logging
-        # and echo_pool to True to enable connection pool logging
-        self.version = "2.0-dev"
+        self.version = nxdrive.__version__
 
         # Long timeout for the root client that is responsible for the test
         # environment set: this client is doing the first query on the Nuxeo
