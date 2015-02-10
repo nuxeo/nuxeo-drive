@@ -9,21 +9,10 @@ class TestIntegrationEncoding(IntegrationTestCase):
     def setUp(self):
         super(TestIntegrationEncoding, self).setUp()
 
-        self.ctl = self.controller_1
-        self.ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-            self.user_1, self.password_1)
-        self.ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
-
-        self.syn = self.ctl.synchronizer
-        self.syn.loop(delay=0.010, max_loops=1, no_event_init=True)
-
-        # Fetch server binding after sync loop as it closes the Session
-        self.sb = self.ctl.get_server_binding(self.local_nxdrive_folder_1)
-
+        # Bind the server and root workspace
+        self.setUpDrive_1(True)
         self.remote_client = self.remote_document_client_1
-        sync_root_folder = os.path.join(self.local_nxdrive_folder_1,
-            self.workspace_title)
-        self.local_client = LocalClient(sync_root_folder)
+        self.local_client = self.local_client_1
 
     def test_filename_with_accents_from_server(self):
         self.remote_client.make_file(self.workspace,
@@ -101,9 +90,4 @@ class TestIntegrationEncoding(IntegrationTestCase):
             u'espace\xa0 et TM\u2122.doc')
 
     def _synchronize_and_assert(self, expected_synchronized, wait=False):
-        if wait:
-            # Wait for audit changes to be detected after the 1 second step
-            self.wait_audit_change_finder_if_needed()
-            self.wait()
-        n_synchronized = self.syn.update_synchronize_server(self.sb)
-        self.assertEqual(n_synchronized, expected_synchronized)
+        self.ndrive(self.ndrive_1)

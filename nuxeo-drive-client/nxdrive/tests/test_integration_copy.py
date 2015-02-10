@@ -8,15 +8,10 @@ class TestIntegrationCopy(IntegrationTestCase):
 
     def test_synchronize_remote_copy(self):
         # Get local and remote clients
-        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
-                                         self.workspace_title))
+        local = self.local_client_1
         remote = self.remote_document_client_1
 
-        # Bind the server and root workspace
-        self.bind_server(self.ndrive_1, self.user_1, self.nuxeo_url, self.local_nxdrive_folder_1, self.password_1)
-        #TODO: allow use of self.bind_root(self.ndrive_1, self.workspace, self.local_nxdrive_folder_1)
-        remote.register_as_root(self.workspace)
-
+        self.setUpDrive_1()
         # Create a file and a folder in the remote root workspace
         remote.make_file('/', 'test.odt', 'Some content.')
         remote.make_folder('/', 'Test folder')

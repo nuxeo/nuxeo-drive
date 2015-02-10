@@ -120,13 +120,7 @@ class IntegrationTestCase(unittest.TestCase):
 
         # Set echo to True to enable SQL statements and transactions logging
         # and echo_pool to True to enable connection pool logging
-        self.controller_1 = Controller(self.nxdrive_conf_folder_1,
-                                       echo=False, echo_pool=False)
-        self.controller_2 = Controller(self.nxdrive_conf_folder_2,
-                                       echo=False, echo_pool=False)
-        self.controller_1.synchronizer.test_delay = 3
-        self.controller_2.synchronizer.test_delay = 3
-        self.version = self.controller_1.get_version()
+        self.version = "2.0-dev"
 
         # Long timeout for the root client that is responsible for the test
         # environment set: this client is doing the first query on the Nuxeo
@@ -184,6 +178,10 @@ class IntegrationTestCase(unittest.TestCase):
         self.remote_file_system_client_1 = remote_file_system_client_1
         self.remote_file_system_client_2 = remote_file_system_client_2
 
+        self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1,
+                                         self.workspace_title))
+        self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2,
+                                         self.workspace_title))
         ndrive_path = os.path.dirname(nxdrive.__file__)
         ndrive_exec = os.path.join(ndrive_path, '..', 'scripts', 'ndrive.py')
         cmdline = ndrive_exec
@@ -195,13 +193,6 @@ class IntegrationTestCase(unittest.TestCase):
         self.ndrive_2 = cmdline % self.nxdrive_conf_folder_2
 
     def tearDown(self):
-        # Force to clean all observers
-        self.controller_1.synchronizer.stop_observers(raise_on_error=False)
-        self.controller_2.synchronizer.stop_observers(raise_on_error=False)
-        # Note that unbinding a server revokes the related token if needed,
-        # see Controller.unbind_server()
-        self.controller_1.unbind_all()
-        self.controller_2.unbind_all()
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
         self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
@@ -210,14 +201,12 @@ class IntegrationTestCase(unittest.TestCase):
             shutil.rmtree(safe_long_path(self.upload_tmp_dir))
 
         if os.path.exists(self.local_test_folder_1):
-            self.controller_1.dispose()
             try:
                 shutil.rmtree(safe_long_path(self.local_test_folder_1))
             except:
                 pass
 
         if os.path.exists(self.local_test_folder_2):
-            self.controller_2.dispose()
             try:
                 shutil.rmtree(safe_long_path(self.local_test_folder_2))
             except:
@@ -291,12 +280,25 @@ class IntegrationTestCase(unittest.TestCase):
         if not self.root_remote_client.is_event_log_id_available():
             time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
 
+    def setUpDrive_1(self, firstSync=False):
+        # Bind the server and root workspace
+        self.bind_server(self.ndrive_1, self.user_1, self.nuxeo_url, self.local_nxdrive_folder_1, self.password_1)
+        self.bind_root(self.ndrive_1, self.workspace, self.local_nxdrive_folder_1)
+        if firstSync:
+            self.ndrive(self.ndrive_1)
+
+    def bind_root(self, ndrive_cmd, workspace, folder):
+        # TODO Map on cmd
+        self.remote_document_client_1.register_as_root(self.workspace)
+
     def bind_server(self, ndrive_cmd, user, server_url, local_folder, password):
         cmdline = '%s bind-server %s %s --local-folder="%s" --password=%s' % (
             ndrive_cmd, user, server_url, local_folder, password)
         execute(cmdline)
 
-    def ndrive(self, ndrive_cmd, quit_timeout=None):
+    def ndrive(self, ndrive_cmd=None, quit_timeout=None):
+        if ndrive_cmd is None:
+            ndrive_cmd = self.ndrive_1
         quit_timeout = quit_timeout if quit_timeout is not None else self.TEST_DEFAULT_QUIT_TIMEOUT
         cmdline = '%s console --quit-timeout=%d' % (ndrive_cmd, quit_timeout)
         execute(cmdline)
