@@ -12,6 +12,7 @@ from urllib import urlencode
 from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import BaseClient
+from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.client.common import FILE_BUFFER_SIZE
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
@@ -139,7 +140,7 @@ class BaseAutomationClient(BaseClient):
 
     def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
-                 password=None, token=None, repository="default",
+                 password=None, token=None, repository=DEFAULT_REPOSITORY_NAME,
                  ignored_prefixes=None, ignored_suffixes=None,
                  timeout=20, blob_timeout=None, cookie_jar=None,
                  upload_tmp_dir=None, check_suspended=None):

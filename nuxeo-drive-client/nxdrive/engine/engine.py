@@ -372,7 +372,7 @@ class Engine(QObject):
 
     def get_remote_url(self):
         server_link = self._dao.get_config("server_url", "")
-        repository = "default"
+        repository = DEFAULT_REPOSITORY_NAME
         if not server_link.endswith('/'):
             server_link += '/'
         url_suffix = ('@view_home?tabIds=MAIN_TABS:home,'

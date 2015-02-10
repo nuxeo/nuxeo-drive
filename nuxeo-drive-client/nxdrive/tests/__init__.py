@@ -4,6 +4,7 @@ Created on 23 juin 2014
 @author: Remi Cattiau
 '''
 from nxdrive.client.remote_filtered_file_system_client import RemoteFileSystemClient
+from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 
 
 class RemoteTestClient(RemoteFileSystemClient):
@@ -13,7 +14,7 @@ class RemoteTestClient(RemoteFileSystemClient):
 
     def __init__(self, server_url, user_id, device_id, client_version,
                  session, proxies=None, proxy_exceptions=None,
-                 password=None, token=None, repository="default",
+                 password=None, token=None, repository=DEFAULT_REPOSITORY_NAME,
                  ignored_prefixes=None, ignored_suffixes=None,
                  timeout=20, blob_timeout=None, cookie_jar=None,
                  upload_tmp_dir=None, check_suspended=None):

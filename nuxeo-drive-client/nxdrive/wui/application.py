@@ -4,6 +4,7 @@ import os
 import time
 import sys
 import subprocess
+from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.osi.protocol import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import Action, FileAction
@@ -42,7 +43,7 @@ class BindingInfo(object):
     n_pending = -1
     has_more_pending = False
 
-    def __init__(self, server_binding, repository='default'):
+    def __init__(self, server_binding, repository=DEFAULT_REPOSITORY_NAME):
         self.folder_path = server_binding.local_folder
         self.short_name = os.path.basename(server_binding.local_folder)
         self.server_link = self._get_server_link(server_binding.server_url,

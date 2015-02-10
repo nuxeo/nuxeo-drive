@@ -13,6 +13,7 @@ except ImportError:
     debugger = pdb
 
 from nxdrive.utils import normalized_path
+from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.engine.synchronizer import DEFAULT_DELAY
 from nxdrive.osi.command.daemon import daemonize
 from nxdrive.utils import default_nuxeo_drive_folder
@@ -186,7 +187,7 @@ class CliHandler(object):
         bind_server_parser.add_argument("nuxeo_url",
                                         help="URL of the Nuxeo server.")
         bind_server_parser.add_argument(
-            "--remote-repo", default='default',
+            "--remote-repo", default=DEFAULT_REPOSITORY_NAME,
             help="Name of the remote repository.")
 
         # Unlink from a remote Nuxeo server
@@ -220,7 +221,7 @@ class CliHandler(object):
             default=DEFAULT_NX_DRIVE_FOLDER,
         )
         bind_root_parser.add_argument(
-            "--remote-repo", default='default',
+            "--remote-repo", default=DEFAULT_REPOSITORY_NAME,
             help="Name of the remote repository.")
 
         # Unlink from a remote Nuxeo root
@@ -240,7 +241,7 @@ class CliHandler(object):
             default=DEFAULT_NX_DRIVE_FOLDER,
         )
         unbind_root_parser.add_argument(
-            "--remote-repo", default='default',
+            "--remote-repo", default=DEFAULT_REPOSITORY_NAME,
             help="Name of the remote repository.")
 
         uninstall_parser = subparsers.add_parser(

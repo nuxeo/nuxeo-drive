@@ -6,6 +6,7 @@ from datetime import datetime
 import hashlib
 import os
 import urllib2
+from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.client.common import safe_filename
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
@@ -62,7 +63,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     # which is specific to RemoteDocumentClient
     def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
-                 password=None, token=None, repository="default",
+                 password=None, token=None, repository=DEFAULT_REPOSITORY_NAME,
                  ignored_prefixes=None, ignored_suffixes=None,
                  base_folder=None, timeout=20, blob_timeout=None,
                  cookie_jar=None, upload_tmp_dir=None, check_suspended=None):
