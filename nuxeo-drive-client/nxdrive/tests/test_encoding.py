@@ -1,7 +1,5 @@
-import os
 
 from nxdrive.tests.common import IntegrationTestCase
-from nxdrive.client import LocalClient
 
 
 class TestEncoding(IntegrationTestCase):
@@ -22,7 +20,7 @@ class TestEncoding(IntegrationTestCase):
             u'Nom avec accents \xe9 \xe8.doc',
             u"Contenu sans accents.")
 
-        self._synchronize_and_assert(2, wait=True)
+        self.ndrive()
 
         self.assertEquals(self.local_client.get_content(
             u'/Nom sans accents.doc'),
@@ -39,7 +37,7 @@ class TestEncoding(IntegrationTestCase):
             u'Avec accents \u30d7 \u793e.doc',
             u"Contenu")
 
-        self._synchronize_and_assert(2, wait=True)
+        self.ndrive()
 
         self.assertEquals(self.local_client.get_content(
             u'/Nom sans \u30bc\u30ec accents.doc'),
@@ -52,7 +50,7 @@ class TestEncoding(IntegrationTestCase):
         self.remote_client.make_file(self.workspace,
             u'Nom sans accents.txt',
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
-        self._synchronize_and_assert(1, wait=True)
+        self.ndrive()
         self.assertEquals(self.local_client.get_content(
             u'/Nom sans accents.txt'),
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
@@ -64,7 +62,7 @@ class TestEncoding(IntegrationTestCase):
         self.local_client.make_file('/',
             u'Sans accents.doc',
             u"Contenu sans accents.")
-        self._synchronize_and_assert(2)
+        self.ndrive()
         self.assertEquals(self.remote_client.get_content(
             u'/Avec accents \xe9 \xe8.doc'),
             u"Contenu sans accents.")
@@ -76,7 +74,7 @@ class TestEncoding(IntegrationTestCase):
         self.local_client.make_file('/',
             u'Nom sans accents',
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
-        self._synchronize_and_assert(1)
+        self.ndrive()
         self.assertEquals(self.remote_client.get_content(
             u'/Nom sans accents'),
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
@@ -84,10 +82,7 @@ class TestEncoding(IntegrationTestCase):
     def test_name_normalization(self):
         self.local_client.make_file('/',
             u'espace\xa0 et TM\u2122.doc')
-        self._synchronize_and_assert(1)
+        self.ndrive()
         self.assertEquals(self.remote_client.get_info(
             u'/espace\xa0 et TM\u2122.doc').name,
             u'espace\xa0 et TM\u2122.doc')
-
-    def _synchronize_and_assert(self, expected_synchronized, wait=False):
-        self.ndrive(self.ndrive_1)
