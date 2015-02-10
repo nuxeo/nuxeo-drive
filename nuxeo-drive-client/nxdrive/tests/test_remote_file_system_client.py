@@ -7,10 +7,10 @@ import time
 import os
 
 
-class TestIntegrationRemoteFileSystemClient(IntegrationTestCase):
+class TestRemoteFileSystemClient(IntegrationTestCase):
 
     def setUp(self):
-        super(TestIntegrationRemoteFileSystemClient, self).setUp()
+        super(TestRemoteFileSystemClient, self).setUp()
         # Bind the test workspace as sync root for user 1
         remote_document_client = self.remote_document_client_1
         remote_fs_client = self.remote_file_system_client_1

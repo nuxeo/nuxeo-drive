@@ -23,7 +23,7 @@ def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
                       use_trash=use_trash)
 
 
-class TestIntegrationRemoteDocumentClient(IntegrationTestCase):
+class TestRemoteDocumentClient(IntegrationTestCase):
 
     def test_authentication_failure(self):
         self.assertRaises(Unauthorized, NuxeoClient,
