@@ -44,6 +44,8 @@ Possible commands:
 - stop
 - bind-server
 - unbind-server
+- bind-root
+- unbind-root
 - local_folders
 - clean_folder
 - status
@@ -184,10 +186,6 @@ class CliHandler(object):
         bind_server_parser.add_argument("nuxeo_url",
                                         help="URL of the Nuxeo server.")
         bind_server_parser.add_argument(
-            "--remote-roots", nargs="*", default=[],
-            help="Path synchronization roots (reference or path for"
-            " folderish Nuxeo documents such as Workspaces or Folders).")
-        bind_server_parser.add_argument(
             "--remote-repo", default='default',
             help="Name of the remote repository.")
 
@@ -203,6 +201,47 @@ class CliHandler(object):
             " workspaces with a remote Nuxeo server.",
             default=DEFAULT_NX_DRIVE_FOLDER,
         )
+
+        # Bind root folders
+        bind_root_parser = subparsers.add_parser(
+            'bind-root',
+            help='Register a folder as a synchronization root.',
+            parents=[common_parser],
+        )
+        bind_root_parser.set_defaults(command='bind_root')
+        bind_root_parser.add_argument(
+            "remote_root",
+            help="Remote path or id reference of a folder to synchronize.")
+        bind_root_parser.add_argument(
+            "--local-folder",
+            help="Local folder that will host the list of synchronized"
+            " workspaces with a remote Nuxeo server. Must be bound with the"
+            " 'bind-server' command.",
+            default=DEFAULT_NX_DRIVE_FOLDER,
+        )
+        bind_root_parser.add_argument(
+            "--remote-repo", default='default',
+            help="Name of the remote repository.")
+
+        # Unlink from a remote Nuxeo root
+        unbind_root_parser = subparsers.add_parser(
+            'unbind-root', help='Unregister a folder as a synchronization root.',
+            parents=[common_parser],
+        )
+        unbind_root_parser.set_defaults(command='unbind_root')
+        unbind_root_parser.add_argument(
+            "remote_root",
+            help="Remote path or id reference of a folder to synchronize.")
+        unbind_root_parser.add_argument(
+            "--local-folder",
+            help="Local folder that will host the list of synchronized"
+            " workspaces with a remote Nuxeo server. Must be bound with the"
+            " 'bind-server' command.",
+            default=DEFAULT_NX_DRIVE_FOLDER,
+        )
+        unbind_root_parser.add_argument(
+            "--remote-repo", default='default',
+            help="Name of the remote repository.")
 
         uninstall_parser = subparsers.add_parser(
             'uninstall', help='Remove app data',
@@ -546,6 +585,22 @@ class CliHandler(object):
                 self.manager.unbind_engine(uid)
                 return 0
         return 0
+
+    def bind_root(self, options):
+        for engine in self.manager.get_engines().values():
+            if engine.get_local_folder() == options.local_folder:
+                engine.get_remote_doc_client(repository=options.remote_repo).register_as_root(options.remote_root)
+                return 0
+        self.log.error('No engine registered for local folder %s', options.local_folder)
+        return 1
+
+    def unbind_root(self, options):
+        for engine in self.manager.get_engines().values():
+            if engine.get_local_folder() == options.local_folder:
+                engine.get_remote_doc_client(repository=options.remote_repo).unregister_as_root(options.remote_root)
+                return 0
+        self.log.error('No engine registered for local folder %s', options.local_folder)
+        return 1
 
     def test(self, options):
         import nose

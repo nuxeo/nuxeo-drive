@@ -2,6 +2,7 @@ from PyQt4.QtCore import QThread, QObject, QCoreApplication
 from PyQt4.QtCore import pyqtSlot, pyqtSignal
 from threading import current_thread
 from nxdrive.logging_config import get_logger
+from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
@@ -391,6 +392,9 @@ class Engine(QObject):
                         initialized=True,
                         pwd_update_required=self.has_invalid_credentials())
 
+    def get_local_folder(self):
+        return self._local_folder
+
     def has_invalid_credentials(self):
         return False
 
@@ -593,3 +597,13 @@ class Engine(QObject):
                 self._client_cache_timestamps[cache_key] = 0
             cache[cache_key] = remote_client, client_cache_timestamp
         return cache[cache_key][0]
+
+    def get_remote_doc_client(self, repository=DEFAULT_REPOSITORY_NAME, base_folder=None):
+        return self.remote_doc_client_factory(
+            self._server_url, self._remote_user,
+            self._manager.device_id, self.version,
+            proxies=self._manager.proxies,
+            proxy_exceptions=self._manager.proxy_exceptions,
+            password=self._remote_password, token=self._remote_token,
+            repository=repository, base_folder=base_folder,
+            timeout=self.timeout, cookie_jar=self.cookie_jar)

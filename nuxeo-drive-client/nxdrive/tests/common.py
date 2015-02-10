@@ -13,7 +13,6 @@ from nxdrive.engine.dao.model import LastKnownState
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
-from nxdrive.engine.controller import Controller
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
 
@@ -285,9 +284,9 @@ class IntegrationTestCase(unittest.TestCase):
         if firstSync:
             self.ndrive(self.ndrive_1)
 
-    def bind_root(self, ndrive_cmd, workspace, folder):
-        # TODO Map on cmd
-        self.remote_document_client_1.register_as_root(self.workspace)
+    def bind_root(self, ndrive_cmd, workspace, local_folder):
+        cmdline = '%s bind-root "%s" --local-folder="%s"' % (ndrive_cmd, workspace, local_folder)
+        execute(cmdline)
 
     def bind_server(self, ndrive_cmd, user, server_url, local_folder, password):
         cmdline = '%s bind-server %s %s --local-folder="%s" --password=%s' % (

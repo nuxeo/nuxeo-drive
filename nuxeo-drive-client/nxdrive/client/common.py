@@ -49,6 +49,7 @@ class BaseClient(object):
 class NotFound(Exception):
     pass
 
+DEFAULT_REPOSITORY_NAME = 'default'
 
 DEFAULT_IGNORED_PREFIXES = [
     '.',  # hidden Unix files
