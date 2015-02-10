@@ -423,9 +423,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
                           "Updated content.")
 
     def test_get_update_info(self):
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1,
-                        self.nuxeo_url, self.user_1, self.password_1)
-        sb = ctl.get_server_binding(self.local_nxdrive_folder_1)
-        self.assertIsNotNone(sb.server_version)
-        self.assertIsNotNone(sb.update_url)
+        remote_client = self.remote_document_client_1
+        update_info = remote_client.get_update_info()
+        self.assertIsNotNone(update_info.get('serverVersion'))
+        self.assertIsNotNone(update_info.get('updateSiteURL'))
