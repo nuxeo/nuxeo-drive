@@ -8,7 +8,7 @@ class TestEncoding(IntegrationTestCase):
         super(TestEncoding, self).setUp()
 
         # Bind the server and root workspace
-        self.setUpDrive_1(True)
+        self.setUpDrive_1(firstSync=True)
         self.remote_client = self.remote_document_client_1
         self.local_client = self.local_client_1
 

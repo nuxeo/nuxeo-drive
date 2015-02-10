@@ -73,7 +73,8 @@ class IntegrationTestCase(unittest.TestCase):
     DOC_NAME_MAX_LENGTH = 24
 
     # Default quit timeout used for tests
-    TEST_DEFAULT_QUIT_TIMEOUT = 10
+    # 6s for watcher / 9s for sync
+    TEST_DEFAULT_QUIT_TIMEOUT = 15
 
     def _synchronize(self, syn, delay=0.1, loops=1):
         self.wait_audit_change_finder_if_needed()
