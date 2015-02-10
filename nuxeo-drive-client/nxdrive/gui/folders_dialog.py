@@ -13,20 +13,20 @@ class FiltersDialog(QtGui.QDialog):
         for item in self.treeview.getDirtyItems():
             path = item.get_path()
             if item.get_checkstate() == QtCore.Qt.Unchecked:
-                self._engine.get_dao().add_filter(path)
+                self._engine.add_filter(path)
             elif item.get_checkstate() == QtCore.Qt.Checked:
-                self._engine.get_dao().remove_filter(path)
+                self._engine.remove_filter(path)
             elif item.get_old_value() == QtCore.Qt.Unchecked:
                 # Now partially checked and was before a filter
 
                 # Remove current parent filter and need to commit to enable the
                 # add
-                self._engine.get_dao().remove_filter(path)
+                self._engine.remove_filter(path)
                 # We need to browse every child and create a filter for
                 # unchecked as they are not dirty but has become root filter
                 for child in item.get_children():
                     if child.get_checkstate() == QtCore.Qt.Unchecked:
-                        self._engine.get_dao().add_filter(child.get_path())
+                        self._engine.add_filter(child.get_path())
 
         # Need to refresh the client for now
         # TO_REVIEW Check if we still need to invalidate_cache

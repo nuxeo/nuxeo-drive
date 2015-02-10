@@ -472,6 +472,13 @@ class EngineDAO(ConfigurationDAO):
             return None
         return states[0]
 
+    def get_state_from_remote_with_path(self, ref, path):
+        # remote_path root is empty, should refactor this
+        if path == '/':
+            path = ""
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM States WHERE remote_ref=? AND remote_parent_path=?", (ref,path)).fetchone()
+
     def get_states_from_remote(self, ref):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_ref=?", (ref,)).fetchall()
@@ -777,7 +784,7 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("INSERT INTO Filters(path) VALUES('" + path + "')")
+            c.execute("DELETE FROM Filters WHERE path = '" + path + "'")
             if self.auto_commit:
                 con.commit()
             self._filters = self.get_filters()

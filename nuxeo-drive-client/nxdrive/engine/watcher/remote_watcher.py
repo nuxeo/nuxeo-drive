@@ -16,7 +16,7 @@ from nxdrive.engine.activity import Action
 from nxdrive.client.common import safe_filename
 import os
 log = get_logger(__name__)
-from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from nxdrive.engine.engine import ThreadInterrupt
 
 
@@ -79,6 +79,7 @@ class RemoteWatcher(Worker):
                 from_state = self._dao.get_state_from_local('/')
             self._client = self._engine.get_remote_client()
             remote_info = self._client.get_info(from_state.remote_ref)
+            self._dao.update_remote_state(from_state, remote_info, from_state.remote_parent_path)
         except NotFound:
             log.debug("Marking %r as remotely deleted.", from_state)
             # Should unbind ?
@@ -96,6 +97,35 @@ class RemoteWatcher(Worker):
         self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
         log.debug("end of remote scan")
 
+    @pyqtSlot(str)
+    def scan_pair(self, remote_path):
+        if remote_path is None:
+            return
+        remote_path = str(remote_path)
+        remote_ref = os.path.basename(remote_path)
+        parent_path = os.path.dirname(remote_path)
+        if parent_path == '/':
+            parent_path = ''
+        # If pair is present already 
+        child_info = self._client.get_info(remote_ref)
+        doc_pair = self._dao.get_state_from_remote_with_path(remote_ref, parent_path)
+        if doc_pair is not None:
+            self._scan_remote_recursive(doc_pair, child_info)
+            return
+        log.debug("parent_path: '%s'\t'%s'\t'%s'", parent_path, os.path.basename(parent_path),
+                                        os.path.dirname(parent_path))
+        parent_pair = self._dao.get_state_from_remote_with_path(
+                                        os.path.basename(parent_path),
+                                        os.path.dirname(parent_path))
+        log.debug("scan_pair: parent_pair: %r", parent_pair)
+        local_path = os.path.join(parent_pair.local_path, safe_filename(child_info.name))
+        remote_parent_path = parent_pair.remote_parent_path + '/' + child_info.uid
+        row_id = self._dao.insert_remote_state(child_info, remote_parent_path,
+                                              local_path, parent_pair.local_path)
+        doc_pair = self._dao.get_state_from_id(row_id, from_write=True)
+        if child_info.folderish:
+            self._scan_remote_recursive(doc_pair, child_info)
+
     def _scan_remote_recursive(self, doc_pair, remote_info,
                                force_recursion=True, mark_unknown=True):
         """Recursively scan the bound remote folder looking for updates
@@ -103,7 +133,9 @@ class RemoteWatcher(Worker):
         If force_recursion is True, recursion is done even on
         non newly created children.
         """
-        log.debug("scan_recursive: %r", remote_info)
+        if not remote_info.folderish:
+            # No children to align, early stop.
+            return
         # Check if synchronization thread was suspended
         self._interact()
         if doc_pair.local_path is not None:
@@ -112,12 +144,6 @@ class RemoteWatcher(Worker):
             raise ValueError("Cannot bind %r to missing remote info" %
                              doc_pair)
 
-        # Update the pair state from the collected remote info
-        self._dao.update_remote_state(doc_pair, remote_info, doc_pair.remote_parent_path)
-
-        if not remote_info.folderish:
-            # No children to align, early stop.
-            return
 
         # If a folderish pair state has been remotely updated,
         # recursively unmark its local descendants as 'unsynchronized'
@@ -136,9 +162,10 @@ class RemoteWatcher(Worker):
         for child in db_children:
             children[child.remote_ref] = child
 
+        remote_parent_path = doc_pair.remote_parent_path + '/' + remote_info.uid
+
         for child_info in children_info:
             child_pair = None
-            remote_parent_path = doc_pair.remote_parent_path + '/' + child_info.uid
             new_pair = False
             if child_info.uid in children:
                 child_pair = children.pop(child_info.uid)
@@ -160,7 +187,7 @@ class RemoteWatcher(Worker):
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info):
         local_path = os.path.join(parent_pair.local_path, safe_filename(child_info.name))
-        remote_parent_path = parent_pair.remote_parent_path + '/' + child_info.uid
+        remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
         # Try to get the local definition if not linked
         child_pair = self._dao.get_state_from_local(local_path)
         if child_pair is not None:

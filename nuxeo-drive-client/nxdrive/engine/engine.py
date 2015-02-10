@@ -226,6 +226,7 @@ class EngineLogger(QObject):
 class Engine(QObject):
     _start = pyqtSignal()
     _stop = pyqtSignal()
+    _scanPair = pyqtSignal(str)
     syncStarted = pyqtSignal(object)
     syncCompleted = pyqtSignal()
     invalidAuthentication = pyqtSignal()
@@ -233,6 +234,7 @@ class Engine(QObject):
     newSync = pyqtSignal(object, object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
+
     # Used for binding server / roots and managing tokens
     remote_doc_client_factory = RemoteDocumentClient
 
@@ -283,6 +285,8 @@ class Engine(QObject):
         self._queue_manager.newItem.connect(self.newQueueItem)
         self._queue_manager.newError.connect(self.newError)
         self._dao.newConflict.connect(self.newConflict)
+        # Scan in remote_watcher thread
+        self._scanPair.connect(self._remote_watcher.scan_pair)
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id):
@@ -294,6 +298,26 @@ class Engine(QObject):
 
     def get_last_files(self, number, direction=None):
         return self._dao.get_last_files(number, direction)
+
+    def add_filter(self, path):
+        remote_ref = os.path.basename(path)
+        remote_parent_path = os.path.dirname(path)
+        log.debug("add_filter(path)=%s", path)
+        log.debug("remote_ref=%s", remote_ref)
+        log.debug("remote_parent_path=%s", remote_parent_path)
+        if remote_ref is None:
+            return
+        self._dao.add_filter(path)
+        pair = self._dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
+        log.debug("pair=%r", pair)
+        if pair is None:
+            return
+        self._dao.delete_remote_state(pair)
+
+    def remove_filter(self, path):
+        self.get_dao().remove_filter(path)
+        # Scan the "new" pair, use signal/slot to not block UI
+        self._scanPair.emit(path)
 
     def is_syncing(self):
         return self._sync_started
