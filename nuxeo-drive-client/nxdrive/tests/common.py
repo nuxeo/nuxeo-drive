@@ -277,10 +277,11 @@ class IntegrationTestCase(unittest.TestCase):
         if not self.root_remote_client.is_event_log_id_available():
             time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
 
-    def setUpDrive_1(self, firstSync=False):
+    def setUpDrive_1(self, bind_root=True, firstSync=False):
         # Bind the server and root workspace
         self.bind_server(self.ndrive_1, self.user_1, self.nuxeo_url, self.local_nxdrive_folder_1, self.password_1)
-        self.bind_root(self.ndrive_1, self.workspace, self.local_nxdrive_folder_1)
+        if bind_root:
+            self.bind_root(self.ndrive_1, self.workspace, self.local_nxdrive_folder_1)
         if firstSync:
             self.ndrive(self.ndrive_1)
 
