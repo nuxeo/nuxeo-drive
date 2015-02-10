@@ -168,7 +168,6 @@ class BaseAutomationClient(BaseClient):
             server_url += '/'
         self.server_url = server_url
 
-        # TODO: actually use the repository info in the requests
         self.repository = repository
 
         self.user_id = user_id
@@ -295,6 +294,8 @@ class BaseAutomationClient(BaseClient):
         }
         if void_op:
             headers.update({"X-NXVoidOperation": "true"})
+        if self.repository != DEFAULT_REPOSITORY_NAME:
+            headers.update({"X-NXRepository": self.repository})
         if extra_headers is not None:
             headers.update(extra_headers)
         headers.update(self._get_common_headers())
