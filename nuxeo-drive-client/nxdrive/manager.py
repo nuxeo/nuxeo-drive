@@ -396,7 +396,7 @@ class Manager(QObject):
         self._dao.update_config("auto_update", value)
 
     def get_tracking(self):
-        return self._dao.get_config("tracking", "1") == "1"
+        return self._dao.get_config("tracking", "1") == "1" and not self.get_version().endswith("-dev")
 
     def set_tracking(self, value):
         self._dao.update_config("tracking", value)
