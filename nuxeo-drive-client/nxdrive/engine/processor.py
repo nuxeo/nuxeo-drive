@@ -161,7 +161,7 @@ class Processor(Worker):
                 log.debug("Skip update of remote document '%s'"\
                              " as it is readonly.",
                           doc_pair.local_name)
-                if self._controller.local_rollback():
+                if self._engine.local_rollback():
                     local_client.delete(doc_pair.local_path)
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
