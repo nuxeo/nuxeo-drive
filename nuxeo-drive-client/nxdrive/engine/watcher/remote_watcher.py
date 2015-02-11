@@ -95,7 +95,7 @@ class RemoteWatcher(Worker):
         self._dao.update_config('remote_last_full_scan', self._last_remote_full_scan)
         self._dao.commit()
         self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
-        log.debug("end of remote scan")
+        log.debug("remote scan finished in %d", self._metrics['last_remote_scan_time'])
 
     @pyqtSlot(str)
     def scan_pair(self, remote_path):

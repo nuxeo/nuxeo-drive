@@ -327,7 +327,7 @@ class EngineDAO(ConfigurationDAO):
             row_id = c.lastrowid
             parent = c.execute("SELECT * FROM States WHERE local_path=?", (parent_path,)).fetchone()
             # Dont queue if parent is not yet created
-            if info.folderish == 1 or parent is None or (parent.pair_state != "locally_created" and not info.folderish):
+            if parent is None or parent.pair_state != "locally_created":
                 self._queue_pair_state(row_id, info.folderish, pair_state)
             if self.auto_commit:
                 con.commit()
@@ -355,23 +355,14 @@ class EngineDAO(ConfigurationDAO):
             self._queue_manager = manager
             con = self._get_write_connection(factory=StateRow)
             c = con.cursor()
-            pairs = c.execute("SELECT * FROM States WHERE " + self._get_to_sync_condition())
+            # Order by path to be sure to process parents before childs
+            pairs = c.execute("SELECT * FROM States WHERE " + self._get_to_sync_condition() + " ORDER BY local_path ASC").fetchall()
             folders = dict()
-            files = []
             for pair in pairs:
                 # Add all the folders
                 if pair.folderish:
                     folders[pair.local_path] = True
-                    self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
-                # For file check if the folders is found or not
-                else:
-                    if pair.local_parent_path in folders:
-                        self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
-                    else:
-                        # postpone the check
-                        files.append(pair)
-            for pair in files:
-                if pair.local_parent_path in folders:
+                if not  pair.local_parent_path in folders:
                     self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
         # Dont block everything if queue manager fail
         # TODO As the error should be fatal not sure we need this
@@ -611,7 +602,7 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
             # Check if parent is not in creation
             parent = c.execute("SELECT * FROM States WHERE local_path=?", (local_parent_path,)).fetchone()
-            if info.folderish == 1 or parent is None or (parent.pair_state != "remotely_created" and not info.folderish):
+            if parent is None or parent.pair_state != "remotely_created":
                 self._queue_pair_state(row_id, info.folderish, pair_state)
         finally:
             self._lock.release()
@@ -622,7 +613,7 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            children = c.execute("SELECT * FROM States WHERE folderish=0 AND local_parent_path=? AND " +
+            children = c.execute("SELECT * FROM States WHERE local_parent_path=? AND " +
                                     self._get_to_sync_condition(), (row.local_path, )).fetchall()
             for child in children:
                 self._queue_pair_state(child.id, child.folderish, child.pair_state)
