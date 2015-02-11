@@ -139,6 +139,7 @@ class Manager(QObject):
     newEngine = pyqtSignal(object)
     dropEngine = pyqtSignal(object)
     initEngine = pyqtSignal(object)
+    aboutToStart = pyqtSignal(object)
     started = pyqtSignal()
     stopped = pyqtSignal()
     suspended = pyqtSignal()
@@ -239,8 +240,9 @@ class Manager(QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug("Launch engine %s", uid)
             if not self._pause:
+                self.aboutToStart.emit(engine)
+                log.debug("Launch engine %s", uid)
                 engine.start()
         log.debug("Emitting started")
         self.started.emit()

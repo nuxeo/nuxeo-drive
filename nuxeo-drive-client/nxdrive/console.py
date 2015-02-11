@@ -23,16 +23,20 @@ class ConsoleApplication(QCoreApplication):
             self.engineLogger = EngineLogger(self.mainEngine)
 
         self.aboutToQuit.connect(self.manager.stop)
-        log.info('Starting console mode application')
-        self.manager.start()
 
         self.quit_timeout = options.quit_timeout
         if self.quit_timeout >= 0:
             # If a quit timeout is passed start a timer and connect engines to a signal allowing to
             # quit application if synchronization is over
             self.quit_timer = QtCore.QTimer().singleShot(1000 * self.quit_timeout, self.quit_after_timeout)
-            for engine in self.manager.get_engines().values():
-                engine.syncCompleted.connect(self.quit_if_sync_completed)
+            self.manager.aboutToStart.connect(self.connect_engine_quit)
+
+        log.info('Starting console mode application')
+        self.manager.start()
+
+    @QtCore.pyqtSlot(object)
+    def connect_engine_quit(self, engine):
+        engine.syncCompleted.connect(self.quit_if_sync_completed)
 
     @QtCore.pyqtSlot()
     def quit_if_sync_completed(self):
