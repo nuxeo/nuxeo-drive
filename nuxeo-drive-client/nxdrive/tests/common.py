@@ -72,6 +72,9 @@ class IntegrationTestCase(unittest.TestCase):
     # Nuxeo max length for document name
     DOC_NAME_MAX_LENGTH = 24
 
+    # Default remote watcher delay used for tests
+    TEST_DEFAULT_DELAY = 3
+
     # Default quit timeout used for tests
     # 6s for watcher / 9s for sync
     TEST_DEFAULT_QUIT_TIMEOUT = 15
@@ -304,10 +307,12 @@ class IntegrationTestCase(unittest.TestCase):
         cmdline = '%s unbind-server --local-folder="%s"' % (ndrive_cmd, local_folder)
         execute(cmdline)
 
-    def ndrive(self, ndrive_cmd=None, quit_if_done=True, quit_timeout=None):
+    def ndrive(self, ndrive_cmd=None, quit_if_done=True, quit_timeout=None, delay=None):
         if ndrive_cmd is None:
             ndrive_cmd = self.ndrive_1
         cmdline = ndrive_cmd + ' console'
+        delay = delay if delay is not None else self.TEST_DEFAULT_DELAY
+        cmdline += ' --delay=%d' % delay
         if quit_if_done:
             cmdline += ' --quit-if-done'
         quit_timeout = quit_timeout if quit_timeout is not None else self.TEST_DEFAULT_QUIT_TIMEOUT

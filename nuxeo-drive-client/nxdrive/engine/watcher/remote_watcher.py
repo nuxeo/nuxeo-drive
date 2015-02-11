@@ -24,7 +24,7 @@ class RemoteWatcher(Worker):
     initiate = pyqtSignal()
     updated = pyqtSignal()
 
-    def __init__(self, engine, dao):
+    def __init__(self, engine, dao, delay):
         super(RemoteWatcher, self).__init__(engine)
         self.unhandle_fs_event = False
         self.local_full_scan = dict()
@@ -40,7 +40,7 @@ class RemoteWatcher(Worker):
         self._metrics = dict()
         self._metrics['last_remote_scan_time'] = -1
         self._metrics['last_remote_update_time'] = -1
-        self.server_interval = 30
+        self.server_interval = delay
         self._current_interval = self.server_interval
 
     def get_metrics(self):

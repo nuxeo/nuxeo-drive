@@ -14,7 +14,6 @@ except ImportError:
 
 from nxdrive.utils import normalized_path
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.engine.synchronizer import DEFAULT_DELAY
 from nxdrive.osi.command.daemon import daemonize
 from nxdrive.utils import default_nuxeo_drive_folder
 from nxdrive.logging_config import configure
@@ -28,6 +27,7 @@ from nxdrive import __version__
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 DEFAULT_MAX_SYNC_STEP = 10
+DEFAULT_REMOTE_WATCHER_DELAY = 30
 DEFAULT_QUIT_TIMEOUT = -1
 DEFAULT_HANDSHAKE_TIMEOUT = 60
 DEFAULT_TIMEOUT = 20
@@ -72,7 +72,7 @@ class CliHandler(object):
         self.default_home = "~/.nuxeo-drive"
         self.default_log_file_level = "DEBUG"
         self.default_log_console_level = "INFO"
-        self.default_delay = DEFAULT_DELAY
+        self.default_remote_watcher_delay = DEFAULT_REMOTE_WATCHER_DELAY
         self.default_max_sync_step = DEFAULT_MAX_SYNC_STEP
         self.default_handshake_timeout = DEFAULT_HANDSHAKE_TIMEOUT
         self.default_timeout = DEFAULT_TIMEOUT
@@ -122,8 +122,8 @@ class CliHandler(object):
             help="Allow debugging with a PyDev server."
         )
         common_parser.add_argument(
-            "--delay", default=self.default_delay, type=float,
-            help="Delay in seconds between consecutive sync operations.")
+            "--delay", default=self.default_remote_watcher_delay, type=int,
+            help="Delay in seconds for remote polling.")
         common_parser.add_argument(
             "--max-sync-step", default=self.default_max_sync_step, type=int,
             help="Number of consecutive sync operations to perform"
@@ -519,9 +519,9 @@ class CliHandler(object):
         self.manager = self.get_manager(options)
         self._configure_logger(options)
         self.log.debug("Synchronization daemon started.")
-        # TODO Add back the delay and max_sync ?
+        # TODO Add back max_sync ?
         self.controller.synchronizer.loop(
-            delay=getattr(options, 'delay', DEFAULT_DELAY),
+            delay=getattr(options, 'delay', DEFAULT_REMOTE_WATCHER_DELAY),
             max_sync_step=getattr(options, 'max_sync_step',
                                   DEFAULT_MAX_SYNC_STEP))
         return 0

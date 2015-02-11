@@ -159,6 +159,7 @@ class Manager(QObject):
         Manager._singleton = self
         super(Manager, self).__init__()
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
+        self.remote_watcher_delay = options.delay
         self._debug = options.debug
         self._dao = self._create_dao()
         self.proxies = None
@@ -259,7 +260,8 @@ class Manager(QObject):
                 if not engine.engine in in_error:
                     in_error[engine.engine] = True
                     self.engineNotFound.emit(engine)
-            self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
+            self._engines[engine.uid] = self._engine_types[engine.engine](self, engine,
+                                                                        remote_watcher_delay=self.remote_watcher_delay)
             self.initEngine.emit(self._engines[engine.uid])
 
     def _get_default_nuxeo_drive_name(self):

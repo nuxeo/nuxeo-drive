@@ -2,6 +2,7 @@ from PyQt4.QtCore import QThread, QObject, QCoreApplication
 from PyQt4.QtCore import pyqtSlot, pyqtSignal
 from threading import current_thread
 from nxdrive.logging_config import get_logger
+from nxdrive.commandline import DEFAULT_REMOTE_WATCHER_DELAY
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
@@ -251,7 +252,8 @@ class Engine(QObject):
     remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
     version = "test"
 
-    def __init__(self, manager, definition, binder=None, processors=5):
+    def __init__(self, manager, definition, binder=None, processors=5,
+                 remote_watcher_delay=DEFAULT_REMOTE_WATCHER_DELAY):
         super(Engine, self).__init__()
         self.timeout = 30
         self._handshake_timeout = 60
@@ -277,7 +279,7 @@ class Engine(QObject):
         self._load_configuration()
         self._local_watcher = self._create_local_watcher()
         self.create_thread(worker=self._local_watcher)
-        self._remote_watcher = self._create_remote_watcher()
+        self._remote_watcher = self._create_remote_watcher(remote_watcher_delay)
         self.create_thread(worker=self._remote_watcher, start_connect=False)
         # Launch remote_watcher after first local scan
         self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
@@ -381,9 +383,9 @@ class Engine(QObject):
             return QueueManager(self, self._dao, max_file_processors=2)
         return QueueManager(self, self._dao)
 
-    def _create_remote_watcher(self):
+    def _create_remote_watcher(self, delay):
         from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-        return RemoteWatcher(self, self._dao)
+        return RemoteWatcher(self, self._dao, delay)
 
     def _create_local_watcher(self):
         from nxdrive.engine.watcher.local_watcher import LocalWatcher
