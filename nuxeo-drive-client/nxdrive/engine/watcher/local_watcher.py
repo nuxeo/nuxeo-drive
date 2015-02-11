@@ -29,6 +29,7 @@ class LocalWatcher(Worker):
         '''
         super(LocalWatcher, self).__init__(engine)
         self.unhandle_fs_event = False
+        self._event_handler = None
         self.local_full_scan = dict()
         self._local_scan_finished = False
         self._dao = dao
@@ -83,7 +84,8 @@ class LocalWatcher(Worker):
 
     def get_metrics(self):
         metrics = super(LocalWatcher, self).get_metrics()
-        metrics['fs_events'] = self._event_handler.counter
+        if self._event_handler is not None:
+            metrics['fs_events'] = self._event_handler.counter
         return dict(metrics.items() + self._metrics.items())
 
     def _scan_recursive(self, info):

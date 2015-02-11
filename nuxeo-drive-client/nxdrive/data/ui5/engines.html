@@ -26,6 +26,8 @@ app = angular.module("DriveDebug", []);
 app.controller("DriveDebugCtl", function($scope, $interval) {
 	$scope.engines = angular.fromJson(drive.get_engines());
 	$scope.engine = null;
+	$scope.metrics = null;
+	$scope.metrics_name = null;
 	$scope.current_actions = [];
 	$scope.last_files = [];	
 	$scope.updateFiles = function() {
@@ -35,24 +37,72 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 			$scope.last_files = [];	
 		}
 	}
-	$scope.update = function() {
-		$scope.sync = drive.is_syncing($scope.engine.uid);
-		if ($scope.sync == $scope.engine.syncing && $scope.sync != 'syncing') {
-			// Nothing to update
-			return;
-		}
-		$scope.engine.syncing = $scope.sync;
-		if ($scope.engine.syncing == 'syncing') {
-			$scope.current_actions = angular.fromJson(drive.get_actions($scope.engine.uid));
+	$scope.setMetrics = function(name, metrics) {
+		$scope.metrics_name = name;
+		$scope.metrics = metrics;
+	}
+	$scope.pause = function(type) {
+		if ( type == 'engine') {
+			if ($scope.is_paused(type)) {
+				drive.resume_engine($scope.uid);
+			} else {
+				drive.suspend_engine($scope.uid);
+			}
+		} else if ( type == 'local_watcher' ) {
+			if ($scope.is_paused(type)) {
+				drive.resume_local_watcher($scope.uid);
+			} else {
+				drive.suspend_local_watcher($scope.uid);
+			}
+		} else if ( type == 'remote_watcher' ) {
+			if ($scope.is_paused(type)) {
+				drive.resume_remote_watcher($scope.uid);
+			} else {
+				drive.suspend_remote_watcher($scope.uid);
+			}
 		} else {
-			$scope.current_actions = [];
+			// Consider it is a queue
+			if ($scope.is_paused(type)) {
+				console.log("RESUME QUEUE " + $scope.uid + " " + type)
+				drive.resume_queue($scope.uid, type);
+			} else {
+				drive.suspend_queue($scope.uid, type);
+			}
 		}
-		$scope.updateFiles();
+		$scope.update();
+	}
+	$scope.pause_class = function(type) {
+		if ($scope.is_paused(type)) {
+			return "glyphicon-play";
+		} else {
+			return "glyphicon-pause";
+		}
+	}
+	$scope.is_paused = function(type) {
+		if (type == "engine") {
+			return $scope.engine.paused || !$scope.engine.started;
+		} else if (type == "local_watcher") {
+			return $scope.engine.local_watcher.paused || !$scope.engine.local_watcher.started;
+		} else if (type == "remote_watcher") {
+			return $scope.engine.remote_watcher.paused || !$scope.engine.remote_watcher.started;
+		} else if (type == "local_folder_queue") {
+			return !$scope.engine.queue.local_folder_enable
+		} else if (type == "local_file_queue") {
+			return !$scope.engine.queue.local_file_enable
+		} else if (type == "remote_folder_queue") {
+			return !$scope.engine.queue.remote_folder_enable
+		} else if (type == "remote_file_queue") {
+			return !$scope.engine.queue.remote_file_enable
+		}
+		return true;
+	}
+	$scope.update = function() {
+		$scope.engine = angular.fromJson(drive.get_engine($scope.uid));
 	}
 	$scope.setEngine = function(engine) {
-		$scope.engine = engine;
-		$scope.sync = drive.is_syncing($scope.engine.uid);
-		$scope.updateFiles();
+		$scope.uid = engine.uid;
+		$scope.update();
+		$scope.setMetrics('Engine', $scope.engine.metrics);
 		if ($scope.interval == null) {
 			$scope.interval = $interval($scope.update, 1000);
 		}
@@ -73,11 +123,12 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
       </a>
     </div>
     <ul class="nav navbar-nav">
-    	<li><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Pause</a></li>
+    	<li ng-show="!is_paused('engine')"><a href="#" ng-click="pause('engine')"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Pause</a></li>
+    	<li ng-show="is_paused('engine')"><a href="#" ng-click="pause('engine')"><span class="glyphicon glyphicon-play" aria-hidden="true"></span>&nbsp;Resume</a></li>
     </ul>
   	<ul class="nav navbar-nav navbar-right">
-  		<li><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Local Watcher</a></li>
-  		<li><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Remote Watcher</a></li>
+  		<li><a href="#" ng-click="pause('local_watcher')"><span ng-class="pause_class('local_watcher')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Watcher</a></li>
+  		<li><a href="#" ng-click="pause('remote_watcher')"><span ng-class="pause_class('remote_watcher')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Watcher</a></li>
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><b>{{ engine.name }}</b><span class="caret"></span></a>
           <ul class="dropdown-menu" role="menu">
@@ -93,12 +144,12 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 		<table class="table table-hover">
 			<thead>
 				<tr>
-					<th><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Local Folders</a><span class="badge pull-right">3</span></th>
+					<th><a href="#" ng-click="pause('local_folder_queue')"><span ng-class="pause_class('local_folder_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Folders</a><span class="badge pull-right">{{ engine.queue.local_folder_queue }}</span></th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr>
-					<td>File</td>
+				<tr ng-repeat="item in engine.queue.local_folder">
+					<td>{{ item.name }}</td>
 				</tr>
 			</tbody>
 		</table>
@@ -107,12 +158,12 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 		<table class="table table-hover">
 			<thead>
 				<tr>
-					<th><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Local Files</a><span class="badge pull-right">18</span></th>
+					<th><a href="#" ng-click="pause('local_file_queue')"><span ng-class="pause_class('local_file_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Files</a><span class="badge pull-right">{{ engine.queue.local_file_queue }}</span></th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr>
-					<td>File</td>
+				<tr ng-repeat="item in engine.queue.local_file">
+					<td>{{ item.name }}</td>
 				</tr>
 			</tbody>
 		</table>
@@ -121,12 +172,12 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 		<table class="table table-hover">
 			<thead>
 				<tr>
-					<th><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Remote Folders</a><span class="badge pull-right">83</span></th>
+					<th><a href="#" ng-click="pause('remote_folder_queue')"><span ng-class="pause_class('remote_folder_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Folders</a><span class="badge pull-right">{{ engine.queue.remote_folder_queue }}</span></th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr>
-					<td>File</td>
+				<tr ng-repeat="item in engine.queue.remote_folder">
+					<td>{{ item.name }}</td>
 				</tr>
 			</tbody>
 		</table>
@@ -135,12 +186,12 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 		<table class="table table-hover">
 			<thead>
 				<tr>
-					<th><a href="#" ng-click="pauseResume()"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Remote Files</a><span class="badge pull-right">8</span></th>
+					<th><a href="#" ng-click="pause('remote_file_queue')"><span ng-class="pause_class('remote_file_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Files</a><span class="badge pull-right">{{ engine.queue.remote_file_queue }}</span></th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr>
-					<td>File</td>
+				<tr ng-repeat="item in engine.queue.remote_file">
+					<td>{{ item.name }}</td>
 				</tr>
 			</tbody>
 		</table>
@@ -166,19 +217,19 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 			<thead>
 				<tr>
 					<th>
-						<ul style="margin-bottom: 0px; padding-left: 0px;"><li style="list-style-type: none;" class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span class="glyphicon glyphicon-equalizer">&nbsp;</span>Metrics <span class="caret"></span></a>
+						<ul style="margin-bottom: 0px; padding-left: 0px;"><li style="list-style-type: none;" class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span class="glyphicon glyphicon-equalizer">&nbsp;</span>Metrics {{ metrics_name }}<span class="caret"></span></a>
 			          <ul class="dropdown-menu" role="menu">
-			            <li><a href="#">QueueManager</a></li>
-			            <li><a href="#">Engine</a></li>
-			            <li><a href="#">Thread-xxx</a></li>
+			            <li><a href="#" ng-click="setMetrics('QueueManager', engine.queue.metrics)">QueueManager</a></li>
+			            <li><a href="#" ng-click="setMetrics('Engine', engine.metrics)">Engine</a></li>
+			            <li ng-repeat="thread in engine.threads"><a href="#" ng-click="setMetrics(thread.name, thread.metrics)">{{ thread.name }}</a></li>
 			          </ul></li>
 			          </ul>
           			</th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr>
-					<td>metrics_a: 54</td>
+				<tr ng-repeat="(key, value) in metrics">
+					<td>{{ key }}: {{ value }}</td>
 				</tr>
 			</tbody>
 		</table>

@@ -29,7 +29,9 @@ class WebDriveApi(QtCore.QObject):
         result["uid"] = engine._uid
         result["type"] = engine._type
         result["name"] = engine._name
+        result["started"] = engine.is_started()
         result["syncing"] = engine.is_syncing()
+        result["paused"] = engine.is_pause()
         result["local_folder"] = engine._local_folder
         result["queue"] = engine.get_queue_manager().get_metrics()
         # TODO Make it more generic
@@ -43,6 +45,8 @@ class WebDriveApi(QtCore.QObject):
         return result
 
     def _export_state(self, state):
+        if state is None:
+            return None
         result = dict()
         result["name"] = state.local_name
         result["local_path"] = state.local_path
@@ -70,6 +74,8 @@ class WebDriveApi(QtCore.QObject):
             result["action"] = self._export_action(action)
         result["thread_id"] = worker._thread_id
         result["name"] = worker._name
+        result["paused"] = worker.is_pause()
+        result["started"] = worker.is_started()
         return result
 
     def _get_threads(self, engine):

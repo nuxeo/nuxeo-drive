@@ -28,7 +28,7 @@ class ThreadInterrupt(Exception):
 
 class Worker(QObject):
     _thread = None
-    _continue = True
+    _continue = False
     _action = None
     _name = None
     _thread_id = None
@@ -52,6 +52,12 @@ class Worker(QObject):
     @pyqtSlot()
     def quit(self):
         self._continue = False
+
+    def is_started(self):
+        return self._continue
+
+    def is_pause(self):
+        return self._pause
 
     def resume(self):
         self._pause = False
@@ -324,6 +330,9 @@ class Engine(QObject):
     def is_syncing(self):
         return self._sync_started
 
+    def is_pause(self):
+        return self._pause
+
     def resume(self):
         self._pause = False
         for thread in self._threads:
@@ -455,6 +464,9 @@ class Engine(QObject):
                 continue
             if thread.isFinished():
                 self._threads.remove(thread)
+
+    def is_started(self):
+        return not self._stopped
 
     def start(self):
         self._stopped = False

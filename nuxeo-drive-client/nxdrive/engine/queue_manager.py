@@ -77,7 +77,7 @@ class QueueManager(QObject):
             self.push(item)
 
     def _copy_queue(self, queue):
-        result = deepcopy(self._local_file_queue.queue)
+        result = deepcopy(queue.queue)
         result.reverse()
         return result
 
@@ -100,23 +100,31 @@ class QueueManager(QObject):
 
     def enable_local_file_queue(self, value=True):
         self._local_file_enable = value
-        if self._local_file_thread is not None:
+        if self._local_file_thread is not None and not value:
             self._local_file_thread.quit()
+        if value:
+            self.queueProcessing.emit()
 
     def enable_local_folder_queue(self, value=True):
         self._local_folder_enable = value
-        if self._local_folder_thread is not None:
+        if self._local_folder_thread is not None and not value:
             self._local_folder_thread.quit()
+        if value:
+            self.queueProcessing.emit()
 
     def enable_remote_file_queue(self, value=True):
         self._remote_file_enable = value
-        if self._remote_file_thread is not None:
+        if self._remote_file_thread is not None and not value:
             self._remote_file_thread.quit()
+        if value:
+            self.queueProcessing.emit()
 
     def enable_remote_folder_queue(self, value=True):
         self._remote_folder_enable = value
-        if self._remote_folder_thread is not None:
+        if self._remote_folder_thread is not None and not value:
             self._remote_folder_thread.quit()
+        if value:
+            self.queueProcessing.emit()
 
     def get_local_file_queue(self):
         return self._copy_queue(self._local_file_queue)
