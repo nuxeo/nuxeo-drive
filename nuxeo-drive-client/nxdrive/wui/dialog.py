@@ -31,7 +31,7 @@ class WebDriveApi(QtCore.QObject):
         result["name"] = engine._name
         result["started"] = engine.is_started()
         result["syncing"] = engine.is_syncing()
-        result["paused"] = engine.is_pause()
+        result["paused"] = engine.is_paused()
         result["local_folder"] = engine._local_folder
         result["queue"] = engine.get_queue_manager().get_metrics()
         # TODO Make it more generic
@@ -74,7 +74,7 @@ class WebDriveApi(QtCore.QObject):
             result["action"] = self._export_action(action)
         result["thread_id"] = worker._thread_id
         result["name"] = worker._name
-        result["paused"] = worker.is_pause()
+        result["paused"] = worker.is_paused()
         result["started"] = worker.is_started()
         return result
 

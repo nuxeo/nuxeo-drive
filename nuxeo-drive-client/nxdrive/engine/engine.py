@@ -56,7 +56,7 @@ class Worker(QObject):
     def is_started(self):
         return self._continue
 
-    def is_pause(self):
+    def is_paused(self):
         return self._pause
 
     def resume(self):
@@ -330,10 +330,14 @@ class Engine(QObject):
     def is_syncing(self):
         return self._sync_started
 
-    def is_pause(self):
+    def is_paused(self):
         return self._pause
 
     def resume(self):
+        # If stopped then start the engine
+        if self._stopped:
+            self.start()
+            return
         self._pause = False
         for thread in self._threads:
             if thread.isRunning():
@@ -493,9 +497,6 @@ class Engine(QObject):
         metrics["conflicted_files"] = self._dao.get_conflict_count()
         metrics["files_size"] = self._dao.get_global_size()
         return metrics
-
-    def is_paused(self):
-        return False
 
     def is_stopped(self):
         return self._stopped

@@ -5,12 +5,54 @@ from PyQt4 import QtCore
 from nxdrive.wui.dialog import WebDialog
 from nxdrive.wui.dialog import WebDriveApi
 from nxdrive.logging_config import get_logger
+from logging.handlers import BufferingHandler
+import logging
+import time
+from copy import deepcopy
 log = get_logger(__name__)
+genericLog = logging.getLogger()
+MAX_LOG_DISPLAYED = 100
+
+
+class CustomMemoryHandler(BufferingHandler):
+    def __init__(self, capacity=MAX_LOG_DISPLAYED):
+        super(CustomMemoryHandler, self).__init__(capacity)
+        self._old_buffer = None
+
+    def flush(self):
+        # Flush
+        self.acquire()
+        try:
+            self._old_buffer = deepcopy(self.buffer)
+            self.buffer = []
+        finally:
+            self.release()
+
+    def get_buffer(self, size):
+        adds = []
+        result = []
+        self.acquire()
+        try:
+            result = deepcopy(self.buffer)
+            result.reverse()
+            if len(result) < size and self._old_buffer is not None:
+                adds = deepcopy(self._old_buffer[(size-len(result)-1):])
+        finally:
+            self.release()
+        adds.reverse()
+        for record in adds:
+            result.append(record)
+        return result
 
 
 class DebugDriveApi(WebDriveApi):
     def __init__(self, dlg, application):
         super(DebugDriveApi, self).__init__(dlg, application)
+        self.logHandler = CustomMemoryHandler(MAX_LOG_DISPLAYED)
+        genericLog.addHandler(self.logHandler)
+
+    def __del__(self):
+        genericLog.removeHandler(self.logHandler)
 
     def _get_full_queue(self, queue, dao=None):
         result = []
@@ -36,7 +78,28 @@ class DebugDriveApi(WebDriveApi):
                         engine.get_queue_manager().get_local_file_queue(), engine.get_dao())
         result["local_watcher"] = self._export_worker(engine._local_watcher)
         result["remote_watcher"] = self._export_worker(engine._remote_watcher)
+        result["logs"] = self._get_logs()
         return result
+
+    def _export_log_record(self, record):
+        rec = dict()
+        rec["severity"] = record.levelname
+        rec["message"] = record.getMessage()
+        rec["thread"] = record.thread
+        rec["name"] = record.name
+        rec["funcName"] = record.funcName
+        rec["time"] = time.strftime("%H:%M:%S,",time.localtime(record.created)) + str(round(record.msecs))
+        return rec
+
+    def _get_logs(self, limit=MAX_LOG_DISPLAYED):
+        logs = []
+        buffer = self.logHandler.get_buffer(limit)
+        for record in buffer:
+            logs.append(self._export_log_record(record))
+            limit = limit - 1
+            if limit == 0:
+                return logs
+        return logs
 
     def _export_worker(self, worker):
         result = super(DebugDriveApi, self)._export_worker(worker)
@@ -44,6 +107,10 @@ class DebugDriveApi(WebDriveApi):
         if "action" in result["metrics"]:
             result["metrics"]["action"] = self._export_action(result["metrics"]["action"])
         return result
+
+    @QtCore.pyqtSlot(result=str)
+    def get_logs(self):
+        return str(self.logHandler.get_buffer())
 
     @QtCore.pyqtSlot(str, result=str)
     def get_engine(self, uid):

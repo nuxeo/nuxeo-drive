@@ -99,6 +99,17 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 	$scope.update = function() {
 		$scope.engine = angular.fromJson(drive.get_engine($scope.uid));
 	}
+	$scope.getLogClass = function (type) {
+		if (type == "CRITICAL" || type == "ERROR") {
+			return "danger";
+		} else if ( type == "WARNING") {
+			return "warning";
+		} else if ( type == "INFO") {
+			return "info";
+		} else {
+			return "";
+		}
+	}
 	$scope.setEngine = function(engine) {
 		$scope.uid = engine.uid;
 		$scope.update();
@@ -112,6 +123,26 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 	}
 })
 </script>
+<style>
+.queue-display {
+	max-height: 300px;
+	overflow: auto;
+	margin-top: -20px;
+}
+.queue-display tbody {
+	font-size: 10px;
+}
+
+.logs {
+	max-height: 450px;
+	overflow: auto;
+	margin-top: -20px;
+}
+
+.logs tbody {
+	font-size: 10px;
+}
+</style>
 </head>
 <body ng-app="DriveDebug" ng-controller="DriveDebugCtl">
 <nav class="navbar navbar-default navbar-fixed-top">
@@ -141,76 +172,99 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 <div class="container-fluid" style="padding-top: 80px;">
 	<div class="row">
 		<div class="col-xs-3">
-		<table class="table table-hover">
+			<table class="table table-hover table-condensed">
 			<thead>
 				<tr>
 					<th><a href="#" ng-click="pause('local_folder_queue')"><span ng-class="pause_class('local_folder_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Folders</a><span class="badge pull-right">{{ engine.queue.local_folder_queue }}</span></th>
 				</tr>
 			</thead>
-			<tbody>
-				<tr ng-repeat="item in engine.queue.local_folder">
-					<td>{{ item.name }}</td>
-				</tr>
-			</tbody>
-		</table>
+			</table>
+			<div class="queue-display">
+				<table class="table table-hover table-condensed">
+				<tbody>
+					<tr ng-repeat="item in engine.queue.local_folder">
+						<td>{{ item.name }}</td>
+					</tr>
+				</tbody>
+				</table>
+			</div>
 		</div>
 		<div class="col-xs-3">
-		<table class="table table-hover">
-			<thead>
-				<tr>
-					<th><a href="#" ng-click="pause('local_file_queue')"><span ng-class="pause_class('local_file_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Files</a><span class="badge pull-right">{{ engine.queue.local_file_queue }}</span></th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr ng-repeat="item in engine.queue.local_file">
-					<td>{{ item.name }}</td>
-				</tr>
-			</tbody>
-		</table>
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th><a href="#" ng-click="pause('local_file_queue')"><span ng-class="pause_class('local_file_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Files</a><span class="badge pull-right">{{ engine.queue.local_file_queue }}</span></th>
+					</tr>
+				</thead>
+			</table>
+			<div class="queue-display">
+			<table class="table table-hover table-condensed">
+				<tbody>
+					<tr ng-repeat="item in engine.queue.local_file">
+						<td>{{ item.name }}</td>
+					</tr>
+				</tbody>
+			</table>
+			</div>
 		</div>
 		<div class="col-xs-3">
-		<table class="table table-hover">
+			<table class="table table-hover">
 			<thead>
 				<tr>
 					<th><a href="#" ng-click="pause('remote_folder_queue')"><span ng-class="pause_class('remote_folder_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Folders</a><span class="badge pull-right">{{ engine.queue.remote_folder_queue }}</span></th>
 				</tr>
 			</thead>
-			<tbody>
-				<tr ng-repeat="item in engine.queue.remote_folder">
-					<td>{{ item.name }}</td>
-				</tr>
-			</tbody>
-		</table>
+			</table>
+			<div class="queue-display">
+				<table class="table table-hover table-condensed">
+				<tbody>
+					<tr ng-repeat="item in engine.queue.remote_folder">
+						<td>{{ item.name }}</td>
+					</tr>
+				</tbody>
+				</table>
+			</div>
 		</div>
 		<div class="col-xs-3">
-		<table class="table table-hover">
-			<thead>
-				<tr>
-					<th><a href="#" ng-click="pause('remote_file_queue')"><span ng-class="pause_class('remote_file_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Files</a><span class="badge pull-right">{{ engine.queue.remote_file_queue }}</span></th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr ng-repeat="item in engine.queue.remote_file">
-					<td>{{ item.name }}</td>
-				</tr>
-			</tbody>
-		</table>
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th><a href="#" ng-click="pause('remote_file_queue')"><span ng-class="pause_class('remote_file_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Files</a><span class="badge pull-right">{{ engine.queue.remote_file_queue }}</span></th>
+					</tr>
+				</thead>
+			</table>
+			<div class="queue-display">
+				<table class="table table-hover table-condensed">
+				<tbody>
+					<tr ng-repeat="item in engine.queue.remote_file">
+						<td>{{ item.name }}</td>
+					</tr>
+				</tbody>
+				</table>
+			</div>
 		</div>
 	</div>
 	<div class="row">
 		<div class="col-xs-6">
-		<table class="table table-hover">
+			<table class="table table-hover table-condensed">
 			<thead>
 				<tr>
-					<th><a href="#" ng-click="refreshLogs()"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;Logs</a></th>
+					<th colspan="2"><a href="#" ng-click="refreshLogs()"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;Logs</a></th>
 				</tr>
 			</thead>
-			<tbody>
-				<tr>
-					<td>line of logss.....</td>
-				</tr>
-			</tbody>
-		</table>
+			</table>
+			<div class="logs">
+				<table class="table table-hover table-condensed">
+				<tbody>
+					<tr ng-repeat="log in engine.logs" class="{{ getLogClass(log.severity) }}">
+						<td>{{ log.time }}</td>
+						<td>{{ log.thread }}</td>
+						<td>{{ log.message }}
+						<span class="pull-right" style="font-style: italic;margin-left: 40px;">{{ log.name }}</span></td>
+					</tr>
+				</tbody>
+				</table>
+			</div>
 		</div>
 		<div class="col-xs-6">
 		<table class="table table-hover">
