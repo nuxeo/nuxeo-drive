@@ -278,11 +278,12 @@ class IntegrationTestCase(unittest.TestCase):
         if not self.root_remote_client.is_event_log_id_available():
             time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
 
-    def setUpDrive_1(self, bind_root=True, firstSync=False):
+    def setUpDrive_1(self, bind_root=True, root=None, firstSync=False):
         # Bind the server and root workspace
         self.bind_server(self.ndrive_1, self.user_1, self.nuxeo_url, self.local_nxdrive_folder_1, self.password_1)
         if bind_root:
-            self.bind_root(self.ndrive_1, self.workspace, self.local_nxdrive_folder_1)
+            root_to_bind = root if root is not None else self.workspace
+            self.bind_root(self.ndrive_1, root_to_bind, self.local_nxdrive_folder_1)
         if firstSync:
             self.ndrive(self.ndrive_1)
 
@@ -290,9 +291,17 @@ class IntegrationTestCase(unittest.TestCase):
         cmdline = '%s bind-root "%s" --local-folder="%s"' % (ndrive_cmd, workspace, local_folder)
         execute(cmdline)
 
+    def unbind_root(self, ndrive_cmd, workspace, local_folder):
+        cmdline = '%s unbind-root "%s" --local-folder="%s"' % (ndrive_cmd, workspace, local_folder)
+        execute(cmdline)
+
     def bind_server(self, ndrive_cmd, user, server_url, local_folder, password):
         cmdline = '%s bind-server %s %s --local-folder="%s" --password=%s' % (
             ndrive_cmd, user, server_url, local_folder, password)
+        execute(cmdline)
+
+    def unbind_server(self, ndrive_cmd, local_folder):
+        cmdline = '%s unbind-server --local-folder="%s"' % (ndrive_cmd, local_folder)
         execute(cmdline)
 
     def ndrive(self, ndrive_cmd=None, quit_timeout=None):
