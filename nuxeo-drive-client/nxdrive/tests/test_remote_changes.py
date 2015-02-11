@@ -1,19 +1,19 @@
 from nxdrive.tests.common import IntegrationTestCase
 
 
-class TestIntegrationRemoteChanges(IntegrationTestCase):
+class TestRemoteChanges(IntegrationTestCase):
 
     def setUp(self):
-        super(TestIntegrationRemoteChanges, self).setUp()
+        super(TestRemoteChanges, self).setUp()
         self.last_sync_date = None
         self.last_event_log_id = None
         self.last_root_definitions = None
 
     def get_changes(self):
         remote_client = self.remote_file_system_client_1
-        # As self has the same attribute as a server_binding, fake
-        # server_binding
-        summary = remote_client.get_changes(self)
+        summary = remote_client.get_changes(self.last_root_definitions,
+                                            log_id=self.last_event_log_id,
+                                            last_sync_date=self.last_sync_date)
         self.last_sync_date = summary['syncDate']
         if remote_client.is_event_log_id_available():
             self.last_event_log_id = summary['upperBound']
@@ -61,10 +61,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         self.assertEquals(summary['fileSystemChanges'], [])
 
         # Let's register one of the previously created folders as sync root
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, folder_1)
+        self.setUpDrive_1(root=folder_1)
 
         self.wait_audit_change_finder_if_needed()
         self.wait()
@@ -81,7 +78,7 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         self.assertEquals(change['docUuid'], folder_1)
 
         # Let's register the second root
-        ctl.bind_root(self.local_nxdrive_folder_1, folder_2)
+        self.bind_root(self.ndrive_1, folder_2, self.local_nxdrive_folder_1)
 
         self.wait_audit_change_finder_if_needed()
         self.wait()
@@ -108,8 +105,8 @@ class TestIntegrationRemoteChanges(IntegrationTestCase):
         self.assertEquals(len(summary['fileSystemChanges']), 0)
 
         # Let's unregister both roots at the same time
-        ctl.unbind_root(self.local_nxdrive_folder_1, folder_1)
-        ctl.unbind_root(self.local_nxdrive_folder_1, folder_2)
+        self.unbind_root(self.ndrive_1, folder_1, self.local_nxdrive_folder_1)
+        self.unbind_root(self.ndrive_1, folder_2, self.local_nxdrive_folder_1)
 
         self.wait_audit_change_finder_if_needed()
         self.wait()

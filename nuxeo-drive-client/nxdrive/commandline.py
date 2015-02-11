@@ -655,7 +655,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_permission_hierarchy",
             "nxdrive.tests.test_integration_readonly",
             "nxdrive.tests.test_integration_reinit_database",
-            "nxdrive.tests.test_integration_remote_changes",
+            "nxdrive.tests.test_remote_changes",
             "nxdrive.tests.test_integration_remote_deleted_parent",
             "nxdrive.tests.test_integration_remote_deletion",
             "nxdrive.tests.test_remote_document_client",
