@@ -304,9 +304,12 @@ class IntegrationTestCase(unittest.TestCase):
         cmdline = '%s unbind-server --local-folder="%s"' % (ndrive_cmd, local_folder)
         execute(cmdline)
 
-    def ndrive(self, ndrive_cmd=None, quit_timeout=None):
+    def ndrive(self, ndrive_cmd=None, quit_if_done=True, quit_timeout=None):
         if ndrive_cmd is None:
             ndrive_cmd = self.ndrive_1
+        cmdline = ndrive_cmd + ' console'
+        if quit_if_done:
+            cmdline += ' --quit-if-done'
         quit_timeout = quit_timeout if quit_timeout is not None else self.TEST_DEFAULT_QUIT_TIMEOUT
-        cmdline = '%s console --quit-timeout=%d' % (ndrive_cmd, quit_timeout)
+        cmdline += ' --quit-timeout=%d' % quit_timeout
         execute(cmdline)

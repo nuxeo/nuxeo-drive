@@ -25,12 +25,15 @@ class ConsoleApplication(QCoreApplication):
         # Make sure manager is stopped before quitting
         self.aboutToQuit.connect(self.manager.stop)
 
+        self.quit_if_done = options.quit_if_done
+        if self.quit_if_done:
+            #  Connect engines to a signal allowing to quit application if synchronization is over
+            self.manager.aboutToStart.connect(self.connect_engine_quit)
+
         self.quit_timeout = options.quit_timeout
         if self.quit_timeout >= 0:
-            # If a quit timeout is passed start a timer and connect engines to a signal allowing to
-            # quit application if synchronization is over
+            # If a quit timeout is passed start a timer
             self.quit_timer = QtCore.QTimer().singleShot(1000 * self.quit_timeout, self.quit_after_timeout)
-            self.manager.aboutToStart.connect(self.connect_engine_quit)
 
         log.info('Starting console mode application')
         self.manager.start()
@@ -44,11 +47,14 @@ class ConsoleApplication(QCoreApplication):
         self.sender().stop()
         if self.manager.is_syncing():
             return
-        log.debug("All engines completed synchronization before maximum uptime expiration [%ds]",
-                  self.quit_timeout)
+        log.debug("All engines completed synchronization")
         self.quit()
 
     @QtCore.pyqtSlot()
     def quit_after_timeout(self):
-        log.error("Maximum uptime [%ds] expired before all engines completed synchronization", self.quit_timeout)
-        self.exit(1)
+        if self.quit_if_done:
+            log.error("Maximum uptime [%ds] expired before all engines completed synchronization", self.quit_timeout)
+            self.exit(1)
+        else:
+            log.info("Maximum uptime [%ds] expired", self.quit_timeout)
+            self.quit()

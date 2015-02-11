@@ -268,6 +268,10 @@ class CliHandler(object):
         )
         console_parser.set_defaults(command='console')
         console_parser.add_argument(
+            "--quit-if-done", default=False, action="store_true",
+            help="Quit if synchronization is completed."
+        )
+        console_parser.add_argument(
             "--quit-timeout", default=DEFAULT_QUIT_TIMEOUT, type=int,
             help="Maximum uptime in seconds before quitting."
         )
