@@ -8,7 +8,7 @@ from nxdrive.logging_config import get_logger
 from logging.handlers import BufferingHandler
 import logging
 import time
-from copy import deepcopy
+from copy import copy
 log = get_logger(__name__)
 genericLog = logging.getLogger()
 MAX_LOG_DISPLAYED = 100
@@ -23,7 +23,7 @@ class CustomMemoryHandler(BufferingHandler):
         # Flush
         self.acquire()
         try:
-            self._old_buffer = deepcopy(self.buffer)
+            self._old_buffer = copy(self.buffer)
             self.buffer = []
         finally:
             self.release()
@@ -33,10 +33,10 @@ class CustomMemoryHandler(BufferingHandler):
         result = []
         self.acquire()
         try:
-            result = deepcopy(self.buffer)
+            result = copy(self.buffer)
             result.reverse()
             if len(result) < size and self._old_buffer is not None:
-                adds = deepcopy(self._old_buffer[(size-len(result)-1):])
+                adds = copy(self._old_buffer[(size-len(result)-1):])
         finally:
             self.release()
         adds.reverse()
@@ -78,7 +78,11 @@ class DebugDriveApi(WebDriveApi):
                         engine.get_queue_manager().get_local_file_queue(), engine.get_dao())
         result["local_watcher"] = self._export_worker(engine._local_watcher)
         result["remote_watcher"] = self._export_worker(engine._remote_watcher)
-        result["logs"] = self._get_logs()
+        try:
+            result["logs"] = self._get_logs()
+        except:
+            # Dont fail on logs extraction
+            result["logs"] = []
         return result
 
     def _export_log_record(self, record):
