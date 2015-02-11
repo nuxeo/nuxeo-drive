@@ -22,6 +22,7 @@ class ConsoleApplication(QCoreApplication):
             from nxdrive.engine.engine import EngineLogger
             self.engineLogger = EngineLogger(self.mainEngine)
 
+        # Make sure manager is stopped before quitting
         self.aboutToQuit.connect(self.manager.stop)
 
         self.quit_timeout = options.quit_timeout

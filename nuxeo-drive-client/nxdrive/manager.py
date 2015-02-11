@@ -232,8 +232,9 @@ class Manager(QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug("Stop engine %s", uid)
-            engine.stop()
+            if engine.is_started():
+                log.debug("Stop engine %s", uid)
+                engine.stop()
         self.stopped.emit()
 
     def start(self, euid=None):
