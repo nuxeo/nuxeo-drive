@@ -13,8 +13,8 @@ class TestWatchers(UnitTestCase):
         self._interact(1)
         metrics = self.queue_manager_1.get_metrics()
         # Only one file is in the root
-        self.assertEquals(metrics["total_queue"], folders)
-        self.assertEquals(metrics["local_folder_queue"], folders)
+        self.assertEquals(metrics["total_queue"], 1)
+        self.assertEquals(metrics["local_folder_queue"], 1)
         self.assertEquals(metrics["local_file_queue"], 0)
         self.assertEquals(metrics["remote_file_queue"], 0)
         self.assertEquals(metrics["remote_folder_queue"], 0)
@@ -30,8 +30,8 @@ class TestWatchers(UnitTestCase):
         self._interact(10)
         metrics = self.queue_manager_1.get_metrics()
         # Remote as one more file
-        self.assertEquals(metrics["total_queue"], folders + 1)
-        self.assertEquals(metrics["local_folder_queue"], folders)
+        self.assertEquals(metrics["total_queue"], 2)
+        self.assertEquals(metrics["local_folder_queue"], 1)
         self.assertEquals(metrics["local_file_queue"], 0)
         self.assertEquals(metrics["remote_file_queue"], 1)
         self.assertEquals(metrics["remote_folder_queue"], 0)
@@ -53,8 +53,8 @@ class TestWatchers(UnitTestCase):
         self._interact(10)
         # Metrics should be the same as the local scan
         metrics = self.queue_manager_1.get_metrics()
-        self.assertEquals(metrics["total_queue"], folders)
-        self.assertEquals(metrics["remote_folder_queue"], folders)
+        self.assertEquals(metrics["total_queue"], 1)
+        self.assertEquals(metrics["remote_folder_queue"], 1)
         self.assertEquals(metrics["remote_file_queue"], 0)
         self.assertEquals(metrics["local_file_queue"], 0)
         self.assertEquals(metrics["local_folder_queue"], 0)
@@ -76,11 +76,14 @@ class TestWatchers(UnitTestCase):
         files, folders = self.make_local_tree()
         self._interact(1)
         metrics = self.queue_manager_1.get_metrics()
-        self.assertEquals(metrics["total_queue"], folders + files)
-        self.assertEquals(metrics["local_folder_queue"], folders)
-        self.assertEquals(metrics["local_file_queue"], files)
+        self.assertEquals(metrics["total_queue"], 1)
+        self.assertEquals(metrics["local_folder_queue"], 1)
+        self.assertEquals(metrics["local_file_queue"], 0)
         self.assertEquals(metrics["remote_file_queue"], 0)
         self.assertEquals(metrics["remote_folder_queue"], 0)
+        res = self.engine_1.get_dao().get_states_from_partial_local('/')
+        # With root
+        self.assertEquals(len(res), folders + files + 1)
 
     def _delete_folder_1(self):
         path = '/' + self.workspace_title + '/Folder 1'

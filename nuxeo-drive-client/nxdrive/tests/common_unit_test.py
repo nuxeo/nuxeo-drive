@@ -91,7 +91,7 @@ class UnitTestCase(unittest.TestCase):
         # and echo_pool to True to enable connection pool logging
         from mock import Mock
         options = Mock()
-        options.nxdrive_home = "/tmp/nuxeo-drive-test"
+        self.static_drive_home = options.nxdrive_home = "/tmp/nuxeo-drive-test"
         if not os.path.exists(options.nxdrive_home):
             os.mkdir(options.nxdrive_home)
         self.manager = Manager(options)
@@ -182,6 +182,12 @@ class UnitTestCase(unittest.TestCase):
         if os.path.exists(self.local_test_folder_2):
             try:
                 shutil.rmtree(safe_long_path(self.local_test_folder_2))
+            except:
+                pass
+
+        if os.path.exists(self.static_drive_home):
+            try:
+                shutil.rmtree(safe_long_path(self.static_drive_home))
             except:
                 pass
         Manager._singleton = None
