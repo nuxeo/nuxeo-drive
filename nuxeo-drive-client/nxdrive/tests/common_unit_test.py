@@ -9,9 +9,13 @@ import time
 from nxdrive.utils import safe_long_path
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
+from nxdrive.client import LocalClient
 from nxdrive.manager import Manager
 from nxdrive.logging_config import configure
+from nxdrive.logging_config import get_logger
 from PyQt4 import QtCore
+from threading import Thread
+from time import sleep
 
 def configure_logger():
     configure(
@@ -23,6 +27,24 @@ def configure_logger():
 
 # Configure test logger
 configure_logger()
+log = get_logger(__name__)
+
+class TestThread(QtCore.QThread):
+    def __init__(self, method, method_arg):
+        super(TestThread, self).__init__()
+        self._method = method
+        self._method_arg = method_arg
+
+    def run(self):
+        self._method(self._method_arg)
+
+
+class TestQApplication(QtCore.QCoreApplication):
+
+    def __init__(self, argv, method, method_arg):
+        super(TestQApplication, self).__init__(argv)
+        self._test_thread = TestThread(method, method_arg)
+        self._test_thread.start()
 
 
 class UnitTestCase(unittest.TestCase):
@@ -53,8 +75,7 @@ class UnitTestCase(unittest.TestCase):
     # Nuxeo max length for document name
     DOC_NAME_MAX_LENGTH = 24
 
-    def setUp(self):
-        self.app = QtCore.QCoreApplication([])
+    def setUpApp(self):
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
@@ -91,6 +112,7 @@ class UnitTestCase(unittest.TestCase):
         # and echo_pool to True to enable connection pool logging
         from mock import Mock
         options = Mock()
+        options.delay = 3
         self.static_drive_home = options.nxdrive_home = "/tmp/nuxeo-drive-test"
         if not os.path.exists(options.nxdrive_home):
             os.mkdir(options.nxdrive_home)
@@ -116,16 +138,20 @@ class UnitTestCase(unittest.TestCase):
         self.user_2, self.password_2 = credentials[1]
         self.engine_1 = self.manager.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1, self.password_1, start_engine=False)
         self.engine_2 = self.manager.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2, self.password_2, start_engine=False)
-
+        self.engine_1.syncCompleted.connect(self.sync_completed)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
-
-        self.local_client_1 = self.engine_1.get_local_client()
-        self.local_client_2 = self.engine_2.get_local_client()
 
         ws_info = root_remote_client.fetch(self.TEST_WORKSPACE_PATH)
         self.workspace = ws_info[u'uid']
         self.workspace_title = ws_info[u'title']
+
+        self.local_root_client_1 = self.engine_1.get_local_client()
+        self.local_root_client_2 = self.engine_2.get_local_client()
+        self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1,
+                                         self.workspace_title))
+        self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2,
+                                         self.workspace_title))
 
         # Document client to be used to create remote test documents
         # and folders
@@ -162,6 +188,35 @@ class UnitTestCase(unittest.TestCase):
         self.remote_document_client_2 = remote_document_client_2
         self.remote_file_system_client_1 = remote_file_system_client_1
         self.remote_file_system_client_2 = remote_file_system_client_2
+
+    def sync_completed(self):
+        log.debug("Sync completed")
+        self._wait_sync = False
+
+    def wait_sync(self, timeout=10):
+        log.debug("Wait for sync")
+        self._wait_sync = True
+        while timeout > 0:
+            sleep(1)
+            if not self._wait_sync:
+                return
+            timeout = timeout - 1
+        log.debug("Wait for sync timeout")
+
+    def _run(self, result=None):
+        self.setUpApp()
+
+    def run(self, result=None):
+        self.app = QtCore.QCoreApplication([])
+        self.setUpApp()
+        # TODO Should use a specific application
+        def launch_test():
+            sleep(1)
+            super(UnitTestCase, self).run(result)
+            self.app.quit()
+        sync_thread = Thread(target=launch_test)
+        sync_thread.start()
+        self.app.exec_()
 
     def tearDown(self):
         # Unbind all
@@ -202,7 +257,7 @@ class UnitTestCase(unittest.TestCase):
 
     def make_local_tree(self, root=None, local_client=None):
         if local_client is None:
-            local_client = self.local_client_1
+            local_client = self.local_root_client_1
         if root is None:
             root = u"/" + self.workspace_title
             if not local_client.exists(root):
