@@ -462,7 +462,8 @@ class Manager(QObject):
         # TODO Check that engine is not inside another or same position
         engine_def = self._dao.add_engine(engine_type, local_folder, uid, name)
         try:
-            self._engines[uid] = self._engine_types[engine_type](self, engine_def, binder=binder)
+            self._engines[uid] = self._engine_types[engine_type](self, engine_def, binder=binder,
+                                                                 remote_watcher_delay=self.remote_watcher_delay)
             self._engine_definitions.append(engine_def)
         except Exception as e:
             log.exception(e)

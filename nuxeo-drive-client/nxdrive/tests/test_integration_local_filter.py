@@ -1,14 +1,11 @@
 import os
 from nose.plugins.skip import SkipTest
 from nxdrive.tests.common_unit_test import UnitTestCase
-from nxdrive.client import LocalClient
-from nxdrive.engine.dao.model import Filter
 
 
 class TestIntegrationLocalFilter(UnitTestCase):
 
     def test_synchronize_local_filter(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that filtering remote documents is impacted client side
 
         Just do a single test as it is the same as
@@ -29,7 +26,6 @@ class TestIntegrationLocalFilter(UnitTestCase):
         """
         # Bind the server and root workspace
         self.engine_1.start()
-        self._interact(1)
         # Get local and remote clients
         local = self.local_client_1
         remote = self.remote_document_client_1
@@ -38,9 +34,8 @@ class TestIntegrationLocalFilter(UnitTestCase):
         # then synchronize
         remote.make_folder('/', 'Test folder')
         remote.make_file('/Test folder', 'joe.txt', 'Some content')
-
+        self.wait_sync()
         # Fake server binding with the unit test class
-        self._interact(3)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
@@ -52,7 +47,7 @@ class TestIntegrationLocalFilter(UnitTestCase):
                     + doc.uid)
 
         self.engine_1.add_filter(doc_path)
-        self._interact(3)
+        self.wait_sync()
         self.assertFalse(local.exists('/Test folder'))
 
         # Restore folder from trash then synchronize
@@ -60,25 +55,23 @@ class TestIntegrationLocalFilter(UnitTestCase):
         # doesn't act recursively, should use TrashService instead
         # through a dedicated operation
         self.engine_1.remove_filter(doc_path)
-        self._interact(1)
-
+        self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
         # Delete sync root then synchronize
         self.engine_1.add_filter(root_path)
-        self._interact(1)
+        self.wait_sync()
         self.assertFalse(local.exists('/'))
 
         # Restore sync root from trash then synchronize
         self.engine_1.remove_filter(root_path)
-        self._interact(1)
+        self.wait_sync()
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
     def test_synchronize_local_filter_with_move(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Bind the server and root workspace
         self.engine_1.start()
         # Get local and remote clients
@@ -98,7 +91,7 @@ class TestIntegrationLocalFilter(UnitTestCase):
                                                     'Some qwqwqontent')
 
         # Fake server binding with the unit test class
-        self._interact(3)
+        self.wait_sync()
         self.assertTrue(local.exists('/Test'))
         self.assertTrue(local.exists('/Test/joe.txt'))
         self.assertTrue(local.exists('/Test/Filtered'))
@@ -119,12 +112,12 @@ class TestIntegrationLocalFilter(UnitTestCase):
                 "/defaultFileSystemItemFactory#default#" + filtered_doc.uid)
 
         self.engine_1.add_filter(doc_path_filtered)
-        self._interact(1)
+        self.wait_sync()
         self.assertFalse(local.exists('/Test/Filtered'))
 
         # Move joe.txt to filtered folder on the server
         remote.move(doc_file.uid, filtered_doc.uid)
-        self._interact(1)
+        self.wait_sync()
 
         # It now delete on the client
         self.assertFalse(local.exists('/Test/joe.txt'))
@@ -137,7 +130,7 @@ class TestIntegrationLocalFilter(UnitTestCase):
         # Now move the subfolder
         doc_file = remote.get_info('/Test/Subfolder')
         remote.move(doc_file.uid, filtered_doc.uid)
-        self._interact(1)
+        self.wait_sync()
 
         # Check that all has been deleted
         self.assertFalse(local.exists('/Test/joe.txt'))
@@ -148,10 +141,9 @@ class TestIntegrationLocalFilter(UnitTestCase):
         self.assertFalse(local.exists('/Test/Subfolder/SubSubfolder/joe4.txt'))
 
     def test_synchronize_local_filter_with_remote_trash(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Bind the server and root workspace
         self.engine_1.start()
-        self._interact(1)
+        self.wait_sync()
 
         # Get local and remote clients
         local = self.local_client_1
@@ -162,7 +154,7 @@ class TestIntegrationLocalFilter(UnitTestCase):
         remote.make_folder('/', 'Test')
         remote.make_file('/Test', 'joe.txt', 'Some content')
 
-        self._interact(1)
+        self.wait_sync()
         self.assertTrue(local.exists('/Test'))
         self.assertTrue(local.exists('/Test/joe.txt'))
 
@@ -174,12 +166,12 @@ class TestIntegrationLocalFilter(UnitTestCase):
                     + doc.uid)
 
         self.engine_1.add_filter(doc_path)
-        self._interact(1)
+        self.wait_sync()
         self.assertFalse(local.exists('/Test'))
 
         # Delete remote folder then synchronize
         remote.delete('/Test')
-        self._interact(1)
+        self.wait_sync()
         self.assertFalse(local.exists('/Test'))
 
         # Restore folder from trash then synchronize
@@ -189,5 +181,5 @@ class TestIntegrationLocalFilter(UnitTestCase):
         remote.undelete('/Test')
         remote.undelete('/Test/joe.txt')
         # NXDRIVE-xx check that the folder is not created as it is filtered
-        self._interact(1)
+        self.wait_sync()
         self.assertFalse(local.exists('/Test'))

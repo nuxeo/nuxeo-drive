@@ -608,13 +608,14 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
         return row_id
 
-    def queue_file_children(self, row):
+    def queue_children(self, row):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
             children = c.execute("SELECT * FROM States WHERE local_parent_path=? AND " +
                                     self._get_to_sync_condition(), (row.local_path, )).fetchall()
+            log.debug("Queuing %d children of '%s'", len(children), row.local_path)
             for child in children:
                 self._queue_pair_state(child.id, child.folderish, child.pair_state)
         finally:

@@ -429,7 +429,7 @@ class Processor(Worker):
         self._handle_readonly(local_client, doc_pair)
         self._refresh_local_state(doc_pair, local_client.get_info(path))
         if doc_pair.folderish:
-            self._dao.queue_file_children(doc_pair)
+            self._dao.queue_children(doc_pair)
         if not self._dao.synchronize_state(doc_pair, doc_pair.version):
             log.debug("Pair is not in synchronized state (version issue): %r", doc_pair)
 

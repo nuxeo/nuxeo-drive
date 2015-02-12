@@ -179,7 +179,8 @@ class RemoteWatcher(Worker):
         # Delete remaining
         for deleted in children.values():
             # TODO Should be DAO
-            self._mark_deleted_remote_recursive(deleted)
+            #self._dao.mark_descendants_remotely_deleted(deleted)
+            self._dao.delete_remote_state(deleted)
 
         for folder in to_scan:
             # TODO Optimize by multithreading this too ?
@@ -340,9 +341,13 @@ class RemoteWatcher(Worker):
                             log.debug("Refreshing remote state info"
                                       " for doc_pair '%s'", doc_pair_repr)
                             eventId = change.get('eventId')
+                            remote_parent_path = doc_pair.remote_parent_path
                             if (new_info.digest != doc_pair.local_digest or
-                                 safe_filename(new_info.name) != doc_pair.local_name):
+                                 safe_filename(new_info.name) != doc_pair.local_name
+                                 or new_info.parent_uid != doc_pair.remote_parent_ref):
                                 doc_pair.remote_state = 'modified'
+                                remote_parent_path = os.path.dirname(new_info.path)
+                            self._dao.update_remote_state(doc_pair, new_info, remote_parent_path)
                             self._scan_remote_recursive(
                                 doc_pair, consistent_new_info,
                                 force_recursion=(eventId == "securityUpdated"))
