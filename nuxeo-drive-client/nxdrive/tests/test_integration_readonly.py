@@ -8,21 +8,22 @@ from nose.plugins.skip import SkipTest
 
 class TestIntegrationReadOnly(IntegrationTestCase):
 
-    def setUp(self):
-        super(TestIntegrationReadOnly, self).setUp()
-
-        self.sb_1 = self.controller_1.bind_server(
-            self.local_nxdrive_folder_1,
-            self.nuxeo_url, self.user_1, self.password_1)
-
-        self.controller_1.bind_root(self.local_nxdrive_folder_1,
-            self.workspace)
-
-        self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
-
-        self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
-                                       self.workspace_title)
-        self.local_client_1 = LocalClient(self.sync_root_folder_1)
+# WIP in https://jira.nuxeo.com/browse/NXDRIVE-170
+#     def setUp(self):
+#         super(TestIntegrationReadOnly, self).setUp()
+# 
+#         self.sb_1 = self.controller_1.bind_server(
+#             self.local_nxdrive_folder_1,
+#             self.nuxeo_url, self.user_1, self.password_1)
+# 
+#         self.controller_1.bind_root(self.local_nxdrive_folder_1,
+#             self.workspace)
+# 
+#         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
+# 
+#         self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
+#                                        self.workspace_title)
+#         self.local_client_1 = LocalClient(self.sync_root_folder_1)
 
     def _set_readonly_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
@@ -41,6 +42,7 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                 grant="true")
 
     def test_rename_readonly_file(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace
@@ -105,6 +107,7 @@ class TestIntegrationReadOnly(IntegrationTestCase):
         return True
 
     def test_readonly_user_access(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         if os.sys.platform == 'win32':
             raise SkipTest('Readonly folder let new file creation')
         # Should not be able to create content in root folder
@@ -124,6 +127,7 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                         "Should be able to create in SYNCROOT folder")
 
     def test_file_readonly_change(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         if os.sys.platform == 'win32':
             raise SkipTest('Readonly folder let new file creation')
         local = self.local_client_1

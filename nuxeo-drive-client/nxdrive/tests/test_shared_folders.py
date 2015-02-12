@@ -1,11 +1,13 @@
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import LocalClient
+from nose.plugins.skip import SkipTest
 
 
 class TestSharedFolders(IntegrationTestCase):
 
     def test_move_sync_root_child_to_user_workspace(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """See https://jira.nuxeo.com/browse/NXP-14870"""
 
         admin_remote_client = self.root_remote_client

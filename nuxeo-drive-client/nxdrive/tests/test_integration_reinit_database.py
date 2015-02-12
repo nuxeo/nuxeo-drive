@@ -1,6 +1,7 @@
 import os
 import time
 import shutil
+from nose.plugins.skip import SkipTest
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.engine.controller import Controller
@@ -9,31 +10,33 @@ from nxdrive.engine.dao.model import LastKnownState
 
 class TestIntegrationReinitDatabase(IntegrationTestCase):
 
-    def setUp(self):
-        super(TestIntegrationReinitDatabase, self).setUp()
-        self.syn, self.local, self.remote = self.init_default_drive(local_user=1, remote_user=2)
-        self.ctl = self.controller_1
-        # Make a folder and a file
-        self.remote.make_folder('/', 'Test folder')
-        self.remote.make_file('/Test folder', 'Test.txt',
-                              'This is some content')
-        self.test_remote_folder_id = self.remote.get_info('/Test folder').uid
-        # Wait for synchro
-        self._synchronize()
-        # Verify that all is synchronize
-        self.assertTrue(self.local.exists('/Test folder'),
-                        'Local folder should exist')
-        self.assertTrue(self.local.exists('/Test folder/Test.txt'),
-                        'Local file should exist')
-        # Destroy database
-        self._reinit_database()
+# WIP in https://jira.nuxeo.com/browse/NXDRIVE-170
+#     def setUp(self):
+#         super(TestIntegrationReinitDatabase, self).setUp()
+#         self.syn, self.local, self.remote = self.init_default_drive(local_user=1, remote_user=2)
+#         self.ctl = self.controller_1
+#         # Make a folder and a file
+#         self.remote.make_folder('/', 'Test folder')
+#         self.remote.make_file('/Test folder', 'Test.txt',
+#                               'This is some content')
+#         self.test_remote_folder_id = self.remote.get_info('/Test folder').uid
+#         # Wait for synchro
+#         self._synchronize()
+#         # Verify that all is synchronize
+#         self.assertTrue(self.local.exists('/Test folder'),
+#                         'Local folder should exist')
+#         self.assertTrue(self.local.exists('/Test folder/Test.txt'),
+#                         'Local file should exist')
+#         # Destroy database
+#         self._reinit_database()
 
-    def tearDown(self):
-        # Dispose dedicated Controller instantiated for this test
-        # in _reinit_database()
-        self.ctl.dispose()
-
-        super(TestIntegrationReinitDatabase, self).tearDown()
+# WIP in https://jira.nuxeo.com/browse/NXDRIVE-170
+#     def tearDown(self):
+#         # Dispose dedicated Controller instantiated for this test
+#         # in _reinit_database()
+#         self.ctl.dispose()
+# 
+#         super(TestIntegrationReinitDatabase, self).tearDown()
 
     def _check_states(self):
         rows = self.controller_1.get_session().query(LastKnownState).all()
@@ -72,12 +75,14 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
                                             types=('File', 'Note'))), 2)
 
     def test_synchronize_folderish_and_same_digest(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Reload sync
         self._synchronize()
         # Check everything is synchronized
         self._check_states()
 
     def test_synchronize_remote_change(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Modify the remote file
         self.remote.update_content('/Test folder/Test.txt',
                                    'Content has changed')
@@ -97,6 +102,7 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
         self._check_states()
 
     def test_synchronize_local_change(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Modify the local file
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         self.local.update_content('/Test folder/Test.txt',
@@ -121,6 +127,7 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
         self._check_states()
 
     def test_synchronize_remote_and_local_change(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Modify the remote file
         self.remote.update_content('/Test folder/Test.txt',
                                    'Content has remote changed')

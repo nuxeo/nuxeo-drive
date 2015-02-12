@@ -17,6 +17,7 @@ class TestConflicts(IntegrationTestCase):
         self.file_id = self.remote_file_system_client_1.make_file(self.workspace_id, 'test.txt', 'Some content')
 
     def test_self_conflict(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         ctl = self.controller_1
         sb = ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
@@ -66,6 +67,7 @@ class TestConflicts(IntegrationTestCase):
         self.assertEquals(remote.get_content(remote_children[0].uid), 'Local update 2')
 
     def test_real_conflict(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)

@@ -20,57 +20,59 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
     #    |       |-- Original File 1.1.txt
     #    |-- Original Folder 2
     #    |       |-- Original File 3.txt
-    def setUp(self):
-        super(TestIntegrationRemoteMoveAndRename, self).setUp()
-
-        self.sb_1 = self.controller_1.bind_server(
-            self.local_nxdrive_folder_1,
-            self.nuxeo_url, self.user_1, self.password_1)
-
-        self.controller_1.bind_root(self.local_nxdrive_folder_1,
-            self.workspace)
-
-        self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
-
-        self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
-                                       self.workspace_title)
-        self.local_client_1 = LocalClient(self.sync_root_folder_1)
-        self.remote_client_1 = self.remote_file_system_client_1
-
-        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
-                            + self.workspace)
-        self.workspace_pair_local_path = u'/' + self.workspace_title
-
-        self.file_1_id = self.remote_client_1.make_file(self.workspace_id,
-            u'Original File 1.txt',
-            content=u'Some Content 1'.encode('utf-8'))
-
-        self.file_2_id = self.remote_client_1.make_file(self.workspace_id,
-            u'Original File 2.txt',
-            content=u'Some Content 2'.encode('utf-8'))
-
-        self.folder_1_id = self.remote_client_1.make_folder(self.workspace_id,
-            u'Original Folder 1')
-        self.folder_1_1_id = self.remote_client_1.make_folder(
-            self.folder_1_id, u'Sub-Folder 1.1')
-        self.folder_1_2_id = self.remote_client_1.make_folder(
-            self.folder_1_id, u'Sub-Folder 1.2')
-        self.file_1_1_id = self.remote_client_1.make_file(
-            self.folder_1_id,
-            u'Original File 1.1.txt',
-            content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
-
-        self.folder_2_id = self.remote_client_1.make_folder(self.workspace_id,
-            'Original Folder 2')
-        self.file_3_id = self.remote_client_1.make_file(self.folder_2_id,
-            u'Original File 3.txt',
-            content=u'Some Content 3'.encode('utf-8'))
-
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
-        self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
+# WIP in https://jira.nuxeo.com/browse/NXDRIVE-170
+#     def setUp(self):
+#         super(TestIntegrationRemoteMoveAndRename, self).setUp()
+# 
+#         self.sb_1 = self.controller_1.bind_server(
+#             self.local_nxdrive_folder_1,
+#             self.nuxeo_url, self.user_1, self.password_1)
+# 
+#         self.controller_1.bind_root(self.local_nxdrive_folder_1,
+#             self.workspace)
+# 
+#         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
+# 
+#         self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
+#                                        self.workspace_title)
+#         self.local_client_1 = LocalClient(self.sync_root_folder_1)
+#         self.remote_client_1 = self.remote_file_system_client_1
+# 
+#         self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
+#                             + self.workspace)
+#         self.workspace_pair_local_path = u'/' + self.workspace_title
+# 
+#         self.file_1_id = self.remote_client_1.make_file(self.workspace_id,
+#             u'Original File 1.txt',
+#             content=u'Some Content 1'.encode('utf-8'))
+# 
+#         self.file_2_id = self.remote_client_1.make_file(self.workspace_id,
+#             u'Original File 2.txt',
+#             content=u'Some Content 2'.encode('utf-8'))
+# 
+#         self.folder_1_id = self.remote_client_1.make_folder(self.workspace_id,
+#             u'Original Folder 1')
+#         self.folder_1_1_id = self.remote_client_1.make_folder(
+#             self.folder_1_id, u'Sub-Folder 1.1')
+#         self.folder_1_2_id = self.remote_client_1.make_folder(
+#             self.folder_1_id, u'Sub-Folder 1.2')
+#         self.file_1_1_id = self.remote_client_1.make_file(
+#             self.folder_1_id,
+#             u'Original File 1.1.txt',
+#             content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
+# 
+#         self.folder_2_id = self.remote_client_1.make_folder(self.workspace_id,
+#             'Original Folder 2')
+#         self.file_3_id = self.remote_client_1.make_file(self.folder_2_id,
+#             u'Original File 3.txt',
+#             content=u'Some Content 3'.encode('utf-8'))
+# 
+#         self.wait_audit_change_finder_if_needed()
+#         self.wait()
+#         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
 
     def test_remote_rename_file(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = self.local_client_1
@@ -162,6 +164,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_remote_rename_update_content_file(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = self.local_client_1
@@ -191,6 +194,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_remote_move_file(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = self.local_client_1
@@ -235,6 +239,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_remote_move_and_rename_file(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = self.local_client_1
@@ -280,6 +285,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_remote_rename_folder(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = self.local_client_1
@@ -359,6 +365,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertTrue(local_client.exists('/Original Folder 1'))
 
     def test_remote_move_folder(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = self.local_client_1
@@ -442,6 +449,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_concurrent_remote_rename_folder(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = self.local_client_1
@@ -500,6 +508,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_remote_rename_sync_root_folder(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         sb, ctl = self.sb_1, self.controller_1
         remote_client = self.remote_client_1
         local_client = LocalClient(self.local_nxdrive_folder_1)
@@ -596,6 +605,7 @@ class TestIntegrationRemoteMoveAndRename(IntegrationTestCase):
         self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_remote_move_to_non_sync_root(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         sb, ctl = self.sb_1, self.controller_1
         session = ctl.get_session()
 

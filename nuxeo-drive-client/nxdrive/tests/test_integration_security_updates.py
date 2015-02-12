@@ -1,5 +1,6 @@
 import os
 import time
+from nose.plugins.skip import SkipTest
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -9,6 +10,7 @@ from nxdrive.engine.dao.model import LastKnownState
 class TestIntegrationSecurityUpdates(IntegrationTestCase):
 
     def test_synchronize_denying_read_access(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that denying Read access server side is impacted client side
 
         Use cases:
@@ -79,6 +81,7 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
     def test_synchronize_denying_read_access_local_modification(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test denying Read access with concurrent local modification
 
         Use cases:

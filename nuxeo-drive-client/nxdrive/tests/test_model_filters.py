@@ -5,11 +5,13 @@ Created on 20 mai 2014
 '''
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.engine.dao.model import Filter, ServerBinding
+from nose.plugins.skip import SkipTest
 
 
 class TestModelFilter(IntegrationTestCase):
 
     def testSimpleFilter(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         session = self.controller_1.get_session()
         server_binding = ServerBinding(self.local_test_folder_1,
                                        self.nuxeo_url, self.admin_user)

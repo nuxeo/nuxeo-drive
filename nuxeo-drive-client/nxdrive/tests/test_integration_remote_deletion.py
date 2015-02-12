@@ -10,6 +10,7 @@ from nose.plugins.skip import SkipTest
 class TestIntegrationRemoteDeletion(IntegrationTestCase):
 
     def test_synchronize_remote_deletion(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that deleting remote documents is impacted client side
 
         Use cases:
@@ -76,6 +77,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
     def test_synchronize_remote_deletion_local_modification(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test remote deletion with concurrent local modification
 
         Use cases:
@@ -362,6 +364,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
                                'synchronized')
 
     def test_synchronize_local_folder_rename_remote_deletion(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test local folder rename followed by remote deletion"""
         raise SkipTest("Skipped waiting for"
                        " https://jira.nuxeo.com/browse/NXDRIVE-80 to be fixed")

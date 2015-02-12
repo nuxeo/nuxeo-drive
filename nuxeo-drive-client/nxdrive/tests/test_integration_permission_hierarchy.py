@@ -2,6 +2,7 @@ from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.logging_config import get_logger
+from nose.plugins.skip import SkipTest
 
 log = get_logger(__name__)
 
@@ -9,6 +10,7 @@ log = get_logger(__name__)
 class TestIntegrationPermissionHierarchy(IntegrationTestCase):
 
     def test_sync_delete_root(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         user_workspaces_path = '/default-domain/UserWorkspaces/'
         user_workspace_title = 'nuxeoDriveTestUser-user-1'
         user_workspace_path = user_workspaces_path + user_workspace_title
@@ -71,6 +73,7 @@ class TestIntegrationPermissionHierarchy(IntegrationTestCase):
             admin_remote_client.deactivate_profile('permission')
 
     def test_sync_delete_shared_folder(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         user_workspaces_path = '/default-domain/UserWorkspaces/'
         user1_workspace_title = 'nuxeoDriveTestUser-user-1'
         user1_workspace_path = user_workspaces_path + user1_workspace_title

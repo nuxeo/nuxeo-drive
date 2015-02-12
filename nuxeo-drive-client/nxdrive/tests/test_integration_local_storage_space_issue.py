@@ -1,5 +1,6 @@
 import os
 import time
+from nose.plugins.skip import SkipTest
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -8,6 +9,7 @@ from nxdrive.client import LocalClient
 class TestIntegrationLocalStorageSpaceIssue(IntegrationTestCase):
 
     def test_synchronize_no_space_left_on_device(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Bind the server and root workspace
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,

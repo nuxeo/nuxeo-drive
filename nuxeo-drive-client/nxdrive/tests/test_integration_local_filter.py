@@ -1,4 +1,5 @@
 import os
+from nose.plugins.skip import SkipTest
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.engine.dao.model import Filter
@@ -7,6 +8,7 @@ from nxdrive.engine.dao.model import Filter
 class TestIntegrationLocalFilter(UnitTestCase):
 
     def test_synchronize_local_filter(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that filtering remote documents is impacted client side
 
         Just do a single test as it is the same as
@@ -76,6 +78,7 @@ class TestIntegrationLocalFilter(UnitTestCase):
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
     def test_synchronize_local_filter_with_move(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Bind the server and root workspace
         self.engine_1.start()
         # Get local and remote clients
@@ -145,6 +148,7 @@ class TestIntegrationLocalFilter(UnitTestCase):
         self.assertFalse(local.exists('/Test/Subfolder/SubSubfolder/joe4.txt'))
 
     def test_synchronize_local_filter_with_remote_trash(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Bind the server and root workspace
         self.engine_1.start()
         self._interact(1)

@@ -1,4 +1,5 @@
 import time
+from nose.plugins.skip import SkipTest
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -12,6 +13,7 @@ class TestDriveEdit(IntegrationTestCase):
                            + LOCALLY_EDITED_FOLDER_NAME)
 
     def test_drive_edit_non_synced_doc(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
@@ -68,6 +70,7 @@ class TestDriveEdit(IntegrationTestCase):
                           'Twice updated content.')
 
     def test_drive_edit_synced_doc(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
@@ -132,6 +135,7 @@ class TestDriveEdit(IntegrationTestCase):
                                     'Content updated from remote sync root.')
 
     def test_drive_edit_doc_becoming_synced(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
@@ -191,6 +195,7 @@ class TestDriveEdit(IntegrationTestCase):
                                     'Content updated from remote sync root.')
 
     def test_drive_edit_remote_move_non_sync_root_to_sync_root(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
@@ -231,6 +236,7 @@ class TestDriveEdit(IntegrationTestCase):
         self.assertTrue(local.exists('/syncRoot/test.odt'))
 
     def test_drive_edit_remote_move_sync_root_to_non_sync_root(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
@@ -278,6 +284,7 @@ class TestDriveEdit(IntegrationTestCase):
                                     % LOCALLY_EDITED_FOLDER_NAME)), 1)
 
     def test_drive_edit_move_sync_root_to_sync_root(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)

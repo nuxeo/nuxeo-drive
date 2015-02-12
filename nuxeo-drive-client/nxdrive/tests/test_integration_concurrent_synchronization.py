@@ -1,6 +1,7 @@
 import os
 import time
 from threading import Thread
+from nose.plugins.skip import SkipTest
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -15,6 +16,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
             number=number, delay=int(delay * 1000))
 
     def test_find_changes_with_many_doc_creations(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Setup a controller and bind a root for user_1
         ctl = self.controller_1
         remote_client = self.remote_document_client_1
@@ -76,6 +78,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         self.assertEquals(local_children_names, children_names)
 
     def test_delete_local_folder_2_clients(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
 
         # Define 2 controllers, one for each device
         ctl1 = self.controller_1
@@ -162,6 +165,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
                                     '/Nuxeo Drive Test Workspace/Test folder'))
 
     def test_delete_local_folder_delay_remote_changes_fetch(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
 
         # Get local and remote clients
         local = LocalClient(self.local_nxdrive_folder_1)
@@ -220,6 +224,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
                                     '/Nuxeo Drive Test Workspace/Test folder'))
 
     def test_delete_local_folder_update_remote_folder_property(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
 
         # Get local and remote clients
         local = LocalClient(self.local_nxdrive_folder_1)
@@ -286,6 +291,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
                                     '/Nuxeo Drive Test Workspace/Test folder'))
 
     def test_update_local_file_content_update_remote_file_property(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
 
         # Get local and remote clients
         local = LocalClient(self.local_nxdrive_folder_1)

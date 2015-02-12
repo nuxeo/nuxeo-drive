@@ -1,6 +1,7 @@
 import os
 import time
 import sys
+from nose.plugins.skip import SkipTest
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -10,6 +11,7 @@ from shutil import copyfile
 class TestIntegrationWindows(IntegrationTestCase):
 
     def test_local_replace(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Bind the server and root workspace
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
@@ -54,6 +56,7 @@ class TestIntegrationWindows(IntegrationTestCase):
         self.assertEquals(remote.get_content('/test.odt'), 'Some content.')
 
     def test_concurrent_file_access(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test update/deletion of a locally locked file.
 
         This is to simulate downstream synchronization of a file opened (thus

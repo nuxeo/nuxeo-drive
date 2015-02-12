@@ -1,5 +1,6 @@
 import os
 import time
+from nose.plugins.skip import SkipTest
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
@@ -7,45 +8,47 @@ from nxdrive.client import LocalClient
 
 class TestIntegrationVersioning(IntegrationTestCase):
 
-    def setUp(self):
-        super(TestIntegrationVersioning, self).setUp()
-
-        self.controller_1.bind_server(self.local_nxdrive_folder_1,
-            self.nuxeo_url, self.user_1, self.password_1)
-        self.controller_2.bind_server(self.local_nxdrive_folder_2,
-            self.nuxeo_url, self.user_2, self.password_2)
-        self.controller_1.bind_root(self.local_nxdrive_folder_1,
-            self.workspace)
-        self.controller_2.bind_root(self.local_nxdrive_folder_2,
-            self.workspace)
-
-        self.syn_1 = self.controller_1.synchronizer
-        self.syn_2 = self.controller_2.synchronizer
-        self.syn_1.loop(delay=0.010, max_loops=1, no_event_init=True)
-        self.syn_2.loop(delay=0.010, max_loops=1, no_event_init=True)
-
-        # Fetch server bindings after sync loop as it closes the Session
-        self.sb_1 = self.controller_1.get_server_binding(
-            self.local_nxdrive_folder_1)
-        self.sb_2 = self.controller_2.get_server_binding(
-            self.local_nxdrive_folder_2)
-
-        self.remote_client_1 = self.remote_document_client_1
-        self.remote_client_2 = self.remote_document_client_2
-        sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
-                                       self.workspace_title)
-        sync_root_folder_2 = os.path.join(self.local_nxdrive_folder_2,
-                                       self.workspace_title)
-        self.local_client_1 = LocalClient(sync_root_folder_1)
-        self.local_client_2 = LocalClient(sync_root_folder_2)
-
-        # Call the Nuxeo operation to set the versioning delay to 10 seconds
-        self.versioning_delay = self.OS_STAT_MTIME_RESOLUTION * 10
-        self.root_remote_client.execute(
-            "NuxeoDrive.SetVersioningOptions",
-            delay=str(self.versioning_delay))
+# WIP in https://jira.nuxeo.com/browse/NXDRIVE-170
+#     def setUp(self):
+#         super(TestIntegrationVersioning, self).setUp()
+# 
+#         self.controller_1.bind_server(self.local_nxdrive_folder_1,
+#             self.nuxeo_url, self.user_1, self.password_1)
+#         self.controller_2.bind_server(self.local_nxdrive_folder_2,
+#             self.nuxeo_url, self.user_2, self.password_2)
+#         self.controller_1.bind_root(self.local_nxdrive_folder_1,
+#             self.workspace)
+#         self.controller_2.bind_root(self.local_nxdrive_folder_2,
+#             self.workspace)
+# 
+#         self.syn_1 = self.controller_1.synchronizer
+#         self.syn_2 = self.controller_2.synchronizer
+#         self.syn_1.loop(delay=0.010, max_loops=1, no_event_init=True)
+#         self.syn_2.loop(delay=0.010, max_loops=1, no_event_init=True)
+# 
+#         # Fetch server bindings after sync loop as it closes the Session
+#         self.sb_1 = self.controller_1.get_server_binding(
+#             self.local_nxdrive_folder_1)
+#         self.sb_2 = self.controller_2.get_server_binding(
+#             self.local_nxdrive_folder_2)
+# 
+#         self.remote_client_1 = self.remote_document_client_1
+#         self.remote_client_2 = self.remote_document_client_2
+#         sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
+#                                        self.workspace_title)
+#         sync_root_folder_2 = os.path.join(self.local_nxdrive_folder_2,
+#                                        self.workspace_title)
+#         self.local_client_1 = LocalClient(sync_root_folder_1)
+#         self.local_client_2 = LocalClient(sync_root_folder_2)
+# 
+#         # Call the Nuxeo operation to set the versioning delay to 10 seconds
+#         self.versioning_delay = self.OS_STAT_MTIME_RESOLUTION * 10
+#         self.root_remote_client.execute(
+#             "NuxeoDrive.SetVersioningOptions",
+#             delay=str(self.versioning_delay))
 
     def test_versioning(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Create a file as user 1
         self.local_client_1.make_file('/', 'Test versioning.txt',
             "This is version 0")
@@ -89,6 +92,7 @@ class TestIntegrationVersioning(IntegrationTestCase):
         self._assert_version(doc, 0, 2)
 
     def test_version_restore(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         remote_client = self.remote_client_1
         local_client = self.local_client_1
 

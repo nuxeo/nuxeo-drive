@@ -53,6 +53,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         self.assertFalse(local.exists('/Test folder'))
 
     def test_trash_modified_file(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test deleting a remote folder while a file is locally created in it.
 
         See https://jira.nuxeo.com/browse/NXDRIVE-39
