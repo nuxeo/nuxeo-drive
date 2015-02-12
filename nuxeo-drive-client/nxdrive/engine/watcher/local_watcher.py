@@ -225,18 +225,6 @@ class LocalWatcher(Worker):
         # Delete all observers
         self._observer = None
 
-    def handle_local_changes(self, event):
-        sorted_evts = []
-        deleted_files = []
-        # Use the thread_safe pop() to extract events
-        while (len(self.local_changes)):
-            evt = self.local_changes.pop()
-            sorted_evts.append(evt)
-        sorted_evts = sorted(sorted_evts, key=lambda evt: evt.time)
-        log.debug('Sorted events: %r', sorted_evts)
-        for evt in sorted_evts:
-            self.handle_watchdog_event(evt)
-
     def _handle_watchdog_event_on_known_pair(self, doc_pair, evt, rel_path):
         if doc_pair.processor > 0:
             log.trace("Don't update as in process %r", doc_pair)
@@ -245,9 +233,11 @@ class LocalWatcher(Worker):
             src_path = normalize_event_filename(evt.dest_path)
             rel_path = self.client.get_path(src_path)
             local_info = self.client.get_info(rel_path)
+            rel_parent_path = self.client.get_path(os.path.dirname(src_path))
+            if rel_parent_path == '':
+                rel_parent_path = '/'
             # Ignore inner movement
-            remote_parent_ref = self.client.get_remote_id(self.client.get_path(
-                                                        os.path.dirname(src_path)))
+            remote_parent_ref = self.client.get_remote_id(rel_parent_path)
             if not (local_info.name == doc_pair.local_name and
                     doc_pair.remote_parent_ref == remote_parent_ref):
                 log.debug("Detect move for %s (%r)", local_info.name, doc_pair)
@@ -283,7 +273,7 @@ class LocalWatcher(Worker):
 
     def handle_watchdog_event(self, evt):
         self._action = Action("Handle watchdog event")
-        log.trace("handle_watchdog_event %s on %s", evt.event_type, evt.src_path)
+        log.debug("handle_watchdog_event %s on %s", evt.event_type, evt.src_path)
         try:
             src_path = normalize_event_filename(evt.src_path)
             rel_path = self.client.get_path(src_path)

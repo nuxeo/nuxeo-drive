@@ -1,14 +1,14 @@
 import os
 
-from nxdrive.tests.common import IntegrationTestCase
+from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.engine.dao.model import LastKnownState
 from nxdrive.client.common import NotFound
 from nose.plugins.skip import SkipTest
+from time import sleep
 
-
-class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
+class TestIntegrationLocalMoveAndRename(UnitTestCase):
 
     # Sets up the following local hierarchy:
     # Nuxeo Drive Test Workspace
@@ -20,49 +20,31 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
     #    |       |-- Original File 1.1.txt
     #    |-- Original Folder 2
     #    |       |-- Original File 3.txt
+    def setUp(self):
+        self.local_root_client_1.make_folder('/', self.workspace_title)
+        self.engine_1.start()
+        self.local_client_1.make_file('/', u'Original File 1.txt',
+            content=u'Some Content 1'.encode('utf-8'))
 
-# WIP in https://jira.nuxeo.com/browse/NXDRIVE-170
-#     def setUp(self):
-#         super(TestIntegrationLocalMoveAndRename, self).setUp()
-# 
-#         self.sb_1 = self.controller_1.bind_server(
-#             self.local_nxdrive_folder_1,
-#             self.nuxeo_url, self.user_1, self.password_1)
-# 
-#         self.controller_1.bind_root(self.local_nxdrive_folder_1,
-#             self.workspace)
-# 
-#         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
-# 
-#         self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
-#                                        self.workspace_title)
-#         self.local_client_1 = LocalClient(self.sync_root_folder_1)
-# 
-#         self.local_client_1.make_file('/', u'Original File 1.txt',
-#             content=u'Some Content 1'.encode('utf-8'))
-# 
-#         self.local_client_1.make_file('/', u'Original File 2.txt',
-#             content=u'Some Content 2'.encode('utf-8'))
-# 
-#         self.local_client_1.make_folder(u'/', u'Original Folder 1')
-#         self.local_client_1.make_folder(
-#             u'/Original Folder 1', u'Sub-Folder 1.1')
-#         self.local_client_1.make_folder(
-#             u'/Original Folder 1', u'Sub-Folder 1.2')
-#         self.local_client_1.make_file(u'/Original Folder 1',
-#             u'Original File 1.1.txt',
-#             content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
-# 
-#         self.local_client_1.make_folder('/', 'Original Folder 2')
-#         self.local_client_1.make_file('/Original Folder 2',
-#             u'Original File 3.txt',
-#             content=u'Some Content 3'.encode('utf-8'))
-# 
-#         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
+        self.local_client_1.make_file('/', u'Original File 2.txt',
+            content=u'Some Content 2'.encode('utf-8'))
+
+        self.local_client_1.make_folder(u'/', u'Original Folder 1')
+        self.local_client_1.make_folder(
+            u'/Original Folder 1', u'Sub-Folder 1.1')
+        self.local_client_1.make_folder(
+            u'/Original Folder 1', u'Sub-Folder 1.2')
+        self.local_client_1.make_file(u'/Original Folder 1',
+            u'Original File 1.1.txt',
+            content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
+
+        self.local_client_1.make_folder('/', 'Original Folder 2')
+        self.local_client_1.make_file('/Original Folder 2',
+            u'Original File 3.txt',
+            content=u'Some Content 3'.encode('utf-8'))
+        self.wait_sync()
 
     def test_local_rename_file(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -73,7 +55,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(u'/Renamed File 1.txt'))
 
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+        self.wait_sync()
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(u'/Renamed File 1.txt'))
         original_file_1_remote_info = remote_client.get_info(
@@ -98,7 +80,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertFalse(local_client.exists(u'/Renamed File 1.txt'))
         self.assertTrue(local_client.exists(u'/Renamed Again File 1.txt'))
 
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
+        self.wait_sync()
         self.assertFalse(local_client.exists(u'/Renamed File 1.txt'))
         self.assertTrue(local_client.exists(u'/Renamed Again File 1.txt'))
         self.assertFalse(local_client.exists(
@@ -127,8 +109,6 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             u'Original Folder 1')
 
     def test_local_rename_file_uppercase(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -144,7 +124,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             u'/Original Folder 1/Original File 1.1.txt',
             u'original File 1.1.txt')
 
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.wait_sync()
 
         file_1_1_remote_info = remote_client.get_info(original_1_1_uid)
         self.assertEquals(file_1_1_remote_info.name,
@@ -156,8 +136,6 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             u'Original Folder 1')
 
     def test_local_move_file(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -169,7 +147,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Original File 1.txt'))
 
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.wait_sync()
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Original File 1.txt'))
@@ -182,8 +160,6 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             u'Original Folder 1')
 
     def test_local_move_and_rename_file(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -198,7 +174,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Renamed File 1 \xe9.txt'))
 
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.wait_sync()
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Renamed File 1 \xe9.txt'))
@@ -213,11 +189,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         # Nothing left to do
         self.wait_audit_change_finder_if_needed()
         self.wait()
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_local_rename_folder(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -236,7 +209,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+        self.wait_sync()
 
         # The server folder has been renamed: the uid stays the same
         new_remote_name = remote_client.get_info(original_folder_1_uid).name
@@ -256,12 +229,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         # The more things change, the more they remain the same.
         self.wait_audit_change_finder_if_needed()
         self.wait()
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_local_move_folder(self):
-        raise SkipTest("Skipped waiting for"
-                       " https://jira.nuxeo.com/browse/NXDRIVE-80 to be fixed")
-        sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -283,7 +252,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder move is detected: all
         # the descendants are automatically realigned
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.wait_sync()
         # The server folder has been moved: the uid stays the same
         remote_folder_info = remote_client.get_info(original_folder_1_uid)
 
@@ -305,11 +274,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         # The more things change, the more they remain the same.
         self.wait_audit_change_finder_if_needed()
         self.wait()
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_concurrent_local_rename_folder(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -331,7 +297,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         # Synchronize: only the folder renamings are detected: all
         # the descendants are automatically realigned
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 2)
+        self.wait_sync()
 
         # The server folders have been renamed: the uid stays the same
         folder_1_info = remote_client.get_info(folder_1_uid)
@@ -352,11 +318,8 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         # The more things change, the more they remain the same.
         self.wait_audit_change_finder_if_needed()
         self.wait()
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 0)
 
     def test_local_rename_sync_root_folder(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
         # Use the Administrator to be able to introspect the container of the
         # test workspace.
         remote_client = RemoteDocumentClient(
@@ -371,7 +334,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
 
         toplevel_local_client.rename('/' + self.workspace_title,
             'Renamed Nuxeo Drive Test Workspace')
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
+        self.wait_sync()
 
         workspace_info = remote_client.get_info(self.workspace)
         self.assertEquals(workspace_info.name,
@@ -382,7 +345,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertEquals(folder_1_info.parent_uid, self.workspace)
 
     def test_local_rename_top_level_folder(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
+        raise SkipTest("SHOULD UPDATE THE BINDING AND NOT DESTROY IF WATCHDOG OR SEARCH FOR BINDING")
         sb, ctl = self.sb_1, self.controller_1
         local_client = LocalClient(self.local_test_folder_1)
         session = ctl.get_session()
@@ -416,7 +379,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertEquals(len(session.query(LastKnownState).all()), 0)
 
     def test_local_delete_top_level_folder(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
+        raise SkipTest("SHOULD UPDATE THE BINDING AND NOT DESTROY IF WATCHDOG OR SEARCH FOR BINDING")
         sb, ctl = self.sb_1, self.controller_1
         local_client = LocalClient(self.local_test_folder_1)
         session = ctl.get_session()
@@ -439,16 +402,13 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertEquals(len(session.query(LastKnownState).all()), 0)
 
     def test_local_rename_readonly_folder(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
-        session = ctl.get_session()
 
         # Check local folder
         self.assertTrue(local_client.exists(u'/Original Folder 1'))
-        folder_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Original Folder 1').one()
+        uid = local_client.get_remote_id(u'/Original Folder 1')
+        folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(uid)
         self.assertTrue(folder_1_state.remote_can_rename)
 
         # Set remote folder as readonly for test user
@@ -460,10 +420,9 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             permission="Read")
         self.root_remote_client.block_inheritance(folder_1_path,
                                                   overwrite=False)
-
+        self.wait_sync()
         # Check can_rename flag in pair state
-        folder_1_state.refresh_remote(
-            self.remote_file_system_client_1)
+        folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(uid)
         self.assertFalse(folder_1_state.remote_can_rename)
 
         # Rename local folder
@@ -472,7 +431,7 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertFalse(local_client.exists(u'/Original Folder 1'))
         self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
 
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.wait_sync()
 
         # Check remote folder has not been renamed
         folder_1_remote_info = remote_client.get_info(
@@ -481,37 +440,18 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
             u'Original Folder 1')
 
         # Check state of local folder and its children
-        folder_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Renamed Folder 1 \xe9').one()
+        folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(uid)
         self.assertEquals(folder_1_state.remote_name,
                           u'Original Folder 1')
 
         self.assertTrue(local_client.exists(
             u'/Renamed Folder 1 \xe9/Original File 1.1.txt'))
-        file_1_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Original File 1.1.txt').one()
-        self.assertEquals(file_1_1_state.local_name,
-                          u'Original File 1.1.txt')
-        self.assertEquals(file_1_1_state.remote_name,
-                          u'Original File 1.1.txt')
 
         self.assertTrue(local_client.exists(
             u'/Renamed Folder 1 \xe9/Sub-Folder 1.1'))
-        folder_1_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Sub-Folder 1.1').one()
-        self.assertEquals(folder_1_1_state.local_name,
-                          u'Sub-Folder 1.1')
-        self.assertEquals(folder_1_1_state.remote_name,
-                          u'Sub-Folder 1.1')
 
         self.assertTrue(local_client.exists(
             u'/Renamed Folder 1 \xe9/Sub-Folder 1.2'))
-        folder_1_2_state = session.query(LastKnownState).filter_by(
-            local_name=u'Sub-Folder 1.2').one()
-        self.assertEquals(folder_1_2_state.local_name,
-                          u'Sub-Folder 1.2')
-        self.assertEquals(folder_1_2_state.remote_name,
-                          u'Sub-Folder 1.2')
 
     def test_local_rename_readonly_folder_with_rollback(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
@@ -589,8 +529,6 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
                           u'Sub-Folder 1.1')
 
     def test_local_move_with_remote_error(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -598,13 +536,13 @@ class TestIntegrationLocalMoveAndRename(IntegrationTestCase):
         self.assertTrue(local_client.exists(u'/Original Folder 1'))
         remote_client._remote_error = IOError
         local_client.rename(u'/Original Folder 1', u'IOErrorTest')
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.wait_sync()
         remote_client._remote_error = None
         folder_1 = remote_client.get_info(
             u'/Original Folder 1')
         self.assertTrue(folder_1 is not None, 'Move has happen')
         self.assertTrue(local_client.exists(u'/IOErrorTest'))
-        ctl.synchronizer.update_synchronize_server(sb)
+        self.wait_sync()
         folder_1 = remote_client.get_info(folder_1.uid)
         self.assertEquals(folder_1.name, u'IOErrorTest', 'Move has not happen')
         self.assertTrue(local_client.exists(u'/IOErrorTest'))

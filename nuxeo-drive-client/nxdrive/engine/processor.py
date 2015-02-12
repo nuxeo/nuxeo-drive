@@ -215,6 +215,8 @@ class Processor(Worker):
             log.trace("Put remote_ref in %s", remote_ref)
             local_client.set_remote_id(doc_pair.local_path, remote_ref)
             self._dao.synchronize_state(doc_pair, doc_pair.version)
+            if doc_pair.folderish:
+                self._dao.queue_children(doc_pair)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
             log.warning("Won't synchronize %s '%s' created in"

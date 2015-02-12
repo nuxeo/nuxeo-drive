@@ -203,6 +203,8 @@ class RemoteWatcher(Worker):
                     self._dao.synchronize_state(child_pair, child_pair.version + 1)
                     # Push the remote_Id
                     self._local_client.set_remote_id(local_path, child_info.uid)
+                    if child_pair.folderish:
+                        self._dao.queue_children(child_pair)
                 child_pair = self._dao.get_state_from_id(child_pair.id, from_write=True)
                 return child_pair, False
         row_id = self._dao.insert_remote_state(child_info, remote_parent_path,
