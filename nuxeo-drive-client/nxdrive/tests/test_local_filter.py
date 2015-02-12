@@ -1,5 +1,3 @@
-import os
-from nose.plugins.skip import SkipTest
 from nxdrive.tests.common_unit_test import UnitTestCase
 
 
