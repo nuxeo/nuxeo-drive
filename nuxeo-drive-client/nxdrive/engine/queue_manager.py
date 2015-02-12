@@ -257,6 +257,13 @@ class QueueManager(QObject):
         if not self._engine.is_paused() and not self._engine.is_stopped():
             self.newItem.emit(None)
 
+    def active(self):
+        return (self._local_folder_thread is not None
+                or self._local_file_thread is not None
+                or self._remote_file_thread is not None
+                or self._remote_folder_thread is not None
+                or len(self._processors_pool) > 0)
+
     def _create_thread(self, item_getter, name=None):
         processor = Processor(self._engine, item_getter, name=name)
         thread = self._engine.create_thread(worker=processor, start_connect=False)

@@ -146,6 +146,9 @@ class UnitTestCase(unittest.TestCase):
         self.workspace = ws_info[u'uid']
         self.workspace_title = ws_info[u'title']
 
+        self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1, self.workspace_title)
+        self.sync_root_folder_2 = os.path.join(self.local_nxdrive_folder_2, self.workspace_title)
+
         self.local_root_client_1 = self.engine_1.get_local_client()
         self.local_root_client_2 = self.engine_2.get_local_client()
         self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1,

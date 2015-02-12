@@ -517,10 +517,11 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             if doc_pair.folderish:
+                if new_path == '/':
+                    new_path = ''
                 query = ("UPDATE States SET local_parent_path='%s/%s' || substr(local_parent_path,%d), local_path='%s/%s' || substr(local_path,%d)" %
                                 (new_path, new_name, len(doc_pair.local_path)+1,new_path, new_name, len(doc_pair.local_path)+1)) 
                 query = query + self._get_recursive_condition(doc_pair)
-                log.trace("Update remote_parent_path: " + query)
                 c.execute(query)
             # Dont need to update the path as it is refresh later
             c.execute("UPDATE States SET local_parent_path=? WHERE id=?", (new_path, doc_pair.id))

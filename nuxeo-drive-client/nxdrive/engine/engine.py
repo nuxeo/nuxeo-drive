@@ -456,7 +456,7 @@ class Engine(QObject):
 
     @pyqtSlot()
     def _check_last_sync(self):
-        if self._queue_manager.get_overall_size() == 0:
+        if self._queue_manager.get_overall_size() == 0 and not self._queue_manager.active():
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
             if self._sync_started:
                 self._sync_started = False

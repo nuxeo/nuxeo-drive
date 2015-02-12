@@ -378,11 +378,11 @@ class Processor(Worker):
                         file_or_folder, local_client._abspath(previous_local_path),
                         doc_pair.remote_name)
                     updated_info = local_client.rename(
-                        doc_pair.local_path, doc_pair.remote_name)
+                        previous_local_path, doc_pair.remote_name)
                 if is_move or is_renaming:
                     # Should call a DAO method
-                    self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path),
-                                                       os.path.dirname(updated_info.path))
+                    new_path = os.path.dirname(updated_info.path)
+                    self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path), new_path)
                     self._refresh_local_state(doc_pair, updated_info)
                     #self._local_rename_with_descendant_states(doc_pair, previous_local_path, updated_info.path)
             self._handle_readonly(local_client, doc_pair)
