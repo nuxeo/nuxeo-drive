@@ -753,6 +753,8 @@ class EngineDAO(ConfigurationDAO):
         return c.execute("SELECT * FROM Filters").fetchall()
 
     def add_filter(self, path):
+        if self.is_filter(path):
+            return
         path = self._clean_filter_path(path)
         self._lock.acquire()
         try:
@@ -775,7 +777,7 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM Filters WHERE path = '" + path + "'")
+            c.execute("DELETE FROM Filters WHERE path LIKE '" + path + "%'")
             if self.auto_commit:
                 con.commit()
             self._filters = self.get_filters()
