@@ -196,7 +196,10 @@ class UnitTestCase(unittest.TestCase):
         log.debug("Sync completed")
         self._wait_sync = False
 
-    def wait_sync(self, timeout=10):
+    def wait_sync(self, timeout=20):
+        # First wait for server
+        self.wait_audit_change_finder_if_needed()
+        self.wait()
         log.debug("Wait for sync")
         self._wait_sync = True
         while timeout > 0:
@@ -311,8 +314,15 @@ class UnitTestCase(unittest.TestCase):
             result.append(dao.get_state_from_id(queue.pop().id))
         return result
 
-    def wait(self):
-        self.root_remote_client.wait()
+    def wait(self, retry=3):
+        try:
+            self.root_remote_client.wait()
+        except OSError.TimeoutError as e:
+            log.debug("Exception while waiting for server : %r", e)
+            # Not the nicest
+            if retry > 0:
+                log.debug("Retry to wait")
+                self.wait(retry-1)
 
     def wait_audit_change_finder_if_needed(self):
         if not self.root_remote_client.is_event_log_id_available():

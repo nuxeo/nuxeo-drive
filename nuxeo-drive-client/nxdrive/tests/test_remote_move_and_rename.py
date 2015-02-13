@@ -55,7 +55,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
         self.file_3_id = self.remote_client_1.make_file(self.folder_2_id,
             u'Original File 3.txt',
             content=u'Some Content 3'.encode('utf-8'))
-        self.wait()
         self.wait_sync()
 
     def wait2(self):
@@ -74,8 +73,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
             u'Renamed File 1.txt')
 
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
 
         # Check remote file name
@@ -105,8 +102,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_1_id).name,
             u'Renamed File 1.1 \xe9.txt')
 
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
 
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
@@ -159,8 +154,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(remote_client.get_content(self.file_1_id),
             'Updated content')
 
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
 
         # Check local file name
@@ -180,8 +173,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_id).parent_uid,
             self.folder_1_id)
 
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
 
         # Check remote file
@@ -217,8 +208,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_id).parent_uid,
             self.folder_1_id)
 
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
 
         # Check remote file
@@ -253,8 +242,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
 
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
 
         # The client folder has been renamed
@@ -301,13 +288,9 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
 
         self.assertTrue(local_client.exists('/Original Folder 1'))
         remote_client.rename(self.folder_1_id, 'Original folder 1')
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
         self.assertTrue(local_client.exists('/Original folder 1'))
         remote_client.rename(self.folder_1_id, 'Original Folder 1')
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
         self.assertTrue(local_client.exists('/Original Folder 1'))
 
@@ -324,8 +307,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
 
         # Synchronize: only the folder move is detected: all
         # the descendants are automatically realigned
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
 
         # Check remote folder
@@ -398,8 +379,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
 
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
 
         # The content of the renamed folders is left unchanged
@@ -445,8 +424,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
 
         # Synchronize: only the sync root folder renaming is detected: all
         # the descendants are automatically realigned
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
 
         # The client folder has been renamed
@@ -551,8 +528,6 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
                             u'/Non synchronized folder/Original Folder 1'))
 
         # Synchronize: the folder move is detected as a deletion
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
         self.wait_sync()
 
         # Check local folder

@@ -662,7 +662,7 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_reinit_database",
             "nxdrive.tests.test_remote_changes",
             "nxdrive.tests.test_integration_remote_deleted_parent",
-            "nxdrive.tests.test_integration_remote_deletion",
+            "nxdrive.tests.test_remote_deletion",
             "nxdrive.tests.test_remote_document_client",
             "nxdrive.tests.test_remote_file_system_client",
             "nxdrive.tests.test_remote_move_and_rename",

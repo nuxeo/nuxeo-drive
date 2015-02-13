@@ -1,16 +1,15 @@
 import os
 import time
 
-from nxdrive.tests.common import IntegrationTestCase
+from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.engine.dao.model import LastKnownState
 from nose.plugins.skip import SkipTest
 
 
-class TestIntegrationRemoteDeletion(IntegrationTestCase):
+class TestIntegrationRemoteDeletion(UnitTestCase):
 
     def test_synchronize_remote_deletion(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that deleting remote documents is impacted client side
 
         Use cases:
@@ -27,14 +26,9 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         as the same uses cases are tested
         """
         # Bind the server and root workspace
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
-
+        self.engine_1.start()
         # Get local and remote clients
-        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
-                                         self.workspace_title))
+        local = self.local_client_1
         remote = self.remote_document_client_1
 
         # Create documents in the remote root workspace
@@ -42,14 +36,13 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         remote.make_folder('/', 'Test folder')
         remote.make_file('/Test folder', 'joe.txt', 'Some content')
 
-        syn = ctl.synchronizer
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
         # Delete remote folder then synchronize
         remote.delete('/Test folder')
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertFalse(local.exists('/Test folder'))
 
         # Restore folder from trash then synchronize
@@ -58,26 +51,27 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         # through a dedicated operation
         remote.undelete('/Test folder')
         remote.undelete('/Test folder/joe.txt')
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
         # Delete sync root then synchronize
         remote.delete('/')
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertFalse(local.exists('/'))
 
         # Restore sync root from trash then synchronize
         remote.undelete('/')
         remote.undelete('/Test folder')
         remote.undelete('/Test folder/joe.txt')
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
     def test_synchronize_remote_deletion_local_modification(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
+        raise SkipTest("Skipped waiting for"
+                       " https://jira.nuxeo.com/browse/NXDRIVE-80 to be fixed or trash feature review")
         """Test remote deletion with concurrent local modification
 
         Use cases:
@@ -112,14 +106,9 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         RemoteDocumentClient is File oriented.
         """
         # Bind the server and root workspace
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
-
+        self.engine_1.start()
         # Get local and remote clients
-        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
-                                         self.workspace_title))
+        local = self.local_client_1
         remote = self.remote_document_client_2
 
         # Create documents in the remote root workspace
@@ -130,8 +119,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         remote.make_folder('/Test folder', 'Sub folder 1')
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
                          'Content')
-        syn = ctl.synchronizer
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         self.assertTrue(local.exists('/Test folder/jack.odt'))
@@ -151,7 +139,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
                         'Other content')
         # Update file
         local.update_content('/Test folder/joe.odt', 'Some updated content')
-        self._synchronize(syn)
+        self.wait_sync()
         # Only locally modified content should exist
         # and should be marked as 'unsynchronized', other content should
         # have been deleted
@@ -170,16 +158,14 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         self.assertFalse(local.exists(
                                 '/Test folder/Sub folder 1/sub file 1.txt'))
         # State check
-        session = ctl.get_session()
-        self._check_pair_state(session, '/Test folder', 'unsynchronized')
-        self._check_pair_state(session, '/Test folder/joe.odt',
+        self._check_pair_state('/Test folder', 'unsynchronized')
+        self._check_pair_state('/Test folder/joe.odt',
                                'unsynchronized')
-        self._check_pair_state(session, '/Test folder/new.odt',
+        self._check_pair_state('/Test folder/new.odt',
                                'unsynchronized')
-        self._check_pair_state(session, '/Test folder/Sub folder 2',
+        self._check_pair_state('/Test folder/Sub folder 2',
                                'unsynchronized')
-        self._check_pair_state(session,
-                               '/Test folder/Sub folder 2/sub file 2.txt',
+        self._check_pair_state('/Test folder/Sub folder 2/sub file 2.txt',
                                'unsynchronized')
         # Remote check
         self.assertFalse(remote.exists('/Test folder'))
@@ -190,7 +176,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         remote.undelete('/Test folder/jack.odt')
         remote.undelete('/Test folder/Sub folder 1')
         remote.undelete('/Test folder/Sub folder 1/sub file 1.txt')
-        self._synchronize(syn)
+        self.wait_sync()
         # Remotely restored documents should be merged with
         # locally modified content which should be unmarked
         # as 'unsynchronized' and therefore synchronized upstream
@@ -220,15 +206,14 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         self.assertTrue(local.exists(
                                 '/Test folder/Sub folder 2/sub file 2.txt'))
         # State check
-        self._check_pair_state(session, '/Test folder', 'synchronized')
-        self._check_pair_state(session, '/Test folder/joe.odt',
+        self._check_pair_state('/Test folder', 'synchronized')
+        self._check_pair_state('/Test folder/joe.odt',
                                'synchronized')
-        self._check_pair_state(session, '/Test folder/new.odt',
+        self._check_pair_state('/Test folder/new.odt',
                                'synchronized')
-        self._check_pair_state(session, '/Test folder/Sub folder 2',
+        self._check_pair_state('/Test folder/Sub folder 2',
                                'synchronized')
-        self._check_pair_state(session,
-                               '/Test folder/Sub folder 2/sub file 2.txt',
+        self._check_pair_state('/Test folder/Sub folder 2/sub file 2.txt',
                                'synchronized')
         # Remote check
         self.assertTrue(remote.exists('/Test folder'))
@@ -268,7 +253,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         remote.delete('/Test folder/jack.odt')
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/Test folder/jack.odt', 'Some updated content')
-        self._synchronize(syn)
+        self.wait_sync()
         # File should be kept locally and be marked as 'unsynchronized'.
         # Local check
         self.assertTrue(local.exists('/Test folder/jack.odt'))
@@ -277,14 +262,13 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         # Remote check
         self.assertFalse(remote.exists('/Test folder/jack.odt'))
         # State check
-        session = ctl.get_session()
-        self._check_pair_state(session, '/Test folder', 'synchronized')
-        self._check_pair_state(session, '/Test folder/jack.odt',
-                               'unsynchronized')
+        self.wait_sync()
+        self._check_pair_state('/Test folder', 'synchronized')
+        self._check_pair_state('/Test folder/jack.odt', 'unsynchronized')
 
         # Remotely restore file from the trash then synchronize
         remote.undelete('/Test folder/jack.odt')
-        self._synchronize(syn)
+        self.wait_sync()
         # Remotely restored file should be merged with locally modified file
         # with a conflict detection and both files should be marked
         # as 'synchronized'
@@ -313,17 +297,15 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         self.assertEquals(remote.get_content(local_version_path),
                           'Some updated content')
         # State check
-        self._check_pair_state(session, remote_version.path,
-                               'synchronized')
-        self._check_pair_state(session, local_version.path,
-                               'synchronized')
+        self._check_pair_state(remote_version.path, 'synchronized')
+        self._check_pair_state(local_version.path, 'synchronized')
 
         # Delete remote file and rename it locally
         # concurrently then synchronize
         remote.delete('/Test folder/jack.odt')
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.rename('/Test folder/jack.odt', 'jack renamed.odt')
-        self._synchronize(syn)
+        self.wait_sync()
         # File should be kept locally and be marked as 'synchronized'
         # Local check
         self.assertFalse(local.exists('/Test folder/jack.odt'))
@@ -333,14 +315,13 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         # Remote check
         self.assertFalse(remote.exists('/Test folder/jack.odt'))
         # State check
-        session = ctl.get_session()
-        self._check_pair_state(session, '/Test folder', 'synchronized')
-        self._check_pair_state(session, '/Test folder/jack renamed.odt',
-                               'synchronized')
+        self.wait_sync()
+        self._check_pair_state('/Test folder', 'synchronized')
+        self._check_pair_state('/Test folder/jack renamed.odt', 'synchronized')
 
         # Remotely restore file from the trash then synchronize
         remote.undelete('/Test folder/jack.odt')
-        self._synchronize(syn)
+        self.wait_sync()
         # Remotely restored file should be merged with locally renamed file
         # and both files should be marked as 'synchronized'
         # Local check
@@ -358,25 +339,18 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         self.assertEquals(remote.get_content('/Test folder/jack renamed.odt'),
                           'Some content')
         # State check
-        self._check_pair_state(session, '/Test folder/jack.odt',
-                               'synchronized')
-        self._check_pair_state(session, '/Test folder/jack renamed.odt',
-                               'synchronized')
+        self._check_pair_state('/Test folder/jack.odt', 'synchronized')
+        self._check_pair_state('/Test folder/jack renamed.odt', 'synchronized')
 
     def test_synchronize_local_folder_rename_remote_deletion(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test local folder rename followed by remote deletion"""
-        raise SkipTest("Skipped waiting for"
-                       " https://jira.nuxeo.com/browse/NXDRIVE-80 to be fixed")
+        #raise SkipTest("Skipped waiting for"
+        #               " https://jira.nuxeo.com/browse/NXDRIVE-80 to be fixed")
         # Bind the server and root workspace
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Get local and remote clients
-        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
-                                         self.workspace_title))
+        self.engine_1.start()
+        local = self.local_client_1
         remote = self.remote_document_client_1
 
         # Create a folder with a child file in the remote root workspace
@@ -384,8 +358,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         test_folder_uid = remote.make_folder('/', 'Test folder')
         remote.make_file(test_folder_uid, 'joe.odt', 'Some content')
 
-        syn = ctl.synchronizer
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
 
@@ -393,7 +366,7 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.rename('/Test folder', 'Test folder renamed')
 
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertFalse(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder renamed'))
         self.assertEquals(remote.get_info(test_folder_uid).name,
@@ -402,19 +375,13 @@ class TestIntegrationRemoteDeletion(IntegrationTestCase):
         # Delete remote folder then synchronize
         remote.delete('/Test folder')
 
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertFalse(remote.exists('/Test folder renamed'))
         self.assertFalse(local.exists('/Test folder renamed'))
 
-    def _synchronize(self, synchronizer):
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
-        synchronizer.loop(delay=0.1, max_loops=2, no_event_init=True)
-
     def _check_pair_state(self, session, local_path, pair_state):
         local_path = '/' + self.workspace_title + local_path
-        doc_pair = session.query(LastKnownState).filter_by(
-            local_path=local_path).one()
+        doc_pair = self.engine_1.get_dao().get_state_from_local(local_path)
         self.assertEquals(doc_pair.pair_state, pair_state)
 
     def _truncate_remote_path(self, path):
