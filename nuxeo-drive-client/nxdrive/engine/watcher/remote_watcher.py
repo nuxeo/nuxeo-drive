@@ -199,7 +199,7 @@ class RemoteWatcher(Worker):
             # TODO Should be DAO
             #self._dao.mark_descendants_remotely_deleted(deleted)
             self._dao.delete_remote_state(deleted)
-        log.debug("done ?")
+
         for folder in to_scan:
             # TODO Optimize by multithreading this too ?
             self._scan_remote_recursive(folder[0], folder[1],
