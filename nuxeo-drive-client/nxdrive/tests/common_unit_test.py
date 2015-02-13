@@ -13,6 +13,7 @@ from nxdrive.client import LocalClient
 from nxdrive.manager import Manager
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
+from nxdrive.tests.common import TEST_DEFAULT_DELAY
 from PyQt4 import QtCore
 from threading import Thread
 from time import sleep
@@ -112,7 +113,7 @@ class UnitTestCase(unittest.TestCase):
         # and echo_pool to True to enable connection pool logging
         from mock import Mock
         options = Mock()
-        options.delay = 3
+        options.delay = TEST_DEFAULT_DELAY
         self.static_drive_home = options.nxdrive_home = "/tmp/nuxeo-drive-test"
         if not os.path.exists(options.nxdrive_home):
             os.mkdir(options.nxdrive_home)

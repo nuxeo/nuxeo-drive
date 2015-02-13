@@ -6,9 +6,9 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.engine.dao.model import LastKnownState
 from nxdrive.client.common import NotFound
 from nose.plugins.skip import SkipTest
-from time import sleep
 
-class TestIntegrationLocalMoveAndRename(UnitTestCase):
+
+class TestLocalMoveAndRename(UnitTestCase):
 
     # Sets up the following local hierarchy:
     # Nuxeo Drive Test Workspace

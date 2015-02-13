@@ -4,11 +4,10 @@ import time
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
-from nxdrive.engine.dao.model import LastKnownState
 from nose.plugins.skip import SkipTest
 
 
-class TestIntegrationRemoteMoveAndRename(UnitTestCase):
+class TestRemoteMoveAndRename(UnitTestCase):
 
     # Sets up the following remote hierarchy:
     # Nuxeo Drive Test Workspace
@@ -22,7 +21,7 @@ class TestIntegrationRemoteMoveAndRename(UnitTestCase):
     #    |       |-- Original File 3.txt
 
     def setUp(self):
-        super(TestIntegrationRemoteMoveAndRename, self).setUp()
+        super(TestRemoteMoveAndRename, self).setUp()
         self.local_root_client_1.make_folder('/', self.workspace_title)
         self.engine_1.start()
         self.remote_client_1 = self.remote_file_system_client_1

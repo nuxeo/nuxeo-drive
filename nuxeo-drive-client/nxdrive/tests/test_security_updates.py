@@ -3,7 +3,8 @@ import time
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
 
-class TestIntegrationSecurityUpdates(UnitTestCase):
+
+class TestSecurityUpdates(UnitTestCase):
 
     def test_synchronize_denying_read_access(self):
         """Test that denying Read access server side is impacted client side

@@ -2,14 +2,13 @@ import os
 import time
 
 from nxdrive.tests.common_unit_test import UnitTestCase
-from nxdrive.client import LocalClient
 from nose.plugins.skip import SkipTest
 
 
-class TestIntegrationReadOnly(UnitTestCase):
+class TestReadOnly(UnitTestCase):
 
     def setUp(self):
-        super(TestIntegrationReadOnly, self).setUp()
+        super(TestReadOnly, self).setUp()
         self.engine_1.start()
         self.wait_sync()
         self.engine_1.stop()

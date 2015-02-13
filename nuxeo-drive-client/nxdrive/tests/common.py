@@ -19,6 +19,9 @@ from nxdrive.logging_config import get_logger
 DEFAULT_CONSOLE_LOG_LEVEL = 'DEBUG'
 DEFAULT_FILE_LOG_LEVEL = 'DEBUG'
 
+# Default remote watcher delay used for tests
+TEST_DEFAULT_DELAY = 3
+
 
 def configure_logger():
     configure(
@@ -71,9 +74,6 @@ class IntegrationTestCase(unittest.TestCase):
 
     # Nuxeo max length for document name
     DOC_NAME_MAX_LENGTH = 24
-
-    # Default remote watcher delay used for tests
-    TEST_DEFAULT_DELAY = 3
 
     # Default quit timeout used for tests
     # 6s for watcher / 9s for sync
@@ -311,7 +311,7 @@ class IntegrationTestCase(unittest.TestCase):
         if ndrive_cmd is None:
             ndrive_cmd = self.ndrive_1
         cmdline = ndrive_cmd + ' console'
-        delay = delay if delay is not None else self.TEST_DEFAULT_DELAY
+        delay = delay if delay is not None else TEST_DEFAULT_DELAY
         cmdline += ' --delay=%d' % delay
         if quit_if_done:
             cmdline += ' --quit-if-done'

@@ -1,13 +1,10 @@
-import os
 import time
 
 from nxdrive.tests.common_unit_test import UnitTestCase
-from nxdrive.client import LocalClient
-from nxdrive.engine.dao.model import LastKnownState
 from nose.plugins.skip import SkipTest
 
 
-class TestIntegrationRemoteDeletion(UnitTestCase):
+class TestRemoteDeletion(UnitTestCase):
 
     def test_synchronize_remote_deletion(self):
         """Test that deleting remote documents is impacted client side

@@ -3,7 +3,7 @@ import unittest
 from nxdrive.utils import guess_mime_type
 
 
-class UtilsTestCase(unittest.TestCase):
+class TestUtils(unittest.TestCase):
 
     def test_guess_mime_type(self):
 

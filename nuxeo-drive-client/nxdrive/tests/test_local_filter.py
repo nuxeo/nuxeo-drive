@@ -1,7 +1,7 @@
 from nxdrive.tests.common_unit_test import UnitTestCase
 
 
-class TestIntegrationLocalFilter(UnitTestCase):
+class TestLocalFilter(UnitTestCase):
 
     def test_synchronize_local_filter(self):
         """Test that filtering remote documents is impacted client side
