@@ -42,7 +42,10 @@ class Processor(Worker):
         if reason == 'exception':
             # Add it back to the queue ? Add the error delay
             if self._current_doc_pair is not None:
-                self._increase_error(self._current_doc_pair, "EXCEPTION")
+                details = None
+                if e is not None:
+                    details = repr(e)
+                self._increase_error(self._current_doc_pair, "EXCEPTION", details)
 
     def acquire_state(self, row_id):
         if self._dao.acquire_processor(self._thread_id, row_id):
@@ -52,8 +55,8 @@ class Processor(Worker):
     def release_state(self):
         self._dao.release_processor(self._thread_id)
 
-    def _increase_error(self, doc_pair, error):
-        self._dao.increase_error(doc_pair, error)
+    def _increase_error(self, doc_pair, error, details=None):
+        self._dao.increase_error(doc_pair, error, details)
         self._engine.get_queue_manager().push_error(doc_pair)
 
     def _execute(self):
@@ -117,7 +120,7 @@ class Processor(Worker):
                     # TO_REVIEW May have a call to reset_error
                     log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
             except Exception as e:
-                self._increase_error(doc_pair, "EXCEPTION")
+                self._increase_error(doc_pair, "EXCEPTION", repr(e))
                 log.exception(e)
                 raise e
             finally:
