@@ -518,21 +518,23 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Create a non synchronized folder
         unsync_folder = remote_client.make_folder(u'/', u'Non synchronized folder')
 
-        # Move Original Folder 1 to Non synchronized folder
-        remote_client.move(u'/nuxeo-drive-test-workspace/Original Folder 1',
-                           u'/Non synchronized folder')
-        self.assertFalse(remote_client.exists(
-                            u'/nuxeo-drive-test-workspace/Original Folder 1'))
-        self.assertTrue(remote_client.exists(
-                            u'/Non synchronized folder/Original Folder 1'))
+        try:
+            # Move Original Folder 1 to Non synchronized folder
+            remote_client.move(u'/nuxeo-drive-test-workspace/Original Folder 1',
+                               u'/Non synchronized folder')
+            self.assertFalse(remote_client.exists(
+                                u'/nuxeo-drive-test-workspace/Original Folder 1'))
+            self.assertTrue(remote_client.exists(
+                                u'/Non synchronized folder/Original Folder 1'))
 
-        # Synchronize: the folder move is detected as a deletion
-        self.wait_sync()
+            # Synchronize: the folder move is detected as a deletion
+            self.wait_sync()
 
-        # Check local folder
-        self.assertFalse(local_client.exists(u'/Original Folder 1'))
-        # Check folder state
-        folder_1_state = self._get_state(self.folder_1_id)
-        self.assertEquals(folder_1_state, None)
-        # Clean the folder
-        remote_client.delete(unsync_folder)
+            # Check local folder
+            self.assertFalse(local_client.exists(u'/Original Folder 1'))
+            # Check folder state
+            folder_1_state = self._get_state(self.folder_1_id)
+            self.assertEquals(folder_1_state, None)
+        finally:
+            # Clean the non synchronized folder
+            remote_client.delete(unsync_folder, use_trash=False)
