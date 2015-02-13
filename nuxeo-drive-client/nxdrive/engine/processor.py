@@ -353,6 +353,7 @@ class Processor(Worker):
                 # A move to a filtered parent ( treat it as deletion )
                 self._synchronize_remotely_deleted(doc_pair, local_client, remote_client)
                 return
+            self._handle_readonly(local_client, doc_pair)
             if not is_move and not is_renaming:
                 log.debug("No local impact of metadata update on"
                           " document '%s'.", doc_pair.remote_name)
@@ -437,18 +438,23 @@ class Processor(Worker):
 
     def _create_remotely(self, local_client, remote_client, doc_pair, parent_pair, name):
         local_parent_path = parent_pair.local_path
-        if doc_pair.folderish:
-            log.debug("Creating local folder '%s' in '%s'", name,
-                      local_client._abspath(parent_pair.local_path))
-            path = local_client.make_folder(local_parent_path, name)
-        else:
-            path, os_path, name = local_client.get_new_file(local_parent_path,
-                                                            name)
-            log.debug("Creating local file '%s' in '%s'", name,
-                      local_client._abspath(parent_pair.local_path))
-            tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
-            # Rename tmp file
-            local_client.rename(local_client.get_path(tmp_file), name)
+        # TODO Shared this locking system / Can have concurrent lock
+        lock = local_client.unlock_ref(local_parent_path)
+        try:
+            if doc_pair.folderish:
+                log.debug("Creating local folder '%s' in '%s'", name,
+                          local_client._abspath(parent_pair.local_path))
+                path = local_client.make_folder(local_parent_path, name)
+            else:
+                path, os_path, name = local_client.get_new_file(local_parent_path,
+                                                                name)
+                log.debug("Creating local file '%s' in '%s'", name,
+                          local_client._abspath(parent_pair.local_path))
+                tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
+                # Rename tmp file
+                local_client.rename(local_client.get_path(tmp_file), name)
+        finally:
+            local_client.lock_ref(local_parent_path, lock)
         return path
 
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):

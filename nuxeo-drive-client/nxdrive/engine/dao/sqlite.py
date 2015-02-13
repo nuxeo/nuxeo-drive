@@ -551,19 +551,19 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             update = "UPDATE States SET local_digest=NULL, last_local_updated=NULL, local_name=NULL, remote_state='created', pair_state='remotely_created'"
-            c.execute(update + " WHERE id=?", doc_pair.id)
+            c.execute(update + " WHERE id=" + str(doc_pair.id))
             if doc_pair.folderish:
                 c.execute(update + self._get_recursive_condition(doc_pair))
             if self.auto_commit:
                 con.commit()
-            self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair)
+            self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
         finally:
             self._lock.release()
         con = self._get_read_connection(factory=StateRow)
         c = con.cursor()
         rows = c.execute("SELECT * FROM States" + self._get_recursive_condition(doc_pair)).fetchall()
         for row in rows:
-            self._queue_pair_state(row.id, row.folderish, row)
+            self._queue_pair_state(row.id, row.folderish, row.pair_state)
 
     def remove_state(self, doc_pair):
         self._lock.acquire()

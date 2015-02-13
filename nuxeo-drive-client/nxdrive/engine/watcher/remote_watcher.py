@@ -126,6 +126,19 @@ class RemoteWatcher(Worker):
         if child_info.folderish:
             self._scan_remote_recursive(doc_pair, child_info)
 
+    def _check_modified(self, child_pair, child_info):
+        if child_pair.remote_can_delete != child_info.can_delete:
+            return True
+        if child_pair.remote_can_rename != child_info.can_rename:
+            return True
+        if child_pair.remote_can_update != child_info.can_update:
+            return True
+        if child_pair.remote_can_create_child != child_info.can_create_child:
+            return True
+        if child_pair.remote_digest != child_info.digest:
+            return True
+        return False
+
     def _scan_remote_recursive(self, doc_pair, remote_info,
                                force_recursion=True, mark_unknown=True):
         """Recursively scan the bound remote folder looking for updates
@@ -138,8 +151,11 @@ class RemoteWatcher(Worker):
             return
         # Check if synchronization thread was suspended
         self._interact()
+
         if doc_pair.local_path is not None:
             self._action = Action("Remote scanning : " + doc_pair.local_path)
+            log.debug("Remote scanning: %s", doc_pair.local_path)
+
         if remote_info is None:
             raise ValueError("Cannot bind %r to missing remote info" %
                              doc_pair)
@@ -169,6 +185,8 @@ class RemoteWatcher(Worker):
             new_pair = False
             if child_info.uid in children:
                 child_pair = children.pop(child_info.uid)
+                if self._check_modified(child_pair, child_info):
+                    child_pair.remote_state = 'modified'
                 self._dao.update_remote_state(child_pair, child_info, remote_parent_path)
             else:
                 child_pair, new_pair = self._find_remote_child_match_or_create(
@@ -181,10 +199,11 @@ class RemoteWatcher(Worker):
             # TODO Should be DAO
             #self._dao.mark_descendants_remotely_deleted(deleted)
             self._dao.delete_remote_state(deleted)
-
+        log.debug("done ?")
         for folder in to_scan:
             # TODO Optimize by multithreading this too ?
-            self._scan_remote_recursive(folder[0], folder[1], mark_unknown=False)
+            self._scan_remote_recursive(folder[0], folder[1],
+                                        mark_unknown=False, force_recursion=force_recursion)
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info):
         local_path = os.path.join(parent_pair.local_path, safe_filename(child_info.name))
@@ -340,15 +359,19 @@ class RemoteWatcher(Worker):
                                                             new_info.can_create_child)
                             # Perform a regular document update on a document
                             # that has been updated, renamed or moved
-                            log.debug("Refreshing remote state info"
-                                      " for doc_pair '%s'", doc_pair_repr)
                             eventId = change.get('eventId')
+                            log.debug("Refreshing remote state info"
+                                      " for doc_pair '%s' (force_recursion:%d)", doc_pair_repr, (eventId == "securityUpdated"))
                             remote_parent_path = doc_pair.remote_parent_path
-                            if (new_info.digest != doc_pair.local_digest or
-                                 safe_filename(new_info.name) != doc_pair.local_name
-                                 or new_info.parent_uid != doc_pair.remote_parent_ref):
+                            #if (new_info.digest != doc_pair.local_digest or
+                            #     safe_filename(new_info.name) != doc_pair.local_name
+                            #     or new_info.parent_uid != doc_pair.remote_parent_ref):
+                            if doc_pair.remote_state != 'created':
                                 doc_pair.remote_state = 'modified'
                                 remote_parent_path = os.path.dirname(new_info.path)
+                            else:
+                                remote_parent_path = os.path.dirname(new_info.path)
+                                # TODO Add modify local_path and local_parent_path if needed
                             self._dao.update_remote_state(doc_pair, new_info, remote_parent_path)
                             self._scan_remote_recursive(
                                 doc_pair, consistent_new_info,

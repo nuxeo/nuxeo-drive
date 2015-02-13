@@ -1,29 +1,18 @@
 import os
 import time
 
-from nxdrive.tests.common import IntegrationTestCase
+from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nose.plugins.skip import SkipTest
 
 
-class TestIntegrationReadOnly(IntegrationTestCase):
+class TestIntegrationReadOnly(UnitTestCase):
 
-# WIP in https://jira.nuxeo.com/browse/NXDRIVE-170
-#     def setUp(self):
-#         super(TestIntegrationReadOnly, self).setUp()
-# 
-#         self.sb_1 = self.controller_1.bind_server(
-#             self.local_nxdrive_folder_1,
-#             self.nuxeo_url, self.user_1, self.password_1)
-# 
-#         self.controller_1.bind_root(self.local_nxdrive_folder_1,
-#             self.workspace)
-# 
-#         self.controller_1.synchronizer.update_synchronize_server(self.sb_1)
-# 
-#         self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1,
-#                                        self.workspace_title)
-#         self.local_client_1 = LocalClient(self.sync_root_folder_1)
+    def setUp(self):
+        super(TestIntegrationReadOnly, self).setUp()
+        self.engine_1.start()
+        self.wait_sync()
+        self.engine_1.stop()
 
     def _set_readonly_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
@@ -42,7 +31,6 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                 grant="true")
 
     def test_rename_readonly_file(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace
@@ -55,8 +43,8 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                          'Content')
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', True)
-        syn = self.controller_1.synchronizer
-        syn.update_synchronize_server(self.sb_1)
+        self.engine_1.start()
+        self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         self.assertTrue(local.exists('/Test folder/jack.odt'))
@@ -80,7 +68,7 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                              'Some locally updated content')
         local.set_readonly('/Test folder/joe.odt')
         local.set_readonly('/Test folder')
-        syn.update_synchronize_server(self.sb_1)
+
         # TODO Might rollback if rollback only !
         self.assertFalse(remote.exists('/Test folder/local.odt'))
         self.assertFalse(remote.exists('/Test folder/Local sub folder 2'))
@@ -94,7 +82,8 @@ class TestIntegrationReadOnly(IntegrationTestCase):
         local.unset_readonly('/Test folder')
         local.delete(delete_folder)
         local.set_readonly('/Test folder')
-        syn.update_synchronize_server(self.sb_1)
+        # Should recreate ?
+        self.wait_sync()
         self.assertTrue(remote.exists(delete_folder))
         self.assertTrue(local.exists(delete_folder))
 
@@ -107,7 +96,6 @@ class TestIntegrationReadOnly(IntegrationTestCase):
         return True
 
     def test_readonly_user_access(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         if os.sys.platform == 'win32':
             raise SkipTest('Readonly folder let new file creation')
         # Should not be able to create content in root folder
@@ -127,7 +115,6 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                         "Should be able to create in SYNCROOT folder")
 
     def test_file_readonly_change(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         if os.sys.platform == 'win32':
             raise SkipTest('Readonly folder let new file creation')
         local = self.local_client_1
@@ -142,8 +129,8 @@ class TestIntegrationReadOnly(IntegrationTestCase):
                          'Content')
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', True)
-        syn = self.controller_1.synchronizer
-        syn.update_synchronize_server(self.sb_1)
+        self.engine_1.start()
+        self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         self.assertTrue(local.exists('/Test folder/jack.odt'))
@@ -154,8 +141,7 @@ class TestIntegrationReadOnly(IntegrationTestCase):
         # Remove the readonly
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', False)
-        syn.update_synchronize_server(self.sb_1)
-
+        self.wait_sync()
         fname = os.path.join(self.sync_root_folder_1, 'Test folder',
                                 'test.txt')
         fname2 = os.path.join(self.sync_root_folder_1, 'Test folder',
@@ -170,7 +156,7 @@ class TestIntegrationReadOnly(IntegrationTestCase):
         # Put it back readonly
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', True)
-        syn.update_synchronize_server(self.sb_1)
+        self.wait_sync()
 
         # Check it works
         self.assertFalse(self.touch(fname))
