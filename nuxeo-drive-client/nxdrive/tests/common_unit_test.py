@@ -18,6 +18,9 @@ from PyQt4 import QtCore
 from threading import Thread
 from time import sleep
 
+DEFAULT_WAIT_SYNC_TIMEOUT = 20
+
+
 def configure_logger():
     configure(
         file_level='DEBUG',
@@ -29,6 +32,7 @@ def configure_logger():
 # Configure test logger
 configure_logger()
 log = get_logger(__name__)
+
 
 class TestThread(QtCore.QThread):
     def __init__(self, method, method_arg):
@@ -197,7 +201,7 @@ class UnitTestCase(unittest.TestCase):
         log.debug("Sync completed")
         self._wait_sync = False
 
-    def wait_sync(self, timeout=20):
+    def wait_sync(self, timeout=DEFAULT_WAIT_SYNC_TIMEOUT):
         # First wait for server
         self.wait_audit_change_finder_if_needed()
         self.wait()
