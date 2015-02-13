@@ -1,16 +1,11 @@
-import os
 import time
+
+from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
 
-from nxdrive.tests.common import IntegrationTestCase
-from nxdrive.client import LocalClient
-from nxdrive.engine.dao.model import LastKnownState
-
-
-class TestIntegrationSecurityUpdates(IntegrationTestCase):
+class TestIntegrationSecurityUpdates(UnitTestCase):
 
     def test_synchronize_denying_read_access(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that denying Read access server side is impacted client side
 
         Use cases:
@@ -27,14 +22,10 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         as the same uses cases are tested
         """
         # Bind the server and root workspace
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
+        self.engine_1.start()
 
         # Get local and remote clients
-        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
-                                         self.workspace_title))
+        local = self.local_client_1
         remote = self.remote_document_client_1
 
         # Create documents in the remote root workspace
@@ -42,8 +33,7 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         remote.make_folder('/', 'Test folder')
         remote.make_file('/Test folder', 'joe.txt', 'Some content')
 
-        syn = ctl.synchronizer
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
@@ -52,14 +42,14 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   self.TEST_WORKSPACE_PATH + '/Test folder',
                                   False)
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertFalse(local.exists('/Test folder'))
 
         # Add Read permission back for test user then synchronize
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   self.TEST_WORKSPACE_PATH + '/Test folder',
                                   True)
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
@@ -68,19 +58,20 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   self.TEST_WORKSPACE_PATH,
                                   False)
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertFalse(local.exists('/'))
 
         # Add Read permission back for test user then synchronize
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   self.TEST_WORKSPACE_PATH,
                                   True)
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
     def test_synchronize_denying_read_access_local_modification(self):
+        # TO_REVIEW
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test denying Read access with concurrent local modification
 
@@ -107,14 +98,9 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         RemoteDocumentClient is File oriented.
         """
         # Bind the server and root workspace
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
-
+        self.engine_1.start()
         # Get local and remote clients
-        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
-                                         self.workspace_title))
+        local = self.local_client_1
         remote = self.remote_document_client_1
         root_remote = self.root_remote_client
 
@@ -127,8 +113,7 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
                          'Content')
 
-        syn = ctl.synchronizer
-        self._synchronize(syn)
+        self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         self.assertTrue(local.exists('/Test folder/jack.odt'))
@@ -164,7 +149,7 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         root_remote.update_content(test_folder_path + '/joe.odt',
                 'Some remotely updated content')
 
-        self._synchronize(syn)
+        self.wait_sync()
         # Only locally modified content should exist
         # and should be marked as 'unsynchronized', other content should
         # have been deleted.
@@ -190,17 +175,15 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         self.assertFalse(local.exists(
                     '/Test folder/Remote sub folder 1/remote sub file 1.txt'))
         # State check
-        session = ctl.get_session()
-        self._check_pair_state(session, '/Test folder', 'unsynchronized')
-        self._check_pair_state(session, '/Test folder/joe.odt',
+        self._check_pair_state('/Test folder', 'unsynchronized')
+        self._check_pair_state('/Test folder/joe.odt',
                                'unsynchronized')
-        self._check_pair_state(session, '/Test folder/local.odt',
+        self._check_pair_state('/Test folder/local.odt',
                                'unsynchronized')
-        self._check_pair_state(session, '/Test folder/Local sub folder 2',
+        self._check_pair_state('/Test folder/Local sub folder 2',
                                'unsynchronized')
-        self._check_pair_state(session,
-                        '/Test folder/Local sub folder 2/local sub file 2.txt',
-                        'unsynchronized')
+        self._check_pair_state('/Test folder/Local sub folder 2/local sub file 2.txt',
+                               'unsynchronized')
         # Remote check
         test_folder_uid = root_remote.get_info(test_folder_path).uid
         self.assertEquals(len(root_remote.get_children_info(
@@ -229,7 +212,7 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   self.TEST_WORKSPACE_PATH + '/Test folder',
                                   True)
-        self._synchronize(syn)
+        self.wait_sync()
         # Remote documents should be merged with locally modified content
         # which should be unmarked as 'unsynchronized' and therefore
         # synchronized upstream.
@@ -263,15 +246,14 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         self.assertTrue(local.exists(
                     '/Test folder/Remote sub folder 2/remote sub file 2.txt'))
         # State check
-        self._check_pair_state(session, '/Test folder', 'synchronized')
-        self._check_pair_state(session, '/Test folder/joe.odt',
+        self._check_pair_state('/Test folder', 'synchronized')
+        self._check_pair_state('/Test folder/joe.odt',
                                'synchronized')
-        self._check_pair_state(session, '/Test folder/local.odt',
+        self._check_pair_state('/Test folder/local.odt',
                                'synchronized')
-        self._check_pair_state(session, '/Test folder/Local sub folder 2',
+        self._check_pair_state('/Test folder/Local sub folder 2',
                                'synchronized')
-        self._check_pair_state(session,
-                        '/Test folder/Local sub folder 2/local sub file 2.txt',
+        self._check_pair_state('/Test folder/Local sub folder 2/local sub file 2.txt',
                         'synchronized')
         # Remote check
         self.assertTrue(remote.exists('/Test folder'))
@@ -309,11 +291,6 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
         self.assertTrue(remote.exists(
                     '/Test folder/Remote sub folder 2/remote sub file 2.txt'))
 
-    def _synchronize(self, synchronizer):
-        self.wait_audit_change_finder_if_needed()
-        self.wait()
-        synchronizer.loop(delay=0.1, max_loops=2, no_event_init=True)
-
     def _set_read_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
         if grant:
@@ -327,6 +304,5 @@ class TestIntegrationSecurityUpdates(IntegrationTestCase):
 
     def _check_pair_state(self, session, local_path, pair_state):
         local_path = '/' + self.workspace_title + local_path
-        doc_pair = session.query(LastKnownState).filter_by(
-            local_path=local_path).one()
+        doc_pair = self.engine_1.get_dao().get_state_from_local(local_path)
         self.assertEquals(doc_pair.pair_state, pair_state)
