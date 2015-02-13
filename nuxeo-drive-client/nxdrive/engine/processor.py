@@ -359,33 +359,29 @@ class Processor(Worker):
                           " document '%s'.", doc_pair.remote_name)
             else:
                 file_or_folder = 'folder' if doc_pair.folderish else 'file'
-                previous_local_path = doc_pair.local_path
                 if is_move:
-                    # move
+                    # move and potential rename
+                    moved_name = doc_pair.remote_name if is_renaming else doc_pair.local_name
                     log.debug("Moving local %s '%s' to '%s'.",
                         file_or_folder, local_client._abspath(doc_pair.local_path),
-                        local_client._abspath(new_parent_pair.local_path))
+                        local_client._abspath(new_parent_pair.local_path + '/' + moved_name))
                     # May need to add a lock for move
                     updated_info = local_client.move(doc_pair.local_path,
-                                      new_parent_pair.local_path)
+                                      new_parent_pair.local_path, name=moved_name)
                     new_parent_path = new_parent_pair.remote_parent_path + "/" + new_parent_pair.remote_ref
                     self._dao.update_remote_parent_path(doc_pair, new_parent_path)
-                    # refresh doc pair for the case of a
-                    # simultaneous move and renaming
-                    previous_local_path = updated_info.path
-                if is_renaming:
+                elif is_renaming:
                     # renaming
                     log.debug("Renaming local %s '%s' to '%s'.",
-                        file_or_folder, local_client._abspath(previous_local_path),
+                        file_or_folder, local_client._abspath(doc_pair.local_path),
                         doc_pair.remote_name)
                     updated_info = local_client.rename(
-                        previous_local_path, doc_pair.remote_name)
+                        doc_pair.local_path, doc_pair.remote_name)
                 if is_move or is_renaming:
                     # Should call a DAO method
                     new_path = os.path.dirname(updated_info.path)
                     self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path), new_path)
                     self._refresh_local_state(doc_pair, updated_info)
-                    #self._local_rename_with_descendant_states(doc_pair, previous_local_path, updated_info.path)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
         except (IOError, WindowsError) as e:
