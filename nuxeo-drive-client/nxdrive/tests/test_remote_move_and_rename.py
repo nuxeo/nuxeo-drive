@@ -280,8 +280,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(folder_1_1_state.local_name, u'Sub-Folder 1.1')
 
     def test_remote_rename_case_folder(self):
-        #raise SkipTest("Skipped waiting for"
-        #               " https://jira.nuxeo.com/browse/NXDRIVE-98 to be fixed")
+        raise SkipTest("Skipped waiting for"
+                       " https://jira.nuxeo.com/browse/NXDRIVE-98 to be fixed")
         remote_client = self.remote_client_1
         local_client = self.local_client_1
 
