@@ -442,7 +442,7 @@ class LocalClient(BaseClient):
         finally:
             self.lock_ref(ref, locker & 2)
 
-    def move(self, ref, new_parent_ref):
+    def move(self, ref, new_parent_ref, name=None):
         """Move a local file or folder into another folder
 
         Return the actualized info object.
@@ -453,7 +453,7 @@ class LocalClient(BaseClient):
         locker = self.unlock_ref(ref)
         new_locker = self.unlock_ref(new_parent_ref, False)
         source_os_path = self._abspath(ref)
-        name = ref.rsplit(u'/', 1)[1]
+        name = name if name is not None else ref.rsplit(u'/', 1)[1]
         target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
         try:
             shutil.move(source_os_path, target_os_path)
