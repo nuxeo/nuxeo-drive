@@ -272,13 +272,13 @@ class UnitTestCase(unittest.TestCase):
             root = u"/" + self.workspace_title
             if not local_client.exists(root):
                 local_client.make_folder(u"/", self.workspace_title)
-        # create some folders on the server
+        # create some folders
         folder_1 = local_client.make_folder(root, u'Folder 1')
         folder_1_1 = local_client.make_folder(folder_1, u'Folder 1.1')
         folder_1_2 = local_client.make_folder(folder_1, u'Folder 1.2')
         folder_2 = local_client.make_folder(root, u'Folder 2')
 
-        # create some files on the server
+        # create some files
         local_client.make_file(folder_2, u'Duplicated File.txt',
                                 content=b"Some content.")
 
