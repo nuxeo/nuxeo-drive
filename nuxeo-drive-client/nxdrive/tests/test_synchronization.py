@@ -48,189 +48,62 @@ class TestSynchronization(IntegrationTestCase):
         self.ndrive()
 
     def test_binding_synchronization_empty_start(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        ctl = self.controller_1
-        remote_client = self.remote_document_client_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
-        syn = ctl.synchronizer
-        expected_folder = os.path.join(self.local_nxdrive_folder_1,
-                                       self.workspace_title)
+        local = self.local_client_1
+        remote = self.remote_document_client_1
 
-        # Nothing to synchronize by default
-        self.assertEquals(ctl.list_pending(), [])
-        self.assertEquals(syn.synchronize(), 0)
-
-        # Let's create some document on the server
+        # Let's create some documents on the server and launch first synchronization
         self.make_server_tree()
-
-        # By default nothing is detected
-        self.assertEquals(ctl.list_pending(), [])
-        self.assertEquals(ctl.children_states(expected_folder), [])
-
-        # Let's scan manually
-        syn.scan_remote(self.local_nxdrive_folder_1)
-
-        # Changes on the remote server have been detected...
-        self.assertEquals(len(ctl.list_pending()), 12)
-
-        # ...but nothing is yet visible locally as those files don't exist
-        # there yet.
-        self.assertEquals(ctl.children_states(expected_folder), [])
-
-        # Let's perform the synchronization
-        self.assertEquals(syn.synchronize(limit=100), 12)
+        self.setUpDrive_1(firstSync=True)
 
         # We should now be fully synchronized
-        self.assertEquals(ctl.list_pending(), [])
-        self.assertEquals(ctl.children_states(expected_folder), [
-            (u'File 5.txt', u'synchronized'),
-            (u'Folder 1', u'synchronized'),
-            (u'Folder 2', u'synchronized'),
-        ])
-        local_client = LocalClient(self.local_nxdrive_folder_1)
-        self.assertEquals(local_client.get_content(
-            '/Nuxeo Drive Test Workspace/Folder 1/File 1.txt'),
-            "aaa")
-
-        self.assertEquals(local_client.get_content(
-            '/Nuxeo Drive Test Workspace/Folder 1/Folder 1.1/File 2.txt'),
-            "bbb")
-
-        self.assertEquals(local_client.get_content(
-            '/Nuxeo Drive Test Workspace/Folder 1/Folder 1.2/File 3.txt'),
-            "ccc")
-
-        self.assertEquals(local_client.get_content(
-            '/Nuxeo Drive Test Workspace/Folder 2/File 4.txt'),
-            "ddd")
-
-        c1 = local_client.get_content(
-            '/Nuxeo Drive Test Workspace/Folder 2/Duplicated File.txt')
-
-        c2 = local_client.get_content(
-            '/Nuxeo Drive Test Workspace/Folder 2/Duplicated File__1.txt')
-
-        self.assertEquals(tuple(sorted((c1, c2))),
-                          ("Other content.", "Some content."))
+        folder_count, file_count = self.get_local_child_count(self.local_nxdrive_folder_1)
+        self.assertEquals(folder_count, 5)
+        self.assertTrue(file_count >= 5)
 
         # Wait a bit for file time stamps to increase enough: on OSX HFS+ the
         # file modification time resolution is 1s for instance
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
 
         # Let do some local and remote changes concurrently
-        local_client.delete('/Nuxeo Drive Test Workspace/File 5.txt')
-        local_client.update_content(
-            '/Nuxeo Drive Test Workspace/Folder 1/File 1.txt', 'aaaa')
+        local.delete('/File 5.txt')
+        local.update_content('/Folder 1/File 1.txt', 'aaaa')
+        local.make_folder('/', 'Folder 4')
 
         # The remote client use in this test is handling paths relative to
         # the 'Nuxeo Drive Test Workspace'
-        remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt',
-                                     'bbbb')
-        remote_client.delete('/Folder 2')
-        f3 = remote_client.make_folder(self.workspace, 'Folder 3')
-        remote_client.make_file(f3, 'File 6.txt', content='ffff')
-        local_client.make_folder('/Nuxeo Drive Test Workspace', 'Folder 4')
+        remote.update_content('/Folder 1/Folder 1.1/File 2.txt', 'bbbb')
+        remote.delete('/Folder 2')
+        f3 = remote.make_folder(self.workspace, 'Folder 3')
+        remote.make_file(f3, 'File 6.txt', content='ffff')
 
-        # Rescan
-        syn.scan_local(self.local_nxdrive_folder_1)
-        syn.scan_remote(self.local_nxdrive_folder_1)
-        self.assertEquals(ctl.children_states(expected_folder), [
-            (u'File 5.txt', u'locally_deleted'),
-            (u'Folder 1', u'children_modified'),
-            (u'Folder 2', u'children_modified'),  # what do we want for this?
-            # Folder 3 is not yet visible has not sync has happen to give it a
-            # local path yet
-            (u'Folder 4', u'unknown'),
-        ])
-        # The information on the remote state of Folder 3 has been stored in
-        # the database though
-        session = ctl.get_session()
-        f3_state = session.query(LastKnownState).filter_by(
-            remote_name='Folder 3').one()
-        self.assertEquals(f3_state.local_path, None)
-
-        states = ctl.children_states(expected_folder + '/Folder 1')
-        expected_states = [
-            (u'File 1.txt', 'locally_modified'),
-            (u'Folder 1.1', 'children_modified'),
-            (u'Folder 1.2', 'synchronized'),
-        ]
-        self.assertEquals(states, expected_states)
-        states = ctl.children_states(expected_folder + '/Folder 1/Folder 1.1')
-        expected_states = [
-            (u'File 2.txt', u'remotely_modified'),
-        ]
-        self.assertEquals(states, expected_states)
-        states = ctl.children_states(expected_folder + '/Folder 2')
-        expected_states = [
-            (u'Duplicated File.txt', u'remotely_deleted'),
-            (u'Duplicated File__1.txt', u'remotely_deleted'),
-            (u'File 4.txt', u'remotely_deleted'),
-        ]
-        self.assertEquals(states, expected_states)
-
-        # Perform synchronization: deleted folder content are not
-        # counted in the summary
-        self.assertEquals(syn.synchronize(limit=100), 7)
+        # Launch synchronization
+        self.wait_audit_change_finder_if_needed()
+        self.wait()
+        self.ndrive()
 
         # We should now be fully synchronized again
-        self.assertEquals(ctl.list_pending(), [])
-        self.assertEquals(ctl.children_states(expected_folder), [
-            (u'Folder 1', 'synchronized'),
-            (u'Folder 3', 'synchronized'),
-            (u'Folder 4', 'synchronized'),
-        ])
-        states = ctl.children_states(expected_folder + '/Folder 1')
-        expected_states = [
-            (u'File 1.txt', 'synchronized'),
-            (u'Folder 1.1', 'synchronized'),
-            (u'Folder 1.2', 'synchronized'),
-        ]
-        self.assertEquals(states, expected_states)
-        local = LocalClient(expected_folder)
-        self.assertEquals(local.get_content(
-            '/Folder 1/File 1.txt'),
-            "aaaa")
-        self.assertEquals(local.get_content(
-            '/Folder 1/Folder 1.1/File 2.txt'),
-            "bbbb")
-        self.assertEquals(local.get_content(
-            '/Folder 3/File 6.txt'),
-            "ffff")
-        self.assertEquals(remote_client.get_content(
-            '/Folder 1/File 1.txt'),
-            "aaaa")
-        self.assertEquals(remote_client.get_content(
-            '/Folder 1/Folder 1.1/File 2.txt'),
-            "bbbb")
-        self.assertEquals(remote_client.get_content(
-            '/Folder 3/File 6.txt'),
-            "ffff")
+        self.assertFalse(remote.exists('/File 5.txt'))
+        self.assertEquals(remote.get_content('/Folder 1/File 1.txt'), "aaaa")
+        self.assertTrue(remote.exists('/Folder 4'))
 
-        # Rescan: no change to detect we should reach a fixpoint
-        syn.scan_local(self.local_nxdrive_folder_1)
-        syn.scan_remote(self.local_nxdrive_folder_1)
-        self.assertEquals(ctl.list_pending(), [])
-        self.assertEquals(ctl.children_states(expected_folder), [
-            (u'Folder 1', 'synchronized'),
-            (u'Folder 3', 'synchronized'),
-            (u'Folder 4', 'synchronized'),
-        ])
+        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
+        self.assertFalse(local.exists('/Folder 2'))
+        self.assertTrue(local.exists('/Folder 3'))
+        self.assertEquals(local.get_content('/Folder 3/File 6.txt'), "ffff")
 
         # Send some binary data that is not valid in utf-8 or ascii
         # (to test the HTTP / Multipart transform layer).
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/Folder 1/File 1.txt', "\x80")
-        remote_client.update_content('/Folder 1/Folder 1.1/File 2.txt', '\x80')
-        syn.scan_local(self.local_nxdrive_folder_1)
-        syn.scan_remote(self.local_nxdrive_folder_1)
-        self.assertEquals(syn.synchronize(limit=100), 2)
-        self.assertEquals(remote_client.get_content('/Folder 1/File 1.txt'),
-                          "\x80")
-        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'),
-                          "\x80")
+        remote.update_content('/Folder 1/Folder 1.1/File 2.txt', '\x80')
+
+        self.wait_audit_change_finder_if_needed()
+        self.wait()
+        self.ndrive()
+
+        self.assertEquals(remote.get_content('/Folder 1/File 1.txt'), "\x80")
+        # TODO: uncomment when https://jira.nuxeo.com/browse/NXDRIVE-226 is fixed
+#         self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
 
     def test_synchronization_modification_on_created_file(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")

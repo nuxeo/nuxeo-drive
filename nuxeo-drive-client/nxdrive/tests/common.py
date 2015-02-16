@@ -248,6 +248,14 @@ class IntegrationTestCase(unittest.TestCase):
         remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
 
+    def get_local_child_count(self, path):
+        dir_count = 0
+        file_count = 0
+        for _, dirnames, filenames in os.walk(path):
+            dir_count += len(dirnames)
+            file_count += len(filenames)
+        return (dir_count, file_count)
+
     def init_default_drive(self, local_user=1, remote_user=1):
         # Bind the server and root workspace
         ctl = self.controller_1
