@@ -139,6 +139,5 @@ class TestConflicts(IntegrationTestCase):
 
     def _sync(self, syn, max_loops=1, wait_for_async=True):
         if wait_for_async:
-            self.wait_audit_change_finder_if_needed()
             self.wait()
         syn.loop(delay=0, max_loops=max_loops)

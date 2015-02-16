@@ -100,7 +100,6 @@ class TestIntegrationVersioning(IntegrationTestCase):
         doc = remote_client.make_file(self.workspace,
                                     'Document to restore.txt',
                                     content="Initial content.")
-        self.wait_audit_change_finder_if_needed()
         self.wait()
         self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
         self.assertTrue(local_client.exists('/Document to restore.txt'))
@@ -115,14 +114,12 @@ class TestIntegrationVersioning(IntegrationTestCase):
         # the version) as to be updated
         time.sleep(1.0)
         remote_client.update_content(doc, "Updated content.")
-        self.wait_audit_change_finder_if_needed()
         self.wait()
         self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
         self.assertEquals(local_client.get_content('/Document to restore.txt'),
                           "Updated content.")
         version_uid = remote_client.get_versions(doc)[0][0]
         remote_client.restore_version(version_uid)
-        self.wait_audit_change_finder_if_needed()
         self.wait()
         self._synchronize_and_assert(self.syn_1, self.sb_1, 1)
         self.assertEquals(local_client.get_content('/Document to restore.txt'),
@@ -132,7 +129,6 @@ class TestIntegrationVersioning(IntegrationTestCase):
         expected_synchronized, wait=False):
         if wait:
             # Wait for audit changes to be detected after the 1 second step
-            self.wait_audit_change_finder_if_needed()
             self.wait()
         n_synchronized = synchronizer.update_synchronize_server(server_binding)
         self.assertEqual(n_synchronized, expected_synchronized)

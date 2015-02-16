@@ -80,7 +80,6 @@ class IntegrationTestCase(unittest.TestCase):
     TEST_DEFAULT_QUIT_TIMEOUT = 15
 
     def _synchronize(self, syn, delay=0.1, loops=1):
-        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn.loop(delay=delay, max_loops=loops)
 
@@ -264,7 +263,6 @@ class IntegrationTestCase(unittest.TestCase):
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
 
         # Launch first synchronization
-        self.wait_audit_change_finder_if_needed()
         self.wait()
         syn = ctl.synchronizer
         syn.loop(delay=0.1, max_loops=1)
@@ -283,11 +281,9 @@ class IntegrationTestCase(unittest.TestCase):
         return syn, local, remote
 
     def wait(self):
-        self.root_remote_client.wait()
-
-    def wait_audit_change_finder_if_needed(self):
         if not self.root_remote_client.is_event_log_id_available():
             time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+        self.root_remote_client.wait()
 
     def setUpDrive_1(self, bind_root=True, root=None, firstSync=False):
         # Bind the server and root workspace

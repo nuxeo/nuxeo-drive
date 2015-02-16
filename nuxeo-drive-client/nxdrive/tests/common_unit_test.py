@@ -203,7 +203,6 @@ class UnitTestCase(unittest.TestCase):
 
     def wait_sync(self, timeout=DEFAULT_WAIT_SYNC_TIMEOUT):
         # First wait for server
-        self.wait_audit_change_finder_if_needed()
         self.wait()
         log.debug("Wait for sync")
         self._wait_sync = True
@@ -321,6 +320,8 @@ class UnitTestCase(unittest.TestCase):
 
     def wait(self, retry=3):
         try:
+            if not self.root_remote_client.is_event_log_id_available():
+                time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
             self.root_remote_client.wait()
         except OSError.TimeoutError as e:
             log.debug("Exception while waiting for server : %r", e)
@@ -328,7 +329,3 @@ class UnitTestCase(unittest.TestCase):
             if retry > 0:
                 log.debug("Retry to wait")
                 self.wait(retry-1)
-
-    def wait_audit_change_finder_if_needed(self):
-        if not self.root_remote_client.is_event_log_id_available():
-            time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)

@@ -185,7 +185,6 @@ class TestLocalMoveAndRename(UnitTestCase):
             u'Original Folder 1')
 
         # Nothing left to do
-        self.wait_audit_change_finder_if_needed()
         self.wait()
 
     def test_local_rename_folder(self):
@@ -225,7 +224,6 @@ class TestLocalMoveAndRename(UnitTestCase):
             original_folder_1_uid)
 
         # The more things change, the more they remain the same.
-        self.wait_audit_change_finder_if_needed()
         self.wait()
 
     def test_local_move_folder(self):
@@ -270,7 +268,6 @@ class TestLocalMoveAndRename(UnitTestCase):
             original_folder_1_uid)
 
         # The more things change, the more they remain the same.
-        self.wait_audit_change_finder_if_needed()
         self.wait()
 
     def test_concurrent_local_rename_folder(self):
@@ -314,7 +311,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEquals(file_3_info.parent_uid, folder_2_uid)
 
         # The more things change, the more they remain the same.
-        self.wait_audit_change_finder_if_needed()
         self.wait()
 
     def test_local_rename_sync_root_folder(self):

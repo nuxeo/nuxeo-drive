@@ -347,6 +347,5 @@ class TestDriveEdit(IntegrationTestCase):
 
     def _sync(self, syn, wait_for_async=True):
         if wait_for_async:
-            self.wait_audit_change_finder_if_needed()
             self.wait()
         syn.loop(delay=0, max_loops=1)
