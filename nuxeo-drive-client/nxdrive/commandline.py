@@ -565,7 +565,7 @@ class CliHandler(object):
         return 0
 
     def edit(self, options):
-        self.controller.edit(
+        self.manager.edit(
             options.server_url, options.item_id)
         return 0
 

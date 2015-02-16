@@ -43,6 +43,11 @@ class WebSystrayApi(WebDriveApi):
     def suspend(self):
         self._manager.suspend()
 
+    @QtCore.pyqtSlot(str, result=int)
+    def get_syncing_items(self, uid):
+        engine = self._get_engine(uid)
+        return engine.get_dao().get_syncing_count()
+
     @QtCore.pyqtSlot()
     def resume(self):
         self._manager.resume()

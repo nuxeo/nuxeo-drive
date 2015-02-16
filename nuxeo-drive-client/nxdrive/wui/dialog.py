@@ -29,6 +29,7 @@ class WebDriveApi(QtCore.QObject):
         result["uid"] = engine._uid
         result["type"] = engine._type
         result["name"] = engine._name
+        result["metrics"] = engine.get_metrics()
         result["started"] = engine.is_started()
         result["syncing"] = engine.is_syncing()
         result["paused"] = engine.is_paused()
@@ -248,10 +249,7 @@ class WebDialog(QtGui.QDialog):
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
         self.setWindowTitle(title)
-        import nxdrive
-        nxdrive_path = os.path.dirname(nxdrive.__file__)
-        ui_path = os.path.join(nxdrive_path, 'data', 'ui5')
-        filename = os.path.join(find_resource_dir("ui5", ui_path), page)
+        filename = self._get_page(page)
         log.debug("Load web file : %s", filename)
         self._view.load(QtCore.QUrl(filename))
         self._frame = self._view.page().mainFrame()
@@ -268,6 +266,13 @@ class WebDialog(QtGui.QDialog):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
         self.activateWindow()
+
+    def _get_page(self, page):
+        import nxdrive
+        skin = 'ui5'
+        nxdrive_path = os.path.dirname(nxdrive.__file__)
+        ui_path = os.path.join(nxdrive_path, 'data', skin)
+        return os.path.join(find_resource_dir(skin, ui_path), page)
 
     @QtCore.pyqtSlot()
     def _attachJsApi(self):

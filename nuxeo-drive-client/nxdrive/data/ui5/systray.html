@@ -63,7 +63,8 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
 	$scope.engines = angular.fromJson(drive.get_engines());
 	$scope.engine = null;
 	$scope.current_actions = [];
-	$scope.last_files = [];	
+	$scope.last_files = [];
+	$scope.syncing_items = 0;
 	$scope.updateFiles = function() {
 		if ($scope.current_actions.length < 5) {
 			$scope.last_files = angular.fromJson(drive.get_last_files($scope.engine.uid, 5-$scope.current_actions.length, "remote")); 
@@ -79,8 +80,10 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
 		}
 		$scope.engine.syncing = $scope.sync;
 		if ($scope.engine.syncing == 'syncing') {
+			$scope.syncing_items = drive.get_syncing_items($scope.engine.uid);
 			$scope.current_actions = angular.fromJson(drive.get_actions($scope.engine.uid));
 		} else {
+			$scope.syncing_items = 0;
 			$scope.current_actions = [];
 		}
 		$scope.updateFiles();
@@ -143,13 +146,21 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
   		</li>
   	</ul>
   </div>
+  <div style="position: absolute; top: 28px;">
+  	<span ng-show="engine.metrics.conflicted_files > 0" class="label label-warning">{{ engine.metrics.conflicted_files }} conflicts</span>
+  	<span ng-show="engine.metrics.error_files > 0" class="label label-danger">{{ engine.metrics.error_files }} errors</span>
+  </div>
  </div>
 <div class="navbar navbar-fixed-bottom" style="padding: 10px; height: 40px; min-height: 40px; border-top: 1px solid #17384e;background-color: #dfdfdf;">
+  <div class="label bg-info" style="border-top: 1px solid #31708f; color:#31708f; position: absolute; padding-top:4px; left:0px; height: 22px; width: 100%; top: -23px; width: 100%;">
+  	New update available
+  	<span class="glyphicon glyphicon-remove pull-right">&nbsp;</span>
+  </div>
   <div align="right" ng-show="engine.syncing != 'syncing'">
   	Synchronization completed&nbsp;<span class="glyphicon glyphicon-ok">&nbsp;</span>
   </div>
   <div align="right" ng-show="engine.syncing == 'syncing'">
-  	Synchronization in progress<span ng-show="engine.queue.total_size > 0">&nbsp;({{engine.queue.total_size}})</span>&nbsp;<img src="imgs/transferring.gif" /></span>
+  	Synchronization in progress<span ng-show="engine.queue.total_queue > 0">&nbsp;({{engine.queue.total_queue}})</span>&nbsp;<img src="imgs/transferring.gif" /></span>
   </div>
 </div>
 <div class="list-group" style="margin-top: 40px; margin-bottom: 0px;">

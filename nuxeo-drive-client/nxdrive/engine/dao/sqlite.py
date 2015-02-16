@@ -417,6 +417,10 @@ class EngineDAO(ConfigurationDAO):
     def get_error_count(self, threshold=3):
         return self.get_count("error_count > " + str(threshold))
 
+    def get_syncing_count(self):
+        query = "pair_state!='synchronized' AND pair_state!='conflicted' AND pair_state!='unsynchronized'"
+        return self.get_count(query)
+
     def get_sync_count(self, filetype=None):
         query = "pair_state='synchronized'"
         if filetype == "file":

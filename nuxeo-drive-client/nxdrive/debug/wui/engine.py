@@ -62,7 +62,6 @@ class DebugDriveApi(WebDriveApi):
 
     def _export_engine(self, engine):
         result = super(DebugDriveApi, self)._export_engine(engine)
-        result["metrics"] = engine.get_metrics()
         result["queue"]["metrics"] = engine.get_queue_manager().get_metrics()
         result["queue"]["local_folder_enable"] = engine.get_queue_manager()._local_folder_enable
         result["queue"]["local_file_enable"] = engine.get_queue_manager()._local_file_enable
