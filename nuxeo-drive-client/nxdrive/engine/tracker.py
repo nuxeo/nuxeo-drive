@@ -17,7 +17,7 @@ class Tracker(Worker):
         '''
         Constructor
         '''
-        super(Tracker, self).__init__(None)
+        super(Tracker, self).__init__()
         from UniversalAnalytics import Tracker as UATracker
         self._manager = manager
         self._user_agent = self.get_user_agent(self._manager.get_version())

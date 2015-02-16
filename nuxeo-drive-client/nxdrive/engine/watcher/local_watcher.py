@@ -3,7 +3,7 @@
 '''
 from nxdrive.logging_config import get_logger
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
-from nxdrive.engine.engine import Worker, ThreadInterrupt
+from nxdrive.engine.engine import EngineWorker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.engine.activity import Action
@@ -18,7 +18,7 @@ log = get_logger(__name__)
 conflicted_changes = []
 
 
-class LocalWatcher(Worker):
+class LocalWatcher(EngineWorker):
     localScanFinished = pyqtSignal()
     '''
     classdocs

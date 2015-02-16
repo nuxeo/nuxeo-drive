@@ -26,7 +26,6 @@ class ThreadInterrupt(Exception):
 ' Utility class that handle one thread
 '''
 
-
 class Worker(QObject):
     _thread = None
     _continue = False
@@ -37,7 +36,7 @@ class Worker(QObject):
     _pause = False
     actionUpdate = pyqtSignal(object)
 
-    def __init__(self, engine, thread=None, name=None):
+    def __init__(self, thread=None, name=None):
         super(Worker, self).__init__()
         if thread is None:
             thread = QThread()
@@ -47,7 +46,6 @@ class Worker(QObject):
         if name is None:
             name = type(self).__name__
         self._name = name
-        self._engine = engine
         self._thread.terminated.connect(self._terminated)
 
     @pyqtSlot()
@@ -139,6 +137,12 @@ class Worker(QObject):
 
     def _clean(self, reason, e=None):
         pass
+
+
+class EngineWorker(Worker):
+    def __init__(self, engine, thread=None, name=None):
+        super(EngineWorker, self).__init__(thread, name)
+        self._engine = engine
 
 '''
 ' Just a DummyWorker with infinite loop
@@ -521,6 +525,17 @@ class Engine(QObject):
     def use_trash(self):
         return True
 
+    def get_update_infos(self, client=None):
+        try:
+            if client is None:
+                client = self.get_remote_client(False)
+            update_info = client.get_update_info()
+            self._dao.update_config("server_version", update_info["serverVersion"])
+            self._dao.update_config("update_site", update_info["updateSiteURL"])
+        except:
+            # TO_REVIEW Discard this exception
+            pass
+
     def bind(self, binder):
         self._server_url = self._normalize_url(binder.url)
         self._remote_user = binder.username
@@ -540,6 +555,7 @@ class Engine(QObject):
         self._dao.update_config("remote_user", self._remote_user)
         self._dao.update_config("remote_password", self._remote_password)
         self._dao.update_config("remote_token", self._remote_token)
+        self.get_update_infos(nxclient)
         # Check for the root
         # If the top level state for the server binding doesn't exist,
         # create the local folder and the top level state. This can be
@@ -564,6 +580,9 @@ class Engine(QObject):
 
     def get_local_client(self):
         return LocalClient(self._local_folder)
+
+    def get_server_version(self):
+        return self._dao.get_config("server_version")
 
     @pyqtSlot()
     def invalidate_client_cache(self):

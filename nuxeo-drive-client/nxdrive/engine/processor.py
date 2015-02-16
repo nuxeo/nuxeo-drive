@@ -3,7 +3,7 @@ Created on 14 janv. 2015
 
 @author: Remi Cattiau
 '''
-from nxdrive.engine.engine import Worker
+from nxdrive.engine.engine import EngineWorker
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.common import NotFound
@@ -21,7 +21,7 @@ except ImportError:
     pass  # this will never be raised under unix
 
 
-class Processor(Worker):
+class Processor(EngineWorker):
     '''
     classdocs
     '''

@@ -4,7 +4,7 @@ Created on 8 janv. 2015
 @author: Remi Cattiau
 '''
 from nxdrive.logging_config import get_logger
-from nxdrive.engine.engine import Worker
+from nxdrive.engine.engine import EngineWorker
 from nxdrive.utils import current_milli_time
 from nxdrive.client import NotFound
 from time import sleep
@@ -20,7 +20,7 @@ from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from nxdrive.engine.engine import ThreadInterrupt
 
 
-class RemoteWatcher(Worker):
+class RemoteWatcher(EngineWorker):
     initiate = pyqtSignal()
     updated = pyqtSignal()
 
