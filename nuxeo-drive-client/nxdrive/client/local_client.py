@@ -165,10 +165,16 @@ class LocalClient(BaseClient):
         path = self._abspath(ref)
         locker = self.unlock_path(path, False)
         if sys.platform == 'win32':
-            path = path + ":" + name
+            pathAlt = path + ":" + name
             try:
-                with open(path, "w") as f:
-                    f.write("")
+                os.remove(pathAlt)
+            except WindowsError as e:
+                if e.errno == os.errno.EACCES:
+                    self.unset_path_readonly(path)
+                    os.remove(pathAlt)
+                    self.set_path_readonly(path)
+                else:
+                    raise e
             finally:
                 self.lock_path(path, locker)
         else:
@@ -197,6 +203,8 @@ class LocalClient(BaseClient):
                     with open(pathAlt, "w") as f:
                         f.write(remote_id)
                     self.set_path_readonly(path)
+                else:
+                    raise e
             finally:
                 self.lock_path(path, locker)
         else:
