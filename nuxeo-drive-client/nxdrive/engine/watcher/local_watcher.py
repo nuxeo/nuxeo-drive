@@ -163,7 +163,7 @@ class LocalWatcher(EngineWorker):
                     if remote_ref != child_pair.remote_ref:
                         # TO_REVIEW
                         # Load correct doc_pair | Put the others one back to children
-                        log.warn("Detected file substitution")
+                        log.warn("Detected file substitution: %s", child_pair.local_path)
                         old_pair = self._dao.get_normal_state_from_remote(remote_ref)
                         if old_pair is None:
                             self._dao.insert_local_state(child_info, info.path)

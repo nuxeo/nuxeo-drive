@@ -240,6 +240,7 @@ class EngineDAO(ConfigurationDAO):
             c.execute("UPDATE States SET processor=0 WHERE processor=?", (processor_id,))
             if self.auto_commit:
                 con.commit()
+            log.trace('Released processor %d', processor_id)
         finally:
             self._lock.release()
         return c.rowcount == 1
@@ -252,6 +253,7 @@ class EngineDAO(ConfigurationDAO):
             c.execute("UPDATE States SET processor=? WHERE id=? AND processor=0", (thread_id, row_id))
             if self.auto_commit:
                 con.commit()
+            log.trace('Acquired processor %d for row %d', thread_id, row_id)
         finally:
             self._lock.release()
         return c.rowcount == 1

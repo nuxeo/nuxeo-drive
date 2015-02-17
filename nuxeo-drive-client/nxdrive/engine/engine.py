@@ -119,6 +119,8 @@ class Worker(QObject):
         self._thread_id = current_thread().ident
         e = None
         try:
+            log.debug("Thread %s(%d) start"
+                        % (self._name, self._thread_id))
             self._execute()
             log.debug("Thread %s(%d) end"
                         % (self._name, self._thread_id))
