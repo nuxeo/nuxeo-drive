@@ -4,6 +4,7 @@ from nxdrive.utils import decrypt
 from nxdrive.logging_config import get_logger, configure
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.utils import normalized_path
+from nxdrive.updater import AppUpdater
 from nxdrive import __version__
 import subprocess
 from nxdrive.utils import ENCODING
@@ -203,6 +204,10 @@ class Manager(QObject):
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import ManagerDAO
         return ManagerDAO(self._get_db())
+
+    def get_updater(self, version_finder):
+        # Enable the capacity to extend the AppUpdater
+        return AppUpdater(version_finder)
 
     def is_paused(self):
         return self._pause
@@ -438,6 +443,20 @@ class Manager(QObject):
             if local_folder.startswith(engine_def.local_folder):
                 return self._engines[engine_def.uid]
         return None
+
+    def edit(self, server_url, remote_ref):
+        """Find the local file if any and start OS editor on it."""
+
+        state = self.get_state(server_url, remote_ref)
+        if state is None:
+            log.warning('Could not find local file for server_url=%s '
+                        'and remote_ref=%s', server_url, remote_ref)
+            return
+
+        # TODO: check synchronization of this state first
+
+        # Find the best editor for the file according to the OS configuration
+        self.open_local_file(state.get_local_abspath())
 
     def bind_server(self, local_folder, url, username, password, name=None, start_engine=True):
         from collections import namedtuple

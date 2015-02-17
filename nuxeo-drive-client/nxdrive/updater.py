@@ -10,6 +10,7 @@ from urllib2 import HTTPError
 from esky import Esky
 from esky.errors import EskyBrokenError
 from nxdrive.logging_config import get_logger
+from nxdrive.engine.engine import Worker
 
 log = get_logger(__name__)
 
@@ -175,15 +176,16 @@ class RootPrivilegeRequired(Exception):
     pass
 
 
-class AppUpdater:
+class AppUpdater(Worker):
     """Class for updating a frozen application.
 
     Basically an Esky wrapper.
     """
 
-    def __init__(self, version_finder=None, esky_app=None,
+    def __init__(self, manager, version_finder=None, esky_app=None,
                  local_update_site=False):
-
+        super(AppUpdater, self).__init__()
+        self._manager = manager
         if esky_app is not None:
             self.esky_app = esky_app
         elif not hasattr(sys, 'frozen'):
@@ -251,7 +253,7 @@ class AppUpdater:
             log.error(e, exc_info=True)
             raise MissingUpdateSiteInfo(missing_msg)
 
-    def get_client_min_version(self, server_version):
+    def _get_client_min_version(self, server_version):
         info_file = server_version + '.json'
         missing_msg = (
             "Missing or invalid file '%s' in update site '%s', can't get"
@@ -278,35 +280,59 @@ class AppUpdater:
             log.error(e, exc_info=True)
             raise MissingUpdateSiteInfo(missing_msg)
 
-    def get_latest_compatible_version(self, server_version):
-        client_min_version = self.get_client_min_version(server_version)
+    def compute_common_versions(self):
+        # Get the max minimal client version
+        # Get the min minimal server version
+        self.min_client_version = None
+        self.min_server_version = None
+        for engine in self._manager.get_engines().values():
+            server_version = engine.get_server_version()
+            if server_version is None:
+                continue
+            if self.min_server_version is None:
+                self.min_server_version = server_version
+            if version_compare(self.min_server_version, server_version) > 0:
+                self.min_server_version = server_version
+            client_version = self._get_client_min_version(server_version)
+            if self.min_client_version is None:
+                self.min_client_version = client_version
+                continue
+            # Get the maximal "minimum"
+            if version_compare(self.min_client_version, client_version) < 0:
+                self.min_client_version = client_version
+
+    def get_latest_compatible_version(self):
+        self.compute_common_versions()
         latest_version = None
         client_versions = self.find_versions()
         client_versions.append(self.get_current_latest_version())
         client_versions = sorted(client_versions, cmp=version_compare)
         for client_version in client_versions:
-            if client_min_version <= client_version:
+            if self.min_client_version <= client_version:
                 server_min_version = self.get_server_min_version(
                                                     client_version)
-                if server_min_version <= server_version:
+                if server_min_version <= self.min_server_version:
                     latest_version = client_version
         if latest_version is None:
             raise MissingCompatibleVersion(
                     "No client version compatible with server version %s"
                     " available in update site '%s'" % (
-                                server_version, self.update_site))
+                                self.min_server_version, self.update_site))
         return latest_version
 
-    def get_update_status(self, client_version, server_version):
+    def get_update_status(self):
         try:
-            latest_version = self.get_latest_compatible_version(server_version)
+            client_version = self._manager.get_version()
+            latest_version = self.get_latest_compatible_version()
+            # TO_REVIEW What the need for that
+            self.get_server_min_version(client_version)
+            server_version = self.min_server_version
+            client_min_version = self.min_client_version
+            server_min_version = self.min_server_version
             if (client_version == latest_version):
                 log.info("Client version %s is up-to-date regarding server"
-                         " version %s.", client_version, server_version)
+                         " version %s.", client_version, self.min_server_version)
                 return (UPDATE_STATUS_UP_TO_DATE, None)
-
-            client_min_version = self.get_client_min_version(server_version)
-            server_min_version = self.get_server_min_version(client_version)
 
             if version_compare(client_version, client_min_version) < 0:
                 log.info("Client version %s is lighter than %s, the minimum"
@@ -316,7 +342,8 @@ class AppUpdater:
                          latest_version)
                 return (UPDATE_STATUS_UPGRADE_NEEDED, latest_version)
 
-            if version_compare(server_version, server_min_version) < 0:
+            if (version_compare(server_version, server_min_version) < 0
+                    or version_compare(latest_version, client_version) < 0):
                 log.info("Server version %s is lighter than %s, the minimum"
                          " version compatible with the client version %s."
                          " A downgrade to version %s is needed.",
