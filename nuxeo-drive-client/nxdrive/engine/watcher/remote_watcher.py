@@ -14,6 +14,7 @@ from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.remote_file_system_client import RemoteFileInfo
 from nxdrive.engine.activity import Action
 from nxdrive.client.common import safe_filename
+from nxdrive.utils import path_join
 import os
 log = get_logger(__name__)
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
@@ -118,7 +119,7 @@ class RemoteWatcher(EngineWorker):
                                         os.path.basename(parent_path),
                                         os.path.dirname(parent_path))
         log.debug("scan_pair: parent_pair: %r", parent_pair)
-        local_path = os.path.join(parent_pair.local_path, safe_filename(child_info.name))
+        local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
         remote_parent_path = parent_pair.remote_parent_path + '/' + child_info.uid
         row_id = self._dao.insert_remote_state(child_info, remote_parent_path,
                                               local_path, parent_pair.local_path)
@@ -206,10 +207,7 @@ class RemoteWatcher(EngineWorker):
                                         mark_unknown=False, force_recursion=force_recursion)
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info):
-        if parent_pair.local_path == '/':
-            local_path = '/' + safe_filename(child_info.name)
-        else:
-            local_path = parent_pair.local_path + '/' + safe_filename(child_info.name)
+        local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
         remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
         # Try to get the local definition if not linked
         child_pair = self._dao.get_state_from_local(local_path)

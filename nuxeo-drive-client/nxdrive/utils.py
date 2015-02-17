@@ -63,6 +63,11 @@ def safe_long_path(path):
     return path
 
 
+def path_join(parent, child):
+    if parent == '/':
+        return '/' + child
+    return parent + '/' + child
+
 
 def default_nuxeo_drive_folder():
     """Find a reasonable location for the root Nuxeo Drive folder
