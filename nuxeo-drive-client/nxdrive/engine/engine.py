@@ -22,6 +22,9 @@ log = get_logger(__name__)
 class ThreadInterrupt(Exception):
     pass
 
+
+class FsMarkerException(Exception):
+    pass
 '''
 ' Utility class that handle one thread
 '''
@@ -367,6 +370,18 @@ class Engine(QObject):
         os.remove(self._get_db_file())
         return
 
+    def check_fs_marker(self):
+        tag = 'drive-fs-test'
+        tag_value = 'NXDRIVE_VERIFICATION'
+        client = self.get_local_client()
+        client.set_remote_id('/', tag_value, tag)
+        if client.get_remote_id('/', tag) != tag_value:
+            return False
+        client.remove_remote_id('/', tag)
+        if client.get_remote_id('/', tag) != None:
+            return False
+        return True
+
     def _normalize_url(self, url):
         """Ensure that user provided url always has a trailing '/'"""
         if url is None or not url:
@@ -484,6 +499,8 @@ class Engine(QObject):
         return not self._stopped
 
     def start(self):
+        if not self.check_fs_marker():
+            raise FsMarkerException()
         self._stopped = False
         log.debug("Engine start")
         for thread in self._threads:

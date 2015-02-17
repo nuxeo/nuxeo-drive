@@ -163,17 +163,23 @@ class LocalClient(BaseClient):
     def remove_remote_id(self, ref, name='ndrive'):
         # Can be move to another class
         path = self._abspath(ref)
+        locker = self.unlock_path(path, False)
         if sys.platform == 'win32':
             path = path + ":" + name
-            with open(path, "w") as f:
-                f.write("")
-            pass
+            try:
+                with open(path, "w") as f:
+                    f.write("")
+            finally:
+                self.lock_path(path, locker)
         else:
-            import xattr
-            if sys.platform == 'darwin':
-                xattr.removexattr(path, name)
-            else:
-                xattr.removexattr(path, 'user.' + name)
+            try:
+                import xattr
+                if sys.platform == 'darwin':
+                    xattr.removexattr(path, name)
+                else:
+                    xattr.removexattr(path, 'user.' + name)
+            finally:
+                self.lock_path(path, locker)
 
     def set_remote_id(self, ref, remote_id, name='ndrive'):
         # Can be move to another class
