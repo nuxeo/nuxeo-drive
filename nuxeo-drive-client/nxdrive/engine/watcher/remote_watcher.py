@@ -206,7 +206,10 @@ class RemoteWatcher(EngineWorker):
                                         mark_unknown=False, force_recursion=force_recursion)
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info):
-        local_path = os.path.join(parent_pair.local_path, safe_filename(child_info.name))
+        if parent_pair.local_path == '/':
+            local_path = '/' + safe_filename(child_info.name)
+        else:
+            local_path = parent_pair.local_path + '/' + safe_filename(child_info.name)
         remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
         # Try to get the local definition if not linked
         child_pair = self._dao.get_state_from_local(local_path)
