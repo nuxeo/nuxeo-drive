@@ -146,6 +146,8 @@ class EngineWorker(Worker):
         super(EngineWorker, self).__init__(thread, name)
         self._engine = engine
 
+    def _clean(self, reason, e=None):
+        self._engine.get_dao().dispose_thread()
 '''
 ' Just a DummyWorker with infinite loop
 '''
@@ -360,6 +362,7 @@ class Engine(QObject):
 
     def unbind(self):
         self.stop()
+        self._dao.dispose()
         # Remove DB
         os.remove(self._get_db_file())
         return
@@ -514,7 +517,7 @@ class Engine(QObject):
         log.debug("Engine %s stopping", self._uid)
         self._stop.emit()
         for thread in self._threads:
-            if not thread.wait(3000):
+            if not thread.wait(5000):
                 log.warn("Thread is not responding - terminate it")
                 thread.terminate()
         log.debug("Engine %s stopped", self._uid)

@@ -85,8 +85,9 @@ class ConfigurationDAO(QObject):
             self._lock = Lock()
         else:
             self._lock = FakeLock()
-
-        self._conn = sqlite3.connect(self._db, check_same_thread=False)
+        # Use to clean
+        self._connections = []
+        self._create_main_conn()
         self._conn.row_factory = CustomRow
         c = self._conn.cursor()
         self._init_db(c)
@@ -101,11 +102,29 @@ class ConfigurationDAO(QObject):
         cursor.execute("PRAGMA journal_mode = MEMORY")
         cursor.execute("CREATE TABLE if not exists Configuration(name VARCHAR NOT NULL, value VARCHAR, PRIMARY KEY (name))")
 
+    def _create_main_conn(self):
+        self._conn = sqlite3.connect(self._db, check_same_thread=False)
+        self._connections.append(self._conn)
+
     def _log_trace(self, query):
         log.trace(query)
 
+    def dispose(self):
+        for con in self._connections:
+            con.close()
+        self._connections = []
+        self._conn = None
+
+    def dispose_thread(self):
+        if not hasattr(self._conns, '_conn'):
+            return
+        self._connections.remove(self._conns._conn)
+        self._conns._conn = None
+
     def _get_write_connection(self, factory=CustomRow):
         if self.share_connection or self.in_tx:
+            if self._conn is None:
+                self._create_main_conn()
             self._conn.row_factory = factory
             return self._conn
         return self._get_read_connection(factory)
@@ -121,8 +140,9 @@ class ConfigurationDAO(QObject):
             else:
                 # Return the write connection
                 return self._conn
-        if not hasattr(self._conns, '_conn'):
+        if not hasattr(self._conns, '_conn') or self._conns._conn is None:
             self._conns._conn = sqlite3.connect(self._db)
+            self._connections.append(self._conns._conn)
         self._conns._conn.row_factory = factory
             # Python3.3 feature
             #if log.getEffectiveLevel() < 6:
