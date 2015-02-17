@@ -27,15 +27,9 @@ class TestWatchers(UnitTestCase):
         self.queue_manager_1.pause()
         self.engine_1.start()
         self.wait_sync()
-        metrics = self.queue_manager_1.get_metrics()
         # Remote as one more file
-        self.assertEquals(metrics["total_queue"], 12)
-        self.assertEquals(metrics["local_folder_queue"], folders)
-        self.assertEquals(metrics["local_file_queue"], files)
-        self.assertEquals(metrics["remote_file_queue"], 1)
-        self.assertEquals(metrics["remote_folder_queue"], 0)
         self.assertEquals(self.engine_1.get_dao().get_sync_count(), folders + files + 1)
-        # Verify it has been reconcile
+        # Verify it has been reconcile and all items in queue are sync
         queue = self.get_full_queue(self.queue_manager_1.get_local_file_queue())
         for item in queue:
             self.assertEqual(item.pair_state, "synchronized")
