@@ -118,7 +118,7 @@ class UnitTestCase(unittest.TestCase):
         from mock import Mock
         options = Mock()
         options.delay = TEST_DEFAULT_DELAY
-        self.static_drive_home = options.nxdrive_home = "/tmp/nuxeo-drive-test"
+        self.static_drive_home = options.nxdrive_home = tempfile.mkdtemp(u'-nuxeo-drive-test')
         if not os.path.exists(options.nxdrive_home):
             os.mkdir(options.nxdrive_home)
         self.manager = Manager(options)
