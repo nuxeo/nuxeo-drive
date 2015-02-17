@@ -22,6 +22,7 @@ See [latest documentation](https://virtualenv.pypa.io/en/latest/).
 Just run:
 
     pip install -r requirements.txt
+    pip install -r unix-requirements.txt
 
 The packages will be installed in `ENV/lib/python2.7/site-packages`.
 
@@ -93,5 +94,5 @@ Can use PyDev server:
 - Make MSI => other freeze options in setup?
 - Review all setup options for all platforms (ex: check `py2app` with `data_files` removed from local options).
 - What if not admin?
-- Create (recurrent) Jira task to check if required packages need to be upgraded (in which case need to increase their version in `requirements.txt`).
+- Create (recurrent) Jira task to check if required packages need to be upgraded (in which case need to increase their version in `requirements.txt` and `unix-requirements.txt`).
 - In `utils.find_resource_dir` => use `sys.executable`?

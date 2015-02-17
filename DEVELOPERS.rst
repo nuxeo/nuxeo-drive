@@ -47,6 +47,7 @@ in a dedicated section below.
 Use pip_ to grab all the dev dependencies and tools at once::
 
   pip install --user -r requirements.txt
+  pip install --user -r unix-requirements.txt
 
 To run the Nuxeo Drive client from your source folder use the following settings::
 
@@ -141,6 +142,7 @@ To build the Nuxeo Drive Debian package run::
   virtualenv ENV
   . ENV/bin/activate
   pip install -r requirements.txt
+  pip install -r unix-requirements.txt
   mvn clean package -f pom-debian.xml
   deactivate
 
@@ -248,6 +250,7 @@ Then install ``py2app`` along with the dependencies::
 
   pip install py2app
   pip install --user -r requirements.txt
+  pip install --user -r unix-requirements.txt
 
 Then run::
 
