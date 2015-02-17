@@ -141,7 +141,8 @@ class ConfigurationDAO(QObject):
                 # Return the write connection
                 return self._conn
         if not hasattr(self._conns, '_conn') or self._conns._conn is None:
-            self._conns._conn = sqlite3.connect(self._db)
+            # Dont check same thread for closing purpose
+            self._conns._conn = sqlite3.connect(self._db, check_same_thread=False)
             self._connections.append(self._conns._conn)
         self._conns._conn.row_factory = factory
             # Python3.3 feature
