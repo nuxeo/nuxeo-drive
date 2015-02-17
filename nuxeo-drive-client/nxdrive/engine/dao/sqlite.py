@@ -97,6 +97,8 @@ class ConfigurationDAO(QObject):
         #    self._conn.set_trace_callback(self._log_trace)
 
     def _init_db(self, cursor):
+        # http://www.stevemcarthur.co.uk/blog/post/some-kind-of-disk-io-error-occurred-sqlite
+        cursor.execute("PRAGMA journal_mode = MEMORY")
         cursor.execute("CREATE TABLE if not exists Configuration(name VARCHAR NOT NULL, value VARCHAR, PRIMARY KEY (name))")
 
     def _log_trace(self, query):

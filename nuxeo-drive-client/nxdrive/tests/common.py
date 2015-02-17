@@ -77,7 +77,7 @@ class IntegrationTestCase(unittest.TestCase):
 
     # Default quit timeout used for tests
     # 6s for watcher / 9s for sync
-    TEST_DEFAULT_QUIT_TIMEOUT = 15
+    TEST_DEFAULT_QUIT_TIMEOUT = 30
 
     def _synchronize(self, syn, delay=0.1, loops=1):
         self.wait()
