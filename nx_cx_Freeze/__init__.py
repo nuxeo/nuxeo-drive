@@ -149,7 +149,7 @@ if sys.platform == 'win32':
             msilib.add_data(self.db, "InstallExecuteSequence",
                             [("NuxeoDriveFolderCleanUp",
                               'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE',
-                              6560)])
+                              1560)])
             if getattr(self.attribs, 'customize_msi', None) is not None:
                 self.attribs.customize_msi(self.db)
 
