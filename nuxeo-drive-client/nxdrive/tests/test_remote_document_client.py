@@ -104,7 +104,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         # Wait to make sure transaction is commited
         # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
         # fixed
-        sleep(1.0)
+        self.wait()
 
         self.assertTrue(remote_client.exists(doc_2))
         self.assertEquals(remote_client.get_content(doc_2),
@@ -316,7 +316,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         # Wait to make sure transaction is commited
         # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
         # fixed
-        sleep(1.0)
+        self.wait()
         self.assertEquals(remote_client.get_info(doc_ref).name,
                           'Streamed text file')
         self.assertEquals(remote_client.get_content(doc_ref), "Some content.")
@@ -328,7 +328,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
         # wait for a while to ensure transaction is committed before
         # Blob response is serialized and sent to the client
-        sleep(1.0)
+        self.wait()
         self.assertEquals(remote_client.get_content(doc_ref), "Other content.")
 
         # Create a document by streaming a binary file
@@ -339,7 +339,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         # Wait to make sure transaction is commited
         # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
         # fixed
-        sleep(1.0)
+        self.wait()
         local_client = LocalClient(self.upload_tmp_dir)
         doc_info = remote_client.get_info(doc_ref)
         self.assertEquals(doc_info.name, 'Streamed binary file')
@@ -358,7 +358,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         # Wait to make sure transaction is commited
         # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
         # fixed
-        sleep(1.0)
+        self.wait()
         local_client = LocalClient(self.upload_tmp_dir)
         doc_info = remote_client.get_info(doc_ref)
         self.assertEquals(doc_info.name, 'Streamed binary file')
@@ -402,14 +402,14 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
         # wait for a while to ensure transaction is commited before
         # Blob response is serialized and sent to the client
-        sleep(1.0)
+        self.wait()
         self.assertEquals(remote_client.get_content(doc),
                           "Twice updated content.")
         remote_client.restore_version(version_1_uid)
         # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
         # wait for a while to ensure transaction is commited before
         # Blob response is serialized and sent to the client
-        sleep(1.0)
+        self.wait()
         self.assertEquals(remote_client.get_content(doc),
                           "Initial content.")
 
@@ -418,7 +418,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
         # wait for a while to ensure transaction is commited before
         # Blob response is serialized and sent to the client
-        sleep(1.0)
+        self.wait()
         self.assertEquals(remote_client.get_content(doc),
                           "Updated content.")
 
