@@ -143,6 +143,9 @@ class Processor(EngineWorker):
         action = Action.get_last_file_action()
         if action:
             duration = action.end_time - action.start_time
+            # Too fast for clock resolution
+            if duration <= 0:
+                return
             speed = (action.size / duration) * 1000
             log.trace("Transfer speed %d ko/s", speed / 1024)
             self._current_metrics["speed"] = speed
