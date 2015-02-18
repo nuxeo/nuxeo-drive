@@ -307,7 +307,7 @@ class LocalWatcher(EngineWorker):
 
     def handle_watchdog_event(self, evt):
         self._action = Action("Handle watchdog event")
-        log.trace("handle_watchdog_event %s on %s", evt.event_type, evt.src_path)
+        log.debug("handle_watchdog_event %s on %s", evt.event_type, evt.src_path)
         try:
             src_path = normalize_event_filename(evt.src_path)
             rel_path = self.client.get_path(src_path)
