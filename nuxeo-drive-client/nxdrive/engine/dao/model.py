@@ -52,6 +52,7 @@ PAIR_STATES = {
     ('modified', 'synchronized'): 'locally_modified',
     ('moved', 'synchronized'): 'locally_moved',
     ('moved', 'deleted'): 'locally_moved_created',
+    ('moved', 'modified'): 'locally_moved_remotely_modified',
     ('synchronized', 'modified'): 'remotely_modified',
     ('modified', 'unknown'): 'locally_modified',
     ('unknown', 'modified'): 'remotely_modified',

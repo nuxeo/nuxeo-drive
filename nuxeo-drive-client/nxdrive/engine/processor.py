@@ -258,11 +258,15 @@ class Processor(EngineWorker):
         else:
             self._dao.remove_state(doc_pair)
 
+    def _synchronize_locally_moved_remotely_modified(self, doc_pair, local_client, remote_client):
+        self._synchronize_locally_moved(doc_pair, local_client, remote_client, update=False)
+        self._synchronize_remotely_modified(doc_pair, local_client, remote_client)
+
     def _synchronize_locally_moved_created(self, doc_pair, local_client, remote_client):
         doc_pair.remote_ref = None
         self._synchronize_locally_created(doc_pair, local_client, remote_client)
 
-    def _synchronize_locally_moved(self, doc_pair, local_client, remote_client):
+    def _synchronize_locally_moved(self, doc_pair, local_client, remote_client, update=True):
         # A file has been moved locally, and an error occurs when tried to
         # move on the server
         renamed = False
@@ -297,7 +301,8 @@ class Processor(EngineWorker):
             moved = True
             self._dao.update_remote_state(doc_pair, remote_info, parent_path, versionned=False)
         # Handle modification at the same time if needed
-        self._synchronize_locally_modified(doc_pair, local_client, remote_client)
+        if update:
+            self._synchronize_locally_modified(doc_pair, local_client, remote_client)
 
     def _synchronize_deleted_unknown(self, doc_pair, local_client, remote_client):
         # Somehow a pair can get to an inconsistent state:
