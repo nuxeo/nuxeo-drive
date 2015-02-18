@@ -122,23 +122,25 @@ class Worker(QObject):
         self._thread_id = current_thread().ident
         e = None
         try:
-            log.debug("Thread %s(%d) start"
-                        % (self._name, self._thread_id))
-            self._execute()
-            log.debug("Thread %s(%d) end"
-                        % (self._name, self._thread_id))
-        except ThreadInterrupt:
-            log.debug("Thread %s(%d) interrupted"
-                        % (self._name, self._thread_id))
-            reason = 'interrupt'
-        except Exception as ex:
-            log.warn("Thread %s(%d) ended with exception : %r"
-                            % (self._name, self._thread_id, ex))
-            log.exception(ex)
-            e = ex
-            reason = 'exception'
-        self._clean(reason, e)
-        self._thread.exit(0)
+            try:
+                log.debug("Thread %s(%d) start"
+                            % (self._name, self._thread_id))
+                self._execute()
+                log.debug("Thread %s(%d) end"
+                            % (self._name, self._thread_id))
+            except ThreadInterrupt:
+                log.debug("Thread %s(%d) interrupted"
+                            % (self._name, self._thread_id))
+                reason = 'interrupt'
+            except Exception as ex:
+                log.warn("Thread %s(%d) ended with exception : %r"
+                                % (self._name, self._thread_id, ex))
+                log.exception(ex)
+                e = ex
+                reason = 'exception'
+            self._clean(reason, e)
+        finally:
+            self._thread.exit(0)
 
     def _clean(self, reason, e=None):
         pass

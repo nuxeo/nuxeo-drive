@@ -260,6 +260,8 @@ class QueueManager(QObject):
     def active(self):
         log.debug("Active: LocalFolder: %r, LocalFile: %r, RemoteFolder: %r, RemoteFile: %r, Pool:%d",
                     self._local_folder_thread, self._local_file_thread, self._remote_folder_thread, self._remote_file_thread, len(self._processors_pool))
+        # Recheck threads
+        self._thread_finished()
         return (self._local_folder_thread is not None
                 or self._local_file_thread is not None
                 or self._remote_file_thread is not None
