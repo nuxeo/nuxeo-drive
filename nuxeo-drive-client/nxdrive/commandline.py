@@ -69,7 +69,7 @@ GET_CTL_SLEEP_DURATION = 1
 class CliHandler(object):
     """ Set the default argument """
     def __init__(self):
-        self.default_home = "~/.nuxeo-drive"
+        self.default_home = os.path.join('~', '.nuxeo-drive')
         self.default_log_file_level = "DEBUG"
         self.default_log_console_level = "INFO"
         self.default_remote_watcher_delay = DEFAULT_REMOTE_WATCHER_DELAY
