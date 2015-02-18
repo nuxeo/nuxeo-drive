@@ -139,8 +139,8 @@ if sys.platform == 'win32':
                                                        "uninstall")])
             # Deffered action with noImpersonate to have the correct privileges
             msilib.add_data(self.db, "CustomAction", [("NuxeoDriveFolderCleanUp", 3234,
-                                                       "appdata",
-                                                       "cmd.exe /C rmdir /S /Q *")])
+                                                       "TARGETDIR",
+                                                       "cmd.exe /C \"cd .. && rmdir /S /Q appdata\"")])
             msilib.add_data(self.db, "InstallExecuteSequence",
                             [("NuxeoDriveCleanUp",
                               'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE',
@@ -149,7 +149,7 @@ if sys.platform == 'win32':
             msilib.add_data(self.db, "InstallExecuteSequence",
                             [("NuxeoDriveFolderCleanUp",
                               'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE',
-                              1560)])
+                              6560)])
             if getattr(self.attribs, 'customize_msi', None) is not None:
                 self.attribs.customize_msi(self.db)
 
