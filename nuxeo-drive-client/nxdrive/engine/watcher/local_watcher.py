@@ -328,7 +328,7 @@ class LocalWatcher(EngineWorker):
                 self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
                 return
             if evt.event_type == 'deleted':
-                log.debug('Unknown pair deleted')
+                log.debug('Unknown pair deleted: %s', rel_path)
                 return
             if evt.event_type == 'created':
                 # If doc_pair is not None mean
