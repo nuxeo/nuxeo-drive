@@ -58,6 +58,7 @@ class TestSynchronization(IntegrationTestCase):
         # We should now be fully synchronized
         folder_count, file_count = self.get_local_child_count(self.local_nxdrive_folder_1)
         self.assertEquals(folder_count, 5)
+        # TODO: use self.assertTrue(file_count, 7) when https://jira.nuxeo.com/browse/NXDRIVE-221 is fixed
         self.assertTrue(file_count >= 5)
 
         # Wait a bit for file time stamps to increase enough: on OSX HFS+ the
