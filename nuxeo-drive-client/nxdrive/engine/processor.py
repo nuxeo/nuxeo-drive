@@ -460,6 +460,7 @@ class Processor(EngineWorker):
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
         try:
             if doc_pair.local_state != 'deleted':
+                log.debug("Deleting locally %s", local_client._abspath(doc_pair.local_path))
                 if self._engine.use_trash():
                     local_client.delete(doc_pair.local_path)
                 else:
