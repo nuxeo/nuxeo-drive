@@ -814,28 +814,16 @@ class TestSynchronization(IntegrationTestCase):
             u'/Readonly folder/Folder in readonly folder'))
 
     def test_synchronize_special_filenames(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
-        syn = ctl.synchronizer
-
-        # Fetch the workspace sync root
-        syn.loop(delay=0, max_loops=1)
-        self.assertEquals(ctl.list_pending(), [])
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+        self.setUpDrive_1(firstSync=True)
 
         # Create some remote documents with weird filenames
-        remote = self.remote_document_client_1
-
         folder = remote.make_folder(self.workspace,
             u'Folder with forbidden chars: / \\ * < > ? "')
 
         self.wait()
-        syn.loop(delay=0, max_loops=1)
-        self.assertEquals(ctl.list_pending(), [])
-        local = LocalClient(
-            os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
+        self.ndrive()
         folder_names = [i.name for i in local.get_children_info('/')]
         self.assertEquals(folder_names,
             [u'Folder with forbidden chars- - - - - - - -'])
@@ -846,8 +834,7 @@ class TestSynchronization(IntegrationTestCase):
             content="some content")
 
         self.wait()
-        syn.loop(delay=0, max_loops=1)
-        self.assertEquals(ctl.list_pending(), [])
+        self.ndrive()
 
         file_names = [i.name for i in local.get_children_info(
                       local.get_children_info('/')[0].path)]
