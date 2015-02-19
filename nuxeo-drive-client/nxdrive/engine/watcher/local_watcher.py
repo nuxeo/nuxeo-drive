@@ -5,14 +5,12 @@ from nxdrive.logging_config import get_logger
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.engine.activity import Action
 import sys
 import os
 from time import time
 from time import sleep
 from threading import Lock
-from nxdrive.engine.dao.model import LastKnownState
 from PyQt4.QtCore import pyqtSignal
 log = get_logger(__name__)
 
