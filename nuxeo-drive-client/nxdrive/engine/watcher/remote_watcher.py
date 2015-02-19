@@ -18,7 +18,7 @@ from nxdrive.utils import path_join
 import os
 log = get_logger(__name__)
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
-from nxdrive.engine.engine import ThreadInterrupt
+from nxdrive.engine.workers import ThreadInterrupt
 
 
 class RemoteWatcher(EngineWorker):
