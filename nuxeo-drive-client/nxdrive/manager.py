@@ -160,6 +160,8 @@ class Manager(QObject):
         Manager._singleton = self
         super(Manager, self).__init__()
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
+        if not os.path.exists(self.nxdrive_home):
+            os.mkdir(self.nxdrive_home)
         self.remote_watcher_delay = options.delay
         self._debug = options.debug
         self._dao = self._create_dao()

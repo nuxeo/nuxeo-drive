@@ -7,6 +7,7 @@ from PyQt4 import QtGui, QtCore
 from nxdrive.logging_config import get_logger
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.engine.activity import FileAction
+import sys
 log = get_logger(__name__)
 
 
@@ -69,7 +70,6 @@ class WebSystrayApi(WebDriveApi):
         menu.addAction("Quit", self._application.quit)
         menu.exec_(QtGui.QCursor.pos())
 
-
 class WebSystrayView(WebDialog):
     '''
     classdocs
@@ -82,12 +82,23 @@ class WebSystrayView(WebDialog):
         self._icon = icon
         self._view.setFocusProxy(self)
         self.resize(300, 370)
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint|QtCore.Qt.WindowStaysOnTopHint);
+
+    def replace(self):
+        rect = self._icon.geometry()
+        if rect.x() < 100:
+            x = rect.x() + rect.width()
+            y = rect.y() - self.height() + rect.height()
+        elif rect.y() < 100:
+            x = rect.x() + rect.width() - self.width()
+            y = rect.y() + rect.height()
+        else:
+            x = rect.x() + rect.width() - self.width()
+            y = rect.y() - self.height()
+        self.move(x, y)
 
     def show(self):
-        rect = self._icon.geometry()
-        x = rect.x() + rect.width() - self.width()
-        self.move(x, rect.y() + rect.height())
+        self.replace()
         super(WebSystrayView, self).show()
         if self.isVisible():
             self._view.reload()
@@ -95,16 +106,29 @@ class WebSystrayView(WebDialog):
             self.activateWindow()
             self.setFocus(QtCore.Qt.ActiveWindowFocusReason)
 
+    def underMouse(self):
+        # The original result was different from this simple
+        return self.geometry().contains(QtGui.QCursor.pos())
+
+    def shouldHide(self):
+        if not (self.underMouse() or self._icon.geometry().contains(QtGui.QCursor.pos())):
+            self.close()
+
     def focusOutEvent(self, event):
-        if not self.underMouse():
+        if self._icon is None:
+            return
+        if not (self.underMouse() or self._icon.geometry().contains(QtGui.QCursor.pos())):
             self.close()
         super(WebSystrayView, self).focusOutEvent(event)
+
+    def resizeEvent(self, event):
+        super(WebSystrayView, self).resizeEvent(event)
+        self.replace()
 
     @QtCore.pyqtSlot()
     def close(self):
         self._icon = None
         super(WebSystrayView, self).close()
-
 
 class WebSystray(QtGui.QMenu):
     '''
@@ -128,7 +152,7 @@ class WebSystray(QtGui.QMenu):
     @QtCore.pyqtSlot()
     def onHide(self):
         if self.dlg:
-            self.dlg.hide()
+            self.dlg.shouldHide()
 
     @QtCore.pyqtSlot()
     def onShow(self):

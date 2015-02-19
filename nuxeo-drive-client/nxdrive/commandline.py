@@ -421,8 +421,7 @@ class CliHandler(object):
     def uninstall(self, options):
         try:
             import shutil
-            self.controller.dispose()
-            shutil.rmtree(self.controller.config_folder)
+            shutil.rmtree(self.manager.nxdrive_home)
         except Exception, e:
             # Exit with 0 signal to not block the uninstall
             print e
@@ -513,17 +512,13 @@ class CliHandler(object):
     def start(self, options=None):
         """Launch the synchronization in a daemonized process (under POSIX)"""
         # Close DB connections before Daemonization
-        self.controller.dispose()
         daemonize()
 
         self.manager = self.get_manager(options)
         self._configure_logger(options)
         self.log.debug("Synchronization daemon started.")
         # TODO Add back max_sync ?
-        self.controller.synchronizer.loop(
-            delay=getattr(options, 'delay', DEFAULT_REMOTE_WATCHER_DELAY),
-            max_sync_step=getattr(options, 'max_sync_step',
-                                  DEFAULT_MAX_SYNC_STEP))
+        self.manager.start()
         return 0
 
     def clean_folder(self, options):
@@ -542,7 +537,7 @@ class CliHandler(object):
         return self.launch(options=options, console=True)
 
     def stop(self, options=None):
-        self.controller.stop()
+        # TODO Implements IPC
         return 0
 
     def local_folders(self, options):

@@ -251,7 +251,9 @@ class WebDialog(QtGui.QDialog):
         self.setWindowTitle(title)
         filename = self._get_page(page)
         log.debug("Load web file : %s", filename)
-        self._view.load(QtCore.QUrl(filename))
+        url = QtCore.QUrl(filename)
+        url.setScheme("file")
+        self._view.load(url)
         self._frame = self._view.page().mainFrame()
         if api is None:
             self._api = WebDriveApi(self, application)
@@ -272,7 +274,7 @@ class WebDialog(QtGui.QDialog):
         skin = 'ui5'
         nxdrive_path = os.path.dirname(nxdrive.__file__)
         ui_path = os.path.join(nxdrive_path, 'data', skin)
-        return os.path.join(find_resource_dir(skin, ui_path), page)
+        return os.path.join(find_resource_dir(skin, ui_path), page).replace("\\","/")
 
     @QtCore.pyqtSlot()
     def _attachJsApi(self):
