@@ -101,8 +101,7 @@ class TestSynchronization(IntegrationTestCase):
         self.ndrive()
 
         self.assertEquals(remote.get_content('/Folder 1/File 1.txt'), "\x80")
-        # TODO: uncomment when https://jira.nuxeo.com/browse/NXDRIVE-226 is fixed
-#         self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
+        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
 
     def test_synchronization_modification_on_created_file(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")

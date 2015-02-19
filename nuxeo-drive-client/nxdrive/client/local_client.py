@@ -163,6 +163,7 @@ class LocalClient(BaseClient):
     def remove_remote_id(self, ref, name='ndrive'):
         # Can be move to another class
         path = self._abspath(ref)
+        log.trace('Removing xattr %s from %s', name, path)
         locker = self.unlock_path(path, False)
         if sys.platform == 'win32':
             pathAlt = path + ":" + name
@@ -190,6 +191,7 @@ class LocalClient(BaseClient):
     def set_remote_id(self, ref, remote_id, name='ndrive'):
         # Can be move to another class
         path = self._abspath(ref)
+        log.trace('Setting xattr %s with value %s on %s', name, remote_id, path)
         locker = self.unlock_path(path, False)
         if sys.platform == 'win32':
             locker = self.unlock_path(path, False)

@@ -352,10 +352,14 @@ class Processor(EngineWorker):
                               os_path)
                 tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
                 # Delete original file and rename tmp file
+                remote_id = local_client.get_remote_id(doc_pair.local_path)
                 local_client.delete_final(doc_pair.local_path)
                 updated_info = local_client.rename(
                                             local_client.get_path(tmp_file),
                                             doc_pair.remote_name)
+                if remote_id is not None:
+                    local_client.set_remote_id(doc_pair.local_parent_path + '/' + doc_pair.remote_name,
+                                               doc_pair.remote_ref)
                 self._refresh_local_state(doc_pair, updated_info)
             # digest agree so this might be a renaming and/or a move,
             # and no need to transfer additional bytes over the network
