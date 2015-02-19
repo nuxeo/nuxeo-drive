@@ -10,7 +10,7 @@ from urllib2 import HTTPError
 from esky import Esky
 from esky.errors import EskyBrokenError
 from nxdrive.logging_config import get_logger
-from nxdrive.engine.engine import PollWorker
+from nxdrive.engine.workers import PollWorker
 from PyQt4 import QtCore
 
 log = get_logger(__name__)
@@ -186,7 +186,7 @@ class AppUpdater(PollWorker):
 
     def __init__(self, manager, check_interval=3600, version_finder=None,
                  esky_app=None, local_update_site=False):
-        super(AppUpdater, self).__init__()
+        super(AppUpdater, self).__init__(check_interval)
         self._manager = manager
         self._enable = False
         if esky_app is not None:

@@ -1,7 +1,7 @@
 '''
 @author: Remi Cattiau
 '''
-from nxdrive.engine.engine import Worker
+from nxdrive.engine.workers import Worker
 from PyQt4 import QtCore
 from nxdrive.logging_config import get_logger
 import platform

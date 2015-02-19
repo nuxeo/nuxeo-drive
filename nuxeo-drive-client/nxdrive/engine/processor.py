@@ -3,7 +3,7 @@ Created on 14 janv. 2015
 
 @author: Remi Cattiau
 '''
-from nxdrive.engine.engine import EngineWorker
+from nxdrive.engine.workers import EngineWorker
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.common import NotFound
@@ -11,7 +11,6 @@ from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time
 from PyQt4.QtCore import pyqtSignal
 import os
-import time
 log = get_logger(__name__)
 
 WindowsError = None
