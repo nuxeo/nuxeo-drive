@@ -12,7 +12,6 @@ from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
 from nxdrive.updater import UPDATE_STATUS_UP_TO_DATE
 from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
 from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
-from nxdrive.manager import Manager
 from nxdrive.logging_config import configure
 from mock import Mock
 
