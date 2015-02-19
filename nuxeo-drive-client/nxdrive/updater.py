@@ -10,7 +10,8 @@ from urllib2 import HTTPError
 from esky import Esky
 from esky.errors import EskyBrokenError
 from nxdrive.logging_config import get_logger
-from nxdrive.engine.engine import Worker
+from nxdrive.engine.engine import PollWorker
+from PyQt4 import QtCore
 
 log = get_logger(__name__)
 
@@ -176,24 +177,27 @@ class RootPrivilegeRequired(Exception):
     pass
 
 
-class AppUpdater(Worker):
+class AppUpdater(PollWorker):
     """Class for updating a frozen application.
 
     Basically an Esky wrapper.
     """
+    newUpdate = QtCore.pyqtSignal()
 
-    def __init__(self, manager, version_finder=None, esky_app=None,
-                 local_update_site=False):
+    def __init__(self, manager, check_interval=3600, version_finder=None,
+                 esky_app=None, local_update_site=False):
         super(AppUpdater, self).__init__()
         self._manager = manager
+        self._enable = False
         if esky_app is not None:
             self.esky_app = esky_app
+            self._enable = True
         elif not hasattr(sys, 'frozen'):
-            raise AppNotFrozen("Application is not frozen, cannot build Esky"
+            log.debug("Application is not frozen, cannot build Esky"
                                " instance, as a consequence update features"
                                " won't be available")
         elif version_finder is None:
-            raise UpdaterInitError("Cannot initialize Esky instance with no"
+            log.debug("Cannot initialize Esky instance with no"
                                    " version finder, as a consequence update"
                                    " features won't be available")
         else:
@@ -203,15 +207,27 @@ class AppUpdater(Worker):
                           " executable %s and version finder %s",
                           executable, version_finder)
                 self.esky_app = Esky(executable, version_finder=version_finder)
+                self._enable = True
             except EskyBrokenError as e:
                 log.error(e, exc_info=True)
-                raise UpdaterInitError("Error initializing Esky instance, as a"
+                log.debug("Error initializing Esky instance, as a"
                                        " consequence update features won't be"
                                        " available")
         self.local_update_site = local_update_site
-        self.update_site = self.esky_app.version_finder.download_url
-        if not self.local_update_site and not self.update_site.endswith('/'):
-            self.update_site = self.update_site + '/'
+        if self._enable:
+            self.update_site = self.esky_app.version_finder.download_url
+            if not self.local_update_site and not self.update_site.endswith('/'):
+                self.update_site = self.update_site + '/'
+        self.last_status = (UPDATE_STATUS_UP_TO_DATE, None)
+
+    def get_status(self):
+        return self.last_status
+
+    def _poll(self):
+        status = self._get_update_status()
+        if status != self.last_status:
+            self.last_status = status
+            self.newUpdate.emit()
 
     def set_version_finder(self, version_finder):
         self.esky_app._set_version_finder(version_finder)
@@ -320,7 +336,7 @@ class AppUpdater(Worker):
                                 self.min_server_version, self.update_site))
         return latest_version
 
-    def get_update_status(self):
+    def _get_update_status(self):
         try:
             client_version = self._manager.get_version()
             latest_version = self.get_latest_compatible_version()
@@ -365,6 +381,7 @@ class AppUpdater(Worker):
             log.warning(e)
             return (UPDATE_STATUS_MISSING_VERSION, None)
 
+    @QtCore.pyqtSlot(str)
     def update(self, version):
         if sys.platform == 'win32':
             # Try to update frozen application with the given version. If it

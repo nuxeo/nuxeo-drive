@@ -7,7 +7,7 @@ from PyQt4 import QtGui, QtCore
 from nxdrive.logging_config import get_logger
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.engine.activity import FileAction
-import sys
+
 log = get_logger(__name__)
 
 

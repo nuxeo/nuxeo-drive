@@ -136,6 +136,7 @@ class Manager(QObject):
     '''
     proxyUpdated = pyqtSignal(object)
     clientUpdated = pyqtSignal(object, object)
+    clientUpdateAvailable = pyqtSignal()
     engineNotFound = pyqtSignal(object)
     newEngine = pyqtSignal(object)
     dropEngine = pyqtSignal(object)
@@ -180,6 +181,9 @@ class Manager(QObject):
         from nxdrive.engine.engine import Engine
         self._engine_types["NXDRIVE"] = Engine
         self.load()
+        # Create and start the auto-update verification thread
+        self._app_updater = self._create_updater()
+        self._app_updater.start()
         # Setup analytics tracker
         if self.get_tracking():
             self._create_tracker()
@@ -207,9 +211,17 @@ class Manager(QObject):
         from nxdrive.engine.dao.sqlite import ManagerDAO
         return ManagerDAO(self._get_db())
 
-    def get_updater(self, version_finder):
+    def _create_updater(self):
         # Enable the capacity to extend the AppUpdater
-        return AppUpdater(version_finder)
+        return AppUpdater(self._get_version_finder())
+
+    def _get_version_finder(self):
+        # Used by extended application to inject version finder
+        update_url = self._dao.get_config("update_url", "http://community.nuxeo.com/static/drive/")
+        return update_url
+
+    def get_updater(self):
+        return self._app_updater
 
     def is_paused(self):
         return self._pause

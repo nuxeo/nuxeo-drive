@@ -61,6 +61,12 @@ class Worker(QObject):
     def is_paused(self):
         return self._pause
 
+    def start(self):
+        self._thread.start()
+
+    def stop(self):
+        self._thread.stop()
+
     def resume(self):
         self._pause = False
 
@@ -153,6 +159,35 @@ class EngineWorker(Worker):
 
     def _clean(self, reason, e=None):
         self._engine.get_dao().dispose_thread()
+
+
+class PollWorker(Worker):
+    def __init__(self, check_interval, thread=None, name=None):
+        super(PollWorker, self).__init__(thread, name)
+        self._check_interval = check_interval
+        # Check at start
+        self._current_interval = 0
+        self._enable = True
+
+    def get_metrics(self):
+        metrics = super(PollWorker, self).get_metrics()
+        metrics['polling_interval'] = self._check_interval
+        metrics['polling_next'] = self._current_interval
+        return dict(metrics.items() + self._metrics.items())
+
+    def _execute(self):
+        while (self._enable):
+            self._interact()
+            if self._current_interval == 0:
+                self._current_interval = self._check_interval
+                self._poll()
+            else:
+                self._current_interval = self._current_interval - 1
+            sleep(1)
+
+    def _poll(self):
+        pass
+
 '''
 ' Just a DummyWorker with infinite loop
 '''
