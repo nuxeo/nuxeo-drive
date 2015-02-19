@@ -654,19 +654,9 @@ class TestSynchronization(IntegrationTestCase):
              u'synchronized', u'synchronized'))
 
     def test_synchronize_deep_folders(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Increase Automation execution timeout for NuxeoDrive.GetChangeSummary
         # because of the recursive parent FileSystemItem adaptation
-        ctl = self.controller_1
-        ctl.timeout = 40
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
-        syn = ctl.synchronizer
-
-        # Fetch the workspace sync root
-        syn.loop(delay=0, max_loops=1)
-        self.assertEquals(ctl.list_pending(), [])
+        self.setUpDrive_1(firstSync=True)
 
         # Create a file deep down in the hierarchy
         remote = self.remote_document_client_1
@@ -680,8 +670,7 @@ class TestSynchronization(IntegrationTestCase):
         remote.make_file(folder, "File.odt", content="Fake non-zero content.")
 
         self.wait()
-        syn.loop(delay=0, max_loops=5)
-        self.assertEquals(ctl.list_pending(), [])
+        self.ndrive()
 
         local = LocalClient(self.local_nxdrive_folder_1)
         expected_folder_path = (
@@ -698,8 +687,7 @@ class TestSynchronization(IntegrationTestCase):
         remote.delete('/' + folder_name)
 
         self.wait()
-        syn.loop(delay=0, max_loops=5)
-        self.assertEquals(ctl.list_pending(), [])
+        self.ndrive()
 
         self.assertFalse(local.exists(expected_folder_path))
         self.assertFalse(local.exists(expected_file_path))
