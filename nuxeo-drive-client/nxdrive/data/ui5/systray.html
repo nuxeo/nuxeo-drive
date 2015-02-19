@@ -51,6 +51,26 @@ ga('send', 'pageview');
 	display: block;
 	line-height: 20px;
 }
+.notification {
+	width: 100%;
+	height: 20px;
+	padding-top: 4px;
+}
+.notification-info {
+	background-color: #d9edf7;
+	border-top: 1px solid #31708f;
+	color:#31708f; 
+}
+.notification-warning {
+	background-color: #fcf8e3;
+	border-top: 1px solid #8a6d3b;
+	color:#8a6d3b; 
+}
+.notification-danger {
+	background-color: #f2dede;
+	border-top: 1px solid #a94442;
+	color:#a94442; 
+}
 </style>
 <script src="js/angular.min.js"></script>
 <script>
@@ -61,6 +81,7 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
 	}
 	$scope.interval = null;
 	$scope.engines = angular.fromJson(drive.get_engines());
+	$scope.app_update = angular.fromJson(drive.get_update_status());
 	$scope.engine = null;
 	$scope.current_actions = [];
 	$scope.last_files = [];
@@ -73,6 +94,7 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
 		}
 	}
 	$scope.update = function() {
+		$scope.app_update = angular.fromJson(drive.get_update_status());
 		$scope.sync = drive.is_syncing($scope.engine.uid);
 		if ($scope.sync == $scope.engine.syncing && $scope.sync != 'syncing') {
 			// Nothing to update
@@ -152,9 +174,18 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
   </div>
  </div>
 <div class="navbar navbar-fixed-bottom" style="padding: 10px; height: 40px; min-height: 40px; border-top: 1px solid #17384e;background-color: #dfdfdf;">
-  <div class="label bg-info" style="border-top: 1px solid #31708f; color:#31708f; position: absolute; padding-top:4px; left:0px; height: 22px; width: 100%; top: -23px; width: 100%;">
-  	New update available
-  	<span class="glyphicon glyphicon-remove pull-right">&nbsp;</span>
+  <div class="label notifications-container" style="position: absolute; padding:0px; left:0px; width: 100%; bottom: 40px; width: 100%;">
+  	<div ng-show="app_update[0] == 'update_available'" class="notification notification-info">New upgrade is available</div>
+  	<div ng-show="app_update[0] == 'downgrade_needed'" class="notification notification-danger">Downgrade to {{ app_update[1] }} is needed</div>
+  	<div ng-show="app_update[0] == 'upgrade_needed'" class="notification notification-danger">Upgrade to {{ app_update[1] }} is needed</div>
+  	<div ng-show="app_update[0] == 'updating'" class="notification notification-info">
+  		Updating to {{ app_update[1] }}
+	  	<div class="progress" style="height: 4px;">
+		  <div class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="{{ app_update[2] }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ app_update[2] }}%">
+		    
+		  </div>
+		</div>
+  	</div>
   </div>
   <div align="right" ng-show="engine.syncing != 'syncing'">
   	Synchronization completed&nbsp;<span class="glyphicon glyphicon-ok">&nbsp;</span>

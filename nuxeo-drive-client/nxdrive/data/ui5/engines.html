@@ -27,6 +27,7 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 	$scope.engines = angular.fromJson(drive.get_engines());
 	$scope.engine = null;
 	$scope.metrics = null;
+	$scope.app_update = angular.fromJson(drive.get_update_status());
 	$scope.metrics_name = null;
 	$scope.current_actions = [];
 	$scope.last_files = [];	
@@ -37,6 +38,7 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 			$scope.last_files = [];	
 		}
 	}
+	$scope.setAppUpdate = drive.set_app_update;
 	$scope.setMetrics = function(name, metrics) {
 		$scope.metrics_name = name;
 		$scope.metrics = metrics;
@@ -98,6 +100,7 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 	}
 	$scope.update = function() {
 		$scope.engine = angular.fromJson(drive.get_engine($scope.uid));
+		$scope.app_update = angular.fromJson(drive.get_update_status());
 	}
 	$scope.getLogClass = function (type) {
 		if (type == "CRITICAL" || type == "ERROR") {
@@ -286,6 +289,26 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 					<td>{{ key }}: {{ value }}</td>
 				</tr>
 			</tbody>
+		</table>
+		<table class="table table-hover table-condensed">
+			<thead>
+				<tr>
+					<th>
+						<ul style="margin-bottom: 0px; padding-left: 0px;"><li style="list-style-type: none;" class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span class="glyphicon glyphicon-circle-arrow-down">&nbsp;</span>AppUpdater {{ app_update[0] }}<span class="caret"></span></a>
+			          <ul class="dropdown-menu" role="menu">
+			            <li><a href="#" ng-click="setAppUpdate('downgrade_needed', '1.9.0129')">Downgrade needed</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('upgrade_needed', '2.1.0108')">Upgrade needed</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('update_available', '2.1.0108')">Upgrade available</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('updating', '2.1.0108')">Updating</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('up_to_date', null)">Up to date</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('unavailable_site', null)">Site unavailable</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('missing_info', null)">Missing info</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('missing_version', null)">Missing version</a></li>
+			          </ul></li>
+			          </ul>
+          			</th>
+				</tr>
+			</thead>
 		</table>
 		</div>
 	</div>

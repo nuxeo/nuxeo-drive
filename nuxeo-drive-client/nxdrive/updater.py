@@ -19,6 +19,7 @@ log = get_logger(__name__)
 UPDATE_STATUS_UPGRADE_NEEDED = 'upgrade_needed'
 UPDATE_STATUS_DOWNGRADE_NEEDED = 'downgrade_needed'
 UPDATE_STATUS_UPDATE_AVAILABLE = 'update_available'
+UPDATE_STATUS_UPDATING = 'updating'
 UPDATE_STATUS_UP_TO_DATE = 'up_to_date'
 UPDATE_STATUS_UNAVAILABLE_SITE = 'unavailable_site'
 UPDATE_STATUS_MISSING_INFO = 'missing_info'
@@ -30,6 +31,7 @@ UPDATE_STATUS_LABEL = {
     UPDATE_STATUS_DOWNGRADE_NEEDED: 'Downgrade required',
     UPDATE_STATUS_UPDATE_AVAILABLE: 'Update Nuxeo Drive',
     UPDATE_STATUS_UP_TO_DATE: 'Up-to-date',
+    UPDATE_STATUS_UPDATING: 'Updating',
     UPDATE_STATUS_UNAVAILABLE_SITE: 'Update site unavailable',
     UPDATE_STATUS_MISSING_INFO: 'Update information unavailable',
     UPDATE_STATUS_MISSING_VERSION: 'No compatible version available',
@@ -222,6 +224,14 @@ class AppUpdater(PollWorker):
 
     def get_status(self):
         return self.last_status
+
+    def force_status(self, status, version):
+        if status == 'updating':
+            # Put a percentage
+            self.last_status = (status, version, 40)
+        else:
+            self.last_status = (status, version)
+        self.newUpdate.emit()
 
     def _poll(self):
         status = self._get_update_status()
