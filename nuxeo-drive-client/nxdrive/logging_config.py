@@ -21,7 +21,7 @@ is_logging_configured = False
 
 
 def configure(use_file_handler=False, log_filename=None, file_level='INFO',
-              console_level='INFO', command_name=None, log_rotate_keep=3,
+              console_level='INFO', filter_inotify=True, command_name=None, log_rotate_keep=3,
               log_rotate_max_bytes=100000000):
 
     global is_logging_configured
@@ -72,6 +72,9 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
             file_handler.setLevel(file_level)
             file_handler.setFormatter(formatter)
             root_logger.addHandler(file_handler)
+
+        if filter_inotify:
+            root_logger.addFilter(logging.Filter('watchdog.observers.inotify_buffer'))
 
 
 def get_logger(name):
