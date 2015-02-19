@@ -337,7 +337,7 @@ class TestUpdater(unittest.TestCase):
         self.manager.add_engine(server_version)
         if add_version is not None:
             self.manager.add_engine(add_version)
-        return self.updater.get_update_status()
+        return self.updater._get_update_status()
 
     def test_get_update_status(self):
         # No update info available (missing client version info)
