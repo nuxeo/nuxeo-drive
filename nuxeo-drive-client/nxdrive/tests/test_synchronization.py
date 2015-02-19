@@ -842,36 +842,23 @@ class TestSynchronization(IntegrationTestCase):
             [u'File with forbidden chars- - - - - - - -.doc'])
 
     def test_synchronize_deleted_blob(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        # Bind the server and root workspace
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
-
-        # Launch first synchronization
-        self.wait()
-        syn = ctl.synchronizer
-        syn.loop(delay=0.1, max_loops=1)
-
-        # Get local and remote clients
-        local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
-                                         self.workspace_title))
+        local = self.local_client_1
         remote = self.remote_document_client_1
+        self.setUpDrive_1(firstSync=True)
 
         # Create a doc with a blob in the remote root workspace
         # then synchronize
         remote.make_file('/', 'test.odt', 'Some content.')
 
         self.wait()
-        syn.loop(delay=0.1, max_loops=1)
+        self.ndrive()
         self.assertTrue(local.exists('/test.odt'))
 
         # Delete the blob from the remote doc then synchronize
         remote.delete_content('/test.odt')
 
         self.wait()
-        syn.loop(delay=0.1, max_loops=1)
+        self.ndrive()
         self.assertFalse(local.exists('/test.odt'))
 
     def test_synchronize_paged_delete_detection(self):
