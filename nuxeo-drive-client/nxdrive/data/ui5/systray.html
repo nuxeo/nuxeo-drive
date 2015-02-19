@@ -55,6 +55,7 @@ ga('send', 'pageview');
 	width: 100%;
 	height: 20px;
 	padding-top: 4px;
+	cursor: pointer;
 }
 .notification-info {
 	background-color: #d9edf7;
@@ -81,6 +82,7 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
 	}
 	$scope.interval = null;
 	$scope.engines = angular.fromJson(drive.get_engines());
+	$scope.appUpdate = drive.app_update;
 	$scope.app_update = angular.fromJson(drive.get_update_status());
 	$scope.engine = null;
 	$scope.current_actions = [];
@@ -175,9 +177,9 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
  </div>
 <div class="navbar navbar-fixed-bottom" style="padding: 10px; height: 40px; min-height: 40px; border-top: 1px solid #17384e;background-color: #dfdfdf;">
   <div class="label notifications-container" style="position: absolute; padding:0px; left:0px; width: 100%; bottom: 40px; width: 100%;">
-  	<div ng-show="app_update[0] == 'update_available'" class="notification notification-info">New upgrade is available</div>
-  	<div ng-show="app_update[0] == 'downgrade_needed'" class="notification notification-danger">Downgrade to {{ app_update[1] }} is needed</div>
-  	<div ng-show="app_update[0] == 'upgrade_needed'" class="notification notification-danger">Upgrade to {{ app_update[1] }} is needed</div>
+  	<div ng-show="app_update[0] == 'update_available'" ng-click="appUpdate(app_update[1])" class="notification notification-info">New upgrade is available</div>
+  	<div ng-show="app_update[0] == 'downgrade_needed'" ng-click="appUpdate(app_update[1])" class="notification notification-danger">Downgrade to {{ app_update[1] }} is needed</div>
+  	<div ng-show="app_update[0] == 'upgrade_needed'" ng-click="appUpdate(app_update[1])" class="notification notification-danger">Upgrade to {{ app_update[1] }} is needed</div>
   	<div ng-show="app_update[0] == 'updating'" class="notification notification-info">
   		Updating to {{ app_update[1] }}
 	  	<div class="progress" style="height: 4px;">

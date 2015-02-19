@@ -11,6 +11,7 @@ from esky import Esky
 from esky.errors import EskyBrokenError
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.workers import PollWorker
+from nxdrive.engine.activity import Action
 from PyQt4 import QtCore
 
 log = get_logger(__name__)
@@ -185,10 +186,12 @@ class AppUpdater(PollWorker):
     Basically an Esky wrapper.
     """
     newUpdate = QtCore.pyqtSignal()
+    _doUpdate = QtCore.pyqtSignal(str)
 
     def __init__(self, manager, check_interval=3600, version_finder=None,
                  esky_app=None, local_update_site=False):
         super(AppUpdater, self).__init__(check_interval)
+        self._doUpdate.connect(self._update)
         self._manager = manager
         self._enable = False
         if esky_app is not None:
@@ -391,8 +394,11 @@ class AppUpdater(PollWorker):
             log.warning(e)
             return (UPDATE_STATUS_MISSING_VERSION, None)
 
-    @QtCore.pyqtSlot(str)
     def update(self, version):
+        self._doUpdate.emit(version)
+
+    @QtCore.pyqtSlot(str)
+    def _update(self, version):
         if sys.platform == 'win32':
             # Try to update frozen application with the given version. If it
             # fails with a permission error, escalate to root and try again.
@@ -423,33 +429,22 @@ class AppUpdater(PollWorker):
         if "received" in status and "size" in status:
             self.action.progress = (status["received"] * 100 / status["size"])
 
-    def _do_update_thread(self, version):
+    def _do_update(self, version):
         log.info("Starting application update process")
         log.info("Fetching version %s from update site %s", version,
                       self.update_site)
+        self.action = Action("Downloading %s version" % version)
+        self.action.progress = 0
+        self._update_action(self.action)
         self.esky_app.fetch_version(version, self._update_callback)
-        self.action.progress = None
-        self.action.type = "Installing %s version" % version
+        self._update_action(Action("Installing %s version" % version))
         log.info("Installing version %s", version)
         self.esky_app.install_version(version)
         self.action.type = "Reinitializing"
         log.debug("Reinitializing Esky internal state")
         self.esky_app.reinitialize()
         log.info("Ended application update process")
-        self.action.finish_action()
-
-    def _do_update(self, version):
-        from nxdrive.engine.activity import Action
-        from nxdrive.gui.progress_dialog import ProgressDialog
-        from threading import Thread
-        update_thread = Thread(target=self._do_update_thread,
-                               args=[version])
-        update_thread.start()
-        self.action = Action("Downloading %s version" % version,
-                                threadId=update_thread.ident)
-        self.action.progress = 0
-        progressDlg = ProgressDialog(self.action)
-        progressDlg.exec_()
+        self._end_action()
 
     def cleanup(self, version):
         log.info("Uninstalling version %s", version)

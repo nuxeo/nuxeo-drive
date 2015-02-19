@@ -109,6 +109,10 @@ class WebDriveApi(QtCore.QObject):
         status = self._manager.get_updater().get_status()
         return self._json(status)
 
+    @QtCore.pyqtSlot(str)
+    def app_update(self, version):
+        self._manager.get_updater().update(version)
+
     @QtCore.pyqtSlot(str, result=str)
     def get_actions(self, uid):
         engine = self._get_engine(uid)
