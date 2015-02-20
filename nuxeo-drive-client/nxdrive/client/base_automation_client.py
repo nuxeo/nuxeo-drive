@@ -201,8 +201,6 @@ class BaseAutomationClient(BaseClient):
         self.batch_upload_url = 'batch/upload'
         self.batch_execute_url = 'batch/execute'
 
-        self.current_action = None
-
         self.fetch_api()
 
     def make_remote_raise(self, error):
@@ -348,7 +346,7 @@ class BaseAutomationClient(BaseClient):
                   ' with file %s', tx_timeout, DEFAULT_NUXEO_TX_TIMEOUT,
                   upload_duration, command, file_path)
         if upload_result['uploaded'] == 'true':
-            self.current_action = FileAction("Upload", file_path, filename)
+            FileAction("Upload", file_path, filename)
             result = self.execute_batch(command, batch_id, '0', tx_timeout,
                                       **params)
             self.end_action()
@@ -370,7 +368,7 @@ class BaseAutomationClient(BaseClient):
         Uses poster.httpstreaming to stream the upload
         and not load the whole file in memory.
         """
-        self.current_action = FileAction("Upload", file_path, filename)
+        FileAction("Upload", file_path, filename)
         # Request URL
         url = self.automation_url.encode('ascii') + self.batch_upload_url
 
@@ -419,7 +417,6 @@ class BaseAutomationClient(BaseClient):
         return self._read_response(resp, url)
 
     def end_action(self):
-        self.current_action = None
         Action.finish_action()
 
     def execute_batch(self, op_id, batch_id, file_idx, tx_timeout, **params):
@@ -599,6 +596,7 @@ class BaseAutomationClient(BaseClient):
         return str(time.time()) + '_' + str(random.randint(0, 1000000000))
 
     def _read_data(self, file_object, buffer_size):
+        current_action = Action.get_current_action()
         while True:
             # Check if synchronization thread was suspended
             if self.check_suspended is not None:
@@ -606,7 +604,8 @@ class BaseAutomationClient(BaseClient):
             r = file_object.read(buffer_size)
             if not r:
                 break
-            self.current_action.progress += buffer_size
+            if current_action is not None:
+                current_action.progress += buffer_size
             yield r
 
     def do_get(self, url, file_out=None):
@@ -618,10 +617,11 @@ class BaseAutomationClient(BaseClient):
             log.trace("Calling '%s' with headers: %r", url, headers)
             req = urllib2.Request(url, headers=headers)
             response = self.opener.open(req, timeout=self.blob_timeout)
+            current_action = Action.get_current_action()
             # Get the size file
-            if (self.current_action and response is not None
+            if (current_action and response is not None
                 and response.info() is not None):
-                self.current_action.size = int(response.info().getheader(
+                current_action.size = int(response.info().getheader(
                                                     'Content-Length', 0))
             if file_out is not None:
                 locker = self.unlock_path(file_out)
@@ -635,8 +635,8 @@ class BaseAutomationClient(BaseClient):
                             buffer_ = response.read(self.get_download_buffer())
                             if buffer_ == '':
                                 break
-                            if self.current_action:
-                                self.current_action.progress += (
+                            if current_action:
+                                current_action.progress += (
                                                     self.get_download_buffer())
                             f.write(buffer_)
                         if self._remote_error is not None:
