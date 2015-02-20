@@ -263,6 +263,22 @@ class UnitTestCase(unittest.TestCase):
                 log.debug('Error while trying to delete test home directory')
         else:
             log.debug("Test home directory %s doesn't exist, nothing to do", self.static_drive_home)
+        del self.engine_1
+        self.engine_1 = None
+        del self.engine_2
+        self.engine_2 = None
+        del self.local_client_1
+        self.local_client_1 = None
+        del self.local_client_2
+        self.local_client_2 = None
+        del self.remote_document_client_1
+        self.remote_document_client_1 = None
+        del self.remote_document_client_2
+        self.remote_document_client_2 = None
+        del self.remote_file_system_client_1
+        self.remote_file_system_client_1 = None
+        del self.remote_file_system_client_2
+        self.remote_file_system_client_2 = None
 
     def _interact(self, pause=0):
         from time import sleep
