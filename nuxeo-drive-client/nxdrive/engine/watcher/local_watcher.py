@@ -69,6 +69,7 @@ class LocalWatcher(EngineWorker):
         try:
             delete_events = self._delete_events
             for evt in delete_events:
+                log.debug("Win: Dequeuing delete event: %r", evt)
                 if current_milli_time() - evt[0] < WIN_MOVE_RESOLUTION_PERIOD:
                     continue
                 self._handle_watchdog_delete(evt[1])
