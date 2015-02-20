@@ -231,6 +231,7 @@ class UnitTestCase(unittest.TestCase):
         sync_thread.join(30)
 
     def tearDown(self):
+        log.debug("TearDown unit test")
         # Unbind all
         self.manager.unbind_all()
         Manager._singleton = None

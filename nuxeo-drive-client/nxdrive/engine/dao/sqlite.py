@@ -73,6 +73,7 @@ class ConfigurationDAO(QObject):
         Constructor
         '''
         super(ConfigurationDAO, self).__init__()
+        log.debug("Create DAO on %s", db)
         self._db = db
 
         # For testing purpose only should always be True

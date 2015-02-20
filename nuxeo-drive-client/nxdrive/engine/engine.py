@@ -195,7 +195,9 @@ class Engine(QObject):
 
     def unbind(self):
         self.stop()
+        self._dao.dispose()
         # Remove DB
+        log.debug("Remove DB file %s", self._get_db_file())
         os.remove(self._get_db_file())
         return
 
@@ -377,7 +379,6 @@ class Engine(QObject):
         for thread in self._threads:
             if thread.isRunning():
                 thread.wait(5000)
-        self._dao.dispose()
         log.debug("Engine %s stopped", self._uid)
 
     def _get_client_cache(self):
