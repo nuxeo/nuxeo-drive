@@ -1,5 +1,5 @@
 from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
-from Queue import Queue
+from Queue import Queue, Empty
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.processor import Processor
 from threading import Lock, local
@@ -201,27 +201,31 @@ class QueueManager(QObject):
             self._error_lock.release()
 
     def _get_local_folder(self):
-        if self._local_folder_queue.empty():
+        try:
+            state = self._local_folder_queue.get(True, 3)
+        except Empty:
             return None
-        state = self._local_folder_queue.get()
         return state
 
     def _get_local_file(self):
-        if self._local_file_queue.empty():
+        try:
+            state = self._local_file_queue.get(True, 3)
+        except Empty:
             return None
-        state = self._local_file_queue.get()
         return state
 
     def _get_remote_folder(self):
-        if self._remote_folder_queue.empty():
+        try:
+            state = self._remote_folder_queue.get(True, 3)
+        except Empty:
             return None
-        state = self._remote_folder_queue.get()
         return state
 
     def _get_remote_file(self):
-        if self._remote_file_queue.empty():
+        try:
+            state = self._remote_file_queue.get(True, 3)
+        except Empty:
             return None
-        state = self._remote_file_queue.get()
         return state
 
     def _get_file(self):
@@ -231,9 +235,9 @@ class QueueManager(QObject):
             return None
         state = None
         if (self._remote_file_queue.qsize() > self._local_file_queue.qsize()):
-            state = self._remote_file_queue.get()
+            state = self._get_remote_file()
         else:
-            state = self._local_file_queue.get()
+            state = self._get_local_file()
         self._get_file_lock.release()
         return state
 
