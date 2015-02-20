@@ -68,7 +68,7 @@ class LocalWatcher(EngineWorker):
         self._win_lock.acquire()
         try:
             delete_events = self._delete_events
-            for evt in delete_events:
+            for evt in delete_events.values():
                 log.debug("Win: Dequeuing delete event: %r", evt)
                 if current_milli_time() - evt[0] < WIN_MOVE_RESOLUTION_PERIOD:
                     continue
