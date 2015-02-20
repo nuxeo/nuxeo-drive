@@ -38,7 +38,7 @@ class LocalWatcher(EngineWorker):
         self._metrics['new_files'] = 0
         self._metrics['update_files'] = 0
         self._metrics['delete_files'] = 0
-        self._metrics['last_event'] = None
+        self._metrics['last_event'] = 0
         self._observer = None
         self._windows = (sys.platform == 'win32')
         if self._windows:
@@ -50,6 +50,8 @@ class LocalWatcher(EngineWorker):
         try:
             self._action = Action("Setup watchdog")
             self._setup_watchdog()
+            # Be sure to have at least one watchdog event
+            os.utime(self.client._abspath('/'), None)
             self._action = Action("Full local scan")
             self._scan()
             self._end_action()
