@@ -394,9 +394,11 @@ class LocalWatcher(EngineWorker):
 class DriveFSEventHandler(FileSystemEventHandler):
     def __init__(self, watcher):
         super(DriveFSEventHandler, self).__init__()
+        self.counter = 0
         self.watcher = watcher
 
     def on_any_event(self, event):
+        self.counter = self.counter + 1
         self.watcher.handle_watchdog_event(event)
 
 
