@@ -224,13 +224,16 @@ class UnitTestCase(unittest.TestCase):
             sleep(1)
             super(UnitTestCase, self).run(result)
             self.app.quit()
+            log.debug("UnitTest thread finished")
         sync_thread = Thread(target=launch_test)
         sync_thread.start()
         self.app.exec_()
+        sync_thread.join(30)
 
     def tearDown(self):
         # Unbind all
         self.manager.unbind_all()
+        Manager._singleton = None
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
         self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
@@ -259,8 +262,6 @@ class UnitTestCase(unittest.TestCase):
                 log.debug('Error while trying to delete test home directory')
         else:
             log.debug("Test home directory %s doesn't exist, nothing to do", self.static_drive_home)
-
-        Manager._singleton = None
 
     def _interact(self, pause=0):
         from time import sleep
