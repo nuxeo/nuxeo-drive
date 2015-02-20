@@ -230,6 +230,7 @@ class UnitTestCase(unittest.TestCase):
         self.app.exec_()
         sync_thread.join(30)
         self.tearDownApp()
+        del self.app
         log.debug("UnitTest run finished")
 
     def tearDownApp(self):

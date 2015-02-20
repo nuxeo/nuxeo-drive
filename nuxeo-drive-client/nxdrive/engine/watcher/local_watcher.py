@@ -10,7 +10,7 @@ import sys
 import os
 from time import sleep
 from threading import Lock
-from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import pyqtSignal, pyqtSlot
 log = get_logger(__name__)
 
 # Windows 2s between resolution of delete event
@@ -109,6 +109,11 @@ class LocalWatcher(EngineWorker):
             metrics['fs_events'] = self._event_handler.counter
         return dict(metrics.items() + self._metrics.items())
 
+    @pyqtSlot(str)
+    def scan_pair(self, local_path):
+        info = self.client.get_info(local_path)
+        self._scan_recursive(info, recursive=False)
+
     def _scan_recursive(self, info, recursive=True):
         self._interact()
         # Load all children from FS
@@ -175,13 +180,12 @@ class LocalWatcher(EngineWorker):
                                 doc_pair.local_digest = digest
                             self._dao.update_local_state(doc_pair, child_info)
                             self._protected_files[doc_pair.remote_ref]=True
-                    # Dont browse content yet
-                    if child_info.folderish:
-                        to_scan_new.append(child_info)
+                if child_info.folderish:
+                    to_scan_new.append(child_info)
             else:
                 child_pair = children.pop(child_name)
                 if (unicode(child_info.last_modification_time.strftime("%Y-%m-%d %H:%M:%S"))
-                        != child_pair.last_local_updated):
+                        != child_pair.last_local_updated and child_pair.processor == 0):
                     log.trace("Update file %s", child_info.path)
                     remote_ref = self.client.get_remote_id(child_pair.local_path)
                     if remote_ref != child_pair.remote_ref:
