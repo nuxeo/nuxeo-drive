@@ -9,7 +9,7 @@ log = get_logger(__name__)
 NXDRIVE_EDIT_URL_PREFIX = ('nxdrive://edit/scheme/server[:port]'
                            '/webappname/')
 NXDRIVE_EDIT_URL_PATTERN_1 = (NXDRIVE_EDIT_URL_PREFIX
-                            + 'repo/repoName/nxdocid/docId/filename/fileName')
+                            + '[user/userName/]repo/repoName/nxdocid/docId/filename/fileName')
 NXDRIVE_EDIT_URL_PATTERN_2 = NXDRIVE_EDIT_URL_PREFIX + 'fsitem/fsItemId'
 
 
@@ -58,12 +58,23 @@ def parse_edit_protocol(data_string):
         raise ValueError(invalid_msg)
 
     if '/nxdocid/' in data_string:
-        server_part, doc_part = data_string.split('/repo/', 1)
-        server_url = "%s://%s" % (scheme, server_part)
-        repo, doc_part = doc_part.split('/nxdocid/', 1)
-        doc_id, filename = doc_part.split('/filename/', 1)
-        return dict(command='download_edit', server_url=server_url, repo=repo,
-                    doc_id=doc_id, filename=filename)
+        if '/user/' in data_string:
+            server_part, doc_part = data_string.split('/user/', 1)
+            server_url = "%s://%s" % (scheme, server_part)
+            user, doc_part = doc_part.split('/repo/', 1)
+            repo, doc_part = doc_part.split('/nxdocid/', 1)
+            doc_id, filename = doc_part.split('/filename/', 1)
+            return dict(command='download_edit', server_url=server_url, user=user, repo=repo,
+                        doc_id=doc_id, filename=filename)
+        else:
+            # Compatibility with old URL that doesn't contain user name
+            server_part, doc_part = data_string.split('/repo/', 1)
+            server_url = "%s://%s" % (scheme, server_part)
+            repo, doc_part = doc_part.split('/nxdocid/', 1)
+            doc_id, filename = doc_part.split('/filename/', 1)
+            return dict(command='download_edit', server_url=server_url, user=None, repo=repo,
+                        doc_id=doc_id, filename=filename)
+
     else:
         server_part, item_id = data_string.split('/fsitem/', 1)
         server_url = "%s://%s" % (scheme, server_part)

@@ -566,7 +566,7 @@ class CliHandler(object):
         return 0
 
     def download_edit(self, options):
-        self.manager.get_drive_edit().edit(options.server_url, options.doc_id)
+        self.manager.get_drive_edit().edit(options.server_url, options.doc_id, user=options.user)
         return 0
 
     def bind_server(self, options):

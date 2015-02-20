@@ -156,7 +156,7 @@ class DebugDriveApi(WebDriveApi):
     def drive_edit(self, url):
         try:
             info = parse_protocol_url(str(url))
-            self._manager.get_drive_edit().edit(info['server_url'], info['doc_id'])
+            self._manager.get_drive_edit().edit(info['server_url'], info['doc_id'], user=info['user'])
         except Exception as e:
             log.exception(e)
 

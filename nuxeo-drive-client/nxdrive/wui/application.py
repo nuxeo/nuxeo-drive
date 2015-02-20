@@ -15,9 +15,6 @@ from nxdrive.updater import AppUpdater
 from nxdrive.updater import UPDATE_STATUS_UPGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_DOWNGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
-from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
-from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
-from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
 
 log = get_logger(__name__)
 
@@ -547,7 +544,7 @@ class Application(QApplication):
                     if info.get('command') == 'download_edit':
                         # This is a quick operation, no need to fork a QThread
                         self.manager.get_drive_edit().edit(
-                            info['server_url'], info['doc_id'])
+                            info['server_url'], info['doc_id'], user=info['user'])
                     elif info.get('command') == 'edit':
                         # TO_REVIEW Still used ?
                         self.manager.get_drive_edit().edit(
