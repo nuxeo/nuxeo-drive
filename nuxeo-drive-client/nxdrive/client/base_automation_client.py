@@ -275,7 +275,7 @@ class BaseAutomationClient(BaseClient):
 
     def execute(self, command, op_input=None, timeout=-1,
                 check_params=True, void_op=False, extra_headers=None,
-                **params):
+                file_out=None, **params):
         """Execute an Automation operation"""
         if self._remote_error is not None:
             # Simulate a configurable (e.g. network or server) error for the
@@ -325,8 +325,36 @@ class BaseAutomationClient(BaseClient):
         except Exception as e:
             self._log_details(e)
             raise
-
-        return self._read_response(resp, url)
+        current_action = Action.get_current_action()
+        if file_out is not None:
+            locker = self.unlock_path(file_out)
+            try:
+                with open(file_out, "wb") as f:
+                    while True:
+                        # Check if synchronization thread was suspended
+                        if self.check_suspended is not None:
+                            self.check_suspended('File download: %s'
+                                                 % file_out)
+                        buffer_ = resp.read(self.get_download_buffer())
+                        if buffer_ == '':
+                            break
+                        if current_action:
+                            current_action.progress += (
+                                                self.get_download_buffer())
+                        f.write(buffer_)
+                    if self._remote_error is not None:
+                        # Simulate a configurable remote (e.g. network or
+                        # server) error for the tests
+                        raise self._remote_error
+                    if self._local_error is not None:
+                        # Simulate a configurable local error (e.g. "No
+                        # space left on device") for the tests
+                        raise self._local_error
+                return None, file_out
+            finally:
+                self.lock_path(file_out, locker)
+        else:
+            return self._read_response(resp, url)
 
     def execute_with_blob_streaming(self, command, file_path, filename=None,
                                     mime_type=None, **params):

@@ -6,6 +6,7 @@ from nxdrive.wui.dialog import WebDialog
 from nxdrive.wui.dialog import WebDriveApi
 from nxdrive.logging_config import get_logger
 from logging.handlers import BufferingHandler
+from nxdrive.osi.protocol import parse_protocol_url
 import logging
 import time
 from copy import copy
@@ -150,6 +151,14 @@ class DebugDriveApi(WebDriveApi):
     def suspend_engine(self, uid):
         engine = self._get_engine(uid)
         engine.suspend()
+
+    @QtCore.pyqtSlot(str)
+    def drive_edit(self, url):
+        try:
+            info = parse_protocol_url(str(url))
+            self._manager.get_drive_edit().edit(info['server_url'], info['doc_id'])
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(str, str)
     def set_app_update(self, status, version):

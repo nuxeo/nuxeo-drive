@@ -562,14 +562,11 @@ class CliHandler(object):
         return 0
 
     def edit(self, options):
-        self.manager.edit(
-            options.server_url, options.item_id)
+        self.manager.get_drive_edit().edit(options.server_url, options.item_id)
         return 0
 
     def download_edit(self, options):
-        self.manager.get_drive_edit().edit(
-            options.server_url, options.repo, options.doc_id,
-            options.filename)
+        self.manager.get_drive_edit().edit(options.server_url, options.doc_id)
         return 0
 
     def bind_server(self, options):

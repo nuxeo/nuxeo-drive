@@ -39,6 +39,7 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
 		}
 	}
 	$scope.setAppUpdate = drive.set_app_update;
+	$scope.driveEdit = drive.drive_edit;
 	$scope.setMetrics = function(name, metrics) {
 		$scope.metrics_name = name;
 		$scope.metrics = metrics;
@@ -309,6 +310,26 @@ app.controller("DriveDebugCtl", function($scope, $interval) {
           			</th>
 				</tr>
 			</thead>
+		</table>
+		<table class="table table-hover table-condensed">
+			<thead>
+				<tr>
+					<th>
+						<span class="glyphicon glyphicon-save-file">&nbsp;</span>DriveEdit
+          			</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+					<div class="input-group">
+				      <input type="text" class="form-control" ng-model="driveEditUrl" placeholder="DriveEdit URL">
+				      <span class="input-group-btn">
+				        <button class="btn btn-default" type="button" ng-click="driveEdit(driveEditUrl)">Go!</button>
+				      </span>
+				    </div></td>
+				</tr>
+			</tbody>
 		</table>
 		</div>
 	</div>

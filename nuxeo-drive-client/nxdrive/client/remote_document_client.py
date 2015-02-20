@@ -383,10 +383,9 @@ class RemoteDocumentClient(BaseAutomationClient):
         return self.execute("Document.Query", query=query, language=language)
 
     # Blob category
-
-    def get_blob(self, ref):
+    def get_blob(self, ref, file_out=None):
         return self.execute("Blob.Get", op_input="doc:" + ref,
-                            timeout=self.blob_timeout)
+                            timeout=self.blob_timeout, file_out=file_out)
 
     def attach_blob(self, ref, blob, filename):
         file_path = self.make_tmp_file(blob)
