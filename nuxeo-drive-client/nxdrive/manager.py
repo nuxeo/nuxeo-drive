@@ -167,6 +167,7 @@ class Manager(QObject):
         self._debug = options.debug
         self._dao = self._create_dao()
         self.proxies = None
+        self._started = False
         self.proxy_exceptions = None
         self._engines = None
         # Pause if in debug
@@ -182,8 +183,8 @@ class Manager(QObject):
         self._engine_types["NXDRIVE"] = Engine
         self.load()
         # Create and start the auto-update verification thread
-        self._app_updater = self._create_updater()
-        self._app_updater.start()
+        self._create_updater()
+        self._create_drive_edit()
         # Setup analytics tracker
         if self.get_tracking():
             self._create_tracker()
@@ -213,7 +214,9 @@ class Manager(QObject):
 
     def _create_updater(self):
         # Enable the capacity to extend the AppUpdater
-        return AppUpdater(self._get_version_finder())
+        self._app_updater = AppUpdater(self._get_version_finder())
+        self.started.connect(self._app_updater._thread.start)
+        return self._app_updater
 
     def _get_version_finder(self):
         # Used by extended application to inject version finder
@@ -222,6 +225,15 @@ class Manager(QObject):
 
     def get_updater(self):
         return self._app_updater
+
+    def _create_drive_edit(self):
+        from nxdrive.engine.watcher.drive_edit import DriveEdit
+        self._drive_edit = DriveEdit(self, os.path.join(self.nxdrive_home, "edit"))
+        self.started.connect(self._drive_edit._thread.start)
+        return self._drive_edit
+
+    def get_drive_edit(self):
+        return self._drive_edit
 
     def is_paused(self):
         return self._pause
@@ -258,6 +270,7 @@ class Manager(QObject):
         self.stopped.emit()
 
     def start(self, euid=None):
+        self._started = True
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
@@ -549,7 +562,7 @@ class Manager(QObject):
         return False
 
     def is_started(self):
-        return True
+        return self._started
 
     def is_updated(self):
         return self.updated

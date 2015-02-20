@@ -172,12 +172,7 @@ class Application(QApplication):
             # Prompt for settings if needed (performs a check for application
             # update)
             self.show_settings()
-        else:
-            # Initial check for application update (then periodic checks will
-            # be done by the synchronizer thread)
-            self.refresh_update_status()
-            # Start long running synchronization thread
-            self.manager.start()
+        self.manager.start()
 
     def get_systray_menu(self):
         from nxdrive.wui.systray import WebSystray
@@ -190,92 +185,6 @@ class Application(QApplication):
     def get_updater(self, version_finder):
         # Enable the capacity to extend the AppUpdater
         return AppUpdater(version_finder)
-
-    def refresh_update_status(self):
-        # TODO: first read update site URL from local configuration
-        # See https://jira.nuxeo.com/browse/NXP-14403
-        server_bindings = self.manager.list_server_bindings()
-        if not server_bindings:
-            log.warning("Found no server binding, thus no update site URL,"
-                        " can't check for application update")
-        elif self.state != 'paused':
-            # Let's refresh_update_info of the first server binding
-            sb = server_bindings[0]
-            self.manager.refresh_update_info(sb.local_folder)
-            # Use server binding's update site URL as a version finder to
-            # build / update the application updater.
-            update_url = sb.update_url
-            server_version = sb.server_version
-            if update_url is None or server_version is None:
-                log.warning("Update site URL or server version unavailable,"
-                            " as a consequence update features won't be"
-                            " available")
-                return
-            if self.updater is None:
-                # Build application updater if it doesn't exist
-                try:
-                    self.updater = self.get_updater(
-                                        self.get_version_finder(update_url))
-                except Exception as e:
-                    log.warning(e)
-                    return
-            else:
-                # If application updater exists, simply update its version
-                # finder
-                self.updater.set_version_finder(
-                                        self.get_version_finder(update_url))
-            # Set update status and update version
-            self.update_status, self.update_version = (
-                        self.updater.get_update_status(
-                            self.manager.get_version(), server_version))
-            if self.update_status == UPDATE_STATUS_UNAVAILABLE_SITE:
-                # Update site unavailable
-                log.warning("Update site is unavailable, as a consequence"
-                            " update features won't be available")
-            elif self.update_status in [UPDATE_STATUS_MISSING_INFO,
-                                      UPDATE_STATUS_MISSING_VERSION]:
-                # Information or version missing in update site
-                log.warning("Some information or version file is missing in"
-                            " the update site, as a consequence update"
-                            " features won't be available")
-            else:
-                # Update information successfully fetched
-                log.info("Fetched information from update site %s: update"
-                         " status = '%s', update version = '%s'",
-                         self.updater.get_update_site(), self.update_status,
-                         self.update_version)
-                if self._is_update_required():
-                    # Current client version not compatible with server
-                    # version, upgrade or downgrade needed.
-                    # Let's stop synchronization thread.
-                    log.info("As current client version is not compatible with"
-                             " server version, an upgrade or downgrade is"
-                             " needed. Synchronization thread won't start"
-                             " until then.")
-                    self.manager.stop()
-                elif (self._is_update_available()
-                      and self.manager.is_auto_update()):
-                    # Update available and auto-update checked, let's process
-                    # update
-                    log.info("An application update is available and"
-                             " auto-update is checked")
-                    self.action_update(auto_update=True)
-                    return
-                elif (self._is_update_available()
-                      and not self.manager.is_auto_update()):
-                    # Update available and auto-update not checked, let's just
-                    # update the systray icon and menu and let the user
-                    # explicitly choose to  update
-                    log.info("An update is available and auto-update is not"
-                             " checked, let's just update the systray icon and"
-                             " menu and let the user explicitly choose to"
-                             " update")
-                else:
-                    # Application is up-to-date
-                    log.info("Application is up-to-date")
-            self.state = self._get_current_active_state()
-            self.update_running_icon()
-            self.communicator.menu.emit()
 
     def _is_update_required(self):
         return self.update_status in [UPDATE_STATUS_UPGRADE_NEEDED,

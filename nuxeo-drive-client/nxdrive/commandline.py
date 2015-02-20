@@ -462,8 +462,10 @@ class CliHandler(object):
             try:
                 # Ensure that the protocol handler are registered:
                 # this is useful for the edit/open link in the Nuxeo interface
-                register_protocol_handlers(self.controller)
+                # TODO Update
+                register_protocol_handlers(None)
                 # Ensure that ndrive is registered as a startup application
+                # TODO Make it optional
                 register_startup()
                 # Ensure that ndrive is registered as a contextual menu entry.
                 # Only under win32 for now, for OS X Finder implementation see
@@ -565,7 +567,7 @@ class CliHandler(object):
         return 0
 
     def download_edit(self, options):
-        self.controller.download_edit(
+        self.manager.get_drive_edit().edit(
             options.server_url, options.repo, options.doc_id,
             options.filename)
         return 0

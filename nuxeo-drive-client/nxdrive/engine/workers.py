@@ -153,6 +153,8 @@ class EngineWorker(Worker):
 class PollWorker(Worker):
     def __init__(self, check_interval, thread=None, name=None):
         super(PollWorker, self).__init__(thread, name)
+        # Be sure to run on start
+        self._thread.started.connect(self.run)
         self._check_interval = check_interval
         # Check at start
         self._current_interval = 0

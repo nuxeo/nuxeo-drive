@@ -2,21 +2,20 @@
 @author: Remi Cattiau
 '''
 from nxdrive.logging_config import get_logger
-from watchdog.events import FileSystemEventHandler, FileCreatedEvent
+from watchdog.events import FileSystemEventHandler
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
 from nxdrive.engine.activity import Action
 import sys
 import os
-from time import time
 from time import sleep
 from threading import Lock
 from PyQt4.QtCore import pyqtSignal
 log = get_logger(__name__)
 
-conflicted_changes = []
 # Windows 2s between resolution of delete event
 WIN_MOVE_RESOLUTION_PERIOD = 2000
+
 
 class LocalWatcher(EngineWorker):
     localScanFinished = pyqtSignal()
@@ -387,49 +386,16 @@ class LocalWatcher(EngineWorker):
             log.warn("Watchdog exception : %r" % e)
             log.exception(e)
         finally:
-            self._action = None
+            self._end_action()
 
 
 class DriveFSEventHandler(FileSystemEventHandler):
     def __init__(self, watcher):
         super(DriveFSEventHandler, self).__init__()
         self.watcher = watcher
-        self.counter = 0
 
     def on_any_event(self, event):
-        if self.counter == 0:
-            self.watcher.handle_watchdog_event(event)
-            return
-        if event.event_type == 'moved':
-            dest_path = normalize_event_filename(event.dest_path)
-            try:
-                conflicted_changes.index(dest_path)
-                conflicted_changes.remove(dest_path)
-                evt = FileCreatedEvent(event.dest_path)
-                evt.time = time()
-                self.queue.append(evt)
-                log.info('Skipping move to %s as it is a conflict resolution',
-                            dest_path)
-                return
-            except ValueError:
-                pass
-        if event.event_type == 'deleted':
-            src_path = normalize_event_filename(event.src_path)
-            try:
-                conflicted_changes.index(src_path)
-                conflicted_changes.remove(src_path)
-                log.info('Skipping delete of %s as it is in fact an update',
-                            src_path)
-                return
-            except ValueError:
-                pass
-        # Use counter instead of time so to be sure to respect the order
-        # As 2 events can have the same ms
-        self.counter += 1
-        event.time = self.counter
-        self.queue.append(event)
-        log.trace('%d %r', self.counter, event)
-        # ERROR_NOTIFY_ENUM_DIR should be sent in specific case
+        self.watcher.handle_watchdog_event(event)
 
 
 def normalize_event_filename(filename):
