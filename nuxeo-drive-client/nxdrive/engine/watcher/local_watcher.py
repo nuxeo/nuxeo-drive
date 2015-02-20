@@ -109,7 +109,7 @@ class LocalWatcher(EngineWorker):
             metrics['fs_events'] = self._event_handler.counter
         return dict(metrics.items() + self._metrics.items())
 
-    def _scan_recursive(self, info):
+    def _scan_recursive(self, info, recursive=True):
         self._interact()
         # Load all children from FS
         # detect recently deleted children
@@ -122,6 +122,7 @@ class LocalWatcher(EngineWorker):
         # Create a list of all children by their name
         children = dict()
         to_scan = []
+        to_scan_new = []
         for child in db_children:
             children[child.local_name] = child
 
@@ -175,6 +176,8 @@ class LocalWatcher(EngineWorker):
                             self._dao.update_local_state(doc_pair, child_info)
                             self._protected_files[doc_pair.remote_ref]=True
                     # Dont browse content yet
+                    if child_info.folderish:
+                        to_scan_new.append(child_info)
             else:
                 child_pair = children.pop(child_name)
                 if (unicode(child_info.last_modification_time.strftime("%Y-%m-%d %H:%M:%S"))
@@ -204,8 +207,8 @@ class LocalWatcher(EngineWorker):
                             child_pair.local_state = 'modified'
                     self._metrics['update_files'] = self._metrics['update_files'] + 1
                     self._dao.update_local_state(child_pair, child_info)
-            if child_info.folderish:
-                to_scan.append(child_info)
+                if child_info.folderish:
+                    to_scan.append(child_info)
 
         for deleted in children.values():
             if deleted.pair_state == "remotely_created":
@@ -217,6 +220,12 @@ class LocalWatcher(EngineWorker):
                 self._dao.remove_state(deleted)
             else:
                 self._delete_files[deleted.remote_ref] = deleted
+
+        for child_info in to_scan_new:
+            self._scan_recursive(child_info)
+
+        if not recursive:
+            return
 
         for child_info in to_scan:
             self._scan_recursive(child_info)
@@ -316,6 +325,9 @@ class LocalWatcher(EngineWorker):
             doc_pair.local_state = 'modified'
         queue = not (evt.event_type == 'modified' and doc_pair.folderish
                                 and doc_pair.local_state == 'modified')
+        if (self._windows and doc_pair.folderish and evt.event_type == 'modified'):
+            # Window forget some event sometimes
+            self._scan_recursive(local_info, recursive=False)
         self._dao.update_local_state(doc_pair, local_info, queue=queue)
         # No need to change anything on sync folder
         if (not queue):
