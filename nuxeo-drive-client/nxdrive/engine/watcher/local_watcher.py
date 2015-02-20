@@ -229,13 +229,23 @@ class LocalWatcher(EngineWorker):
         self._observer.start()
         # Be sure to have at least one watchdog event
         timeout = 30
-        while (self._metrics['last_event'] == 0):
-            os.utime(self.client._abspath('/'), None)
-            sleep(1)
-            timeout = timeout - 1
-            if timeout < 0:
-                log.debug("Can't have watchdog setup. Fallback to full scan mode ?")
-                raise Exception
+        lock = self.client.unlock_ref('/', False)
+        try:
+            fname = self.client._abspath('/.watchdog_setup')
+            while (self._metrics['last_event'] == 0):
+                with open(fname, 'a'):
+                    os.utime(fname, None)
+                sleep(1)
+                timeout = timeout - 1
+                if timeout < 0:
+                    log.debug("Can't have watchdog setup. Fallback to full scan mode ?")
+                    os.remove(fname)
+                    raise Exception
+                os.remove(fname)
+            if os.path.exists(fname):
+                os.remove(fname)
+        finally:
+            self.client.lock_ref('/', lock)
 
     def _stop_watchdog(self, raise_on_error=True):
         if self._observer is None:
