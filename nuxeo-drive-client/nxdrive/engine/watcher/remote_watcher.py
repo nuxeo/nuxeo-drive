@@ -10,7 +10,6 @@ from nxdrive.client import NotFound
 from time import sleep
 from datetime import datetime
 from nxdrive.client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME
-from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.remote_file_system_client import RemoteFileInfo
 from nxdrive.engine.activity import Action
 from nxdrive.client.common import safe_filename
@@ -97,7 +96,7 @@ class RemoteWatcher(EngineWorker):
         self._dao.update_config('remote_last_full_scan', self._last_remote_full_scan)
         self._dao.commit()
         self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
-        log.debug("remote scan finished in %d", self._metrics['last_remote_scan_time'])
+        log.debug("remote scan finished in %dms", self._metrics['last_remote_scan_time'])
 
     @pyqtSlot(str)
     def scan_pair(self, remote_path):
