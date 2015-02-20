@@ -229,8 +229,10 @@ class UnitTestCase(unittest.TestCase):
         sync_thread.start()
         self.app.exec_()
         sync_thread.join(30)
+        self.tearDownApp()
+        log.debug("UnitTest run finished")
 
-    def tearDown(self):
+    def tearDownApp(self):
         log.debug("TearDown unit test")
         # Unbind all
         self.manager.unbind_all()

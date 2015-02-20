@@ -50,6 +50,7 @@ class LocalWatcher(EngineWorker):
         try:
             self._action = Action("Setup watchdog")
             self._setup_watchdog()
+            log.debug("Watchdog setup finished")
             self._action = Action("Full local scan")
             self._scan()
             self._end_action()
