@@ -103,6 +103,8 @@ class ConfigurationDAO(QObject):
         cursor.execute("CREATE TABLE if not exists Configuration(name VARCHAR NOT NULL, value VARCHAR, PRIMARY KEY (name))")
 
     def _create_main_conn(self):
+        log.debug("Create main connexion on %s(%d/%d)",
+                    self._db, os.path.exists(self._db), os.path.exists(os.path.dirname(self._db)))
         self._conn = sqlite3.connect(self._db, check_same_thread=False)
         self._connections.append(self._conn)
 
@@ -110,6 +112,7 @@ class ConfigurationDAO(QObject):
         log.trace(query)
 
     def dispose(self):
+        log.debug("Disposing the sqlite")
         for con in self._connections:
             con.close()
         self._connections = []
@@ -157,7 +160,9 @@ class ConfigurationDAO(QObject):
 
     def end_transaction(self):
         self.auto_commit = True
+        self._lock.acquire()
         self._get_write_connection().commit()
+        self._lock.release()
         self._tx_lock.release()
         self.in_tx = None
 
