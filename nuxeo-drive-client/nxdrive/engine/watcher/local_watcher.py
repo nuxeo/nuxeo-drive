@@ -50,8 +50,6 @@ class LocalWatcher(EngineWorker):
         try:
             self._action = Action("Setup watchdog")
             self._setup_watchdog()
-            # Be sure to have at least one watchdog event
-            os.utime(self.client._abspath('/'), None)
             self._action = Action("Full local scan")
             self._scan()
             self._end_action()
@@ -229,6 +227,15 @@ class LocalWatcher(EngineWorker):
         self._observer.schedule(self._event_handler, self.client.base_folder,
                           recursive=True)
         self._observer.start()
+        # Be sure to have at least one watchdog event
+        timeout = 30
+        while (self._metrics['last_event'] == 0):
+            os.utime(self.client._abspath('/'), None)
+            sleep(1)
+            timeout = timeout - 1
+            if timeout < 0:
+                log.debug("Can't have watchdog setup. Fallback to full scan mode ?")
+                raise Exception
 
     def _stop_watchdog(self, raise_on_error=True):
         if self._observer is None:
@@ -364,21 +371,6 @@ class LocalWatcher(EngineWorker):
                             return
                     finally:
                         self._win_lock.release()
-                # Handle creation of "Locally Edited" folder and its
-                # children
-                '''
-                if file_name == LOCALLY_EDITED_FOLDER_NAME:
-                    root_pair = self._controller.get_top_level_state(local_folder, session=session)
-                    doc_pair = self._scan_local_new_file(session, name,
-                                                local_info, root_pair)
-                elif parent_rel_path.endswith(LOCALLY_EDITED_FOLDER_NAME):
-                    parent_pair = session.query(LastKnownState).filter_by(
-                        local_path=parent_path,
-                        local_folder=local_folder).one()
-                    doc_pair = self._scan_local_new_file(session, name,
-                                                local_info, parent_pair)
-                else:
-                '''
                 self._dao.insert_local_state(local_info, parent_rel_path)
                 # An event can be missed inside a new created folder as
                 # watchdog will put listener after it
