@@ -118,9 +118,9 @@ class UnitTestCase(unittest.TestCase):
         from mock import Mock
         options = Mock()
         options.delay = TEST_DEFAULT_DELAY
-        self.static_drive_home = options.nxdrive_home = tempfile.mkdtemp(u'-nuxeo-drive-test')
-        if not os.path.exists(options.nxdrive_home):
-            os.mkdir(options.nxdrive_home)
+        self.static_drive_home = tempfile.mkdtemp(u'-nuxeo-drive-test')
+        log.debug('Created test home directory: %s', self.static_drive_home)
+        options.nxdrive_home = self.static_drive_home
         self.manager = Manager(options)
         self.version = self.manager.get_version()
         # Long timeout for the root client that is responsible for the test
@@ -252,9 +252,14 @@ class UnitTestCase(unittest.TestCase):
 
         if os.path.exists(self.static_drive_home):
             try:
+                log.debug('Test home directory exists: %s, deleting it', self.static_drive_home)
                 shutil.rmtree(safe_long_path(self.static_drive_home))
+                log.debug('Test home directory deleted')
             except:
-                pass
+                log.debug('Error while trying to delete test home directory')
+        else:
+            log.debug("Test home directory %s doesn't exist, nothing to do", self.static_drive_home)
+
         Manager._singleton = None
 
     def _interact(self, pause=0):
