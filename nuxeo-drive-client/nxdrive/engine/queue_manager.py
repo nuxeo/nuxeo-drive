@@ -201,6 +201,8 @@ class QueueManager(QObject):
             self._error_lock.release()
 
     def _get_local_folder(self):
+        if self._local_folder_queue.empty():
+            return None
         try:
             state = self._local_folder_queue.get(True, 3)
         except Empty:
@@ -208,6 +210,8 @@ class QueueManager(QObject):
         return state
 
     def _get_local_file(self):
+        if self._local_file_queue.empty():
+            return None
         try:
             state = self._local_file_queue.get(True, 3)
         except Empty:
@@ -215,6 +219,8 @@ class QueueManager(QObject):
         return state
 
     def _get_remote_folder(self):
+        if self._remote_folder_queue.empty():
+            return None
         try:
             state = self._remote_folder_queue.get(True, 3)
         except Empty:
@@ -222,6 +228,8 @@ class QueueManager(QObject):
         return state
 
     def _get_remote_file(self):
+        if self._remote_file_queue.empty():
+            return None
         try:
             state = self._remote_file_queue.get(True, 3)
         except Empty:
