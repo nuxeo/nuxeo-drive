@@ -41,6 +41,7 @@ class RemoteWatcher(EngineWorker):
         self._metrics = dict()
         self._metrics['last_remote_scan_time'] = -1
         self._metrics['last_remote_update_time'] = -1
+        self._metrics['empty_polls'] = 0
         self.server_interval = delay
         self._current_interval = self.server_interval
 
@@ -278,6 +279,9 @@ class RemoteWatcher(EngineWorker):
         if n_changes > 0:
             log.debug("%d remote changes detected", n_changes)
             self._metrics['last_changes'] = n_changes
+            self._metrics['empty_polls'] = 0
+        else:
+            self._metrics['empty_polls'] = self._metrics['empty_polls'] + 1
 
         # Scan events and update the related pair states
         refreshed = set()

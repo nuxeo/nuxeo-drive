@@ -38,6 +38,7 @@ class LocalWatcher(EngineWorker):
         self._metrics['new_files'] = 0
         self._metrics['update_files'] = 0
         self._metrics['delete_files'] = 0
+        self._metrics['last_event'] = None
         self._observer = None
         self._windows = (sys.platform == 'win32')
         if self._windows:
@@ -303,6 +304,7 @@ class LocalWatcher(EngineWorker):
         pass
 
     def handle_watchdog_event(self, evt):
+        self._metrics['last_event'] = current_milli_time()
         self._action = Action("Handle watchdog event")
         log.debug("handle_watchdog_event %s on %s", evt.event_type, evt.src_path)
         try:

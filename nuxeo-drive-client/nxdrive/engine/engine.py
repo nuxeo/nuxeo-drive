@@ -7,6 +7,7 @@ from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.utils import current_milli_time
 from nxdrive.engine.workers import Worker
 from threading import local
 import os
@@ -309,9 +310,12 @@ class Engine(QObject):
 
     @pyqtSlot()
     def _check_last_sync(self):
+        from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
         log.debug('Checking sync completed: queue manager is %s and overall size = %d',
                   'active' if self._queue_manager.active() else 'inactive', self._queue_manager.get_overall_size())
-        if self._queue_manager.get_overall_size() == 0 and not self._queue_manager.active():
+        if (self._queue_manager.get_overall_size() == 0 and not self._queue_manager.active()
+            and self._remote_watcher.get_metrics()["empty_polls"] > 0 and
+            (current_milli_time()-self._local_watcher.get_metrics()["last_event"]) > WIN_MOVE_RESOLUTION_PERIOD):
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
             if self._sync_started:
                 self._sync_started = False
