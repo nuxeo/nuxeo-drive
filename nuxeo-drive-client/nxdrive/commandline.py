@@ -674,6 +674,7 @@ class CliHandler(object):
             "nxdrive.tests.test_shared_folders",
             "nxdrive.tests.test_synchronization",
             "nxdrive.tests.test_synchronizer",
+            "nxdrive.tests.test_translator",
             "nxdrive.tests.test_updater",
             "nxdrive.tests.test_utils",
             "nxdrive.tests.test_versioning",

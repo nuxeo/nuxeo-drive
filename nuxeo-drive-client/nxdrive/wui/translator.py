@@ -2,6 +2,7 @@
 @author: Remi Cattiau
 '''
 import json
+import re
 
 
 class Translator(object):
@@ -39,13 +40,21 @@ class Translator(object):
                 self._fallback = dict()
         else:
             self._set(lang)
+            if "en" in self._langs:
+                self._fallback = self._labels["en"]
         Translator._singleton = self
 
     def _tokenize(self, label, values=None):
         if dict is None:
             return label
-        # TODO Find the {{*}} tag and replace them with value or empty
-        return label
+        result = label
+        for token in re.findall("\{\{[^\}]+\}\}", label):
+            attr = token[2:-2].strip()
+            value = ""
+            if attr in values:
+                value = values[attr]
+            result = result.replace(token, value)
+        return result
 
     def _get(self, label, values=None):
         if not label in self._current:
@@ -55,7 +64,7 @@ class Translator(object):
         return self._tokenize(self._current[label], values)
 
     def _set(self, lang):
-        if not lang in self._labels:
+        if not lang in self._langs:
             raise Exception("Unkown language")
         self._current_lang = lang
         self._current = self._labels[lang]
@@ -80,10 +89,10 @@ class Translator(object):
         return Translator._singleton._locale()
 
     @staticmethod
-    def get(label):
+    def get(label, values=None):
         if Translator._singleton is None:
             raise Exception("Translator not initialized")
-        return Translator._singleton._get(label)
+        return Translator._singleton._get(label, values)
 
     @staticmethod
     def languages():
