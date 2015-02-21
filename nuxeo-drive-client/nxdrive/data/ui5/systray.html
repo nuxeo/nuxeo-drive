@@ -81,9 +81,18 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
 		drive.advanced_systray();
 	}
 	$scope.interval = null;
+	$scope.autoUpdate = drive.get_auto_update();
+	$scope.setAutoUpdate = drive.set_auto_update;
 	$scope.engines = angular.fromJson(drive.get_engines());
-	$scope.appUpdate = drive.app_update;
+	$scope.appUpdate = function() {
+		drive.app_update($scope.confirmAppUpdateDialog);
+		$scope.confirmAppUpdateDialog = null;
+	}
 	$scope.app_update = angular.fromJson(drive.get_update_status());
+	$scope.confirmAppUpdateDialog = null;
+	$scope.confirmAppUpdate = function (version) {
+		$scope.confirmAppUpdateDialog = version;	
+	}
 	$scope.engine = null;
 	$scope.current_actions = [];
 	$scope.last_files = [];
@@ -177,9 +186,25 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
  </div>
 <div class="navbar navbar-fixed-bottom" style="padding: 10px; height: 40px; min-height: 40px; border-top: 1px solid #17384e;background-color: #dfdfdf;">
   <div class="label notifications-container" style="position: absolute; padding:0px; left:0px; width: 100%; bottom: 40px; width: 100%;">
-  	<div ng-show="app_update[0] == 'update_available'" ng-click="appUpdate(app_update[1])" class="notification notification-info">New upgrade is available</div>
-  	<div ng-show="app_update[0] == 'downgrade_needed'" ng-click="appUpdate(app_update[1])" class="notification notification-danger">Downgrade to {{ app_update[1] }} is needed</div>
-  	<div ng-show="app_update[0] == 'upgrade_needed'" ng-click="appUpdate(app_update[1])" class="notification notification-danger">Upgrade to {{ app_update[1] }} is needed</div>
+	<div ng-show="confirmAppUpdateDialog != null" class="notification-info" style="padding: 10px; padding-bottom: 0px; height: 65px;">
+	You are about to update to the version {{ confirmAppUpdateDialog }}
+	<form>
+	  <div class="row">
+	  	<div class="col-xs-4" style="padding-top: 20px;">
+		<span ng-click="confirmAppUpdate(null)" class="glyphicon glyphicon-remove-sign alert-danger pull-left" style="font-size: 20px;background: none;">&nbsp;</span>
+		</div>
+		<div class="checkbox col-xs-4" style="padding-top: 10px;">
+	      <input type="checkbox" style="margin-top: -3px" ng-model="autoUpdate" ng-click="setAutoUpdate(autoUpdate)"> Activate auto-update
+	  	</div>
+	  	<div class="col-xs-4" style="padding-top: 20px;">
+		<span ng-click="appUpdate()" class="col-xs-4 glyphicon glyphicon-ok-sign alert-success pull-right" style="font-size: 20px;background: none;">&nbsp;</span>
+		</div>
+	   </div>
+	  </form>
+	</div>
+  	<div ng-show="app_update[0] == 'update_available' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-info">New upgrade is available</div>
+  	<div ng-show="app_update[0] == 'downgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger">Downgrade to {{ app_update[1] }} is needed</div>
+  	<div ng-show="app_update[0] == 'upgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger">Upgrade to {{ app_update[1] }} is needed</div>
   	<div ng-show="app_update[0] == 'updating'" class="notification notification-info">
   		Updating to {{ app_update[1] }}
 	  	<div class="progress" style="height: 4px;">

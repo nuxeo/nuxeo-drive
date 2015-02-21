@@ -145,7 +145,6 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(bool, result=str)
     def set_auto_update(self, value):
-        self._manager.get_configuration()
         self._manager.set_auto_update(value)
         return ""
 
