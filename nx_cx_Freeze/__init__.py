@@ -152,10 +152,10 @@ if sys.platform == 'win32':
                               'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE',
                               1560)])
             # Add product icon
-            icon_file = os.path.join(self.get_icons_home(), self.get_win_icon())
+            icon_file = os.path.join(self.attribs.get_icons_home(), self.attribs.get_win_icon())
             if os.path.exists(icon_file):
-                msilib.add_data(db, "Property", [("ARPPRODUCTICON", "InstallIcon")])
-                msilib.add_data(db, "Icon", [("InstallIcon", msilib.Binary(icon_file))])
+                msilib.add_data(self.db, "Property", [("ARPPRODUCTICON", "InstallIcon")])
+                msilib.add_data(self.db, "Icon", [("InstallIcon", msilib.Binary(icon_file))])
 
             # Allow to customize the MSI
             if getattr(self.attribs, 'customize_msi', None) is not None:
