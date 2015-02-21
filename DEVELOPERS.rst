@@ -37,6 +37,64 @@ To build the marketplace package see the related
 `Github repository <https://github.com/nuxeo/marketplace-drive>`_.
 
 
+Client side Architecture
+------------------------
+.. image:: https://www.lucidchart.com/publicSegments/view/54e8e2a7-d2a4-4ec7-9843-5c740a00c10b/image.png
+
+CommandLine
+  Handle the basic commandline arguments, create the Manager, and depending on the argument create a ConsoleApplication or Application.
+  
+Manager
+  Handle all the generic behavior of Nuxeo Drive: auto-updates, bind of an engine, declaration of differents engine types, tracker.
+
+Engine
+  Handle one server synchronization, can be extend to customize the behavior, it create all the synchronization structure: QueueManager, LocalWatcher, RemoteWatcher, DAO.
+
+DAO
+  Abstraction for accessing the SQLite database, each Engine has its own DAO and so database
+
+LocalWatcher
+  Handle the local scan on startup and then the FS events, updating the States stored in DAO, and queueing if needed the State to be processed
+
+RemoteWatcher
+  Handle the remote scan for the first synchronization and then the incremental polling from the server
+
+QueueManager
+  Handle the different types of Processor to process any remote or local modification
+
+RemoteFileProcessor
+  Specialized thread in uploading document
+
+RemoteFolderProcessor
+  Specialized thread in create remote folder
+
+LocalFileProcessor
+  Specialized thread in download document
+
+LocalFolderProcessor
+  Specialized thread in create local folder
+
+AdditionalProcessor
+  If the queue is big, some additional Processor will be launch by the QueueManager to either download or upload document
+
+AppUpdater
+  Handle the auto-update polling and the update download process
+
+Tracker
+  Use for Analytics, anonymous report of usage
+
+ConsoleApplication
+  Console behavior implementation
+  
+Application
+  OperatingSystem GUI handle the creation of windows, systray and message
+
+Translator
+  Load labels translation and offer the translation service as static method
+
+WebDialog
+  Base of all Nuxeo Drive window, it is basically a WebKit view with a drive javascript object mapped by the Javascript API
+
 Nuxeo Drive Client under Linux & Mac OS X
 -----------------------------------------
 
@@ -330,18 +388,6 @@ The signing process will be done when generating the .dmg archive with::
   sh tools/osx/create-dmg.sh
 
 It will sign the dmg package and verify its signature. It uses the ``codesign`` and ``spctl`` commands included by default in OS X.
-
-
-Updating the data model
------------------------
-
-If you need to change the `data model <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/nxdrive/model.py>`_
-the SQLite database needs to be migrated. This is handled by the embedded `alembic <https://bitbucket.org/zzzeek/alembic/>`_ tool.
-Please follow the `related instructions <https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/doc/Alembic.md>`_.
-
-Alembic full documentation is at:
-
-  https://alembic.readthedocs.org/en/latest/index.html
 
 
 Manual initialization
