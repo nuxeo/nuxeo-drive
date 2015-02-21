@@ -15,6 +15,7 @@ running a set of sub commands, e.g.:
 
 import distutils.command.build
 import sys
+import os
 from cx_Freeze.dist import build as cx_build
 from cx_Freeze.dist import install as cx_install
 from cx_Freeze.dist import setup as cx_setup
@@ -150,6 +151,13 @@ if sys.platform == 'win32':
                             [("NuxeoDriveFolderCleanUp",
                               'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE',
                               1560)])
+            # Add product icon
+            icon_file = os.path.join(self.get_icons_home(), self.get_win_icon())
+            if os.path.exists(icon_file):
+                msilib.add_data(db, "Property", [("ARPPRODUCTICON", "InstallIcon")])
+                msilib.add_data(db, "Icon", [("InstallIcon", msilib.Binary(icon_file))])
+
+            # Allow to customize the MSI
             if getattr(self.attribs, 'customize_msi', None) is not None:
                 self.attribs.customize_msi(self.db)
 
