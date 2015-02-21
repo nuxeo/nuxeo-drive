@@ -15,6 +15,7 @@ from nxdrive.updater import AppUpdater
 from nxdrive.updater import UPDATE_STATUS_UPGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_DOWNGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
+from nxdrive.utils import find_resource_dir
 
 log = get_logger(__name__)
 
@@ -80,6 +81,10 @@ class Application(QApplication):
         self.manager = controller
         self.options = options
         self.mainEngine = None
+
+        # Init translator
+        self._init_translator()
+
         for _, engine in self.manager.get_engines().iteritems():
             self.mainEngine = engine
             break
@@ -120,6 +125,23 @@ class Application(QApplication):
         # Check if actions is required, separate method so it can be override
         self.init_checks()
         self.engineWidget = None
+
+    def _get_skin(self):
+        return 'ui5'
+
+    def get_window_icon(self):
+        return find_icon('nuxeo_drive_icon_64.png')
+
+    def get_htmlpage(self, page):
+        import nxdrive
+        nxdrive_path = os.path.dirname(nxdrive.__file__)
+        ui_path = os.path.join(nxdrive_path, 'data', self._get_skin())
+        return os.path.join(find_resource_dir(self._get_skin(), ui_path), page).replace("\\","/")
+
+    def _init_translator(self):
+        from nxdrive.wui.translator import Translator
+        Translator(self.manager, self.get_htmlpage('i18n.js'),
+                        self.manager.get_config("locale", self.options.locale))
 
     @QtCore.pyqtSlot()
     def change_systray_icon(self):

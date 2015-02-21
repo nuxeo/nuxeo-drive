@@ -5,10 +5,8 @@ Created on 28 janv. 2015
 '''
 from PyQt4 import QtGui, QtCore, QtWebKit
 from nxdrive.logging_config import get_logger
-from nxdrive.utils import find_resource_dir
-from nxdrive.gui.resources import find_icon
 from nxdrive.engine.activity import FileAction
-import os
+from nxdrive.wui.translator import Translator
 import json
 log = get_logger(__name__)
 
@@ -104,6 +102,18 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_state(state))
         return self._json(result)
 
+    @QtCore.pyqtSlot(str)
+    def set_language(self, locale):
+        Translator.set(str(locale))
+
+    @QtCore.pyqtSlot(result=str)
+    def get_languages(self):
+        return self._json(Translator.languages())
+
+    @QtCore.pyqtSlot(result=str)
+    def locale(self):
+        return Translator.locale()
+
     @QtCore.pyqtSlot(result=str)
     def get_update_status(self):
         status = self._manager.get_updater().get_status()
@@ -132,6 +142,28 @@ class WebDriveApi(QtCore.QObject):
         if engine is None:
             return result
         result = self._get_threads(engine)
+        return self._json(result)
+
+    @QtCore.pyqtSlot(str, result=str)
+    def get_errors(self, uid):
+        engine = self._get_engine(uid)
+        result = []
+        if engine is None:
+            return result
+        result = []
+        for conflict in engine.get_dao().get_errors():
+            result.append(self._export_state(conflict))
+        return self._json(result)
+
+    @QtCore.pyqtSlot(str, result=str)
+    def get_conflicts(self, uid):
+        engine = self._get_engine(uid)
+        result = []
+        if engine is None:
+            return result
+        result = []
+        for conflict in engine.get_dao().get_conflicts():
+            result.append(self._export_state(conflict))
         return self._json(result)
 
     @QtCore.pyqtSlot(str, result=str)
@@ -253,11 +285,11 @@ class WebDialog(QtGui.QDialog):
             QtWebKit.QWebSettings.globalSettings().setAttribute(QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
         else:
             self._view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
-        icon = find_icon('nuxeo_drive_icon_64.png')
+        icon = application.get_window_icon()
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
         self.setWindowTitle(title)
-        filename = self._get_page(page)
+        filename = application.get_htmlpage(page)
         log.debug("Load web file : %s", filename)
         url = QtCore.QUrl(filename)
         url.setScheme("file")
@@ -276,13 +308,6 @@ class WebDialog(QtGui.QDialog):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
         self.activateWindow()
-
-    def _get_page(self, page):
-        import nxdrive
-        skin = 'ui5'
-        nxdrive_path = os.path.dirname(nxdrive.__file__)
-        ui_path = os.path.join(nxdrive_path, 'data', skin)
-        return os.path.join(find_resource_dir(skin, ui_path), page).replace("\\","/")
 
     @QtCore.pyqtSlot()
     def _attachJsApi(self):

@@ -182,6 +182,9 @@ class Manager(QObject):
         from nxdrive.engine.engine import Engine
         self._engine_types["NXDRIVE"] = Engine
         self.load()
+        # Force language
+        if options.force_locale is not None:
+            self.set_config("locale", options.force_locale)
         # Create and start the auto-update verification thread
         self._create_updater()
         self._create_drive_edit()
@@ -425,6 +428,12 @@ class Manager(QObject):
     def dispose(self):
         # TO_REVIEW Might need to remove it
         pass
+
+    def get_config(self, value, default):
+        return self._dao.get_config(value, default)
+
+    def set_config(self, key, value):
+        return self._dao.update_config(key, value)
 
     def get_auto_update(self):
         return self._dao.get_config("auto_update", "0") == "1"

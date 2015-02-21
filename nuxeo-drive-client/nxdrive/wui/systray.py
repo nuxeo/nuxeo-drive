@@ -6,7 +6,7 @@ Created on 27 janv. 2015
 from PyQt4 import QtGui, QtCore
 from nxdrive.logging_config import get_logger
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
-from nxdrive.engine.activity import FileAction
+from nxdrive.wui.translator import Translator
 
 log = get_logger(__name__)
 
@@ -58,17 +58,18 @@ class WebSystrayApi(WebDriveApi):
         menu = QtGui.QMenu()
         menu.setFocusProxy(self._dialog)
         if self._manager.is_paused():
-            menu.addAction("Resume", self.resume)
+            menu.addAction(Translator.get("RESUME"), self.resume)
         else:
-            menu.addAction("Suspend", self.suspend)
+            menu.addAction(Translator.get("SUSPEND"), self.suspend)
         menu.addSeparator()
-        menu.addAction("About", self.open_about)
-        menu.addAction("Help", self.open_help)
+        menu.addAction(Translator.get("ABOUT"), self.open_about)
+        menu.addAction(Translator.get("HELP"), self.open_help)
         menu.addSeparator()
-        menu.addAction("Settings", self._application.show_settings)
+        menu.addAction(Translator.get("SETTINGS"), self._application.show_settings)
         menu.addSeparator()
-        menu.addAction("Quit", self._application.quit)
+        menu.addAction(Translator.get("QUIT"), self._application.quit)
         menu.exec_(QtGui.QCursor.pos())
+
 
 class WebSystrayView(WebDialog):
     '''
@@ -82,7 +83,7 @@ class WebSystrayView(WebDialog):
         self._icon = icon
         self._view.setFocusProxy(self)
         self.resize(300, 370)
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint|QtCore.Qt.WindowStaysOnTopHint);
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint);
 
     def replace(self):
         rect = self._icon.geometry()
@@ -129,6 +130,7 @@ class WebSystrayView(WebDialog):
     def close(self):
         self._icon = None
         super(WebSystrayView, self).close()
+
 
 class WebSystray(QtGui.QMenu):
     '''

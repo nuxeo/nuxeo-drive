@@ -109,6 +109,14 @@ class CliHandler(object):
                   "NXDRIVE_HOME/logs/nxaudit.logs")
         )
         common_parser.add_argument(
+            "--locale",
+            help=("Select the default language")
+        )
+        common_parser.add_argument(
+            "--force-locale",
+            help=("Force the language")
+        )
+        common_parser.add_argument(
             "--update-site-url",
             default=DEFAULT_UPDATE_SITE_URL,
             help=("Website for client auto-update")

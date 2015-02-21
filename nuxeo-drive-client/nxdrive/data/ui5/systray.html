@@ -1,5 +1,6 @@
 <html>
 <head>
+<meta charset="UTF-8">
 <link rel="stylesheet" href="css/bootstrap.min.css" media="screen">
 <link rel="stylesheet" href="css/ndrive.css">
 <!-- Google Analytics -->
@@ -74,9 +75,18 @@ ga('send', 'pageview');
 }
 </style>
 <script src="js/angular.min.js"></script>
+<script src="js/angular-translate.min.js"></script>
+<script src="i18n.js"></script>
 <script>
-app = angular.module("DriveSystray", []);
-app.controller("DriveSystrayCtl", function($scope, $interval) {
+app = angular.module("DriveSystray", ['pascalprecht.translate']);
+app.config(function ($translateProvider) {
+	languages = angular.fromJson(drive.get_languages());
+	for (i=0; i<languages.length; i++) {
+		$translateProvider.translations(languages[i][0], eval("LABELS." + languages[i][0]));
+	}
+	$translateProvider.preferredLanguage(drive.locale());
+});
+app.controller("DriveSystrayCtl", function($scope, $interval, $translate) {
 	$scope.advanced_systray = function() {
 		drive.advanced_systray();
 	}
@@ -158,11 +168,10 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
 <div ng-show="!bind">
 <div align="center" style="padding: 20px;">
 <p><img alt="Brand" src="imgs/nuxeo_logo.png"></p>
-<p>Nuxeo Drive allow you to sync files ...</p>
-<p>But first please enter your credentials</p>
+<p translate>WELCOME_MESSAGE</p>
 <div style="margin-top: 50px;">
-<button type="button" class="btn btn-default btn-primary" ng-click="show_settings()">Settings</button>
-<button type="button" style="float: right" class="btn btn-default btn-danger" ng-click="quit()">Quit</button>
+<button type="button" class="btn btn-default btn-primary" ng-click="show_settings()" translate>SETTINGS</button>
+<button type="button" style="float: right" class="btn btn-default btn-danger" ng-click="quit()" translate>QUIT</button>
 </div>
 </div>
 </div>
@@ -179,34 +188,34 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
   		</li>
   	</ul>
   </div>
-  <div style="position: absolute; top: 28px;">
-  	<span ng-show="engine.metrics.conflicted_files > 0" class="label label-warning">{{ engine.metrics.conflicted_files }} conflicts</span>
-  	<span ng-show="engine.metrics.error_files > 0" class="label label-danger">{{ engine.metrics.error_files }} errors</span>
+  <div style="position: absolute; top: 29px;">
+  	<span ng-click="showConflicts()" ng-show="engine.metrics.conflicted_files > 0" class="label label-warning" translate translate-values="engine.metrics">CONFLICTS_SYSTRAY</span>
+  	<span ng-click="showConflicts()" ng-show="engine.metrics.error_files > 0" class="label label-danger" translate translate-values="engine.metrics">ERRORS_SYSTRAY</span>
   </div>
  </div>
 <div class="navbar navbar-fixed-bottom" style="padding: 10px; height: 40px; min-height: 40px; border-top: 1px solid #17384e;background-color: #dfdfdf;">
   <div class="label notifications-container" style="position: absolute; padding:0px; left:0px; width: 100%; bottom: 40px; width: 100%;">
 	<div ng-show="confirmAppUpdateDialog != null" class="notification-info" style="padding: 10px; padding-bottom: 0px; height: 65px;">
-	You are about to update to the version {{ confirmAppUpdateDialog }}
+	<span translate translate_values="{ version:confirmAppUpdateDialog }">CONFIRM_UPDATE_MESSAGE</span>
 	<form>
 	  <div class="row">
-	  	<div class="col-xs-4" style="padding-top: 20px;">
+	  	<div class="col-xs-2" style="padding-top: 20px;">
 		<span ng-click="confirmAppUpdate(null)" class="glyphicon glyphicon-remove-sign alert-danger pull-left" style="font-size: 20px;background: none;">&nbsp;</span>
 		</div>
-		<div class="checkbox col-xs-4" style="padding-top: 10px;">
-	      <input type="checkbox" style="margin-top: -3px" ng-model="autoUpdate" ng-click="setAutoUpdate(autoUpdate)"> Activate auto-update
+		<div class="checkbox col-xs-8" style="padding-top: 10px;">
+	      <input type="checkbox" style="margin-top: -3px" ng-model="autoUpdate" ng-click="setAutoUpdate(autoUpdate)"><span translate>AUTOUPDATE</span>
 	  	</div>
-	  	<div class="col-xs-4" style="padding-top: 20px;">
+	  	<div class="col-xs-2" style="padding-top: 20px;">
 		<span ng-click="appUpdate()" class="col-xs-4 glyphicon glyphicon-ok-sign alert-success pull-right" style="font-size: 20px;background: none;">&nbsp;</span>
 		</div>
 	   </div>
 	  </form>
 	</div>
-  	<div ng-show="app_update[0] == 'update_available' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-info">New upgrade is available</div>
-  	<div ng-show="app_update[0] == 'downgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger">Downgrade to {{ app_update[1] }} is needed</div>
-  	<div ng-show="app_update[0] == 'upgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger">Upgrade to {{ app_update[1] }} is needed</div>
+  	<div ng-show="app_update[0] == 'update_available' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-info" translate translate_values="{ version:app_update[1] }">UPGRADE_AVAILABLE</div>
+  	<div ng-show="app_update[0] == 'downgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger" translate translate_values="{ version:app_update[1] }">DOWNGRADE_NEEDED</div>
+  	<div ng-show="app_update[0] == 'upgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger" translate translate_values="{ version:app_update[1] }">UPGRADE_NEEDED</div>
   	<div ng-show="app_update[0] == 'updating'" class="notification notification-info">
-  		Updating to {{ app_update[1] }}
+  		<span translate translate_values="{ version:app_update[1] }">UPDATING_VERSION</span>
 	  	<div class="progress" style="height: 4px;">
 		  <div class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="{{ app_update[2] }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ app_update[2] }}%">
 		    
@@ -215,15 +224,15 @@ app.controller("DriveSystrayCtl", function($scope, $interval) {
   	</div>
   </div>
   <div align="right" ng-show="engine.syncing != 'syncing'">
-  	Synchronization completed&nbsp;<span class="glyphicon glyphicon-ok">&nbsp;</span>
+  	<span translate>SYNCHRONIZATION_COMPLETED</span>&nbsp;<span class="glyphicon glyphicon-ok">&nbsp;</span>
   </div>
   <div align="right" ng-show="engine.syncing == 'syncing'">
-  	Synchronization in progress<span ng-show="engine.queue.total_queue > 0">&nbsp;({{engine.queue.total_queue}})</span>&nbsp;<img src="imgs/transferring.gif" /></span>
+  	<span translate>SYNCHRONIZATION_IN_PROGRESS</span><span ng-show="engine.queue.total_queue > 0">&nbsp;({{engine.queue.total_queue}})</span>&nbsp;<img src="imgs/transferring.gif" /></span>
   </div>
 </div>
 <div class="list-group" style="margin-top: 40px; margin-bottom: 0px;">
-  <a class="list-group-item" ng-click="open_local('/')"><span class="glyphicon glyphicon-folder-close">&nbsp;</span>Open Nuxeo Drive Folder</a>
-  <a style="border-bottom: 1px solid #B5C0C6;" class="list-group-item" ng-click="open_remote()"><span class="glyphicon glyphicon-globe">&nbsp;</span>Open Nuxeo Server</a>
+  <a class="list-group-item" ng-click="open_local('/')"><span class="glyphicon glyphicon-folder-close">&nbsp;</span><span translate>OPEN_ROOT_FOLDER</span></a>
+  <a style="border-bottom: 1px solid #B5C0C6;" class="list-group-item" ng-click="open_remote()"><span class="glyphicon glyphicon-globe">&nbsp;</span><span translate>OPEN_SERVER</span></a>
 </div>
 <div class="list-group" style="height: 230px; margin-bottom: 40px; overflow: auto;">
   <li class="list-group-item" ng-repeat="action in current_actions">
