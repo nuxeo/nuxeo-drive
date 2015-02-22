@@ -66,7 +66,8 @@ LABELS={
 		"LOG_WARNING": "Warning",
 		"LOG_INFO": "Information",
 		"LOG_DEBUG": "Debug",
-		"LOG_TRACE": "Trace"
+		"LOG_TRACE": "Trace",
+		"AUTOSTART": "Start on boot"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -135,6 +136,7 @@ LABELS={
 		"LOG_WARNING": "Warning",
 		"LOG_INFO": "Information",
 		"LOG_DEBUG": "Debug",
-		"LOG_TRACE": "Trace"
+		"LOG_TRACE": "Trace",
+		"AUTOSTART": "Lancer au demarrage de l'ordinateur"
 	}
 }

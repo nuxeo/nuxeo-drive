@@ -5,7 +5,7 @@ import time
 import sys
 import subprocess
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.osi.protocol import parse_protocol_url
+from nxdrive.osi import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon

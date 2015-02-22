@@ -180,21 +180,6 @@ def find_exe_path():
     return exe_path
 
 
-def update_win32_reg_key(reg, path, attributes=()):
-    """Helper function to create / set a key with attribute values"""
-    import _winreg
-    key = _winreg.CreateKey(reg, path)
-    _winreg.CloseKey(key)
-    key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_WRITE)
-    for attribute, type_, value in attributes:
-        # Handle None case for app name in
-        # contextual_menu.register_contextual_menu_win32
-        if attribute == "None":
-            attribute = None
-        _winreg.SetValueEx(key, attribute, 0, type_, value)
-    _winreg.CloseKey(key)
-
-
 def force_decode(string, codecs=['utf8', 'cp1252']):
     for codec in codecs:
         try:

@@ -184,6 +184,15 @@ class WebDriveApi(QtCore.QObject):
         return "synced"
 
     @QtCore.pyqtSlot(bool, result=str)
+    def set_auto_start(self, value):
+        self._manager.set_auto_start(value)
+        return ""
+
+    @QtCore.pyqtSlot(result=bool)
+    def get_auto_start(self):
+        return self._manager.get_auto_start()
+
+    @QtCore.pyqtSlot(bool, result=str)
     def set_auto_update(self, value):
         self._manager.set_auto_update(value)
         return ""

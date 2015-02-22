@@ -5,6 +5,7 @@ from nxdrive.logging_config import get_logger, FILE_HANDLER
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.utils import normalized_path
 from nxdrive.updater import AppUpdater
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive import __version__
 import subprocess
 from nxdrive.utils import ENCODING
@@ -177,6 +178,7 @@ class Manager(QObject):
         else:
             # No log_level provide, use the one from db default is INFO
             self._update_logger(int(self._dao.get_config("log_level_file", "20")))
+        self._os = AbstractOSIntegration.get(self)
         self.proxies = None
         self._started = False
         self.proxy_exceptions = None
@@ -223,6 +225,16 @@ class Manager(QObject):
         handler = self._get_file_log_handler()
         if handler:
             handler.setLevel(log_level)
+
+    def _handle_os(self):
+        # Be sure to register os
+        self._os.register_contextual_menu()
+        self._os.register_protocol_handlers()
+        if self.get_auto_start():
+            self._os.register_startup()
+
+    def get_appname(self):
+        return "Nuxeo Drive"
 
     def is_debug(self):
         return self._debug
@@ -314,6 +326,8 @@ class Manager(QObject):
                 log.debug("Launch engine %s", uid)
                 engine.start()
         log.debug("Emitting started")
+        # Check only if manager is started
+        self._handle_os()
         self.started.emit()
 
     def load(self):
@@ -472,6 +486,16 @@ class Manager(QObject):
 
     def set_auto_update(self, value):
         self._dao.update_config("auto_update", value)
+
+    def get_auto_start(self):
+        return self._dao.get_config("auto_start", "1") == "1"
+
+    def set_auto_start(self, value):
+        self._dao.update_config("auto_start", value)
+        if value:
+            self._os.register_startup()
+        else:
+            self._os.unregister_startup()
 
     def get_tracking(self):
         return self._dao.get_config("tracking", "1") == "1" and not self.get_version().endswith("-dev")

@@ -14,14 +14,11 @@ except ImportError:
 
 from nxdrive.utils import normalized_path
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.osi.command.daemon import daemonize
+from nxdrive.osi.daemon import daemonize
 from nxdrive.utils import default_nuxeo_drive_folder
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
-from nxdrive.osi.protocol import parse_protocol_url
-from nxdrive.osi.protocol import register_protocol_handlers
-from nxdrive.osi.startup.startup import register_startup
-from nxdrive.osi.menu import register_contextual_menu
+from nxdrive.osi import parse_protocol_url
 from nxdrive import __version__
 
 
@@ -463,22 +460,6 @@ class CliHandler(object):
         if handler is None:
             raise NotImplementedError(
                 'No handler implemented for command ' + options.command)
-
-        if command == 'launch':
-            try:
-                # Ensure that the protocol handler are registered:
-                # this is useful for the edit/open link in the Nuxeo interface
-                # TODO Update
-                register_protocol_handlers(None)
-                # Ensure that ndrive is registered as a startup application
-                # TODO Make it optional
-                register_startup()
-                # Ensure that ndrive is registered as a contextual menu entry.
-                # Only under win32 for now, for OS X Finder implementation see
-                # https://jira.nuxeo.com/browse/NXDRIVE-119
-                register_contextual_menu()
-            except Exception, e:
-                self.log.warn(e)
 
         try:
             return handler(options)
