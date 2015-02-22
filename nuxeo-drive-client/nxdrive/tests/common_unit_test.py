@@ -119,6 +119,7 @@ class UnitTestCase(unittest.TestCase):
         options = Mock()
         options.delay = TEST_DEFAULT_DELAY
         options.force_locale = None
+        options.log_level_file = None
         self.static_drive_home = tempfile.mkdtemp(u'-nuxeo-drive-test')
         log.debug('Created test home directory: %s', self.static_drive_home)
         options.nxdrive_home = self.static_drive_home

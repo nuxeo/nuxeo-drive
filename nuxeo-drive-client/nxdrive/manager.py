@@ -1,7 +1,7 @@
 from PyQt4.QtCore import QObject, pyqtSignal, QCoreApplication
 from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
-from nxdrive.logging_config import get_logger, configure
+from nxdrive.logging_config import get_logger, FILE_HANDLER
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.utils import normalized_path
 from nxdrive.updater import AppUpdater
@@ -11,6 +11,7 @@ from nxdrive.utils import ENCODING
 import os
 import uuid
 import sys
+import logging
 log = get_logger(__name__)
 
 
@@ -166,6 +167,16 @@ class Manager(QObject):
         self.remote_watcher_delay = options.delay
         self._debug = options.debug
         self._dao = self._create_dao()
+        # Now we can update the logger if needed
+        if options.log_level_file is not None:
+            # Set the log_level_file option
+            handler = self._get_file_log_handler()
+            handler.setLevel(options.log_level_file)
+            # Store it in the database
+            self._dao.update_config("log_level_file", str(handler.level))
+        else:
+            # No log_level provide, use the one from db default is INFO
+            self._update_logger(int(self._dao.get_config("log_level_file", "20")))
         self.proxies = None
         self._started = False
         self.proxy_exceptions = None
@@ -191,6 +202,27 @@ class Manager(QObject):
         # Setup analytics tracker
         if self.get_tracking():
             self._create_tracker()
+
+    def _get_file_log_handler(self):
+        # Might store it in global static
+        return FILE_HANDLER
+
+    def get_log_level(self):
+        handler = self._get_file_log_handler()
+        if handler:
+            return handler.level
+        return logging.getLogger().getEffectiveLevel()
+
+    def set_log_level(self, log_level):
+        self._dao.update_config("log_level_file", str(log_level))
+        self._update_logger(log_level)
+
+    def _update_logger(self, log_level):
+        logging.getLogger().setLevel(
+                        min(log_level, logging.getLogger().getEffectiveLevel()))
+        handler = self._get_file_log_handler()
+        if handler:
+            handler.setLevel(log_level)
 
     def is_debug(self):
         return self._debug

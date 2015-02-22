@@ -59,7 +59,14 @@ LABELS={
 		"UPGRADE_NEEDED": "Upgrade to {{ version }} is needed",
 		"DOWNGRADE_NEEDED": "Downgrade to {{ version }} is needed",
 		"UPDATING_VERSION": "Updating to {{ version }}",
-		"LANGUAGE_SELECT": "Language"
+		"LANGUAGE_SELECT": "Language",
+		"LOG_LEVEL": "Log verbosity :",
+		"LOG_CRITICAL": "Critical",
+		"LOG_ERROR": "Error",
+		"LOG_WARNING": "Warning",
+		"LOG_INFO": "Information",
+		"LOG_DEBUG": "Debug",
+		"LOG_TRACE": "Trace"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -121,6 +128,13 @@ LABELS={
 		"UPGRADE_NEEDED": "Mise a jour {{ version }} requise",
 		"DOWNGRADE_NEEDED": "Mise a jour {{ version }} requise",
 		"UPDATING_VERSION": "Mise a jour {{ version }} en cours",
-		"LANGUAGE_SELECT": "Langue"
+		"LANGUAGE_SELECT": "Langue",
+		"LOG_LEVEL": "Verbosite :",
+		"LOG_CRITICAL": "Critique",
+		"LOG_ERROR": "Erreur",
+		"LOG_WARNING": "Warning",
+		"LOG_INFO": "Information",
+		"LOG_DEBUG": "Debug",
+		"LOG_TRACE": "Trace"
 	}
 }

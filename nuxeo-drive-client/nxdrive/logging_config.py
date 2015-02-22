@@ -8,7 +8,7 @@ import os
 TRACE = 5
 logging.addLevelName(TRACE, 'TRACE')
 logging.TRACE = TRACE
-
+FILE_HANDLER = None
 
 # Singleton logging context for each process.
 # Alternatively we could use the setproctitle to handle the command name
@@ -25,12 +25,15 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
               log_rotate_max_bytes=100000000):
 
     global is_logging_configured
+    global FILE_HANDLER
 
     if not is_logging_configured:
         is_logging_configured = True
 
         _logging_context['command'] = command_name
 
+        if file_level is None:
+            file_level = 'INFO'
         # convert string levels
         if hasattr(file_level, 'upper'):
             file_level = getattr(logging, file_level.upper())
@@ -71,6 +74,7 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
                 backupCount=log_rotate_keep)
             file_handler.setLevel(file_level)
             file_handler.setFormatter(formatter)
+            FILE_HANDLER = file_handler
             root_logger.addHandler(file_handler)
 
         if filter_inotify:

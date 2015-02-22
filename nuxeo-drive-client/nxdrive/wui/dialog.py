@@ -102,6 +102,14 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_state(state))
         return self._json(result)
 
+    @QtCore.pyqtSlot(result=int)
+    def get_log_level(self):
+        return self._manager.get_log_level()
+
+    @QtCore.pyqtSlot(int)
+    def set_log_level(self, log_level):
+        return self._manager.set_log_level(log_level)
+
     @QtCore.pyqtSlot(str)
     def set_language(self, locale):
         Translator.set(str(locale))
