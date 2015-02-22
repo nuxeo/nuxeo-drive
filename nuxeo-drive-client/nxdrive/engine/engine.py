@@ -344,6 +344,7 @@ class Engine(QObject):
         log.debug("Engine start")
         for thread in self._threads:
             thread.start()
+        self.syncStarted.emit(0)
         self._start.emit()
 
     def get_threads(self):
