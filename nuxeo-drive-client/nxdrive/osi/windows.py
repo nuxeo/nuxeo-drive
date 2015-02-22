@@ -87,7 +87,7 @@ class WindowsIntegration(AbstractOSIntegration):
         )
         # Create the nxdrive protocol key
         nxdrive_class_path = 'Software\\Classes\\nxdrive'
-        self._update_win32_reg_key(
+        self._update_reg_key(
             reg, nxdrive_class_path,
             [
                 ('EditFlags', _winreg.REG_DWORD, 2),
@@ -118,9 +118,9 @@ class WindowsIntegration(AbstractOSIntegration):
             return
 
         log.debug("Registering '%s' application %s to registry key %s",
-                  app_name, exe_path, REG_KEY)
+                  app_name, exe_path, self.MENU_KEY)
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-        self.update_reg_key(
+        self._update_reg_key(
             reg, self.MENU_KEY,
             [(app_name, _winreg.REG_SZ, exe_path)],
         )
