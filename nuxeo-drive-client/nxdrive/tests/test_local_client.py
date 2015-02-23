@@ -136,7 +136,7 @@ def test_get_children_info():
     lcclient.make_file(TEST_WORKSPACE, u'File 2.txt.swp', content=b"baz\n")
     lcclient.make_file(TEST_WORKSPACE, u'File 2.txt.lock', content=b"baz\n")
     lcclient.make_file(TEST_WORKSPACE, u'File 2.txt.LOCK', content=b"baz\n")
-    lcclient.make_file(TEST_WORKSPACE, u'File 2.txt.part', content=b"baz\n")
+    lcclient.make_file(TEST_WORKSPACE, u'File 2.txt.nxpart', content=b"baz\n")
 
     workspace_children = lcclient.get_children_info(TEST_WORKSPACE)
     assert_equal(len(workspace_children), 3)

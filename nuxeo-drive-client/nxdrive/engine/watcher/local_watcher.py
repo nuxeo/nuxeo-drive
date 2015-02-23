@@ -380,7 +380,7 @@ class LocalWatcher(EngineWorker):
                 # If doc_pair is not None mean
                 # the creation has been catched by scan
                 # As Windows send a delete / create event for reparent
-                # Ignore .*.part ?
+                # Ignore .*.nxpart ?
                 '''
                 for deleted in deleted_files:
                     if deleted.local_digest == digest:

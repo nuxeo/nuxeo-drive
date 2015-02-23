@@ -34,10 +34,10 @@ class TestIntegrationLocalStorageSpaceIssue(IntegrationTestCase):
         error = IOError("No space left on device")
         ctl.make_local_raise(error)
         syn.loop(delay=0.1, max_loops=1)
-        # Temporary download file (.part) should be created locally but not
+        # Temporary download file (.nxpart) should be created locally but not
         # renamed and synchronization should not fail: doc pair should be
         # blacklisted and there should be 1 pending item
-        self.assertTrue(local.exists('/.test_KO.odt.part'))
+        self.assertTrue(local.exists('/.test_KO.odt.nxpart'))
         self.assertFalse(local.exists('/test_KO.odt'))
         self.assertEquals(len(ctl.list_pending()), 1)
 
@@ -54,7 +54,7 @@ class TestIntegrationLocalStorageSpaceIssue(IntegrationTestCase):
         # is not expired, temporary download file from previously failed
         # synchronization should still be there and there should still be 1
         # pending item
-        self.assertTrue(local.exists('/.test_KO.odt.part'))
+        self.assertTrue(local.exists('/.test_KO.odt.nxpart'))
         self.assertFalse(local.exists('/test_KO.odt'))
         self.assertEquals(len(ctl.list_pending()), 1)
 
@@ -64,14 +64,14 @@ class TestIntegrationLocalStorageSpaceIssue(IntegrationTestCase):
         # Reduce error skip delay to retry synchronization of pairs in error
         syn.error_skip_period = 1.0
         syn.loop(delay=0.1, max_loops=1)
-        # Temporary download file (.part) should be overridden but still not
+        # Temporary download file (.nxpart) should be overridden but still not
         # renamed, doc pair should be blacklisted again and there should still
         # be 1 pending item
-        self.assertTrue(local.exists('/.test_KO.odt.part'))
+        self.assertTrue(local.exists('/.test_KO.odt.nxpart'))
         self.assertFalse(local.exists('/test_KO.odt'))
         self.assertEquals(len(ctl.list_pending()), 1)
         # In the test workspace there should be 2 files but only 1 child taken
-        # into account by the local client as it ignores .part suffixed files
+        # into account by the local client as it ignores .nxpart suffixed files
         self.assertEquals(len(os.listdir(os.path.join(
                                             self.local_nxdrive_folder_1,
                                             self.workspace_title))), 2)
@@ -87,7 +87,7 @@ class TestIntegrationLocalStorageSpaceIssue(IntegrationTestCase):
         # download file should not be there anymore and there should be no
         # pending items left
         self.assertTrue(local.exists('/test_KO.odt'))
-        self.assertFalse(local.exists('/.test_KO.odt.part'))
+        self.assertFalse(local.exists('/.test_KO.odt.nxpart'))
         self.assertEquals(len(ctl.list_pending()), 0)
         # In the test workspace there should be 2 files and 2 children taken
         # into account by the local client
