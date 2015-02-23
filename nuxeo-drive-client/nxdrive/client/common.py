@@ -62,7 +62,7 @@ DEFAULT_IGNORED_SUFFIXES = [
     '.swp',  # vim swap files
     '.lock',  # some process use file locks
     '.LOCK',  # other locks
-    '.part',  # partially downloaded files
+    '.nxpart',  # partially downloaded files
 ]
 
 # Default buffer size for file upload / download and digest computation
