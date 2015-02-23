@@ -16,7 +16,6 @@ import urllib2
 class WebSettingsApi(WebDriveApi):
     def __init__(self, dlg, application):
         super(WebSettingsApi, self).__init__(dlg, application)
-        self.filters_dlg = None
 
     @QtCore.pyqtSlot(result=str)
     def get_default_section(self):
@@ -39,18 +38,8 @@ class WebSettingsApi(WebDriveApi):
         engine = self._get_engine(uid)
         if engine is None:
             return "ERROR"
-        from nxdrive.gui.folders_dialog import FiltersDialog
-        if self.filters_dlg is not None:
-            self.filters_dlg.close()
-            self.filters_dlg = None
-        self.filters_dlg = FiltersDialog(engine)
-        self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
-        self.filters_dlg.show()
+        self._application.show_filters(engine)
         return ""
-
-    @QtCore.pyqtSlot()
-    def destroyed_filters_dialog(self):
-        self.filters_dlg = None
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
     def bind_server(self, local_folder, url, username, password, name):

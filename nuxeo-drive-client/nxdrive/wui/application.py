@@ -81,6 +81,7 @@ class Application(QApplication):
         self.manager = controller
         self.options = options
         self.mainEngine = None
+        self.filters_dlg = None
 
         # Init translator
         self._init_translator()
@@ -161,6 +162,23 @@ class Application(QApplication):
         from nxdrive.wui.settings import WebSettingsDialog
         self.webSettingsDialog = WebSettingsDialog(self, section)
         self.webSettingsDialog.show()
+
+    @QtCore.pyqtSlot()
+    def destroyed_filters_dialog(self):
+        self.filters_dlg = None
+
+    def _get_filters_dialog(self, engine):
+        from nxdrive.gui.folders_dialog import FiltersDialog
+        return FiltersDialog(engine)
+
+    @QtCore.pyqtSlot()
+    def show_filters(self, engine):
+        if self.filters_dlg is not None:
+            self.filters_dlg.close()
+            self.filters_dlg = None
+        self.filters_dlg = self._get_filters_dialog(engine)
+        self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
+        self.filters_dlg.show()
 
     def show_file_status(self):
         from nxdrive.gui.status_dialog import StatusDialog
