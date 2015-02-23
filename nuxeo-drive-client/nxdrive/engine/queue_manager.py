@@ -172,6 +172,7 @@ class QueueManager(QObject):
                 if doc_pair.error_next_try < cur_time:
                     queueItem = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
                     del self._on_error_queue[doc_pair.id]
+                    log.debug('End of blacklist period, pushing doc_pair: %r', doc_pair)
                     self.push(queueItem)
             if len(self._on_error_queue) == 0:
                 self._error_timer.stop()
@@ -313,7 +314,7 @@ class QueueManager(QObject):
         if (self._local_folder_queue.empty() and self._local_file_queue.empty()
                 and self._remote_file_queue.empty() and self._local_file_queue.qsize()):
             self.queueEmpty.emit()
-        log.trace("Launch processors")
+        log.trace("Launching processors")
         if self._local_folder_thread is None and not self._local_folder_queue.empty() and self._local_folder_enable:
             log.debug("creating local folder processor")
             self._local_folder_thread = self._create_thread(self._get_local_folder, name="LocalFolderProcessor")

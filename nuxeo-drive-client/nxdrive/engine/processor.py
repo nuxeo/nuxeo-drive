@@ -66,6 +66,7 @@ class Processor(EngineWorker):
         remote_client = self._engine.get_remote_client()
         while (self._current_item != None):
             doc_pair = self.acquire_state(self._current_item.id)
+            log.debug('Executing processor on %r', doc_pair)
             self._current_doc_pair = doc_pair
             try:
                 if (doc_pair is None or
@@ -104,7 +105,7 @@ class Processor(EngineWorker):
                 self._action = Action(handler_name)
                 sync_handler = getattr(self, handler_name, None)
                 if sync_handler is None:
-                    log.trace("Unhandled pair_state: %r for %r",
+                    log.debug("Unhandled pair_state: %r for %r",
                                        doc_pair.pair_state, doc_pair)
                     self._increase_error(doc_pair, "ILLEGAL_STATE")
                     self._current_item = self._get_item()

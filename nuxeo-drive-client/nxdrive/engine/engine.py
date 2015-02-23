@@ -323,6 +323,7 @@ class Engine(QObject):
                 log.warn("No watchdog event detected but sync is completed")
             if self._sync_started:
                 self._sync_started = False
+            log.debug('Emitting syncCompleted')
             self.syncCompleted.emit()
 
     def _thread_finished(self):
