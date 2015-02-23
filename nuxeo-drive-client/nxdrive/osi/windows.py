@@ -11,7 +11,8 @@ log = get_logger(__name__)
 
 class WindowsIntegration(AbstractOSIntegration):
     RUN_KEY = 'Software\\Microsoft\\Windows\\CurrentVersion\\Run'
-    MENU_KEY = 'Software\\Classes\\*\\shell\\Nuxeo drive\\command'
+    MENU_PARENT_KEY = 'Software\\Classes\\*\\shell\\Nuxeo drive'
+    MENU_KEY = MENU_PARENT_KEY + '\\command'
 
     def _delete_reg_value(self, reg, path, value):
         key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_ALL_ACCESS)
@@ -60,6 +61,7 @@ class WindowsIntegration(AbstractOSIntegration):
     def register_protocol_handlers(self):
         """Register ndrive as a protocol handler in the Registry"""
         exe_path = find_exe_path()
+        app_name = self._manager.get_appname()
         if exe_path is None:
             log.warning('Not a frozen windows exe: '
                      'skipping protocol handler registration')
@@ -71,18 +73,18 @@ class WindowsIntegration(AbstractOSIntegration):
         # Register Nuxeo Drive as a software as a protocol command provider
         command = '"' + exe_path + '" "%1"'
         self._update_reg_key(
-            reg, 'Software\\Nuxeo Drive',
-            [('', _winreg.REG_SZ, 'Nuxeo Drive')],
+            reg, 'Software\\' + app_name,
+            [('', _winreg.REG_SZ, app_name)],
         )
         # TODO: add an icon for Nuxeo Drive too
         self._update_reg_key(
-            reg, 'Software\\Nuxeo Drive\\Protocols\\nxdrive',
+            reg, 'Software\\' + app_name + '\\Protocols\\nxdrive',
             [('URL Protocol', _winreg.REG_SZ, '')],
         )
         # TODO: add an icon for the nxdrive protocol too
         self._update_reg_key(
             reg,
-            'Software\\Nuxeo Drive\\Protocols\\nxdrive\\shell\\open\\command',
+            'Software\\' + app_name + '\\Protocols\\nxdrive\\shell\\open\\command',
             [('', _winreg.REG_SZ, command)],
         )
         # Create the nxdrive protocol key
@@ -102,9 +104,16 @@ class WindowsIntegration(AbstractOSIntegration):
             [('', _winreg.REG_SZ, command)],
         )
 
+    def _recursive_delete(self, reg, start_path, end_path):
+        while (len(start_path) < len(end_path)):
+            _winreg.DeleteKey(reg, end_path)
+            end_path = end_path[0:end_path.rfind('\\')]
+            
     def unregister_protocol_handlers(self):
-        # TODO Handle this too
-        pass
+        app_name = self._manager.get_appname()
+        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
+        self._recursive_delete(reg, 'Software\\', 'Software\\' + app_name + '\\Protocols\\nxdrive\\shell\\open\\command')
+        self._recursive_delete(reg, 'Software\\Classes\\', 'Software\\Classes\\nxdrive\\shell\\open\\command')
 
     def register_contextual_menu(self):
         # TODO: better understand why / how this works.
@@ -126,5 +135,7 @@ class WindowsIntegration(AbstractOSIntegration):
         )
 
     def unregister_contextual_menu(self):
-        # TODO Handle this too
-        pass
+        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
+        self._delete_reg_value(reg, self.MENU_KEY, '')
+        _winreg.DeleteKey(reg, self.MENU_KEY)
+        _winreg.DeleteKey(reg, self.MENU_PARENT_KEY)
