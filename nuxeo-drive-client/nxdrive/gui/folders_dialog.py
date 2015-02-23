@@ -41,7 +41,7 @@ class FiltersDialog(QtGui.QDialog):
         client = FilteredFsClient(fs_client, filters)
         return client
 
-    def __init__(self, engine, parent=None):
+    def __init__(self, application, engine, parent=None):
         """
         Constructor
         """
@@ -54,6 +54,10 @@ class FiltersDialog(QtGui.QDialog):
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
 
         self._engine = engine
+        self._application = application
+        icon = self._application.get_window_icon()
+        if icon is not None:
+            self.setWindowIcon(QtGui.QIcon(icon))
 
         client = self._get_tree_view_client()
 

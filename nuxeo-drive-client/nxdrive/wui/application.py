@@ -169,7 +169,7 @@ class Application(QApplication):
 
     def _get_filters_dialog(self, engine):
         from nxdrive.gui.folders_dialog import FiltersDialog
-        return FiltersDialog(engine)
+        return FiltersDialog(self, engine)
 
     @QtCore.pyqtSlot()
     def show_filters(self, engine):
