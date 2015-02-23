@@ -35,11 +35,11 @@ class FiltersDialog(QtGui.QDialog):
         self.apply_filters()
         super(FiltersDialog, self).accept()
 
-    def _get_tree_view_client(self):
+    def _get_tree_view(self):
         filters = self._engine.get_dao().get_filters()
         fs_client = self._engine.get_remote_client(filtered=False)
         client = FilteredFsClient(fs_client, filters)
-        return client
+        return FolderTreeview(self, client)
 
     def __init__(self, application, engine, parent=None):
         """
@@ -59,9 +59,7 @@ class FiltersDialog(QtGui.QDialog):
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
 
-        client = self._get_tree_view_client()
-
-        self.treeview = FolderTreeview(self, client)
+        self.treeview = self._get_tree_view()
         self.verticalLayout.addWidget(self.treeview)
 
         self.buttonBox = QtGui.QDialogButtonBox(self)
