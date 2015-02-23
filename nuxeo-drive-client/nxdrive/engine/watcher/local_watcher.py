@@ -1,3 +1,4 @@
+
 '''
 @author: Remi Cattiau
 '''
@@ -325,7 +326,12 @@ class LocalWatcher(EngineWorker):
             return
         local_info = self.client.get_info(rel_path)
         if doc_pair.local_state == 'synchronized':
-            doc_pair.local_digest = local_info.get_digest()
+            digest = local_info.get_digest()
+            # Drop event if digest hasn't changed, can be the case if only file permissions have been updated
+            if not doc_pair.folderish and doc_pair.local_digest == digest:
+                log.debug('Dropping watchdog event [%s] as digest has not changed for %s', evt.event_type, rel_path)
+                return
+            doc_pair.local_digest = digest
             doc_pair.local_state = 'modified'
         queue = not (evt.event_type == 'modified' and doc_pair.folderish
                                 and doc_pair.local_state == 'modified')

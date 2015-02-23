@@ -638,7 +638,6 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_permission_hierarchy",
             "nxdrive.tests.test_integration_reinit_database",
             "nxdrive.tests.test_integration_remote_deleted_parent",
-            "nxdrive.tests.test_integration_windows",
             "nxdrive.tests.test_local_client",
             "nxdrive.tests.test_local_filter",
             "nxdrive.tests.test_local_move_and_rename",
@@ -658,6 +657,7 @@ class CliHandler(object):
             "nxdrive.tests.test_utils",
             "nxdrive.tests.test_versioning",
             "nxdrive.tests.test_watchers",
+            "nxdrive.tests.test_windows",
         ]
         return 0 if nose.run(argv=argv) else 1
 

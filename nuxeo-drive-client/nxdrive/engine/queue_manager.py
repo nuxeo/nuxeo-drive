@@ -201,6 +201,10 @@ class QueueManager(QObject):
         finally:
             self._error_lock.release()
 
+    def cancel_queued_errors(self):
+        for doc_pair in self._on_error_queue.values():
+            doc_pair.error_next_try = 0
+
     def _get_local_folder(self):
         if self._local_folder_queue.empty():
             return None
