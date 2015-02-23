@@ -317,7 +317,7 @@ class Engine(QObject):
         local_metrics = self._local_watcher.get_metrics()
         if (self._queue_manager.get_overall_size() == 0 and not self._queue_manager.active()
             and self._remote_watcher.get_metrics()["empty_polls"] > 0 and
-            (current_milli_time()-local_metrics["last_event"]) > WIN_MOVE_RESOLUTION_PERIOD):
+            (current_milli_time() - local_metrics["last_event"]) > WIN_MOVE_RESOLUTION_PERIOD):
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
             if local_metrics['last_event'] == 0:
                 log.warn("No watchdog event detected but sync is completed")

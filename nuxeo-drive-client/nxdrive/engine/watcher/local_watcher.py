@@ -319,7 +319,7 @@ class LocalWatcher(EngineWorker):
             else:
                 # In case of case sensitive can be an issue
                 if self.client.exists(doc_pair.local_path):
-                    # This happens on update dont do anything
+                    # This happens on update don't do anything
                     return
                 self._handle_watchdog_delete(doc_pair)
             return
