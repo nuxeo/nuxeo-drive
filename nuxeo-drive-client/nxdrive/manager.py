@@ -550,6 +550,9 @@ class Manager(QObject):
         # Find the best editor for the file according to the OS configuration
         self.open_local_file(state.get_local_abspath())
 
+    def _get_default_server_type(self):
+        return "NXDRIVE"
+
     def bind_server(self, local_folder, url, username, password, name=None, start_engine=True):
         from collections import namedtuple
         if name is None:
@@ -560,7 +563,7 @@ class Manager(QObject):
         binder.username = username
         binder.password = password
         binder.url = url
-        return self.bind_engine('NXDRIVE', local_folder, name, binder, starts=start_engine)
+        return self.bind_engine(self._get_default_server_type(), local_folder, name, binder, starts=start_engine)
 
     def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
         """Bind a local folder to a remote nuxeo server"""

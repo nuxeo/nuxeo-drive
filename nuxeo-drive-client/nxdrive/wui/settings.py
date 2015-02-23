@@ -61,7 +61,7 @@ class WebSettingsApi(WebDriveApi):
         except urllib2.HTTPError as e:
             return "CONNECTION_ERROR"
         except Exception as e:
-            log.debug(e)
+            log.exception(e)
             # Map error here
             return "ERROR"
         return ""
