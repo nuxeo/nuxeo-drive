@@ -4,6 +4,9 @@ String.prototype.endsWith = function(suffix) {
 };
 var DRIVE_LOADS = 0;
 function drive_init(callback, add_includes) {
+	if (add_includes == null) {
+		add_includes = [];
+	}
 	// Includes
 	var includes = ['js/angular.min.js','js/angular-translate.min.js','js/jquery-2.1.3.min.js','js/bootstrap.min.js','i18n.js', 'css/bootstrap.min.css', 'css/ndrive.css'];
 	includes = includes.concat(add_includes);

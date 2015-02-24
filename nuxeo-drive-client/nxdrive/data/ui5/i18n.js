@@ -70,7 +70,8 @@ LABELS={
 		"AUTOSTART": "Start on boot",
 		"SETTINGS_WINDOW_TITLE": "Nuxeo Drive - Settings",
 		"FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filters",
-		"ACTIVITY_WINDOW_TITLE": "Nuxeo Drive - Activities"
+		"ACTIVITY_WINDOW_TITLE": "Nuxeo Drive - Activities",
+		"LICENSE": "License"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -143,6 +144,7 @@ LABELS={
 		"AUTOSTART": "Lancer au demarrage de l'ordinateur",
 		"SETTINGS_WINDOW_TITLE": "Nuxeo Drive - Configuration",
 		"FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filtres",
-		"ACTIVITY_WINDOW_TITLE": "Nuxeo Drive - Activités"
+		"ACTIVITY_WINDOW_TITLE": "Nuxeo Drive - Activités",
+		"LICENSE": "License"
 	}
 }
