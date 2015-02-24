@@ -276,7 +276,8 @@ class LocalClient(BaseClient):
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()
 
-    def is_ignored(self, file_name):
+    def is_ignored(self, parent_ref, file_name):
+        # Add parent_ref to be able to filter on size if needed
         ignore = False
         # Office temp file
         # http://support.microsoft.com/kb/211632
@@ -305,7 +306,7 @@ class LocalClient(BaseClient):
         children.sort()
         for child_name in children:
 
-            if not (self.is_ignored(child_name) or self.is_temp_file(child_name)):
+            if not (self.is_ignored(ref, child_name) or self.is_temp_file(child_name)):
                 child_ref = self.get_children_ref(ref, child_name)
                 try:
                     result.append(self.get_info(child_ref))
