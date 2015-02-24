@@ -1,6 +1,7 @@
 '''
 @author: Remi Cattiau
 '''
+import sys
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
 
@@ -84,6 +85,10 @@ class TestWatchers(UnitTestCase):
     def _delete_folder_1(self):
         path = '/Folder 1'
         self.local_client_1.delete_final(path)
+        if sys.platform == 'win32':
+            from time import sleep
+            from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
+            sleep(WIN_MOVE_RESOLUTION_PERIOD + 1)
         self.wait_sync(1)
         return '/' + self.workspace_title + path + '/'
 
