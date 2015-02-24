@@ -71,11 +71,18 @@ class LocalWatcher(EngineWorker):
         try:
             delete_events = self._delete_events
             for evt in delete_events.values():
-                log.debug("Win: Dequeuing delete event: %r", evt)
-                if current_milli_time() - evt[0] < WIN_MOVE_RESOLUTION_PERIOD:
+                evt_time = evt[0]
+                evt_pair = evt[1]
+                if current_milli_time() - evt_time < WIN_MOVE_RESOLUTION_PERIOD:
+                    log.debug("Win: ignoring delete event as waiting for move resolution period expiration: %r", evt)
                     continue
-                self._handle_watchdog_delete(evt[1])
-                del self._delete_events[evt[1].remote_ref]
+                if not self.client.exists(evt_pair.local_path):
+                    log.debug("Win: handling watchdog delete for event: %r", evt)
+                    self._handle_watchdog_delete(evt_pair)
+                else:
+                    log.debug("Win: ignoring delete event as file still exists: %r", evt)
+                log.debug("Win: dequeuing delete event: %r", evt)
+                del self._delete_events[evt_pair.remote_ref]
         finally:
             self._win_lock.release()
 
