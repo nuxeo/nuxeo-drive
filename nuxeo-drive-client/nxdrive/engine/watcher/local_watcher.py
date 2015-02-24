@@ -371,7 +371,7 @@ class LocalWatcher(EngineWorker):
             if (self.client.is_ignored(parent_rel_path, file_name)
                   and evt.event_type != 'moved'):
                 return
-            if self.client.is_temp_file(file_name):
+            if self.client.is_temp_file(file_name) and evt.event_type != 'moved':
                 return
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
