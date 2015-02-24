@@ -13,7 +13,7 @@ log = get_logger(__name__)
 
 class WebDriveApi(QtCore.QObject):
 
-    def __init__(self, dlg, application):
+    def __init__(self, application, dlg=None):
         super(WebDriveApi, self).__init__()
         self._manager = application.manager
         self._application = application
@@ -21,6 +21,9 @@ class WebDriveApi(QtCore.QObject):
 
     def _json(self, obj):
         return json.dumps(obj)
+
+    def set_dialog(self, dlg):
+        self._dialog = dlg
 
     def _export_engine(self, engine):
         result = dict()
@@ -280,7 +283,8 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, str)
     def resize(self, width, height):
-        self._dialog.resize(int(width), int(height))
+        if self._dialog is not None:
+            self._dialog.resize(int(width), int(height))
 
     @QtCore.pyqtSlot(str)
     def debug(self, msg):
@@ -313,8 +317,9 @@ class WebDialog(QtGui.QDialog):
         self._view.load(url)
         self._frame = self._view.page().mainFrame()
         if api is None:
-            self._api = WebDriveApi(self, application)
+            self._api = WebDriveApi(application, self)
         else:
+            api.set_dialog(self)
             self._api = api
         self._attachJsApi()
         self._frame.javaScriptWindowObjectCleared.connect(self._attachJsApi)

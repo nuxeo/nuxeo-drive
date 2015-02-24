@@ -67,7 +67,10 @@ LABELS={
 		"LOG_INFO": "Information",
 		"LOG_DEBUG": "Debug",
 		"LOG_TRACE": "Trace",
-		"AUTOSTART": "Start on boot"
+		"AUTOSTART": "Start on boot",
+		"SETTINGS_WINDOW_TITLE": "Nuxeo Drive - Settings",
+		"FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filters",
+		"ACTIVITY_WINDOW_TITLE": "Nuxeo Drive - Activities"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -137,6 +140,9 @@ LABELS={
 		"LOG_INFO": "Information",
 		"LOG_DEBUG": "Debug",
 		"LOG_TRACE": "Trace",
-		"AUTOSTART": "Lancer au demarrage de l'ordinateur"
+		"AUTOSTART": "Lancer au demarrage de l'ordinateur",
+		"SETTINGS_WINDOW_TITLE": "Nuxeo Drive - Configuration",
+		"FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filtres",
+		"ACTIVITY_WINDOW_TITLE": "Nuxeo Drive - Activités"
 	}
 }

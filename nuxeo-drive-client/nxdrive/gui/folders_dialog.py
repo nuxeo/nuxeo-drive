@@ -5,6 +5,7 @@ Created on 8 mai 2014
 """
 from PyQt4 import QtGui, QtCore
 from nxdrive.gui.folders_treeview import FolderTreeview, FilteredFsClient
+from nxdrive.wui.translator import Translator
 
 
 class FiltersDialog(QtGui.QDialog):
@@ -47,7 +48,7 @@ class FiltersDialog(QtGui.QDialog):
         """
         super(FiltersDialog, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("Nuxeo Drive - Filters")
+        self.setWindowTitle(Translator.get("FILTERS_WINDOW_TITLE"))
 
         self.resize(491, 443)
         self.verticalLayout = QtGui.QVBoxLayout(self)

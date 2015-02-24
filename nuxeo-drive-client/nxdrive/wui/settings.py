@@ -10,12 +10,13 @@ log = get_logger(__name__)
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.manager import ProxySettings
 from nxdrive.client.base_automation_client import Unauthorized
+from nxdrive.wui.translator import Translator
 import urllib2
 
 
 class WebSettingsApi(WebDriveApi):
-    def __init__(self, dlg, application):
-        super(WebSettingsApi, self).__init__(dlg, application)
+    def __init__(self, application, dlg=None):
+        super(WebSettingsApi, self).__init__(application, dlg)
 
     @QtCore.pyqtSlot(result=str)
     def get_default_section(self):
@@ -106,4 +107,5 @@ class WebSettingsDialog(WebDialog):
         '''
         self._section = section
         super(WebSettingsDialog, self).__init__(application, "settings.html",
-                                                 api=WebSettingsApi(self, application), title="Nuxeo Drive - Settings")
+                                                 api=WebSettingsApi(application),
+                                                title=Translator.get("SETTINGS_WINDOW_TITLE"))
