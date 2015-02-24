@@ -19,8 +19,8 @@ class TestVersioning(IntegrationTestCase):
         self.remote_client_1 = self.remote_document_client_1
         self.remote_client_2 = self.remote_document_client_2
 
-        # Call the Nuxeo operation to set the versioning delay to 15 seconds
-        self.versioning_delay = self.OS_STAT_MTIME_RESOLUTION * 15
+        # Call the Nuxeo operation to set the versioning delay to 30 seconds
+        self.versioning_delay = self.OS_STAT_MTIME_RESOLUTION * 30
         self.root_remote_client.execute(
             "NuxeoDrive.SetVersioningOptions",
             delay=str(self.versioning_delay))
@@ -49,7 +49,7 @@ class TestVersioning(IntegrationTestCase):
         self._assert_version(doc, 0, 1)
 
         # Update it as user 2 => should NOT be versioned
-        # since the versioning delay (10s) is not passed by
+        # since the versioning delay is not passed by
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         self.local_client_2.update_content('/Test versioning.txt',
             "Content twice modified")
@@ -58,9 +58,9 @@ class TestVersioning(IntegrationTestCase):
             self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
         self._assert_version(doc, 0, 1)
 
-        # Update it as user 2 after 10s => should be versioned
-        # since the versioning delay is passed by
-        time.sleep(self.versioning_delay + 0.1)
+        # Wait for versioning delay expiration then update it as user 2 after
+        # => should be versioned since the versioning delay is passed by
+        time.sleep(self.versioning_delay + 2.0)
         self.local_client_2.update_content('/Test versioning.txt',
             "Updated again!!")
         self.ndrive(self.ndrive_2)
