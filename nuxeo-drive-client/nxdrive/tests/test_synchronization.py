@@ -87,6 +87,8 @@ class TestSynchronization(IntegrationTestCase):
         self.assertTrue(remote.exists('/Folder 4'))
 
         self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
+        # Let's just check remote document hasn't changed
+        self.assertEquals(remote.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
         self.assertFalse(local.exists('/Folder 2'))
         self.assertTrue(local.exists('/Folder 3'))
         self.assertEquals(local.get_content('/Folder 3/File 6.txt'), "ffff")
@@ -102,6 +104,8 @@ class TestSynchronization(IntegrationTestCase):
 
         self.assertEquals(remote.get_content('/Folder 1/File 1.txt'), "\x80")
         self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
+        # Let's just check remote document hasn't changed
+        self.assertEquals(remote.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
 
     def test_synchronization_modification_on_created_file(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
