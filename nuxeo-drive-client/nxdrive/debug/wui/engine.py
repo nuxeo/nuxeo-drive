@@ -6,7 +6,7 @@ from nxdrive.wui.dialog import WebDialog
 from nxdrive.wui.dialog import WebDriveApi
 from nxdrive.logging_config import get_logger
 from logging.handlers import BufferingHandler
-from nxdrive.osi.protocol import parse_protocol_url
+from nxdrive.osi import parse_protocol_url
 import logging
 import time
 from copy import copy
