@@ -1,132 +1,117 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<link rel="stylesheet" href="css/bootstrap.min.css">
-<link rel="stylesheet" href="css/bootstrap-theme.css">
-<link rel="stylesheet" href="css/ndrive.css">
-<!-- Google Analytics -->
+<script src="js/ndrive.js"></script>
 <script>
-(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','http://www.google-analytics.com/analytics.js','ga');
-
-ga('create', 'UA-81135-23', 'auto');
-ga('send', 'pageview');
-
-</script>
-<!-- End Google Analytics -->
-<script src="js/angular.min.js"></script>
-<script src="js/jquery-2.1.3.min.js"></script>
-<script src="js/bootstrap.min.js"></script>
-<script>
-if (typeof(drive) != "undefined") {
-	drive.resize(1200,715);
-}
-app = angular.module("DriveDebug", []);
-app.controller("DriveDebugCtl", function($scope, $interval) {
-	$scope.engines = angular.fromJson(drive.get_engines());
-	$scope.engine = null;
-	$scope.metrics = null;
-	$scope.app_update = angular.fromJson(drive.get_update_status());
-	$scope.metrics_name = null;
-	$scope.current_actions = [];
-	$scope.last_files = [];	
-	$scope.updateFiles = function() {
-		if ($scope.current_actions.length < 5) {
-			$scope.last_files = angular.fromJson(drive.get_last_files($scope.engine.uid, 5-$scope.current_actions.length, "remote")); 
-		} else {
-			$scope.last_files = [];	
-		}
+drive_init(function () {
+	if (typeof(drive) != "undefined") {
+		drive.resize(1200,715);
 	}
-	$scope.setAppUpdate = drive.set_app_update;
-	$scope.driveEdit = drive.drive_edit;
-	$scope.setMetrics = function(name, metrics) {
-		$scope.metrics_name = name;
-		$scope.metrics = metrics;
-	}
-	$scope.pause = function(type) {
-		if ( type == 'engine') {
-			if ($scope.is_paused(type)) {
-				drive.resume_engine($scope.uid);
-			} else {
-				drive.suspend_engine($scope.uid);
-			}
-		} else if ( type == 'local_watcher' ) {
-			if ($scope.is_paused(type)) {
-				drive.resume_local_watcher($scope.uid);
-			} else {
-				drive.suspend_local_watcher($scope.uid);
-			}
-		} else if ( type == 'remote_watcher' ) {
-			if ($scope.is_paused(type)) {
-				drive.resume_remote_watcher($scope.uid);
-			} else {
-				drive.suspend_remote_watcher($scope.uid);
-			}
-		} else {
-			// Consider it is a queue
-			if ($scope.is_paused(type)) {
-				console.log("RESUME QUEUE " + $scope.uid + " " + type)
-				drive.resume_queue($scope.uid, type);
-			} else {
-				drive.suspend_queue($scope.uid, type);
-			}
-		}
-		$scope.update();
-	}
-	$scope.pause_class = function(type) {
-		if ($scope.is_paused(type)) {
-			return "glyphicon-play";
-		} else {
-			return "glyphicon-pause";
-		}
-	}
-	$scope.is_paused = function(type) {
-		if (type == "engine") {
-			return $scope.engine.paused || !$scope.engine.started;
-		} else if (type == "local_watcher") {
-			return $scope.engine.local_watcher.paused || !$scope.engine.local_watcher.started;
-		} else if (type == "remote_watcher") {
-			return $scope.engine.remote_watcher.paused || !$scope.engine.remote_watcher.started;
-		} else if (type == "local_folder_queue") {
-			return !$scope.engine.queue.local_folder_enable
-		} else if (type == "local_file_queue") {
-			return !$scope.engine.queue.local_file_enable
-		} else if (type == "remote_folder_queue") {
-			return !$scope.engine.queue.remote_folder_enable
-		} else if (type == "remote_file_queue") {
-			return !$scope.engine.queue.remote_file_enable
-		}
-		return true;
-	}
-	$scope.update = function() {
-		$scope.engine = angular.fromJson(drive.get_engine($scope.uid));
+	app = drive_module("DriveDebug");
+	app.controller("DriveDebugCtl", function($scope, $interval) {
+		$scope.engines = angular.fromJson(drive.get_engines());
+		$scope.engine = null;
+		$scope.metrics = null;
 		$scope.app_update = angular.fromJson(drive.get_update_status());
-	}
-	$scope.getLogClass = function (type) {
-		if (type == "CRITICAL" || type == "ERROR") {
-			return "danger";
-		} else if ( type == "WARNING") {
-			return "warning";
-		} else if ( type == "INFO") {
-			return "info";
-		} else {
-			return "";
+		$scope.metrics_name = null;
+		$scope.current_actions = [];
+		$scope.last_files = [];	
+		$scope.updateFiles = function() {
+			if ($scope.current_actions.length < 5) {
+				$scope.last_files = angular.fromJson(drive.get_last_files($scope.engine.uid, 5-$scope.current_actions.length, "remote")); 
+			} else {
+				$scope.last_files = [];	
+			}
 		}
-	}
-	$scope.setEngine = function(engine) {
-		$scope.uid = engine.uid;
-		$scope.update();
-		$scope.setMetrics('Engine', $scope.engine.metrics);
-		if ($scope.interval == null) {
-			$scope.interval = $interval($scope.update, 1000);
+		$scope.setAppUpdate = drive.set_app_update;
+		$scope.driveEdit = drive.drive_edit;
+		$scope.setMetrics = function(name, metrics) {
+			$scope.metrics_name = name;
+			$scope.metrics = metrics;
 		}
-	}
-	if ($scope.engines.length > 0) {
-		$scope.setEngine($scope.engines[0]);
-	}
-})
+		$scope.pause = function(type) {
+			if ( type == 'engine') {
+				if ($scope.is_paused(type)) {
+					drive.resume_engine($scope.uid);
+				} else {
+					drive.suspend_engine($scope.uid);
+				}
+			} else if ( type == 'local_watcher' ) {
+				if ($scope.is_paused(type)) {
+					drive.resume_local_watcher($scope.uid);
+				} else {
+					drive.suspend_local_watcher($scope.uid);
+				}
+			} else if ( type == 'remote_watcher' ) {
+				if ($scope.is_paused(type)) {
+					drive.resume_remote_watcher($scope.uid);
+				} else {
+					drive.suspend_remote_watcher($scope.uid);
+				}
+			} else {
+				// Consider it is a queue
+				if ($scope.is_paused(type)) {
+					console.log("RESUME QUEUE " + $scope.uid + " " + type)
+					drive.resume_queue($scope.uid, type);
+				} else {
+					drive.suspend_queue($scope.uid, type);
+				}
+			}
+			$scope.update();
+		}
+		$scope.pause_class = function(type) {
+			if ($scope.is_paused(type)) {
+				return "glyphicon-play";
+			} else {
+				return "glyphicon-pause";
+			}
+		}
+		$scope.is_paused = function(type) {
+			if (type == "engine") {
+				return $scope.engine.paused || !$scope.engine.started;
+			} else if (type == "local_watcher") {
+				return $scope.engine.local_watcher.paused || !$scope.engine.local_watcher.started;
+			} else if (type == "remote_watcher") {
+				return $scope.engine.remote_watcher.paused || !$scope.engine.remote_watcher.started;
+			} else if (type == "local_folder_queue") {
+				return !$scope.engine.queue.local_folder_enable
+			} else if (type == "local_file_queue") {
+				return !$scope.engine.queue.local_file_enable
+			} else if (type == "remote_folder_queue") {
+				return !$scope.engine.queue.remote_folder_enable
+			} else if (type == "remote_file_queue") {
+				return !$scope.engine.queue.remote_file_enable
+			}
+			return true;
+		}
+		$scope.update = function() {
+			$scope.engine = angular.fromJson(drive.get_engine($scope.uid));
+			$scope.app_update = angular.fromJson(drive.get_update_status());
+		}
+		$scope.getLogClass = function (type) {
+			if (type == "CRITICAL" || type == "ERROR") {
+				return "danger";
+			} else if ( type == "WARNING") {
+				return "warning";
+			} else if ( type == "INFO") {
+				return "info";
+			} else {
+				return "";
+			}
+		}
+		$scope.setEngine = function(engine) {
+			$scope.uid = engine.uid;
+			$scope.update();
+			$scope.setMetrics('Engine', $scope.engine.metrics);
+			if ($scope.interval == null) {
+				$scope.interval = $interval($scope.update, 1000);
+			}
+		}
+		if ($scope.engines.length > 0) {
+			$scope.setEngine($scope.engines[0]);
+		}
+	});
+});
 </script>
 <style>
 .queue-display {

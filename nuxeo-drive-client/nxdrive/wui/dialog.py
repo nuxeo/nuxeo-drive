@@ -105,6 +105,10 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_state(state))
         return self._json(result)
 
+    @QtCore.pyqtSlot(result=str)
+    def get_tracker_id(self):
+        return self._manager.get_tracker_id()
+
     @QtCore.pyqtSlot(result=int)
     def get_log_level(self):
         return self._manager.get_log_level()
@@ -240,7 +244,6 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def show_activities(self):
-        log.error("SHOW ACTIVITIES")
         self._application.show_activities()
 
     @QtCore.pyqtSlot()

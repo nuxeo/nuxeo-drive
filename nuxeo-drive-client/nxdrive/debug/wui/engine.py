@@ -47,8 +47,8 @@ class CustomMemoryHandler(BufferingHandler):
 
 
 class DebugDriveApi(WebDriveApi):
-    def __init__(self, dlg, application):
-        super(DebugDriveApi, self).__init__(dlg, application)
+    def __init__(self, application, dlg):
+        super(DebugDriveApi, self).__init__(application, dlg)
         self.logHandler = CustomMemoryHandler(MAX_LOG_DISPLAYED)
         genericLog.addHandler(self.logHandler)
 
@@ -216,4 +216,4 @@ class EngineDialog(WebDialog):
         Constructor
         '''
         super(EngineDialog, self).__init__(application, "engines.html",
-                                                 api=DebugDriveApi(self, application), title="Nuxeo Drive - Engines")
+                                                 api=DebugDriveApi(application, self), title="Nuxeo Drive - Engines")

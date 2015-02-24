@@ -249,6 +249,11 @@ class Manager(QObject):
         self.started.connect(self._tracker._thread.start)
         return self._tracker
 
+    def get_tracker_id(self):
+        if self.get_tracking() and self._tracker is not None:
+            return self._tracker.uid
+        return ""
+
     def get_tracker(self):
         return self._tracker
 

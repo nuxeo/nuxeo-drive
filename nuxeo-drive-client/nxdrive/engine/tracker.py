@@ -22,6 +22,7 @@ class Tracker(Worker):
         self._manager = manager
         self._thread.started.connect(self.run)
         self._user_agent = self.get_user_agent(self._manager.get_version())
+        self.uid = uid
         self._tracker = UATracker.create(uid, client_id=self._manager.get_device_id(),
                                         user_agent=self._user_agent)
         self._tracker.set("appName", "NuxeoDrive")
