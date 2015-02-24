@@ -24,7 +24,6 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(len(res), folders + files + 1)
 
     def test_reconcile_scan(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         files, folders = self.make_local_tree()
         self.make_server_tree()
         self.queue_manager_1.pause()
