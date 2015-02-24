@@ -217,7 +217,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         remote_client.make_file(self.workspace,
                                      'File 2.txt.LOCK', content="baz\n")
         remote_client.make_file(self.workspace,
-                                     'File 2.txt.nxpart', content="baz\n")
+                                     'File 2.txt.part', content="baz\n")
 
         workspace_children = remote_client.get_children_info(self.workspace)
         self.assertEquals(len(workspace_children), 3)
