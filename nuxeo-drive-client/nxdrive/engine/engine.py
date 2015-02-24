@@ -83,19 +83,23 @@ class Engine(QObject):
     newSync = pyqtSignal(object, object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
-
-    # Used for binding server / roots and managing tokens
-    remote_doc_client_factory = RemoteDocumentClient
-
-    # Used for FS synchronization operations
-    remote_fs_client_factory = RemoteFileSystemClient
-    # Used for FS synchronization operations
-    remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
     version = "test"
 
     def __init__(self, manager, definition, binder=None, processors=5,
-                 remote_watcher_delay=DEFAULT_REMOTE_WATCHER_DELAY):
+                 remote_watcher_delay=DEFAULT_REMOTE_WATCHER_DELAY,
+                 remote_doc_client_factory=RemoteDocumentClient,
+                 remote_fs_client_factory=RemoteFileSystemClient,
+                 remote_filtered_fs_client_factory=RemoteFilteredFileSystemClient):
         super(Engine, self).__init__()
+
+        # Used for binding server / roots and managing tokens
+        self.remote_doc_client_factory = remote_doc_client_factory
+
+        # Used for FS synchronization operations
+        self.remote_fs_client_factory = remote_fs_client_factory
+        # Used for FS synchronization operations
+        self.remote_filtered_fs_client_factory = remote_filtered_fs_client_factory
+
         self.timeout = 30
         self._handshake_timeout = 60
         # Make all the automation client related to this controller
@@ -153,14 +157,10 @@ class Engine(QObject):
     def add_filter(self, path):
         remote_ref = os.path.basename(path)
         remote_parent_path = os.path.dirname(path)
-        log.debug("add_filter(path)=%s", path)
-        log.debug("remote_ref=%s", remote_ref)
-        log.debug("remote_parent_path=%s", remote_parent_path)
         if remote_ref is None:
             return
         self._dao.add_filter(path)
         pair = self._dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
-        log.debug("pair=%r", pair)
         if pair is None:
             return
         self._dao.delete_remote_state(pair)
