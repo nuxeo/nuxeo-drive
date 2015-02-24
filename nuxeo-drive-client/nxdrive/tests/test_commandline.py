@@ -22,7 +22,7 @@ class CommandLineTestCase(unittest.TestCase):
         if os.path.exists(filename):
             os.remove(filename)
 
-    def test_update__site_url(self):
+    def test_update_site_url(self):
         argv = ["ndrive",
                 "--update-site-url", "DEBUG_TEST",
                 "console"]
