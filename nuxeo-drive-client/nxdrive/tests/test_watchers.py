@@ -12,7 +12,7 @@ class TestWatchers(UnitTestCase):
         files, folders = self.make_local_tree()
         self.queue_manager_1.pause()
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(fail_if_timeout=False)
         metrics = self.queue_manager_1.get_metrics()
 
         # Workspace should have been reconcile
@@ -29,7 +29,7 @@ class TestWatchers(UnitTestCase):
         self.make_server_tree()
         self.queue_manager_1.pause()
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(fail_if_timeout=False)
         # Remote as one more file
         self.assertEquals(self.engine_1.get_dao().get_sync_count(), folders + files + 1)
         # Verify it has been reconcile and all items in queue are sync
@@ -46,7 +46,7 @@ class TestWatchers(UnitTestCase):
         folders = folders + 1
         self.queue_manager_1.pause()
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(fail_if_timeout=False)
         # Metrics should be the same as the local scan
         metrics = self.queue_manager_1.get_metrics()
         self.assertEquals(metrics["total_queue"], 1)
@@ -89,7 +89,7 @@ class TestWatchers(UnitTestCase):
             from time import sleep
             from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
             sleep(WIN_MOVE_RESOLUTION_PERIOD + 1)
-        self.wait_sync(1)
+        self.wait_sync(1, fail_if_timeout=False)
         return '/' + self.workspace_title + path + '/'
 
     def test_local_watchdog_delete_non_synced(self):
@@ -103,10 +103,10 @@ class TestWatchers(UnitTestCase):
         # Test the deletion after first local scan
         self.test_local_scan()
         self.engine_1.stop()
-        self.wait_sync(1)
+        self.wait_sync(1, fail_if_timeout=False)
         path = self._delete_folder_1()
         self.engine_1.start()
-        self.wait_sync(1)
+        self.wait_sync(1, fail_if_timeout=False)
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
         self.assertEquals(len(children), 0)
 
@@ -114,7 +114,7 @@ class TestWatchers(UnitTestCase):
         # Test the deletion after first local scan
         self.test_reconcile_scan()
         path = self._delete_folder_1()
-        self.wait_sync(1)
+        self.wait_sync(1, fail_if_timeout=False)
         child = self.engine_1.get_dao().get_state_from_local(path[:-1])
         self.assertEqual(child.pair_state, 'locally_deleted')
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
@@ -126,10 +126,10 @@ class TestWatchers(UnitTestCase):
         # Test the deletion after first local scan
         self.test_reconcile_scan()
         self.engine_1.stop()
-        self.wait_sync(1)
+        self.wait_sync(1, fail_if_timeout=False)
         path = self._delete_folder_1()
         self.engine_1.start()
-        self.wait_sync(1)
+        self.wait_sync(1, fail_if_timeout=False)
         child = self.engine_1.get_dao().get_state_from_local(path[:-1])
         self.assertEqual(child.pair_state, 'locally_deleted')
         children = self.engine_1.get_dao().get_states_from_partial_local(path)

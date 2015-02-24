@@ -203,7 +203,7 @@ class UnitTestCase(unittest.TestCase):
         log.debug("Sync completed")
         self._wait_sync = False
 
-    def wait_sync(self, timeout=DEFAULT_WAIT_SYNC_TIMEOUT):
+    def wait_sync(self, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True):
         # First wait for server
         self.wait()
         log.debug("Wait for sync")
@@ -213,7 +213,10 @@ class UnitTestCase(unittest.TestCase):
             if not self._wait_sync:
                 return
             timeout = timeout - 1
-        self.fail("Wait for sync timeout expired")
+        if fail_if_timeout:
+            self.fail("Wait for sync timeout expired")
+        else:
+            log.debug("Wait for sync timeout")
 
     def _run(self, result=None):
         self.setUpApp()
