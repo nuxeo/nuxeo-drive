@@ -63,7 +63,6 @@ DEFAULT_IGNORED_SUFFIXES = [
     '.lock',  # some process use file locks
     '.LOCK',  # other locks
     '.part', '.crdownload', # partially downloaded files by browsers
-    '.nxpart',  # partially downloaded files by ndrive
 ]
 
 # Default buffer size for file upload / download and digest computation

@@ -305,7 +305,7 @@ class LocalClient(BaseClient):
         children.sort()
         for child_name in children:
 
-            if not self.is_ignored(ref, child_name):
+            if not (self.is_ignored(ref, child_name) or self.is_temp_file(child_name)):
                 child_ref = self.get_children_ref(ref, child_name)
                 try:
                     result.append(self.get_info(child_ref))
