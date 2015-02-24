@@ -365,8 +365,11 @@ class LocalClient(BaseClient):
         return path, os_path, name
 
     def update_content(self, ref, content):
+        remote_id = self.get_remote_id(ref)
         with open(self._abspath(ref), "wb") as f:
             f.write(content)
+        if remote_id is not None:
+            self.set_remote_id(ref, remote_id)
 
     def delete(self, ref):
         locker = self.unlock_ref(ref)
