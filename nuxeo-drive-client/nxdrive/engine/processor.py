@@ -437,6 +437,8 @@ class Processor(EngineWorker):
             path = doc_pair.local_path
             remote_ref = local_client.get_remote_id(doc_pair.local_path)
             if remote_ref is not None and remote_ref == doc_pair.remote_ref:
+                log.debug('remote_ref (xattr) = %s, doc_pair.remote_ref = %s => setting conflicted state', remote_ref,
+                          doc_pair.remote_ref)
                 # Set conflict state for now
                 # TO_REVIEW May need to overwrite
                 self._dao.set_conflict_state(doc_pair)

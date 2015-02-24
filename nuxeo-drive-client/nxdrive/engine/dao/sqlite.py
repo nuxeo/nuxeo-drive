@@ -105,8 +105,8 @@ class ConfigurationDAO(QObject):
         cursor.execute("CREATE TABLE if not exists Configuration(name VARCHAR NOT NULL, value VARCHAR, PRIMARY KEY (name))")
 
     def _create_main_conn(self):
-        log.debug("Create main connexion on %s(%d/%d)",
-                    self._db, os.path.exists(self._db), os.path.exists(os.path.dirname(self._db)))
+        log.debug("Create main connexion on %s (dir exists: %d / file exists: %d)",
+                    self._db, os.path.exists(os.path.dirname(self._db)), os.path.exists(self._db))
         self._conn = sqlite3.connect(self._db, check_same_thread=False)
         self._connections.append(self._conn)
 
