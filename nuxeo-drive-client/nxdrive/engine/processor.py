@@ -363,42 +363,42 @@ class Processor(EngineWorker):
                                                doc_pair.remote_ref)
                 doc_pair.local_digest = updated_info.get_digest()
                 self._refresh_local_state(doc_pair, updated_info)
-            # digest agree so this might be a renaming and/or a move,
-            # and no need to transfer additional bytes over the network
-            is_move, new_parent_pair = self._is_remote_move(doc_pair)
-            if remote_client.is_filtered(doc_pair.remote_parent_path):
-                # A move to a filtered parent ( treat it as deletion )
-                self._synchronize_remotely_deleted(doc_pair, local_client, remote_client)
-                return
-            self._handle_readonly(local_client, doc_pair)
-            if not is_move and not is_renaming:
-                log.debug("No local impact of metadata update on"
-                          " document '%s'.", doc_pair.remote_name)
             else:
-                file_or_folder = 'folder' if doc_pair.folderish else 'file'
-                if is_move:
-                    # move and potential rename
-                    moved_name = doc_pair.remote_name if is_renaming else doc_pair.local_name
-                    log.debug("Moving local %s '%s' to '%s'.",
-                        file_or_folder, local_client._abspath(doc_pair.local_path),
-                        local_client._abspath(new_parent_pair.local_path + '/' + moved_name))
-                    # May need to add a lock for move
-                    updated_info = local_client.move(doc_pair.local_path,
-                                      new_parent_pair.local_path, name=moved_name)
-                    new_parent_path = new_parent_pair.remote_parent_path + "/" + new_parent_pair.remote_ref
-                    self._dao.update_remote_parent_path(doc_pair, new_parent_path)
-                elif is_renaming:
-                    # renaming
-                    log.debug("Renaming local %s '%s' to '%s'.",
-                        file_or_folder, local_client._abspath(doc_pair.local_path),
-                        doc_pair.remote_name)
-                    updated_info = local_client.rename(
-                        doc_pair.local_path, doc_pair.remote_name)
-                if is_move or is_renaming:
-                    # Should call a DAO method
-                    new_path = os.path.dirname(updated_info.path)
-                    self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path), new_path)
-                    self._refresh_local_state(doc_pair, updated_info)
+                # digest agree so this might be a renaming and/or a move,
+                # and no need to transfer additional bytes over the network
+                is_move, new_parent_pair = self._is_remote_move(doc_pair)
+                if remote_client.is_filtered(doc_pair.remote_parent_path):
+                    # A move to a filtered parent ( treat it as deletion )
+                    self._synchronize_remotely_deleted(doc_pair, local_client, remote_client)
+                    return
+                if not is_move and not is_renaming:
+                    log.debug("No local impact of metadata update on"
+                              " document '%s'.", doc_pair.remote_name)
+                else:
+                    file_or_folder = 'folder' if doc_pair.folderish else 'file'
+                    if is_move:
+                        # move and potential rename
+                        moved_name = doc_pair.remote_name if is_renaming else doc_pair.local_name
+                        log.debug("Moving local %s '%s' to '%s'.",
+                            file_or_folder, local_client._abspath(doc_pair.local_path),
+                            local_client._abspath(new_parent_pair.local_path + '/' + moved_name))
+                        # May need to add a lock for move
+                        updated_info = local_client.move(doc_pair.local_path,
+                                          new_parent_pair.local_path, name=moved_name)
+                        new_parent_path = new_parent_pair.remote_parent_path + "/" + new_parent_pair.remote_ref
+                        self._dao.update_remote_parent_path(doc_pair, new_parent_path)
+                    elif is_renaming:
+                        # renaming
+                        log.debug("Renaming local %s '%s' to '%s'.",
+                            file_or_folder, local_client._abspath(doc_pair.local_path),
+                            doc_pair.remote_name)
+                        updated_info = local_client.rename(
+                            doc_pair.local_path, doc_pair.remote_name)
+                    if is_move or is_renaming:
+                        # Should call a DAO method
+                        new_path = os.path.dirname(updated_info.path)
+                        self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path), new_path)
+                        self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
         except (IOError, WindowsError) as e:
