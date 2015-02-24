@@ -361,6 +361,7 @@ class Processor(EngineWorker):
                 if remote_id is not None:
                     local_client.set_remote_id(doc_pair.local_parent_path + '/' + doc_pair.remote_name,
                                                doc_pair.remote_ref)
+                doc_pair.local_digest = updated_info.get_digest()
                 self._refresh_local_state(doc_pair, updated_info)
             # digest agree so this might be a renaming and/or a move,
             # and no need to transfer additional bytes over the network
