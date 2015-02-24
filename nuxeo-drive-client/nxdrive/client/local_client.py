@@ -276,18 +276,18 @@ class LocalClient(BaseClient):
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()
 
-    def is_ignored(self, ref, child_name):
+    def is_ignored(self, file_name):
         ignore = False
         # Office temp file
         # http://support.microsoft.com/kb/211632
-        if child_name.startswith("~") and child_name.endswith(".tmp"):
+        if file_name.startswith("~") and file_name.endswith(".tmp"):
             return True
         for suffix in self.ignored_suffixes:
-            if child_name.endswith(suffix):
+            if file_name.endswith(suffix):
                 ignore = True
                 break
         for prefix in self.ignored_prefixes:
-            if child_name.startswith(prefix):
+            if file_name.startswith(prefix):
                 ignore = True
                 break
         return ignore
@@ -305,7 +305,7 @@ class LocalClient(BaseClient):
         children.sort()
         for child_name in children:
 
-            if not (self.is_ignored(ref, child_name) or self.is_temp_file(child_name)):
+            if not (self.is_ignored(child_name) or self.is_temp_file(child_name)):
                 child_ref = self.get_children_ref(ref, child_name)
                 try:
                     result.append(self.get_info(child_ref))

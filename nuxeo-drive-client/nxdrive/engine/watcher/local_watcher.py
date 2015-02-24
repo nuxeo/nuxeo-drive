@@ -369,7 +369,7 @@ class LocalWatcher(EngineWorker):
             parent_rel_path = self.client.get_path(parent_path)
             doc_pair = self._dao.get_state_from_local(rel_path)
             # Dont care about ignored file, unless it is moved
-            if (self.client.is_ignored(parent_rel_path, file_name)
+            if (self.client.is_ignored(file_name)
                   and evt.event_type != 'moved'):
                 return
             if self.client.is_temp_file(file_name):
