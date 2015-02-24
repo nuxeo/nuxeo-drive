@@ -301,20 +301,21 @@ class LocalWatcher(EngineWorker):
         if (evt.event_type == 'moved'):
             src_path = normalize_event_filename(evt.dest_path)
             rel_path = self.client.get_path(src_path)
-            local_info = self.client.get_info(rel_path)
-            rel_parent_path = self.client.get_path(os.path.dirname(src_path))
-            if rel_parent_path == '':
-                rel_parent_path = '/'
-            # Ignore inner movement
-            remote_parent_ref = self.client.get_remote_id(rel_parent_path)
-            if not (local_info.name == doc_pair.local_name and
-                    doc_pair.remote_parent_ref == remote_parent_ref):
-                log.debug("Detect move for %s (%r)", local_info.name, doc_pair)
-                doc_pair.local_state = 'moved'
-            elif doc_pair.local_state == 'moved':
-                # The pair was moved but it has been canceled manually
-                doc_pair.local_state = 'synchronized'
-            self._dao.update_local_state(doc_pair, local_info)
+            local_info = self.client.get_info(rel_path, raise_if_missing=False)
+            if local_info is not None:
+                rel_parent_path = self.client.get_path(os.path.dirname(src_path))
+                if rel_parent_path == '':
+                    rel_parent_path = '/'
+                # Ignore inner movement
+                remote_parent_ref = self.client.get_remote_id(rel_parent_path)
+                if not (local_info.name == doc_pair.local_name and
+                        doc_pair.remote_parent_ref == remote_parent_ref):
+                    log.debug("Detect move for %s (%r)", local_info.name, doc_pair)
+                    doc_pair.local_state = 'moved'
+                elif doc_pair.local_state == 'moved':
+                    # The pair was moved but it has been canceled manually
+                    doc_pair.local_state = 'synchronized'
+                self._dao.update_local_state(doc_pair, local_info)
             return
         if evt.event_type == 'deleted':
             # Delay on Windows the delete event
@@ -332,24 +333,26 @@ class LocalWatcher(EngineWorker):
                     return
                 self._handle_watchdog_delete(doc_pair)
             return
-        local_info = self.client.get_info(rel_path)
-        if doc_pair.local_state == 'synchronized':
-            digest = local_info.get_digest()
-            # Drop event if digest hasn't changed, can be the case if only file permissions have been updated
-            if not doc_pair.folderish and doc_pair.local_digest == digest:
-                log.debug('Dropping watchdog event [%s] as digest has not changed for %s', evt.event_type, rel_path)
-                return
-            doc_pair.local_digest = digest
-            doc_pair.local_state = 'modified'
-        queue = not (evt.event_type == 'modified' and doc_pair.folderish
-                                and doc_pair.local_state == 'modified')
-        if (self._windows and doc_pair.folderish and evt.event_type == 'modified'):
-            # Window forget some event sometimes
-            self._scan_recursive(local_info, recursive=False)
-        self._dao.update_local_state(doc_pair, local_info, queue=queue)
-        # No need to change anything on sync folder
-        if (not queue):
-            self._dao.synchronize_state(doc_pair, doc_pair.version + 1)
+        local_info = self.client.get_info(rel_path, raise_if_missing=False)
+        if local_info is not None:
+            if doc_pair.local_state == 'synchronized':
+                digest = local_info.get_digest()
+                # Drop event if digest hasn't changed, can be the case if only file permissions have been updated
+                if not doc_pair.folderish and doc_pair.local_digest == digest:
+                    log.debug('Dropping watchdog event [%s] as digest has not changed for %s',
+                              evt.event_type, rel_path)
+                    return
+                doc_pair.local_digest = digest
+                doc_pair.local_state = 'modified'
+            queue = not (evt.event_type == 'modified' and doc_pair.folderish
+                                    and doc_pair.local_state == 'modified')
+            if (self._windows and doc_pair.folderish and evt.event_type == 'modified'):
+                # Window forget some event sometimes
+                self._scan_recursive(local_info, recursive=False)
+            self._dao.update_local_state(doc_pair, local_info, queue=queue)
+            # No need to change anything on sync folder
+            if (not queue):
+                self._dao.synchronize_state(doc_pair, doc_pair.version + 1)
 
     def _handle_watchdog_root_event(self, evt):
         pass
