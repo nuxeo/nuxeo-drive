@@ -3,8 +3,10 @@
 '''
 from nxdrive.osi import AbstractOSIntegration
 import os
+import urllib2
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import find_exe_path
+from nxdrive.utils import normalized_path
 
 log = get_logger(__name__)
 
@@ -60,6 +62,14 @@ class DarwinIntegration(AbstractOSIntegration):
         if os.path.exists(agent_filepath):
             os.remove(agent_filepath)
 
+    def register_contextual_menu(self):
+        # Specified in the Bundle plist
+        pass
+
+    def unregister_contextual_menu(self):
+        # Specified in the Bundle plist
+        pass
+
     def register_protocol_handlers(self):
         """Register the URL scheme listener using PyObjC"""
         try:
@@ -80,5 +90,39 @@ class DarwinIntegration(AbstractOSIntegration):
                   self.NXDRIVE_SCHEME)
 
     def unregister_protocol_handlers(self):
-        """Register the URL scheme listener using PyObjC"""
-        log.warning("Cannot unregister %r scheme: not implemented", self.NXDRIVE_SCHEME)
+        # Dont unregister, should be removed when Bundle removed
+        pass
+
+    def register_folder_link(self, folder_path):
+        try:
+            from LaunchServices import LSSharedFileListCreate
+            from LaunchServices import kLSSharedFileListFavoriteItems
+            from LaunchServices import LSSharedFileListInsertItemURL
+            from LaunchServices import kLSSharedFileListItemBeforeFirst
+            from LaunchServices import CFURLCreateWithString
+        except ImportError:
+            log.warning("PyObjC package is not installed:"
+                        " skipping favorite link creation")
+            return
+        folder_path = normalized_path(folder_path)
+        folder_name = os.path.basename(folder_path)
+
+        lst = LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems,
+                                     None)
+        if lst is None:
+            log.warning("Could not fetch the Finder favorite list.")
+            return
+
+        url = CFURLCreateWithString(None, "file://"
+                                    + urllib2.quote(folder_path), None)
+        if url is None:
+            log.warning("Could not generate valid favorite URL for: %s",
+                folder_path)
+            return
+
+        # Register the folder as favorite if not already there
+        item = LSSharedFileListInsertItemURL(
+            lst, kLSSharedFileListItemBeforeFirst, folder_name, None, url,
+            {}, [])
+        if item is not None:
+            log.debug("Registered new favorite in Finder for: %s", folder_path)

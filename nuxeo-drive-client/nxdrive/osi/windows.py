@@ -5,6 +5,8 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import find_exe_path
 import _winreg
+import os
+import sys
 
 log = get_logger(__name__)
 
@@ -139,3 +141,69 @@ class WindowsIntegration(AbstractOSIntegration):
         self._delete_reg_value(reg, self.MENU_KEY, '')
         _winreg.DeleteKey(reg, self.MENU_KEY)
         _winreg.DeleteKey(reg, self.MENU_PARENT_KEY)
+
+    def register_folder_link(self, name, folder_path):
+        file_lnk = self._get_folder_link(name)
+        self._create_shortcut(file_lnk, folder_path)
+
+    def unregister_folder_link(self, name):
+        file_lnk = self._get_folder_link(name)
+        if file_lnk is None:
+            return
+        if os.path.exists(file_lnk):
+            os.remove(file_lnk)
+
+    def register_desktop_link(self):
+        self._create_shortcut(self._get_desktop_link(), find_exe_path())
+
+    def unregister_desktop_link(self):
+        link = self._get_desktop_link()
+        if os.path.exists(link):
+            os.remove(link)
+
+    def _get_desktop_link(self):
+        return os.path.join(self._get_desktop_folder(), self._manager.get_appname() + ".lnk")
+
+    def _get_desktop_folder(self):
+        from win32com.shell import shell, shellcon
+        return shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
+
+    def _create_shortcut(self, link, filepath, iconpath, description=None):
+        import pythoncom
+        from win32com.shell import shell, shellcon
+
+        shortcut = pythoncom.CoCreateInstance(
+          shell.CLSID_ShellLink,
+          None,
+          pythoncom.CLSCTX_INPROC_SERVER,
+          shell.IID_IShellLink
+        )
+        executable = filepath
+        if iconpath is None:
+            iconpath = find_exe_path()
+        if description is None:
+            description = self.manager.get_appname()
+        shortcut.SetPath(executable)
+        shortcut.SetDescription(description)
+        shortcut.SetIconLocation(iconpath, 0)
+        persist_file = shortcut.QueryInterface(pythoncom.IID_IPersistFile)
+        persist_file.Save(link, 0)
+
+    def _get_folder_link(self, name=None):
+        if name is None:
+            name = self._manager.get_appname()
+        LOCAL_FAVORITES_FOLDER_WINXP = 'Local Favorites'
+        win_version = sys.getwindowsversion()
+        if win_version.major == 5:
+            favorites = os.path.join(os.path.expanduser('~'), 'Favorites')
+            if not os.path.exists(os.path.join(favorites,
+                                               LOCAL_FAVORITES_FOLDER_WINXP)):
+                os.makedirs(os.path.join(favorites, LOCAL_FAVORITES_FOLDER_WINXP))
+            favorites = os.path.join(favorites, LOCAL_FAVORITES_FOLDER_WINXP)
+        elif win_version.major > 5:
+            favorites = os.path.join(os.path.expanduser('~'), 'Links')
+        else:
+            log.warning('Windows version %d.%d shortcuts are not supported',
+                            win_version.major, win_version.minor)
+            return None
+        return os.path.join(favorites, name + '.lnk')

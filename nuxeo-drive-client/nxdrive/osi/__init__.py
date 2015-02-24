@@ -101,6 +101,18 @@ class AbstractOSIntegration(object):
     def unregister_contextual_menu(self):
         pass
 
+    def register_folder_link(self, folder_path):
+        pass
+
+    def unregister_folder_link(self, folder_path):
+        pass
+
+    def register_desktop_link(self):
+        pass
+
+    def unregister_desktop_link(self):
+        pass
+
     @staticmethod
     def get(manager):
         if sys.platform == "darwin":
