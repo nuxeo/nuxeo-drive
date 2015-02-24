@@ -107,7 +107,7 @@ class RemoteWatcher(EngineWorker):
         parent_path = os.path.dirname(remote_path)
         if parent_path == '/':
             parent_path = ''
-        # If pair is present already 
+        # If pair is present already
         child_info = self._client.get_info(remote_ref)
         doc_pair = self._dao.get_state_from_remote_with_path(remote_ref, parent_path)
         if doc_pair is not None:
@@ -160,7 +160,6 @@ class RemoteWatcher(EngineWorker):
         if remote_info is None:
             raise ValueError("Cannot bind %r to missing remote info" %
                              doc_pair)
-
 
         # If a folderish pair state has been remotely updated,
         # recursively unmark its local descendants as 'unsynchronized'
@@ -365,7 +364,8 @@ class RemoteWatcher(EngineWorker):
                             # that has been updated, renamed or moved
                             eventId = change.get('eventId')
                             log.debug("Refreshing remote state info"
-                                      " for doc_pair '%s' (force_recursion:%d)", doc_pair_repr, (eventId == "securityUpdated"))
+                                      " for doc_pair '%s' (force_recursion:%d)", doc_pair_repr,
+                                      (eventId == "securityUpdated"))
                             remote_parent_path = doc_pair.remote_parent_path
                             #if (new_info.digest != doc_pair.local_digest or
                             #     safe_filename(new_info.name) != doc_pair.local_name

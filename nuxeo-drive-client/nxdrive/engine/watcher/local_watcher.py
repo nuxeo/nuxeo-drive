@@ -155,12 +155,12 @@ class LocalWatcher(EngineWorker):
                         log.debug("Can't found reference put in locally_created state")
                         self._metrics['new_files'] = self._metrics['new_files'] + 1
                         self._dao.insert_local_state(child_info, info.path)
-                        self._protected_files[remote_id]=True
+                        self._protected_files[remote_id] = True
                     elif not self.client.exists(doc_pair.local_path):
                         log.debug("Found a moved file")
                         doc_pair.local_state = 'moved'
                         self._dao.update_local_state(doc_pair, child_info)
-                        self._protected_files[doc_pair.remote_ref]=True
+                        self._protected_files[doc_pair.remote_ref] = True
                     else:
                         # File still exists - must check the remote_id
                         old_remote_id = self.client.get_remote_id(doc_pair.local_path)
@@ -180,14 +180,14 @@ class LocalWatcher(EngineWorker):
                                 if old_pair.local_digest != digest:
                                     old_pair.local_digest = digest
                                 self._dao.update_local_state(old_pair, self.client.get_info(doc_pair.local_path))
-                                self._protected_files[old_pair.remote_ref]=True
+                                self._protected_files[old_pair.remote_ref] = True
                             doc_pair.local_state = 'moved'
                             # Check digest also
                             digest = child_info.get_digest()
                             if doc_pair.local_digest != digest:
                                 doc_pair.local_digest = digest
                             self._dao.update_local_state(doc_pair, child_info)
-                            self._protected_files[doc_pair.remote_ref]=True
+                            self._protected_files[doc_pair.remote_ref] = True
                 if child_info.folderish:
                     to_scan_new.append(child_info)
             else:
@@ -199,7 +199,8 @@ class LocalWatcher(EngineWorker):
                     if remote_ref != child_pair.remote_ref:
                         # TO_REVIEW
                         # Load correct doc_pair | Put the others one back to children
-                        log.warn("Detected file substitution: %s (%s/%s)", child_pair.local_path, remote_ref, child_pair.remote_ref)
+                        log.warn("Detected file substitution: %s (%s/%s)", child_pair.local_path, remote_ref,
+                                 child_pair.remote_ref)
                         old_pair = self._dao.get_normal_state_from_remote(remote_ref)
                         if old_pair is None:
                             self._dao.insert_local_state(child_info, info.path)
@@ -210,7 +211,7 @@ class LocalWatcher(EngineWorker):
                             if old_pair.local_digest != digest:
                                 old_pair.local_digest = digest
                             self._dao.update_local_state(old_pair, child_info)
-                            self._protected_files[old_pair.remote_ref]=True
+                            self._protected_files[old_pair.remote_ref] = True
                         self._delete_files[child_pair.remote_ref] = child_pair
                     if not child_info.folderish:
                         digest = child_info.get_digest()
@@ -321,7 +322,7 @@ class LocalWatcher(EngineWorker):
                 self._win_lock.acquire()
                 log.debug('Add pair to delete events: %r', doc_pair)
                 try:
-                    self._delete_events[doc_pair.remote_ref]=(current_milli_time(), doc_pair)
+                    self._delete_events[doc_pair.remote_ref] = (current_milli_time(), doc_pair)
                 finally:
                     self._win_lock.release()
             else:
