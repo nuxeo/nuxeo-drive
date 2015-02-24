@@ -213,7 +213,7 @@ class UnitTestCase(unittest.TestCase):
             if not self._wait_sync:
                 return
             timeout = timeout - 1
-        log.debug("Wait for sync timeout")
+        self.fail("Wait for sync timeout expired")
 
     def _run(self, result=None):
         self.setUpApp()
