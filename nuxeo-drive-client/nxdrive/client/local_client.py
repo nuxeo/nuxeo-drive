@@ -61,7 +61,10 @@ class FileInfo(object):
             root, path[1:].replace(u'/', os.path.sep))
 
     def __repr__(self):
-        return "FileInfo[%s, remote_ref=%s]" % (self.filepath, self.remote_ref)
+        return self.__unicode__().encode('ascii', 'ignore')
+
+    def __unicode__(self):
+        return u"FileInfo[%s, remote_ref=%s]" % (self.filepath, self.remote_ref)
 
     def get_digest(self):
         """Lazy computation of the digest"""
