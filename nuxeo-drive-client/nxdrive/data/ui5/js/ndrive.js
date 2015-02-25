@@ -67,6 +67,7 @@ DriveController = function($scope, $translate) {
 	$scope.open_remote = this.openRemote;
 	$scope.open_local = this.openLocal;
 	$scope.app_update = this.appUpdate;
+	$scope.auto_update = this.getAutoUpdate();
 	$scope.get_update_status = this.getUpdateStatus;
 	$scope.setAutoUpdate = this.setAutoUpdate;
 	$scope.quit = this.quit;
