@@ -22,12 +22,12 @@ is_logging_configured = False
 
 def configure(use_file_handler=False, log_filename=None, file_level='INFO',
               console_level='INFO', filter_inotify=True, command_name=None, log_rotate_keep=3,
-              log_rotate_max_bytes=100000000):
+              log_rotate_max_bytes=100000000, force_configure=False):
 
     global is_logging_configured
     global FILE_HANDLER
 
-    if not is_logging_configured:
+    if not is_logging_configured or force_configure:
         is_logging_configured = True
 
         _logging_context['command'] = command_name

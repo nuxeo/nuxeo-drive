@@ -27,6 +27,7 @@ def configure_logger():
         console_level='DEBUG',
         command_name='test',
         log_filename="/tmp/nuxeo-drive-test/log.debug",
+        force_configure=True,
     )
 
 # Configure test logger
