@@ -105,6 +105,10 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_state(state))
         return self._json(result)
 
+    @QtCore.pyqtSlot()
+    def close(self):
+        return self._dialog.close()
+
     @QtCore.pyqtSlot(result=str)
     def get_tracker_id(self):
         return self._manager.get_tracker_id()
