@@ -51,6 +51,8 @@ class WebDriveApi(QtCore.QObject):
             return None
         result = dict()
         result["name"] = state.local_name
+        if state.local_name is None:
+            result["name"] = state.remote_name
         result["local_path"] = state.local_path
         result["remote_ref"] = state.remote_ref
         return result
