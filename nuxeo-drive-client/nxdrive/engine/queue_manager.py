@@ -150,14 +150,18 @@ class QueueManager(QObject):
         if state.pair_state.startswith('locally'):
             if state.folderish:
                 self._local_folder_queue.put(state)
+                log.trace('Pushed to _local_folder_queue, now of size: %d', self._local_folder_queue.qsize())
             else:
                 self._local_file_queue.put(state)
+                log.trace('Pushed to _local_file_queue, now of size: %d', self._local_file_queue.qsize())
             self.newItem.emit(row_id)
         elif state.pair_state.startswith('remotely'):
             if state.folderish:
                 self._remote_folder_queue.put(state)
+                log.trace('Pushed to _remote_folder_queue, now of size: %d', self._remote_folder_queue.qsize())
             else:
                 self._remote_file_queue.put(state)
+                log.trace('Pushed to _remote_file_queue, now of size: %d', self._remote_file_queue.qsize())
             self.newItem.emit(row_id)
         else:
             # deleted and conflicted

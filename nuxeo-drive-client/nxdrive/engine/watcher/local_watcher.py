@@ -142,10 +142,11 @@ class LocalWatcher(EngineWorker):
         # recursively update children
         for child_info in fs_children_info:
             child_name = os.path.basename(child_info.path)
+            child_type = 'folder' if child_info.folderish else 'file'
             if not child_name in children:
                 remote_id = self.client.get_remote_id(child_info.path)
                 if remote_id is None:
-                    log.debug("Found new file %s", child_info.path)
+                    log.debug("Found new %s %s", child_type, child_info.path)
                     self._metrics['new_files'] = self._metrics['new_files'] + 1
                     self._dao.insert_local_state(child_info, info.path)
                 else:
@@ -347,7 +348,7 @@ class LocalWatcher(EngineWorker):
             queue = not (evt.event_type == 'modified' and doc_pair.folderish
                                     and doc_pair.local_state == 'modified')
             if (self._windows and doc_pair.folderish and evt.event_type == 'modified'):
-                # Window forget some event sometimes
+                # Windows forgets some event sometimes
                 self._scan_recursive(local_info, recursive=False)
             self._dao.update_local_state(doc_pair, local_info, queue=queue)
             # No need to change anything on sync folder

@@ -60,6 +60,9 @@ class FileInfo(object):
         self.filepath = os.path.join(
             root, path[1:].replace(u'/', os.path.sep))
 
+    def __repr__(self):
+        return "FileInfo[%s, remote_ref=%s]" % (self.filepath, self.remote_ref)
+
     def get_digest(self):
         """Lazy computation of the digest"""
         if self.folderish:
