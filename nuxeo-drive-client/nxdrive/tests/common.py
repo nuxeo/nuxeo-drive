@@ -17,7 +17,6 @@ from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
 
 DEFAULT_CONSOLE_LOG_LEVEL = 'DEBUG'
-DEFAULT_FILE_LOG_LEVEL = 'DEBUG'
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
@@ -25,7 +24,6 @@ TEST_DEFAULT_DELAY = 3
 
 def configure_logger():
     configure(
-        file_level=DEFAULT_FILE_LOG_LEVEL,
         console_level=DEFAULT_CONSOLE_LOG_LEVEL,
         command_name='test',
     )

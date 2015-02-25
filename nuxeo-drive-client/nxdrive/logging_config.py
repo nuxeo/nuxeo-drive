@@ -53,11 +53,14 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
 
         # define a Handler which writes INFO messages or higher to the
         # sys.stderr
-        console_handler = logging.StreamHandler()
+        console_handler_name = 'console'
+        console_handler = get_handler(root_logger, console_handler_name)
+        if console_handler is None:
+            console_handler = logging.StreamHandler()
+            console_handler.set_name(console_handler_name)
+            # tell the console handler to use this format
+            console_handler.setFormatter(formatter)
         console_handler.setLevel(console_level)
-
-        # tell the console handler to use this format
-        console_handler.setFormatter(formatter)
 
         # add the console handler to the root logger and all descendants
         root_logger.addHandler(console_handler)
@@ -72,6 +75,7 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
             file_handler = RotatingFileHandler(
                 log_filename, mode='a', maxBytes=log_rotate_max_bytes,
                 backupCount=log_rotate_keep)
+            file_handler.set_name('file')
             file_handler.setLevel(file_level)
             file_handler.setFormatter(formatter)
             FILE_HANDLER = file_handler
@@ -79,6 +83,13 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
 
         if filter_inotify:
             root_logger.addFilter(logging.Filter('watchdog.observers.inotify_buffer'))
+
+
+def get_handler(logger, name):
+    for handler in logger.handlers:
+        if name in handler.get_name():
+            return handler
+    return None
 
 
 def get_logger(name):

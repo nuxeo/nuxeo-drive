@@ -15,9 +15,9 @@ from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
 from nxdrive.logging_config import configure
 from mock import Mock
 
+
 def configure_logger():
     configure(
-        file_level='DEBUG',
         console_level='DEBUG',
         command_name='test',
     )

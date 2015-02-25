@@ -24,10 +24,8 @@ DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 
 def configure_logger():
     configure(
-        file_level='DEBUG',
         console_level='DEBUG',
         command_name='test',
-        log_filename="/tmp/nuxeo-drive-test/log.debug",
         force_configure=True,
     )
 
