@@ -87,7 +87,7 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
 
 def get_handler(logger, name):
     for handler in logger.handlers:
-        if name in handler.get_name():
+        if name == handler.get_name():
             return handler
     return None
 
