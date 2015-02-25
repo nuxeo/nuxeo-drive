@@ -23,6 +23,7 @@ from nxdrive.engine.workers import ThreadInterrupt
 class RemoteWatcher(EngineWorker):
     initiate = pyqtSignal()
     updated = pyqtSignal()
+    remoteScanFinished = pyqtSignal()
 
     def __init__(self, engine, dao, delay):
         super(RemoteWatcher, self).__init__(engine)
@@ -96,7 +97,8 @@ class RemoteWatcher(EngineWorker):
         self._dao.update_config('remote_last_full_scan', self._last_remote_full_scan)
         self._dao.commit()
         self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
-        log.debug("remote scan finished in %dms", self._metrics['last_remote_scan_time'])
+        log.debug("Remote scan finished in %dms", self._metrics['last_remote_scan_time'])
+        self.remoteScanFinished.emit()
 
     @pyqtSlot(str)
     def scan_pair(self, remote_path):

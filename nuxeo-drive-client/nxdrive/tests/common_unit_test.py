@@ -19,6 +19,7 @@ from threading import Thread
 from time import sleep
 
 DEFAULT_WAIT_SYNC_TIMEOUT = 20
+DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 
 
 def configure_logger():
@@ -147,6 +148,7 @@ class UnitTestCase(unittest.TestCase):
         self.engine_1 = self.manager.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1, self.password_1, start_engine=False)
         self.engine_2 = self.manager.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2, self.password_2, start_engine=False)
         self.engine_1.syncCompleted.connect(self.sync_completed)
+        self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.remote_scan_completed)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
@@ -219,6 +221,20 @@ class UnitTestCase(unittest.TestCase):
         else:
             log.debug("Wait for sync timeout")
 
+    def remote_scan_completed(self):
+        log.debug('Remote scan completed')
+        self._wait_remote_scan = False
+
+    def wait_remote_scan(self, timeout=DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT):
+        log.debug("Wait for remote scan")
+        self._wait_remote_scan = True
+        while timeout > 0:
+            sleep(1)
+            if not self._wait_remote_scan:
+                return
+            timeout = timeout - 1
+        self.fail("Wait for remote scan timeout expired")
+
     def _run(self, result=None):
         self.setUpApp()
 
@@ -290,7 +306,6 @@ class UnitTestCase(unittest.TestCase):
         self.remote_file_system_client_2 = None
 
     def _interact(self, pause=0):
-        from time import sleep
         self.app.processEvents()
         if pause > 0:
             sleep(pause)
