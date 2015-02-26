@@ -7,6 +7,8 @@ from copy import deepcopy
 import time
 log = get_logger(__name__)
 
+WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
+
 
 class QueueItem(object):
     def __init__(self, row_id, folderish, pair_state):
@@ -187,13 +189,20 @@ class QueueManager(QObject):
     def _on_new_error(self):
         self._error_timer.start(1000)
 
-    def push_error(self, doc_pair):
-        if doc_pair.error_count >= self._error_threshold:
+    def push_error(self, doc_pair, exception=None):
+        error_count = doc_pair.error_count
+        if (False and exception is not None and type(exception) == WindowsError
+            and hasattr(exception, 'winerror') and exception.winerror == WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE):
+            log.debug("Detected WindowsError with code %d: '%s', won't increase next try interval",
+                      WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE,
+                      exception.strerror if hasattr(exception, 'strerror') else '')
+            error_count = 1
+        if error_count >= self._error_threshold:
             log.debug("Giving up on pair : %r", doc_pair)
             return
-        interval = self._error_interval * doc_pair.error_count
+        interval = self._error_interval * error_count
         doc_pair.error_next_try = interval + int(time.time())
-        log.debug("Blacklisting pair %r for %ds", doc_pair, interval)
+        log.debug("Blacklisting pair for %ds: %r", interval, doc_pair)
         self._error_lock.acquire()
         try:
             emit_sig = False
