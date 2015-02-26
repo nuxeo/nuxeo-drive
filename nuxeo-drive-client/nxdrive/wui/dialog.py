@@ -187,6 +187,10 @@ class WebDriveApi(QtCore.QObject):
             result.append(self._export_state(conflict))
         return self._json(result)
 
+    @QtCore.pyqtSlot(result=str)
+    def get_infos(self):
+        return self._json(self._manager.get_metrics())
+
     @QtCore.pyqtSlot(str, result=str)
     def is_syncing(self, uid):
         engine = self._get_engine(uid)

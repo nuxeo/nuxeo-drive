@@ -1,4 +1,4 @@
-from PyQt4.QtCore import QObject, pyqtSignal
+from PyQt4 import QtCore
 from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
 from nxdrive.logging_config import get_logger, FILE_HANDLER
@@ -11,6 +11,7 @@ import subprocess
 from nxdrive.utils import ENCODING
 import os
 import uuid
+import platform
 import sys
 import logging
 log = get_logger(__name__)
@@ -134,22 +135,22 @@ class ProxySettings(object):
                     self.authenticated, self.username, self.exceptions)
 
 
-class Manager(QObject):
+class Manager(QtCore.QObject):
     '''
     classdocs
     '''
-    proxyUpdated = pyqtSignal(object)
-    clientUpdated = pyqtSignal(object, object)
-    clientUpdateAvailable = pyqtSignal()
-    engineNotFound = pyqtSignal(object)
-    newEngine = pyqtSignal(object)
-    dropEngine = pyqtSignal(object)
-    initEngine = pyqtSignal(object)
-    aboutToStart = pyqtSignal(object)
-    started = pyqtSignal()
-    stopped = pyqtSignal()
-    suspended = pyqtSignal()
-    resumed = pyqtSignal()
+    proxyUpdated = QtCore.pyqtSignal(object)
+    clientUpdated = QtCore.pyqtSignal(object, object)
+    clientUpdateAvailable = QtCore.pyqtSignal()
+    engineNotFound = QtCore.pyqtSignal(object)
+    newEngine = QtCore.pyqtSignal(object)
+    dropEngine = QtCore.pyqtSignal(object)
+    initEngine = QtCore.pyqtSignal(object)
+    aboutToStart = QtCore.pyqtSignal(object)
+    started = QtCore.pyqtSignal()
+    stopped = QtCore.pyqtSignal()
+    suspended = QtCore.pyqtSignal()
+    resumed = QtCore.pyqtSignal()
     _singleton = None
 
     @staticmethod
@@ -210,6 +211,19 @@ class Manager(QObject):
     def _get_file_log_handler(self):
         # Might store it in global static
         return FILE_HANDLER
+
+    def get_metrics(self):
+        result = dict()
+        result["version"] = self.get_version()
+        result["auto_start"] = self.get_auto_start()
+        result["auto_update"] = self.get_auto_update()
+        result["device_id"] = self.get_device_id()
+        result["tracker_id"] = self.get_tracker_id()
+        result["tracking"] = self.get_tracking()
+        result["qt_version"] = QtCore.QT_VERSION_STR
+        result["pyqt_version"] = QtCore.PYQT_VERSION_STR
+        result["python_version"] = platform.python_version()
+        return result
 
     def get_log_level(self):
         handler = self._get_file_log_handler()
