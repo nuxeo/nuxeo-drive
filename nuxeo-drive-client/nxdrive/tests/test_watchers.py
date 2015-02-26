@@ -64,7 +64,7 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(metrics["local_folder_queue"], 0)
         self.assertEquals(metrics["local_file_queue"], 0)
         files, folders = self.make_local_tree()
-        self.wait_sync(1, fail_if_timeout=False)
+        self.wait_sync(2, fail_if_timeout=False)
         metrics = self.queue_manager_1.get_metrics()
         self.assertEquals(metrics["local_folder_queue"], 2)
         self.assertEquals(metrics["local_file_queue"], 1)
