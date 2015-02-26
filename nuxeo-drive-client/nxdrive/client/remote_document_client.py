@@ -345,8 +345,9 @@ class RemoteDocumentClient(BaseAutomationClient):
         return doc['uid']
 
     def get_versions(self, ref):
+        extra_headers = {'X-NXfetch.document': 'versionLabel'}
         versions = self.execute("Document.GetVersions",
-                            op_input="doc:" + self._check_ref(ref))
+                            op_input="doc:" + self._check_ref(ref), extra_headers=extra_headers)
         return [(v['uid'], v['versionLabel']) for v in versions['entries']]
 
     def restore_version(self, version):

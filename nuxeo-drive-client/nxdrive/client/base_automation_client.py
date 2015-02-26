@@ -288,7 +288,7 @@ class BaseAutomationClient(BaseClient):
         headers = {
             "Content-Type": "application/json+nxrequest",
             "Accept": "application/json+nxentity, */*",
-            "X-NXDocumentProperties": "*",
+            "X-NXproperties": "*",
         }
         if void_op:
             headers.update({"X-NXVoidOperation": "true"})
