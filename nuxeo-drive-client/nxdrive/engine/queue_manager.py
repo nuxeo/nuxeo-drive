@@ -191,7 +191,7 @@ class QueueManager(QObject):
 
     def push_error(self, doc_pair, exception=None):
         error_count = doc_pair.error_count
-        if (False and exception is not None and type(exception) == WindowsError
+        if (exception is not None and type(exception) == WindowsError
             and hasattr(exception, 'winerror') and exception.winerror == WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE):
             log.debug("Detected WindowsError with code %d: '%s', won't increase next try interval",
                       WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE,
