@@ -60,9 +60,10 @@ def parse_edit_protocol(data_string):
             server_url = "%s://%s" % (scheme, server_part)
             user, doc_part = doc_part.split('/repo/', 1)
             repo, doc_part = doc_part.split('/nxdocid/', 1)
-            doc_id, filename = doc_part.split('/filename/', 1)
+            doc_id, doc_part = doc_part.split('/filename/', 1)
+            filename, download_url = doc_part.split('/downloadUrl/', 1)
             return dict(command='download_edit', server_url=server_url, user=user, repo=repo,
-                        doc_id=doc_id, filename=filename)
+                        doc_id=doc_id, filename=filename, download_url=download_url)
         else:
             # Compatibility with old URL that doesn't contain user name
             server_part, doc_part = data_string.split('/repo/', 1)
@@ -70,7 +71,7 @@ def parse_edit_protocol(data_string):
             repo, doc_part = doc_part.split('/nxdocid/', 1)
             doc_id, filename = doc_part.split('/filename/', 1)
             return dict(command='download_edit', server_url=server_url, user=None, repo=repo,
-                        doc_id=doc_id, filename=filename)
+                        doc_id=doc_id, filename=filename, download_url=None)
 
     else:
         server_part, item_id = data_string.split('/fsitem/', 1)

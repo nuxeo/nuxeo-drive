@@ -56,7 +56,7 @@ class DriveEdit(Worker):
             if server_url == url and (user is None or user == bind.username):
                 return engine
 
-    def _download_content(self, engine, remote_client, info, file_path):
+    def _download_content(self, engine, remote_client, info, file_path, url=None):
         file_dir = os.path.dirname(file_path)
         file_name = os.path.basename(file_path)
         file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
@@ -67,10 +67,13 @@ class DriveEdit(Worker):
             local_client = engine.get_local_client()
             shutil.copy(local_client._abspath(pair.local_path), file_out)
         else:
-            remote_client.get_blob(info.uid, file_out)
+            if url is not None:
+                remote_client.do_get(url, file_out=file_out)
+            else:
+                remote_client.get_blob(info.uid, file_out=file_out)
         return file_out
 
-    def edit(self, server_url, doc_id, user=None):
+    def edit(self, server_url, doc_id, user=None, download_url=None):
         engine = self._get_engine(server_url, user)
         if engine is None:
             # TO_REVIEW Display an error message
@@ -88,7 +91,13 @@ class DriveEdit(Worker):
         file_path = os.path.join(dir_path, safe_filename(info.name))
 
         # Download the file
-        tmp_file = self._download_content(engine, remote_client, info, file_path)
+        url = None
+        if download_url is not None:
+            url = server_url
+            if not url.endswith('/'):
+                url += '/'
+            url += download_url
+        tmp_file = self._download_content(engine, remote_client, info, file_path, url=url)
         if tmp_file is None:
             log.debug("Download failed")
             return
