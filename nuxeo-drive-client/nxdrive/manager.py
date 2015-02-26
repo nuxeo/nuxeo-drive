@@ -1,4 +1,4 @@
-from PyQt4.QtCore import QObject, pyqtSignal, QCoreApplication
+from PyQt4.QtCore import QObject, pyqtSignal
 from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
 from nxdrive.logging_config import get_logger, FILE_HANDLER
@@ -29,8 +29,10 @@ try:
 except Exception as e:
     pass
 
+
 class EngineTypeMissing(Exception):
     pass
+
 
 class MissingToken(Exception):
     pass
@@ -88,7 +90,7 @@ class ProxySettings(object):
         if dao is not None:
             self.load(dao)
 
-    def save(self, dao, token = None):
+    def save(self, dao, token=None):
         # Encrypt password with token as the secret
         if token is None:
             token = dao.get_config("device_id", None)
@@ -188,7 +190,7 @@ class Manager(QObject):
         self._engine_definitions = None
         self._engine_types = dict()
         self.device_id = self._dao.get_config("device_id")
-        self.updated = False#self.update_version()
+        self.updated = False  # self.update_version()
         if self.device_id is None:
             self.generate_device_id()
         self.client_version = __version__
@@ -564,7 +566,7 @@ class Manager(QObject):
             import urlparse
             urlp = urlparse.urlparse(url)
             name = urlp.hostname
-        binder = namedtuple('binder', ['username','password','url'])
+        binder = namedtuple('binder', ['username', 'password', 'url'])
         binder.username = username
         binder.password = password
         binder.url = url
