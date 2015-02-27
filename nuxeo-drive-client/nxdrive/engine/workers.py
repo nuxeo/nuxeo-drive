@@ -3,7 +3,7 @@
 '''
 from PyQt4.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QCoreApplication
 from threading import current_thread
-from time import sleep
+from time import sleep, time
 from nxdrive.engine.activity import Action, IdleAction
 from nxdrive.logging_config import get_logger
 
@@ -157,23 +157,21 @@ class PollWorker(Worker):
         self._thread.started.connect(self.run)
         self._check_interval = check_interval
         # Check at start
-        self._current_interval = 0
+        self._next_check = 0
         self._enable = True
 
     def get_metrics(self):
         metrics = super(PollWorker, self).get_metrics()
         metrics['polling_interval'] = self._check_interval
-        metrics['polling_next'] = self._current_interval
+        metrics['polling_next'] = self._next_check - int(time.time())
         return dict(metrics.items() + self._metrics.items())
 
     def _execute(self):
         while (self._enable):
             self._interact()
-            if self._current_interval == 0:
+            if self._next_check - int(time.time()) <= 0:
                 self._poll()
-                self._current_interval = self._check_interval
-            else:
-                self._current_interval = self._current_interval - 1
+                self._next_check = int(time.time()) + self._check_interval
             sleep(1)
 
     def _poll(self):
