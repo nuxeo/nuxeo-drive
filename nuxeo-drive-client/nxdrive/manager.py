@@ -223,7 +223,12 @@ class Manager(QtCore.QObject):
         result["qt_version"] = QtCore.QT_VERSION_STR
         result["pyqt_version"] = QtCore.PYQT_VERSION_STR
         result["python_version"] = platform.python_version()
+        result["platform"] = platform.system()
+        result["appname"] = self.get_appname()
         return result
+
+    def open_help(self):
+        self.open_local_file("http://doc.nuxeo.com/display/USERDOC/Nuxeo+Drive")
 
     def get_log_level(self):
         handler = self._get_file_log_handler()

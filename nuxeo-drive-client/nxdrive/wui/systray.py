@@ -32,7 +32,7 @@ class WebSystrayApi(WebDriveApi):
 
     @QtCore.pyqtSlot()
     def open_help(self):
-        self._manager.open_local_file("http://doc.nuxeo.com/display/USERDOC/Nuxeo+Drive")
+        self._manager.open_help()
         self._dialog.hide()
 
     @QtCore.pyqtSlot()
