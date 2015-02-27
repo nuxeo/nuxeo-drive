@@ -9,6 +9,12 @@ log = get_logger(__name__)
 
 WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
 
+WindowsError = None
+try:
+    from exceptions import WindowsError
+except ImportError:
+    pass  # This will never be raised under Unix
+
 
 class QueueItem(object):
     def __init__(self, row_id, folderish, pair_state):
