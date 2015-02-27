@@ -170,8 +170,8 @@ class PollWorker(Worker):
         while (self._enable):
             self._interact()
             if self._current_interval == 0:
-                self._current_interval = self._check_interval
                 self._poll()
+                self._current_interval = self._check_interval
             else:
                 self._current_interval = self._current_interval - 1
             sleep(1)
