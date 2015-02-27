@@ -21,7 +21,7 @@ drive_init(function (){
 </div>
 </div>
 <div ng-show="bind">
-<div class="navbar navbar-fixed-top" style="padding: 10px; min-height: 40px; height: 40px;border-bottom: 1px solid #17384e; background-color: #dfdfdf;">
+<div id="systray-top" class="navbar navbar-fixed-top">
   <div>
   	<span>{{ engine.username }}</span>
   	<span class="glyphicon glyphicon-option-vertical" style="float:right; margin-left: 20px;" ng-click="advanced_systray()"></span>
@@ -38,7 +38,7 @@ drive_init(function (){
   	<span ng-click="showConflicts()" ng-show="engine.metrics.error_files > 0" class="label label-danger" translate translate-values="engine.metrics">ERRORS_SYSTRAY</span>
   </div>
  </div>
-<div class="navbar navbar-fixed-bottom" style="padding: 10px; height: 40px; min-height: 40px; border-top: 1px solid #17384e;background-color: #dfdfdf;">
+<div id="systray-bottom" class="navbar navbar-fixed-bottom">
   <div class="label notifications-container" style="position: absolute; padding:0px; left:0px; width: 100%; bottom: 40px; width: 100%;">
 	<div ng-show="confirmAppUpdateDialog != null" class="notification-info" style="padding: 10px; padding-bottom: 0px; height: 65px;">
 	<span translate translate_values="{ version:confirmAppUpdateDialog }">CONFIRM_UPDATE_MESSAGE</span>

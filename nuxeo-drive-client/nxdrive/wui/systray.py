@@ -163,4 +163,5 @@ class WebSystray(QtGui.QMenu):
             # Close systray when app is quitting
             self._application.aboutToQuit.connect(self.dlg.close)
             self.dlg.destroyed.connect(self.dialogDeleted)
+        self.dlg._icon = self._systray_icon
         self.dlg.show()

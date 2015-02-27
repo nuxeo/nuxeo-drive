@@ -176,6 +176,11 @@ class Engine(QObject):
     def is_paused(self):
         return self._pause
 
+    def open_remote(self, url=None):
+        if url is None:
+            url = self.get_remote_url()
+        self._manager.open_local_file(url)
+
     def resume(self):
         # If stopped then start the engine
         if self._stopped:

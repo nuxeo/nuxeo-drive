@@ -65,3 +65,17 @@ body {
 	border-top: 1px solid #a94442;
 	color:#a94442; 
 }
+#systray-top, #systray-bottom {
+ 	padding: 10px;
+ 	min-height: 40px !important;
+ 	height: 40px;
+}
+.navbar {
+	background-color: #dfdfdf;
+}
+#systray-top {
+	border-bottom: 1px solid #17384e !important; 
+}
+#systray-bottom {
+	border-top: 1px solid #17384e !important;
+}

@@ -501,7 +501,7 @@ class Manager(QtCore.QObject):
         # TO_REVIEW Might need to remove it
         pass
 
-    def get_config(self, value, default):
+    def get_config(self, value, default=None):
         return self._dao.get_config(value, default)
 
     def set_config(self, key, value):

@@ -232,8 +232,7 @@ class WebDriveApi(QtCore.QObject):
         engine = self._get_engine(uid)
         if engine is None:
             return "ERROR"
-        filepath = engine.get_remote_url()
-        self._manager.open_local_file(filepath)
+        engine.open_remote()
         # TODO Handle the exception here
         return ""
 
