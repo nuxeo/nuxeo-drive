@@ -95,6 +95,8 @@ Translator
 WebDialog
   Base of all Nuxeo Drive window, it is basically a WebKit view with a drive javascript object mapped by the Javascript API
 
+QT is heavily used in the new client here is a diagram of the signals/slots connexions : https://www.lucidchart.com/publicSegments/view/54efbff4-c180-41d8-9184-0b1d0a00c10b/image.png
+
 Nuxeo Drive Client under Linux & Mac OS X
 -----------------------------------------
 
