@@ -2,6 +2,8 @@
 Created on 28 janv. 2015
 
 @author: Remi Cattiau
+
+TODO: Find a better way for the try/catch on slot
 '''
 from PyQt4 import QtGui, QtCore, QtWebKit
 from nxdrive.logging_config import get_logger
@@ -97,210 +99,326 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, str, str, result=str)
     def get_last_files(self, uid, number, direction):
-        uid = str(uid)
-        number = str(number)
-        direction = str(direction)
-        engine = self._get_engine(uid)
-        result = []
-        if engine is not None:
-            for state in engine.get_last_files(int(number), direction):
-                result.append(self._export_state(state))
-        return self._json(result)
+        try:
+            uid = str(uid)
+            number = str(number)
+            direction = str(direction)
+            engine = self._get_engine(uid)
+            result = []
+            if engine is not None:
+                for state in engine.get_last_files(int(number), direction):
+                    result.append(self._export_state(state))
+            return self._json(result)
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot()
     def close(self):
-        return self._dialog.close()
+        try:
+            return self._dialog.close()
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(result=str)
     def get_tracker_id(self):
-        return self._manager.get_tracker_id()
+        try:
+            return self._manager.get_tracker_id()
+        except Exception as e:
+            log.exception(e)
+            return None
 
     @QtCore.pyqtSlot(result=int)
     def get_log_level(self):
-        return self._manager.get_log_level()
+        try:
+            return self._manager.get_log_level()
+        except Exception as e:
+            log.exception(e)
+            return 10
 
     @QtCore.pyqtSlot(int)
     def set_log_level(self, log_level):
-        return self._manager.set_log_level(log_level)
+        try:
+            return self._manager.set_log_level(log_level)
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(str)
     def set_language(self, locale):
-        Translator.set(str(locale))
+        try:
+            Translator.set(str(locale))
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(result=str)
     def get_languages(self):
-        return self._json(Translator.languages())
+        try:
+            return self._json(Translator.languages())
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(result=str)
     def locale(self):
-        return Translator.locale()
+        try:
+            return Translator.locale()
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(result=str)
     def get_update_status(self):
-        status = self._manager.get_updater().get_status()
-        return self._json(status)
+        try:
+            status = self._manager.get_updater().get_status()
+            return self._json(status)
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(str)
     def app_update(self, version):
-        self._manager.get_updater().update(version)
+        try:
+            self._manager.get_updater().update(version)
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(str, result=str)
     def get_actions(self, uid):
-        engine = self._get_engine(uid)
-        result = []
-        if engine is not None:
-            for thread in engine.get_threads():
-                action = thread.worker.get_action()
-                # The filter should be configurable
-                if isinstance(action, FileAction):
-                    result.append(self._export_action(action))
-        return self._json(result)
+        try:
+            engine = self._get_engine(uid)
+            result = []
+            if engine is not None:
+                for thread in engine.get_threads():
+                    action = thread.worker.get_action()
+                    # The filter should be configurable
+                    if isinstance(action, FileAction):
+                        result.append(self._export_action(action))
+            return self._json(result)
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(str, result=str)
     def get_threads(self, uid):
-        engine = self._get_engine(uid)
-        result = []
-        if engine is None:
-            return result
-        result = self._get_threads(engine)
-        return self._json(result)
+        try:
+            engine = self._get_engine(uid)
+            result = []
+            if engine is None:
+                return result
+            result = self._get_threads(engine)
+            return self._json(result)
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(str, result=str)
     def get_errors(self, uid):
-        engine = self._get_engine(uid)
-        result = []
-        if engine is None:
-            return result
-        result = []
-        for conflict in engine.get_dao().get_errors():
-            result.append(self._export_state(conflict))
-        return self._json(result)
+        try:
+            engine = self._get_engine(uid)
+            result = []
+            if engine is None:
+                return result
+            result = []
+            for conflict in engine.get_dao().get_errors():
+                result.append(self._export_state(conflict))
+            return self._json(result)
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(str, result=str)
     def get_conflicts(self, uid):
-        engine = self._get_engine(uid)
-        result = []
-        if engine is None:
-            return result
-        result = []
-        for conflict in engine.get_dao().get_conflicts():
-            result.append(self._export_state(conflict))
-        return self._json(result)
+        try:
+            engine = self._get_engine(uid)
+            result = []
+            if engine is None:
+                return result
+            result = []
+            for conflict in engine.get_dao().get_conflicts():
+                result.append(self._export_state(conflict))
+            return self._json(result)
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(result=str)
     def get_infos(self):
-        return self._json(self._manager.get_metrics())
+        try:
+            return self._json(self._manager.get_metrics())
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(str, result=str)
     def is_syncing(self, uid):
-        engine = self._get_engine(uid)
-        if engine is None:
-            return "ERROR"
-        if engine.is_syncing():
-            return "syncing"
-        return "synced"
+        try:
+            engine = self._get_engine(uid)
+            if engine is None:
+                return "ERROR"
+            if engine.is_syncing():
+                return "syncing"
+            return "synced"
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(bool, result=str)
     def set_auto_start(self, value):
-        self._manager.set_auto_start(value)
+        try:
+            self._manager.set_auto_start(value)
+        except Exception as e:
+            log.exception(e)
         return ""
 
     @QtCore.pyqtSlot(result=bool)
     def get_auto_start(self):
-        return self._manager.get_auto_start()
+        try:
+            return self._manager.get_auto_start()
+        except Exception as e:
+            log.exception(e)
+            return False
 
     @QtCore.pyqtSlot(bool, result=str)
     def set_auto_update(self, value):
-        self._manager.set_auto_update(value)
+        try:
+            self._manager.set_auto_update(value)
+        except Exception as e:
+            log.exception(e)
         return ""
 
     @QtCore.pyqtSlot(result=bool)
     def get_auto_update(self):
-        return self._manager.get_auto_update()
+        try:
+            return self._manager.get_auto_update()
+        except Exception as e:
+            log.exception(e)
+            return False
 
     @QtCore.pyqtSlot(bool, result=str)
     def set_tracking(self, value):
-        self._manager.set_tracking(value)
+        try:
+            self._manager.set_tracking(value)
+        except Exception as e:
+            log.exception(e)
         return ""
 
     @QtCore.pyqtSlot(result=bool)
     def get_tracking(self):
-        return self._manager.get_tracking()
+        try:
+            return self._manager.get_tracking()
+        except Exception as e:
+            log.exception(e)
+            return False
 
     @QtCore.pyqtSlot(str, result=str)
     def open_remote(self, uid):
-        engine = self._get_engine(uid)
-        if engine is None:
-            return "ERROR"
-        engine.open_remote()
-        # TODO Handle the exception here
-        return ""
+        try:
+            engine = self._get_engine(uid)
+            if engine is None:
+                return "ERROR"
+            engine.open_remote()
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(str, str, result=str)
     def open_local(self, uid, path):
-        # Make sure it is string ( come from WebKit as QString
-        path = str(path)
-        if uid == '':
-            self._manager.open_local_file(path)
-            return ""
-        engine = self._get_engine(uid)
-        if engine is None:
-            return "ERROR"
-        filepath = engine.get_abspath(path)
-        self._manager.open_local_file(filepath)
+        try:
+            # Make sure it is string ( come from WebKit as QString
+            path = str(path)
+            if uid == '':
+                self._manager.open_local_file(path)
+                return ""
+            engine = self._get_engine(uid)
+            if engine is None:
+                return "ERROR"
+            filepath = engine.get_abspath(path)
+            self._manager.open_local_file(filepath)
+        except Exception as e:
+            log.exception(e)
         # TODO Handle the exception here
         return ""
 
     @QtCore.pyqtSlot()
     def show_activities(self):
-        self._application.show_activities()
+        try:
+            self._application.show_activities()
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot()
     def show_settings(self):
-        self._application.show_settings()
+        try:
+            self._application.show_settings()
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot()
     def quit(self):
-        self._application.quit()
+        try:
+            self._application.quit()
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(result=str)
     def get_engines(self):
-        result = []
-        for _, engine in self._manager.get_engines().iteritems():
-            result.append(self._export_engine(engine))
-        return self._json(result)
+        try:
+            result = []
+            for _, engine in self._manager.get_engines().iteritems():
+                result.append(self._export_engine(engine))
+            return self._json(result)
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(str, result=str)
     def browse_folder(self, base_folder):
-        local_folder_path = base_folder
-        # TODO Might isolate to a specific api
-        dir_path = QtGui.QFileDialog.getExistingDirectory(
-            caption='Select Nuxeo Drive folder location',
-            directory=base_folder)
-        if dir_path:
-            dir_path = unicode(dir_path)
-            log.debug('Selected %s as the Nuxeo Drive folder location',
-                      dir_path)
-            self.file_dialog_dir = dir_path
-            local_folder_path = dir_path
-        return local_folder_path
+        try:
+            local_folder_path = base_folder
+            # TODO Might isolate to a specific api
+            dir_path = QtGui.QFileDialog.getExistingDirectory(
+                caption='Select Nuxeo Drive folder location',
+                directory=base_folder)
+            if dir_path:
+                dir_path = unicode(dir_path)
+                log.debug('Selected %s as the Nuxeo Drive folder location',
+                          dir_path)
+                self.file_dialog_dir = dir_path
+                local_folder_path = dir_path
+            return local_folder_path
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot()
     def show_file_status(self):
-        self._application.show_file_status()
+        try:
+            self._application.show_file_status()
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(result=str)
     def get_version(self):
-        return self._manager.get_version()
+        try:
+            return self._manager.get_version()
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(str, str)
     def resize(self, width, height):
-        if self._dialog is not None:
-            self._dialog.resize(int(width), int(height))
+        try:
+            if self._dialog is not None:
+                self._dialog.resize(int(width), int(height))
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(str)
     def debug(self, msg):
-        log.debug(msg)
+        try:
+            log.debug(msg)
+        except Exception as e:
+            log.exception(e)
 
 
 class WebDialog(QtGui.QDialog):

@@ -15,60 +15,92 @@ class WebSystrayApi(WebDriveApi):
 
     @QtCore.pyqtSlot()
     def show_settings(self):
-        super(WebSystrayApi, self).show_settings()
-        self._dialog.hide()
+        try:
+            super(WebSystrayApi, self).show_settings()
+            self._dialog.hide()
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(str, result=str)
     def open_remote(self, uid):
-        res = super(WebSystrayApi, self).open_remote(uid)
-        self._dialog.hide()
-        return res
+        try:
+            res = super(WebSystrayApi, self).open_remote(uid)
+            self._dialog.hide()
+            return res
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(str, str, result=str)
     def open_local(self, uid, path):
-        res = super(WebSystrayApi, self).open_local(uid, path)
-        self._dialog.hide()
-        return res
+        try:
+            res = super(WebSystrayApi, self).open_local(uid, path)
+            self._dialog.hide()
+            return res
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot()
     def open_help(self):
-        self._manager.open_help()
-        self._dialog.hide()
+        try:
+            self._manager.open_help()
+            self._dialog.hide()
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot()
     def open_about(self):
-        self._application.show_settings(section="About")
-        self._dialog.hide()
+        try:
+            self._application.show_settings(section="About")
+            self._dialog.hide()
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot()
     def suspend(self):
-        self._manager.suspend()
+        try:
+            self._manager.suspend()
+            self._dialog.hide()
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(str, result=int)
     def get_syncing_items(self, uid):
-        engine = self._get_engine(uid)
-        return engine.get_dao().get_syncing_count()
+        try:
+            engine = self._get_engine(uid)
+            return engine.get_dao().get_syncing_count()
+        except Exception as e:
+            log.exception(e)
+            return 0
 
     @QtCore.pyqtSlot()
     def resume(self):
-        self._manager.resume()
+        try:
+            self._manager.resume()
+            self._dialog.hide()
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot()
     def advanced_systray(self):
-        menu = QtGui.QMenu()
-        menu.setFocusProxy(self._dialog)
-        if self._manager.is_paused():
-            menu.addAction(Translator.get("RESUME"), self.resume)
-        else:
-            menu.addAction(Translator.get("SUSPEND"), self.suspend)
-        menu.addSeparator()
-        menu.addAction(Translator.get("ABOUT"), self.open_about)
-        menu.addAction(Translator.get("HELP"), self.open_help)
-        menu.addSeparator()
-        menu.addAction(Translator.get("SETTINGS"), self._application.show_settings)
-        menu.addSeparator()
-        menu.addAction(Translator.get("QUIT"), self._application.quit)
-        menu.exec_(QtGui.QCursor.pos())
+        try:
+            menu = QtGui.QMenu()
+            menu.setFocusProxy(self._dialog)
+            if self._manager.is_paused():
+                menu.addAction(Translator.get("RESUME"), self.resume)
+            else:
+                menu.addAction(Translator.get("SUSPEND"), self.suspend)
+            menu.addSeparator()
+            menu.addAction(Translator.get("ABOUT"), self.open_about)
+            menu.addAction(Translator.get("HELP"), self.open_help)
+            menu.addSeparator()
+            menu.addAction(Translator.get("SETTINGS"), self._application.show_settings)
+            menu.addSeparator()
+            menu.addAction(Translator.get("QUIT"), self._application.quit)
+            menu.exec_(QtGui.QCursor.pos())
+        except Exception as e:
+            log.exception(e)
 
 
 class WebSystrayView(WebDialog):
