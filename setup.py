@@ -109,6 +109,7 @@ class data_file_dir(object):
         self.recursive_result.append((shortpath, result))
         return self.recursive_result
 
+
 class NuxeoDriveAttributes(object):
 
     def get_uid(self):
@@ -139,7 +140,8 @@ class NuxeoDriveAttributes(object):
         package_data = {
                 self.rubric_3rd_dir() + '.data.icons': ['*.png', '*.svg',
                                                         '*.ico', '*.icns'],
-		self.rubric_3rd_dir() + '.data.ui5': ['*'],
+                self.rubric_3rd_dir() + '.data.ui5': ['*.html', '*.txt', '*.js',
+                                                      'css/*', 'fonts/*', 'imgs/*', 'js/*'],
         }
         return package_data
 
