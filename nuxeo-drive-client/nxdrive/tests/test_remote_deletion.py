@@ -341,8 +341,6 @@ class TestRemoteDeletion(UnitTestCase):
 
     def test_synchronize_local_folder_rename_remote_deletion(self):
         """Test local folder rename followed by remote deletion"""
-        #raise SkipTest("Skipped waiting for"
-        #               " https://jira.nuxeo.com/browse/NXDRIVE-80 to be fixed")
         # Bind the server and root workspace
 
         # Get local and remote clients
