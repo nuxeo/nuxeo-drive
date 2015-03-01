@@ -82,7 +82,8 @@ class Application(QApplication):
         self.options = options
         self.mainEngine = None
         self.filters_dlg = None
-
+        # Make dialog unique
+        self.uniqueDialogs = dict()
         # Init translator
         self._init_translator()
 
@@ -157,11 +158,42 @@ class Application(QApplication):
             new_state = 'transferring'
         self.set_icon_state(new_state)
 
+    def _get_settings_dialog(self, section):
+        from nxdrive.wui.settings import WebSettingsDialog
+        return WebSettingsDialog(self, section)
+
     @QtCore.pyqtSlot()
     def show_settings(self, section="Accounts"):
-        from nxdrive.wui.settings import WebSettingsDialog
-        self.webSettingsDialog = WebSettingsDialog(self, section)
-        self.webSettingsDialog.show()
+        if section is None:
+            section = "Accounts"
+        settings = self._get_unique_dialog("settings")
+        if settings is None:
+            settings = self._get_settings_dialog(section)
+            self._create_unique_dialog("settings", settings)
+        else:
+            settings.set_section(section)
+        self._show_window(settings)
+
+    def _show_window(self, window):
+        window.show()
+        window.raise_()
+
+    def _get_unique_dialog(self, name):
+        if name in self.uniqueDialogs:
+            return self.uniqueDialogs[name]
+        return None
+
+    def _destroy_dialog(self):
+        sender = self.sender()
+        name = str(sender.objectName())
+        if name in self.uniqueDialogs:
+            del self.uniqueDialogs[name]
+
+    def _create_unique_dialog(self, name, dialog):
+        self.uniqueDialogs[name] = dialog
+        dialog.setObjectName(name)
+        dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        dialog.destroyed.connect(self._destroy_dialog)
 
     @QtCore.pyqtSlot()
     def destroyed_filters_dialog(self):

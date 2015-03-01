@@ -1,0 +1,59 @@
+<form class="form-horizontal">
+  <div class="form-group">
+    <label for="localFolder" class="col-sm-2 control-label" translate>ENGINE_FOLDER</label>
+    <div class="col-sm-10">
+    	<div class="input-group">
+      <input ng-disabled="currentAccount.initialized" type="text" class="form-control" id="localFolder" placeholder="{{ 'ENGINE_SELECT_FOLDER_PLACEHOLDER' | translate }}" ng-model="currentAccount.local_folder">
+      <span class="input-group-addon" id="basic-addon2" ng-click="browse()" translate>ENGINE_FOLDER_BROWSE</span>
+      </div>
+    </div>
+  </div>
+  <span style="float: right; font-size:10px; margin-top: -10px;" ng-show="currentAccount.server_version">Server version : 7.1{{ currentAccount.server_version }}</span>
+  <div class="form-group">
+    <label for="serverURL" class="col-sm-2 control-label" translate>URL</label>
+    <div class="col-sm-10">
+      <input ng-disabled="currentAccount.initialized" type="text" class="form-control" id="serverURL" placeholder="{{ 'ENGINE_URL_PLACEHOLDER' | translate }}" ng-model="currentAccount.server_url">
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="username" class="col-sm-2 control-label" translate>USERNAME</label>
+    <div class="col-sm-10">
+      <input ng-disabled="currentAccount.initialized" type="text" class="form-control" id="username" placeholder="{{ 'ENGINE_USERNAME_PLACEHOLDER' | translate }}" ng-model="currentAccount.username">
+    </div>
+  </div>
+  <div class="form-group" ng-show="!currentAccount.initialized">
+    <label for="password" class="col-sm-2 control-label" translate>PASSWORD</label>
+    <div class="col-sm-10">
+      <input type="password" class="form-control" id="password" placeholder="{{ 'ENGINE_PASSWORD_PLACEHOLDER' | translate }}" ng-model="currentAccount.password">
+    </div>
+  </div>
+  <div class="form-group alert alert-danger" ng-show="currentAccount.metrics.invalid_credentials">
+    <label for="password" class="col-sm-2 control-label" translate>PASSWORD</label>
+    <div class="col-sm-10">
+      <p translate>INVALID_CREDENTIALS</p>
+      <div class="input-group">
+	      <input type="password" class="form-control" placeholder="{{ 'UPDATE_PASSWORD_PLACEHOLDER' | translate }}">
+	      <span class="input-group-btn">
+	        <button class="btn btn-default" type="button" translate>UPDATE_PASSWORD_BUTTON</button>
+	      </span>
+	   </div>
+    </div>
+  </div>
+  <div class="form-group" ng-show="!currentAccount.initialized">
+    <label for="name" class="col-sm-2 control-label" translate>NAME</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" id="name" placeholder="{{ 'ENGINE_NAME_PLACEHOLDER' | translate }}" ng-model="currentAccount.name">
+    </div>
+  </div>
+  <div class="form-group">
+    <div class="col-sm-offset-2 col-sm-10">
+      <!-- <button type="button" class="btn btn-default btn-primary" ng-show="currentAccount.initialized" translate>UPDATE</button> -->
+      <button type="button" ng-blur="unbindBlur()" id="unbindButton" class="btn btn-default" ng-click="unbindServer(this)" ng-show="currentAccount.uid != null" translate>DISCONNECT</button>
+      <button type="button" class="btn btn-default btn-primary" ng-show="!currentAccount.initialized" ng-disabled="!validForm()" ng-click="bindServer()" translate>CONNECT</button>
+      <button style="float:right;" type="button" class="btn btn-default" ng-show="currentAccount.uid != null" ng-click="filters()" translate>SELECT_SYNC_FOLDERS</button>
+    </div>
+  </div>
+  <div class="alert alert-{{ message_type }}" role="alert" ng-show="message != ''">
+  	 {{ message }}
+  </div>
+</form>

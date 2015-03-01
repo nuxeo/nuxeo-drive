@@ -13,10 +13,10 @@ log = get_logger(__name__)
 
 class WebSystrayApi(WebDriveApi):
 
-    @QtCore.pyqtSlot()
-    def show_settings(self):
+    @QtCore.pyqtSlot(str)
+    def show_settings(self, page):
         try:
-            super(WebSystrayApi, self).show_settings()
+            super(WebSystrayApi, self).show_settings(page)
             self._dialog.hide()
         except Exception as e:
             log.exception(e)

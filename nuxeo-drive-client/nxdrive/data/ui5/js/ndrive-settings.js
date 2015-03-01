@@ -1,5 +1,6 @@
 var SettingsController = function($scope, $interval, $translate) {
 	DriveController.call(this, $scope, $translate);
+	self = this;
 	$scope.accounts = [];
 	$scope.section = ""
 	$scope.local_folder = "";
@@ -21,24 +22,12 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.show_file_status = function () {
 		drive.show_file_status();
 	}
-	reinitNewAccount = function() {
+	$scope.reinitNewAccount = function() {
 		$scope.newAccount = {initialized: false};
 		$scope.newAccount.local_folder = drive.get_default_nuxeo_drive_folder();
 	}
 	$scope.bindServer = function() {
-		$scope.reinitMsgs();
-		res = drive.bind_server($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.username, $scope.password, $scope.currentAccount.name);
-		console.log("bind server result is " + res);
-		if (res == "") {
-			$scope.engines = angular.fromJson(drive.get_engines());
-			reinitNewAccount();
-			$scope.changeAccount($scope.engines[$scope.engines.length-1]);
-			$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
-		} else if (res == "UNAUTHORIZED" || res == "CONNECTION_REFUSED" || res == "CONNECTION_ERROR") {
-			$scope.setErrorMessage($translate.instant(res));
-		} else {
-			$scope.setErrorMessage($translate.instant("CONNECTION_UNKNOWN"));
-		}
+		self.bindServer($scope, $translate);
 	}
 	$scope.validForm = function() {
 		return ($scope.currentAccount.username != '' && $scope.currentAccount.password != ''
@@ -122,6 +111,19 @@ var SettingsController = function($scope, $interval, $translate) {
 		}
 	}
 	$scope.changeSection = function(section) {
+		console.log("Changing section to " + section);
+		if (section.length > 9 &&
+				section.substr(0,8) == "Accounts") {
+			uid = section.substr(9, section.length);
+			console.log("Changing section to " + section);
+			for (i = 0; i < $scope.engines.length; i++) {
+				if ($scope.engines[i].uid == uid) {
+					console.log("Find account of " + uid);
+					$scope.changeAccount($scope.engines[i]);
+				}
+			}
+			section = "Accounts";
+		}
 		if (section == $scope.section) {
 			return;
 		}
@@ -138,10 +140,12 @@ var SettingsController = function($scope, $interval, $translate) {
 		}
 		return "";
 	}
-	reinitNewAccount();
+	$scope.reinitNewAccount();
 	$scope.changeSection(drive.get_default_section());
 	if ($scope.engines.length > 0) {
-		$scope.changeAccount($scope.engines[0]);	
+		if ($scope.currentAccount == "") {
+			$scope.changeAccount($scope.engines[0]);
+		}
 	} else {
 		$scope.changeAccount($scope.newAccount);
 	}
@@ -149,3 +153,16 @@ var SettingsController = function($scope, $interval, $translate) {
 
 SettingsController.prototype = Object.create(DriveController.prototype);
 SettingsController.prototype.constructor = SettingsController;
+
+SettingsController.prototype.bindServer = function($scope, $translate) {
+	$scope.reinitMsgs();
+	res = drive.bind_server($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.username, $scope.currentAccount.password, $scope.currentAccount.name);
+	if (res == "") {
+		$scope.engines = angular.fromJson(drive.get_engines());
+		$scope.reinitNewAccount();
+		$scope.changeAccount($scope.engines[$scope.engines.length-1]);
+		$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
+	} else {
+		$scope.setErrorMessage($translate.instant(res));
+	}
+}

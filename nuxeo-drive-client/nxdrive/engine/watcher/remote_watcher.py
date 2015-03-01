@@ -13,7 +13,9 @@ from nxdrive.client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME
 from nxdrive.client.remote_file_system_client import RemoteFileInfo
 from nxdrive.engine.activity import Action
 from nxdrive.client.common import safe_filename
+from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.utils import path_join
+from urllib2 import HTTPError
 import os
 log = get_logger(__name__)
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
@@ -35,8 +37,11 @@ class RemoteWatcher(EngineWorker):
         self._last_event_log_id = self._dao.get_config('remote_last_event_log_id')
         self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
         self._last_remote_full_scan = self._dao.get_config('remote_last_full_scan')
-
-        self._client = engine.get_remote_client()
+        self._client = None
+        try:
+            self._client = engine.get_remote_client()
+        except Unauthorized:
+            self._engine.set_invalid_credentials()
         self._local_client = engine.get_local_client()
         self._metrics = dict()
         self._metrics['last_remote_scan_time'] = -1
@@ -54,7 +59,13 @@ class RemoteWatcher(EngineWorker):
         metrics['next_polling'] = self._current_interval
         return dict(metrics.items() + self._metrics.items())
 
+    @pyqtSlot()
+    def invalidate_client_cache(self):
+        self._client = self._engine.get_remote_client()
+
     def _execute(self):
+        if self._client is None:
+            self._client = self._engine.get_remote_client()
         if self._last_remote_full_scan is None:
             log.debug("Remote full scan")
             self._action = Action("Remote scanning")
@@ -242,6 +253,11 @@ class RemoteWatcher(EngineWorker):
             self.updated.emit()
         except ThreadInterrupt as e:
             raise e
+        except HTTPError as e:
+            if e.code == 401:
+                self._engine.set_invalid_credentials()
+            else:
+                log.exception(e)
         except Exception as e:
             log.exception(e)
         finally:

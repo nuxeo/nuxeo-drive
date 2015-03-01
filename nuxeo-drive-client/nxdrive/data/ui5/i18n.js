@@ -71,7 +71,10 @@ LABELS={
 		"SETTINGS_WINDOW_TITLE": "Nuxeo Drive - Settings",
 		"FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filters",
 		"ACTIVITY_WINDOW_TITLE": "Nuxeo Drive - Activities",
-		"LICENSE": "License"
+		"LICENSE": "License",
+		"UPDATE_PASSWORD_BUTTON": "Update",
+		"UPDATE_PASSWORD_PLACEHOLDER": "Enter your new password",
+		"INVALID_CREDENTIALS": "Invalid credentials"
 	},
 	"fr": {
 		"LANGUAGE": "Français",

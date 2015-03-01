@@ -126,7 +126,7 @@ class WebDriveApi(QtCore.QObject):
             return self._manager.get_tracker_id()
         except Exception as e:
             log.exception(e)
-            return None
+            return ""
 
     @QtCore.pyqtSlot(result=int)
     def get_log_level(self):
@@ -143,12 +143,35 @@ class WebDriveApi(QtCore.QObject):
         except Exception as e:
             log.exception(e)
 
+    @QtCore.pyqtSlot(result=str)
+    def get_appname(self):
+        try:
+            return self._manager.get_appname()
+        except Exception as e:
+            log.exception(e)
+
     @QtCore.pyqtSlot(str)
     def set_language(self, locale):
         try:
             Translator.set(str(locale))
         except Exception as e:
             log.exception(e)
+
+    @QtCore.pyqtSlot()
+    def discard_notification(self, id):
+        try:
+            self._manager.get_notification_service().discard_notification(id)
+        except Exception as e:
+            log.exception(e)
+            return ""
+
+    @QtCore.pyqtSlot(str, result=str)
+    def get_notifications(self, engine_uid):
+        try:
+            return self._json(self._manager.get_notification_service().get_notifications(engine_uid))
+        except Exception as e:
+            log.exception(e)
+            return ""
 
     @QtCore.pyqtSlot(result=str)
     def get_languages(self):
@@ -346,10 +369,11 @@ class WebDriveApi(QtCore.QObject):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot()
-    def show_settings(self):
+    @QtCore.pyqtSlot(str)
+    def show_settings(self, page=None):
         try:
-            self._application.show_settings()
+            log.debug("show settings on page %s", page)
+            self._application.show_settings(page)
         except Exception as e:
             log.exception(e)
 
@@ -364,7 +388,9 @@ class WebDriveApi(QtCore.QObject):
     def get_engines(self):
         try:
             result = []
-            for _, engine in self._manager.get_engines().iteritems():
+            for engine in self._manager.get_engines().values():
+                if engine is None:
+                    continue
                 result.append(self._export_engine(engine))
             return self._json(result)
         except Exception as e:

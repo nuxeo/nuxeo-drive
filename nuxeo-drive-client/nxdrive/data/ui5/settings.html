@@ -17,7 +17,7 @@ drive_init(function () {
   <div class="container">
   	<div class="navbar-header">
   	  <a class="navbar-brand" href="#">
-        <img alt="Brand" src="imgs/nuxeo_logo.png" height="20">
+        <img alt="Brand" src="imgs/{{ appname }}.png" height="20">
       </a>
     </div>
   	<ul class="nav navbar-nav">
@@ -29,158 +29,15 @@ drive_init(function () {
   </div>
 </nav>
 <div class="container-fluid" style="padding-top: 80px;">
-<div class="container" ng-show="section == 'General'">
-	<form class="form-horizontal">
-	  <div class="form-group">
-	    <label for="languageSelect" class="col-sm-2 control-label" translate>LANGUAGE_SELECT</label>
-	    <div class="col-sm-8">
-	      <select class="form-control" id="languageSelect" ng-model="locale" ng-change="setLocale()">
-	      	<option value="{{ lang[0] }}" ng-repeat="lang in languages" ng-selected="lang[0] == locale">{{ lang[1] }}</option>
-	      </select>
-	    </div>
-	  </div>
-	</form>
-	<div class="checkbox">
-	<label>
-		<input type="checkbox" value="" ng-model="auto_start" ng-click="setAutoStart()">
-		<span translate>AUTOSTART</span>
-	</label>
-	</div>
-	<div class="checkbox">
-	<label>
-		<input type="checkbox" value="" ng-model="auto_update" ng-click="setAutoUpdate()">
-		<span translate>AUTOUPDATE</span>
-	</label>
-	</div>
-	<div class="checkbox">
-	<label>
-		<input type="checkbox" value="" ng-model="tracking" ng-click="setTracking()">
-		<span translate>TRACKER</span>
-	</label>
-	</div>
+<div class="container" ng-show="section == 'General'" ng-include="'templates/settings-general.html'">
+	
 </div>
-<div class="row" ng-show="section == 'Accounts'">
-<div class="col-xs-3" style="border-right: 1px solid #ccc; height: 100%; margin-top: -80px; padding-top: 60px;">
-<ul class="nav nav-pills nav-stacked" style="width:165px;">
-  <li ng-repeat="engine in engines" ng-class="getAccountClass(engine)"><a ng-click="changeAccount(engine)" href="">{{engine.name}}</a></li>
-  <li ng-class="getAccountClass(newAccount)"><a ng-click="changeAccount(newAccount)" href="" class="success"><span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<i translate>NEW_ENGINE</i></a></li>
-</ul>
+<div class="row" ng-show="section == 'Accounts'" ng-include="'templates/settings-accounts.html'">
 </div>
-<div class="col-xs-9">
-<form class="form-horizontal">
-  <div class="form-group">
-    <label for="localFolder" class="col-sm-2 control-label" translate>ENGINE_FOLDER</label>
-    <div class="col-sm-10">
-    	<div class="input-group">
-      <input ng-disabled="currentAccount.initialized" type="text" class="form-control" id="localFolder" placeholder="{{ 'ENGINE_SELECT_FOLDER_PLACEHOLDER' | translate }}" ng-model="currentAccount.local_folder">
-      <span class="input-group-addon" id="basic-addon2" ng-click="browse()" translate>ENGINE_FOLDER_BROWSE</span>
-      </div>
-    </div>
-  </div>
-  <span style="float: right; font-size:10px; margin-top: -10px;" ng-show="currentAccount.server_version">Server version : 7.1{{ currentAccount.server_version }}</span>
-  <div class="form-group">
-    <label for="serverURL" class="col-sm-2 control-label" translate>URL</label>
-    <div class="col-sm-10">
-      <input ng-disabled="currentAccount.initialized" type="text" class="form-control" id="serverURL" placeholder="{{ 'ENGINE_URL_PLACEHOLDER' | translate }}" ng-model="currentAccount.server_url">
-    </div>
-  </div>
-  <div class="form-group">
-    <label for="username" class="col-sm-2 control-label" translate>USERNAME</label>
-    <div class="col-sm-10">
-      <input ng-disabled="currentAccount.initialized" type="text" class="form-control" id="username" placeholder="{{ 'ENGINE_USERNAME_PLACEHOLDER' | translate }}" ng-model="currentAccount.username">
-    </div>
-  </div>
-  <div class="form-group">
-    <label for="password" class="col-sm-2 control-label" translate>PASSWORD</label>
-    <div class="col-sm-10">
-      <input type="password" class="form-control" id="password" placeholder="{{ 'ENGINE_PASSWORD_PLACEHOLDER' | translate }}" ng-model="password">
-    </div>
-  </div>
-  <div class="form-group">
-    <label for="name" class="col-sm-2 control-label" translate>NAME</label>
-    <div class="col-sm-10">
-      <input type="text" class="form-control" id="name" placeholder="{{ 'ENGINE_NAME_PLACEHOLDER' | translate }}" ng-model="currentAccount.name">
-    </div>
-  </div>
-  <div class="form-group">
-    <div class="col-sm-offset-2 col-sm-10">
-      <button type="button" class="btn btn-default btn-primary" ng-show="currentAccount.initialized" translate>UPDATE</button>
-      <button type="button" ng-blur="unbindBlur()" id="unbindButton" class="btn btn-default" ng-click="unbindServer(this)" ng-show="currentAccount.uid != null" translate>DISCONNECT</button>
-      <button type="button" class="btn btn-default btn-primary" ng-show="!currentAccount.initialized" ng-disabled="!validForm()" ng-click="bindServer()" translate>CONNECT</button>
-      <button style="float:right;" type="button" class="btn btn-default" ng-show="currentAccount.uid != null" ng-click="filters()" translate>SELECT_SYNC_FOLDERS</button>
-    </div>
-  </div>
-  <div class="alert alert-{{ message_type }}" role="alert" ng-show="message != ''">
-  	 {{ message }}
-  </div>
-</form>
+<div class="container" style="width: 680px;" ng-show="section == 'Advanced'" ng-include="'templates/settings-advanced.html'">
+
 </div>
-</div>
-<div class="container" style="width: 680px;" ng-show="section == 'Advanced'">
-	<form class="form-horizontal">
-	  <div class="form-group">
-	    <label for="logLevel" class="col-sm-2 control-label" translate>LOG_LEVEL</label>
-	    <div class="col-sm-10">
-	      <select class="form-control" id="logLevel" ng-model="log_level" ng-change="setLogLevel()">
-	      	<option value="50" translate>LOG_CRITICAL</option>
-	      	<option value="40" translate>LOG_ERROR</option>
-	      	<option value="30" translate>LOG_WARNING</option>
-	      	<option value="20" translate>LOG_INFO</option>
-	      	<option value="10" translate>LOG_DEBUG</option>
-	      	<option value="5" translate>LOG_TRACE</option>
-	      </select>
-	    </div>
-	  </div>
-	  <div class="form-group">
-	    <label for="proxyType" class="col-sm-2 control-label" translate>PROXY</label>
-	    <div class="col-sm-10">
-	      <select class="form-control" id="proxyType" ng-model="proxy.config">
-	      	<option value="None" translate>NONE</option>
-	      	<option value="System" translate>SYSTEM</option>
-	      	<option value="Manual" translate>MANUAL</option>
-	      </select>
-	    </div>
-	  </div>
-	  <div class="form-group" ng-show="proxy.config == 'Manual'">
-	    <label for="name" class="col-sm-2 control-label" translate>HOST</label>
-	    <div class="col-sm-10">
-	      <input type="text" class="form-control" id="name" placeholder="{{ 'PROXY_HOST_PLACEHOLDER' | translate }}" ng-model="proxy.server">
-	    </div>
-	  </div>
-	  <div class="checkbox" ng-show="proxy.config == 'Manual'">
-		<label>
-			<input type="checkbox" value="" ng-model="proxy.authenticated">
-			<span translate>REQUIRES_AUTHENTICATION</span>
-		</label>
-	  </div>
-	  <div class="form-group" ng-show="proxy.config == 'Manual' && proxy.authenticated">
-	    <label for="proxyUsername" class="col-sm-2 control-label" translate>USERNAME</label>
-	    <div class="col-sm-10">
-	      <input type="text" class="form-control" id="proxyUsername" placeholder="{{ 'PROXY_USERNAME_PLACEHOLDER' | translate }}" ng-model="proxy.username">
-	    </div>
-	  </div>
-	  <div class="form-group" ng-show="proxy.config == 'Manual' && proxy.authenticated">
-	    <label for="proxyPassword" class="col-sm-2 control-label" translate>PASSWORD</label>
-	    <div class="col-sm-10">
-	      <input type="password" class="form-control" id="proxyPassword" placeholder="{{ 'PROXY_PASSWORD_PLACEHOLDER' | translate }}" ng-model="proxy.password">
-	    </div>
-	  </div>
-	  <button type="button" class="btn btn-default btn-primary pull-right" ng-click="saveProxy()" translate>APPLY</button>
-	</form>
-	<button type="button" class="btn btn-default" ng-click="show_activities()" translate>SHOW_ACTIVITY_WINDOW</button>
-	<button type="button" class="btn btn-default" ng-click="show_file_status()" translate>SHOW_FILE_STATUS</button>
-</div>
-<div class="container" ng-show="section == 'About'">
-	<table>
-		<tr>
-			<td><img src="imgs/nuxeo_drive_icon_48.png" /></td>
-			<td style="padding-left: 20px;"><p>Nuxeo Drive : <script>document.write(drive.get_version());</script></p>
-			<p>GitHub : <a href="" ng-click="open_local('https://github.com/nuxeo/nuxeo-drive')">https://github.com/nuxeo/nuxeo-drive&nbsp;<img src="imgs/github.png" /></a></p></td>
-		</tr>
-	</table>
-	<p><span translate>LICENSE</span> :</p>
-	<pre style="overflow: auto; height: 220px; width: 640px;" ng-include="'GPL.txt'">
-	</pre>
+<div class="container" ng-show="section == 'About'" ng-include="'templates/settings-about.html'">
 </div>
 </div>
 </body>

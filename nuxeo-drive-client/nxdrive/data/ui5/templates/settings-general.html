@@ -1,0 +1,28 @@
+<form class="form-horizontal">
+	  <div class="form-group">
+	    <label for="languageSelect" class="col-sm-2 control-label" translate>LANGUAGE_SELECT</label>
+	    <div class="col-sm-8">
+	      <select class="form-control" id="languageSelect" ng-model="locale" ng-change="setLocale()">
+	      	<option value="{{ lang[0] }}" ng-repeat="lang in languages" ng-selected="lang[0] == locale">{{ lang[1] }}</option>
+	      </select>
+	    </div>
+	  </div>
+	</form>
+	<div class="checkbox">
+	<label>
+		<input type="checkbox" value="" ng-model="auto_start" ng-click="setAutoStart()">
+		<span translate>AUTOSTART</span>
+	</label>
+	</div>
+	<div class="checkbox">
+	<label>
+		<input type="checkbox" value="" ng-model="auto_update" ng-click="setAutoUpdate()">
+		<span translate>AUTOUPDATE</span>
+	</label>
+	</div>
+	<div class="checkbox">
+	<label>
+		<input type="checkbox" value="" ng-model="tracking" ng-click="setTracking()">
+		<span translate>TRACKER</span>
+	</label>
+	</div>

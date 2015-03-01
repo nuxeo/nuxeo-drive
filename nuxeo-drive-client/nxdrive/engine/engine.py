@@ -99,6 +99,8 @@ class Engine(QObject):
         self.remote_fs_client_factory = remote_fs_client_factory
         # Used for FS synchronization operations
         self.remote_filtered_fs_client_factory = remote_filtered_fs_client_factory
+        # Stop if invalid credentials
+        self.invalidAuthentication.connect(self.stop)
 
         self.timeout = 30
         self._handshake_timeout = 60
@@ -115,6 +117,7 @@ class Engine(QObject):
         self._stopped = True
         self._pause = False
         self._sync_started = False
+        self._invalid_credentials = False
         self._local = local()
         self._threads = list()
         self._client_cache_timestamps = dict()
@@ -142,6 +145,7 @@ class Engine(QObject):
         self._dao.newConflict.connect(self.newConflict)
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
+
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id):
@@ -284,8 +288,14 @@ class Engine(QObject):
     def get_local_folder(self):
         return self._local_folder
 
+    def set_invalid_credentials(self, value=True):
+        changed = self._invalid_credentials != value
+        self._invalid_credentials = value
+        if value and changed:
+            self.invalidAuthentication.emit()
+
     def has_invalid_credentials(self):
-        return False
+        return self._invalid_credentials
 
     def get_queue_manager(self):
         return self._queue_manager
@@ -373,6 +383,7 @@ class Engine(QObject):
         metrics["error_files"] = self._dao.get_error_count()
         metrics["conflicted_files"] = self._dao.get_conflict_count()
         metrics["files_size"] = self._dao.get_global_size()
+        metrics["invalid_credentials"] = self._invalid_credentials
         return metrics
 
     def is_stopped(self):
@@ -486,6 +497,8 @@ class Engine(QObject):
 
     def get_remote_client(self, filtered=True):
         """Return a client for the FileSystem abstraction."""
+        if self._invalid_credentials:
+            return None
         cache = self._get_client_cache()
 
         cache_key = (self._manager.device_id, filtered)

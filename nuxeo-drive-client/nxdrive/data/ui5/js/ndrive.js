@@ -72,9 +72,13 @@ DriveController = function($scope, $translate) {
 	$scope.setAutoUpdate = this.setAutoUpdate;
 	$scope.quit = this.quit;
 	$scope.show_settings = this.showSettings;
+	$scope.appname = this.getAppName();
 }
-DriveController.prototype.showSettings = function() {
-	drive.show_settings();
+DriveController.prototype.getAppName = function() {
+	return drive.get_appname();
+}
+DriveController.prototype.showSettings = function(section) {
+	drive.show_settings(section);
 }
 DriveController.prototype.quit = function() {
 	drive.quit();

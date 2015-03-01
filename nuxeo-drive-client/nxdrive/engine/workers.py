@@ -6,6 +6,7 @@ from threading import current_thread
 from time import sleep, time
 from nxdrive.engine.activity import Action, IdleAction
 from nxdrive.logging_config import get_logger
+from urllib2 import HTTPError
 
 log = get_logger(__name__)
 
@@ -146,7 +147,14 @@ class EngineWorker(Worker):
         super(EngineWorker, self).__init__(thread, name)
         self._engine = engine
 
+    def _reset_clients(self):
+        pass
+
     def _clean(self, reason, e=None):
+        if e is not None and type(e) == HTTPError:
+            if e.code == 401:
+                self._engine.invalidAuthentication.emit()
+                self._reset_clients()
         self._engine.get_dao().dispose_thread()
 
 

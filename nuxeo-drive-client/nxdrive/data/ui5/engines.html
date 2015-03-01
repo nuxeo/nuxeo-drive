@@ -12,6 +12,7 @@ drive_init(function () {
 		$scope.engines = angular.fromJson(drive.get_engines());
 		$scope.engine = null;
 		$scope.metrics = null;
+		$scope.appname = drive.get_appname();
 		$scope.app_update = angular.fromJson(drive.get_update_status());
 		$scope.metrics_name = null;
 		$scope.current_actions = [];
@@ -139,7 +140,7 @@ drive_init(function () {
   <div class="container">
   	<div class="navbar-header">
   	  <a class="navbar-brand" href="#">
-        <img alt="Brand" src="imgs/nuxeo_logo.png" height="20">
+        <img alt="Brand" src="imgs/{{ appname }}.png" height="20">
         Debug
       </a>
     </div>

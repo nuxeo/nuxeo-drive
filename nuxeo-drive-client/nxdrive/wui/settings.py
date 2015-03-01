@@ -56,17 +56,23 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
         return ""
 
+    def _bind_server(self, local_folder, url, username, password, name):
+        local_folder = str(local_folder)
+        url = str(url)
+        username = str(username)
+        password = str(password)
+        name = str(name)
+        if name == '':
+            name = None
+        log.debug("Trying to bind with %s/%s/%s/%s/%s", local_folder, url, username, password, name)
+        self._manager.bind_server(local_folder, url, username, password, name)
+        return ""
+
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
     def bind_server(self, local_folder, url, username, password, name):
         try:
-            local_folder = str(local_folder)
-            url = str(url)
-            username = str(username)
-            password = str(password)
-            name = str(name)
-            if name == '':
-                name = None
-            self._manager.bind_server(local_folder, url, username, password, name)
+            # Allow to override for other exception handling
+            return self._bind_server(local_folder, url, username, password, name)
         except Unauthorized:
             return "UNAUTHORIZED"
         except urllib2.URLError as e:
@@ -78,8 +84,7 @@ class WebSettingsApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
             # Map error here
-            return "ERROR"
-        return ""
+            return "CONNECTION_UNKNOWN"
 
     @QtCore.pyqtSlot(result=str)
     def get_proxy_settings(self):
@@ -130,3 +135,7 @@ class WebSettingsDialog(WebDialog):
         super(WebSettingsDialog, self).__init__(application, "settings.html",
                                                  api=WebSettingsApi(application),
                                                 title=Translator.get("SETTINGS_WINDOW_TITLE"))
+
+    def set_section(self, section):
+        self._section = section
+        self._view.reload()
