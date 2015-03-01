@@ -61,9 +61,10 @@ class Processor(EngineWorker):
     def _execute(self):
         self._current_metrics = dict()
         self._current_item = self._get_item()
-        local_client = self._engine.get_local_client()
-        remote_client = self._engine.get_remote_client()
         while (self._current_item != None):
+            # Take client every time as it is cached in engine
+            local_client = self._engine.get_local_client()
+            remote_client = self._engine.get_remote_client()
             doc_pair = self.acquire_state(self._current_item.id)
             log.debug('Executing processor on %r', doc_pair)
             self._current_doc_pair = doc_pair

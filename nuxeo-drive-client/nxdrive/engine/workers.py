@@ -153,7 +153,7 @@ class EngineWorker(Worker):
     def _clean(self, reason, e=None):
         if e is not None and type(e) == HTTPError:
             if e.code == 401:
-                self._engine.invalidAuthentication.emit()
+                self._engine.set_invalid_credentials(True)
                 self._reset_clients()
         self._engine.get_dao().dispose_thread()
 

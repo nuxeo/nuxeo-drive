@@ -61,7 +61,7 @@ class RemoteWatcher(EngineWorker):
 
     @pyqtSlot()
     def invalidate_client_cache(self):
-        self._client = self._engine.get_remote_client()
+        self._client = None
 
     def _execute(self):
         if self._client is None:
@@ -245,6 +245,7 @@ class RemoteWatcher(EngineWorker):
         return child_pair, True
 
     def _handle_changes(self):
+        self._client = self._engine.get_remote_client()
         log.debug("Handle remote changes")
         try:
             self._action = Action("Handle remote changes")

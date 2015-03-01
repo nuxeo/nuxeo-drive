@@ -125,6 +125,8 @@ DriveController.prototype.updatePassword = function($scope, uid, password) {
 	if (res == "") {
 		$scope.update_password_error = null;
 		$scope.engines = this.getEngines();
+		// Waiting for better solution
+		top.location.reload();
 	} else {
 		$scope.update_password_error = res;
 		$scope.password = "";

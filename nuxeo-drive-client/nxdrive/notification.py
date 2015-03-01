@@ -22,8 +22,10 @@ class Notification(object):
             self._uid = uid
         else:
             self._uid = notification_type
+            if engine is not None:
+                self._uid = self._uid + "_" + self._engine
             if not self._unique:
-                self._uid = self.uid + "_" + int(time.time())
+                self._uid = self._uid + "_" + str(int(time.time()))
         # For futur usage
         self._volatile = True
         self._replacements = dict()
@@ -113,5 +115,5 @@ class DefaultNotificationService(NotificationService):
     def _invalidAuthentication(self):
         engine_uid = self.sender()._uid
         notification = Notification("INVALID_CREDENTIALS", engine=engine_uid,
-                                        level=Notification.LEVEL_ERROR)
+                                        level=Notification.LEVEL_ERROR, unique=True)
         self.send_notification(notification)

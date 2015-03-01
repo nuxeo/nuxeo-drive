@@ -17,7 +17,7 @@ class WebSystrayApi(WebDriveApi):
     def show_settings(self, page):
         try:
             super(WebSystrayApi, self).show_settings(page)
-            self._dialog.hide()
+            self._dialog.close()
         except Exception as e:
             log.exception(e)
 
@@ -25,7 +25,7 @@ class WebSystrayApi(WebDriveApi):
     def open_remote(self, uid):
         try:
             res = super(WebSystrayApi, self).open_remote(uid)
-            self._dialog.hide()
+            self._dialog.close()
             return res
         except Exception as e:
             log.exception(e)
@@ -35,7 +35,7 @@ class WebSystrayApi(WebDriveApi):
     def open_local(self, uid, path):
         try:
             res = super(WebSystrayApi, self).open_local(uid, path)
-            self._dialog.hide()
+            self._dialog.close()
             return res
         except Exception as e:
             log.exception(e)
@@ -45,7 +45,7 @@ class WebSystrayApi(WebDriveApi):
     def open_help(self):
         try:
             self._manager.open_help()
-            self._dialog.hide()
+            self._dialog.close()
         except Exception as e:
             log.exception(e)
 
@@ -53,7 +53,7 @@ class WebSystrayApi(WebDriveApi):
     def open_about(self):
         try:
             self._application.show_settings(section="About")
-            self._dialog.hide()
+            self._dialog.close()
         except Exception as e:
             log.exception(e)
 
@@ -61,7 +61,7 @@ class WebSystrayApi(WebDriveApi):
     def suspend(self):
         try:
             self._manager.suspend()
-            self._dialog.hide()
+            self._dialog.close()
         except Exception as e:
             log.exception(e)
 
@@ -78,7 +78,7 @@ class WebSystrayApi(WebDriveApi):
     def resume(self):
         try:
             self._manager.resume()
-            self._dialog.hide()
+            self._dialog.close()
         except Exception as e:
             log.exception(e)
 
