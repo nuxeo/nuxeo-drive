@@ -54,7 +54,7 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
         return ""
 
-    def _bind_server(self, local_folder, url, username, password, name):
+    def _bind_server(self, local_folder, url, username, password, name, start_engine=True):
         local_folder = str(local_folder)
         url = str(url)
         username = str(username)
@@ -62,7 +62,7 @@ class WebSettingsApi(WebDriveApi):
         name = str(name)
         if name == '':
             name = None
-        self._manager.bind_server(local_folder, url, username, password, name)
+        self._manager.bind_server(local_folder, url, username, password, name, start_engine)
         return ""
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
