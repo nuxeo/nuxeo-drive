@@ -74,7 +74,8 @@ LABELS={
 		"LICENSE": "License",
 		"UPDATE_PASSWORD_BUTTON": "Update",
 		"UPDATE_PASSWORD_PLACEHOLDER": "Enter your new password",
-		"INVALID_CREDENTIALS": "Invalid credentials"
+		"INVALID_CREDENTIALS": "Invalid credentials",
+		"FOLDER_USED": "Folder in use by another engine"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -151,6 +152,7 @@ LABELS={
 		"LICENSE": "License",
 		"UPDATE_PASSWORD_BUTTON": "Mettre à jour",
 		"UPDATE_PASSWORD_PLACEHOLDER": "Entrer votre mot de passe",
-		"INVALID_CREDENTIALS": "Utilisateur ou mot de passe invalide"
+		"INVALID_CREDENTIALS": "Utilisateur ou mot de passe invalide",
+		"FOLDER_USED": "Un autre moteur utilise déjà ce répertoire"
 	}
 }

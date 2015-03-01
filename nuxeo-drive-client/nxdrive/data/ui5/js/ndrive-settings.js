@@ -31,7 +31,7 @@ var SettingsController = function($scope, $interval, $translate) {
 		self.bindServer($scope, $translate);
 	}
 	$scope.validForm = function() {
-		return ($scope.currentAccount.username != '' && $scope.currentAccount.password != ''
+		return ($scope.currentAccount.username != '' && $scope.password != ''
 			&& $scope.currentAccount.local_folder != '' && $scope.currentAccount.server_url != '');
 	}
 	$scope.browse = function() {

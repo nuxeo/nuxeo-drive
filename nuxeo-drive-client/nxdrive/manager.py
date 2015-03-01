@@ -31,6 +31,10 @@ except Exception as e:
     pass
 
 
+class FolderAlreadyUsed(Exception):
+    pass
+
+
 class EngineTypeMissing(Exception):
     pass
 
@@ -428,7 +432,7 @@ class Manager(QtCore.QObject):
                     my_documents = unicode(my_documents.decode(ENCODING))
 
             if os.path.exists(my_documents):
-                nuxeo_drive_folder = os.path.join(my_documents,
+                nuxeo_drive_folder = self._increment_local_folder(my_documents,
                                                   self._get_default_nuxeo_drive_name())
                 log.info("Will use '%s' as default Nuxeo Drive folder location"
                          " under Windows", nuxeo_drive_folder)
@@ -437,10 +441,19 @@ class Manager(QtCore.QObject):
         # Fall back on home folder otherwise
         user_home = os.path.expanduser('~')
         user_home = unicode(user_home.decode(ENCODING))
-        nuxeo_drive_folder = os.path.join(user_home, self._get_default_nuxeo_drive_name())
+        nuxeo_drive_folder = self._increment_local_folder(user_home, self._get_default_nuxeo_drive_name())
         log.info("Will use '%s' as default Nuxeo Drive folder location",
                  nuxeo_drive_folder)
         return nuxeo_drive_folder
+
+    def _increment_local_folder(self, basefolder, name):
+        nuxeo_drive_folder = os.path.join(basefolder, self._get_default_nuxeo_drive_name())
+        num = 2
+        while (self._check_local_folder_available(nuxeo_drive_folder)):
+            nuxeo_drive_folder = os.path.join(basefolder, self._get_default_nuxeo_drive_name() + " " + str(num))
+            num = num + 1
+            if num > 10:
+                return ""
 
     def get_configuration_folder(self):
         return self.nxdrive_home
@@ -603,8 +616,21 @@ class Manager(QtCore.QObject):
         binder.url = url
         return self.bind_engine(self._get_default_server_type(), local_folder, name, binder, starts=start_engine)
 
+    def _check_local_folder_available(self, local_folder):
+        if not local_folder.endswith('/'):
+            local_folder = local_folder + '/'
+        for engine in self._engine_definitions:
+            other = engine.local_folder
+            if not other.endswith('/'):
+                other = other + '/'
+            if (other.startswith(local_folder) or local_folder.startswith(other)):
+                return False
+        return True
+
     def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
         """Bind a local folder to a remote nuxeo server"""
+        if not self._check_local_folder_available(local_folder):
+            raise FolderAlreadyUsed()
         if not engine_type in self._engine_types:
             raise EngineTypeMissing()
         if self._engines is None:

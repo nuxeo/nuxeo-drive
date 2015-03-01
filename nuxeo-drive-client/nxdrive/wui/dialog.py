@@ -10,6 +10,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import FileAction
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.wui.translator import Translator
+from nxdrive.manager import FolderAlreadyUsed
 import urllib2
 import json
 log = get_logger(__name__)
@@ -127,6 +128,8 @@ class WebDriveApi(QtCore.QObject):
             if engine is None:
                 return ""
             return self._update_password(engine, password)
+        except FolderAlreadyUsed:
+            return "FOLDER_USED"
         except Unauthorized:
             return "UNAUTHORIZED"
         except urllib2.URLError as e:

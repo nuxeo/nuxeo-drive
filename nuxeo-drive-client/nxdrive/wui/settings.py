@@ -8,7 +8,7 @@ from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
 
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
-from nxdrive.manager import ProxySettings
+from nxdrive.manager import ProxySettings, FolderAlreadyUsed
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.wui.translator import Translator
 import urllib2
@@ -64,7 +64,6 @@ class WebSettingsApi(WebDriveApi):
         name = str(name)
         if name == '':
             name = None
-        log.debug("Trying to bind with %s/%s/%s/%s/%s", local_folder, url, username, password, name)
         self._manager.bind_server(local_folder, url, username, password, name)
         return ""
 
@@ -75,6 +74,8 @@ class WebSettingsApi(WebDriveApi):
             return self._bind_server(local_folder, url, username, password, name)
         except Unauthorized:
             return "UNAUTHORIZED"
+        except FolderAlreadyUsed:
+            return "FOLDER_USED"
         except urllib2.URLError as e:
             if e.errno == 61:
                 return "CONNECTION_REFUSED"
