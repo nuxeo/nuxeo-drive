@@ -29,9 +29,7 @@ class WebSettingsApi(WebDriveApi):
     @QtCore.pyqtSlot(result=str)
     def get_default_nuxeo_drive_folder(self):
         try:
-            from nxdrive.utils import default_nuxeo_drive_folder
-            folder = default_nuxeo_drive_folder()
-            # TO_REVIEW Must change if already used
+            folder = self._manager.get_default_nuxeo_drive_folder()
             return folder
         except Exception as e:
             log.exception(e)

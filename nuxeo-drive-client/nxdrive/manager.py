@@ -390,7 +390,7 @@ class Manager(QtCore.QObject):
     def _get_default_nuxeo_drive_name(self):
         return 'Nuxeo Drive'
 
-    def _get_default_nuxeo_drive_folder(self):
+    def get_default_nuxeo_drive_folder(self):
         """Find a reasonable location for the root Nuxeo Drive folder
 
         This folder is user specific, typically under the home folder.
@@ -449,11 +449,12 @@ class Manager(QtCore.QObject):
     def _increment_local_folder(self, basefolder, name):
         nuxeo_drive_folder = os.path.join(basefolder, self._get_default_nuxeo_drive_name())
         num = 2
-        while (self._check_local_folder_available(nuxeo_drive_folder)):
+        while (not self._check_local_folder_available(nuxeo_drive_folder)):
             nuxeo_drive_folder = os.path.join(basefolder, self._get_default_nuxeo_drive_name() + " " + str(num))
             num = num + 1
             if num > 10:
                 return ""
+        return nuxeo_drive_folder
 
     def get_configuration_folder(self):
         return self.nxdrive_home
