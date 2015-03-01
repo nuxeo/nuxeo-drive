@@ -78,6 +78,7 @@ class Application(QApplication):
 
     def __init__(self, controller, options, argv=()):
         super(Application, self).__init__(list(argv))
+        self.setQuitOnLastWindowClosed(False)
         self.manager = controller
         self.options = options
         self.mainEngine = None

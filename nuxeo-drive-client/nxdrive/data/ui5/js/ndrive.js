@@ -73,9 +73,13 @@ DriveController = function($scope, $translate) {
 	$scope.quit = this.quit;
 	$scope.show_settings = this.showSettings;
 	$scope.appname = this.getAppName();
+	$scope.getTemplate = this.getTemplate;
 }
 DriveController.prototype.getAppName = function() {
 	return drive.get_appname();
+}
+DriveController.prototype.getTemplate = function(name) {
+	return 'templates/' + name + '.html';
 }
 DriveController.prototype.showSettings = function(section) {
 	drive.show_settings(section);

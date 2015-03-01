@@ -1,6 +1,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<script src="js/templates.js"></script>
 <script src="js/ndrive.js"></script>
 <script>
 drive_init(function () {
@@ -29,15 +30,15 @@ drive_init(function () {
   </div>
 </nav>
 <div class="container-fluid" style="padding-top: 80px;">
-<div class="container" ng-show="section == 'General'" ng-include="'templates/settings-general.html'">
+<div class="container" ng-show="section == 'General'" ng-include="getTemplate('settings-general')">
 	
 </div>
-<div class="row" ng-show="section == 'Accounts'" ng-include="'templates/settings-accounts.html'">
+<div class="row" ng-show="section == 'Accounts'" ng-include="getTemplate('settings-accounts')">
 </div>
-<div class="container" style="width: 680px;" ng-show="section == 'Advanced'" ng-include="'templates/settings-advanced.html'">
+<div class="container" style="width: 680px;" ng-show="section == 'Advanced'" ng-include="getTemplate('settings-advanced')">
 
 </div>
-<div class="container" ng-show="section == 'About'" ng-include="'templates/settings-about.html'">
+<div class="container" ng-show="section == 'About'" ng-include="getTemplate('settings-about')">
 </div>
 </div>
 </body>
