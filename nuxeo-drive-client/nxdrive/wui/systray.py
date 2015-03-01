@@ -112,7 +112,6 @@ class WebSystrayView(WebDialog):
         Constructor
         '''
         super(WebSystrayView, self).__init__(application, "systray.html", api=WebSystrayApi(application, self))
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
         self._icon = icon
         self._view.setFocusProxy(self)
         self.resize(300, 370)

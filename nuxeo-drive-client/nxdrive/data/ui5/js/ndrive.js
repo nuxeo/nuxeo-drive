@@ -37,6 +37,16 @@ function drive_module(name) {
 		return null;
 	}
 	app = angular.module(name, ['pascalprecht.translate']);
+	app.directive('driveInclude', function($http, $templateCache, $compile) {
+	    return function(scope, element, attrs) {
+	    	// Not nicest way
+	        var templatePath = eval("scope."+attrs.driveInclude);
+	        $http.get(templatePath, { cache: $templateCache }).success(function(response) {
+	            var contents = element.html(response).contents();
+	            $compile(contents)(scope);
+	        });
+	    };
+	});
 	app.config(function ($translateProvider) {
 		languages = angular.fromJson(drive.get_languages());
 		for (i=0; i<languages.length; i++) {
@@ -63,6 +73,7 @@ if (tracker != "") {
 // Default controller
 DriveController = function($scope, $translate) {
 	// Map default drive API
+	self = this;
 	$scope.engines = this.getEngines();
 	$scope.open_remote = this.openRemote;
 	$scope.open_local = this.openLocal;
@@ -70,6 +81,10 @@ DriveController = function($scope, $translate) {
 	$scope.auto_update = this.getAutoUpdate();
 	$scope.get_update_status = this.getUpdateStatus;
 	$scope.setAutoUpdate = this.setAutoUpdate;
+	$scope.update_password = function(uid, password) {
+		$scope.update_password_error = "CONNECTING";
+		self.updatePassword($scope, uid, password);
+	}
 	$scope.quit = this.quit;
 	$scope.show_settings = this.showSettings;
 	$scope.appname = this.getAppName();
@@ -104,6 +119,16 @@ DriveController.prototype.getEngines = function() {
 }
 DriveController.prototype.appUpdate = function(version) {
 	drive.app_update(version);
+}
+DriveController.prototype.updatePassword = function($scope, uid, password) {
+	res = drive.update_password(uid, password);
+	if (res == "") {
+		$scope.update_password_error = null;
+		$scope.engines = this.getEngines();
+	} else {
+		$scope.update_password_error = res;
+		$scope.password = "";
+	}
 }
 DriveController.prototype.getUpdateStatus = function() {
 	return angular.fromJson(drive.get_update_status());

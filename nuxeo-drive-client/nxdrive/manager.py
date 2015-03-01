@@ -195,16 +195,20 @@ class Manager(QtCore.QObject):
         if self.device_id is None:
             self.generate_device_id()
         self.client_version = __version__
+
+        # Create and start the auto-update verification thread
+        self._create_notification_service()
+        self._create_updater()
+
         from nxdrive.engine.engine import Engine
         self._engine_types["NXDRIVE"] = Engine
         self.load()
         # Force language
         if options.force_locale is not None:
             self.set_config("locale", options.force_locale)
-        # Create and start the auto-update verification thread
-        self._create_updater()
         self._create_drive_edit()
         # Setup analytics tracker
+        self._tracker = None
         if self.get_tracking():
             self._create_tracker()
 
@@ -262,6 +266,14 @@ class Manager(QtCore.QObject):
 
     def get_device_id(self):
         return self.device_id
+
+    def get_notification_service(self):
+        return self._notification_service
+
+    def _create_notification_service(self):
+        from nxdrive.notification import DefaultNotificationService
+        self._notification_service = DefaultNotificationService(self)
+        return self._notification_service
 
     def _create_tracker(self):
         from nxdrive.engine.tracker import Tracker
@@ -607,6 +619,8 @@ class Manager(QtCore.QObject):
             self._engine_definitions.append(engine_def)
         except Exception as e:
             log.exception(e)
+            if uid in self._engines:
+                del self._engines[uid]
             self._dao.delete_engine(uid)
             # TODO Remove the db ?
             raise e

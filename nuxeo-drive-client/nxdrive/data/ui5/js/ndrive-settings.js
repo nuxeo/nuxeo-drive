@@ -16,6 +16,7 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.locale = drive.locale();
 	$scope.languages = angular.fromJson(drive.get_languages());
 	$scope.setLocale = function() {
+		console.log("setLocale " + $scope.locale);
 		drive.set_language($scope.locale);
 		$translate.use($scope.locale);
 	}
@@ -156,11 +157,18 @@ SettingsController.prototype.constructor = SettingsController;
 
 SettingsController.prototype.bindServer = function($scope, $translate) {
 	$scope.reinitMsgs();
-	res = drive.bind_server($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.username, $scope.currentAccount.password, $scope.currentAccount.name);
+	local_folder = $scope.currentAccount.local_folder;
+	res = drive.bind_server($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.username, $scope.password, $scope.currentAccount.name);
 	if (res == "") {
+		$scope.password = "";
 		$scope.engines = angular.fromJson(drive.get_engines());
 		$scope.reinitNewAccount();
-		$scope.changeAccount($scope.engines[$scope.engines.length-1]);
+		for (i = 0; i < $scope.engines.length; i++) {
+			if ($scope.engines[i].local_folder == local_folder) {
+				$scope.changeAccount($scope.engines[i]);
+				break;
+			}
+		}
 		$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
 	} else {
 		$scope.setErrorMessage($translate.instant(res));

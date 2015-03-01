@@ -8,7 +8,9 @@ TODO: Find a better way for the try/catch on slot
 from PyQt4 import QtGui, QtCore, QtWebKit
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import FileAction
+from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.wui.translator import Translator
+import urllib2
 import json
 log = get_logger(__name__)
 
@@ -112,6 +114,31 @@ class WebDriveApi(QtCore.QObject):
         except Exception as e:
             log.exception(e)
             return ""
+
+    def _update_password(self, engine, password):
+        engine.update_password(password)
+        return ""
+
+    @QtCore.pyqtSlot(str, str, result=str)
+    def update_password(self, uid, password):
+        password = str(password)
+        try:
+            engine = self._get_engine(uid)
+            if engine is None:
+                return ""
+            return self._update_password(engine, password)
+        except Unauthorized:
+            return "UNAUTHORIZED"
+        except urllib2.URLError as e:
+            if e.errno == 61:
+                return "CONNECTION_REFUSED"
+            return "CONNECTION_ERROR"
+        except urllib2.HTTPError as e:
+            return "CONNECTION_ERROR"
+        except Exception as e:
+            log.exception(e)
+            # Map error here
+            return "CONNECTION_UNKNOWN"
 
     @QtCore.pyqtSlot()
     def close(self):

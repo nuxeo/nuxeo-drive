@@ -238,10 +238,12 @@ class Application(QApplication):
         for _, engine in self.manager.get_engines().iteritems():
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)
-        if self.manager.is_credentials_update_required():
+        for engine in self.manager.get_engines().values():
             # Prompt for settings if needed (performs a check for application
             # update)
-            self.show_settings()
+            if engine.has_invalid_credentials():
+                self.show_settings('Accounts_' + engine._uid)
+                break
         self.manager.start()
 
     def get_systray_menu(self):

@@ -421,6 +421,20 @@ class Engine(QObject):
             # TO_REVIEW Discard this exception
             pass
 
+    def update_password(self, password):
+        self._load_configuration()
+        nxclient = self.remote_doc_client_factory(
+            self._server_url, self._remote_user, self._manager.device_id,
+            self._manager.client_version, proxies=self._manager.proxies,
+            proxy_exceptions=self._manager.proxy_exceptions,
+            password=str(password), timeout=self._handshake_timeout)
+        self._remote_token = nxclient.request_token()
+        if self._remote_token is None:
+            raise Exception
+        self._dao.update_config("remote_token", self._remote_token)
+        self.set_invalid_credentials(False)
+        self.start()
+
     def bind(self, binder):
         self._server_url = self._normalize_url(binder.url)
         self._remote_user = binder.username

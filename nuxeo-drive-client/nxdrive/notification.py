@@ -1,0 +1,117 @@
+'''
+@author: Remi Cattiau
+'''
+from PyQt4 import QtCore
+import time
+from threading import Lock
+from nxdrive.logging_config import get_logger
+log = get_logger(__name__)
+
+
+class Notification(object):
+    LEVEL_INFO = "INFO"
+    LEVEL_WARNING = "WARNING"
+    LEVEL_ERROR = "ERROR"
+    def __init__(self, notification_type, engine=None, level=LEVEL_INFO, uid=None, unique=False):
+        self._unique = unique
+        self._type = notification_type
+        self._level = level
+        self._engine = engine
+        self._time = None
+        if uid is not None:
+            self._uid = uid
+        else:
+            self._uid = notification_type
+            if not self._unique:
+                self._uid = self.uid + "_" + int(time.time())
+        # For futur usage
+        self._volatile = True
+        self._replacements = dict()
+
+    def add_replacement(self, key, value):
+        self._replacements[key] = value
+
+    def remove_replacement(self, key):
+        if key in self._replacements:
+            del self._replacements[key]
+
+    def get_uid(self):
+        return self._uid
+
+    def get_type(self):
+        return self._type
+
+    def get_level(self):
+        return self._level
+
+    def is_unique(self):
+        return self._unique
+
+    def is_volatile(self):
+        return self._volatile
+
+    def get_replacements(self):
+        return self._replacements
+
+
+class NotificationService(QtCore.QObject):
+    newNotification = QtCore.pyqtSignal(object)
+    discardNotification = QtCore.pyqtSignal(object)
+    '''
+    classdocs
+    '''
+    def __init__(self):
+        super(NotificationService, self).__init__()
+        self._lock = Lock()
+        self._notifications = dict()
+
+    def get_notifications(self, engine=None, include_generic=True):
+        # Might need to use lock and duplicate
+        self._lock.acquire()
+        try:
+            if engine is None:
+                return self._notifications
+            result = dict()
+            for notif in self._notifications.values():
+                if notif._engine == engine:
+                    result[notif.get_uid()] = notif
+                if notif._engine is None and include_generic:
+                    result[notif.get_uid()] = notif
+            return result
+        finally:
+            self._lock.release()
+
+    def send_notification(self, notification):
+        notification._time = int(time.time())
+        self._lock.acquire()
+        try:
+            self._notifications[notification.get_uid()] = notification
+        finally:
+            self._lock.release()
+        log.debug("sending : %r", notification)
+        self.newNotification.emit(notification)
+
+    def discard_notification(self, uid):
+        self._lock.acquire()
+        try:
+            del self._notifications[uid]
+        finally:
+            self._lock.release()
+        log.debug("discard : %s", uid)
+        self.discardNotification.emit(uid)
+
+
+class DefaultNotificationService(NotificationService):
+    def __init__(self, manager):
+        super(DefaultNotificationService, self).__init__()
+        self._manager = manager
+        self._manager.initEngine.connect(self._connect_engine)
+
+    def _connect_engine(self, engine):
+        engine.invalidAuthentication.connect(self._invalidAuthentication)
+
+    def _invalidAuthentication(self):
+        engine_uid = self.sender()._uid
+        notification = Notification("INVALID_CREDENTIALS", engine=engine_uid,
+                                        level=Notification.LEVEL_ERROR)
+        self.send_notification(notification)
