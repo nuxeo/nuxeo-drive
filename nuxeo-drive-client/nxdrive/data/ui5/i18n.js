@@ -148,6 +148,9 @@ LABELS={
 		"SETTINGS_WINDOW_TITLE": "Nuxeo Drive - Configuration",
 		"FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filtres",
 		"ACTIVITY_WINDOW_TITLE": "Nuxeo Drive - Activités",
-		"LICENSE": "License"
+		"LICENSE": "License",
+		"UPDATE_PASSWORD_BUTTON": "Mettre à jour",
+		"UPDATE_PASSWORD_PLACEHOLDER": "Entrer votre mot de passe",
+		"INVALID_CREDENTIALS": "Utilisateur ou mot de passe invalide"
 	}
 }
