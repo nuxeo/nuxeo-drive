@@ -12,6 +12,7 @@ class Notification(object):
     LEVEL_INFO = "INFO"
     LEVEL_WARNING = "WARNING"
     LEVEL_ERROR = "ERROR"
+
     def __init__(self, notification_type, engine=None, level=LEVEL_INFO, uid=None, unique=False):
         self._unique = unique
         self._type = notification_type
@@ -54,6 +55,10 @@ class Notification(object):
 
     def get_replacements(self):
         return self._replacements
+
+    def __repr__(self):
+        return "Notification(%s,%s,uid:%s,unique:%d)" % (
+                    self._level, self._type, self._uid, self._unique)
 
 
 class NotificationService(QtCore.QObject):

@@ -171,15 +171,15 @@ class PollWorker(Worker):
     def get_metrics(self):
         metrics = super(PollWorker, self).get_metrics()
         metrics['polling_interval'] = self._check_interval
-        metrics['polling_next'] = self._next_check - int(time.time())
+        metrics['polling_next'] = self._next_check - int(time())
         return dict(metrics.items() + self._metrics.items())
 
     def _execute(self):
         while (self._enable):
             self._interact()
-            if self._next_check - int(time.time()) <= 0:
+            if self._next_check - int(time()) <= 0:
                 self._poll()
-                self._next_check = int(time.time()) + self._check_interval
+                self._next_check = int(time()) + self._check_interval
             sleep(1)
 
     def _poll(self):
