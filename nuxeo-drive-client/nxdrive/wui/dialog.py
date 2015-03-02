@@ -195,10 +195,25 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
+    def _export_notification(self, notif):
+        result = dict()
+        result["level"] = notif.get_level()
+        result["type"] = notif.get_type()
+        result["uid"] = notif.get_uid()
+        result["replacements"] = notif.get_replacements()
+        return result
+
+    def _export_notifications(self, notifs):
+        result = []
+        for notif in notifs.values():
+            result.append(self._export_notification(notif))
+        return result
+
     @QtCore.pyqtSlot(str, result=str)
     def get_notifications(self, engine_uid):
         try:
-            return self._json(self._manager.get_notification_service().get_notifications(engine_uid))
+            return self._json(self._export_notifications(
+                        self._manager.get_notification_service().get_notifications(engine_uid)))
         except Exception as e:
             log.exception(e)
             return ""

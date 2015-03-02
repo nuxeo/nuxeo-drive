@@ -9,9 +9,9 @@ log = get_logger(__name__)
 
 
 class Notification(object):
-    LEVEL_INFO = "INFO"
-    LEVEL_WARNING = "WARNING"
-    LEVEL_ERROR = "ERROR"
+    LEVEL_INFO = "info"
+    LEVEL_WARNING = "warning"
+    LEVEL_ERROR = "danger"
 
     def __init__(self, notification_type, engine=None, level=LEVEL_INFO, uid=None, unique=False):
         self._unique = unique
@@ -56,6 +56,9 @@ class Notification(object):
     def get_replacements(self):
         return self._replacements
 
+    def trigger(self):
+        pass
+
     def __repr__(self):
         return "Notification(%s,%s,uid:%s,unique:%d)" % (
                     self._level, self._type, self._uid, self._unique)
@@ -97,6 +100,11 @@ class NotificationService(QtCore.QObject):
             self._lock.release()
         log.debug("sending : %r", notification)
         self.newNotification.emit(notification)
+
+    def trigger_notification(self, uid):
+        if not uid in self._notifications[uid]:
+            return
+        self._notifications[uid].trigger()
 
     def discard_notification(self, uid):
         self._lock.acquire()
