@@ -24,6 +24,8 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(len(res), folders + files + 1)
 
     def test_reconcile_scan(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         files, folders = self.make_local_tree()
         self.make_server_tree()
         self.queue_manager_1.pause()
@@ -103,6 +105,8 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(len(children), 0)
 
     def test_local_watchdog_delete_synced(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Test the deletion after first local scan
         self.test_reconcile_scan()
         path = self._delete_folder_1()
