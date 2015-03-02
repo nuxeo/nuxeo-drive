@@ -114,6 +114,8 @@ class TestWatchers(UnitTestCase):
             self.assertEqual(child.pair_state, 'parent_locally_deleted')
 
     def test_local_scan_delete_synced(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Test the deletion after first local scan
         self.test_reconcile_scan()
         self.engine_1.stop()
