@@ -8,7 +8,7 @@ log = get_logger(__name__)
 NXDRIVE_EDIT_URL_PREFIX = ('nxdrive://edit/scheme/server[:port]'
                            '/webappname/')
 NXDRIVE_EDIT_URL_PATTERN_1 = (NXDRIVE_EDIT_URL_PREFIX
-                            + '[user/userName/]repo/repoName/nxdocid/docId/filename/fileName[/downloadUrl/downloadUrl]')
+                        + '[user/userName/]repo/repoName/nxdocid/docId/filename/fileName[/downloadUrl/downloadUrl]')
 NXDRIVE_EDIT_URL_PATTERN_2 = NXDRIVE_EDIT_URL_PREFIX + 'fsitem/fsItemId'
 
 
@@ -58,12 +58,14 @@ def parse_edit_protocol(data_string):
                 if '/downloadUrl/' in doc_part:
                     filename, download_url = doc_part.split('/downloadUrl/', 1)
                 else:
+                    # TODO: https://jira.nuxeo.com/browse/NXDRIVE-237
                     filename = doc_part
                     download_url = None
                 return dict(command='download_edit', server_url=server_url, user=user, repo=repo,
                             doc_id=doc_id, filename=filename, download_url=download_url)
             else:
-                # Compatibility with old URL that doesn't contain user name
+                # Compatibility with old URL that doesn't contain user name nor download URL
+                # TODO: https://jira.nuxeo.com/browse/NXDRIVE-237
                 server_part, doc_part = data_string.split('/repo/', 1)
                 server_url = "%s://%s" % (scheme, server_part)
                 repo, doc_part = doc_part.split('/nxdocid/', 1)
