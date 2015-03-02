@@ -1,4 +1,5 @@
 import time
+import sys
 
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
@@ -7,6 +8,8 @@ from nose.plugins.skip import SkipTest
 class TestRemoteDeletion(UnitTestCase):
 
     def test_synchronize_remote_deletion(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that deleting remote documents is impacted client side
 
         Use cases:

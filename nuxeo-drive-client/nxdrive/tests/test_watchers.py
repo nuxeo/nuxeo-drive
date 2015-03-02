@@ -3,6 +3,7 @@
 '''
 import sys
 from nxdrive.tests.common_unit_test import UnitTestCase
+from nose.plugins.skip import SkipTest
 
 
 class TestWatchers(UnitTestCase):
@@ -90,6 +91,8 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(len(children), 0)
 
     def test_local_scan_delete_non_synced(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Test the deletion after first local scan
         self.test_local_scan()
         self.engine_1.stop()

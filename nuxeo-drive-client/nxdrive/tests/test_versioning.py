@@ -1,6 +1,8 @@
 import time
+import sys
 
 from nxdrive.tests.common import IntegrationTestCase
+from nose.plugins.skip import SkipTest
 
 
 class TestVersioning(IntegrationTestCase):
@@ -26,6 +28,8 @@ class TestVersioning(IntegrationTestCase):
             delay=str(self.versioning_delay))
 
     def test_versioning(self):
+        if sys.platform == 'darwin' or sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Create a file as user 1
         self.local_client_1.make_file('/', 'Test versioning.txt',
             "This is version 0")

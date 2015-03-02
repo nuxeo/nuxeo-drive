@@ -366,6 +366,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
                           local_client.get_info('/testFile.pdf').get_digest())
 
     def test_versioning(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         remote_client = self.remote_document_client_1
         doc = remote_client.make_file(self.workspace,
                                       'Document to version.txt',

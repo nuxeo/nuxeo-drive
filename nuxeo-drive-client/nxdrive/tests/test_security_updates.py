@@ -1,4 +1,5 @@
 import time
+import sys
 
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
@@ -7,6 +8,8 @@ from nose.plugins.skip import SkipTest
 class TestSecurityUpdates(UnitTestCase):
 
     def test_synchronize_denying_read_access(self):
+        if sys.platform == 'darwin':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that denying Read access server side is impacted client side
 
         Use cases:
