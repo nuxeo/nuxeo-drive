@@ -8,7 +8,7 @@ log = get_logger(__name__)
 NXDRIVE_EDIT_URL_PREFIX = ('nxdrive://edit/scheme/server[:port]'
                            '/webappname/')
 NXDRIVE_EDIT_URL_PATTERN_1 = (NXDRIVE_EDIT_URL_PREFIX
-                            + '[user/userName/]repo/repoName/nxdocid/docId/filename/fileName')
+                            + '[user/userName/]repo/repoName/nxdocid/docId/filename/fileName[/downloadUrl/downloadUrl]')
 NXDRIVE_EDIT_URL_PATTERN_2 = NXDRIVE_EDIT_URL_PREFIX + 'fsitem/fsItemId'
 
 
@@ -42,42 +42,42 @@ def parse_edit_protocol(data_string):
     invalid_msg = ('Invalid URL: got nxdrive://edit/%s while expecting %s'
                    ' or %s' % (data_string, NXDRIVE_EDIT_URL_PATTERN_1,
                                NXDRIVE_EDIT_URL_PATTERN_2))
+    try:
+        scheme, data_string = data_string.split('/', 1)
+        if scheme not in ('http', 'https'):
+            raise ValueError(
+                invalid_msg + ' : scheme should be http or https')
 
-    if '/' not in data_string:
-        raise ValueError(invalid_msg)
+        if '/nxdocid/' in data_string:
+            if '/user/' in data_string:
+                server_part, doc_part = data_string.split('/user/', 1)
+                server_url = "%s://%s" % (scheme, server_part)
+                user, doc_part = doc_part.split('/repo/', 1)
+                repo, doc_part = doc_part.split('/nxdocid/', 1)
+                doc_id, doc_part = doc_part.split('/filename/', 1)
+                if '/downloadUrl/' in doc_part:
+                    filename, download_url = doc_part.split('/downloadUrl/', 1)
+                else:
+                    filename = doc_part
+                    download_url = None
+                return dict(command='download_edit', server_url=server_url, user=user, repo=repo,
+                            doc_id=doc_id, filename=filename, download_url=download_url)
+            else:
+                # Compatibility with old URL that doesn't contain user name
+                server_part, doc_part = data_string.split('/repo/', 1)
+                server_url = "%s://%s" % (scheme, server_part)
+                repo, doc_part = doc_part.split('/nxdocid/', 1)
+                doc_id, filename = doc_part.split('/filename/', 1)
+                return dict(command='download_edit', server_url=server_url, user=None, repo=repo,
+                            doc_id=doc_id, filename=filename, download_url=None)
 
-    scheme, data_string = data_string.split('/', 1)
-    if scheme not in ('http', 'https'):
-        raise ValueError(
-            invalid_msg + ' : scheme should be http or https')
-
-    if '/nxdocid/' not in data_string and '/fsitem/' not in data_string:
-        raise ValueError(invalid_msg)
-
-    if '/nxdocid/' in data_string:
-        if '/user/' in data_string:
-            server_part, doc_part = data_string.split('/user/', 1)
-            server_url = "%s://%s" % (scheme, server_part)
-            user, doc_part = doc_part.split('/repo/', 1)
-            repo, doc_part = doc_part.split('/nxdocid/', 1)
-            doc_id, doc_part = doc_part.split('/filename/', 1)
-            filename, download_url = doc_part.split('/downloadUrl/', 1)
-            return dict(command='download_edit', server_url=server_url, user=user, repo=repo,
-                        doc_id=doc_id, filename=filename, download_url=download_url)
         else:
-            # Compatibility with old URL that doesn't contain user name
-            server_part, doc_part = data_string.split('/repo/', 1)
+            server_part, item_id = data_string.split('/fsitem/', 1)
             server_url = "%s://%s" % (scheme, server_part)
-            repo, doc_part = doc_part.split('/nxdocid/', 1)
-            doc_id, filename = doc_part.split('/filename/', 1)
-            return dict(command='download_edit', server_url=server_url, user=None, repo=repo,
-                        doc_id=doc_id, filename=filename, download_url=None)
-
-    else:
-        server_part, item_id = data_string.split('/fsitem/', 1)
-        server_url = "%s://%s" % (scheme, server_part)
-        item_id = urllib.unquote(item_id)  # unquote # sign
-        return dict(command='edit', server_url=server_url, item_id=item_id)
+            item_id = urllib.unquote(item_id)  # unquote # sign
+            return dict(command='edit', server_url=server_url, item_id=item_id)
+    except:
+        raise ValueError(invalid_msg)
 
 
 class AbstractOSIntegration(object):
