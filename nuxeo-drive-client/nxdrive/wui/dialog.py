@@ -418,7 +418,7 @@ class WebDriveApi(QtCore.QObject):
     def show_settings(self, page=None):
         try:
             log.debug("show settings on page %s", page)
-            self._application.show_settings(page)
+            self._application.show_settings(section=page)
         except Exception as e:
             log.exception(e)
 
