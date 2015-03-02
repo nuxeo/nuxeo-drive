@@ -349,7 +349,7 @@ class Application(QApplication):
         self._tray_icon.setToolTip(self.get_tooltip())
 
     def get_default_tooltip(self):
-        return "Nuxeo Drive"
+        return self.manager.get_appname()
 
     def get_tooltip(self):
         actions = Action.get_actions()
