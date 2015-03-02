@@ -75,7 +75,10 @@ LABELS={
 		"UPDATE_PASSWORD_BUTTON": "Update",
 		"UPDATE_PASSWORD_PLACEHOLDER": "Enter your new password",
 		"INVALID_CREDENTIALS": "Invalid credentials",
-		"FOLDER_USED": "Folder in use by another engine"
+		"FOLDER_USED": "Folder in use by another engine",
+		"DEBUG_INVALID_CREDENTIALS": "Toggle Invalid Credentials",
+		"DEBUG_WINDOW": "Window",
+		"DEBUG": "Debug"
 	},
 	"fr": {
 		"LANGUAGE": "Français",

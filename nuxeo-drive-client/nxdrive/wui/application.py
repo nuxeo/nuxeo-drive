@@ -231,9 +231,30 @@ class Application(QApplication):
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
 
+    @QtCore.pyqtSlot()
+    def _debug_toggle_invalid_credentials(self):
+        sender = self.sender()
+        engine = sender.data().toPyObject()
+        engine.set_invalid_credentials(not engine.has_invalid_credentials())
+
+    def _create_debug_engine_menu(self, engine, parent):
+        menuDebug = QtGui.QMenu(parent)
+        action = QtGui.QAction(Translator.get("DEBUG_INVALID_CREDENTIALS"), menuDebug)
+        action.setCheckable(True)
+        action.setChecked(engine.has_invalid_credentials())
+        action.setData(engine)
+        action.triggered.connect(self._debug_toggle_invalid_credentials)
+        menuDebug.addAction(action)
+        return menuDebug
+
     def create_debug_menu(self, parent):
         menuDebug = QtGui.QMenu(parent)
         menuDebug.addAction(Translator.get("DEBUG_WINDOW"), self.show_debug_window)
+        for engine in self.manager.get_engines().values():
+            action = QtGui.QAction(engine._name, menuDebug)
+            action.setMenu(self._create_debug_engine_menu(engine, menuDebug))
+            action.setData(engine)
+            menuDebug.addAction(action)
         return menuDebug
 
     def _get_debug_dialog(self):
