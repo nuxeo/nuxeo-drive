@@ -445,12 +445,17 @@ class Engine(QObject):
         self._server_url = self._normalize_url(binder.url)
         self._remote_user = binder.username
         self._remote_password = binder.password
+        self._remote_token = None
+        if hasattr(binder, 'token'):
+            self._remote_token = binder.token
         nxclient = self.remote_doc_client_factory(
             self._server_url, self._remote_user, self._manager.device_id,
             self._manager.client_version, proxies=self._manager.proxies,
             proxy_exceptions=self._manager.proxy_exceptions,
-            password=self._remote_password, timeout=self._handshake_timeout)
-        self._remote_token = nxclient.request_token()
+            password=self._remote_password, token=self._remote_token,
+            timeout=self._handshake_timeout)
+        if self._remote_token is None:
+            self._remote_token = nxclient.request_token()
         if self._remote_token is not None:
             # The server supports token based identification: do not store the
             # password in the DB
