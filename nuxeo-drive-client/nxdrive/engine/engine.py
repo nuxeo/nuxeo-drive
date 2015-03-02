@@ -204,6 +204,12 @@ class Engine(QObject):
 
     def unbind(self):
         self.stop()
+        try:
+            # Dont fail if not possible to remove token
+            doc_client = self.get_remote_doc_client()
+            doc_client.revoke_token()
+        except Exception as e:
+            log.exception(e)
         self._dao.dispose()
         # Remove DB
         log.debug("Remove DB file %s", self._get_db_file())
@@ -556,3 +562,7 @@ class Engine(QObject):
             password=self._remote_password, token=self._remote_token,
             repository=repository, base_folder=base_folder,
             timeout=self.timeout, cookie_jar=self.cookie_jar)
+
+    def create_processor(self, item_getter, name=None):
+        from nxdrive.engine.processor import Processor
+        return Processor(self, item_getter, name=name)

@@ -423,6 +423,8 @@ class CliHandler(object):
 
     def uninstall(self, options):
         try:
+            # Remove all token first
+            self.manager.unbind_all()
             import shutil
             shutil.rmtree(self.manager.nxdrive_home)
         except Exception, e:

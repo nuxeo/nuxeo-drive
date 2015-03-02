@@ -24,8 +24,7 @@ var SettingsController = function($scope, $interval, $translate) {
 		drive.show_file_status();
 	}
 	$scope.reinitNewAccount = function() {
-		$scope.newAccount = {initialized: false};
-		$scope.newAccount.local_folder = drive.get_default_nuxeo_drive_folder();
+		self.reinitNewAccount($scope);
 	}
 	$scope.bindServer = function() {
 		self.bindServer($scope, $translate);
@@ -155,6 +154,10 @@ var SettingsController = function($scope, $interval, $translate) {
 SettingsController.prototype = Object.create(DriveController.prototype);
 SettingsController.prototype.constructor = SettingsController;
 
+SettingsController.prototype.reinitNewAccount = function ($scope) {
+	$scope.newAccount = {initialized: false};
+	$scope.newAccount.local_folder = drive.get_default_nuxeo_drive_folder();
+}
 SettingsController.prototype.bindServer = function($scope, $translate) {
 	$scope.reinitMsgs();
 	local_folder = $scope.currentAccount.local_folder;

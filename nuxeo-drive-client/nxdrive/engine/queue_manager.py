@@ -305,7 +305,7 @@ class QueueManager(QObject):
                 or len(self._processors_pool) > 0)
 
     def _create_thread(self, item_getter, name=None):
-        processor = Processor(self._engine, item_getter, name=name)
+        processor = self._engine.create_processor(item_getter, name=name)
         thread = self._engine.create_thread(worker=processor)
         thread.finished.connect(self._thread_finished)
         thread.terminated.connect(self._thread_finished)
