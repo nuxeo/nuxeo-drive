@@ -126,13 +126,15 @@ class WebSettingsDialog(WebDialog):
     '''
     classdocs
     '''
-    def __init__(self, application, section):
+    def __init__(self, application, section, api=None):
         '''
         Constructor
         '''
         self._section = section
+        if api is None:
+            api = WebSettingsApi(application)
         super(WebSettingsDialog, self).__init__(application, "settings.html",
-                                                 api=WebSettingsApi(application),
+                                                 api=api,
                                                 title=Translator.get("SETTINGS_WINDOW_TITLE"))
 
     def set_section(self, section):
