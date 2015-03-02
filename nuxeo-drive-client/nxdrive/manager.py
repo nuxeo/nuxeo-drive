@@ -255,6 +255,9 @@ class Manager(QtCore.QObject):
         if handler:
             handler.setLevel(log_level)
 
+    def get_osi(self):
+        return self._os
+
     def _handle_os(self):
         # Be sure to register os
         self._os.register_contextual_menu()

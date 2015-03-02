@@ -16,6 +16,7 @@ from nxdrive.updater import UPDATE_STATUS_UPGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_DOWNGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
 from nxdrive.utils import find_resource_dir
+from nxdrive.wui.translator import Translator
 
 log = get_logger(__name__)
 
@@ -230,11 +231,26 @@ class Application(QApplication):
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
 
+    def create_debug_menu(self, parent):
+        menuDebug = QtGui.QMenu(parent)
+        menuDebug.addAction(Translator.get("DEBUG_WINDOW"), self.show_debug_window)
+        return menuDebug
+
+    def _get_debug_dialog(self):
+        from nxdrive.debug.wui.engine import EngineDialog
+        return EngineDialog(self)
+
+    @QtCore.pyqtSlot()
+    def show_debug_window(self):
+        debug = self._get_unique_dialog("debug")
+        if debug is None:
+            debug = self._get_debug_dialog()
+            self._create_unique_dialog("debug", debug)
+        self._show_window(debug)
+
     def init_checks(self):
         if self.manager.is_debug():
-            from nxdrive.debug.wui.engine import EngineDialog
-            self.debug_windows = EngineDialog(self)
-            self.debug_windows.show()
+            self.show_debug_window()
         for _, engine in self.manager.get_engines().iteritems():
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)

@@ -102,10 +102,10 @@ class AbstractOSIntegration(object):
     def unregister_contextual_menu(self):
         pass
 
-    def register_folder_link(self, folder_path):
+    def register_folder_link(self, name, folder_path):
         pass
 
-    def unregister_folder_link(self, folder_path):
+    def unregister_folder_link(self, name):
         pass
 
     def register_desktop_link(self):

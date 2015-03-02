@@ -82,22 +82,32 @@ class WebSystrayApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
+    def _create_advanced_menu(self):
+        menu = QtGui.QMenu()
+        menu.setFocusProxy(self._dialog)
+        if self._manager.is_paused():
+            menu.addAction(Translator.get("RESUME"), self.resume)
+        else:
+            menu.addAction(Translator.get("SUSPEND"), self.suspend)
+        menu.addSeparator()
+        menu.addAction(Translator.get("ABOUT"), self.open_about)
+        menu.addAction(Translator.get("HELP"), self.open_help)
+        menu.addSeparator()
+        menu.addAction(Translator.get("SETTINGS"), self._application.show_settings)
+        if self._manager.is_debug():
+            menu.addSeparator()
+            menuDebug = self._application.create_debug_menu(menu)
+            debugAction = QtGui.QAction(Translator.get("DEBUG"), self)
+            debugAction.setMenu(menuDebug)
+            menu.addAction(debugAction)
+        menu.addSeparator()
+        menu.addAction(Translator.get("QUIT"), self._application.quit)
+        return menu
+
     @QtCore.pyqtSlot()
     def advanced_systray(self):
         try:
-            menu = QtGui.QMenu()
-            menu.setFocusProxy(self._dialog)
-            if self._manager.is_paused():
-                menu.addAction(Translator.get("RESUME"), self.resume)
-            else:
-                menu.addAction(Translator.get("SUSPEND"), self.suspend)
-            menu.addSeparator()
-            menu.addAction(Translator.get("ABOUT"), self.open_about)
-            menu.addAction(Translator.get("HELP"), self.open_help)
-            menu.addSeparator()
-            menu.addAction(Translator.get("SETTINGS"), self._application.show_settings)
-            menu.addSeparator()
-            menu.addAction(Translator.get("QUIT"), self._application.quit)
+            menu = self._create_advanced_menu()
             menu.exec_(QtGui.QCursor.pos())
         except Exception as e:
             log.exception(e)
