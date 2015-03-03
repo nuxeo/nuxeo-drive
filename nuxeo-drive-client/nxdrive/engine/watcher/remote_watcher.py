@@ -416,6 +416,7 @@ class RemoteWatcher(EngineWorker):
                                 remote_parent_path = os.path.dirname(new_info.path)
                                 # TODO Add modify local_path and local_parent_path if needed
                             self._dao.update_remote_state(doc_pair, new_info, remote_parent_path)
+                            # TODO Save the action to reproduce if interrupt
                             self._scan_remote_recursive(
                                 doc_pair, consistent_new_info,
                                 force_recursion=(eventId == "securityUpdated"))
@@ -439,6 +440,7 @@ class RemoteWatcher(EngineWorker):
                     if child_pair.folderish and new_pair:
                         log.debug('Remote recursive scan of the content of %s',
                                   child_pair.remote_name)
+                        # TODO Save the action to reproduce if interrupt
                         self._scan_remote_recursive(child_pair, new_info)
 
                     created = True
