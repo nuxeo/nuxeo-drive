@@ -85,6 +85,7 @@ DriveController = function($scope, $translate) {
 		$scope.update_password_error = "CONNECTING";
 		self.updatePassword($scope, uid, password);
 	}
+	$scope.version = drive.get_version();
 	$scope.quit = this.quit;
 	$scope.show_settings = this.showSettings;
 	$scope.appname = this.getAppName();
