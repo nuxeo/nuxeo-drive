@@ -192,6 +192,7 @@ class Engine(QObject):
             self.start()
             return
         self._pause = False
+        self._queue_manager.resume()
         for thread in self._threads:
             if thread.isRunning():
                 thread.worker.resume()
@@ -200,6 +201,7 @@ class Engine(QObject):
 
     def suspend(self):
         self._pause = True
+        self._queue_manager.pause()
         for thread in self._threads:
             thread.worker.suspend()
 
