@@ -32,7 +32,7 @@ class RemoteWatcher(EngineWorker):
         self.unhandle_fs_event = False
         self.local_full_scan = dict()
         self._dao = dao
-
+        self._full_scan_mode = False
         self._last_sync_date = self._dao.get_config('remote_last_sync_date')
         self._last_event_log_id = self._dao.get_config('remote_last_event_log_id')
         self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
@@ -83,7 +83,7 @@ class RemoteWatcher(EngineWorker):
     def _scan_remote(self, from_state=None):
         """Recursively scan the bound remote folder looking for updates"""
         start_ms = current_milli_time()
-
+        self._full_scan_mode = True
         try:
             if from_state is None:
                 from_state = self._dao.get_state_from_local('/')
@@ -103,6 +103,8 @@ class RemoteWatcher(EngineWorker):
         self._scan_remote_recursive(from_state, remote_info)
         self._last_remote_full_scan = datetime.utcnow()
         self._dao.update_config('remote_last_full_scan', self._last_remote_full_scan)
+        self._dao.clean_scanned()
+        self._full_scan_mode = False
         self._dao.commit()
         self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
         log.debug("Remote scan finished in %dms", self._metrics['last_remote_scan_time'])
@@ -162,7 +164,10 @@ class RemoteWatcher(EngineWorker):
             return
         # Check if synchronization thread was suspended
         self._interact()
-
+        remote_parent_path = doc_pair.remote_parent_path + '/' + remote_info.uid
+        if self._dao.is_path_scanned(remote_parent_path) and self._full_scan_mode:
+            log.trace("Skip already remote scanned: %s", doc_pair.local_path)
+            return
         if doc_pair.local_path is not None:
             self._action = Action("Remote scanning : " + doc_pair.local_path)
             log.debug("Remote scanning: %s", doc_pair.local_path)
@@ -188,8 +193,6 @@ class RemoteWatcher(EngineWorker):
         for child in db_children:
             children[child.remote_ref] = child
 
-        remote_parent_path = doc_pair.remote_parent_path + '/' + remote_info.uid
-
         for child_info in children_info:
             child_pair = None
             new_pair = False
@@ -214,6 +217,8 @@ class RemoteWatcher(EngineWorker):
             # TODO Optimize by multithreading this too ?
             self._scan_remote_recursive(folder[0], folder[1],
                                         mark_unknown=False, force_recursion=force_recursion)
+        if self._full_scan_mode:
+            self._dao.add_path_scanned(remote_parent_path)
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info):
         local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
