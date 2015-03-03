@@ -28,11 +28,7 @@ var SystrayController = function($scope, $interval, $translate) {
 		this.$scope.confirmAppUpdateDialog = null;
 	}
 	$scope.updateFiles = function() {
-		if ($scope.current_actions.length < 5) {
-			$scope.last_files = angular.fromJson(drive.get_last_files($scope.engine.uid, 5-$scope.current_actions.length, "remote")); 
-		} else {
-			$scope.last_files = [];	
-		}
+		self.getLastFiles($scope);
 	}
 	$scope.update = function() {
 		$scope.app_update = angular.fromJson(drive.get_update_status());
@@ -80,7 +76,13 @@ SystrayController.prototype.constructor = SystrayController;
 SystrayController.prototype.advancedSystray = function() {
 	drive.advanced_systray();
 }
-
+SystrayController.prototype.getLastFiles = function($scope) {
+	if ($scope.current_actions.length < 5) {
+		$scope.last_files = angular.fromJson(drive.get_last_files($scope.engine.uid, 5-$scope.current_actions.length, null)); 
+	} else {
+		$scope.last_files = [];	
+	}
+}
 
 /**
  * Sample of a CustomSystrayController

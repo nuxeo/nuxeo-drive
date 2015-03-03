@@ -1,6 +1,6 @@
   <div>
-  	<span>{{ engine.username }}</span>
-  	<span class="glyphicon glyphicon-option-vertical" style="float:right; margin-left: 20px;" ng-click="advanced_systray()"></span>
+  	<span>{{ engine.name }}</span>
+  	<span class="glyphicon glyphicon-cog" style="float:right; margin-left: 20px;" ng-click="advanced_systray()"></span>
   	<ul class="engine-navbar" ng-show="engines.length > 1">
   		<li ng-repeat="engine in engines" ng-class="getEngineClass(engine)">
   		  <a href="#" ng-click="setEngine(engine)">

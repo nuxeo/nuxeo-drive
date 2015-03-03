@@ -90,7 +90,6 @@ class WebSystrayApi(WebDriveApi):
         else:
             menu.addAction(Translator.get("SUSPEND"), self.suspend)
         menu.addSeparator()
-        menu.addAction(Translator.get("ABOUT"), self.open_about)
         menu.addAction(Translator.get("HELP"), self.open_help)
         menu.addSeparator()
         menu.addAction(Translator.get("SETTINGS"), self._application.show_settings)

@@ -1,5 +1,5 @@
 <div class="col-xs-3" style="border-right: 1px solid #ccc; height: 100%; margin-top: -80px; padding-top: 60px;">
-<ul class="nav nav-pills nav-stacked" style="width:165px;">
+<ul class="nav nav-pills nav-stacked" style="width:165px;" ng-show="engines.length > 0">
   <li ng-repeat="engine in engines" ng-class="getAccountClass(engine)"><a ng-click="changeAccount(engine)" href="">{{engine.name}}</a></li>
   <li ng-class="getAccountClass(newAccount)"><a ng-click="changeAccount(newAccount)" href="" class="success"><span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<i translate>NEW_ENGINE</i></a></li>
 </ul>

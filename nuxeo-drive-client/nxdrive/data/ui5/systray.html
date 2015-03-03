@@ -30,15 +30,8 @@ drive_init(function (){
   <a class="list-group-item" ng-click="open_local('/')"><span class="glyphicon glyphicon-folder-close">&nbsp;</span><span translate>OPEN_ROOT_FOLDER</span></a>
   <a style="border-bottom: 1px solid #B5C0C6;" class="list-group-item" ng-click="open_remote()"><span class="glyphicon glyphicon-globe">&nbsp;</span><span translate>OPEN_SERVER</span></a>
 </div>
-<div class="list-group" style="height: 230px; margin-bottom: 40px; overflow: auto;">
-  <li class="list-group-item" ng-repeat="action in current_actions">
-  {{ action.type }} {{ action.filename }}
-  <div class="progress" style="height: 10px; margin-bottom: 5px;">
-  <div class="progress-bar progress-bar-info progress-bar-striped active" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"  ng-style="{width : ( action.percent + '%' ) }">
-    <span class="sr-only">{{action.percent}}% Complete</span>
-  </div>
-</div></li>
-  <a class="list-group-item" ng-repeat="state in last_files" ng-click="open_local(state.local_path)">{{ state.name }}</a>
+<div class="list-group" style="height: 230px; margin-bottom: 40px; overflow: auto;" drive-include="getTemplate('systray-files')">
+
 </div>
 </div>
 </body>
