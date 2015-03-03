@@ -177,13 +177,27 @@ class ConfigurationDAO(QObject):
         finally:
             self._lock.release()
 
+    def delete_config(self, name):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("DELETE FROM Configuration WHERE name=?", (name,))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
     def update_config(self, name, value):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE OR IGNORE Configuration SET value=? WHERE name=?", (value,name))
-            c.execute("INSERT OR IGNORE INTO Configuration(value,name) VALUES(?,?)", (value,name))
+            if value is not None:
+                c.execute("UPDATE OR IGNORE Configuration SET value=? WHERE name=?", (value,name))
+                c.execute("INSERT OR IGNORE INTO Configuration(value,name) VALUES(?,?)", (value,name))
+            else:
+                c.execute("DELETE FROM Configuration WHERE name=?", (name,))
             if self.auto_commit:
                 con.commit()
         finally:

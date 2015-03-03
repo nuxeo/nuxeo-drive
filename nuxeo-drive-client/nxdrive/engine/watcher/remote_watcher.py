@@ -15,7 +15,7 @@ from nxdrive.engine.activity import Action
 from nxdrive.client.common import safe_filename
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.utils import path_join
-from urllib2 import HTTPError
+from urllib2 import HTTPError, URLError
 import os
 log = get_logger(__name__)
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
@@ -38,10 +38,15 @@ class RemoteWatcher(EngineWorker):
         self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
         self._last_remote_full_scan = self._dao.get_config('remote_last_full_scan')
         self._client = None
+        # TO_REVIEW Can be removed
         try:
             self._client = engine.get_remote_client()
         except Unauthorized:
             self._engine.set_invalid_credentials()
+        except URLError, HTTPError:
+            self._client = None
+        except Exception as e:
+            log.exception(e)
         self._local_client = engine.get_local_client()
         self._metrics = dict()
         self._metrics['last_remote_scan_time'] = -1
@@ -64,21 +69,13 @@ class RemoteWatcher(EngineWorker):
         self._client = None
 
     def _execute(self):
-        if self._client is None:
-            self._client = self._engine.get_remote_client()
-        if self._last_remote_full_scan is None:
-            log.debug("Remote full scan")
-            self._action = Action("Remote scanning")
-            self._scan_remote()
-            self._end_action()
-        else:
-            self._handle_changes()
-        self.initiate.emit()
+        first_pass = True
         while (1):
             self._interact()
             if self._current_interval == 0:
                 self._current_interval = self.server_interval
-                self._handle_changes()
+                if self._handle_changes(first_pass):
+                    first_pass = False
             else:
                 self._current_interval = self._current_interval - 1
             sleep(1)
@@ -244,14 +241,26 @@ class RemoteWatcher(EngineWorker):
         child_pair = self._dao.get_state_from_id(row_id, from_write=True)
         return child_pair, True
 
-    def _handle_changes(self):
-        self._client = self._engine.get_remote_client()
+    def _handle_changes(self, first_pass=False):
         log.debug("Handle remote changes")
         try:
+            self._client = self._engine.get_remote_client()
+            if self._last_remote_full_scan is None:
+                log.debug("Remote full scan")
+                self._action = Action("Remote scanning")
+                self._scan_remote()
+                self._end_action()
+                if first_pass:
+                    self.initiate.emit()
+                return True
             self._action = Action("Handle remote changes")
             self._update_remote_states()
             self._save_changes_state()
-            self.updated.emit()
+            if first_pass:
+                self.initiate.emit()
+            else:
+                self.updated.emit()
+            return True
         except ThreadInterrupt as e:
             raise e
         except HTTPError as e:
@@ -263,6 +272,7 @@ class RemoteWatcher(EngineWorker):
             log.exception(e)
         finally:
             self._end_action()
+        return False
 
     def _save_changes_state(self):
         self._dao.update_config('remote_last_sync_date', self._last_sync_date)
@@ -288,7 +298,12 @@ class RemoteWatcher(EngineWorker):
     def _update_remote_states(self):
         """Incrementally update the state of documents from a change summary"""
         summary = self._get_changes()
-
+        if summary['hasTooManyChanges']:
+            log.debug("Forced full scan by server")
+            self._dao.delete_config('remote_last_full_scan')
+            self._last_remote_full_scan = None
+            self._scan_remote()
+            return
         # Fetch all events and consider the most recent first
         sorted_changes = sorted(summary['fileSystemChanges'],
                                 key=lambda x: x['eventDate'], reverse=True)
