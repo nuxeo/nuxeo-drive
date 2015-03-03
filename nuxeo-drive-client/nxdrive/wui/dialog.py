@@ -75,7 +75,6 @@ class WebDriveApi(QtCore.QObject):
                 result["last_sync_direction"] = "upload"
             result["last_sync"] = current_time - sync_time
             result["last_sync_date"] = state.last_sync_date
-            print "LAST SYNC in s: %s" % result["last_sync_direction"]
         except Exception as e:
             log.exception(e)
         result["name"] = state.local_name
