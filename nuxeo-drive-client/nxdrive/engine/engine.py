@@ -7,6 +7,7 @@ from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.utils import normalized_path
 from nxdrive.utils import current_milli_time
 from nxdrive.engine.workers import Worker
 from threading import local
@@ -236,10 +237,6 @@ class Engine(QObject):
             return url + u'/'
         return url
 
-    def _get_engine_db(self):
-        return os.path.join(self._manager.get_configuration_folder(),
-                                "engine_" + self._uid + ".db")
-
     def _load_configuration(self):
         self._server_url = self._dao.get_config("server_url")
         self._remote_user = self._dao.get_config("remote_user")
@@ -262,7 +259,7 @@ class Engine(QObject):
         return LocalWatcher(self, self._dao)
 
     def _get_db_file(self):
-        return os.path.join(self._manager.get_configuration_folder(),
+        return os.path.join(normalized_path(self._manager.get_configuration_folder()),
                                 "ndrive_" + self._uid + ".db")
 
     def _create_dao(self):

@@ -55,7 +55,7 @@ class WebSettingsApi(WebDriveApi):
         return ""
 
     def _bind_server(self, local_folder, url, username, password, name, start_engine=True):
-        local_folder = str(local_folder)
+        local_folder = str(local_folder.toUtf8()).decode('utf-8')
         url = str(url)
         username = str(username)
         password = str(password)

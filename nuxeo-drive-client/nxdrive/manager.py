@@ -170,6 +170,7 @@ class Manager(QtCore.QObject):
         Manager._singleton = self
         super(Manager, self).__init__()
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
+        self.nxdrive_home = os.path.realpath(self.nxdrive_home)
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
         self.remote_watcher_delay = options.delay
@@ -299,7 +300,7 @@ class Manager(QtCore.QObject):
         return self._tracker
 
     def _get_db(self):
-        return os.path.join(self.nxdrive_home, "manager.db")
+        return os.path.join(normalized_path(self.nxdrive_home), "manager.db")
 
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import ManagerDAO
@@ -321,7 +322,7 @@ class Manager(QtCore.QObject):
 
     def _create_drive_edit(self):
         from nxdrive.engine.watcher.drive_edit import DriveEdit
-        self._drive_edit = DriveEdit(self, os.path.join(self.nxdrive_home, "edit"))
+        self._drive_edit = DriveEdit(self, os.path.join(normalized_path(self.nxdrive_home), "edit"))
         self.started.connect(self._drive_edit._thread.start)
         return self._drive_edit
 
