@@ -13,7 +13,7 @@ class Notification(object):
     LEVEL_WARNING = "warning"
     LEVEL_ERROR = "danger"
 
-    def __init__(self, notification_type, engine=None, level=LEVEL_INFO, uid=None, unique=False):
+    def __init__(self, notification_type, engine=None, level=LEVEL_INFO, uid=None, unique=False, replacements=None):
         self._unique = unique
         self._type = notification_type
         self._level = level
@@ -29,7 +29,10 @@ class Notification(object):
                 self._uid = self._uid + "_" + str(int(time.time()))
         # For futur usage
         self._volatile = True
-        self._replacements = dict()
+        if replacements is None:
+            self._replacements = dict()
+        else:
+            self._replacements = replacements
 
     def add_replacement(self, key, value):
         self._replacements[key] = value
@@ -98,7 +101,6 @@ class NotificationService(QtCore.QObject):
             self._notifications[notification.get_uid()] = notification
         finally:
             self._lock.release()
-        log.debug("sending : %r", notification)
         self.newNotification.emit(notification)
 
     def trigger_notification(self, uid):
@@ -112,7 +114,6 @@ class NotificationService(QtCore.QObject):
             del self._notifications[uid]
         finally:
             self._lock.release()
-        log.debug("discard : %s", uid)
         self.discardNotification.emit(uid)
 
 

@@ -278,8 +278,9 @@ class Manager(QtCore.QObject):
         return self._notification_service
 
     def _create_notification_service(self):
-        from nxdrive.notification import DefaultNotificationService
-        self._notification_service = DefaultNotificationService(self)
+        # Dont use it for now
+        from nxdrive.notification import NotificationService
+        self._notification_service = NotificationService()
         return self._notification_service
 
     def _create_tracker(self):
