@@ -267,6 +267,7 @@ class EngineDAO(ConfigurationDAO):
     def _init_db(self, cursor):
         super(EngineDAO, self)._init_db(cursor)
         cursor.execute("CREATE TABLE if not exists Filters(path STRING NOT NULL, PRIMARY KEY(path))")
+        cursor.execute("CREATE TABLE if not exists RemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
         cursor.execute("CREATE TABLE if not exists States(id INTEGER NOT NULL, last_local_updated TIMESTAMP,"
                   + "last_remote_updated TIMESTAMP, local_digest VARCHAR, remote_digest VARCHAR, local_path VARCHAR,"
                   + "remote_ref VARCHAR, local_parent_path VARCHAR, remote_parent_ref VARCHAR, remote_parent_path VARCHAR,"
@@ -805,6 +806,34 @@ class EngineDAO(ConfigurationDAO):
         if not path.endswith("/"):
             path = path + "/"
         return path
+
+    def add_path_scanned(self, path):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            # ADD IT
+            c.execute("INSERT INTO RemoteScan(path) VALUES('" + path + "')")
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def clean_scanned(self):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("DELETE FROM RemoteScan")
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def is_path_scanned(self, path):
+        c = self._get_read_connection().cursor()
+        c.execute("SELECT path FROM RemoteScan WHERE path=?", (path,))
+        return c.rowcount > 0
 
     def is_filter(self, path):
         path = self._clean_filter_path(path)
