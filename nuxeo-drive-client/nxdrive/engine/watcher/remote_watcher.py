@@ -83,7 +83,6 @@ class RemoteWatcher(EngineWorker):
     def _scan_remote(self, from_state=None):
         """Recursively scan the bound remote folder looking for updates"""
         start_ms = current_milli_time()
-        self._full_scan_mode = True
         try:
             if from_state is None:
                 from_state = self._dao.get_state_from_local('/')
@@ -104,7 +103,6 @@ class RemoteWatcher(EngineWorker):
         self._last_remote_full_scan = datetime.utcnow()
         self._dao.update_config('remote_last_full_scan', self._last_remote_full_scan)
         self._dao.clean_scanned()
-        self._full_scan_mode = False
         self._dao.commit()
         self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
         log.debug("Remote scan finished in %dms", self._metrics['last_remote_scan_time'])
@@ -165,7 +163,7 @@ class RemoteWatcher(EngineWorker):
         # Check if synchronization thread was suspended
         self._interact()
         remote_parent_path = doc_pair.remote_parent_path + '/' + remote_info.uid
-        if self._dao.is_path_scanned(remote_parent_path) and self._full_scan_mode:
+        if self._dao.is_path_scanned(remote_parent_path):
             log.trace("Skip already remote scanned: %s", doc_pair.local_path)
             return
         if doc_pair.local_path is not None:
@@ -217,8 +215,7 @@ class RemoteWatcher(EngineWorker):
             # TODO Optimize by multithreading this too ?
             self._scan_remote_recursive(folder[0], folder[1],
                                         mark_unknown=False, force_recursion=force_recursion)
-        if self._full_scan_mode:
-            self._dao.add_path_scanned(remote_parent_path)
+        self._dao.add_path_scanned(remote_parent_path)
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info):
         local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
@@ -246,6 +243,15 @@ class RemoteWatcher(EngineWorker):
         child_pair = self._dao.get_state_from_id(row_id, from_write=True)
         return child_pair, True
 
+    def _partial_full_scan(self, path):
+        log.debug("Continue full scan of %s", path)
+        if path == '/':
+            self._scan_remote()
+        else:
+            self.scan_pair(path)
+        self._dao.delete_config('remote_need_full_scan')
+        self._dao.clean_scanned()
+
     def _handle_changes(self, first_pass=False):
         log.debug("Handle remote changes")
         try:
@@ -258,6 +264,9 @@ class RemoteWatcher(EngineWorker):
                 if first_pass:
                     self.initiate.emit()
                 return True
+            full_scan = self._dao.get_config('remote_need_full_scan', None)
+            if full_scan is not None:
+                self._partial_full_scan(full_scan)
             self._action = Action("Handle remote changes")
             self._update_remote_states()
             self._save_changes_state()
@@ -300,13 +309,20 @@ class RemoteWatcher(EngineWorker):
             self._last_event_log_id = None
         return summary
 
+    def _force_scan_recursive(self, doc_pair, remote_info, remote_path=None, force_recursion=True):
+        if remote_path is None:
+            remote_path = remote_info.path
+        self._dao.update_config('remote_need_full_scan', remote_path)
+        self._scan_remote_recursive(doc_pair, remote_info, force_recursion)
+        self._dao.delete_config('remote_need_full_scan')
+        self._dao.clean_scanned()
+
     def _update_remote_states(self):
         """Incrementally update the state of documents from a change summary"""
         summary = self._get_changes()
         if summary['hasTooManyChanges']:
             log.debug("Forced full scan by server")
-            self._dao.delete_config('remote_last_full_scan')
-            self._last_remote_full_scan = None
+            self._dao.update_config('remote_need_full_scan', '/')
             self._scan_remote()
             return
         # Fetch all events and consider the most recent first
@@ -416,10 +432,7 @@ class RemoteWatcher(EngineWorker):
                                 remote_parent_path = os.path.dirname(new_info.path)
                                 # TODO Add modify local_path and local_parent_path if needed
                             self._dao.update_remote_state(doc_pair, new_info, remote_parent_path)
-                            # TODO Save the action to reproduce if interrupt
-                            self._scan_remote_recursive(
-                                doc_pair, consistent_new_info,
-                                force_recursion=(eventId == "securityUpdated"))
+                            self._force_scan_recursive(doc_pair, consistent_new_info, remote_path=new_info.path, force_recursion=(eventId == "securityUpdated"))
 
                     updated = True
                     refreshed.add(remote_ref)
@@ -440,8 +453,8 @@ class RemoteWatcher(EngineWorker):
                     if child_pair.folderish and new_pair:
                         log.debug('Remote recursive scan of the content of %s',
                                   child_pair.remote_name)
-                        # TODO Save the action to reproduce if interrupt
-                        self._scan_remote_recursive(child_pair, new_info)
+                        remote_path = child_pair.remote_parent_path + "/" + new_info.uid
+                        self._force_scan_recursive(child_pair, new_info, remote_path)
 
                     created = True
                     refreshed.add(remote_ref)

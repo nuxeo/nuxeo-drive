@@ -824,8 +824,7 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            # ADD IT
-            c.execute("TRUNCATE RemoteScan")
+            c.execute("DELETE FROM RemoteScan")
             if self.auto_commit:
                 con.commit()
         finally:
