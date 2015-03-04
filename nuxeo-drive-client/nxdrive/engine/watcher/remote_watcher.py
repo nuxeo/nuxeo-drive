@@ -256,6 +256,16 @@ class RemoteWatcher(EngineWorker):
         log.debug("Handle remote changes")
         try:
             self._client = self._engine.get_remote_client()
+        except:
+            if self._client is None and not self._engine.get_queue_manager().is_paused():
+                self._engine.get_queue_manager().suspend()
+            return False
+        if self._client is None:
+            return False
+        if self._engine.get_queue_manager().is_paused():
+            # Maybe dont want this automatic in DEBUG mode
+            self._engine.get_queue_manager().resume()
+        try:
             if self._last_remote_full_scan is None:
                 log.debug("Remote full scan")
                 self._action = Action("Remote scanning")

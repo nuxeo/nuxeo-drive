@@ -816,6 +816,8 @@ class EngineDAO(ConfigurationDAO):
             c.execute("INSERT INTO RemoteScan(path) VALUES('" + path + "')")
             if self.auto_commit:
                 con.commit()
+        except sqlite3.IntegrityError:
+            pass
         finally:
             self._lock.release()
 

@@ -100,6 +100,12 @@ class QueueManager(QObject):
         self.enable_remote_file_queue(True)
         self.enable_remote_folder_queue(True)
 
+    def is_paused(self):
+        return (not self._local_file_enable or
+                    not self._local_folder_enable or
+                    not self._remote_file_enable or
+                    not self._remote_folder_enable)
+
     def pause(self):
         self.enable_local_file_queue(False)
         self.enable_local_folder_queue(False)
