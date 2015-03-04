@@ -545,7 +545,7 @@ class CliHandler(object):
         return 0
 
     def metadata(self, options):
-        from nxdrive.gui.metadata import prompt_metadata
+        from nxdrive.wui.metadata import prompt_metadata
         self.log.debug('Opening metadata window for %s', options.file)
         prompt_metadata(self.controller, normalized_path(options.file))
         return 0

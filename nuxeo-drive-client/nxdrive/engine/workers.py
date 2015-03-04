@@ -86,7 +86,7 @@ class Worker(QObject):
             sleep(1)
 
     def _terminated(self):
-        log.debug("Thread %s(%d) terminated"
+        log.debug("Thread %s(%r) terminated"
                     % (self._name, self._thread_id))
 
     def _update_action(self, action):
