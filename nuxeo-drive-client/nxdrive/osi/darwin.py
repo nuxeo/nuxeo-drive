@@ -7,8 +7,40 @@ import urllib2
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import find_exe_path
 from nxdrive.utils import normalized_path
+from nxdrive.manager import Manager
 
 log = get_logger(__name__)
+
+import objc
+from Foundation import *
+import AppKit
+from AppKit import *
+
+
+def serviceSelector(fn):
+    # this is the signature of service selectors
+    return objc.selector(fn, signature="v@:@@o^@")
+
+
+class RightClickService(NSObject):
+
+    @serviceSelector
+    def macRightClick_userData_error_(self, pboard, data, error):
+        log.trace("macRightClick has been called")
+        try:
+            types = pboard.types()
+            pboardString = None
+            if NSURLPboardType in types:
+                pboardArray = pboard.propertyListForType_(NSURLPboardType)
+                log.error("Retrieve property list stuff %r", pboardArray)
+                for value in pboardArray:
+                    if value is None or value == "":
+                        continue
+                    # TODO Replug prompt_metadata on this one
+                    log.error("Should open : %s", value)
+            return None
+        except Exception as e:
+            log.exception(e)
 
 
 class DarwinIntegration(AbstractOSIntegration):
@@ -62,9 +94,15 @@ class DarwinIntegration(AbstractOSIntegration):
         if os.path.exists(agent_filepath):
             os.remove(agent_filepath)
 
+    def _register_services(self):
+        serviceProvider = RightClickService.alloc().init()
+        NSRegisterServicesProvider(serviceProvider, self._manager.get_appname())
+        # Refresh services
+        AppKit.NSUpdateDynamicServices()
+
     def register_contextual_menu(self):
-        # Specified in the Bundle plist
-        pass
+        # Register the service that handle the right click
+        self._register_services()
 
     def unregister_contextual_menu(self):
         # Specified in the Bundle plist

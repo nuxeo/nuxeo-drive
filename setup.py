@@ -454,6 +454,22 @@ class NuxeoDriveSetup(object):
                             CFBundleURLSchemes=(attribs
                                                 .get_CFBundleURLSchemes()),
                         )
+                    ],
+                    NSServices=[
+                        dict(
+                            NSMenuItem=dict(
+                                default=attribs.get_CFBundleDisplayName()
+                            ),
+                            NSMessage=u"macRightClick",
+                            NSPortName=attribs.get_CFBundleDisplayName(),
+                            NSRequiredContext=dict(),
+                            NSSendTypes=[
+                                u'NSStringPboardType',
+                            ],
+                            NSSendFileTypes=[
+                                u"public.item"
+                            ]
+                        )
                     ]
                 ),
                 includes=includes,
