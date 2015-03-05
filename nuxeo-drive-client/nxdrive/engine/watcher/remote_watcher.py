@@ -53,7 +53,7 @@ class RemoteWatcher(EngineWorker):
         self._metrics['last_remote_update_time'] = -1
         self._metrics['empty_polls'] = 0
         self.server_interval = delay
-        self._current_interval = self.server_interval
+        self._current_interval = 0
 
     def get_metrics(self):
         metrics = super(RemoteWatcher, self).get_metrics()
