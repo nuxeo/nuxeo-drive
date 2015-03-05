@@ -518,7 +518,7 @@ class WebDialog(QtGui.QDialog):
     '''
     classdocs
     '''
-    def __init__(self, application, page, title="Nuxeo Drive", api=None):
+    def __init__(self, application, page, title="Nuxeo Drive", api=None, token=None):
         '''
         Constructor
         '''
@@ -533,10 +533,20 @@ class WebDialog(QtGui.QDialog):
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
         self.setWindowTitle(title)
-        filename = application.get_htmlpage(page)
-        log.debug("Load web file : %s", filename)
-        url = QtCore.QUrl(filename)
-        url.setScheme("file")
+        if not (page.startswith("http") or page.startswith("file://")):
+            filename = application.get_htmlpage(page)
+        else:
+            filename = page
+        # If connect to a remote page add the X-Authentication-Token
+        if filename.startswith("http"):
+            from PyQt4 import QtNetwork
+            url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
+            url.setRawHeader("X-Authentication-Token",
+                                  QtCore.QByteArray(token))
+        else:
+            log.debug("Load web file : %s", filename)
+            url = QtCore.QUrl(filename)
+            url.setScheme("file")
         self._view.load(url)
         self._frame = self._view.page().mainFrame()
         if api is None:
@@ -553,6 +563,13 @@ class WebDialog(QtGui.QDialog):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
         self.activateWindow()
+
+    @QtCore.pyqtSlot()
+    def show(self):
+        super(WebDialog, self).show()
+        self.raise_()
+        self.activateWindow()
+        self.setFocus(QtCore.Qt.ActiveWindowFocusReason)
 
     @QtCore.pyqtSlot()
     def _attachJsApi(self):
