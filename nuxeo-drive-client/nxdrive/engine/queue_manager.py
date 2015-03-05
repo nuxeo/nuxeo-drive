@@ -106,7 +106,7 @@ class QueueManager(QObject):
                     not self._remote_file_enable or
                     not self._remote_folder_enable)
 
-    def pause(self):
+    def suspend(self):
         self.enable_local_file_queue(False)
         self.enable_local_folder_queue(False)
         self.enable_remote_file_queue(False)
