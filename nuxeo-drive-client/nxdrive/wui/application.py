@@ -639,7 +639,7 @@ class Application(QApplication):
 
     def setup_systray(self):
         self._tray_icon = QtGui.QSystemTrayIcon()
-        self._tray_icon.setToolTip('Nuxeo Drive')
+        self._tray_icon.setToolTip(self.manager.get_appname())
         self.update_running_icon()
         self._tray_icon.show()
         self.tray_icon_menu = self.get_systray_menu()
