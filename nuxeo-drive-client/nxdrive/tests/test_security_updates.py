@@ -8,7 +8,7 @@ from nose.plugins.skip import SkipTest
 class TestSecurityUpdates(UnitTestCase):
 
     def test_synchronize_denying_read_access(self):
-        if sys.platform == 'darwin':
+        if sys.platform != 'win32':
             raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that denying Read access server side is impacted client side
 

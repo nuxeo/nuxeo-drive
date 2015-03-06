@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import urllib2
 import socket
@@ -658,6 +659,8 @@ class TestSynchronization(IntegrationTestCase):
              u'synchronized', u'synchronized'))
 
     def test_synchronize_deep_folders(self):
+        if sys.platform.startswith('linux'):
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Increase Automation execution timeout for NuxeoDrive.GetChangeSummary
         # because of the recursive parent FileSystemItem adaptation
         self.setUpDrive_1(firstSync=True)

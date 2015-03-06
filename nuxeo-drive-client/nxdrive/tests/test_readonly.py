@@ -31,7 +31,7 @@ class TestReadOnly(UnitTestCase):
                 grant="true")
 
     def test_rename_readonly_file(self):
-        if sys.platform == 'win32':
+        if sys.platform == 'win32' or sys.platform == 'darwin':
             raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local = self.local_client_1
         remote = self.remote_document_client_1
