@@ -11,7 +11,7 @@ class TestWatchers(UnitTestCase):
     def test_local_scan(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         files, folders = self.make_local_tree()
-        self.queue_manager_1.pause()
+        self.queue_manager_1.suspend()
         self.engine_1.start()
         self.wait_remote_scan()
         metrics = self.queue_manager_1.get_metrics()
@@ -29,7 +29,7 @@ class TestWatchers(UnitTestCase):
             raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         files, folders = self.make_local_tree()
         self.make_server_tree()
-        self.queue_manager_1.pause()
+        self.queue_manager_1.suspend()
         self.engine_1.start()
         self.wait_remote_scan()
         # Remote as one more file
@@ -46,7 +46,7 @@ class TestWatchers(UnitTestCase):
         files, folders = self.make_server_tree()
         # Add the workspace folder
         folders = folders + 1
-        self.queue_manager_1.pause()
+        self.queue_manager_1.suspend()
         self.engine_1.start()
         self.wait_remote_scan()
         metrics = self.queue_manager_1.get_metrics()
@@ -61,7 +61,7 @@ class TestWatchers(UnitTestCase):
 
     def test_local_watchdog_creation(self):
         # Test the creation after first local scan
-        self.queue_manager_1.pause()
+        self.queue_manager_1.suspend()
         self.engine_1.start()
         self.wait_remote_scan()
         metrics = self.queue_manager_1.get_metrics()
