@@ -9,6 +9,7 @@ from nose.plugins.skip import SkipTest
 class TestWatchers(UnitTestCase):
 
     def test_local_scan(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         files, folders = self.make_local_tree()
         self.queue_manager_1.pause()
         self.engine_1.start()
