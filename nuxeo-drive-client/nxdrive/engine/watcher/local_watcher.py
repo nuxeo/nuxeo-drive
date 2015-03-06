@@ -98,19 +98,12 @@ class LocalWatcher(EngineWorker):
         self._delete_files = dict()
         self._protected_files = dict()
 
-        # Use the specific transaction from dao
-        # Disable auto-commit
-        self._dao.begin_transaction()
-        try:
-            info = self.client.get_info(u'/')
-            self._scan_recursive(info)
-            for deleted in self._delete_files:
-                if deleted in self._protected_files:
-                    continue
-                self._dao.delete_local_state(self._delete_files[deleted])
-        finally:
-            # Dont rollback
-            self._dao.end_transaction()
+        info = self.client.get_info(u'/')
+        self._scan_recursive(info)
+        for deleted in self._delete_files:
+            if deleted in self._protected_files:
+                continue
+            self._dao.delete_local_state(self._delete_files[deleted])
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
         log.debug("Full scan finished in %dms",
                     self._metrics['last_local_scan_time'])
