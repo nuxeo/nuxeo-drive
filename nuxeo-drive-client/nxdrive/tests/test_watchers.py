@@ -60,6 +60,7 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(len(res), folders + files + 1)
 
     def test_local_watchdog_creation(self):
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Test the creation after first local scan
         self.queue_manager_1.suspend()
         self.engine_1.start()
@@ -119,8 +120,7 @@ class TestWatchers(UnitTestCase):
             self.assertEqual(child.pair_state, 'parent_locally_deleted')
 
     def test_local_scan_delete_synced(self):
-        if sys.platform == 'win32' or sys.platform == 'darwin':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Test the deletion after first local scan
         self.test_reconcile_scan()
         self.engine_1.stop()
