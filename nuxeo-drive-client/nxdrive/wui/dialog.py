@@ -13,6 +13,7 @@ from nxdrive.wui.translator import Translator
 from nxdrive.manager import FolderAlreadyUsed
 import urllib2
 import json
+import sys
 import time
 import datetime
 log = get_logger(__name__)
@@ -56,7 +57,10 @@ class WebDriveApi(QtCore.QObject):
     def get_timestamp_from_sqlite(self, d):
         if d is None:
             return 0
-        format_date = "%Y-%m-%d %H:%M:%S.%f"
+        if sys.platform == "win32":
+            format_date = "%Y-%m-%d %H:%M:%S"
+        else:
+            format_date = "%Y-%m-%d %H:%M:%S.%f"
         return int(time.mktime(datetime.datetime.strptime(str(d), format_date).timetuple()))
 
     def _export_state(self, state):

@@ -59,7 +59,9 @@ class LocalWatcher(EngineWorker):
                 self._interact()
                 sleep(1)
                 if self._windows:
+                    self._action = Action("Dequeue delete")
                     self._win_dequeue_delete()
+                    self._end_action()
         except ThreadInterrupt:
             self._stop_watchdog()
             raise
@@ -83,6 +85,10 @@ class LocalWatcher(EngineWorker):
                     log.debug("Win: ignoring delete event as file still exists: %r", evt)
                 log.debug("Win: dequeuing delete event: %r", evt)
                 del self._delete_events[evt_pair.remote_ref]
+        except ThreadInterrupt:
+            raise
+        except Exception as e:
+            log.exception(e)
         finally:
             self._win_lock.release()
 
