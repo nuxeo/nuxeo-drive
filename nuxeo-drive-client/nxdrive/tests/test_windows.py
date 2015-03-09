@@ -11,8 +11,7 @@ from nose.plugins.skip import SkipTest
 class TestWindows(UnitTestCase):
 
     def test_local_replace(self):
-        if sys.platform == 'win32':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local = LocalClient(self.local_test_folder_1)
         remote = self.remote_document_client_1
         self.engine_1.start()
@@ -46,6 +45,8 @@ class TestWindows(UnitTestCase):
         self.assertEquals(remote.get_content('/test.odt'), 'Some content.')
 
     def test_concurrent_file_access(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test update/deletion of a locally locked file.
 
         This is to simulate downstream synchronization of a file opened (thus
