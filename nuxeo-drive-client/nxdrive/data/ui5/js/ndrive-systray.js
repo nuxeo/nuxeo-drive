@@ -21,6 +21,9 @@ var SystrayController = function($scope, $interval, $translate) {
 	$scope.open_remote = function() {
 		self.openRemote($scope.engine.uid);
 	}
+	$scope.show_metadata = function(path) {
+		self.showMetadata($scope.engine.uid, path);
+	}
 	$scope.advanced_systray = this.advancedSystray;
 	
 	$scope.appUpdate = function() {
@@ -72,7 +75,9 @@ var SystrayController = function($scope, $interval, $translate) {
 }
 SystrayController.prototype = Object.create(DriveController.prototype);
 SystrayController.prototype.constructor = SystrayController;
-
+SystrayController.prototype.showMetadata = function(uid, path) {
+	drive.show_metadata(uid, path);
+}
 SystrayController.prototype.advancedSystray = function() {
 	drive.advanced_systray();
 }

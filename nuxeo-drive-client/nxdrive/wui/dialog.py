@@ -320,6 +320,16 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
+    @QtCore.pyqtSlot(str, str)
+    def show_metadata(self, uid, ref):
+        try:
+            engine = self._get_engine(str(uid))
+            path = engine.get_abspath(str(ref))
+            self._application.show_metadata(path)
+        except Exception as e:
+            log.exception(e)
+            return ""
+
     @QtCore.pyqtSlot(str, result=str)
     def get_conflicts(self, uid):
         try:
@@ -545,7 +555,8 @@ class WebDialog(QtGui.QDialog):
         if filename.startswith("http"):
             from PyQt4 import QtNetwork
             url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
-            url.setRawHeader("X-Authentication-Token",
+            if token is not None:
+                url.setRawHeader("X-Authentication-Token",
                                   QtCore.QByteArray(token))
         else:
             log.debug("Load web file : %s", filename)
