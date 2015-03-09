@@ -141,7 +141,7 @@ class NuxeoDriveAttributes(object):
                 self.rubric_3rd_dir() + '.data.icons': ['*.png', '*.svg',
                                                         '*.ico', '*.icns'],
                 self.rubric_3rd_dir() + '.data.ui5': ['*.html', '*.txt', '*.js',
-                                                      'css/*', 'fonts/*', 'imgs/*', 'js/*'],
+                                                      'css/*', 'fonts/*', 'imgs/*', 'js/*', 'templates/*'],
         }
         return package_data
 
