@@ -57,11 +57,8 @@ class WebDriveApi(QtCore.QObject):
     def get_date_from_sqlite(self, d):
         if d is None:
             return 0
-        if sys.platform == "win32":
-            format_date = "%Y-%m-%d %H:%M:%S"
-        else:
-            format_date = "%Y-%m-%d %H:%M:%S.%f"
-        return datetime.datetime.strptime(str(d), format_date)
+        format_date = "%Y-%m-%d %H:%M:%S"
+        return datetime.datetime.strptime(str(d.split(".")[0]), format_date)
 
     def get_timestamp_from_date(self, d):
         return int(time.mktime(d.timetuple()))
