@@ -83,6 +83,14 @@ class Translator(object):
         return Translator._singleton._set(lang)
 
     @staticmethod
+    def format_date(date):
+        return date.strftime(Translator.get("DATE_FORMAT"))
+
+    @staticmethod
+    def format_datetime(date):
+        return date.strftime(Translator.get("DATETIME_FORMAT"))
+
+    @staticmethod
     def locale():
         if Translator._singleton is None:
             raise Exception("Translator not initialized")

@@ -78,7 +78,12 @@ LABELS={
 		"FOLDER_USED": "Folder in use by another engine",
 		"DEBUG_INVALID_CREDENTIALS": "Toggle Invalid Credentials",
 		"DEBUG_WINDOW": "Window",
-		"DEBUG": "Debug"
+		"DEBUG": "Debug",
+		"NOW": "Now",
+		"MINS_AGO": "{{interval}} minutes ago",
+		"HOURS_AGO": "{{interval}} hours ago",
+		"DATE_FORMAT": "%x",
+		"DATETIME_FORMAT": "%x %X"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -156,6 +161,14 @@ LABELS={
 		"UPDATE_PASSWORD_BUTTON": "Mettre à jour",
 		"UPDATE_PASSWORD_PLACEHOLDER": "Entrer votre mot de passe",
 		"INVALID_CREDENTIALS": "Utilisateur ou mot de passe invalide",
-		"FOLDER_USED": "Un autre moteur utilise déjà ce répertoire"
+		"FOLDER_USED": "Un autre moteur utilise déjà ce répertoire",
+		"DEBUG_INVALID_CREDENTIALS": "Toggle Invalid Credentials",
+		"DEBUG_WINDOW": "Window",
+		"DEBUG": "Debug",
+		"NOW": "Now",
+		"MINS_AGO": "{{interval}} minutes",
+		"HOURS_AGO": "{{interval}} heures",
+		"DATE_FORMAT": "%d/%m/%Y",
+		"DATETIME_FORMAT": "%d/%m/%Y %H:%M"
 	}
 }

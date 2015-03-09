@@ -54,14 +54,20 @@ class WebDriveApi(QtCore.QObject):
         result["threads"] = self._get_threads(engine)
         return result
 
-    def get_timestamp_from_sqlite(self, d):
+    def get_date_from_sqlite(self, d):
         if d is None:
             return 0
         if sys.platform == "win32":
             format_date = "%Y-%m-%d %H:%M:%S"
         else:
             format_date = "%Y-%m-%d %H:%M:%S.%f"
-        return int(time.mktime(datetime.datetime.strptime(str(d), format_date).timetuple()))
+        return datetime.datetime.strptime(str(d), format_date)
+
+    def get_timestamp_from_date(self, d):
+        return int(time.mktime(d.timetuple()))
+
+    def get_timestamp_from_sqlite(self, d):
+        return int(time.mktime(self.get_date_from_sqlite(d).timetuple()))
 
     def _export_state(self, state):
         if state is None:
@@ -72,13 +78,14 @@ class WebDriveApi(QtCore.QObject):
         # Last sync in sec
         try:
             current_time = int(time.time())
-            sync_time = self.get_timestamp_from_sqlite(state.last_sync_date)
+            date_time = self.get_date_from_sqlite(state.last_sync_date)
+            sync_time = self.get_timestamp_from_date(date_time)
             if state.last_local_updated > state.last_remote_updated:
                 result["last_sync_direction"] = "download"
             else:
                 result["last_sync_direction"] = "upload"
             result["last_sync"] = current_time - sync_time
-            result["last_sync_date"] = state.last_sync_date
+            result["last_sync_date"] = Translator.format_datetime(date_time)
         except Exception as e:
             log.exception(e)
         result["name"] = state.local_name
