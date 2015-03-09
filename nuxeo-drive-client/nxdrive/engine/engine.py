@@ -246,6 +246,12 @@ class Engine(QObject):
         self._remote_token = self._dao.get_config("remote_token")
         self._device_id = self._manager.device_id
 
+    def get_server_url(self):
+        return self._dao.get_config("server_url")
+
+    def get_remote_token(self):
+        return self._dao.get_config("remote_token")
+
     def _create_queue_manager(self, processors):
         from nxdrive.engine.queue_manager import QueueManager
         if self._manager.is_debug():

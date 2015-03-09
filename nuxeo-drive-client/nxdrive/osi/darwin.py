@@ -37,7 +37,12 @@ class RightClickService(NSObject):
                     if value is None or value == "":
                         continue
                     # TODO Replug prompt_metadata on this one
-                    log.error("Should open : %s", value)
+                    if value.startswith("file://"):
+                        value = value[7:]
+                    value = urllib2.unquote(value)
+                    log.debug("Should open : %s", value)
+                    from PyQt4.QtCore import QCoreApplication
+                    QCoreApplication.instance().show_metadata(value)
             return None
         except Exception as e:
             log.exception(e)

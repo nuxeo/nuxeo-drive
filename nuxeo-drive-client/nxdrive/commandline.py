@@ -545,10 +545,10 @@ class CliHandler(object):
         return 0
 
     def metadata(self, options):
-        from nxdrive.wui.metadata import prompt_metadata
+        from nxdrive.wui.metadata import MetadataApplication
         self.log.debug('Opening metadata window for %s', options.file)
-        prompt_metadata(self.controller, normalized_path(options.file))
-        return 0
+        app = MetadataApplication(self.manager, normalized_path(options.file))
+        return app.exec_()
 
     def edit(self, options):
         self.manager.get_drive_edit().edit(options.server_url, options.item_id)

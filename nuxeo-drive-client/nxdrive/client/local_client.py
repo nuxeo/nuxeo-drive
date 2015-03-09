@@ -230,6 +230,10 @@ class LocalClient(BaseClient):
     def get_remote_id(self, ref, name="ndrive"):
         # Can be move to another class
         path = self._abspath(ref)
+        return LocalClient.get_path_remote_id(path, name)
+
+    @staticmethod
+    def get_path_remote_id(path, name="ndrive"):
         if sys.platform == 'win32':
             path = path + ":" + name
             try:

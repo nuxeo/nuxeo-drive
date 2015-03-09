@@ -637,6 +637,11 @@ class Application(QApplication):
         else:
             return 'enabled'
 
+    def show_metadata(self, file_path):
+        from nxdrive.wui.metadata import CreateMetadataWebDialog
+        self._metadata_dialog = CreateMetadataWebDialog(self.manager, file_path)
+        self._metadata_dialog.show()
+
     def setup_systray(self):
         self._tray_icon = QtGui.QSystemTrayIcon()
         self._tray_icon.setToolTip(self.manager.get_appname())
