@@ -47,7 +47,7 @@ sed -i "s/'.*'/'$VERSION'/g" nuxeo-drive-client/nxdrive/__init__.py
 echo "Activating virtualenv"
 source $VIRTUALENV_DIR/bin/activate
 echo "Freezing application and deploying it to update site $UPDATE_SITE"
-python setup.py bdist_esky --enable-appdata-dir=True
+python setup.py --freeze bdist_esky --rm-freeze-dir-after-zipping=True
 echo "Setting back version to $DEV_VERSION"
 sed -i "s/'.*'/'$DEV_VERSION'/g" nuxeo-drive-client/nxdrive/__init__.py
 

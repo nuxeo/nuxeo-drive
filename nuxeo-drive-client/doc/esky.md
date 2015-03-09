@@ -62,7 +62,7 @@ Install `py2app` and run `bdist_esky`:
 
 Run `esky`:
 
-    python setup.py bdist_esky
+    python setup.py --freeze bdist_esky
 
 ### Notes about bdist_esky options (vs cx_Freeze)
 
