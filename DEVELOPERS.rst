@@ -108,7 +108,7 @@ Use pip_ to grab all the dev dependencies and tools at once::
 
   pip install --user -r requirements.txt
   pip install --user -r unix-requirements.txt
-  pip install --user -r mac-requirements.txt
+  pip install --user -r mac-requirements.txt		# OS X only
 
 To run the Nuxeo Drive client from your source folder use the following settings::
 
@@ -312,6 +312,7 @@ Then install ``py2app`` along with the dependencies::
   pip install py2app
   pip install --user -r requirements.txt
   pip install --user -r unix-requirements.txt
+  pip install --user -r mac-requirements.txt
 
 Then run::
 
