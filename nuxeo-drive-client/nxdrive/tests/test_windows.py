@@ -5,11 +5,14 @@ import sys
 from nxdrive.client import LocalClient
 from shutil import copyfile
 from nxdrive.tests.common_unit_test import UnitTestCase
+from nose.plugins.skip import SkipTest
 
 
 class TestWindows(UnitTestCase):
 
     def test_local_replace(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local = LocalClient(self.local_test_folder_1)
         remote = self.remote_document_client_1
         self.engine_1.start()
