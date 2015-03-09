@@ -431,6 +431,15 @@ class NuxeoDriveSetup(object):
                 },
             })
 
+            # Include cffi compiled C extension under Linux
+            if sys.platform.startswith('linux'):
+                import xattr
+                includeFiles = [(os.path.join(os.path.dirname(xattr.__file__), '_cffi__x282d9483x6ee6f75.so'),
+                                 '_cffi__x282d9483x6ee6f75.so')]
+                freeze_options['options']['bdist_esky']['freezer_options'].update({
+                    "includeFiles": includeFiles
+                })
+
         if sys.platform == 'darwin':
             # Under OSX we use py2app instead of cx_Freeze because we need:
             # - argv_emulation=True for nxdrive:// URL scheme handling
