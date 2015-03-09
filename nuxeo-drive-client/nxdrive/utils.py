@@ -125,6 +125,7 @@ def default_nuxeo_drive_folder():
              nuxeo_drive_folder)
     return nuxeo_drive_folder
 
+
 def find_resource_dir(directory, default_path):
     """Find the FS path of a directory in various OS binary packages"""
     import nxdrive
@@ -282,6 +283,7 @@ class ServerLoader(object):
                 child_uid = existing_childs[child.path].uid
             if child.folderish:
                 self.sync(child_uid, child.path)
+
 
 class PidLockFile(object):
     """ This class handle the pid lock file"""
