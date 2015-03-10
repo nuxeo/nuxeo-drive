@@ -151,11 +151,17 @@ class Application(QApplication):
     def change_systray_icon(self):
         syncing = False
         engines = self.manager.get_engines()
+        invalid_credentials = True
+        paused = True
         for _, engine in engines.iteritems():
             syncing = syncing | engine.is_syncing()
+            invalid_credentials = invalid_credentials & engine.has_invalid_credentials()
+            paused = paused & engine.is_paused()
         new_state = "asleep"
-        if len(engines) == 0:
+        if len(engines) == 0 or paused:
             new_state = "disabled"
+        if invalid_credentials:
+            new_state = 'stopping'
         if syncing:
             new_state = 'transferring'
         self.set_icon_state(new_state)
@@ -163,6 +169,18 @@ class Application(QApplication):
     def _get_settings_dialog(self, section):
         from nxdrive.wui.settings import WebSettingsDialog
         return WebSettingsDialog(self, section)
+
+    def _get_conflicts_dialog(self):
+        from nxdrive.wui.dialog import WebDialog
+        return WebDialog(self, "conflicts.html")
+
+    @QtCore.pyqtSlot()
+    def show_conflicts_resolution(self):
+        conflicts = self._get_unique_dialog("conflicts")
+        if conflicts is None:
+            conflicts = self._get_conflicts_dialog()
+            self._create_unique_dialog("conflicts", conflicts)
+        self._show_window(conflicts)
 
     @QtCore.pyqtSlot()
     def show_settings(self, section="Accounts"):
@@ -230,6 +248,9 @@ class Application(QApplication):
     def _connect_engine(self, engine):
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
+        engine.invalidAuthentication.connect(self.change_systray_icon)
+        engine.syncSuspended.connect(self.change_systray_icon)
+        engine.syncResumed.connect(self.change_systray_icon)
 
     @QtCore.pyqtSlot()
     def _debug_toggle_invalid_credentials(self):

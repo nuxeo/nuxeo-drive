@@ -79,6 +79,8 @@ class Engine(QObject):
     _scanPair = pyqtSignal(str)
     syncStarted = pyqtSignal(object)
     syncCompleted = pyqtSignal()
+    syncSuspended = pyqtSignal()
+    syncResumed = pyqtSignal()
     invalidAuthentication = pyqtSignal()
     newConflict = pyqtSignal(object)
     newSync = pyqtSignal(object, object)
@@ -198,12 +200,16 @@ class Engine(QObject):
                 thread.worker.resume()
             else:
                 thread.start()
+        self.syncResumed.emit()
 
     def suspend(self):
+        if self._pause:
+            return
         self._pause = True
-        self._queue_manager.pause()
+        self._queue_manager.suspend()
         for thread in self._threads:
             thread.worker.suspend()
+        self.syncSuspended.emit()
 
     def unbind(self):
         self.stop()
