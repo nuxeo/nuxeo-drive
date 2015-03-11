@@ -285,7 +285,6 @@ class NuxeoDriveSetup(object):
         # special handling for data files, except for Linux
         if sys.platform == "win32" or sys.platform == 'darwin':
             packages.remove('nxdrive.data')
-            packages.remove('nxdrive.data.icons')
         package_data = attribs.get_package_data()
         icons_home = attribs.get_icons_home()
         ui5_home = attribs.get_ui5_home()
