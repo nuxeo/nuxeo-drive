@@ -22,6 +22,7 @@ from nxdrive.utils import guess_mime_type
 from nxdrive.utils import force_decode
 from urllib2 import ProxyHandler
 from urlparse import urlparse
+import socket
 
 
 log = get_logger(__name__)
@@ -37,6 +38,8 @@ DEFAULT_NUXEO_TX_TIMEOUT = 300
 
 DOWNLOAD_TMP_FILE_PREFIX = '.'
 DOWNLOAD_TMP_FILE_SUFFIX = '.nxpart'
+
+socket.setdefaulttimeout(DEFAULT_NUXEO_TX_TIMEOUT)
 
 
 def get_proxies_for_handler(proxy_settings):
