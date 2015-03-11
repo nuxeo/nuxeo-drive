@@ -138,12 +138,21 @@ class NuxeoDriveAttributes(object):
 
     def get_package_data(self):
         package_data = {
-                self.rubric_3rd_dir() + '.data.icons': ['*.png', '*.svg',
-                                                        '*.ico', '*.icns'],
-                self.rubric_3rd_dir() + '.data.ui5': ['*.html', '*.txt', '*.js',
-                                                      'css/*', 'fonts/*', 'imgs/*', 'js/*', 'templates/*'],
+                self.rubric_3rd_dir() + '.data': self._get_recursive_data('data'),
         }
         return package_data
+
+    def _get_recursive_data(self, data_dir):
+        data_files = []
+        data_dir_path = os.path.join(self.rubric_2nd_dir(), self.rubric_3rd_dir(), data_dir)
+        for dirpath, _, filenames in os.walk(data_dir_path):
+            rel_path = dirpath.rsplit(data_dir, 1)[1]
+            if rel_path.startswith(os.path.sep):
+                rel_path = rel_path[1:]
+            data_files.extend([os.path.join(rel_path, filename)
+                               for filename in filenames
+                               if not (filename.endswith('.py') or filename.endswith('.pyc'))])
+        return data_files
 
     def get_package_dirs(self):
         package_dirs = [os.path.join(self.rubric_2nd_dir(),
