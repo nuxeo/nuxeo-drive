@@ -13,7 +13,6 @@ from nxdrive.wui.translator import Translator
 from nxdrive.manager import FolderAlreadyUsed
 import urllib2
 import json
-import sys
 import time
 import datetime
 log = get_logger(__name__)
@@ -88,8 +87,10 @@ class WebDriveApi(QtCore.QObject):
         result["name"] = state.local_name
         if state.local_name is None:
             result["name"] = state.remote_name
+        result["last_error"] = state.last_error
         result["local_path"] = state.local_path
         result["remote_ref"] = state.remote_ref
+        result["id"] = state.id
         return result
 
     def _export_action(self, action):
@@ -317,7 +318,7 @@ class WebDriveApi(QtCore.QObject):
             if engine is None:
                 return result
             result = []
-            for conflict in engine.get_dao().get_errors():
+            for conflict in engine.get_errors():
                 result.append(self._export_state(conflict))
             return self._json(result)
         except Exception as e:
@@ -342,7 +343,7 @@ class WebDriveApi(QtCore.QObject):
             if engine is None:
                 return result
             result = []
-            for conflict in engine.get_dao().get_conflicts():
+            for conflict in engine.get_conflicts():
                 result.append(self._export_state(conflict))
             return self._json(result)
         except Exception as e:
@@ -475,6 +476,14 @@ class WebDriveApi(QtCore.QObject):
     def show_activities(self):
         try:
             self._application.show_activities()
+        except Exception as e:
+            log.exception(e)
+
+    @QtCore.pyqtSlot(str)
+    def show_conflicts_resolution(self, uid):
+        try:
+            engine = self._get_engine(uid)
+            self._application.show_conflicts_resolution(engine)
         except Exception as e:
             log.exception(e)
 

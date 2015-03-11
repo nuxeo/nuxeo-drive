@@ -496,7 +496,7 @@ class EngineDAO(ConfigurationDAO):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE pair_state='conflicted'").fetchall()
 
-    def get_errors(self, limit):
+    def get_errors(self, limit=3):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE error_count>?", (limit,)).fetchall()
 
@@ -699,7 +699,7 @@ class EngineDAO(ConfigurationDAO):
         row.error_count = row.error_count + 1
         row.last_sync_error_date = error_date
 
-    def reset_error(self, row, error):
+    def reset_error(self, row):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
@@ -708,6 +708,7 @@ class EngineDAO(ConfigurationDAO):
                       " WHERE id=?", (row.id,))
             if self.auto_commit:
                 con.commit()
+            self._queue_pair_state(row.id, row.folderish, row.pair_state)
         finally:
             self._lock.release()
         row.last_error = None

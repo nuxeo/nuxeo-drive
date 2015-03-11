@@ -183,6 +183,14 @@ class Engine(QObject):
     def is_paused(self):
         return self._pause
 
+    def open_edit(self, remote_ref):
+        from threading import Thread
+
+        def run():
+            self._manager.get_drive_edit().edit(self.get_remote_url(). remote_ref)
+        self._edit_thread = Thread(target=run)
+        self._edit_thread.start()
+
     def open_remote(self, url=None):
         if url is None:
             url = self.get_remote_url()
@@ -341,6 +349,19 @@ class Engine(QObject):
         self._threads.append(thread)
         return thread
 
+    def retry_pair(self, row_id):
+        state = self._dao.get_state_from_id(row_id)
+        self._dao.reset_error(state)
+
+    def resolve_with_local(self, row_id):
+        pass
+
+    def resolve_with_remote(self, row_id):
+        pass
+
+    def resolve_with_duplicate(self, row_id):
+        pass
+
     def get_last_sync(self):
         return self._dao.get_config("last_sync_date", None)
 
@@ -402,6 +423,12 @@ class Engine(QObject):
         metrics["files_size"] = self._dao.get_global_size()
         metrics["invalid_credentials"] = self._invalid_credentials
         return metrics
+
+    def get_conflicts(self):
+        return self._dao.get_conflicts()
+
+    def get_errors(self):
+        return self._dao.get_errors()
 
     def is_stopped(self):
         return self._stopped

@@ -84,7 +84,8 @@ LABELS={
 		"MINS_AGO": "{{interval}} minutes ago",
 		"HOURS_AGO": "{{interval}} hours ago",
 		"DATE_FORMAT": "%x",
-		"DATETIME_FORMAT": "%x %X"
+		"DATETIME_FORMAT": "%x %X",
+		"LAST_SYNCHRONIZED": "Last synchronization: {{ date }}"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -171,6 +172,7 @@ LABELS={
 		"MINS_AGO": "{{interval}} minutes",
 		"HOURS_AGO": "{{interval}} heures",
 		"DATE_FORMAT": "%d/%m/%Y",
-		"DATETIME_FORMAT": "%d/%m/%Y %H:%M"
+		"DATETIME_FORMAT": "%d/%m/%Y %H:%M",
+		"LAST_SYNCHRONIZED": "Dernière synchronisation: {{ date }}"
 	}
 }

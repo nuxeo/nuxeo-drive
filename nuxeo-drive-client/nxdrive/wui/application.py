@@ -170,16 +170,19 @@ class Application(QApplication):
         from nxdrive.wui.settings import WebSettingsDialog
         return WebSettingsDialog(self, section)
 
-    def _get_conflicts_dialog(self):
+    def _get_conflicts_dialog(self, engine):
         from nxdrive.wui.dialog import WebDialog
-        return WebDialog(self, "conflicts.html")
+        from nxdrive.wui.conflicts import WebConflictsApi
+        return WebDialog(self, "conflicts.html", api=WebConflictsApi(self, engine))
 
     @QtCore.pyqtSlot()
-    def show_conflicts_resolution(self):
+    def show_conflicts_resolution(self, engine):
         conflicts = self._get_unique_dialog("conflicts")
         if conflicts is None:
-            conflicts = self._get_conflicts_dialog()
+            conflicts = self._get_conflicts_dialog(engine)
             self._create_unique_dialog("conflicts", conflicts)
+        else:
+            conflicts.set_engine(engine)
         self._show_window(conflicts)
 
     @QtCore.pyqtSlot()

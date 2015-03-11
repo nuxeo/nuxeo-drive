@@ -21,6 +21,14 @@ class WebSystrayApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
+    @QtCore.pyqtSlot(str)
+    def show_conflicts_resolution(self, uid):
+        try:
+            super(WebSystrayApi, self).show_conflicts_resolution(uid)
+            self._dialog.close()
+        except Exception as e:
+            log.exception(e)
+
     @QtCore.pyqtSlot(str, str)
     def show_metadata(self, uid, ref):
         try:

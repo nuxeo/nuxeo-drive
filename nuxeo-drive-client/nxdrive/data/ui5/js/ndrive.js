@@ -80,6 +80,7 @@ DriveController = function($scope, $translate) {
 	$scope.app_update = this.appUpdate;
 	$scope.auto_update = this.getAutoUpdate();
 	$scope.get_update_status = this.getUpdateStatus;
+	$scope.show_conflicts = this.showConflicts;
 	$scope.setAutoUpdate = this.setAutoUpdate;
 	$scope.update_password = function(uid, password) {
 		$scope.update_password_error = "CONNECTING";
@@ -99,6 +100,9 @@ DriveController.prototype.getTemplate = function(name) {
 }
 DriveController.prototype.showSettings = function(section) {
 	drive.show_settings(section);
+}
+DriveController.prototype.showConflicts = function(uid) {
+	drive.show_conflicts_resolution(uid);
 }
 DriveController.prototype.quit = function() {
 	drive.quit();
