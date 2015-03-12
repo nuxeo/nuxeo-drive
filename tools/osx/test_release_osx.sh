@@ -17,7 +17,7 @@ export PATH=/usr/local/bin/:$PATH
 BUILD_DIR=build
 UPDATE_SITE=dist
 APP_NAME="Nuxeo Drive"
-MAJOR_VERSION=1
+MAJOR_VERSION=2
 MINOR_VERSION=$1
 MONTH=$(date +"%m")
 DAY=$(date +"%d")
@@ -42,6 +42,10 @@ sed -i '' "s/'.*'/'$VERSION'/g" nuxeo-drive-client/nxdrive/__init__.py
 # Freeze application and deploy it to update site
 #echo "Activating virtualenv"
 #source $VIRTUALENV_DIR/bin/activate
+echo "Installing requirements"
+pip install -r requirements.txt
+pip install -r unix-requirements.txt
+pip install -r mac-requirements.txt
 echo "Freezing application and deploying it to update site $UPDATE_SITE"
 python setup.py bdist_esky
 cd $UPDATE_SITE

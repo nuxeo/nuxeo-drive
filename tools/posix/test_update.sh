@@ -16,7 +16,7 @@ fi
 INSTALL_DIR=~/freeze
 UPDATE_SITE=dist
 APP_NAME=nuxeo-drive
-MAJOR_VERSION=1
+MAJOR_VERSION=2
 MINOR_VERSION=$1
 MONTH=$(date +"%m")
 DAY=$(date +"%d")
@@ -37,6 +37,7 @@ rm -rf $INSTALL_DIR/*
 
 # Delete frozen applications from update site
 echo "Deleting frozen applications from update site $UPDATE_SITE"
+rm $UPDATE_SITE/$MAJOR_VERSION.*.json
 rm -rf $UPDATE_SITE/$APP_NAME-*
 
 # Set version to $VERSION
@@ -46,6 +47,9 @@ sed -i "s/'.*'/'$VERSION'/g" nuxeo-drive-client/nxdrive/__init__.py
 # Freeze application and deploy it to update site
 echo "Activating virtualenv"
 source $VIRTUALENV_DIR/bin/activate
+echo "Installing requirements"
+pip install -r requirements.txt
+pip install -r unix-requirements.txt
 echo "Freezing application and deploying it to update site $UPDATE_SITE"
 python setup.py --freeze bdist_esky --rm-freeze-dir-after-zipping=True
 echo "Setting back version to $DEV_VERSION"
@@ -57,5 +61,5 @@ unzip $UPDATE_SITE/$FROZEN_APP -d $INSTALL_DIR
 
 # Launch installed frozen application
 echo "Launching frozen application: $INSTALL_DIR/$EXECUTABLE"
-$INSTALL_DIR/$EXECUTABLE --log-level-console=DEBUG --update-check-delay=3
+$INSTALL_DIR/$EXECUTABLE --log-level-console=DEBUG --update-check-delay=3 --update-site-url=http://localhost:8001/dist
 
