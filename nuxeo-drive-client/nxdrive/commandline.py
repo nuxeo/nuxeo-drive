@@ -117,6 +117,10 @@ class CliHandler(object):
             help=("Website for client auto-update")
         )
         common_parser.add_argument(
+            "--beta-update-site-url",
+            help=("Website for client beta auto-update")
+        )
+        common_parser.add_argument(
             "--debug", default=False, action="store_true",
             help="Fire a debugger (ipdb or pdb) one uncaught error."
         )

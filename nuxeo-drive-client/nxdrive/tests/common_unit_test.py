@@ -121,6 +121,7 @@ class UnitTestCase(unittest.TestCase):
         options.force_locale = None
         options.log_level_file = None
         options.update_site_url = None
+        options.beta_update_site_url = None
         self.static_drive_home = tempfile.mkdtemp(u'-nuxeo-drive-test')
         log.debug('Created test home directory: %s', self.static_drive_home)
         options.nxdrive_home = self.static_drive_home

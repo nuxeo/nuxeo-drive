@@ -20,6 +20,12 @@
 		<span translate>AUTOUPDATE</span>
 	</label>
 	</div>
+	<div class="checkbox" ng-if="beta_channel_available">
+	<label>
+		<input type="checkbox" value="" ng-model="beta_channel" ng-click="setBetaChannel()">
+		<span translate>BETACHANNEL</span>
+	</label>
+	</div>
 	<div class="checkbox">
 	<label>
 		<input type="checkbox" value="" ng-model="tracking" ng-click="setTracking()">

@@ -194,6 +194,7 @@ class Manager(QtCore.QObject):
             self._update_logger(int(self._dao.get_config("log_level_file", "20")))
         # Persist update URL infos
         self._dao.update_config("update_url", options.update_site_url)
+        self._dao.update_config("beta_update_url", options.beta_update_site_url)
 
         self._os = AbstractOSIntegration.get(self)
         self.proxies = None
@@ -237,6 +238,7 @@ class Manager(QtCore.QObject):
         result["version"] = self.get_version()
         result["auto_start"] = self.get_auto_start()
         result["auto_update"] = self.get_auto_update()
+        result["beta_channel"] = self.get_beta_channel()
         result["device_id"] = self.get_device_id()
         result["tracker_id"] = self.get_tracker_id()
         result["tracking"] = self.get_tracking()
@@ -326,7 +328,13 @@ class Manager(QtCore.QObject):
 
     def get_version_finder(self):
         # Used by extended application to inject version finder
-        update_site_url = self._get_update_url()
+        if self.get_beta_channel():
+            log.debug('Update beta channel activated')
+            update_site_url = self._get_beta_update_url()
+        else:
+            update_site_url = self._get_update_url()
+        if update_site_url is None:
+            update_site_url = DEFAULT_UPDATE_SITE_URL
         if not update_site_url.endswith('/'):
             update_site_url += '/'
         return update_site_url
@@ -347,6 +355,23 @@ class Manager(QtCore.QObject):
             except URLError as e:
                 log.error('Cannot refresh engine update infos, using default update site URL', exc_info=True)
         return update_url
+
+    def _get_beta_update_url(self):
+        beta_update_url = self._dao.get_config("beta_update_url")
+        if beta_update_url is None:
+            self._refresh_engine_update_infos()
+            engines = self.get_engines()
+            if engines:
+                for engine in engines.itervalues():
+                    beta_update_url = engine.get_beta_update_url()
+                    if beta_update_url is not None:
+                        log.debug('Beta update site URL has not been defined in config.ini nor through the command'
+                                  ' line, using configuration from engine [%s]: %s', engine._name, beta_update_url)
+                        return beta_update_url
+        return beta_update_url
+
+    def is_beta_channel_available(self):
+        return self._get_beta_update_url() is not None
 
     def get_updater(self):
         return self._app_updater
@@ -589,6 +614,14 @@ class Manager(QtCore.QObject):
             self._os.register_startup()
         else:
             self._os.unregister_startup()
+
+    def get_beta_channel(self):
+        return self._dao.get_config("beta_channel", "0") == "1"
+
+    def set_beta_channel(self, value):
+        self._dao.update_config("beta_channel", value)
+        # Trigger update status refresh
+        self.refresh_update_status()
 
     def get_tracking(self):
         return self._dao.get_config("tracking", "1") == "1" and not self.get_version().endswith("-dev")

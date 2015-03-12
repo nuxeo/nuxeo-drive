@@ -402,6 +402,30 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return False
 
+    @QtCore.pyqtSlot(result=bool)
+    def is_beta_channel_available(self):
+        try:
+            return self._manager.is_beta_channel_available()
+        except Exception as e:
+            log.exception(e)
+            return False
+
+    @QtCore.pyqtSlot(bool, result=str)
+    def set_beta_channel(self, value):
+        try:
+            self._manager.set_beta_channel(value)
+        except Exception as e:
+            log.exception(e)
+        return ""
+
+    @QtCore.pyqtSlot(result=bool)
+    def get_beta_channel(self):
+        try:
+            return self._manager.get_beta_channel()
+        except Exception as e:
+            log.exception(e)
+            return False
+
     @QtCore.pyqtSlot(bool, result=str)
     def set_tracking(self, value):
         try:

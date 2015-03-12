@@ -7,6 +7,8 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.currentAccount = "";
 	$scope.show_activities = drive.show_activities;
 	$scope.auto_start = drive.get_auto_start();
+	$scope.beta_channel_available = drive.is_beta_channel_available();
+	$scope.beta_channel = drive.get_beta_channel();
 	$scope.tracking = drive.get_tracking();
 	$scope.proxy = angular.fromJson(drive.get_proxy_settings());
 	$scope.log_level = drive.get_log_level();
@@ -65,6 +67,10 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.setAutoUpdate = function() {
 		$scope.reinitMsgs();
 		drive.set_auto_update($scope.auto_update)
+	}
+	$scope.setBetaChannel = function() {
+		$scope.reinitMsgs();
+		drive.set_beta_channel($scope.beta_channel)
 	}
 	$scope.unbindBlur = function() {
 		$scope.reinitMsgs();

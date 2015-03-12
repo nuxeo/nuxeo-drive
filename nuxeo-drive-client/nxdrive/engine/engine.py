@@ -150,7 +150,6 @@ class Engine(QObject):
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
 
-
     @pyqtSlot(object)
     def _check_sync_start(self, row_id):
         if not self._sync_started:
@@ -435,6 +434,11 @@ class Engine(QObject):
         log.debug("Fetched update info for engine [%s] from server %s: %r", self._name, self._server_url, update_info)
         self._dao.update_config("server_version", update_info.get("serverVersion"))
         self._dao.update_config("update_url", update_info.get("updateSiteURL"))
+        beta_update_site_url = update_info.get("betaUpdateSiteURL")
+        # Consider empty string as None
+        if not beta_update_site_url:
+            beta_update_site_url = None
+        self._dao.update_config("beta_update_url", beta_update_site_url)
 
     def update_password(self, password):
         self._load_configuration()
@@ -503,6 +507,9 @@ class Engine(QObject):
 
     def get_update_url(self):
         return self._dao.get_config("update_url", DEFAULT_UPDATE_SITE_URL)
+
+    def get_beta_update_url(self):
+        return self._dao.get_config("beta_update_url")
 
     @pyqtSlot()
     def invalidate_client_cache(self):
