@@ -6,7 +6,9 @@ from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.utils import normalized_path
 from nxdrive.updater import AppUpdater
 from nxdrive.osi import AbstractOSIntegration
+from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive import __version__
+from urllib2 import URLError
 import subprocess
 from nxdrive.utils import ENCODING
 import os
@@ -190,6 +192,9 @@ class Manager(QtCore.QObject):
         else:
             # No log_level provide, use the one from db default is INFO
             self._update_logger(int(self._dao.get_config("log_level_file", "20")))
+        # Persist update URL infos
+        self._dao.update_config("update_url", options.update_site_url)
+
         self._os = AbstractOSIntegration.get(self)
         self.proxies = None
         self._started = False
@@ -205,13 +210,15 @@ class Manager(QtCore.QObject):
             self.generate_device_id()
         self.client_version = __version__
 
-        # Create and start the auto-update verification thread
         self._create_notification_service()
-        self._create_updater()
 
         from nxdrive.engine.engine import Engine
         self._engine_types["NXDRIVE"] = Engine
         self.load()
+
+        # Create and start the auto-update verification thread
+        self._create_updater(options.update_check_delay)
+
         # Force language
         if options.force_locale is not None:
             self.set_config("locale", options.force_locale)
@@ -310,19 +317,48 @@ class Manager(QtCore.QObject):
         from nxdrive.engine.dao.sqlite import ManagerDAO
         return ManagerDAO(self._get_db())
 
-    def _create_updater(self):
+    def _create_updater(self, update_check_delay):
         # Enable the capacity to extend the AppUpdater
-        self._app_updater = AppUpdater(self._get_version_finder())
+        self._app_updater = AppUpdater(self, version_finder=self.get_update_site_url(),
+                                       check_interval=update_check_delay)
         self.started.connect(self._app_updater._thread.start)
         return self._app_updater
 
-    def _get_version_finder(self):
+    def get_update_site_url(self):
         # Used by extended application to inject version finder
-        update_url = self._dao.get_config("update_url", "http://community.nuxeo.com/static/drive/")
+        update_site_url = self._get_update_url()
+        if not update_site_url.endswith('/'):
+            update_site_url += '/'
+        return update_site_url
+
+    def _get_update_url(self):
+        update_url = self._dao.get_config("update_url", DEFAULT_UPDATE_SITE_URL)
+        # If update site URL is not overridden in config.ini nor through the command line, refresh engine update infos
+        # and use first engine configuration
+        if update_url == DEFAULT_UPDATE_SITE_URL:
+            try:
+                self._refresh_engine_update_infos()
+                engines = self.get_engines()
+                if engines:
+                    first_engine = engines.itervalues().next()
+                    update_url = first_engine.get_update_url()
+                    log.debug('Update site URL has not been overridden in config.ini nor through the command line,'
+                              ' using configuration from first engine [%s]: %s', first_engine._name, update_url)
+            except URLError as e:
+                log.error('Cannot refresh engine update infos, using default update site URL', exc_info=True)
         return update_url
 
     def get_updater(self):
         return self._app_updater
+
+    def refresh_update_status(self):
+        self.get_updater().refresh_status()
+
+    def _refresh_engine_update_infos(self):
+        engines = self.get_engines()
+        if engines:
+            for engine in engines.itervalues():
+                engine.get_update_infos()
 
     def _create_drive_edit(self):
         from nxdrive.engine.watcher.drive_edit import DriveEdit
@@ -480,10 +516,6 @@ class Manager(QtCore.QObject):
             engine = self._engines[sb.uid]
             return engine.get_binder()
 
-    def refresh_update_info(self, local_folder):
-        # TO_REVIEW Not logical to review per folder
-        pass
-
     def is_credentials_update_required(self):
         if len(self._engine_definitions) == 0:
             return True
@@ -507,7 +539,7 @@ class Manager(QtCore.QObject):
                 # xdg-open should be supported by recent Gnome, KDE, Xfce
                 log.error("Failed to find and editor for: '%s'", file_path)
 
-    def check_update(self):
+    def check_version_updated(self):
         last_version = self._dao.get_config("client_version")
         if last_version != self.client_version:
             self.clientUpdated.emit(last_version, self.client_version)
@@ -660,6 +692,8 @@ class Manager(QtCore.QObject):
             self._dao.delete_engine(uid)
             # TODO Remove the db ?
             raise e
+        # As new engine was just bound, refresh application update status
+        self.refresh_update_status()
         if starts:
             self._engines[uid].start()
         self.newEngine.emit(self._engines[uid])

@@ -311,13 +311,9 @@ class Application(QApplication):
         from nxdrive.wui.systray import WebSystray
         return WebSystray(self, self._tray_icon)
 
-    def get_version_finder(self, update_url):
-        # Used by extended application to inject version finder
-        return update_url
-
     def get_updater(self, version_finder):
         # Enable the capacity to extend the AppUpdater
-        return AppUpdater(version_finder)
+        return AppUpdater(self.manager, version_finder=version_finder)
 
     def _is_update_required(self):
         return self.update_status in [UPDATE_STATUS_UPGRADE_NEEDED,

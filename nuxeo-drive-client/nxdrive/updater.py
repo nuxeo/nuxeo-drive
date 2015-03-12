@@ -12,6 +12,7 @@ from esky.errors import EskyBrokenError
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.workers import PollWorker
 from nxdrive.engine.activity import Action
+from nxdrive.commandline import DEFAULT_UPDATE_CHECK_DELAY
 from PyQt4 import QtCore
 
 log = get_logger(__name__)
@@ -185,12 +186,14 @@ class AppUpdater(PollWorker):
 
     Basically an Esky wrapper.
     """
+    refreshStatus = QtCore.pyqtSignal()
     newUpdate = QtCore.pyqtSignal()
     _doUpdate = QtCore.pyqtSignal(str)
 
-    def __init__(self, manager, check_interval=3600, version_finder=None,
+    def __init__(self, manager, version_finder=None, check_interval=DEFAULT_UPDATE_CHECK_DELAY,
                  esky_app=None, local_update_site=False):
         super(AppUpdater, self).__init__(check_interval)
+        self.refreshStatus.connect(self._poll)
         self._doUpdate.connect(self._update)
         self._manager = manager
         self._enable = False
@@ -236,7 +239,16 @@ class AppUpdater(PollWorker):
             self.last_status = (status, version)
         self.newUpdate.emit()
 
+    def refresh_status(self):
+        if self._enable:
+            self.refreshStatus.emit()
+
+    @QtCore.pyqtSlot()
     def _poll(self):
+        # Refresh update site URL
+        self.set_version_finder(self._manager.get_update_site_url())
+        log.debug('Polling %s for application update, current version is %s', self.update_site,
+                  self._manager.get_version())
         status = self._get_update_status()
         if status != self.last_status:
             self.last_status = status
@@ -244,6 +256,7 @@ class AppUpdater(PollWorker):
 
     def set_version_finder(self, version_finder):
         self.esky_app._set_version_finder(version_finder)
+        self.update_site = self.esky_app.version_finder.download_url
 
     def get_active_version(self):
         return self.esky_app.active_version
@@ -252,8 +265,13 @@ class AppUpdater(PollWorker):
         return self.esky_app.version
 
     def find_versions(self):
-        return sorted(self.esky_app.version_finder.find_versions(
+        try:
+            return sorted(self.esky_app.version_finder.find_versions(
                                         self.esky_app), cmp=version_compare)
+        except URLError as e:
+            log.error(e, exc_info=True)
+            raise UnavailableUpdateSite("Cannot connect to update site '%s'"
+                                        % self.update_site)
 
     def get_server_min_version(self, client_version):
         info_file = client_version + '.json'

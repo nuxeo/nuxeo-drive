@@ -2,6 +2,7 @@ from PyQt4.QtCore import QObject, QCoreApplication
 from PyQt4.QtCore import pyqtSlot, pyqtSignal
 from nxdrive.logging_config import get_logger
 from nxdrive.commandline import DEFAULT_REMOTE_WATCHER_DELAY
+from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
@@ -428,15 +429,12 @@ class Engine(QObject):
         return True
 
     def get_update_infos(self, client=None):
-        try:
-            if client is None:
-                client = self.get_remote_client(False)
-            update_info = client.get_update_info()
-            self._dao.update_config("server_version", update_info["serverVersion"])
-            self._dao.update_config("update_site", update_info["updateSiteURL"])
-        except:
-            # TO_REVIEW Discard this exception
-            pass
+        if client is None:
+            client = self.get_remote_doc_client()
+        update_info = client.get_update_info()
+        log.debug("Fetched update info for engine [%s] from server %s: %r", self._name, self._server_url, update_info)
+        self._dao.update_config("server_version", update_info.get("serverVersion"))
+        self._dao.update_config("update_url", update_info.get("updateSiteURL"))
 
     def update_password(self, password):
         self._load_configuration()
@@ -489,8 +487,6 @@ class Engine(QObject):
             self._make_local_folder(self._local_folder)
             self._add_top_level_state()
             BaseClient.set_path_readonly(self._local_folder)
-            # TODO Set update info
-            # self._set_update_info(server_binding, remote_client=nxclient)
 
     def _make_local_folder(self, local_folder):
         if not os.path.exists(local_folder):
@@ -504,6 +500,9 @@ class Engine(QObject):
 
     def get_server_version(self):
         return self._dao.get_config("server_version")
+
+    def get_update_url(self):
+        return self._dao.get_config("update_url", DEFAULT_UPDATE_SITE_URL)
 
     @pyqtSlot()
     def invalidate_client_cache(self):
