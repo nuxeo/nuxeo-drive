@@ -319,12 +319,12 @@ class Manager(QtCore.QObject):
 
     def _create_updater(self, update_check_delay):
         # Enable the capacity to extend the AppUpdater
-        self._app_updater = AppUpdater(self, version_finder=self.get_update_site_url(),
+        self._app_updater = AppUpdater(self, version_finder=self.get_version_finder(),
                                        check_interval=update_check_delay)
         self.started.connect(self._app_updater._thread.start)
         return self._app_updater
 
-    def get_update_site_url(self):
+    def get_version_finder(self):
         # Used by extended application to inject version finder
         update_site_url = self._get_update_url()
         if not update_site_url.endswith('/'):
