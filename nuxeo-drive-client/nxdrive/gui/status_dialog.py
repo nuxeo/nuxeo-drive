@@ -8,12 +8,11 @@ from folders_treeview import Overlay
 from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
 
+
 class StatusDialog(QtGui.QDialog):
     '''
     Use to display the table of LastKnownState
     '''
-
-
     def __init__(self, dao):
         '''
         Constructor

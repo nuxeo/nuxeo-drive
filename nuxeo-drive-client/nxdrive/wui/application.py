@@ -261,6 +261,14 @@ class Application(QApplication):
         engine = sender.data().toPyObject()
         engine.set_invalid_credentials(not engine.has_invalid_credentials())
 
+    @QtCore.pyqtSlot()
+    def _debug_show_file_status(self):
+        from nxdrive.gui.status_dialog import StatusDialog
+        sender = self.sender()
+        engine = sender.data().toPyObject()
+        self.statusDialog = StatusDialog(engine.get_dao())
+        self.statusDialog.show()
+
     def _create_debug_engine_menu(self, engine, parent):
         menuDebug = QtGui.QMenu(parent)
         action = QtGui.QAction(Translator.get("DEBUG_INVALID_CREDENTIALS"), menuDebug)
@@ -268,6 +276,10 @@ class Application(QApplication):
         action.setChecked(engine.has_invalid_credentials())
         action.setData(engine)
         action.triggered.connect(self._debug_toggle_invalid_credentials)
+        menuDebug.addAction(action)
+        action = QtGui.QAction(Translator.get("DEBUG_FILE_STATUS"), menuDebug)
+        action.setData(engine)
+        action.triggered.connect(self._debug_show_file_status)
         menuDebug.addAction(action)
         return menuDebug
 
