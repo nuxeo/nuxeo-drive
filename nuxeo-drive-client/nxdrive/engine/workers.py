@@ -167,6 +167,7 @@ class PollWorker(Worker):
         # Check at start
         self._next_check = 0
         self._enable = True
+        self._metrics = dict()
 
     def get_metrics(self):
         metrics = super(PollWorker, self).get_metrics()
