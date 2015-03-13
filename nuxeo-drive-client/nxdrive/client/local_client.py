@@ -354,6 +354,19 @@ class LocalClient(BaseClient):
         finally:
             self.lock_ref(parent, locker)
 
+    def duplicate_file(self, ref):
+        parent = os.path.dirname(ref)
+        name = os.path.basename(ref)
+        locker = self.unlock_ref(parent, False)
+        os_path, name = self._abspath_deduped(parent, name)
+        try:
+            shutil.copy(self._abspath(ref), os_path)
+            if parent == u"/":
+                return u"/" + name
+            return parent + u"/" + name
+        finally:
+            self.lock_ref(parent, locker)
+
     def make_file(self, parent, name, content=None):
         locker = self.unlock_ref(parent, False)
         os_path, name = self._abspath_deduped(parent, name)

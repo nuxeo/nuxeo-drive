@@ -184,10 +184,16 @@ class Engine(QObject):
         return self._pause
 
     def open_edit(self, remote_ref):
+        doc_ref = remote_ref
+        if "#" in doc_ref:
+            doc_ref = doc_ref[doc_ref.rfind('#'):]
+        log.debug("Will try to open edit : %s", doc_ref)
+        # TODO Implement a TemporaryWorker
         from threading import Thread
 
         def run():
-            self._manager.get_drive_edit().edit(self.get_remote_url(). remote_ref)
+            self._manager.get_drive_edit().edit(self._server_url,
+                                                doc_ref, self._remote_user)
         self._edit_thread = Thread(target=run)
         self._edit_thread.start()
 
@@ -354,13 +360,25 @@ class Engine(QObject):
         self._dao.reset_error(state)
 
     def resolve_with_local(self, row_id):
-        pass
+        row = self._dao.get_state_from_id(row_id)
+        self._dao.force_local(row)
 
     def resolve_with_remote(self, row_id):
-        pass
+        row = self._dao.get_state_from_id(row_id)
+        self._dao.force_remote(row)
 
     def resolve_with_duplicate(self, row_id):
-        pass
+        row = self._dao.get_state_from_id(row_id)
+        self._dao.increase_error(row, "DUPLICATING")
+        from threading import Thread
+        def run():
+            local_client = self.get_local_client()
+            # Duplicate the file
+            local_client.duplicate_file(row.local_path)
+            # Force the remote
+            self._dao.force_remote(row)
+        self._duplicate_thread = Thread(target=run)
+        self._duplicate_thread.start()
 
     def get_last_sync(self):
         return self._dao.get_config("last_sync_date", None)

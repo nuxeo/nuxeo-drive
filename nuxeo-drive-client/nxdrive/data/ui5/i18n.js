@@ -85,7 +85,16 @@ LABELS={
 		"HOURS_AGO": "{{interval}} hours ago",
 		"DATE_FORMAT": "%x",
 		"DATETIME_FORMAT": "%x %X",
-		"LAST_SYNCHRONIZED": "Last synchronization: {{ date }}"
+		"LAST_SYNCHRONIZED": "Last synchronization: {{ date }}",
+		"LAST_CONTRIBUTOR": "Last contributor: {{ contributor }}",
+		"CONFLICT_USE_LOCAL": "Use local",
+		"CONFLICT_USE_REMOTE": "Use remote",
+		"CONFLICT_USE_DUPLICATE": "Duplicate files",
+		"CONFLICT_RETRY": "Retry",
+		"OPEN_LOCAL": "Open local",
+		"OPEN_REMOTE": "Open remote",
+		"RESOLVE": "Resolve",
+		"DUPLICATING": "Duplicating..."
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -173,6 +182,15 @@ LABELS={
 		"HOURS_AGO": "{{interval}} heures",
 		"DATE_FORMAT": "%d/%m/%Y",
 		"DATETIME_FORMAT": "%d/%m/%Y %H:%M",
-		"LAST_SYNCHRONIZED": "Dernière synchronisation: {{ date }}"
+		"LAST_SYNCHRONIZED": "Dernière synchronisation: {{ date }}",
+		"LAST_CONTRIBUTOR": "Dernier contributeur: {{ contributor }}",
+		"CONFLICT_USE_LOCAL": "Choisir le fichier local",
+		"CONFLICT_USE_REMOTE": "Choisir le fichier distant",
+		"CONFLICT_USE_DUPLICATE": "Dupliquer les fichiers",
+		"CONFLICT_RETRY": "Réessayer",
+		"OPEN_LOCAL": "Ouvrir le fichier local",
+		"OPEN_REMOTE": "Ouvrir le fichier distant",
+		"RESOLVE": "Résolution",
+		"DUPLICATING": "Duplication en cours"
 	}
 }
