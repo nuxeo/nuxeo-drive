@@ -427,6 +427,7 @@ class CliHandler(object):
 
     def uninstall(self, options):
         try:
+            self.manager.get_osi().uninstall()
             # Remove all token first
             self.manager.unbind_all()
             import shutil

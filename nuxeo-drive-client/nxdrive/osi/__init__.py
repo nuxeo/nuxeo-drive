@@ -89,6 +89,12 @@ class AbstractOSIntegration(object):
     def register_startup(self):
         pass
 
+    def uninstall(self):
+        self.unregister_contextual_menu()
+        self.unregister_desktop_link()
+        self.unregister_protocol_handlers()
+        self.unregister_startup()
+
     def unregister_startup(self):
         pass
 
