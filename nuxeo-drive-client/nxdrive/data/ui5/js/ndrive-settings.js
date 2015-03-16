@@ -179,6 +179,7 @@ SettingsController.prototype.bindServer = function($scope, $translate) {
 			}
 		}
 		$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
+		$scope.beta_channel_available = drive.is_beta_channel_available();
 	} else {
 		$scope.setErrorMessage($translate.instant(res));
 	}
