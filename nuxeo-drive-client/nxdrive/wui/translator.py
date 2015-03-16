@@ -45,7 +45,7 @@ class Translator(object):
         Translator._singleton = self
 
     def _tokenize(self, label, values=None):
-        if dict is None:
+        if values is None:
             return label
         result = label
         for token in re.findall("\{\{[^\}]+\}\}", label):
