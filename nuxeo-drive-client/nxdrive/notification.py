@@ -22,9 +22,7 @@ class Notification(object):
         if uid is not None:
             self._uid = uid
         else:
-            self._uid = notification_type
-            if engine is not None:
-                self._uid = self._uid + "_" + self._engine
+            self._uid = Notification.generate_uid(notification_type, engine)
             if not self._unique:
                 self._uid = self._uid + "_" + str(int(time.time()))
         # For futur usage
@@ -43,6 +41,13 @@ class Notification(object):
 
     def get_uid(self):
         return self._uid
+
+    @staticmethod
+    def generate_uid(self, type, engine_uid=None):
+        result = type
+        if engine_uid:
+            result = result + "_" + engine_uid
+        return result
 
     def get_type(self):
         return self._type
@@ -111,7 +116,8 @@ class NotificationService(QtCore.QObject):
     def discard_notification(self, uid):
         self._lock.acquire()
         try:
-            del self._notifications[uid]
+            if uid in self._notifications:
+                del self._notifications[uid]
         finally:
             self._lock.release()
         self.discardNotification.emit(uid)
