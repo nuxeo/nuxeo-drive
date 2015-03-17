@@ -12,8 +12,12 @@ log = get_logger(__name__)
 
 class WindowsIntegration(AbstractOSIntegration):
     RUN_KEY = 'Software\\Microsoft\\Windows\\CurrentVersion\\Run'
-    MENU_PARENT_KEY = 'Software\\Classes\\*\\shell\\Nuxeo drive'
-    MENU_KEY = MENU_PARENT_KEY + '\\command'
+
+    def get_menu_parent_key(self):
+        return 'Software\\Classes\\*\\shell\\' + self.manager.get_appname()
+
+    def get_menu_key(self):
+        return self.get_menu_parent_key() + '\\command'
 
     def _delete_reg_value(self, reg, path, value):
         key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_ALL_ACCESS)
@@ -128,18 +132,18 @@ class WindowsIntegration(AbstractOSIntegration):
             return
 
         log.debug("Registering '%s' application %s to registry key %s",
-                  app_name, exe_path, self.MENU_KEY)
+                  app_name, exe_path, self.get_menu_key())
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
         self._update_reg_key(
-            reg, self.MENU_KEY,
+            reg, self.get_menu_key(),
             [(app_name, _winreg.REG_SZ, exe_path)],
         )
 
     def unregister_contextual_menu(self):
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-        self._delete_reg_value(reg, self.MENU_KEY, '')
-        _winreg.DeleteKey(reg, self.MENU_KEY)
-        _winreg.DeleteKey(reg, self.MENU_PARENT_KEY)
+        self._delete_reg_value(reg, self.get_menu_key(), '')
+        _winreg.DeleteKey(reg, self.get_menu_key())
+        _winreg.DeleteKey(reg, self.get_menu_parent_key())
 
     def register_folder_link(self, name, folder_path):
         file_lnk = self._get_folder_link(name)
