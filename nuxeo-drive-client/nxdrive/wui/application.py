@@ -106,9 +106,10 @@ class Application(QApplication):
         self.icon_spin_count = 0
 
         # Application update
+        self.manager.get_updater().appUpdated.connect(self.app_updated)
         self.updater = None
         self.update_status = None
-        self.update_version = None
+        self.updated_version = None
         self.restart_updated_app = False
 
         # This is a windowless application mostly using the system tray
@@ -476,41 +477,35 @@ class Application(QApplication):
             # Quit directly
             self.handle_stop()
 
+    @QtCore.pyqtSlot(str)
+    def app_updated(self, updated_version):
+        log.info('Quitting Nuxeo Drive')
+        self.updated_version = str(updated_version)
+        self.manager.stopped.connect(self.restart)
+        log.debug("Exiting Qt application")
+        self.quit()
+
     @QtCore.pyqtSlot()
-    def handle_stop(self):
-        if self.quit_app_after_sync_stopped:
-            log.info('Quitting Nuxeo Drive')
-            # Close thread-local Session
-            log.debug("Calling Controller.dispose() from Qt Application to"
-                      " close thread-local Session")
-            self.manager.dispose()
-            if self.restart_updated_app:
-                # Restart application by loading updated executable into
-                # current process
-                log.debug("Exiting Qt application")
-                self.quit()
+    def restart(self):
+        """ Restart application by loading updated executable into current process"""
+        current_version = self.manager.get_updater().get_active_version()
+        log.info("Current application version: %s", current_version)
+        log.info("Updated application version: %s", self.updated_version)
 
-                current_version = self.updater.get_active_version()
-                updated_version = self.update_version
-                log.info("Current application version: %s", current_version)
-                log.info("Updated application version: %s", updated_version)
+        executable = sys.executable
+        # TODO NXP-13818: better handle this!
+        if sys.platform == 'darwin':
+            executable = executable.replace('python',
+                                            self.get_mac_app())
+        log.info("Current executable is: %s", executable)
+        updated_executable = executable.replace(current_version,
+                                                self.updated_version)
+        log.info("Updated executable is: %s", updated_executable)
 
-                executable = sys.executable
-                # TODO NXP-13818: better handle this!
-                if sys.platform == 'darwin':
-                    executable = executable.replace('python',
-                                                    self.get_mac_app())
-                log.info("Current executable is: %s", executable)
-                updated_executable = executable.replace(current_version,
-                                                        updated_version)
-                log.info("Updated executable is: %s", updated_executable)
-
-                args = [updated_executable]
-                args.extend(sys.argv[1:])
-                log.info("Opening subprocess with args: %r", args)
-                subprocess.Popen(args)
-            else:
-                self.quit()
+        args = [updated_executable]
+        args.extend(sys.argv[1:])
+        log.info("Opening subprocess with args: %r", args)
+        subprocess.Popen(args)
 
     def get_mac_app(self):
         return 'ndrive'

@@ -27,8 +27,8 @@ var SystrayController = function($scope, $interval, $translate) {
 	$scope.advanced_systray = this.advancedSystray;
 	
 	$scope.appUpdate = function() {
-		self.appUpdate(this.$scope.confirmAppUpdateDialog);
-		this.$scope.confirmAppUpdateDialog = null;
+		self.appUpdate($scope.confirmAppUpdateDialog);
+		$scope.confirmAppUpdateDialog = null;
 	}
 	$scope.updateFiles = function() {
 		self.getLastFiles($scope);

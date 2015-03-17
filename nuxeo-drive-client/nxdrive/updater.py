@@ -189,6 +189,7 @@ class AppUpdater(PollWorker):
     refreshStatus = QtCore.pyqtSignal()
     newUpdate = QtCore.pyqtSignal()
     _doUpdate = QtCore.pyqtSignal(str)
+    appUpdated = QtCore.pyqtSignal(str)
 
     def __init__(self, manager, version_finder=None, check_interval=DEFAULT_UPDATE_CHECK_DELAY,
                  esky_app=None, local_update_site=False):
@@ -417,6 +418,7 @@ class AppUpdater(PollWorker):
 
     @QtCore.pyqtSlot(str)
     def _update(self, version):
+        version = str(version)
         if sys.platform == 'win32':
             # Try to update frozen application with the given version. If it
             # fails with a permission error, escalate to root and try again.
@@ -424,7 +426,6 @@ class AppUpdater(PollWorker):
                 self.esky_app.get_root()
                 self._do_update(version)
                 self.esky_app.drop_root()
-                return True
             except EnvironmentError as e:
                 if e.errno == errno.EINVAL:
                     # Under Windows, this means that the sudo popup was
@@ -439,9 +440,9 @@ class AppUpdater(PollWorker):
         else:
             try:
                 self._do_update(version)
-                return True
             except Exception as e:
                 raise UpdateError(e)
+        self.appUpdated.emit(version)
 
     def _update_callback(self, status):
         if "received" in status and "size" in status:
