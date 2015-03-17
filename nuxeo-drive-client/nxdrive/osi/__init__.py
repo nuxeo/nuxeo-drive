@@ -1,7 +1,6 @@
 import sys
 import urllib
 from nxdrive.logging_config import get_logger
-from nxdrive.utils import find_exe_path
 
 log = get_logger(__name__)
 
