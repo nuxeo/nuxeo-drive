@@ -175,9 +175,10 @@ class Manager(QtCore.QObject):
         if options.log_level_file is not None:
             # Set the log_level_file option
             handler = self._get_file_log_handler()
-            handler.setLevel(options.log_level_file)
-            # Store it in the database
-            self._dao.update_config("log_level_file", str(handler.level))
+            if handler is not None:
+                handler.setLevel(options.log_level_file)
+                # Store it in the database
+                self._dao.update_config("log_level_file", str(handler.level))
         else:
             # No log_level provide, use the one from db default is INFO
             self._update_logger(int(self._dao.get_config("log_level_file", "20")))
