@@ -3,7 +3,6 @@
 '''
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.logging_config import get_logger
-from nxdrive.utils import find_exe_path
 import _winreg
 import os
 import sys
@@ -42,7 +41,7 @@ class WindowsIntegration(AbstractOSIntegration):
 
         reg_key = self.RUN_KEY
         app_name = self._manager.get_appname()
-        exe_path = find_exe_path()
+        exe_path = self._manager.find_exe_path()
         if exe_path is None:
             log.warning('Not a frozen windows exe: '
                      'skipping startup application registration')
@@ -62,7 +61,7 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def register_protocol_handlers(self):
         """Register ndrive as a protocol handler in the Registry"""
-        exe_path = find_exe_path()
+        exe_path = self._manager.find_exe_path()
         app_name = self._manager.get_appname()
         if exe_path is None:
             log.warning('Not a frozen windows exe: '
@@ -122,7 +121,7 @@ class WindowsIntegration(AbstractOSIntegration):
         # See https://jira.nuxeo.com/browse/NXDRIVE-120
         app_name = "None"
         args = " metadata --file \"%1\""
-        exe_path = find_exe_path() + args
+        exe_path = self._manager.find_exe_path() + args
         if exe_path is None:
             log.warning('Not a frozen windows exe: '
                         'skipping startup application registration')
@@ -154,7 +153,7 @@ class WindowsIntegration(AbstractOSIntegration):
             os.remove(file_lnk)
 
     def register_desktop_link(self):
-        self._create_shortcut(self._get_desktop_link(), find_exe_path())
+        self._create_shortcut(self._get_desktop_link(), self._manager.find_exe_path())
 
     def unregister_desktop_link(self):
         link = self._get_desktop_link()
@@ -180,7 +179,7 @@ class WindowsIntegration(AbstractOSIntegration):
         )
         executable = filepath
         if iconpath is None:
-            iconpath = find_exe_path()
+            iconpath = self._manager.find_exe_path()
         if description is None:
             description = self.manager.get_appname()
         shortcut.SetPath(executable)

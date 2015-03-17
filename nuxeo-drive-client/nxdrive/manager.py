@@ -10,7 +10,7 @@ from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive import __version__
 from urllib2 import URLError
 import subprocess
-from nxdrive.utils import ENCODING
+from nxdrive.utils import ENCODING, OSX_SUFFIX, WIN32_SUFFIX
 import os
 import uuid
 import platform
@@ -607,6 +607,38 @@ class Manager(QtCore.QObject):
 
     def get_auto_start(self):
         return self._dao.get_config("auto_start", "1") == "1"
+
+    def _get_binary_name(self):
+        return 'ndrive'
+
+    def find_exe_path(self):
+        """Introspect the Python runtime to find the frozen Windows exe"""
+        import nxdrive
+        nxdrive_path = os.path.realpath(os.path.dirname(nxdrive.__file__))
+        log.trace("nxdrive_path: %s", nxdrive_path)
+
+        # Detect frozen win32 executable under Windows
+        if nxdrive_path.endswith(WIN32_SUFFIX):
+            log.trace("Detected frozen win32 executable under Windows")
+            exe_path = nxdrive_path.replace(WIN32_SUFFIX,
+                                            self._get_binary_name() + 'w.exe')
+            if os.path.exists(exe_path):
+                log.trace("Returning exe path: %s", exe_path)
+                return exe_path
+
+        # Detect OSX frozen app
+        if nxdrive_path.endswith(OSX_SUFFIX):
+            log.trace("Detected OS X frozen app")
+            exe_path = nxdrive_path.replace(OSX_SUFFIX, "Contents/MacOS/"
+                                                + self._get_binary_name())
+            if os.path.exists(exe_path):
+                log.trace("Returning exe path: %s", exe_path)
+                return exe_path
+
+        # Fall-back to the regular method that should work both the ndrive script
+        exe_path = sys.argv[0]
+        log.trace("Returning default exe path: %s", exe_path)
+        return exe_path
 
     def set_auto_start(self, value):
         self._dao.update_config("auto_start", value)

@@ -5,7 +5,6 @@ from nxdrive.osi import AbstractOSIntegration
 import os
 import urllib2
 from nxdrive.logging_config import get_logger
-from nxdrive.utils import find_exe_path
 from nxdrive.utils import normalized_path
 from nxdrive.manager import Manager
 
@@ -82,7 +81,7 @@ class DarwinIntegration(AbstractOSIntegration):
         """
         agent_filepath = self._get_agent_file()
         agents_folder = os.path.dirname(agent_filepath)
-        exe_path = find_exe_path()
+        exe_path = self._manager.find_exe_path()
         log.debug("Registering '%s' for startup in: '%s'",
                   exe_path, agent_filepath)
 
