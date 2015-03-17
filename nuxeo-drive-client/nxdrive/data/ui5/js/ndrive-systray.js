@@ -28,6 +28,7 @@ var SystrayController = function($scope, $interval, $translate) {
 	
 	$scope.appUpdate = function() {
 		self.appUpdate($scope.confirmAppUpdateDialog);
+		$scope.app_update = ['updating', $scope.confirmAppUpdateDialog, 0];
 		$scope.confirmAppUpdateDialog = null;
 	}
 	$scope.updateFiles = function() {

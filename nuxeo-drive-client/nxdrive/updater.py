@@ -246,14 +246,16 @@ class AppUpdater(PollWorker):
 
     @QtCore.pyqtSlot()
     def _poll(self):
-        # Refresh update site URL
-        self.set_version_finder(self._manager.get_version_finder())
-        log.debug('Polling %s for application update, current version is %s', self.update_site,
-                  self._manager.get_version())
-        status = self._get_update_status()
-        if status != self.last_status:
-            self.last_status = status
-            self.newUpdate.emit()
+        if self.last_status != UPDATE_STATUS_UPDATING:
+            # Refresh update site URL
+            self.set_version_finder(self._manager.get_version_finder())
+            log.debug('Polling %s for application update, current version is %s', self.update_site,
+                      self._manager.get_version())
+            status = self._get_update_status()
+            if status != self.last_status:
+                self.last_status = status
+                self.newUpdate.emit()
+            # log + do stuff consequently?
 
     def set_version_finder(self, version_finder):
         self.esky_app._set_version_finder(version_finder)
@@ -414,6 +416,7 @@ class AppUpdater(PollWorker):
             return (UPDATE_STATUS_MISSING_VERSION, None)
 
     def update(self, version):
+        self.last_status = (UPDATE_STATUS_UPDATING, str(version), 5)
         self._doUpdate.emit(version)
 
     @QtCore.pyqtSlot(str)
@@ -452,17 +455,24 @@ class AppUpdater(PollWorker):
         log.info("Starting application update process")
         log.info("Fetching version %s from update site %s", version,
                       self.update_site)
+        self.last_status = (UPDATE_STATUS_UPDATING, version, 10)
         self.action = Action("Downloading %s version" % version)
         self.action.progress = 0
         self._update_action(self.action)
         self.esky_app.fetch_version(version, self._update_callback)
-        self._update_action(Action("Installing %s version" % version))
+
         log.info("Installing version %s", version)
+        self.last_status = (UPDATE_STATUS_UPDATING, version, 80)
+        self._update_action(Action("Installing %s version" % version))
         self.esky_app.install_version(version)
-        self.action.type = "Reinitializing"
+
         log.debug("Reinitializing Esky internal state")
+        self.last_status = (UPDATE_STATUS_UPDATING, version, 90)
+        self.action.type = "Reinitializing"
         self.esky_app.reinitialize()
+
         log.info("Ended application update process")
+        self.last_status = (UPDATE_STATUS_UPDATING, version, 100)
         self._end_action()
 
     def cleanup(self, version):
