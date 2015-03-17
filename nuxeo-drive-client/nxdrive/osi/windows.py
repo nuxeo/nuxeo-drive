@@ -14,7 +14,7 @@ class WindowsIntegration(AbstractOSIntegration):
     RUN_KEY = 'Software\\Microsoft\\Windows\\CurrentVersion\\Run'
 
     def get_menu_parent_key(self):
-        return 'Software\\Classes\\*\\shell\\' + self.manager.get_appname()
+        return 'Software\\Classes\\*\\shell\\' + self._manager.get_appname()
 
     def get_menu_key(self):
         return self.get_menu_parent_key() + '\\command'
@@ -185,7 +185,7 @@ class WindowsIntegration(AbstractOSIntegration):
         if iconpath is None:
             iconpath = self._manager.find_exe_path()
         if description is None:
-            description = self.manager.get_appname()
+            description = self._manager.get_appname()
         shortcut.SetPath(executable)
         shortcut.SetDescription(description)
         shortcut.SetIconLocation(iconpath, 0)

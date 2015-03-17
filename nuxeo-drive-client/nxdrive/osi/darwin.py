@@ -52,7 +52,6 @@ class DarwinIntegration(AbstractOSIntegration):
     classdocs
     '''
     NXDRIVE_SCHEME = 'nxdrive'
-    NDRIVE_AGENT_FILENAME = "org.nuxeo.drive.plist"
     NDRIVE_AGENT_TEMPLATE = """\
     <?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -70,7 +69,7 @@ class DarwinIntegration(AbstractOSIntegration):
 
     def _get_agent_file(self):
         agents_folder = os.path.expanduser('~/Library/LaunchAgents')
-        agent_filepath = os.path.join(agents_folder, self.NDRIVE_AGENT_FILENAME)
+        agent_filepath = os.path.join(agents_folder, self._manager.get_cf_bundle_identifier() + '.plist')
         return agent_filepath
 
     def register_startup(self):

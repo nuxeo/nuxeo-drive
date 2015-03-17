@@ -833,6 +833,9 @@ class Manager(QtCore.QObject):
             return self.get_root_id(parent)
         return ref
 
+    def get_cf_bundle_identifier(self):
+        return "org.nuxeo.drive"
+
     def get_metadata_infos(self, file_path):
         from nxdrive.client import LocalClient
         DRIVE_METADATA_VIEW = 'view_drive_metadata'
