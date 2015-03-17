@@ -48,6 +48,8 @@ body {
 	width: 100%;
 	min-height: 20px;
 	padding-top: 4px;
+}
+.notification.user-action {
 	cursor: pointer;
 }
 .notification-info {

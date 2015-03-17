@@ -27,18 +27,6 @@ UPDATE_STATUS_UNAVAILABLE_SITE = 'unavailable_site'
 UPDATE_STATUS_MISSING_INFO = 'missing_info'
 UPDATE_STATUS_MISSING_VERSION = 'missing_version'
 
-# Update status messages
-UPDATE_STATUS_LABEL = {
-    UPDATE_STATUS_UPGRADE_NEEDED: 'Upgrade required',
-    UPDATE_STATUS_DOWNGRADE_NEEDED: 'Downgrade required',
-    UPDATE_STATUS_UPDATE_AVAILABLE: 'Update Nuxeo Drive',
-    UPDATE_STATUS_UP_TO_DATE: 'Up-to-date',
-    UPDATE_STATUS_UPDATING: 'Updating',
-    UPDATE_STATUS_UNAVAILABLE_SITE: 'Update site unavailable',
-    UPDATE_STATUS_MISSING_INFO: 'Update information unavailable',
-    UPDATE_STATUS_MISSING_VERSION: 'No compatible version available',
-}
-
 
 def version_compare(x, y):
     """Compare version numbers using the usual x.y.z pattern.
@@ -255,7 +243,48 @@ class AppUpdater(PollWorker):
             if status != self.last_status:
                 self.last_status = status
                 self.newUpdate.emit()
-            # log + do stuff consequently?
+            self._handle_status()
+
+    def _handle_status(self):
+        update_status = self.last_status[0]
+        update_version = self.last_status[1]
+        if update_status == UPDATE_STATUS_UNAVAILABLE_SITE:
+            # Update site unavailable
+            log.warning("Update site is unavailable, as a consequence"
+                        " update features won't be available")
+        elif update_status in [UPDATE_STATUS_MISSING_INFO,
+                                  UPDATE_STATUS_MISSING_VERSION]:
+            # Information or version missing in update site
+            log.warning("Some information or version file is missing in"
+                        " the update site, as a consequence update"
+                        " features won't be available")
+        else:
+            # Update information successfully fetched
+            log.info("Fetched information from update site %s: update"
+                     " status = '%s', update version = '%s'",
+                     self.update_site, update_status, update_version)
+            if update_status in [UPDATE_STATUS_DOWNGRADE_NEEDED, UPDATE_STATUS_UPGRADE_NEEDED]:
+                # Current client version not compatible with server
+                # version, upgrade or downgrade needed.
+                # Let's stop synchronization.
+                log.info("As current client version is not compatible with"
+                         " server version, an upgrade or downgrade is"
+                         " needed. Synchronization won't start until then.")
+                self._manager.stop()
+            elif update_status == UPDATE_STATUS_UPDATE_AVAILABLE and self._manager.get_auto_update():
+                # Update available and auto-update checked, let's process update
+                log.info("An application update is available and"
+                         " auto-update is checked")
+                self.update(update_version)
+            elif update_status == UPDATE_STATUS_UPDATE_AVAILABLE and not self._manager.get_auto_update():
+                # Update available and auto-update not checked, let's just
+                # update the systray notification and let the user explicitly choose to  update
+                log.info("An update is available and auto-update is not"
+                         " checked, let's just update the systray notification"
+                         " and let the user explicitly choose to update")
+            else:
+                # Application is up-to-date
+                log.info("Application is up-to-date")
 
     def set_version_finder(self, version_finder):
         self.esky_app._set_version_finder(version_finder)
@@ -406,7 +435,7 @@ class AppUpdater(PollWorker):
                      client_version, server_version, latest_version)
             return (UPDATE_STATUS_UPDATE_AVAILABLE, latest_version)
         except UnavailableUpdateSite as e:
-            log.warning(e)
+            log.error(e)
             return (UPDATE_STATUS_UNAVAILABLE_SITE, None)
         except MissingUpdateSiteInfo as e:
             log.warning(e)
@@ -481,9 +510,6 @@ class AppUpdater(PollWorker):
         self.esky_app.uninstall_version(version)
         log.info("Cleaning up Esky application", version)
         self.esky_app.cleanup()
-
-    def get_update_label(self, status):
-        return UPDATE_STATUS_LABEL[status]
 
     def get_update_site(self):
         return self.update_site

@@ -17,9 +17,12 @@
 		</div>
 	</form>
 </div>
-<div ng-show="app_update[0] == 'update_available' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-info" translate translate_values="{ version:app_update[1] }">UPGRADE_AVAILABLE</div>
-<div ng-show="app_update[0] == 'downgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger" translate translate_values="{ version:app_update[1] }">DOWNGRADE_NEEDED</div>
-<div ng-show="app_update[0] == 'upgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger" translate translate_values="{ version:app_update[1] }">UPGRADE_NEEDED</div>
+<div ng-show="app_update[0] == 'unavailable_site' && confirmAppUpdateDialog == null" class="notification notification-info" translate>UNAVAILABLE_UPDATE_SITE</div>
+<div ng-show="app_update[0] == 'missing_info' && confirmAppUpdateDialog == null" class="notification notification-info" translate>MISSING_UPDATE_INFO</div>
+<div ng-show="app_update[0] == 'missing_version' && confirmAppUpdateDialog == null" class="notification notification-info" translate>MISSING_UPDATE_VERSION</div>
+<div ng-show="app_update[0] == 'update_available' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-info user-action" translate translate_values="{ version:app_update[1] }">UPGRADE_AVAILABLE</div>
+<div ng-show="app_update[0] == 'downgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger user-action" translate translate_values="{ version:app_update[1] }">DOWNGRADE_NEEDED</div>
+<div ng-show="app_update[0] == 'upgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger user-action" translate translate_values="{ version:app_update[1] }">UPGRADE_NEEDED</div>
 <div ng-show="app_update[0] == 'updating'" class="notification notification-info">
 	<span translate translate_values="{ version:app_update[1] }">UPDATING_VERSION</span>
 	<div class="progress" style="height: 4px;">
