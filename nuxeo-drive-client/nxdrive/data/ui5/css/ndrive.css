@@ -79,3 +79,6 @@ body {
 #systray-bottom {
 	border-top: 1px solid #17384e !important;
 }
+#systray-bottom .progress {
+	margin-bottom: 0;
+}

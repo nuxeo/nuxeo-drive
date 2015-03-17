@@ -453,6 +453,7 @@ class AppUpdater(PollWorker):
 
     def _do_update(self, version):
         log.info("Starting application update process")
+
         log.info("Fetching version %s from update site %s", version,
                       self.update_site)
         self.last_status = (UPDATE_STATUS_UPDATING, version, 10)
