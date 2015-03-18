@@ -277,7 +277,13 @@ class AppUpdater(PollWorker):
                 # Update available and auto-update checked, let's process update
                 log.info("An application update is available and"
                          " auto-update is checked")
-                self.update(update_version)
+                self.last_status = (UPDATE_STATUS_UPDATING, update_version, 0)
+                try:
+                    self._update(update_version)
+                except UpdateError:
+                    log.error("An error occurred while trying to automatically update Nuxeo Drive to version %s,"
+                              " setting 'Auto update' to False", update_version, exc_info=True)
+                    self._manager.set_auto_update(False)
             elif update_status == UPDATE_STATUS_UPDATE_AVAILABLE and not self._manager.get_auto_update():
                 # Update available and auto-update not checked, let's just
                 # update the systray notification and let the user explicitly choose to  update
