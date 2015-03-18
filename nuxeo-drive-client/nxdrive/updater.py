@@ -447,7 +447,7 @@ class AppUpdater(PollWorker):
             return (UPDATE_STATUS_MISSING_VERSION, None)
 
     def update(self, version):
-        self.last_status = (UPDATE_STATUS_UPDATING, str(version), 5)
+        self.last_status = (UPDATE_STATUS_UPDATING, str(version), 0)
         self._doUpdate.emit(version)
 
     @QtCore.pyqtSlot(str)
@@ -481,30 +481,27 @@ class AppUpdater(PollWorker):
     def _update_callback(self, status):
         if "received" in status and "size" in status:
             self.action.progress = (status["received"] * 100 / status["size"])
+            self.last_status = (self.last_status[0], self.last_status[1], self.action.progress)
 
     def _do_update(self, version):
         log.info("Starting application update process")
 
         log.info("Fetching version %s from update site %s", version,
                       self.update_site)
-        self.last_status = (UPDATE_STATUS_UPDATING, version, 10)
         self.action = Action("Downloading %s version" % version)
         self.action.progress = 0
         self._update_action(self.action)
         self.esky_app.fetch_version(version, self._update_callback)
 
         log.info("Installing version %s", version)
-        self.last_status = (UPDATE_STATUS_UPDATING, version, 80)
         self._update_action(Action("Installing %s version" % version))
         self.esky_app.install_version(version)
 
         log.debug("Reinitializing Esky internal state")
-        self.last_status = (UPDATE_STATUS_UPDATING, version, 90)
         self.action.type = "Reinitializing"
         self.esky_app.reinitialize()
 
         log.info("Ended application update process")
-        self.last_status = (UPDATE_STATUS_UPDATING, version, 100)
         self._end_action()
 
     def cleanup(self, version):
