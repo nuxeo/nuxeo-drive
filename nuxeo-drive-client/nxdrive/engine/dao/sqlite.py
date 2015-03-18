@@ -413,7 +413,7 @@ class EngineDAO(ConfigurationDAO):
                 if pair.folderish:
                     folders[pair.local_path] = True
                 if not  pair.local_parent_path in folders:
-                    log.debug('Pushing pair %r', pair)
+                    log.trace('Pushing pair %r', pair)
                     self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
         # Dont block everything if queue manager fail
         # TODO As the error should be fatal not sure we need this
@@ -613,7 +613,7 @@ class EngineDAO(ConfigurationDAO):
                 c.execute(update + self._get_recursive_condition(doc_pair))
             if self.auto_commit:
                 con.commit()
-            log.debug('Pushing %r', doc_pair)
+            log.trace('Pushing %r', doc_pair)
             self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
         finally:
             self._lock.release()
@@ -621,7 +621,7 @@ class EngineDAO(ConfigurationDAO):
         c = con.cursor()
         rows = c.execute("SELECT * FROM States" + self._get_recursive_condition(doc_pair)).fetchall()
         for row in rows:
-            log.debug('Pushing %r', row)
+            log.trace('Pushing %r', row)
             self._queue_pair_state(row.id, row.folderish, row.pair_state)
 
     def remove_state(self, doc_pair):
@@ -678,7 +678,7 @@ class EngineDAO(ConfigurationDAO):
                                     self._get_to_sync_condition(), (row.local_path, )).fetchall()
             log.debug("Queuing %d children of '%s'", len(children), row.local_path)
             for child in children:
-                log.debug('Pushing %r', child)
+                log.trace('Pushing %r', child)
                 self._queue_pair_state(child.id, child.folderish, child.pair_state)
         finally:
             self._lock.release()
@@ -737,7 +737,7 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute("UPDATE States SET local_state='created', remote_state='unknown', pair_state='locally_created', last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
                       " WHERE id=? AND version=?", (row.id, row.version))
-            log.debug('Pushing %r', row)
+            log.trace('Pushing %r', row)
             self._queue_pair_state(row.id, row.folderish, "locally_created")
             if self.auto_commit:
                 con.commit()
