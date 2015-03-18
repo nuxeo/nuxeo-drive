@@ -108,14 +108,14 @@ DriveController.prototype.showConflicts = function(uid) {
 DriveController.prototype.quit = function() {
 	drive.quit();
 }
-DriveController.prototype.setAutoUpdate = function(value) {
-	drive.set_auto_update(value);
-}
 DriveController.prototype.openRemote = function(uid) {
 	drive.open_remote(uid);
 }
 DriveController.prototype.openLocal = function(uid, path) {
 	drive.open_local(uid, path);
+}
+DriveController.prototype.setAutoUpdate = function(value) {
+	drive.set_auto_update(value);
 }
 DriveController.prototype.getAutoUpdate = function() {
 	return drive.get_auto_update();
