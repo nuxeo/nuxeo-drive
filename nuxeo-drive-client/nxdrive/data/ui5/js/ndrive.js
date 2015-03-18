@@ -79,6 +79,7 @@ DriveController = function($scope, $translate) {
 	$scope.open_local = this.openLocal;
 	$scope.app_update = this.appUpdate;
 	$scope.auto_update = this.getAutoUpdate();
+	$scope.betaChannel = this.getBetaChannel();
 	$scope.get_update_status = this.getUpdateStatus;
 	$scope.show_conflicts = this.showConflicts;
 	$scope.setAutoUpdate = this.setAutoUpdate;
@@ -118,6 +119,9 @@ DriveController.prototype.openLocal = function(uid, path) {
 }
 DriveController.prototype.getAutoUpdate = function() {
 	return drive.get_auto_update();
+}
+DriveController.prototype.getBetaChannel = function() {
+	return drive.get_beta_channel();
 }
 DriveController.prototype.getEngines = function() {
 	return angular.fromJson(drive.get_engines());

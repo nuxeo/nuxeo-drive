@@ -8,8 +8,10 @@ var SystrayController = function($scope, $interval, $translate) {
 	$scope.syncing_items = 0;
 	$scope.autoUpdate = this.getAutoUpdate();
 	$scope.app_update = this.getUpdateStatus();
+	$scope.update_channel = ''
 	$scope.confirmAppUpdateDialog = null;
 	$scope.confirmAppUpdate = function(version) {
+		$scope.updateChannel = $scope.betaChannel ? 'beta ' : '';
 		$scope.confirmAppUpdateDialog = version;	
 	}
 	$scope.interval = null;
