@@ -49,16 +49,6 @@ class MissingToken(Exception):
     pass
 
 
-class GeneralSettings(object):
-    """Summarize general settings"""
-
-    def __init__(self, auto_update=False):
-        self.auto_update = auto_update
-
-    def __repr__(self):
-        return "GeneralSettings<auto_update=%r>" % self.auto_update
-
-
 class ServerBindingSettings(object):
     """Summarize server binding settings"""
 
@@ -151,7 +141,6 @@ class Manager(QtCore.QObject):
     '''
     proxyUpdated = QtCore.pyqtSignal(object)
     clientUpdated = QtCore.pyqtSignal(object, object)
-    clientUpdateAvailable = QtCore.pyqtSignal()
     engineNotFound = QtCore.pyqtSignal(object)
     newEngine = QtCore.pyqtSignal(object)
     dropEngine = QtCore.pyqtSignal(object)
@@ -589,10 +578,6 @@ class Manager(QtCore.QObject):
             result.append(row)
         return result
 
-    def dispose(self):
-        # TO_REVIEW Might need to remove it
-        pass
-
     def get_config(self, value, default=None):
         return self._dao.get_config(value, default)
 
@@ -665,12 +650,6 @@ class Manager(QtCore.QObject):
         elif self._tracker is not None:
             self._tracker._thread.quit()
             self._tracker = None
-
-    def set_general_settings(self, settings):
-        self._dao.update_config("auto_update", settings.auto_update)
-
-    def get_general_settings(self):
-        return GeneralSettings(self._dao.get_config("auto_update", "False") == "True")
 
     def set_proxy_settings(self, proxy_settings):
         proxy_settings.save(self._dao)

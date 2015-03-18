@@ -143,14 +143,6 @@ def version_compare(x, y):
     return 0
 
 
-class AppNotFrozen(Exception):
-    pass
-
-
-class UpdaterInitError(Exception):
-    pass
-
-
 class UnavailableUpdateSite(Exception):
     pass
 
@@ -177,7 +169,6 @@ class AppUpdater(PollWorker):
     Basically an Esky wrapper.
     """
     refreshStatus = QtCore.pyqtSignal()
-    newUpdate = QtCore.pyqtSignal()
     _doUpdate = QtCore.pyqtSignal(str)
     appUpdated = QtCore.pyqtSignal(str)
 
@@ -228,7 +219,6 @@ class AppUpdater(PollWorker):
             self.last_status = (status, version, 40)
         else:
             self.last_status = (status, version)
-        self.newUpdate.emit()
 
     def refresh_status(self):
         if self._enable:
@@ -244,7 +234,6 @@ class AppUpdater(PollWorker):
             status = self._get_update_status()
             if status != self.last_status:
                 self.last_status = status
-                self.newUpdate.emit()
             self._handle_status()
 
     def _handle_status(self):

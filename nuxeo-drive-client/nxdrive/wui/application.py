@@ -9,12 +9,7 @@ from nxdrive.osi import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
-from nxdrive.gui.update_prompt import prompt_update
 from nxdrive.gui.updated import notify_updated
-from nxdrive.updater import AppUpdater
-from nxdrive.updater import UPDATE_STATUS_UPGRADE_NEEDED
-from nxdrive.updater import UPDATE_STATUS_DOWNGRADE_NEEDED
-from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
 from nxdrive.utils import find_resource_dir
 from nxdrive.wui.translator import Translator
 
@@ -107,10 +102,7 @@ class Application(QApplication):
 
         # Application update
         self.manager.get_updater().appUpdated.connect(self.app_updated)
-        self.updater = None
-        self.update_status = None
         self.updated_version = None
-        self.restart_updated_app = False
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
@@ -316,8 +308,7 @@ class Application(QApplication):
             self.show_settings()
         else:
             for engine in self.manager.get_engines().values():
-                # Prompt for settings if needed (performs a check for application
-                # update)
+                # Prompt for settings if needed
                 if engine.has_invalid_credentials():
                     self.show_settings('Accounts_' + engine._uid)
                     break
@@ -326,17 +317,6 @@ class Application(QApplication):
     def get_systray_menu(self):
         from nxdrive.wui.systray import WebSystray
         return WebSystray(self, self._tray_icon)
-
-    def get_updater(self, version_finder):
-        # Enable the capacity to extend the AppUpdater
-        return AppUpdater(self.manager, version_finder=version_finder)
-
-    def _is_update_required(self):
-        return self.update_status in [UPDATE_STATUS_UPGRADE_NEEDED,
-                                      UPDATE_STATUS_DOWNGRADE_NEEDED]
-
-    def _is_update_available(self):
-        return self.update_status == UPDATE_STATUS_UPDATE_AVAILABLE
 
     def set_icon_state(self, state):
         """Execute systray icon change operations triggered by state change
@@ -441,46 +421,10 @@ class Application(QApplication):
             # Resume sync
             self.manager.resume()
 
-    def action_update(self, auto_update=False):
-        updated = False
-        if auto_update:
-            try:
-                updated = self.updater.update(self.update_version)
-            except Exception as e:
-                log.error(e, exc_info=True)
-                log.warning("An error occurred while trying to automatically"
-                            " update Nuxeo Drive to version %s, setting"
-                            " 'Auto update' to False", self.update_version)
-                self.manager.set_auto_update(False)
-        else:
-            updated = prompt_update(self.manager,
-                                    self._is_update_required(),
-                                    self.manager.get_version(),
-                                    self.update_version, self.updater)
-        if updated:
-            log.info("Will quit Nuxeo Drive and restart updated version %s",
-                     self.update_version)
-            self.quit_app_after_sync_stopped = True
-            self.restart_updated_app = True
-            self._stop()
-
-    def _stop(self):
-        if self.manager.is_started():
-            # A sync thread is active, first update state, icon and menu
-            if self.quit_app_after_sync_stopped:
-                self.state = 'stopping'
-                self.update_running_icon()
-                self.communicator.menu.emit()
-            # Stop the thread
-            self.manager.stop()
-        else:
-            # Quit directly
-            self.handle_stop()
-
     @QtCore.pyqtSlot(str)
     def app_updated(self, updated_version):
-        log.info('Quitting Nuxeo Drive')
         self.updated_version = str(updated_version)
+        log.info('Quitting Nuxeo Drive and restarting updated version %s', self.updated_version)
         self.manager.stopped.connect(self.restart)
         log.debug("Exiting Qt application")
         self.quit()
@@ -512,7 +456,7 @@ class Application(QApplication):
 
     def update_running_icon(self):
         # TODO Define is direct call to set_icon_state
-        if self.state not in ['enabled', 'update_available', 'transferring']:
+        if self.state not in ['enabled', 'transferring']:
             self.set_icon_state(self.state)
             return
         infos = self.binding_info.values()
@@ -655,11 +599,7 @@ class Application(QApplication):
         self.communicator.update_check.emit()
 
     def _get_current_active_state(self):
-        if self._is_update_available():
-            return 'update_available'
-        elif self._is_update_required():
-            return 'disabled'
-        elif self.state == 'paused':
+        if self.state == 'paused':
             return 'paused'
         else:
             return 'enabled'
