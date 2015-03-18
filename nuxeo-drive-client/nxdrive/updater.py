@@ -27,6 +27,8 @@ UPDATE_STATUS_UNAVAILABLE_SITE = 'unavailable_site'
 UPDATE_STATUS_MISSING_INFO = 'missing_info'
 UPDATE_STATUS_MISSING_VERSION = 'missing_version'
 
+DEFAULT_SERVER_MIN_VERSION = '5.6'
+
 
 def version_compare(x, y):
     """Compare version numbers using the usual x.y.z pattern.
@@ -322,8 +324,8 @@ class AppUpdater(PollWorker):
                       " from %s: %s", client_version, url, version)
             return version
         except HTTPError as e:
-            log.error(e, exc_info=True)
-            raise MissingUpdateSiteInfo(missing_msg)
+            version = DEFAULT_SERVER_MIN_VERSION
+            log.warning(missing_msg + ", using default one: %s", DEFAULT_SERVER_MIN_VERSION)
         except URLError as e:
             log.error(e, exc_info=True)
             raise UnavailableUpdateSite("Cannot connect to update site '%s'"
