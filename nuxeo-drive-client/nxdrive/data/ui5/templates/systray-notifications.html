@@ -6,13 +6,13 @@
 	<form>
 		<div class="row">
 			<div class="col-xs-2" style="padding-top: 20px;">
-				<span ng-click="confirmAppUpdate(null)" class="glyphicon glyphicon-remove-sign alert-danger pull-left" style="font-size: 20px;background: none;">&nbsp;</span>
+				<span ng-click="confirmAppUpdate(null)" class="glyphicon glyphicon-remove-sign alert-danger pull-left user-action" style="font-size: 20px;background: none;">&nbsp;</span>
 			</div>
 			<div class="checkbox col-xs-8" style="padding-top: 10px;">
 				<input type="checkbox" style="margin-top: -3px" ng-model="autoUpdate" ng-click="setAutoUpdate(autoUpdate)"><span translate>AUTOUPDATE</span>
 			</div>
 			<div class="col-xs-2" style="padding-top: 20px;">
-				<span ng-click="appUpdate()" class="col-xs-4 glyphicon glyphicon-ok-sign alert-success pull-right" style="font-size: 20px;background: none;">&nbsp;</span>
+				<span ng-click="appUpdate()" class="col-xs-4 glyphicon glyphicon-ok-sign alert-success pull-right user-action" style="font-size: 20px;background: none;">&nbsp;</span>
 			</div>
 		</div>
 	</form>

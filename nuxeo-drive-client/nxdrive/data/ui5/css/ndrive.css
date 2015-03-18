@@ -49,7 +49,7 @@ body {
 	min-height: 20px;
 	padding-top: 4px;
 }
-.notification.user-action {
+.notification.user-action, .glyphicon.user-action {
 	cursor: pointer;
 }
 .notification-info {
