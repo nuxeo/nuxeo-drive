@@ -10,6 +10,7 @@ coverage
 htmlcov
 build
 dist
+dist-beta
 cover
 .ropeproject
 MANIFEST
