@@ -87,7 +87,6 @@ class Engine(QObject):
     newSync = pyqtSignal(object, object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
-    version = "test"
 
     def __init__(self, manager, definition, binder=None, processors=5,
                  remote_watcher_delay=DEFAULT_REMOTE_WATCHER_DELAY,
@@ -96,6 +95,7 @@ class Engine(QObject):
                  remote_filtered_fs_client_factory=RemoteFilteredFileSystemClient):
         super(Engine, self).__init__()
 
+        self.version = manager.get_version()
         # Used for binding server / roots and managing tokens
         self.remote_doc_client_factory = remote_doc_client_factory
 
