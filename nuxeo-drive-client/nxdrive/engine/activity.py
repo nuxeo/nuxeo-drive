@@ -12,6 +12,7 @@ class Action(object):
     progress = None
     type = None
     finished = False
+    suspend = False
 
     def __init__(self, actionType, progress=None, threadId=None):
         self.progress = progress

@@ -629,8 +629,10 @@ class BaseAutomationClient(BaseClient):
         return str(time.time()) + '_' + str(random.randint(0, 1000000000))
 
     def _read_data(self, file_object, buffer_size):
-        current_action = Action.get_current_action()
         while True:
+            current_action = Action.get_current_action()
+            if current_action is not None and current_action.suspend:
+                break
             # Check if synchronization thread was suspended
             if self.check_suspended is not None:
                 self.check_suspended('File upload: %s' % file_object.name)

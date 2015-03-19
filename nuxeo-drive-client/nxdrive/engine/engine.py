@@ -544,6 +544,14 @@ class Engine(QObject):
             # TODO self.register_folder_link(local_folder)
         # Put the ROOT in readonly
 
+    def cancel_action_on(self, doc_pair, recursive=True):
+        from nxdrive.engine.processor import Processor
+        for thread in self._threads:
+            if isinstance(thread, Processor):
+                pair = thread._current_doc_pair
+                if pair.local_path.starts_with(doc_pair.local_path):
+                    thread.quit()
+
     def get_local_client(self):
         return LocalClient(self._local_folder)
 
