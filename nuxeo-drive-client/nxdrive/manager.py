@@ -16,6 +16,7 @@ import uuid
 import platform
 import sys
 import logging
+from nxdrive.engine import dao
 log = get_logger(__name__)
 
 
@@ -305,8 +306,62 @@ class Manager(QtCore.QObject):
     def _get_db(self):
         return os.path.join(normalized_path(self.nxdrive_home), "manager.db")
 
+    def _migrate(self):
+        from nxdrive.engine.dao.sqlite import ManagerDAO
+        dao = ManagerDAO(self._get_db())
+        old_db = os.path.join(normalized_path(self.nxdrive_home), "nxdrive.db")
+        if os.path.exists(old_db):
+            import sqlite3
+            from nxdrive.engine.dao.sqlite import CustomRow
+            conn = sqlite3.connect(self.db)
+            conn.row_factory = CustomRow
+            c = conn.cursor()
+            rows = c.execute("SELECT * FROM device_config LIMIT 1")
+            if rows.rowcount == 1:
+                cfg = rows[0]
+                self.device_id = cfg.device_id
+                self._dao.update_config("device_id", cfg.device_id)
+                self._dao.update_config("proxy_config", cfg.proxy_config)
+                self._dao.update_config("proxy_type", cfg.proxy_type)
+                self._dao.update_config("proxy_server", cfg.proxy_server)
+                self._dao.update_config("proxy_port", cfg.proxy_port)
+                self._dao.update_config("proxy_authenticated", cfg.proxy_authenticated)
+                self._dao.update_config("proxy_username", cfg.proxy_username)
+                self._dao.update_config("proxy_password", cfg.proxy_password)
+            # Copy server binding
+            rows = c.execute("SELECT * FROM server_bindings")
+            if rows.rowcount == 0:
+                return dao
+            engine = None
+            engine_def = None
+            for row in rows:
+                log.trace("Binding Row from DS1 %r", row)
+                row.url = row.server_url
+                row.username = row.remote_user
+                row.token = row.remote_token
+                row.password = row.remote_password
+                engine_def = row
+                engine = self.manager.bind_engine("CPODRIVE", row["local_folder"], "Default", row, starts=False)
+                log.trace("Resulting server binding remote_token %r", row.remote_token)
+                break
+            c.execute("DELETE FROM server_bindings")
+            conn.commit()
+            # Copy the filters
+            filters = c.execute("SELECT * FROM filters")
+            for filter_obj in filters:
+                if engine_def.local_path != filter_obj.local_path:
+                    continue
+                log.trace("Filter Row from DS1 %r", filter_obj)
+                engine.add_filter(filter_obj["path"])
+        return dao
+
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import ManagerDAO
+        if not os.path.exists(self._get_db()):
+            try:
+                return self._migrate()
+            except:
+                pass
         return ManagerDAO(self._get_db())
 
     def _create_updater(self, update_check_delay):
