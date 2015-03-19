@@ -186,7 +186,7 @@ class Engine(QObject):
     def open_edit(self, remote_ref):
         doc_ref = remote_ref
         if "#" in doc_ref:
-            doc_ref = doc_ref[doc_ref.rfind('#'):]
+            doc_ref = doc_ref[doc_ref.rfind('#')+1:]
         log.debug("Will try to open edit : %s", doc_ref)
         # TODO Implement a TemporaryWorker
         from threading import Thread
