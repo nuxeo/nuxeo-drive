@@ -60,6 +60,8 @@ class WebDriveApi(QtCore.QObject):
         return datetime.datetime.strptime(str(d.split(".")[0]), format_date)
 
     def get_timestamp_from_date(self, d):
+        if d == 0:
+            return 0
         return int(time.mktime(d.timetuple()))
 
     def get_timestamp_from_sqlite(self, d):
@@ -81,7 +83,10 @@ class WebDriveApi(QtCore.QObject):
             else:
                 result["last_sync_direction"] = "upload"
             result["last_sync"] = current_time - sync_time
-            result["last_sync_date"] = Translator.format_datetime(date_time)
+            if date_time == 0:
+                result["last_sync_date"] = ""
+            else:
+                result["last_sync_date"] = Translator.format_datetime(date_time)
         except Exception as e:
             log.exception(e)
         result["name"] = state.local_name
