@@ -10,6 +10,7 @@ from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import safe_filename, NotFound
 import os
+import sys
 from time import sleep
 import shutil
 from PyQt4.QtCore import pyqtSignal
@@ -108,6 +109,9 @@ class DriveEdit(Worker):
         self._local_client.set_remote_id(ref, info.digest, "nxdriveeditdigest")
         self._local_client.set_remote_id(ref, safe_filename(info.name), "nxdriveeditname")
         # Rename to final filename
+        # Under Windows first need to delete target file if exists, otherwise will get a 183 WindowsError
+        if sys.platform == 'win32' and os.path.exists(file_path):
+            os.unlink(file_path)
         os.rename(tmp_file, file_path)
 
         # Launch it
