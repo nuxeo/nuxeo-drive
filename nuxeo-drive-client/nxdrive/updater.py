@@ -7,6 +7,7 @@ import re
 from urlparse import urljoin
 from urllib2 import URLError
 from urllib2 import HTTPError
+import socket
 from esky import Esky
 from esky.errors import EskyBrokenError
 from nxdrive.logging_config import get_logger
@@ -298,9 +299,9 @@ class AppUpdater(PollWorker):
             return sorted(self.esky_app.version_finder.find_versions(
                                         self.esky_app), cmp=version_compare)
         except URLError as e:
-            log.error(e, exc_info=True)
-            raise UnavailableUpdateSite("Cannot connect to update site '%s'"
-                                        % self.update_site)
+            self._handle_URL_error(e)
+        except socket.timeout as e:
+            self._handle_timeout_error(e)
 
     def get_server_min_version(self, client_version):
         info_file = client_version + '.json'
@@ -322,9 +323,9 @@ class AppUpdater(PollWorker):
             version = DEFAULT_SERVER_MIN_VERSION
             log.warning(missing_msg + ", using default one: %s", DEFAULT_SERVER_MIN_VERSION)
         except URLError as e:
-            log.error(e, exc_info=True)
-            raise UnavailableUpdateSite("Cannot connect to update site '%s'"
-                                        % self.update_site)
+            self._handle_URL_error(e)
+        except socket.timeout as e:
+            self._handle_timeout_error(e)
         except Exception as e:
             log.error(e, exc_info=True)
             raise MissingUpdateSiteInfo(missing_msg)
@@ -349,9 +350,9 @@ class AppUpdater(PollWorker):
             log.error(e, exc_info=True)
             raise MissingUpdateSiteInfo(missing_msg)
         except URLError as e:
-            log.error(e, exc_info=True)
-            raise UnavailableUpdateSite("Cannot connect to update site '%s'"
-                                        % self.update_site)
+            self._handle_URL_error(e)
+        except socket.timeout as e:
+            self._handle_timeout_error(e)
         except Exception as e:
             log.error(e, exc_info=True)
             raise MissingUpdateSiteInfo(missing_msg)
@@ -507,3 +508,11 @@ class AppUpdater(PollWorker):
 
     def get_update_site(self):
         return self.update_site
+
+    def _handle_URL_error(self, e):
+        log.error(e, exc_info=True)
+        raise UnavailableUpdateSite("Cannot connect to update site '%s'" % self.update_site)
+
+    def _handle_timeout_error(self, e):
+        log.error(e, exc_info=True)
+        raise UnavailableUpdateSite("Connection to update site '%s' timed out" % self.update_site)
