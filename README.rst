@@ -119,10 +119,6 @@ Then install the required system and Python packages and the Nuxeo Drive code it
     sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/unix-requirements.txt
     sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
 
-Waiting for `NXP-13633 <https://jira.nuxeo.com/browse/NXP-13633>`_ to be resolved you need to run this command for Nuxeo Drive to work fine::
-
-    sudo mkdir /usr/local/lib/python2.7/dist-packages/alembic/versions
-
 Waiting for `NXDRIVE-62 <https://jira.nuxeo.com/browse/NXDRIVE-62>`_ to be resolved you need to run these commands for Nuxeo Drive to work fine::
 
     # increase inotify file watch limit
