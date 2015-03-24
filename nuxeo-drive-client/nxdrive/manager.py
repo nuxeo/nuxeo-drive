@@ -390,7 +390,6 @@ class Manager(QtCore.QObject):
         # and use first engine configuration
         if update_url == DEFAULT_UPDATE_SITE_URL:
             try:
-                self._refresh_engine_update_infos()
                 engines = self.get_engines()
                 if engines:
                     first_engine = engines.itervalues().next()
