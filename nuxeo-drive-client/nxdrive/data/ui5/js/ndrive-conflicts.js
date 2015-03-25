@@ -5,9 +5,9 @@ var ConflictsController = function($scope, $interval, $translate) {
 	$scope.open_local = function(path) {
 		self.openLocal(path);
 	}
-	$scope.open_remote = function(remote_ref) {
-		console.log(remote_ref)
-		self.openRemote(remote_ref);
+	$scope.open_remote = function(remote_ref, remote_name) {
+		console.log(remote_name + ' (' + remote_ref + ')')
+		self.openRemote(remote_ref, remote_name);
 	}
 	$scope.show_metadata = function(path) {
 		self.showMetadata($scope.engine.uid, path);
@@ -49,8 +49,8 @@ ConflictsController.prototype.updateConflicts = function($scope, $interval) {
 		}
 	}
 }
-ConflictsController.prototype.openRemote = function(remote_ref) {
-	drive.open_remote(remote_ref);
+ConflictsController.prototype.openRemote = function(remote_ref, remote_name) {
+	drive.open_remote(remote_ref, remote_name);
 }
 ConflictsController.prototype.openLocal = function(path) {
 	drive.open_local(path);

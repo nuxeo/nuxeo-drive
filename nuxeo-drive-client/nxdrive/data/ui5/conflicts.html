@@ -20,8 +20,8 @@ drive_init(function (){
 			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_sync_date }}'}">LAST_SYNCHRONIZED</span><br />
 			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ contributor:'{{ pair.last_contributor }}'}">LAST_CONTRIBUTOR</span><br />
   			<div class="btn-group" role="group" aria-label="...">
-  				<button type="button" ng-click="open_local(pair.local_path)" class="btn btn-default"><span class="glyphicon glyphicon-file">&nbsp;</span><span translate>OPEN_LOCAL</span></button>
-  				<button type="button" ng-click="open_remote(pair.remote_ref)" class="btn btn-default"><span class="glyphicon glyphicon-globe">&nbsp;</span><span translate>OPEN_REMOTE</span></button>
+ 				<button type="button" ng-click="open_local(pair.local_path)" class="btn btn-default"><span class="glyphicon glyphicon-file">&nbsp;</span><span translate>OPEN_LOCAL</span></button>
+ 				<button type="button" ng-click="open_remote(pair.remote_ref, pair.remote_name)" class="btn btn-default"><span class="glyphicon glyphicon-globe">&nbsp;</span><span translate>OPEN_REMOTE</span></button>
   			</div>
   			<div class="pull-right btn-group">
 				  <button type="button" class="btn btn-warning dropdown-toggle" data-toggle="dropdown" aria-expanded="false">

@@ -183,17 +183,17 @@ class Engine(QObject):
     def is_paused(self):
         return self._pause
 
-    def open_edit(self, remote_ref):
+    def open_edit(self, remote_ref, remote_name):
         doc_ref = remote_ref
         if "#" in doc_ref:
-            doc_ref = doc_ref[doc_ref.rfind('#')+1:]
+            doc_ref = doc_ref[doc_ref.rfind('#') + 1:]
         log.debug("Will try to open edit : %s", doc_ref)
         # TODO Implement a TemporaryWorker
         from threading import Thread
 
         def run():
             self._manager.get_drive_edit().edit(self._server_url,
-                                                doc_ref, self._remote_user)
+                                                doc_ref, remote_name, user=self._remote_user)
         self._edit_thread = Thread(target=run)
         self._edit_thread.start()
 
@@ -371,6 +371,7 @@ class Engine(QObject):
         row = self._dao.get_state_from_id(row_id)
         self._dao.increase_error(row, "DUPLICATING")
         from threading import Thread
+
         def run():
             local_client = self.get_local_client()
             # Duplicate the file

@@ -62,12 +62,13 @@ class WebConflictsApi(WebDriveApi):
     def open_local(self, path):
         return super(WebConflictsApi, self).open_local(self._engine._uid, path)
 
-    @QtCore.pyqtSlot(str, result=str)
-    def open_remote(self, remote_ref):
+    @QtCore.pyqtSlot(str, str, result=str)
+    def open_remote(self, remote_ref, remote_name):
         remote_ref = str(remote_ref)
-        log.debug("Should open this : %s", remote_ref)
+        remote_name = unicode(remote_name)
+        log.debug("Should open this : %s (%s)", remote_name, remote_ref)
         try:
-            self._engine.open_edit(remote_ref)
+            self._engine.open_edit(remote_ref, remote_name)
         except Exception as e:
             log.exception(e)
         return ""

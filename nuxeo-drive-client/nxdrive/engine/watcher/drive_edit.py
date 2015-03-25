@@ -11,6 +11,7 @@ from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import safe_filename, NotFound
 import os
 import sys
+import urllib2
 from time import sleep
 import shutil
 from PyQt4.QtCore import pyqtSignal
@@ -74,7 +75,7 @@ class DriveEdit(Worker):
                 remote_client.get_blob(info.uid, file_out=file_out)
         return file_out
 
-    def edit(self, server_url, doc_id, user=None, download_url=None):
+    def edit(self, server_url, doc_id, filename, user=None, download_url=None):
         engine = self._get_engine(server_url, user)
         if engine is None:
             # TO_REVIEW Display an error message
@@ -88,8 +89,15 @@ class DriveEdit(Worker):
         dir_path = os.path.join(self._folder, doc_id)
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
-        safe_name = safe_filename(info.name)
-        file_path = os.path.join(dir_path, safe_filename(info.name))
+
+        filename = safe_filename(urllib2.unquote(filename))
+        if isinstance(filename, bytes):
+            decoded_filename = filename.decode('utf-8')
+        else:
+            decoded_filename = filename
+            filename = filename.encode('utf-8')
+        log.debug('Editing %s', decoded_filename)
+        file_path = os.path.join(dir_path, decoded_filename)
 
         # Download the file
         url = None
@@ -107,7 +115,7 @@ class DriveEdit(Worker):
         self._local_client.set_remote_id(ref, doc_id)
         self._local_client.set_remote_id(ref, server_url, "nxdriveedit")
         self._local_client.set_remote_id(ref, info.digest, "nxdriveeditdigest")
-        self._local_client.set_remote_id(ref, safe_filename(info.name), "nxdriveeditname")
+        self._local_client.set_remote_id(ref, filename, "nxdriveeditname")
         # Rename to final filename
         # Under Windows first need to delete target file if exists, otherwise will get a 183 WindowsError
         if sys.platform == 'win32' and os.path.exists(file_path):
@@ -205,7 +213,10 @@ class DriveEdit(Worker):
                 file_name = os.path.basename(evt.dest_path)
                 queue = True
             name = self._local_client.get_remote_id(ref, "nxdriveeditname")
-            if name is None or name != file_name:
+            if name is None:
+                return
+            name = name.decode('utf-8')
+            if name != file_name:
                 return
             if queue:
                 # ADD TO UPLOAD QUEUE
