@@ -463,8 +463,9 @@ class WebDriveApi(QtCore.QObject):
     @QtCore.pyqtSlot(str, str, result=str)
     def open_local(self, uid, path):
         try:
-            # Make sure it is string ( come from WebKit as QString
-            path = str(path)
+            # Make sure we use unicode (comes from WebKit as QString)
+            path = unicode(path)
+            log.trace('Opening local file %r', path)
             if uid == '':
                 self._manager.open_local_file(path)
                 return ""
