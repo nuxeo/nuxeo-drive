@@ -331,6 +331,8 @@ class BaseAutomationClient(BaseClient):
             self._log_details(e)
             raise
         current_action = Action.get_current_action()
+        if current_action and current_action.progress is None:
+            current_action.progress = 0
         if file_out is not None:
             locker = self.unlock_path(file_out)
             try:
