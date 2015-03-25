@@ -41,9 +41,8 @@ class TestUtils(unittest.TestCase):
         # Office
         self.assertEquals(guess_mime_type('office.doc'),
                           'application/msword')
-        self.assertIn(guess_mime_type('office.xls'), [
-                          'application/vnd.ms-excel',
-                          'application/x-msexcel'])
+        self.assertEquals(guess_mime_type('office.xls'),
+                          'application/vnd.ms-excel')
         self.assertIn(guess_mime_type('office.ppt'), [
                           'application/vnd.ms-powerpoint',
                           'application/x-mspowerpoint'])
