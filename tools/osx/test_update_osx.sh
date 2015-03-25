@@ -67,7 +67,7 @@ sed -i '' "s/'.*'/'$DEV_VERSION'/g" nuxeo-drive-client/nxdrive/__init__.py
 
 # Install frozen application
 echo "Copying $UPDATE_SITE/$BUNDLE_APP to $INSTALL_DIR"
-cp -r "$UPDATE_SITE/$BUNDLE_APP" $INSTALL_DIR
+cp -r "$UPDATE_SITE/$BUNDLE_APP" "$INSTALL_DIR/$BUNDLE_APP"
 
 # Launch installed frozen application
 echo "Launching frozen application: $INSTALL_DIR/$EXECUTABLE"
