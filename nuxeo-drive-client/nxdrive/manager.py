@@ -371,25 +371,27 @@ class Manager(QtCore.QObject):
         self.started.connect(self._app_updater._thread.start)
         return self._app_updater
 
-    def get_version_finder(self):
+    def get_version_finder(self, refresh_engines=False):
         # Used by extended application to inject version finder
         if self.get_beta_channel():
             log.debug('Update beta channel activated')
-            update_site_url = self._get_beta_update_url()
+            update_site_url = self._get_beta_update_url(refresh_engines)
         else:
-            update_site_url = self._get_update_url()
+            update_site_url = self._get_update_url(refresh_engines)
         if update_site_url is None:
             update_site_url = DEFAULT_UPDATE_SITE_URL
         if not update_site_url.endswith('/'):
             update_site_url += '/'
         return update_site_url
 
-    def _get_update_url(self):
+    def _get_update_url(self, refresh_engines):
         update_url = self._dao.get_config("update_url", DEFAULT_UPDATE_SITE_URL)
         # If update site URL is not overridden in config.ini nor through the command line, refresh engine update infos
         # and use first engine configuration
         if update_url == DEFAULT_UPDATE_SITE_URL:
             try:
+                if refresh_engines:
+                    self._refresh_engine_update_infos()
                 engines = self.get_engines()
                 if engines:
                     first_engine = engines.itervalues().next()
@@ -400,10 +402,11 @@ class Manager(QtCore.QObject):
                 log.error('Cannot refresh engine update infos, using default update site URL', exc_info=True)
         return update_url
 
-    def _get_beta_update_url(self):
+    def _get_beta_update_url(self, refresh_engines):
         beta_update_url = self._dao.get_config("beta_update_url")
         if beta_update_url is None:
-            self._refresh_engine_update_infos()
+            if refresh_engines:
+                self._refresh_engine_update_infos()
             engines = self.get_engines()
             if engines:
                 for engine in engines.itervalues():
@@ -415,7 +418,7 @@ class Manager(QtCore.QObject):
         return beta_update_url
 
     def is_beta_channel_available(self):
-        return self._get_beta_update_url() is not None
+        return self._get_beta_update_url(True) is not None
 
     def get_updater(self):
         return self._app_updater

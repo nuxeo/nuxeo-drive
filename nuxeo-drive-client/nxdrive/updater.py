@@ -229,7 +229,7 @@ class AppUpdater(PollWorker):
     def _poll(self):
         if self.last_status != UPDATE_STATUS_UPDATING:
             # Refresh update site URL
-            self.set_version_finder(self._manager.get_version_finder())
+            self.set_version_finder(self._manager.get_version_finder(refresh_engines=True))
             log.debug('Polling %s for application update, current version is %s', self.update_site,
                       self._manager.get_version())
             status = self._get_update_status()
