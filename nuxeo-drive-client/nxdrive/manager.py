@@ -875,7 +875,6 @@ class Manager(QtCore.QObject):
 
     def get_metadata_infos(self, file_path):
         from nxdrive.client import LocalClient
-        DRIVE_METADATA_VIEW = 'view_drive_metadata'
         remote_ref = LocalClient.get_path_remote_id(file_path)
         if remote_ref is None:
             raise ValueError('Could not find file %s as Nuxeo Drive managed' % file_path)
@@ -887,10 +886,5 @@ class Manager(QtCore.QObject):
         except:
             raise ValueError('Unkown engine %s for %s' %
                              (file_path, root_values[3]))
-        metadata_url = engine.get_server_url()
-        remote_ref_segments = remote_ref.split("#", 2)
-        repo = remote_ref_segments[1]
-        doc_id = remote_ref_segments[2]
-        metadata_url += ("nxdoc/" + repo + "/" + doc_id +
-                                 "/" + DRIVE_METADATA_VIEW)
+        metadata_url = engine.get_metadata_url(remote_ref)
         return (metadata_url, engine.get_remote_token())

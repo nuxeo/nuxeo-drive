@@ -177,6 +177,16 @@ class Engine(QObject):
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
 
+    def get_metadata_url(self, remote_ref):
+        DRIVE_METADATA_VIEW = 'view_drive_metadata'
+        metadata_url = self.get_server_url()
+        remote_ref_segments = remote_ref.split("#", 2)
+        repo = remote_ref_segments[1]
+        doc_id = remote_ref_segments[2]
+        metadata_url += ("nxdoc/" + repo + "/" + doc_id +
+                                 "/" + DRIVE_METADATA_VIEW)
+        return metadata_url
+
     def is_syncing(self):
         return self._sync_started
 
