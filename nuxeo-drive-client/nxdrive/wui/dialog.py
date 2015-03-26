@@ -7,7 +7,7 @@ TODO: Find a better way for the try/catch on slot
 '''
 from PyQt4 import QtGui, QtCore, QtWebKit
 from nxdrive.logging_config import get_logger
-from nxdrive.engine.activity import FileAction
+from nxdrive.engine.activity import FileAction, Action
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.wui.translator import Translator
 from nxdrive.manager import FolderAlreadyUsed
@@ -15,6 +15,10 @@ import urllib2
 import json
 import time
 import datetime
+from nxdrive.engine.engine import Engine
+from nxdrive.notification import Notification
+from nxdrive.engine.workers import Worker
+from nxdrive.engine.dao.sqlite import StateRow
 log = get_logger(__name__)
 
 
@@ -26,9 +30,22 @@ class WebDriveApi(QtCore.QObject):
         self._application = application
         self._dialog = dlg
 
+    def _json_default(self, obj):
+        if isinstance(obj, Action):
+            return self._export_action(obj)
+        if isinstance(obj, Engine):
+            return self._export_engine(obj)
+        if isinstance(obj, Notification):
+            return self._export_notification(obj)
+        if isinstance(obj, StateRow):
+            return self._export_state(obj)
+        if isinstance(obj, Worker):
+            return self._export_worker(obj)
+        return obj
+
     def _json(self, obj):
         # Avoid to fail on non serializable object
-        return json.dumps(obj, skipkeys=True)
+        return json.dumps(obj, default=self._json_default)
 
     def set_dialog(self, dlg):
         self._dialog = dlg

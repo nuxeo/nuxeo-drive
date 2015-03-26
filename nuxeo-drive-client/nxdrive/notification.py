@@ -13,16 +13,18 @@ class Notification(object):
     LEVEL_WARNING = "warning"
     LEVEL_ERROR = "danger"
 
-    def __init__(self, notification_type, engine=None, level=LEVEL_INFO, uid=None, unique=False, replacements=None):
+    def __init__(self, notification_type, engine_uid=None, level=LEVEL_INFO, uid=None, unique=False, replacements=None):
         self._unique = unique
         self._type = notification_type
         self._level = level
-        self._engine = engine
+        if isinstance(engine_uid, str):
+            raise RuntimeError
+        self._engine_uid = engine_uid
         self._time = None
         if uid is not None:
             self._uid = uid
         else:
-            self._uid = Notification.generate_uid(notification_type, engine)
+            self._uid = Notification.generate_uid(notification_type, engine_uid)
             if not self._unique:
                 self._uid = self._uid + "_" + str(int(time.time()))
         # For futur usage
@@ -91,9 +93,9 @@ class NotificationService(QtCore.QObject):
                 return self._notifications
             result = dict()
             for notif in self._notifications.values():
-                if notif._engine == engine:
+                if notif._engine_uid == engine:
                     result[notif.get_uid()] = notif
-                if notif._engine is None and include_generic:
+                if notif._engine_uid is None and include_generic:
                     result[notif.get_uid()] = notif
             return result
         finally:

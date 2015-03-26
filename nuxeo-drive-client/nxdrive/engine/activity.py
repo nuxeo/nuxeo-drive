@@ -61,7 +61,7 @@ class Action(object):
         else:
             return "%s(%s%%)" % (self.type, self.progress)
 
-class IdleAction(object):
+class IdleAction(Action):
     def __init__(self):
         self.type = "Idle"
 
