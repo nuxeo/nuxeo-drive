@@ -27,7 +27,8 @@ class WebDriveApi(QtCore.QObject):
         self._dialog = dlg
 
     def _json(self, obj):
-        return json.dumps(obj)
+        # Avoid to fail on non serializable object
+        return json.dumps(obj, skipkeys=True)
 
     def set_dialog(self, dlg):
         self._dialog = dlg
