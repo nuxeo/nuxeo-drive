@@ -2,7 +2,6 @@
 String.prototype.endsWith = function(suffix) {
     return this.indexOf(suffix, this.length - suffix.length) !== -1;
 };
-var DRIVE_LOADS = 0;
 function drive_init(callback, add_includes) {
 	if (add_includes == null) {
 		add_includes = [];
@@ -10,32 +9,30 @@ function drive_init(callback, add_includes) {
 	// Includes
 	var includes = ['js/angular.min.js','js/angular-translate.min.js','js/jquery-2.1.3.min.js','js/bootstrap.min.js','i18n.js', 'css/bootstrap.min.css', 'css/ndrive.css'];
 	includes = includes.concat(add_includes);
-	
-	for (var i = 0; i < includes.length; i++) {
-		if (includes[i].endsWith("css")) {
+	handle_includes(includes, callback);
+}
+function handle_includes(includes, callback) {
+	if (includes.length == 0) {
+		callback();
+	} else {
+		var include = includes.shift();
+		if (include.endsWith("css")) {
 			script = document.createElement('link');
-			script.setAttribute('href', includes[i]);
+			script.setAttribute('href', include);
 			script.setAttribute('rel', "stylesheet");
-		} else if (includes[i].endsWith("js")) {
+			document.head.appendChild(script)
+			handle_includes(includes, callback)
+		} else if (include.endsWith("js")) {
 			script = document.createElement('script');
-			script.setAttribute('src', includes[i]);
-			DRIVE_LOADS++;
-		}
-		script.onload = function() {
-			DRIVE_LOADS--;
-			var test = i;
-			if (DRIVE_LOADS == 0) {
-				callback();
+			script.setAttribute('src', include);
+			script.onload = function() {
+				handle_includes(includes, callback)
 			}
+			document.head.appendChild(script)
 		}
-		document.head.appendChild(script)
 	}
 }
 function drive_module(name) {
-	if (DRIVE_LOADS > 0) {
-		console.log("Should wait");
-		return null;
-	}
 	app = angular.module(name, ['pascalprecht.translate']);
 	app.directive('driveInclude', function($http, $templateCache, $compile) {
 	    return function(scope, element, attrs) {

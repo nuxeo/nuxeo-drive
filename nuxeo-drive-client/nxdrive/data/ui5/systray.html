@@ -10,29 +10,7 @@ drive_init(function (){
 </script>
 </head>
 <body style="cursor: default;" ng-app="DriveSystray" ng-controller="DriveSystrayCtl">
-<div ng-show="!bind">
-<div align="center" style="padding: 20px;">
-<p style="margin-bottom: 20px;"><img alt="Brand" src="imgs/Nuxeo Drive.png"></p>
-<p translate>WELCOME_MESSAGE</p>
-<div style="margin-top: 50px;">
-<button type="button" class="btn btn-default btn-primary" ng-click="show_settings('Accounts')" translate>SETTINGS</button>
-<button type="button" style="float: right" class="btn btn-default btn-danger" ng-click="quit()" translate>QUIT</button>
-</div>
-</div>
-</div>
-<div ng-show="bind">
-<div id="systray-top" class="navbar navbar-fixed-top" drive-include="getTemplate('systray-top')">
-</div>
-<div id="systray-bottom" class="navbar navbar-fixed-bottom" drive-include="getTemplate('systray-bottom')">
-  
-</div>
-<div class="list-group" style="margin-top: 40px; margin-bottom: 0px;">
-  <a class="list-group-item" ng-click="open_local('/')"><span class="glyphicon glyphicon-folder-close">&nbsp;</span><span translate>OPEN_ROOT_FOLDER</span></a>
-  <a style="border-bottom: 1px solid #B5C0C6;" class="list-group-item" ng-click="open_remote()"><span class="glyphicon glyphicon-globe">&nbsp;</span><span translate>OPEN_SERVER</span></a>
-</div>
-<div class="list-group" style="height: 230px; margin-bottom: 40px; overflow: auto;" drive-include="getTemplate('systray-files')">
-
-</div>
-</div>
+	<div drive-include="getTemplate('systray-content')">
+	</div>
 </body>
 </html>
