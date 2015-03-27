@@ -74,9 +74,8 @@ var SettingsController = function($scope, $interval, $translate) {
 	}
 	$scope.unbindBlur = function() {
 		$scope.reinitMsgs();
-		button = angular.element(document.querySelector('#unbindButton'));
-		button.removeClass("btn-danger");
-		button.html($translate.instant("DISCONNECT"));
+		$scope.currentConfirm.removeClass("btn-danger");
+		$scope.currentConfirm.html($translate.instant("DISCONNECT"));
 	}
 	$scope.filters = function() {
 		$scope.reinitMsgs();
@@ -98,8 +97,9 @@ var SettingsController = function($scope, $interval, $translate) {
 		$scope.message_type = "";
 	}
 	$scope.reinitMsgs();
-	$scope.unbindServer = function() {
-		button = angular.element(document.querySelector('#unbindButton'));
+	$scope.unbindServer = function($event) {
+		button = angular.element($event.currentTarget);
+		$scope.currentConfirm = button;
 		if (button.hasClass("btn-danger")) {
 			button.html($translate.instant("DISCONNECT"));
 			button.removeClass("btn-danger");
