@@ -200,7 +200,6 @@ class LocalClient(BaseClient):
         log.trace('Setting xattr %s with value %s on %s', name, remote_id, path)
         locker = self.unlock_path(path, False)
         if sys.platform == 'win32':
-            locker = self.unlock_path(path, False)
             pathAlt = path + ":" + name
             try:
                 with open(pathAlt, "w") as f:
