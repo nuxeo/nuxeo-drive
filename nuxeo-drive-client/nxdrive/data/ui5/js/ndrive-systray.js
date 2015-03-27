@@ -62,13 +62,7 @@ var SystrayController = function($scope, $interval, $translate) {
 			$scope.interval = $interval($scope.update, 1000);
 		}
 	}
-	if ($scope.engines.length > 0) {
-		$scope.bind = true;
-		$scope.setEngine($scope.engines[0]);
-	} else {
-		$scope.bind = false;
-		drive.resize(300, 225);
-	}
+	self.init($scope);
 	$scope.getEngineClass = function(engine) {
 		if (engine == $scope.engine) {
 			return "currentEngine";
@@ -78,6 +72,15 @@ var SystrayController = function($scope, $interval, $translate) {
 }
 SystrayController.prototype = Object.create(DriveController.prototype);
 SystrayController.prototype.constructor = SystrayController;
+SystrayController.prototype.init = function($scope) {
+	if ($scope.engines.length > 0) {
+		$scope.bind = true;
+		$scope.setEngine($scope.engines[0]);
+	} else {
+		$scope.bind = false;
+		drive.resize(300, 225);
+	}
+}
 SystrayController.prototype.showMetadata = function(uid, path) {
 	drive.show_metadata(uid, path);
 }
