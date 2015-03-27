@@ -5,7 +5,7 @@ Created on 28 janv. 2015
 
 TODO: Find a better way for the try/catch on slot
 '''
-from PyQt4 import QtGui, QtCore, QtWebKit
+from PyQt4 import QtGui, QtCore, QtWebKit, QtNetwork
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import FileAction, Action
 from nxdrive.client.base_automation_client import Unauthorized
@@ -590,6 +590,21 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
 
 
+class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
+    def __init__(self, token):
+        super(TokenNetworkAccessManager, self).__init__()
+        self.token = token
+
+    def createRequest(self, op, req, outgoingData):
+        req.setRawHeader("X-Authentication-Token", QtCore.QByteArray(self.token))
+        if str(req.url().path()).endswith(".ttf"):
+            # Block .ttf file for now as there are badly displayed
+            return super(TokenNetworkAccessManager, self).createRequest(op,
+                        QtNetwork.QNetworkRequest(QtCore.QUrl()), outgoingData)
+        return super(TokenNetworkAccessManager, self).createRequest(op, 
+                                                        req, outgoingData)
+
+
 class WebDialog(QtGui.QDialog):
     '''
     classdocs
@@ -615,9 +630,10 @@ class WebDialog(QtGui.QDialog):
             filename = page
         # If connect to a remote page add the X-Authentication-Token
         if filename.startswith("http"):
-            from PyQt4 import QtNetwork
             url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
             if token is not None:
+                self.networkManager = TokenNetworkAccessManager(token)
+                self._view.page().setNetworkAccessManager(self.networkManager)
                 url.setRawHeader("X-Authentication-Token",
                                   QtCore.QByteArray(token))
         else:
