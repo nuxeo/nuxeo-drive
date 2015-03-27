@@ -59,7 +59,7 @@ class WebSettingsApi(WebDriveApi):
         url = str(url)
         username = str(username)
         password = str(password)
-        name = str(name)
+        name = unicode(name)
         if name == '':
             name = None
         self._manager.bind_server(local_folder, url, username, password, name, start_engine)
