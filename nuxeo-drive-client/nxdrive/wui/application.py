@@ -123,6 +123,9 @@ class Application(QApplication):
         self.init_checks()
         self.engineWidget = None
 
+    def get_cache_folder(self):
+        return os.path.join(self.manager.get_configuration_folder(), "cache", "wui")
+
     def _get_skin(self):
         return 'ui5'
 

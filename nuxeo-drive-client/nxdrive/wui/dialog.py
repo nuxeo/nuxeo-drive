@@ -592,9 +592,12 @@ class WebDriveApi(QtCore.QObject):
 
 
 class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
-    def __init__(self, token):
+    def __init__(self, application, token):
         super(TokenNetworkAccessManager, self).__init__()
         self.token = token
+        cache = QtNetwork.QNetworkDiskCache(self)
+        cache.setCacheDirectory(application.get_cache_folder())
+        self.setCache(cache)
 
     def createRequest(self, op, req, outgoingData):
         req.setRawHeader("X-Authentication-Token", QtCore.QByteArray(self.token))
@@ -633,7 +636,7 @@ class WebDialog(QtGui.QDialog):
         if filename.startswith("http"):
             url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
             if token is not None:
-                self.networkManager = TokenNetworkAccessManager(token)
+                self.networkManager = TokenNetworkAccessManager(application, token)
                 self._view.page().setNetworkAccessManager(self.networkManager)
                 url.setRawHeader("X-Authentication-Token",
                                   QtCore.QByteArray(token))
