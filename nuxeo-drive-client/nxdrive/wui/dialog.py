@@ -15,6 +15,7 @@ import urllib2
 import json
 import time
 import datetime
+import calendar
 from nxdrive.engine.engine import Engine
 from nxdrive.notification import Notification
 from nxdrive.engine.workers import Worker
@@ -80,10 +81,10 @@ class WebDriveApi(QtCore.QObject):
     def get_timestamp_from_date(self, d):
         if d == 0:
             return 0
-        return int(time.mktime(d.timetuple()))
+        return int(calendar.timegm(d.timetuple()))
 
     def get_timestamp_from_sqlite(self, d):
-        return int(time.mktime(self.get_date_from_sqlite(d).timetuple()))
+        return int(calendar.timegm(self.get_date_from_sqlite(d).timetuple()))
 
     def _export_state(self, state):
         if state is None:
