@@ -1,7 +1,7 @@
 """Utilities to log nxdrive operations and failures"""
 
 import logging
-from logging.handlers import RotatingFileHandler
+from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 import os
 
 
@@ -22,7 +22,7 @@ is_logging_configured = False
 
 def configure(use_file_handler=False, log_filename=None, file_level='INFO',
               console_level='INFO', filter_inotify=True, command_name=None, log_rotate_keep=3,
-              log_rotate_max_bytes=100000000, force_configure=False):
+              log_rotate_max_bytes=None, log_rotate_when=None, force_configure=False):
 
     global is_logging_configured
     global FILE_HANDLER
@@ -71,10 +71,15 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
             log_folder = os.path.dirname(log_filename)
             if not os.path.exists(log_folder):
                 os.makedirs(log_folder)
-
-            file_handler = RotatingFileHandler(
-                log_filename, mode='a', maxBytes=log_rotate_max_bytes,
-                backupCount=log_rotate_keep)
+            if log_rotate_when is None and log_rotate_max_bytes is None:
+                log_rotate_when = 'midnight'
+            if log_rotate_when is not None:
+                file_handler = TimedRotatingFileHandler(log_filename,
+                                    when=log_rotate_when, backupCount=log_rotate_keep)
+            elif log_rotate_max_bytes is not None:
+                file_handler = RotatingFileHandler(
+                                    log_filename, mode='a', maxBytes=log_rotate_max_bytes,
+                                    backupCount=log_rotate_keep)
             file_handler.set_name('file')
             file_handler.setLevel(file_level)
             file_handler.setFormatter(formatter)
