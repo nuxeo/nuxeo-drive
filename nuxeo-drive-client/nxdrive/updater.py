@@ -172,7 +172,7 @@ class AppUpdater(PollWorker):
     refreshStatus = QtCore.pyqtSignal()
     _doUpdate = QtCore.pyqtSignal(str)
     appUpdated = QtCore.pyqtSignal(str)
-    requestUserAttention = QtCore.pyqtSignal()
+    updateAvailable = QtCore.pyqtSignal()
 
     def __init__(self, manager, version_finder=None, check_interval=DEFAULT_UPDATE_CHECK_DELAY,
                  esky_app=None, local_update_site=False):
@@ -281,7 +281,7 @@ class AppUpdater(PollWorker):
                 log.info("An update is available and auto-update is not"
                          " checked, let's just update the systray notification"
                          " and let the user explicitly choose to update")
-                self.requestUserAttention.emit()
+                self.updateAvailable.emit()
             else:
                 # Application is up-to-date
                 log.info("Application is up-to-date")
