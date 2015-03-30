@@ -79,9 +79,9 @@ class WebConflictsApi(WebDriveApi):
         result = super(WebConflictsApi, self)._export_state(state)
         result["last_contributor"] = state.last_remote_modifier
         date_time = self.get_date_from_sqlite(state.last_remote_updated)
-        result["last_remote_update"] = Translator.format_datetime(date_time)
+        result["last_remote_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
         date_time = self.get_date_from_sqlite(state.last_local_updated)
-        result["last_local_update"] = Translator.format_datetime(date_time)
+        result["last_local_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
         return result
 
 
