@@ -194,6 +194,119 @@ class LocalClient(BaseClient):
             finally:
                 self.lock_path(path, locker)
 
+    def unset_folder_icon(self, ref):
+        '''
+            Unset the red icon
+        '''
+        if sys.platform == "win32":
+            # TODO Clean version
+            desktop_ini_file_path = os.path.join(self._abspath(ref), "desktop.ini")
+        if sys.platform == "darwin":
+            desktop_ini_file_path = os.path.join(self._abspath(ref), "Icon\r")
+        if os.path.exists(desktop_ini_file_path):
+            os.remove(desktop_ini_file_path)
+
+    def set_folder_icon(self, ref, icon):
+        if sys.platform == 'win32':
+            self.set_folder_icon_win32(ref, icon)
+        elif sys.platform == 'darwin':
+            self.set_folder_icon_darwin(ref, icon)
+
+    def set_folder_icon_win32(self, ref, icon):
+        import win32con
+        import win32api
+        import platform
+        '''
+            Configure red color icon for a folder Windows / Mac
+        '''
+        # Desktop.ini file content for Windows 7 and later.
+        ini_file_content = """
+        [.ShellClassInfo]
+        IconResource=icon_file_path,0
+        [ViewState]
+        Mode=
+        Vid=
+        FolderType=Generic
+        """
+        # Desktop.ini file content for Windows XP.
+        ini_file_content_xp = """
+        [.ShellClassInfo]
+        IconFile=icon_file_path
+        IconIndex=0
+        """
+        if platform.platform().__contains__("Windows-XP"):
+            desktop_ini_content = ini_file_content_xp.replace("icon_file_path", icon)
+        else:
+            desktop_ini_content = ini_file_content.replace("icon_file_path", icon)
+
+        # Create the desktop.ini file inside the ReadOnly shared folder.
+        created_ini_file_path = os.path.join(self._abspath(ref), 'desktop.ini')
+        attrib_command_path = self._abspath(ref)
+        if not os.path.exists(created_ini_file_path):
+            try:
+                create_file = open(created_ini_file_path,'w')
+                create_file.write(desktop_ini_content)
+                create_file.close()
+                win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
+                win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
+                win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_SYSTEM)
+            except Exception as e:
+                log.error("Exception when setting folder icon to red color : %s", e)
+        else:
+            win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
+            win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
+            win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_SYSTEM)
+
+    def _read_data(self, file_path):
+        import array
+        '''The data file contains the mac icons as a hex string => every two bytes is a hex string of a single byte'''
+        dat = open(file_path, 'rb')
+        info = dat.read()
+        dat.close()
+        hex = array.array('B')
+        for i in range(0, len(info), 2):
+            hex.append(int(info[i:i+2], 16))
+        return hex
+
+    def _get_icon_xdata(self):
+        OSX_FINDER_INFO_ENTRY_SIZE = 32
+        OSX_FINDER_INFO_ICON_FLAG_INDEX = 8
+        OSX_FINDER_INFO_ICON_FLAG_VALUE = 4
+        result = (OSX_FINDER_INFO_ENTRY_SIZE)*[0]
+        result[OSX_FINDER_INFO_ICON_FLAG_INDEX] = OSX_FINDER_INFO_ICON_FLAG_VALUE
+        return result
+
+    def set_folder_icon_darwin(self, ref, icon):
+        ''' Mac: Configure a folder with a given custom icon
+            1. Read the com.apple.ResourceFork extended attribute from the icon file
+            2. Set the com.apple.FinderInfo extended attribute with folder icon flag
+            3. Create a Icon file (name: Icon\r) inside the target folder
+            4. Set extended attributes com.apple.FinderInfo & com.apple.ResourceFork for icon file (name: Icon\r)
+            5. Hide the icon file (name: Icon\r)
+        '''
+        try:
+            import xattr
+            import stat
+            target_folder = self._abspath(ref)
+            # Generate the value for 'com.apple.FinderInfo'
+            has_icon_xdata = bytes(bytearray(self._get_icon_xdata()))
+            # Configure 'com.apple.FinderInfo' for the folder
+            xattr.setxattr(target_folder, xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
+            # Create the 'Icon\r' file
+            meta_file = os.path.join(target_folder, "Icon\r")
+            if os.path.exists(meta_file):
+                os.remove(meta_file)
+            open(meta_file, "w").close()
+            # Configure 'com.apple.FinderInfo' for the Icon file
+            xattr.setxattr(meta_file, xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
+            # Configure 'com.apple.ResourceFork' for the Icon file
+            info = self._read_data(icon)
+            xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, bytes(bytearray(info)))
+            os.chflags(meta_file, stat.UF_HIDDEN)
+
+        except Exception as e:
+            log.error("Exception when setting folder icon : %s", e)
+
     def set_remote_id(self, ref, remote_id, name='ndrive'):
         # Can be move to another class
         path = self._abspath(ref)
