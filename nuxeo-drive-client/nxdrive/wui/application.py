@@ -9,7 +9,6 @@ from nxdrive.osi import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
-from nxdrive.gui.updated import notify_updated
 from nxdrive.utils import find_resource_dir
 from nxdrive.wui.translator import Translator
 
@@ -72,10 +71,10 @@ class BindingInfo(object):
 class Application(QApplication):
     """Main Nuxeo drive application controlled by a system tray icon + menu"""
 
-    def __init__(self, controller, options, argv=()):
+    def __init__(self, manager, options, argv=()):
         super(Application, self).__init__(list(argv))
         self.setQuitOnLastWindowClosed(False)
-        self.manager = controller
+        self.manager = manager
         self.options = options
         self.mainEngine = None
         self.filters_dlg = None
@@ -90,7 +89,6 @@ class Application(QApplication):
         if self.mainEngine is not None and options.debug:
             from nxdrive.engine.engine import EngineLogger
             self.engineLogger = EngineLogger(self.mainEngine)
-        self.binding_info = {}
         self.engineWidget = None
 
         self.aboutToQuit.connect(self.manager.stop)
@@ -106,18 +104,8 @@ class Application(QApplication):
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
-        # Current state
-        self.state = 'disabled'
-        # Last state before suspend
-        self.last_state = 'enabled'
 
         self.setup_systray()
-
-        # Update systray every xs
-
-        # Application update notification
-        if self.manager.is_updated():
-            notify_updated(self.manager.get_version())
 
         # Check if actions is required, separate method so it can be override
         self.init_checks()
@@ -393,37 +381,6 @@ class Application(QApplication):
             return ("%s - %s" % (self.get_default_tooltip(),
                                     action.type))
 
-    def suspend_resume(self):
-        if self.state != 'paused':
-            # Suspend sync
-            if self.manager.is_started():
-                # A sync thread is active, first update last state, current
-                # state, icon and menu.
-                self.last_state = self.state
-                # If sync thread is asleep (waiting for next sync batch) set
-                # current state to 'paused' directly, else set current state
-                # to 'suspending' waiting for feedback from sync thread.
-                if self.state == 'asleep':
-                    self.state = 'paused'
-                else:
-                    self.state = 'suspending'
-                self.update_running_icon()
-                # Suspend the synchronizer thread: it will call
-                # notify_sync_suspended() then wait until it gets notified by
-                # a call to resume().
-                self.manager.suspend()
-            else:
-                self.state = 'paused'
-                log.debug('No active synchronization thread, suspending sync'
-                          ' has no effect, keeping current state: %s',
-                          self.state)
-        else:
-            # Update state, icon and menu
-            self.state = self.last_state
-            self.update_running_icon()
-            # Resume sync
-            self.manager.resume()
-
     @QtCore.pyqtSlot(str)
     def app_updated(self, updated_version):
         self.updated_version = str(updated_version)
@@ -457,156 +414,6 @@ class Application(QApplication):
     def get_mac_app(self):
         return 'ndrive'
 
-    def update_running_icon(self):
-        # TODO Define is direct call to set_icon_state
-        if self.state not in ['enabled', 'transferring']:
-            self.set_icon_state(self.state)
-            return
-        infos = self.binding_info.values()
-        if len(infos) > 0 and any(i.online for i in infos):
-            self.set_icon_state(self.state)
-        else:
-            self.set_icon_state("disabled")
-
-    def notify_change(self, doc_pair, old_state):
-        self.communicator.change.emit(doc_pair, old_state)
-
-    def handle_change(self, doc_pair, old_state):
-        pass
-
-    def notify_local_folders(self, server_bindings):
-        """Cleanup unbound server bindings if any"""
-        local_folders = [sb.local_folder for sb in server_bindings]
-        refresh = False
-        for registered_folder in self.binding_info.keys():
-            if registered_folder not in local_folders:
-                del self.binding_info[registered_folder]
-                refresh = True
-        for sb in server_bindings:
-            if sb.local_folder not in self.binding_info:
-                self.binding_info[sb.local_folder] = BindingInfo(sb)
-                refresh = True
-        if refresh:
-            log.debug(u'Detected changes in the list of local folders: %s',
-                      u", ".join(local_folders))
-            self.update_running_icon()
-            self.communicator.menu.emit()
-
-    def get_binding_info(self, server_binding):
-        local_folder = server_binding.local_folder
-        if local_folder not in self.binding_info:
-            self.binding_info[local_folder] = BindingInfo(server_binding)
-        return self.binding_info[local_folder]
-
-    def notify_sync_started(self):
-        log.debug('Synchronization started')
-        # Update state, icon and menu
-        self.state = self._get_current_active_state()
-        self.update_running_icon()
-        self.communicator.menu.emit()
-
-    def notify_sync_stopped(self):
-        log.debug('Synchronization stopped')
-        self.sync_thread = None
-        # Send stop signal
-        self.communicator.stop.emit()
-
-    def notify_sync_asleep(self):
-        # Update state to 'asleep' when sync thread is going to sleep
-        # (waiting for next sync batch)
-        self.state = 'asleep'
-
-    def notify_sync_woken_up(self):
-        # Update state to current active state when sync thread is woken up and
-        # was not suspended
-        if self.state != 'paused':
-            self.state = self._get_current_active_state()
-        else:
-            self.last_state = self._get_current_active_state()
-
-    def notify_sync_suspended(self):
-        log.debug('Synchronization suspended')
-        # Update state, icon and menu
-        self.state = 'paused'
-        self.update_running_icon()
-        self.communicator.menu.emit()
-
-    def notify_online(self, server_binding):
-        info = self.get_binding_info(server_binding)
-        if not info.online:
-            # Mark binding as offline and update UI
-            log.debug('Switching to online mode for: %s',
-                      server_binding.local_folder)
-            info.online = True
-            self.update_running_icon()
-            self.communicator.menu.emit()
-
-    def notify_offline(self, server_binding, exception):
-        info = self.get_binding_info(server_binding)
-        code = getattr(exception, 'code', None)
-        if code is not None:
-            reason = "Server returned HTTP code %r" % code
-        else:
-            reason = str(exception)
-        local_folder = server_binding.local_folder
-        if info.online:
-            # Mark binding as offline and update UI
-            log.debug('Switching to offline mode (reason: %s) for: %s',
-                      reason, local_folder)
-            info.online = False
-            self.state = 'disabled'
-            self.update_running_icon()
-            self.communicator.menu.emit()
-
-        if code == 401:
-            log.debug('Detected invalid credentials for: %s', local_folder)
-            self.communicator.invalid_credentials.emit(local_folder)
-
-    def notify_pending(self, server_binding, n_pending, or_more=False):
-        # Update icon
-        if n_pending > 0:
-            self.state = 'transferring'
-        else:
-            self.state = self._get_current_active_state()
-        self.update_running_icon()
-
-        if server_binding is not None:
-            local_folder = server_binding.local_folder
-            info = self.get_binding_info(server_binding)
-            if n_pending != info.n_pending:
-                log.debug("%d pending operations for: %s", n_pending,
-                          local_folder)
-                if n_pending == 0 and info.n_pending > 0:
-                    current_time = time.time()
-                    log.debug("Updating last ended synchronization date"
-                              " to %s for: %s",
-                              time.strftime(TIME_FORMAT_PATTERN,
-                                            time.localtime(current_time)),
-                              local_folder)
-                    server_binding.last_ended_sync_date = current_time
-                    self.manager.get_session().commit()
-                self.communicator.menu.emit()
-            # Update pending stats
-            info.n_pending = n_pending
-            info.has_more_pending = or_more
-
-            if not info.online:
-                log.debug("Switching to online mode for: %s", local_folder)
-                # Mark binding as online and update UI
-                info.online = True
-                self.update_running_icon()
-                self.communicator.menu.emit()
-
-    def notify_check_update(self):
-        log.debug('Checking for application update')
-        self.communicator.update_check.emit()
-
-    def _get_current_active_state(self):
-        if self.state == 'paused':
-            return 'paused'
-        else:
-            return 'enabled'
-
     def show_metadata(self, file_path):
         from nxdrive.wui.metadata import CreateMetadataWebDialog
         self._metadata_dialog = CreateMetadataWebDialog(self.manager, file_path)
@@ -615,7 +422,7 @@ class Application(QApplication):
     def setup_systray(self):
         self._tray_icon = QtGui.QSystemTrayIcon()
         self._tray_icon.setToolTip(self.manager.get_appname())
-        self.update_running_icon()
+        self.set_icon_state("disabled")
         self._tray_icon.show()
         self.tray_icon_menu = self.get_systray_menu()
         self._tray_icon.setContextMenu(self.tray_icon_menu)

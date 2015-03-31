@@ -5,7 +5,6 @@ Created on 19 mai 2014
 '''
 from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.engine.dao.model import Filter
 from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)

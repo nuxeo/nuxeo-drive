@@ -66,7 +66,7 @@ def daemonize():
 
     Because of the fork, this operation should happen early in the process
     lifecyle, in particular before the instanciation of any sqlite session
-    (i.e. before the instanciation of the Controller object) and also before
+    (i.e. before the instanciation of the Manager object) and also before
     the configuration of the logging module to avoid having to deal with file
     handlers.
 

@@ -10,9 +10,9 @@ log = get_logger(__name__)
 class ConsoleApplication(QCoreApplication):
     """Console mode Nuxeo Drive application"""
 
-    def __init__(self, controller, options, argv=()):
+    def __init__(self, manager, options, argv=()):
         super(ConsoleApplication, self).__init__(list(argv))
-        self.manager = controller
+        self.manager = manager
         self.options = options
         self.mainEngine = None
         for engine in self.manager.get_engines().values():

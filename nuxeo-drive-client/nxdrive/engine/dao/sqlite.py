@@ -1,11 +1,46 @@
 import sqlite3
 import os
 from threading import Lock, local, current_thread
-from nxdrive.engine.dao.model import PAIR_STATES
 from datetime import datetime
 from nxdrive.logging_config import get_logger
 from PyQt4.QtCore import pyqtSignal, QObject
 log = get_logger(__name__)
+
+# Summary status from last known pair of states
+
+PAIR_STATES = {
+    # regular cases
+    ('unknown', 'unknown'): 'unknown',
+    ('synchronized', 'synchronized'): 'synchronized',
+    ('created', 'unknown'): 'locally_created',
+    ('unknown', 'created'): 'remotely_created',
+    ('modified', 'synchronized'): 'locally_modified',
+    ('moved', 'synchronized'): 'locally_moved',
+    ('moved', 'deleted'): 'locally_moved_created',
+    ('moved', 'modified'): 'locally_moved_remotely_modified',
+    ('synchronized', 'modified'): 'remotely_modified',
+    ('modified', 'unknown'): 'locally_modified',
+    ('unknown', 'modified'): 'remotely_modified',
+    ('deleted', 'synchronized'): 'locally_deleted',
+    ('synchronized', 'deleted'): 'remotely_deleted',
+    ('deleted', 'deleted'): 'deleted',
+    ('synchronized', 'unknown'): 'synchronized',
+
+    # conflicts with automatic resolution
+    ('created', 'deleted'): 'locally_created',
+    ('deleted', 'created'): 'remotely_created',
+    ('modified', 'deleted'): 'remotely_deleted',
+    ('deleted', 'modified'): 'remotely_created',
+
+    # conflict cases that need manual resolution
+    ('modified', 'modified'): 'conflicted',
+    ('created', 'created'): 'conflicted',
+    ('created', 'modified'): 'conflicted',
+
+    # inconsistent cases
+    ('unknown', 'deleted'): 'unknown_deleted',
+    ('deleted', 'unknown'): 'deleted_unknown',
+}
 
 
 class CustomRow(sqlite3.Row):
