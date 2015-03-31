@@ -149,17 +149,20 @@ class Application(QApplication):
         engines = self.manager.get_engines()
         invalid_credentials = True
         paused = True
+        offline = True
         for _, engine in engines.iteritems():
             syncing = syncing | engine.is_syncing()
             invalid_credentials = invalid_credentials & engine.has_invalid_credentials()
             paused = paused & engine.is_paused()
+            offline = offline & engine.is_offline()
         new_state = "asleep"
-        if len(engines) == 0 or paused:
+        if len(engines) == 0 or paused or offline:
             new_state = "disabled"
         if invalid_credentials:
             new_state = 'stopping'
         if syncing:
             new_state = 'transferring'
+        log.debug("Should change icon to %s", new_state)
         self.set_icon_state(new_state)
 
     def _get_settings_dialog(self, section):
@@ -250,6 +253,8 @@ class Application(QApplication):
         engine.invalidAuthentication.connect(self.change_systray_icon)
         engine.syncSuspended.connect(self.change_systray_icon)
         engine.syncResumed.connect(self.change_systray_icon)
+        engine.offline.connect(self.change_systray_icon)
+        engine.online.connect(self.change_systray_icon)
 
     @QtCore.pyqtSlot()
     def _debug_toggle_invalid_credentials(self):

@@ -75,6 +75,8 @@ class EngineLogger(QObject):
 
 
 class Engine(QObject):
+    BATCH_MODE_UPLOAD = "upload"
+    BATCH_MODE_FOLDER = "folder"
     _start = pyqtSignal()
     _stop = pyqtSignal()
     _scanPair = pyqtSignal(str)
@@ -87,6 +89,8 @@ class Engine(QObject):
     newSync = pyqtSignal(object, object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
+    offline = pyqtSignal()
+    online = pyqtSignal()
 
     def __init__(self, manager, definition, binder=None, processors=5,
                  remote_watcher_delay=DEFAULT_REMOTE_WATCHER_DELAY,
@@ -122,6 +126,7 @@ class Engine(QObject):
         self._pause = False
         self._sync_started = False
         self._invalid_credentials = False
+        self._offline_state = False
         self._local = local()
         self._threads = list()
         self._client_cache_timestamps = dict()
@@ -160,6 +165,22 @@ class Engine(QObject):
 
     def get_last_files(self, number, direction=None):
         return self._dao.get_last_files(number, direction)
+
+    def set_offline(self, value=True):
+        if value == self._offline_state:
+            return
+        self._offline_state = value
+        if value:
+            log.debug("Engine %s goes offline", self._uid)
+            self._queue_manager.suspend()
+            self.offline.emit()
+        else:
+            log.debug("Engine %s goes online", self._uid)
+            self._queue_manager.resume()
+            self.online.emit()
+
+    def is_offline(self):
+        return self._offline_state
 
     def add_filter(self, path):
         remote_ref = os.path.basename(path)
@@ -211,6 +232,20 @@ class Engine(QObject):
         if url is None:
             url = self.get_remote_url()
         self._manager.open_local_file(url)
+
+    def get_previous_file(self, ref, mode):
+        if mode == Engine.BATCH_MODE_FOLDER:
+            pass
+        elif mode == Engine.BATCH_MODE_SYNCED:
+            pass
+        return None
+
+    def get_next_file(self, ref, mode):
+        if mode == Engine.BATCH_MODE_FOLDER:
+            pass
+        elif mode == Engine.BATCH_MODE_UPLOAD:
+            pass
+        return None
 
     def resume(self):
         # If stopped then start the engine

@@ -15,6 +15,7 @@ from nxdrive.engine.activity import Action
 from nxdrive.client.common import safe_filename
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.utils import path_join
+from httplib import BadStatusLine
 from urllib2 import HTTPError, URLError
 import os
 log = get_logger(__name__)
@@ -257,14 +258,21 @@ class RemoteWatcher(EngineWorker):
         try:
             self._client = self._engine.get_remote_client()
         except:
-            if self._client is None and not self._engine.get_queue_manager().is_paused():
-                self._engine.get_queue_manager().suspend()
+            if self._client is None and not self._engine.is_offline():
+                self._engine.set_offline()
             return False
         if self._client is None:
+            if not self._engine.is_offline():
+                self._engine.set_offline()
             return False
-        if self._engine.get_queue_manager().is_paused():
-            # Maybe dont want this automatic in DEBUG mode
-            self._engine.get_queue_manager().resume()
+        if self._engine.is_offline():
+            try:
+                # Try to get the api
+                self._client.fetch_api()
+                # if retrieved
+                self._engine.set_offline(False)
+            except:
+                pass
         try:
             if self._last_remote_full_scan is None:
                 log.debug("Remote full scan")
@@ -285,6 +293,9 @@ class RemoteWatcher(EngineWorker):
             else:
                 self.updated.emit()
             return True
+        except BadStatusLine as e:
+            # Pause the rest of the engine
+            self._engine.set_offline()
         except ThreadInterrupt as e:
             raise e
         except HTTPError as e:
