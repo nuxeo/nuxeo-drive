@@ -433,7 +433,7 @@ class WebDriveApi(QtCore.QObject):
         try:
             return self._manager.is_beta_channel_available()
         except Exception as e:
-            log.exception(e)
+            log.error('Error while checking for beta channel availability: %r', e)
             return False
 
     @QtCore.pyqtSlot(bool, result=str)
