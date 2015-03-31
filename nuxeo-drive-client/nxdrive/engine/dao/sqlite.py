@@ -809,6 +809,7 @@ class EngineDAO(ConfigurationDAO):
         return path
 
     def add_path_scanned(self, path):
+        path = self._clean_filter_path(path)
         self._lock.acquire()
         try:
             con = self._get_write_connection()
@@ -834,9 +835,18 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
 
     def is_path_scanned(self, path):
+        path = self._clean_filter_path(path)
         c = self._get_read_connection().cursor()
-        c.execute("SELECT path FROM RemoteScan WHERE path=?", (path,))
-        return c.rowcount > 0
+        row = c.execute("SELECT COUNT(path) FROM RemoteScan WHERE path=? LIMIT 1", (path,)).fetchone()
+        return row[0] > 0
+
+    def get_next_upload_file(self, ref):
+        state = self.get_states_from_remote(ref)
+
+    def get_next_folder_file(self, ref):
+        state = self.get_states_from_remote(ref)
+        childs = self.get_remote_children(state.parent_ref)
+        # Sort children
 
     def is_filter(self, path):
         path = self._clean_filter_path(path)
