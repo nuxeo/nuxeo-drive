@@ -48,7 +48,7 @@ class Tracker(Worker):
             user_agent = user_agent + " Windows " + platform.release()
         if platform.system() == "Darwin":
             user_agent = user_agent + "Macintosh; Intel Mac OS X "
-            user_agent = user_agent + platform.mac_ver()[0].replace(".","_")
+            user_agent = user_agent + platform.mac_ver()[0].replace(".", "_")
         if platform.system() == "Linux":
             user_agent = user_agent + "Linux)"
         user_agent = user_agent + ")"
@@ -64,10 +64,12 @@ class Tracker(Worker):
             speed = metrics["speed"]
         if timing is not None:
             log.trace("Send TransferOperation(%s) OverallTime: %d", metrics["handler"], timing)
-            self._tracker.send('event', category='TransferOperation', action=metrics["handler"], label="OverallTime", value=timing)
+            self._tracker.send('event', category='TransferOperation', action=metrics["handler"], label="OverallTime",
+                               value=timing)
         if speed is not None:
             log.trace("Send TransferOperation(%s) Speed: %d", metrics["handler"], speed)
-            self._tracker.send('event', category='TransferOperation', action=metrics["handler"], label="Speed", value=speed)
+            self._tracker.send('event', category='TransferOperation', action=metrics["handler"], label="Speed",
+                               value=speed)
 
     @QtCore.pyqtSlot()
     def _send_stats(self):

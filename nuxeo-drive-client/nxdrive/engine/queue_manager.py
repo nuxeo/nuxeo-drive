@@ -1,7 +1,6 @@
 from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
 from Queue import Queue, Empty
 from nxdrive.logging_config import get_logger
-from nxdrive.engine.processor import Processor
 from threading import Lock, local
 from copy import deepcopy
 import time
@@ -301,7 +300,8 @@ class QueueManager(QObject):
 
     def active(self):
         log.debug("Active: LocalFolder: %r, LocalFile: %r, RemoteFolder: %r, RemoteFile: %r, Pool:%d",
-                    self._local_folder_thread, self._local_file_thread, self._remote_folder_thread, self._remote_file_thread, len(self._processors_pool))
+                    self._local_folder_thread, self._local_file_thread, self._remote_folder_thread,
+                    self._remote_file_thread, len(self._processors_pool))
         # Recheck threads
         self._thread_finished()
         return (self._local_folder_thread is not None

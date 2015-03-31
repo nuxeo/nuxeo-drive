@@ -13,7 +13,8 @@ class Notification(object):
     LEVEL_WARNING = "warning"
     LEVEL_ERROR = "danger"
 
-    def __init__(self, notification_type, engine_uid=None, level=LEVEL_INFO, uid=None, unique=False, replacements=None):
+    def __init__(self, notification_type, engine_uid=None, level=LEVEL_INFO, uid=None, unique=False,
+                 replacements=None):
         self._unique = unique
         self._type = notification_type
         self._level = level
@@ -45,8 +46,8 @@ class Notification(object):
         return self._uid
 
     @staticmethod
-    def generate_uid(self, type, engine_uid=None):
-        result = type
+    def generate_uid(self, _type, engine_uid=None):
+        result = _type
         if engine_uid:
             result = result + "_" + engine_uid
         return result
