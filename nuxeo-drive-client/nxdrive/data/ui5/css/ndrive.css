@@ -49,6 +49,33 @@ body {
   border: none;
   border-top: 1px solid #ddd; }
 
+#sub-menu {
+  background-color: #f9f9f9;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+  color: #aaa;
+  margin: 40px 0 0;
+  padding: 5px 10px;
+  position: relative;
+  z-index: 10; }
+
+#sub-menu > a {
+  display: inline-block;
+  float: right;
+  min-width: 16px;
+  margin-left: 10px; }
+
+#sub-menu .glyphicon {
+  color: #aaa;
+  padding-top: 4px; }
+
+#sub-menu .glyphicon:hover {
+  color: #00adff;
+  cursor: pointer; }
+
+#systray .list-group {
+  height: 260px;
+  overflow: auto; }
+
 .notification {
   width: 100%;
   min-height: 20px;
