@@ -13,6 +13,7 @@ from nxdrive.wui.translator import Translator
 from nxdrive.manager import FolderAlreadyUsed
 import urllib2
 import json
+import sys
 import time
 import datetime
 import calendar
@@ -595,13 +596,16 @@ class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
     def __init__(self, application, token):
         super(TokenNetworkAccessManager, self).__init__()
         self.token = token
-        cache = QtNetwork.QNetworkDiskCache(self)
-        cache.setCacheDirectory(application.get_cache_folder())
-        self.setCache(cache)
+        if not application.manager.is_debug():
+            cache = QtNetwork.QNetworkDiskCache(self)
+            cache.setCacheDirectory(application.get_cache_folder())
+            self.setCache(cache)
 
     def createRequest(self, op, req, outgoingData):
-        req.setRawHeader("X-Authentication-Token", QtCore.QByteArray(self.token))
-        if str(req.url().path()).endswith(".ttf"):
+        if self.token is not None:
+            req.setRawHeader("X-Authentication-Token", QtCore.QByteArray(self.token))
+        # Block TTF under Mac
+        if str(req.url().path()).endswith(".ttf") and sys.platform == "darwin":
             # Block .ttf file for now as there are badly displayed
             return super(TokenNetworkAccessManager, self).createRequest(op,
                         QtNetwork.QNetworkRequest(QtCore.QUrl()), outgoingData)
@@ -632,14 +636,13 @@ class WebDialog(QtGui.QDialog):
             filename = application.get_htmlpage(page)
         else:
             filename = page
+        self.networkManager = TokenNetworkAccessManager(application, token)
+        self._view.page().setNetworkAccessManager(self.networkManager)
         # If connect to a remote page add the X-Authentication-Token
         if filename.startswith("http"):
             url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
             if token is not None:
-                self.networkManager = TokenNetworkAccessManager(application, token)
-                self._view.page().setNetworkAccessManager(self.networkManager)
-                url.setRawHeader("X-Authentication-Token",
-                                  QtCore.QByteArray(token))
+                url.setRawHeader("X-Authentication-Token", QtCore.QByteArray(token))
         else:
             log.debug("Load web file : %s", filename)
             url = QtCore.QUrl(filename)
