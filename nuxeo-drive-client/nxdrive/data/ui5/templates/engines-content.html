@@ -1,0 +1,185 @@
+<nav class="navbar navbar-default navbar-fixed-top">
+  <div class="container">
+  	<div class="navbar-header">
+  	  <a class="navbar-brand" href="#">
+        <img alt="Brand" src="imgs/{{ appname }}.png" height="20">
+        Debug
+      </a>
+    </div>
+    <ul class="nav navbar-nav">
+    	<li ng-show="!is_paused('engine')"><a href="#" ng-click="pause('engine')"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Pause</a></li>
+    	<li ng-show="is_paused('engine')"><a href="#" ng-click="pause('engine')"><span class="glyphicon glyphicon-play" aria-hidden="true"></span>&nbsp;Resume</a></li>
+    </ul>
+  	<ul class="nav navbar-nav navbar-right">
+  		<li><a href="#" ng-click="pause('local_watcher')"><span ng-class="pause_class('local_watcher')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Watcher</a></li>
+  		<li><a href="#" ng-click="pause('remote_watcher')"><span ng-class="pause_class('remote_watcher')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Watcher</a></li>
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><b>{{ engine.name }}</b><span class="caret"></span></a>
+          <ul class="dropdown-menu" role="menu">
+            <li ng-repeat="engine in engines" ng-click="setEngine(engine)"><a href="#">{{ engine.name }}</a></li>
+          </ul>
+        </li>
+      </ul>
+  </div>
+</nav>
+<div class="container-fluid" style="padding-top: 80px;">
+	<div class="row">
+		<div class="col-xs-3">
+			<table class="table table-hover table-condensed">
+			<thead>
+				<tr>
+					<th><a href="#" ng-click="pause('local_folder_queue')"><span ng-class="pause_class('local_folder_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Folders</a><span class="badge pull-right">{{ engine.queue.local_folder_queue }}</span></th>
+				</tr>
+			</thead>
+			</table>
+			<div class="queue-display">
+				<table class="table table-hover table-condensed">
+				<tbody>
+					<tr ng-repeat="item in engine.queue.local_folder">
+						<td>{{ item.name }}</td>
+					</tr>
+				</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="col-xs-3">
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th><a href="#" ng-click="pause('local_file_queue')"><span ng-class="pause_class('local_file_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Files</a><span class="badge pull-right">{{ engine.queue.local_file_queue }}</span></th>
+					</tr>
+				</thead>
+			</table>
+			<div class="queue-display">
+			<table class="table table-hover table-condensed">
+				<tbody>
+					<tr ng-repeat="item in engine.queue.local_file">
+						<td>{{ item.name }}</td>
+					</tr>
+				</tbody>
+			</table>
+			</div>
+		</div>
+		<div class="col-xs-3">
+			<table class="table table-hover">
+			<thead>
+				<tr>
+					<th><a href="#" ng-click="pause('remote_folder_queue')"><span ng-class="pause_class('remote_folder_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Folders</a><span class="badge pull-right">{{ engine.queue.remote_folder_queue }}</span></th>
+				</tr>
+			</thead>
+			</table>
+			<div class="queue-display">
+				<table class="table table-hover table-condensed">
+				<tbody>
+					<tr ng-repeat="item in engine.queue.remote_folder">
+						<td>{{ item.name }}</td>
+					</tr>
+				</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="col-xs-3">
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th><a href="#" ng-click="pause('remote_file_queue')"><span ng-class="pause_class('remote_file_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Files</a><span class="badge pull-right">{{ engine.queue.remote_file_queue }}</span></th>
+					</tr>
+				</thead>
+			</table>
+			<div class="queue-display">
+				<table class="table table-hover table-condensed">
+				<tbody>
+					<tr ng-repeat="item in engine.queue.remote_file">
+						<td>{{ item.name }}</td>
+					</tr>
+				</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-xs-6">
+			<table class="table table-hover table-condensed">
+			<thead>
+				<tr>
+					<th colspan="2"><a href="#" ng-click="refreshLogs()"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;Logs</a></th>
+				</tr>
+			</thead>
+			</table>
+			<div class="logs">
+				<table class="table table-hover table-condensed">
+				<tbody>
+					<tr ng-repeat="log in engine.logs" class="{{ getLogClass(log.severity) }}">
+						<td>{{ log.time }}</td>
+						<td>{{ log.thread }}</td>
+						<td>{{ log.message }}
+						<span class="pull-right" style="font-style: italic;margin-left: 40px;">{{ log.name }}</span></td>
+					</tr>
+				</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="col-xs-6">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th>
+						<ul style="margin-bottom: 0px; padding-left: 0px;"><li style="list-style-type: none;" class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span class="glyphicon glyphicon-equalizer">&nbsp;</span>Metrics {{ metrics_name }}<span class="caret"></span></a>
+			          <ul class="dropdown-menu" role="menu">
+			            <li><a href="#" ng-click="setMetrics('QueueManager', engine.queue.metrics)">QueueManager</a></li>
+			            <li><a href="#" ng-click="setMetrics('Engine', engine.metrics)">Engine</a></li>
+			            <li ng-repeat="thread in engine.threads"><a href="#" ng-click="setMetrics(thread.name, thread.metrics)">{{ thread.name }}</a></li>
+			          </ul></li>
+			          </ul>
+          			</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="(key, value) in metrics">
+					<td>{{ key }}: {{ value }}</td>
+				</tr>
+			</tbody>
+		</table>
+		<table class="table table-hover table-condensed">
+			<thead>
+				<tr>
+					<th>
+						<ul style="margin-bottom: 0px; padding-left: 0px;"><li style="list-style-type: none;" class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span class="glyphicon glyphicon-circle-arrow-down">&nbsp;</span>AppUpdater {{ app_update[0] }}<span class="caret"></span></a>
+			          <ul class="dropdown-menu" role="menu">
+			            <li><a href="#" ng-click="setAppUpdate('downgrade_needed', '1.9.0129')">Downgrade needed</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('upgrade_needed', '2.1.0108')">Upgrade needed</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('update_available', '2.1.0108')">Upgrade available</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('updating', '2.1.0108')">Updating</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('up_to_date', null)">Up to date</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('unavailable_site', null)">Site unavailable</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('missing_info', null)">Missing info</a></li>
+			            <li><a href="#" ng-click="setAppUpdate('missing_version', null)">Missing version</a></li>
+			          </ul></li>
+			          </ul>
+          			</th>
+				</tr>
+			</thead>
+		</table>
+		<table class="table table-hover table-condensed">
+			<thead>
+				<tr>
+					<th>
+						<span class="glyphicon glyphicon-save-file">&nbsp;</span>DriveEdit
+          			</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+					<div class="input-group">
+				      <input type="text" class="form-control" ng-model="driveEditUrl" placeholder="DriveEdit URL">
+				      <span class="input-group-btn">
+				        <button class="btn btn-default" type="button" ng-click="driveEdit(driveEditUrl)">Go!</button>
+				      </span>
+				    </div></td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+	</div>
+</div>

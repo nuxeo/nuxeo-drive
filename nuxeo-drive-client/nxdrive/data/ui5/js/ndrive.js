@@ -2,36 +2,6 @@
 String.prototype.endsWith = function(suffix) {
     return this.indexOf(suffix, this.length - suffix.length) !== -1;
 };
-function drive_init(callback, add_includes) {
-	if (add_includes == null) {
-		add_includes = [];
-	}
-	// Includes
-	var includes = ['js/angular.min.js','js/angular-translate.min.js','js/jquery-2.1.3.min.js','js/bootstrap.min.js','i18n.js', 'css/bootstrap.min.css', 'css/ndrive.css'];
-	includes = includes.concat(add_includes);
-	handle_includes(includes, callback);
-}
-function handle_includes(includes, callback) {
-	if (includes.length == 0) {
-		callback();
-	} else {
-		var include = includes.shift();
-		if (include.endsWith("css")) {
-			script = document.createElement('link');
-			script.setAttribute('href', include);
-			script.setAttribute('rel', "stylesheet");
-			document.head.appendChild(script)
-			handle_includes(includes, callback)
-		} else if (include.endsWith("js")) {
-			script = document.createElement('script');
-			script.setAttribute('src', include);
-			script.onload = function() {
-				handle_includes(includes, callback)
-			}
-			document.head.appendChild(script)
-		}
-	}
-}
 function drive_module(name) {
 	app = angular.module(name, ['pascalprecht.translate']);
 	app.directive('driveInclude', function($http, $templateCache, $compile) {

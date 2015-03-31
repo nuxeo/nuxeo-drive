@@ -2,55 +2,22 @@
 <head>
 <meta charset="UTF-8">
 <script src="js/ndrive.js"></script>
+<script src="js/angular.min.js"></script>
+<script src="js/angular-translate.min.js"></script>
+<script src="js/jquery-2.1.3.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="i18n.js"></script>
+<script src="js/ndrive-conflicts.js"></script>
+<link rel="stylesheet" href="css/bootstrap.min.css"></link>
+<link rel="stylesheet" href="css/ndrive.css"></link>
 <script>
-drive_init(function (){
 	drive.resize(550, 600);
 	app = drive_module("DriveConflicts");
 	app.controller("DriveConflictsCtl", ConflictsController);
-}, ["js/ndrive-conflicts.js"]);
 </script>
 </head>
-<body style="overflow: auto;visibility: visible;" ng-app="DriveConflicts">
-<div id="content" style="padding: 10px;" ng-controller="DriveConflictsCtl">
-	<div class="panel panel-default" ng-repeat="pair in conflicts">
-		<div class="panel-heading">
-			{{ pair.name }}
-		</div>
-		<div class="panel-body">
-			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_sync_date }}'}">LAST_SYNCHRONIZED</span><br />
-			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ contributor:'{{ pair.last_contributor }}'}">LAST_CONTRIBUTOR</span><br />
-  			<div class="btn-group" role="group" aria-label="...">
- 				<button type="button" ng-click="open_local(pair.local_path)" class="btn btn-default"><span class="glyphicon glyphicon-file">&nbsp;</span><span translate>OPEN_LOCAL</span></button>
- 				<button type="button" ng-click="open_remote(pair.remote_ref, pair.remote_name)" class="btn btn-default"><span class="glyphicon glyphicon-globe">&nbsp;</span><span translate>OPEN_REMOTE</span></button>
-  			</div>
-  			<div class="pull-right btn-group">
-				  <button type="button" class="btn btn-warning dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-				    <span ng-show="pair.last_error != 'DUPLICATING'" translate>RESOLVE</span><span ng-show="pair.last_error == 'DUPLICATING'" translate>DUPLICATING</span> <span class="caret"></span>
-				  </button>
-				  <ul class="dropdown-menu" role="menu">
-				    <li><a href="#" ng-click="resolve_with_local(pair.id)"><span class="glyphicon glyphicon-file">&nbsp;</span><span translate>CONFLICT_USE_LOCAL</span></a></li>
-				    <li class="divider"></li>
-				    <li><a href="#" ng-click="resolve_with_remote(pair.id)"><span class="glyphicon glyphicon-globe">&nbsp;</span><span translate>CONFLICT_USE_REMOTE</span></a></li>
-				    <li class="divider"></li>
-				    <li><a href="#" ng-click="resolve_with_duplicate(pair.id)"><span class="glyphicon glyphicon-duplicate">&nbsp;</span><span translate>CONFLICT_USE_DUPLICATE</span></a></li>
-				  </ul>
-  			</div>
-  		</div>
+<body style="overflow: auto;visibility: visible;" ng-app="DriveConflicts" ng-controller="DriveConflictsCtl">
+	<div drive-include="getTemplate('conflicts-content')">
 	</div>
-	<div class="panel panel-default" ng-repeat="pair in errors">
-		<div class="panel-heading">
-			{{ pair.name }}
-		</div>
-		<div class="panel-body">
-			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_sync_date }}'}">LAST_SYNCHRONIZED</span>
-			<span style="color: #999; margin-bottom: 10px;">{{ pair.last_error }}</span>
-  			<div class="pull-right btn-group">
-				  <button type="button" class="btn btn-danger" ng-click="retry_pair(pair.id)" translate>
-				    CONFLICT_RETRY
-				  </button>
-  			</div>
-  		</div>
-	</div>
-</div>
 </body>
 </html>
