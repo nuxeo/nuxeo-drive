@@ -17,18 +17,37 @@ body {
 
 /* =Systray window */
 #systray-top, #systray-bottom {
-  padding: 10px;
+  background-color: #f6f6f6;
+  color: #213f7d;
+  height: 40px;
   min-height: 40px !important;
-  height: 40px; }
+  padding: 10px;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 1); }
 
 #systray-top {
-  border-bottom: 1px solid #17384e !important; }
+  border-bottom: 1px solid #eee;
+  box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.03) inset; }
+
+#systray-top .glyphicon-cog {
+  display: inline-block;
+  float: right;
+  margin-left: 20px;
+  padding: .3em 0 0 0; }
+
+#systray-top .glyphicon-cog:hover {
+  color: #00adff;
+  cursor: pointer; }
 
 #systray-bottom {
-  border-top: 1px solid #17384e !important; }
+  border-top: 1px solid #e1e1e1; }
 
 #systray-bottom .progress {
   margin-bottom: 0; }
+
+#systray .list-group-item {
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid #ddd; }
 
 .notification {
   width: 100%;
