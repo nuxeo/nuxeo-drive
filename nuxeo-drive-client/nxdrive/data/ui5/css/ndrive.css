@@ -170,6 +170,13 @@ body {
 .list-group-item:hover .glyphicon-folder-close:before {
   content: "\e118" !important; }
 
+#systray-bottom .glyphicon-ok {
+  color: #00cd65;
+  padding: .1em;}
+
+#systray-bottom .sync-status {
+  text-align: right; }
+
 /* =Settings window */
 .navbar {
   background-color: #fff;

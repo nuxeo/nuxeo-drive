@@ -1,9 +1,11 @@
 <div class="label notifications-container" style="position: absolute; padding:0px; left:0px; width: 100%; bottom: 40px; width: 100%;" drive-include="getTemplate('systray-notifications')">
 	
   </div>
-  <div align="right" ng-show="engine.syncing != 'syncing'">
-  	<span translate>SYNCHRONIZATION_COMPLETED</span>&nbsp;<span class="glyphicon glyphicon-ok">&nbsp;</span>
+<div class="sync-status">
+  <div ng-show="engine.syncing != 'syncing'">
+    <span title="{{SYNCHRONIZATION_COMPLETED | translate }}" class="glyphicon glyphicon-ok"></span>
   </div>
-  <div align="right" ng-show="engine.syncing == 'syncing'">
-  	<span translate>SYNCHRONIZATION_IN_PROGRESS</span><span ng-show="engine.queue.total_queue > 0">&nbsp;({{engine.queue.total_queue}})</span>&nbsp;<img src="imgs/transferring.gif" /></span>
+  <div ng-show="engine.syncing == 'syncing'">
+    <span title="{{SYNCHRONIZATION_IN_PROGRESS | translate }} ng-show="engine.queue.total_queue > 0">({{engine.queue.total_queue}})</span>&nbsp;<img src="imgs/transferring.gif" /></span>
   </div>
+</div>
