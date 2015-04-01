@@ -17,6 +17,10 @@ class EngineDAOTest(unittest.TestCase):
         nxdrive_path = os.path.dirname(nxdrive.__file__)
         return os.path.join(nxdrive_path, 'tests', 'resources', name)
 
+    def _clean_dao(self, dao):
+        dao.dispose()
+        os.remove(dao.get_db())
+
     def get_db_temp_file(self):
         tmp_db = tempfile.NamedTemporaryFile(suffix="test_db")
         if sys.platform == 'win32':
@@ -24,14 +28,16 @@ class EngineDAOTest(unittest.TestCase):
         return tmp_db
 
     def setUp(self):
-        tmp_db = self.get_db_temp_file()
+        self.tmp_db = self.get_db_temp_file()
         db = open(self._get_default_db(), 'rb')
-        with open(tmp_db.name, 'wb') as f:
+        with open(self.tmp_db.name, 'wb') as f:
             f.write(db.read())
-        self._dao = EngineDAO(tmp_db.name)
+        self._dao = EngineDAO(self.tmp_db.name)
 
     def tearDown(self):
-        self._dao.dispose()
+        self._clean_dao(self._dao)
+        if os.path.exists(self.tmp_db.name):
+            os.remove(self.tmp_db.name)
 
     def test_init_db(self):
         init_db = self.get_db_temp_file()
@@ -46,11 +52,13 @@ class EngineDAOTest(unittest.TestCase):
         self.assertIsNone(dao.get_config("remote_user"))
         # Test RemoteScan table
         self.assertFalse(dao.is_path_scanned("/"))
+        self._clean_dao(dao)
 
     def test_migration_db_v1(self):
         init_db = self.get_db_temp_file()
         # Test empty db
         dao = EngineDAO(init_db.name)
+        self._clean_dao(dao)
         # Test a non empty db
         migrate_db = self.get_db_temp_file()
         db = open(self._get_default_db('test_engine_migration.db'), 'rb')

@@ -111,6 +111,9 @@ class ConfigurationDAO(QObject):
         #if log.getEffectiveLevel() < 6:
         #    self._conn.set_trace_callback(self._log_trace)
 
+    def get_db(self):
+        return self._db
+
     def _migrate_table(self, cursor, name):
         # Add the last_transfer
         tmpname = name + 'Migration'
