@@ -19,7 +19,8 @@ class EngineDAOTest(unittest.TestCase):
 
     def _clean_dao(self, dao):
         dao.dispose()
-        os.remove(dao.get_db())
+        if sys.platform == 'win32':
+            os.remove(dao.get_db())
 
     def get_db_temp_file(self):
         tmp_db = tempfile.NamedTemporaryFile(suffix="test_db")
@@ -36,7 +37,7 @@ class EngineDAOTest(unittest.TestCase):
 
     def tearDown(self):
         self._clean_dao(self._dao)
-        if os.path.exists(self.tmp_db.name):
+        if sys.platform == 'win32' and os.path.exists(self.tmp_db.name):
             os.remove(self.tmp_db.name)
 
     def test_init_db(self):
