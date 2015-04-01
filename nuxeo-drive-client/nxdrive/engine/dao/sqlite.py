@@ -7,6 +7,8 @@ from nxdrive.logging_config import get_logger
 from PyQt4.QtCore import pyqtSignal, QObject
 log = get_logger(__name__)
 
+SCHEMA_VERSION = "schema_version"
+
 
 class CustomRow(sqlite3.Row):
 
@@ -64,6 +66,7 @@ class FakeLock(object):
     def release(self):
         pass
 
+
 class ConfigurationDAO(QObject):
     '''
     classdocs
@@ -76,10 +79,11 @@ class ConfigurationDAO(QObject):
         super(ConfigurationDAO, self).__init__()
         log.debug("Create DAO on %s", db)
         self._db = db
-
+        migrate = os.path.exists(self._db)
         # For testing purpose only should always be True
         self.share_connection = True
         self.auto_commit = True
+        self.schema_version = 1
         self.in_tx = None
         self._tx_lock = Lock()
         # If we dont share connection no need to lock
@@ -93,11 +97,41 @@ class ConfigurationDAO(QObject):
         self._conn.row_factory = CustomRow
         c = self._conn.cursor()
         self._init_db(c)
+        if migrate:
+            res = c.execute("SELECT value FROM Configuration WHERE name='"+SCHEMA_VERSION+"'").fetchone()
+            if res is None:
+                schema = 0
+            else:
+                schema = int(res[0])
+            if schema != self.schema_version:
+                self._migrate_db(c, schema)
         self._conn.commit()
         self._conns = local()
         # FOR PYTHON 3.3...
         #if log.getEffectiveLevel() < 6:
         #    self._conn.set_trace_callback(self._log_trace)
+
+    def _migrate_table(self, cursor, name):
+        # Add the last_transfer
+        tmpname = name + 'Migration'
+        cursor.execute("ALTER TABLE " + name + " RENAME TO " + tmpname)
+        self._create_state_table(cursor)
+        target_cols = self._get_columns(cursor, name)
+        source_cols = self._get_columns(cursor, tmpname)
+        cols = ', '.join(set(target_cols).intersection(source_cols))
+        cursor.execute("INSERT INTO " + name + "(" + cols + ") SELECT " + cols + " FROM " + tmpname)
+        cursor.execute("DROP TABLE " + tmpname)
+
+    def _get_columns(self, cursor, table):
+        cols = []
+        res = cursor.execute("PRAGMA table_info('" + table + "')").fetchall()
+        for col in res:
+            cols.append(col.name)
+        return cols
+
+    def _migrate_db(self, cursor, version):
+        if version < 1:
+            self.update_config(SCHEMA_VERSION, 1)
 
     def _init_db(self, cursor):
         # http://www.stevemcarthur.co.uk/blog/post/some-kind-of-disk-io-error-occurred-sqlite
@@ -258,23 +292,37 @@ class EngineDAO(ConfigurationDAO):
         '''
         Constructor
         '''
+        self.schema_version = 1
         self._filters = None
         self._queue_manager = None
         super(EngineDAO, self).__init__(db)
         self._filters = self.get_filters()
         self.reinit_processors()
 
+    def _migrate_db(self, cursor, version):
+        if (version < 1):
+            self._migrate_table(cursor, 'States')
+            cursor.execute('UPDATE States SET last_transfer = "upload" WHERE last_local_updated < last_remote_updated AND folderish=0;')
+            cursor.execute('UPDATE States SET last_transfer = "download" WHERE last_local_updated > last_remote_updated AND folderish=0;')
+            self.update_config(SCHEMA_VERSION, 1)
+
+    def _create_state_table(self, cursor):
+        cursor.execute("CREATE TABLE if not exists States(id INTEGER NOT NULL, last_local_updated TIMESTAMP,"
+          + "last_remote_updated TIMESTAMP, local_digest VARCHAR, remote_digest VARCHAR, local_path VARCHAR,"
+          + "remote_ref VARCHAR, local_parent_path VARCHAR, remote_parent_ref VARCHAR, remote_parent_path VARCHAR,"
+          + "local_name VARCHAR, remote_name VARCHAR, size INTEGER DEFAULT (0), folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
+          + "pair_state VARCHAR DEFAULT('unknown'), remote_can_rename INTEGER, remote_can_delete INTEGER, remote_can_update INTEGER,"
+          + "remote_can_create_child INTEGER, last_remote_modifier VARCHAR,"
+          + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, last_error_details TEXT, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), last_transfer VARCHAR, PRIMARY KEY (id));")
+
     def _init_db(self, cursor):
         super(EngineDAO, self)._init_db(cursor)
         cursor.execute("CREATE TABLE if not exists Filters(path STRING NOT NULL, PRIMARY KEY(path))")
         cursor.execute("CREATE TABLE if not exists RemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
-        cursor.execute("CREATE TABLE if not exists States(id INTEGER NOT NULL, last_local_updated TIMESTAMP,"
-                  + "last_remote_updated TIMESTAMP, local_digest VARCHAR, remote_digest VARCHAR, local_path VARCHAR,"
-                  + "remote_ref VARCHAR, local_parent_path VARCHAR, remote_parent_ref VARCHAR, remote_parent_path VARCHAR,"
-                  + "local_name VARCHAR, remote_name VARCHAR, size INTEGER DEFAULT (0), folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
-                  + "pair_state VARCHAR DEFAULT('unknown'), remote_can_rename INTEGER, remote_can_delete INTEGER, remote_can_update INTEGER,"
-                  + "remote_can_create_child INTEGER, last_remote_modifier VARCHAR,"
-                  + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, last_error_details TEXT, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), PRIMARY KEY (id));")
+        self._create_state_table(cursor)
+
+    def _get_read_connection(self, factory=StateRow):
+        return super(EngineDAO, self)._get_read_connection(factory)
 
     def release_processor(self, processor_id):
         self._lock.acquire()
@@ -385,13 +433,13 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
         return row_id
 
-    def get_last_files(self, number, direction):
+    def get_last_files(self, number, direction=""):
         c = self._get_read_connection(factory=StateRow).cursor()
         condition = ""
-        if direction == "local":
-            condition = " AND last_local_updated < last_remote_updated"
-        elif direction == "remote":
-            condition = " AND last_local_updated > last_remote_updated"
+        if direction == "remote":
+            condition = " AND last_transfer = 'upload'"
+        elif direction == "local":
+            condition = " AND last_transfer = 'download'"
         return c.execute("SELECT * FROM States WHERE pair_state='synchronized' AND folderish=0" + condition + " ORDER BY last_sync_date DESC LIMIT " + str(number)).fetchall()
 
     def _get_to_sync_condition(self):
@@ -431,6 +479,17 @@ class EngineDAO(ConfigurationDAO):
 
     def _get_pair_state(self, row):
         return PAIR_STATES.get((row.local_state, row.remote_state))
+
+    def update_last_transfer(self, row_id, transfer):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET last_transfer=? WHERE id=?", (row_id, transfer))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
 
     def update_local_state(self, row, info, versionned=True, queue=True):
         pair_state = self._get_pair_state(row)
@@ -704,7 +763,7 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
+            c.execute("UPDATE States SET last_error=NULL, last_error_details=NULL, last_sync_error_date=NULL, error_count = 0" +
                       " WHERE id=?", (row.id,))
             if self.auto_commit:
                 con.commit()
@@ -840,13 +899,25 @@ class EngineDAO(ConfigurationDAO):
         row = c.execute("SELECT COUNT(path) FROM RemoteScan WHERE path=? LIMIT 1", (path,)).fetchone()
         return row[0] > 0
 
+    def get_previous_upload_file(self, ref):
+        state = self.get_normal_state_from_remote(ref)
+        c = self._get_read_connection().cursor()
+        return c.execute("SELECT * FROM States WHERE last_sync_date>? AND folderish=0 AND last_transfer='upload' ORDER BY last_sync_date ASC LIMIT 1", (state.last_sync_date,)).fetchone()
+
     def get_next_upload_file(self, ref):
-        state = self.get_states_from_remote(ref)
+        state = self.get_normal_state_from_remote(ref)
+        c = self._get_read_connection().cursor()
+        return c.execute("SELECT * FROM States WHERE last_sync_date<? AND folderish=0 AND last_transfer='upload' ORDER BY last_sync_date DESC LIMIT 1", (state.last_sync_date,)).fetchone()
 
     def get_next_folder_file(self, ref):
-        state = self.get_states_from_remote(ref)
-        childs = self.get_remote_children(state.parent_ref)
-        # Sort children
+        state = self.get_normal_state_from_remote(ref)
+        c = self._get_read_connection().cursor()
+        return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_name > ? AND folderish=0 ORDER BY remote_name ASC LIMIT 1", (state.remote_parent_ref,state.remote_name)).fetchone()
+
+    def get_previous_folder_file(self, ref):
+        state = self.get_normal_state_from_remote(ref)
+        c = self._get_read_connection().cursor()
+        return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_name < ? AND folderish=0 ORDER BY remote_name DESC LIMIT 1", (state.remote_parent_ref,state.remote_name)).fetchone()
 
     def is_filter(self, path):
         path = self._clean_filter_path(path)

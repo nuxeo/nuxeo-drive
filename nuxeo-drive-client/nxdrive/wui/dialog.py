@@ -116,6 +116,7 @@ class WebDriveApi(QtCore.QObject):
         result["last_error"] = state.last_error
         result["local_path"] = state.local_path
         result["remote_ref"] = state.remote_ref
+        result["last_transfer"] = state.last_transfer
         result["id"] = state.id
         return result
 

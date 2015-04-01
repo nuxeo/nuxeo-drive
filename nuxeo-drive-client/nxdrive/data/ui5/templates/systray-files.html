@@ -7,13 +7,13 @@
 </div></li>
   <li class="list-group-item" ng-repeat="state in last_files">
   	<div ng-click="open_local(state.local_path)">
-  	<span class="glyphicon glyphicon-arrow-up" ng-show="state.last_sync_direction == 'upload'">&nbsp;</span>
-  	<span class="glyphicon glyphicon-arrow-down" ng-show="state.last_sync_direction == 'download'">&nbsp;</span>
+  	<span class="glyphicon glyphicon-arrow-up" ng-show="state.last_transfer == 'upload'">&nbsp;</span>
+  	<span class="glyphicon glyphicon-arrow-down" ng-show="state.last_transfer == 'download'">&nbsp;</span>
   	{{ state.name }}<br />
   	<span ng-show="state.last_sync < 60" style="font-size: 10px; color: #999;" translate>NOW</span>
   	<span ng-show="state.last_sync > 60 && state.last_sync < 3600" style="font-size: 10px; color: #999;" translate translate-values="{ interval: '{{state.last_sync / 60 | number:0}}'}">MINS_AGO</span>
   	<span ng-show="state.last_sync > 3600 && state.last_sync < 86400" style="font-size: 10px; color: #999;" translate translate-values="{ interval: '{{state.last_sync / 3600 | number:0}}'}">HOURS_AGO</span>
   	<span ng-show="state.last_sync > 86400" style="font-size: 10px; color: #999;">{{ state.last_sync_date }}</span>
   	</div>
-  	<span class="glyphicon glyphicon-list-alt pull-right" style="margin-top: -20px;" ng-click="show_metadata(state.local_path);">&nbsp;</span>
+  	<span class="glyphicon glyphicon-list-alt pull-right" style="margin-top: -20px; cursor: pointer;" ng-click="show_metadata(state.local_path);">&nbsp;</span>
   </li>

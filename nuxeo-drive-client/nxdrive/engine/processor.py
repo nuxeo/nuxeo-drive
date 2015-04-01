@@ -161,6 +161,7 @@ class Processor(EngineWorker):
                     parent_fs_item_id=doc_pair.remote_parent_ref,
                     filename=doc_pair.local_name,
                 )
+                self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
                 self._refresh_remote(doc_pair, remote_client)
                 # TODO refresh_client
@@ -217,6 +218,7 @@ class Processor(EngineWorker):
                           name, parent_pair.remote_name)
                 remote_ref = remote_client.stream_file(
                     parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
+                self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
             self._dao.update_remote_state(doc_pair, remote_client.get_info(remote_ref), remote_parent_path, versionned=False)
             log.trace("Put remote_ref in %s", remote_ref)
@@ -362,6 +364,7 @@ class Processor(EngineWorker):
                     local_client.set_remote_id(doc_pair.local_parent_path + '/' + doc_pair.remote_name,
                                                doc_pair.remote_ref)
                 doc_pair.local_digest = updated_info.get_digest()
+                self._dao.update_last_transfer(doc_pair.id, "download")
                 self._refresh_local_state(doc_pair, updated_info)
             else:
                 # digest agree so this might be a renaming and/or a move,
@@ -468,6 +471,7 @@ class Processor(EngineWorker):
                 tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
                 # Rename tmp file
                 local_client.rename(local_client.get_path(tmp_file), name)
+                self._dao.update_last_transfer(doc_pair.id, "download")
         finally:
             local_client.lock_ref(local_parent_path, lock)
         return path
