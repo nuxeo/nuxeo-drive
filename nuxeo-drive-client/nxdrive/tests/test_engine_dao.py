@@ -35,6 +35,8 @@ class EngineDAOTest(unittest.TestCase):
 
     def test_init_db(self):
         init_db = self.get_db_temp_file()
+        if sys.platform != 'win32':
+            os.remove(init_db.name)
         dao = EngineDAO(init_db.name)
         # Test filters table
         self.assertEquals(0, len(dao.get_filters()))
