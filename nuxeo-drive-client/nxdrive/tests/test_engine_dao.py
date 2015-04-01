@@ -8,6 +8,7 @@ import os
 import sys
 import nxdrive
 from nxdrive.engine.dao.sqlite import EngineDAO
+from nxdrive.engine.engine import Engine
 import tempfile
 
 
@@ -29,11 +30,11 @@ class EngineDAOTest(unittest.TestCase):
         return tmp_db
 
     def setUp(self):
-        self.tmp_db = self.get_db_temp_file()
+        tmp_db = self.get_db_temp_file()
         db = open(self._get_default_db(), 'rb')
-        with open(self.tmp_db.name, 'wb') as f:
+        with open(tmp_db.name, 'wb') as f:
             f.write(db.read())
-        self._dao = EngineDAO(self.tmp_db.name)
+        self._dao = EngineDAO(tmp_db.name)
 
     def tearDown(self):
         self._clean_dao(self._dao)
@@ -53,13 +54,11 @@ class EngineDAOTest(unittest.TestCase):
         self.assertIsNone(dao.get_config("remote_user"))
         # Test RemoteScan table
         self.assertFalse(dao.is_path_scanned("/"))
-        self._clean_dao(dao)
 
     def test_migration_db_v1(self):
         init_db = self.get_db_temp_file()
         # Test empty db
         dao = EngineDAO(init_db.name)
-        self._clean_dao(dao)
         # Test a non empty db
         migrate_db = self.get_db_temp_file()
         db = open(self._get_default_db('test_engine_migration.db'), 'rb')
@@ -159,16 +158,16 @@ class EngineDAOTest(unittest.TestCase):
         state = self._dao.get_state_from_id(ids[index])
         while index < len(ids)-1:
             index = index + 1
-            state = self._dao.get_next_upload_file(state.remote_ref)
+            state = self._dao.get_next_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD)
             self.assertEquals(state.id, ids[index])
         while index > 0:
             index = index - 1
-            state = self._dao.get_previous_upload_file(state.remote_ref)
+            state = self._dao.get_previous_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD)
             self.assertEquals(state.id, ids[index])
-        self.assertIsNone(self._dao.get_previous_upload_file(state.remote_ref))
+        self.assertIsNone(self._dao.get_previous_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD))
         # Last file is 9
         state = self._dao.get_state_from_id(9)
-        self.assertIsNone(self._dao.get_next_upload_file(state.remote_ref))
+        self.assertIsNone(self._dao.get_next_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD))
 
     def test_reinit_processors(self):
         state = self._dao.get_state_from_id(1)

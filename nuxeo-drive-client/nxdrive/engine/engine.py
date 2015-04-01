@@ -77,6 +77,8 @@ class EngineLogger(QObject):
 class Engine(QObject):
     BATCH_MODE_UPLOAD = "upload"
     BATCH_MODE_FOLDER = "folder"
+    BATCH_MODE_DOWNLOAD = "download"
+    BATCH_MODE_SYNC = "sync"
     _start = pyqtSignal()
     _stop = pyqtSignal()
     _scanPair = pyqtSignal(str)
@@ -198,6 +200,10 @@ class Engine(QObject):
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
 
+    def get_document_id(self, remote_ref):
+        remote_ref_segments = remote_ref.split("#", 2)
+        return remote_ref_segments[2]
+
     def get_metadata_url(self, remote_ref):
         DRIVE_METADATA_VIEW = 'view_drive_metadata'
         metadata_url = self.get_server_url()
@@ -235,17 +241,17 @@ class Engine(QObject):
 
     def get_previous_file(self, ref, mode):
         if mode == Engine.BATCH_MODE_FOLDER:
-            pass
-        elif mode == Engine.BATCH_MODE_SYNCED:
-            pass
-        return None
+            return self._dao.get_previous_folder_file(ref)
+        if mode == Engine.BATCH_MODE_SYNC:
+            mode = None
+        return self._dao.get_previous_sync_file(ref, sync_mode=mode)
 
     def get_next_file(self, ref, mode):
         if mode == Engine.BATCH_MODE_FOLDER:
-            pass
-        elif mode == Engine.BATCH_MODE_UPLOAD:
-            pass
-        return None
+            return self._dao.get_next_folder_file(ref)
+        if mode == Engine.BATCH_MODE_SYNC:
+            mode = None
+        return self._dao.get_next_sync_file(ref, sync_mode=mode)
 
     def resume(self):
         # If stopped then start the engine

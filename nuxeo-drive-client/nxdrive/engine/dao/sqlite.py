@@ -306,8 +306,8 @@ class EngineDAO(ConfigurationDAO):
     def _migrate_db(self, cursor, version):
         if (version < 1):
             self._migrate_table(cursor, 'States')
-            cursor.execute('UPDATE States SET last_transfer = "upload" WHERE last_local_updated < last_remote_updated AND folderish=0;')
-            cursor.execute('UPDATE States SET last_transfer = "download" WHERE last_local_updated > last_remote_updated AND folderish=0;')
+            cursor.execute(u"UPDATE States SET last_transfer = 'upload' WHERE last_local_updated < last_remote_updated AND folderish=0;")
+            cursor.execute(u"UPDATE States SET last_transfer = 'download' WHERE last_local_updated > last_remote_updated AND folderish=0;")
             self.update_config(SCHEMA_VERSION, 1)
 
     def _create_state_table(self, cursor, force=False):
@@ -907,15 +907,29 @@ class EngineDAO(ConfigurationDAO):
         row = c.execute("SELECT COUNT(path) FROM RemoteScan WHERE path=? LIMIT 1", (path,)).fetchone()
         return row[0] > 0
 
-    def get_previous_upload_file(self, ref):
+    def get_previous_sync_file(self, ref, sync_mode=None):
+        mode_condition = ""
+        if sync_mode is not None:
+            mode_condition = "AND last_transfer='" + sync_mode + "' "
         state = self.get_normal_state_from_remote(ref)
+        if state is None:
+            return None
         c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM States WHERE last_sync_date>? AND folderish=0 AND last_transfer='upload' ORDER BY last_sync_date ASC LIMIT 1", (state.last_sync_date,)).fetchone()
+        self.get_syncing_count()
+        return c.execute(u"SELECT * FROM States WHERE last_sync_date>? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date ASC LIMIT 1", (state.last_sync_date,)).fetchone()
 
-    def get_next_upload_file(self, ref):
+    def get_batch_sync_ignore(self):
+        return "AND ( pair_state != 'unsynchronized' AND pair_state != 'conflicted') AND folderish=0 "
+
+    def get_next_sync_file(self, ref, sync_mode=None):
+        mode_condition = ""
+        if sync_mode is not None:
+            mode_condition = "AND last_transfer='" + sync_mode + "' "
         state = self.get_normal_state_from_remote(ref)
+        if state is None:
+            return None
         c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM States WHERE last_sync_date<? AND folderish=0 AND last_transfer='upload' ORDER BY last_sync_date DESC LIMIT 1", (state.last_sync_date,)).fetchone()
+        return c.execute(u"SELECT * FROM States WHERE last_sync_date<? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date DESC LIMIT 1", (state.last_sync_date,)).fetchone()
 
     def get_next_folder_file(self, ref):
         state = self.get_normal_state_from_remote(ref)

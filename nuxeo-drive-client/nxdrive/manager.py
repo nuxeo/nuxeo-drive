@@ -15,7 +15,7 @@ import os
 import uuid
 import platform
 import sys
-import logging
+import logging  
 from nxdrive.engine import dao
 log = get_logger(__name__)
 
@@ -887,4 +887,4 @@ class Manager(QtCore.QObject):
             raise ValueError('Unkown engine %s for %s' %
                              (file_path, root_values[3]))
         metadata_url = engine.get_metadata_url(remote_ref)
-        return (metadata_url, engine.get_remote_token())
+        return (metadata_url, engine.get_remote_token(), engine, remote_ref)
