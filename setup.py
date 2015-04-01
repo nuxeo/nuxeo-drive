@@ -180,14 +180,6 @@ class NuxeoDriveAttributes(object):
         return os.path.join(self.rubric_2nd_dir(), self.rubric_3rd_dir(),
                             'data', 'icons')
 
-    def get_alembic_home(self):
-        return os.path.join(self.rubric_super_dir(), self.rubric_2nd_dir(),
-                            'alembic')
-
-    def get_alembic_versions_home(self):
-        return os.path.join(self.rubric_super_dir(), self.rubric_2nd_dir(),
-                            'alembic', 'versions')
-
     def get_win_icon(self):
         return 'nuxeo_drive_icon_64.ico'
 
@@ -288,8 +280,6 @@ class NuxeoDriveSetup(object):
         package_data = attribs.get_package_data()
         icons_home = attribs.get_icons_home()
         ui5_home = attribs.get_ui5_home()
-        alembic_home = attribs.get_alembic_home()
-        alembic_versions_home = attribs.get_alembic_versions_home()
 
         win_icon = os.path.join(icons_home, attribs.get_win_icon())
         png_icon = os.path.join(icons_home, attribs.get_png_icon())
@@ -302,7 +292,7 @@ class NuxeoDriveSetup(object):
         else:
             icon = png_icon
 
-        # Files to include in frozen app: icons, alembic, alembic versions
+        # Files to include in frozen app
         # build_exe freeze with cx_Freeze (Windows)
         include_files = attribs.get_includes()
         # bdist_esky freeze with cx_Freeze (Windows) and py2app (OS X)
@@ -310,14 +300,8 @@ class NuxeoDriveSetup(object):
         # TODO NXP-13810: check removed data_files from py2app and added to
         # global setup
         icon_files = data_file_dir(icons_home, 'icons', include_files).load()
-        alembic_files = data_file_dir(
-                                alembic_home, 'alembic', include_files).load()
-        alembic_version_files = data_file_dir(
-                                alembic_versions_home,
-                                'alembic/versions', include_files).load()
         ui5_files = data_file_dir(ui5_home, 'ui5', include_files).load_recursive()
-        data_files = [('icons', icon_files), ('alembic', alembic_files),
-                                 ('alembic/versions', alembic_version_files)]
+        data_files = [('icons', icon_files)]
         data_files.extend(ui5_files)
         data_files.extend(attribs.get_data_files())
         old_version = None
@@ -352,7 +336,6 @@ class NuxeoDriveSetup(object):
             "PyQt4.QtNetwork",
             "PyQt4.QtGui",
             "atexit",  # implicitly required by PyQt4
-            "sqlalchemy.dialects.sqlite",
             "cffi",
             "xattr",
         ]
