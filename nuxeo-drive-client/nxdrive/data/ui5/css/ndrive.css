@@ -21,17 +21,18 @@ body {
   color: #213f7d;
   height: 40px;
   min-height: 40px !important;
-  padding: 10px;
+  padding: 10px 15px;
   text-shadow: 1px 1px 0 rgba(255, 255, 255, 1); }
 
 #systray-top {
-  border-bottom: 1px solid #eee;
-  box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.03) inset; }
+  border-bottom: 1px solid #ddd;
+  box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.03) inset;
+  font-weight: bold; }
 
 #systray-top .glyphicon-cog {
   display: inline-block;
   float: right;
-  margin-left: 20px;
+  margin-left: 10px;
   padding: .3em 0 0 0; }
 
 #systray-top .glyphicon-cog:hover {
@@ -53,8 +54,9 @@ body {
   background-color: #f9f9f9;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
   color: #aaa;
+  font-size: .9em;
   margin: 40px 0 0;
-  padding: 5px 10px;
+  padding: 6px 15px;
   position: relative;
   z-index: 10; }
 
@@ -68,13 +70,44 @@ body {
   color: #aaa;
   padding-top: 4px; }
 
-#sub-menu .glyphicon:hover {
-  color: #00adff;
-  cursor: pointer; }
-
 #systray .list-group {
   height: 260px;
   overflow: auto; }
+
+.list-group .last-sync {
+  color: #999;
+  font-size: 10px; }
+
+.list-group .document {
+  color: #434343; }
+
+#systray .list-group-item:first-child {
+  border-top: none; }
+
+.list-group-item .glyphicon-list-alt {
+  background-color: #fff;
+  border-radius: 4px;
+  color: #999;
+  margin: -45px 0 0;
+  padding: 8px 8px 4px 6px; }
+
+.list-group-item:hover {
+  background-color: #f6f9ff; }
+
+.list-group-item:hover .glyphicon-list-alt {
+  color: #000; }
+
+#sub-menu .glyphicon:hover,
+.list-group-item .document:hover,
+.list-group-item:hover .glyphicon-list-alt:hover {
+  color: #00adff;
+  cursor: pointer; }
+
+.last-sync .glyphicon {
+  vertical-align: text-bottom;
+  display: inline-block;
+  margin-top: -2px;
+  font-size: 8px; }
 
 .notification {
   width: 100%;
@@ -106,6 +139,8 @@ body {
   padding: 0px; }
 
 .engine-navbar > li {
+  border-right: 1px solid #ddd;
+  border-bottom: none;
   display: block;
   position: relative;
   float: left;
@@ -115,17 +150,17 @@ body {
   padding-left: 5px;
   padding-right: 5px; }
 
-.engine-navbar > li:hover {
-  background-color: #ccc;
-  border-bottom: 1px solid #17384e; }
+.engine-navbar li:first-child {
+  border-left: 1px solid #ddd; }
 
-.currentEngine:hover {
-  border-bottom: 0px solid #17384e !important; }
+.engine-navbar li:hover {
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #ddd; }
 
-.currentEngine {
-  background-color: #ccc;
-  border-left: 1px solid #17384e;
-  border-right: 1px solid #17384e; }
+.engine-navbar .currentEngine,
+.engine-navbar .currentEngine:hover {
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #f9f9f9; }
 
 .engine-navbar > li > a {
   padding: 10px 5px;
