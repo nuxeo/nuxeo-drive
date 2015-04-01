@@ -5,6 +5,7 @@ Created on 31 mars 2015
 '''
 import unittest
 import os
+import sys
 import nxdrive
 from nxdrive.engine.dao.sqlite import EngineDAO
 import tempfile
@@ -16,19 +17,24 @@ class EngineDAOTest(unittest.TestCase):
         nxdrive_path = os.path.dirname(nxdrive.__file__)
         return os.path.join(nxdrive_path, 'tests', 'resources', name)
 
+    def get_db_temp_file(self):
+        tmp_db = tempfile.NamedTemporaryFile(suffix="test_db")
+        if sys.platform == 'win32':
+            tmp_db.close()
+        return tmp_db
+
     def setUp(self):
-        self.tmp_db = tempfile.NamedTemporaryFile(suffix="test_db")
+        tmp_db = self.get_db_temp_file()
         db = open(self._get_default_db(), 'rb')
-        with open(self.tmp_db.name, 'wb') as f:
+        with open(tmp_db.name, 'wb') as f:
             f.write(db.read())
-        self._dao = EngineDAO(self.tmp_db.name)
+        self._dao = EngineDAO(tmp_db.name)
 
     def tearDown(self):
         self._dao.dispose()
 
     def test_init_db(self):
-        init_db = tempfile.NamedTemporaryFile(suffix="test_db")
-        os.remove(init_db.name)
+        init_db = self.get_db_temp_file()
         dao = EngineDAO(init_db.name)
         # Test filters table
         self.assertEquals(0, len(dao.get_filters()))
@@ -40,11 +46,11 @@ class EngineDAOTest(unittest.TestCase):
         self.assertFalse(dao.is_path_scanned("/"))
 
     def test_migration_db_v1(self):
-        init_db = tempfile.NamedTemporaryFile(suffix="test_db")
+        init_db = self.get_db_temp_file()
         # Test empty db
         dao = EngineDAO(init_db.name)
         # Test a non empty db
-        migrate_db = tempfile.NamedTemporaryFile(suffix="test_db")
+        migrate_db = self.get_db_temp_file()
         db = open(self._get_default_db('test_engine_migration.db'), 'rb')
         with open(migrate_db.name, 'wb') as f:
             f.write(db.read())
