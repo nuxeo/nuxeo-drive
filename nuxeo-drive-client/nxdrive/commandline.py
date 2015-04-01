@@ -640,6 +640,7 @@ class CliHandler(object):
             "nxdrive.tests.test_copy",
             "nxdrive.tests.test_drive_edit",
             "nxdrive.tests.test_encoding",
+            "nxdrive.tests.test_engine_dao",
             "nxdrive.tests.test_integration_concurrent_synchronization",
             "nxdrive.tests.test_integration_local_root_deletion",
             "nxdrive.tests.test_integration_local_storage_space_issue",
