@@ -12,13 +12,13 @@
 <link rel="stylesheet" href="css/ndrive.css"></link>
 <script>
 	if (typeof(drive) != "undefined") {
-		drive.resize(750,415);
+		drive.resize(750,430);
 	}
 	app = drive_module("DriveSettings");
 	app.controller("DriveSettingsCtl", SettingsController);
 </script>
 </head>
-<body ng-app="DriveSettings" ng-controller="DriveSettingsCtl">
+<body id="drive-settings" ng-app="DriveSettings" ng-controller="DriveSettingsCtl">
 	<div drive-include="getTemplate('settings-content')">
 	</div>
 </body>
