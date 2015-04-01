@@ -1,7 +1,8 @@
+<div id="advanced-view">
 	<form class="form-horizontal">
 	<div class="form-group">
 	    <label for="logLevel" class="col-sm-2 control-label" translate>LOG_LEVEL</label>
-	    <div class="col-sm-10">
+	    <div class="col-sm-8">
 	      <select class="form-control" id="logLevel" ng-model="log_level" ng-change="setLogLevel()">
 	      	<option value="50" translate>LOG_CRITICAL</option>
 	      	<option value="40" translate>LOG_ERROR</option>
@@ -14,7 +15,7 @@
 	  </div>
 	  <div class="form-group">
 	    <label for="proxyType" class="col-sm-2 control-label" translate>PROXY</label>
-	    <div class="col-sm-10">
+	    <div class="col-sm-8">
 	      <select class="form-control" id="proxyType" ng-model="proxy.config">
 	      	<option value="None" translate>NONE</option>
 	      	<option value="System" translate>SYSTEM</option>
@@ -24,7 +25,7 @@
 	  </div>
 	  <div class="form-group" ng-show="proxy.config == 'Manual'">
 	    <label for="name" class="col-sm-2 control-label" translate>HOST</label>
-	    <div class="col-sm-10">
+	    <div class="col-sm-8">
 	      <input type="text" class="form-control" id="name" placeholder="{{ 'PROXY_HOST_PLACEHOLDER' | translate }}" ng-model="proxy.server">
 	    </div>
 	  </div>
@@ -36,15 +37,16 @@
 	  </div>
 	  <div class="form-group" ng-show="proxy.config == 'Manual' && proxy.authenticated">
 	    <label for="proxyUsername" class="col-sm-2 control-label" translate>USERNAME</label>
-	    <div class="col-sm-10">
+	    <div class="col-sm-8">
 	      <input type="text" class="form-control" id="proxyUsername" placeholder="{{ 'PROXY_USERNAME_PLACEHOLDER' | translate }}" ng-model="proxy.username">
 	    </div>
 	  </div>
 	  <div class="form-group" ng-show="proxy.config == 'Manual' && proxy.authenticated">
 	    <label for="proxyPassword" class="col-sm-2 control-label" translate>PASSWORD</label>
-	    <div class="col-sm-10">
+	    <div class="col-sm-8">
 	      <input type="password" class="form-control" id="proxyPassword" placeholder="{{ 'PROXY_PASSWORD_PLACEHOLDER' | translate }}" ng-model="proxy.password">
 	    </div>
 	  </div>
-	  <button type="button" class="btn btn-default btn-primary pull-right" ng-click="saveProxy()" translate>APPLY</button>
+	  <button type="button" class="btn btn-default btn-primary" ng-click="saveProxy()" translate>APPLY</button>
 	</form>
+</div>

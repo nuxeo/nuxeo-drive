@@ -1,10 +1,13 @@
-	<table>
-		<tr>
-			<td><img src="imgs/nuxeo_drive_icon_48.png" /></td>
-			<td style="padding-left: 20px;"><p>Nuxeo Drive : {{ version }}</p>
-			<p>GitHub : <a href="" ng-click="open_local('https://github.com/nuxeo/nuxeo-drive')">https://github.com/nuxeo/nuxeo-drive&nbsp;<img src="imgs/github.png" /></a></p></td>
-		</tr>
-	</table>
-	<p><span translate>LICENSE</span> :</p>
-	<pre style="overflow: auto; height: 220px; width: 640px;" ng-include="'GPL.txt'">
-	</pre>
+<div id="about-view">
+	<div class="info">
+	  <p><img src="imgs/nuxeo_drive_icon_48.png" /> Nuxeo Drive version {{ version }}</p>
+	  <p>
+	    <img src="imgs/github.png" />
+	    <a href="" ng-click="open_local('https://github.com/nuxeo/nuxeo-drive')">https://github.com/nuxeo/nuxeo-drive</a>
+	  </p>
+	</div>
+	<div class="license">
+	  <div translate>LICENSE</div>
+	  <pre ng-include="'GPL.txt'"></pre>
+	</div>
+</div>
