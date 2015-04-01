@@ -115,7 +115,8 @@ class ConfigurationDAO(QObject):
         # Add the last_transfer
         tmpname = name + 'Migration'
         cursor.execute("ALTER TABLE " + name + " RENAME TO " + tmpname)
-        self._create_state_table(cursor)
+        # Because Windows dont release the table, force the creation
+        self._create_state_table(cursor, force=True)
         target_cols = self._get_columns(cursor, name)
         source_cols = self._get_columns(cursor, tmpname)
         cols = ', '.join(set(target_cols).intersection(source_cols))
@@ -306,8 +307,12 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute('UPDATE States SET last_transfer = "download" WHERE last_local_updated > last_remote_updated AND folderish=0;')
             self.update_config(SCHEMA_VERSION, 1)
 
-    def _create_state_table(self, cursor):
-        cursor.execute("CREATE TABLE if not exists States(id INTEGER NOT NULL, last_local_updated TIMESTAMP,"
+    def _create_state_table(self, cursor, force=False):
+        if force:
+            statement = ''
+        else:
+            statement = 'if not exists '
+        cursor.execute("CREATE TABLE "+statement+"States(id INTEGER NOT NULL, last_local_updated TIMESTAMP,"
           + "last_remote_updated TIMESTAMP, local_digest VARCHAR, remote_digest VARCHAR, local_path VARCHAR,"
           + "remote_ref VARCHAR, local_parent_path VARCHAR, remote_parent_ref VARCHAR, remote_parent_path VARCHAR,"
           + "local_name VARCHAR, remote_name VARCHAR, size INTEGER DEFAULT (0), folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
