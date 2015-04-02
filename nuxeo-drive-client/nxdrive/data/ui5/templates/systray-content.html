@@ -1,29 +1,24 @@
 <div id="systray-hello" ng-show="!bind">
-<div align="center" style="padding: 20px;">
-<p style="margin-bottom: 20px;"><img alt="Brand" src="imgs/Nuxeo Drive.png"></p>
-<p translate>WELCOME_MESSAGE</p>
-<div style="margin-top: 50px;">
-<button type="button" class="btn btn-default btn-primary" ng-click="show_settings('Accounts')" translate>SETTINGS</button>
-<button type="button" style="float: right" class="btn btn-default btn-danger" ng-click="quit()" translate>QUIT</button>
-</div>
-</div>
+  <div align="center" style="padding: 20px;">
+    <p style="margin-bottom: 20px;"><img alt="Brand" src="imgs/Nuxeo Drive.png"></p>
+    <p translate>WELCOME_MESSAGE</p>
+    <div style="margin-top: 50px;">
+      <button type="button" class="btn btn-default btn-primary" ng-click="show_settings('Accounts')" translate>SETTINGS</button>
+      <button type="button" style="float: right" class="btn btn-default btn-danger" ng-click="quit()" translate>QUIT</button>
+    </div>
+  </div>
 </div>
 <div id="systray" ng-show="bind">
-<div id="systray-top" class="navbar navbar-fixed-top" drive-include="getTemplate('systray-top')">
-</div>
-<div id="systray-bottom" class="navbar navbar-fixed-bottom" drive-include="getTemplate('systray-bottom')">
-  
-</div>
-<div id="sub-menu">
-  <span translate>RECENTLY_UPDATED</span>
-  <a ng-click="open_local('/')" title="{{ 'OPEN_ROOT_FOLDER' | translate }}">
-    <span class="glyphicon glyphicon-folder-close"></span>
-  </a>
-  <a ng-click="open_remote()" title="{{ 'OPEN_SERVER' | translate }}">
-    <span class="glyphicon glyphicon-globe"></span>
-  </a>
-</div>
-<div class="list-group" drive-include="getTemplate('systray-files')">
-
-</div>
+  <div id="systray-top" class="navbar navbar-fixed-top" drive-include="getTemplate('systray-top')"></div>
+  <div id="systray-bottom" class="navbar navbar-fixed-bottom" drive-include="getTemplate('systray-bottom')"></div>
+  <div id="sub-menu">
+    <span translate>RECENTLY_UPDATED</span>
+    <a ng-click="open_local('/')" title="{{ 'OPEN_ROOT_FOLDER' | translate }}">
+      <span class="glyphicon glyphicon-folder-close"></span>
+    </a>
+    <a ng-click="open_remote()" title="{{ 'OPEN_SERVER' | translate }}">
+      <span class="glyphicon glyphicon-globe"></span>
+    </a>
+  </div>
+  <div class="list-group" drive-include="getTemplate('systray-files')"></div>
 </div>
