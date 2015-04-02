@@ -1,6 +1,8 @@
 import sys
 import urllib
+import platform
 from nxdrive.logging_config import get_logger
+from nxdrive.utils import version_compare
 
 log = get_logger(__name__)
 
@@ -120,6 +122,46 @@ class AbstractOSIntegration(object):
 
     def unregister_desktop_link(self):
         pass
+
+    @staticmethod
+    def os_version_below(version):
+        return version_compare(AbstractOSIntegration.get_os_version(), version) < 0
+
+    @staticmethod
+    def os_version_above(version):
+        return version_compare(AbstractOSIntegration.get_os_version(), version) > 0
+
+    @staticmethod
+    def get_os_version():
+        if AbstractOSIntegration.is_mac():
+            return platform.mac_ver()[0]
+        if AbstractOSIntegration.is_windows():
+            # 5.0.2195    Windows 2000
+            # 5.1.2600    Windows XP or Windows XP 64-Bit Edition Version 2002 (Itanium)
+            # 5.2.3790    Windows Server 2003 or Windows XP x64 Edition (AMD64/EM64T) or Windows XP 64-Bit Edition Version 2003 (Itanium)
+            # 6.0.6000    Windows Vista
+            # 6.0.6001    Windows Vista with Service Pack 1 or Windows Server 2008
+            # 6.1.7600    Windows 7 or Windows Server 2008 R2
+            # 6.1.7601    Windows 7 with Service Pack 1 or Windows Server 2008 R2 with Service Pack 1
+            # 6.2.9200    Windows 8 or Windows Server 2012
+            # 6.3.9200    Windows 8.1 or Windows Server 2012 R2
+            # 6.3.9600    Windows 8.1 with Update 1
+            # 6.4.        Windows 10
+            return platform.win32_ver()[1]
+        else:
+            raise RuntimeError("Can't determine Linux versions")
+
+    @staticmethod
+    def is_mac():
+        return sys.platform == "darwin"
+
+    @staticmethod
+    def is_windows():
+        return sys.platform == "win32"
+
+    @staticmethod
+    def is_linux():
+        return not (AbstractOSIntegration.is_mac() or AbstractOSIntegration.is_windows())
 
     @staticmethod
     def get(manager):

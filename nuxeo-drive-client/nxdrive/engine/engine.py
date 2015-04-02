@@ -10,11 +10,13 @@ from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.utils import normalized_path
 from nxdrive.utils import current_milli_time
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.workers import Worker
 from threading import local
 import os
 import datetime
 from cookielib import CookieJar
+from nxdrive.gui.resources import find_icon
 #from nxdrive.engine.activity import Action.actions
 
 log = get_logger(__name__)
@@ -156,6 +158,8 @@ class Engine(QObject):
         self._dao.newConflict.connect(self.newConflict)
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
+        # Set the root icon
+        self._set_root_icon()
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id):
@@ -587,6 +591,7 @@ class Engine(QObject):
                 BaseClient.unset_path_readonly(self._local_folder)
             self._make_local_folder(self._local_folder)
             self._add_top_level_state()
+            self._set_root_icon(self._local_folder)
             BaseClient.set_path_readonly(self._local_folder)
 
     def _make_local_folder(self, local_folder):
@@ -619,6 +624,27 @@ class Engine(QObject):
     @pyqtSlot()
     def invalidate_client_cache(self):
         self._client_cache_timestamps.clear()
+
+    def _set_root_icon(self):
+        local_client = self.get_local_client()
+        if local_client.has_folder_icon('/'):
+            return
+        if AbstractOSIntegration.is_mac():
+            if AbstractOSIntegration.os_version_below("10.10"):
+                icon = find_icon("NuxeoDrive_Mac_Folder.dat")
+            else:
+                icon = find_icon("NuxeoDrive_Mac_Yosemite_Folder.dat")
+        elif AbstractOSIntegration.is_windows():
+            if AbstractOSIntegration.os_version_below("5.2"):
+                icon = find_icon("NuxeoDrive_Windows_Xp_Folder.ico")
+            else:
+                icon = find_icon("NuxeoDrive_Windows_Folder.ico")
+        locker = local_client.unlock_ref('/', unlock_parent=False)
+        try:
+            log.debug("Set the icon: %s", icon)
+            local_client.set_folder_icon('/', icon)
+        finally:
+            local_client.lock_ref('/', locker)
 
     def _add_top_level_state(self):
         local_client = self.get_local_client()

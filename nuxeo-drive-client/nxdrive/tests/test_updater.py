@@ -5,7 +5,7 @@ import esky.finder
 from nxdrive.updater import AppUpdater
 from nxdrive.updater import MissingUpdateSiteInfo
 from nxdrive.updater import MissingCompatibleVersion
-from nxdrive.updater import version_compare
+from nxdrive.utils import version_compare
 from nxdrive.updater import UPDATE_STATUS_UPGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_DOWNGRADE_NEEDED
 from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE

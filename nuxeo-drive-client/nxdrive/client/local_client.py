@@ -206,6 +206,16 @@ class LocalClient(BaseClient):
         if os.path.exists(desktop_ini_file_path):
             os.remove(desktop_ini_file_path)
 
+    def has_folder_icon(self, ref):
+        target_folder = self._abspath(ref)
+        if sys.platform == "darwin":
+            meta_file = os.path.join(target_folder, "Icon\r")
+            return os.path.exists(meta_file)
+        if sys.platform == 'win32':
+            meta_file = os.path.join(target_folder, "desktop.ini")
+            return os.path.exists(meta_file)
+        return False
+
     def set_folder_icon(self, ref, icon):
         if sys.platform == 'win32':
             self.set_folder_icon_win32(ref, icon)
@@ -258,15 +268,11 @@ class LocalClient(BaseClient):
             win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_SYSTEM)
 
     def _read_data(self, file_path):
-        import array
-        '''The data file contains the mac icons as a hex string => every two bytes is a hex string of a single byte'''
+        '''The data file contains the mac icons'''
         dat = open(file_path, 'rb')
         info = dat.read()
         dat.close()
-        hex = array.array('B')
-        for i in range(0, len(info), 2):
-            hex.append(int(info[i:i+2], 16))
-        return hex
+        return info
 
     def _get_icon_xdata(self):
         OSX_FINDER_INFO_ENTRY_SIZE = 32
@@ -301,7 +307,7 @@ class LocalClient(BaseClient):
             xattr.setxattr(meta_file, xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
             # Configure 'com.apple.ResourceFork' for the Icon file
             info = self._read_data(icon)
-            xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, bytes(bytearray(info)))
+            xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, info)
             os.chflags(meta_file, stat.UF_HIDDEN)
 
         except Exception as e:

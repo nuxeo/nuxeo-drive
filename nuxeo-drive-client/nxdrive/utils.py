@@ -37,6 +37,118 @@ def current_milli_time():
     return int(round(time.time() * 1000))
 
 
+def version_compare(x, y):
+    """Compare version numbers using the usual x.y.z pattern.
+
+    For instance, will result in:
+        - 5.9.3 > 5.9.2
+        - 5.9.3 > 5.8
+        - 5.8 > 5.6.0
+        - 5.10 > 5.1.2
+        - 1.3.0524 > 1.3.0424
+        - 1.4 > 1.3.0524
+        - ...
+
+    Also handles date-based releases, snapshots and hotfixes:
+        - 5.9.4-I20140515_0120 > 5.9.4-I20140415_0120
+        - 5.9.4-I20140415_0120 > 5.9.3
+        - 5.9.4-I20140415_0120 < 5.9.4
+        - 5.9.4-I20140415_0120 < 5.9.5
+        - 5.9.4-SNAPSHOT > 5.9.3-SNAPSHOT
+        - 5.9.4-SNAPSHOT > 5.9.3
+        - 5.9.4-SNAPSHOT < 5.9.4
+        - 5.9.4-SNAPSHOT < 5.9.5
+        - 5.9.4-I20140415_0120 > 5.9.3-SNAPSHOT
+        - 5.9.4-I20140415_0120 < 5.9.5-SNAPSHOT
+        - 5.9.4-I20140415_0120 = 5.9.4-SNAPSHOT (can't decide,
+                                                 consider as equal)
+        - 5.8.0-HF15 > 5.8
+        - 5.8.0-HF15 > 5.7.1-SNAPSHOT
+        - 5.8.0-HF15 < 5.9.1
+        - 5.8.0-HF15 > 5.8.0-HF14
+        - 5.8.0-HF15 > 5.6.0-HF35
+        - 5.8.0-HF15 < 5.10.0-HF01
+        - 5.8.0-HF15-SNAPSHOT > 5.8
+        - 5.8.0-HF15-SNAPSHOT > 5.8.0-HF14-SNAPSHOT
+        - 5.8.0-HF15-SNAPSHOT > 5.8.0-HF14
+        - 5.8.0-HF15-SNAPSHOT < 5.8.0-HF15
+        - 5.8.0-HF15-SNAPSHOT < 5.8.0-HF16-SNAPSHOT
+    """
+
+    x_numbers = x.split('.')
+    y_numbers = y.split('.')
+    while (x_numbers and y_numbers):
+        x_number = x_numbers.pop(0)
+        y_number = y_numbers.pop(0)
+        # Handle hotfixes
+        if 'HF' in x_number:
+            hf = re.sub(ur'-HF', '.', x_number).split('.', 1)
+            x_number = hf[0]
+            x_numbers.append(hf[1])
+        if 'HF' in y_number:
+            hf = re.sub(ur'-HF', '.', y_number).split('.', 1)
+            y_number = hf[0]
+            y_numbers.append(hf[1])
+        # Handle date-based and snapshots
+        x_date_based = 'I' in x_number
+        y_date_based = 'I' in y_number
+        x_snapshot = 'SNAPSHOT' in x_number
+        y_snapshot = 'SNAPSHOT' in y_number
+        if (not x_date_based and not x_snapshot
+            and (y_date_based or y_snapshot)):
+            # y is date-based or snapshot, x is not
+            x_number = int(x_number)
+            y_number = int(re.sub(ur'-(I.*|SNAPSHOT)', '', y_number))
+            if y_number <= x_number:
+                return 1
+            else:
+                return -1
+        elif (not y_date_based and not y_snapshot
+              and (x_date_based or x_snapshot)):
+            # x is date-based or snapshot, y is not
+            x_number = int(re.sub(ur'-(I.*|SNAPSHOT)', '', x_number))
+            y_number = int(y_number)
+            if x_number <= y_number:
+                return -1
+            else:
+                return 1
+        else:
+            if x_date_based and y_date_based:
+                # x and y are date-based
+                x_number = int(re.sub(ur'(I|-|_)', '', x_number))
+                y_number = int(re.sub(ur'(I|-|_)', '', y_number))
+            elif x_snapshot and y_snapshot:
+                # x and y are snapshots
+                x_number = int(re.sub(ur'-SNAPSHOT', '', x_number))
+                y_number = int(re.sub(ur'-SNAPSHOT', '', y_number))
+            elif x_date_based and y_snapshot:
+                # x is date-based, y is snapshot
+                x_number = int(re.sub(ur'-I.*', '', x_number))
+                y_number = int(re.sub(ur'-SNAPSHOT', '', y_number))
+                if x_number == y_number:
+                    return 0
+            elif x_snapshot and y_date_based:
+                # x is snapshot, y is date-based
+                x_number = int(re.sub(ur'-SNAPSHOT', '', x_number))
+                y_number = int(re.sub(ur'-I.*', '', y_number))
+                if x_number == y_number:
+                    return 0
+            else:
+                # x and y are not date-based
+                x_number = int(x_number)
+                y_number = int(y_number)
+        if x_number != y_number:
+            diff = x_number - y_number
+            if diff > 0:
+                return 1
+            else:
+                return -1
+    if x_numbers:
+        return 1
+    if y_numbers:
+        return -1
+    return 0
+
 def normalized_path(path):
     """Return absolute, normalized file path."""
     if isinstance(path, bytes):
