@@ -113,7 +113,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def make_folder(self, parent_id, name):
         fs_item = self.execute("NuxeoDrive.CreateFolder",
             parentId=parent_id, name=name)
-        return fs_item['id']
+        return self.file_to_info(fs_item)
 
     def make_file(self, parent_id, name, content):
         """Create a document with the given name and content
@@ -123,14 +123,14 @@ class RemoteFileSystemClient(BaseAutomationClient):
         file_path = self.make_tmp_file(content)
         fs_item = self.execute_with_blob_streaming("NuxeoDrive.CreateFile",
             file_path, filename=name, parentId=parent_id)
-        return fs_item['id']
+        return self.file_to_info(fs_item)
 
     def stream_file(self, parent_id, file_path, filename=None, mime_type=None):
         """Create a document by streaming the file with the given path"""
         fs_item = self.execute_with_blob_streaming("NuxeoDrive.CreateFile",
             file_path, filename=filename, mime_type=mime_type,
             parentId=parent_id)
-        return fs_item['id']
+        return self.file_to_info(fs_item)
 
     def update_content(self, fs_item_id, content, filename=None,
                        mime_type=None):
@@ -141,16 +141,18 @@ class RemoteFileSystemClient(BaseAutomationClient):
         file_path = self.make_tmp_file(content)
         if filename is None:
             filename = self.get_info(fs_item_id).name
-        self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
+        fs_item = self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
             file_path, filename=filename, mime_type=mime_type,
             id=fs_item_id)
+        return self.file_to_info(fs_item)
 
     def stream_update(self, fs_item_id, file_path, parent_fs_item_id=None,
                       filename=None):
         """Update a document by streaming the file with the given path"""
-        self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
+        fs_item = self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
             file_path, filename=filename, id=fs_item_id,
             parentId=parent_fs_item_id)
+        return self.file_to_info(fs_item)
 
     def delete(self, fs_item_id, parent_fs_item_id=None):
         self.execute("NuxeoDrive.Delete", id=fs_item_id,

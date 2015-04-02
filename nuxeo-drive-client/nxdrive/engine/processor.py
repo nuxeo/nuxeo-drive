@@ -155,7 +155,7 @@ class Processor(EngineWorker):
             if doc_pair.remote_can_update:
                 log.debug("Updating remote document '%s'.",
                           doc_pair.local_name)
-                remote_client.stream_update(
+                fs_item_info = remote_client.stream_update(
                     doc_pair.remote_ref,
                     local_client._abspath(doc_pair.local_path),
                     parent_fs_item_id=doc_pair.remote_parent_ref,
@@ -163,7 +163,7 @@ class Processor(EngineWorker):
                 )
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
-                self._refresh_remote(doc_pair, remote_client)
+                self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False)
                 # TODO refresh_client
             else:
                 log.debug("Skip update of remote document '%s'"\
@@ -211,16 +211,19 @@ class Processor(EngineWorker):
             if doc_pair.folderish:
                 log.debug("Creating remote folder '%s' in folder '%s'",
                           name, parent_pair.remote_name)
-                remote_ref = remote_client.make_folder(parent_ref, name)
+                fs_item_info = remote_client.make_folder(parent_ref, name)
+                remote_ref = fs_item_info.uid
             else:
                 # TODO Check if the file is already on the server with the good digest
                 log.debug("Creating remote document '%s' in folder '%s'",
                           name, parent_pair.remote_name)
-                remote_ref = remote_client.stream_file(
+                fs_item_info = remote_client.stream_file(
                     parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
+                remote_ref = fs_item_info.uid
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
-            self._dao.update_remote_state(doc_pair, remote_client.get_info(remote_ref), remote_parent_path, versionned=False)
+            self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path,
+                                          versionned=False)
             log.trace("Put remote_ref in %s", remote_ref)
             local_client.set_remote_id(doc_pair.local_path, remote_ref)
             self._dao.synchronize_state(doc_pair, doc_pair.version)

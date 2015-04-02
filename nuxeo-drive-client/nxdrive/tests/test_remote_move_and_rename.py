@@ -32,28 +32,28 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         self.file_1_id = self.remote_client_1.make_file(self.workspace_id,
             u'Original File 1.txt',
-            content=u'Some Content 1'.encode('utf-8'))
+            content=u'Some Content 1'.encode('utf-8')).uid
 
         self.file_2_id = self.remote_client_1.make_file(self.workspace_id,
             u'Original File 2.txt',
-            content=u'Some Content 2'.encode('utf-8'))
+            content=u'Some Content 2'.encode('utf-8')).uid
 
         self.folder_1_id = self.remote_client_1.make_folder(self.workspace_id,
-            u'Original Folder 1')
+            u'Original Folder 1').uid
         self.folder_1_1_id = self.remote_client_1.make_folder(
-            self.folder_1_id, u'Sub-Folder 1.1')
+            self.folder_1_id, u'Sub-Folder 1.1').uid
         self.folder_1_2_id = self.remote_client_1.make_folder(
-            self.folder_1_id, u'Sub-Folder 1.2')
+            self.folder_1_id, u'Sub-Folder 1.2').uid
         self.file_1_1_id = self.remote_client_1.make_file(
             self.folder_1_id,
             u'Original File 1.1.txt',
-            content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
+            content=u'Some Content 1'.encode('utf-8')).uid  # Same content as OF1
 
         self.folder_2_id = self.remote_client_1.make_folder(self.workspace_id,
-            'Original Folder 2')
+            'Original Folder 2').uid
         self.file_3_id = self.remote_client_1.make_file(self.folder_2_id,
             u'Original File 3.txt',
-            content=u'Some Content 3'.encode('utf-8'))
+            content=u'Some Content 3'.encode('utf-8')).uid
         self.wait_sync()
 
     def wait2(self):

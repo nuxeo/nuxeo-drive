@@ -30,7 +30,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Check file info
         fs_item_id = remote_client.make_file(self.workspace_id,
-            'Document 1.txt', "Content of doc 1.")
+            'Document 1.txt', "Content of doc 1.").uid
         info = remote_client.get_info(fs_item_id)
         self.assertTrue(info is not None)
         self.assertEquals(info.name, 'Document 1.txt')
@@ -50,7 +50,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Check folder info
         fs_item_id = remote_client.make_folder(self.workspace_id,
-            'Folder 1')
+            'Folder 1').uid
         info = remote_client.get_info(fs_item_id)
         self.assertTrue(info is not None)
         self.assertEquals(info.name, 'Folder 1')
@@ -77,7 +77,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Check file with content
         fs_item_id = remote_client.make_file(self.workspace_id,
-            'Document 1.txt', "Content of doc 1.")
+            'Document 1.txt', "Content of doc 1.").uid
         self.assertEquals(remote_client.get_content(fs_item_id),
             "Content of doc 1.")
 
@@ -92,7 +92,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         remote_client = self.remote_file_system_client_1
 
         fs_item_id = remote_client.make_file(self.workspace_id,
-            'Document 1.txt', "Content of doc 1.")
+            'Document 1.txt', "Content of doc 1.").uid
         file_path = os.path.join(self.local_test_folder_1, 'Document 1.txt')
         tmp_file = remote_client.stream_content(fs_item_id, file_path)
         self.assertTrue(os.path.exists(tmp_file))
@@ -104,13 +104,13 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Create documents
         folder_1_id = remote_client.make_folder(self.workspace_id,
-            'Folder 1')
+            'Folder 1').uid
         folder_2_id = remote_client.make_folder(self.workspace_id,
-            'Folder 2')
+            'Folder 2').uid
         file_1_id = remote_client.make_file(self.workspace_id,
-            'File 1', "Content of file 1.")
+            'File 1', "Content of file 1.").uid
         file_2_id = remote_client.make_file(folder_1_id,
-            'File 2', "Content of file 2.")
+            'File 2', "Content of file 2.").uid
 
         # Check workspace children
         workspace_children = remote_client.get_children_info(self.workspace_id)
@@ -138,45 +138,39 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
     def test_make_folder(self):
         remote_client = self.remote_file_system_client_1
 
-        fs_item_id = remote_client.make_folder(self.workspace_id,
+        fs_item_info = remote_client.make_folder(self.workspace_id,
             'My new folder')
-        self.assertTrue(fs_item_id is not None)
-        info = remote_client.get_info(fs_item_id)
-        self.assertTrue(info is not None)
-        self.assertEquals(info.name, 'My new folder')
-        self.assertTrue(info.folderish)
-        self.assertTrue(info.digest_algorithm is None)
-        self.assertTrue(info.digest is None)
-        self.assertTrue(info.download_url is None)
+        self.assertTrue(fs_item_info is not None)
+        self.assertEquals(fs_item_info.name, 'My new folder')
+        self.assertTrue(fs_item_info.folderish)
+        self.assertTrue(fs_item_info.digest_algorithm is None)
+        self.assertTrue(fs_item_info.digest is None)
+        self.assertTrue(fs_item_info.download_url is None)
 
     def test_make_file(self):
         remote_client = self.remote_file_system_client_1
 
         # Check File document creation
-        fs_item_id = remote_client.make_file(self.workspace_id,
+        fs_item_info = remote_client.make_file(self.workspace_id,
             'My new file.odt', "Content of my new file.")
-        self.assertTrue(fs_item_id is not None)
-        info = remote_client.get_info(fs_item_id)
-        self.assertTrue(info is not None)
-        self.assertEquals(info.name, 'My new file.odt')
-        self.assertFalse(info.folderish)
-        digest_algorithm = info.digest_algorithm
+        self.assertTrue(fs_item_info is not None)
+        self.assertEquals(fs_item_info.name, 'My new file.odt')
+        self.assertFalse(fs_item_info.folderish)
+        digest_algorithm = fs_item_info.digest_algorithm
         self.assertEquals(digest_algorithm, 'md5')
         digest = self._get_digest(digest_algorithm, "Content of my new file.")
-        self.assertEquals(info.digest, digest)
+        self.assertEquals(fs_item_info.digest, digest)
 
         # Check Note document creation
-        fs_item_id = remote_client.make_file(self.workspace_id,
+        fs_item_info = remote_client.make_file(self.workspace_id,
             'My new note.txt', "Content of my new note.")
-        self.assertTrue(fs_item_id is not None)
-        info = remote_client.get_info(fs_item_id)
-        self.assertTrue(info is not None)
-        self.assertEquals(info.name, 'My new note.txt')
-        self.assertFalse(info.folderish)
-        digest_algorithm = info.digest_algorithm
+        self.assertTrue(fs_item_info is not None)
+        self.assertEquals(fs_item_info.name, 'My new note.txt')
+        self.assertFalse(fs_item_info.folderish)
+        digest_algorithm = fs_item_info.digest_algorithm
         self.assertEquals(digest_algorithm, 'md5')
         digest = self._get_digest(digest_algorithm, "Content of my new note.")
-        self.assertEquals(info.digest, digest)
+        self.assertEquals(fs_item_info.digest, digest)
 
     def test_make_file_custom_encoding(self):
         remote_client = self.remote_file_system_client_1
@@ -189,9 +183,9 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Make files with this content
         utf8_fs_id = remote_client.make_file(self.workspace_id,
-            'My utf-8 file.txt', utf8_encoded)
+            'My utf-8 file.txt', utf8_encoded).uid
         cp1252_fs_id = remote_client.make_file(self.workspace_id,
-            'My cp1252 file.txt', cp1252_encoded)
+            'My cp1252 file.txt', cp1252_encoded).uid
 
         # Check content
         utf8_content = remote_client.get_content(utf8_fs_id)
@@ -210,7 +204,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Create file
         fs_item_id = remote_client.make_file(self.workspace_id,
-            'Document 1.txt', "Content of doc 1.")
+            'Document 1.txt', "Content of doc 1.").uid
 
         # Check file update
         remote_client.update_content(
@@ -223,7 +217,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Create file
         fs_item_id = remote_client.make_file(self.workspace_id,
-            'Document 1.txt', "Content of doc 1.")
+            'Document 1.txt', "Content of doc 1.").uid
         self.assertTrue(remote_client.exists(fs_item_id))
 
         # Delete file
@@ -235,7 +229,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Check existing file system item
         fs_item_id = remote_client.make_file(self.workspace_id,
-            'Document 1.txt', "Content of doc 1.")
+            'Document 1.txt', "Content of doc 1.").uid
         self.assertTrue(remote_client.exists(fs_item_id))
 
         # Check non existing file system item (non existing document)
@@ -264,7 +258,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Check file item
         fs_item_id = remote_client.make_file(self.workspace_id,
-            'Document 1.txt', "Content of doc 1.")
+            'Document 1.txt', "Content of doc 1.").uid
         fs_item = remote_client.get_fs_item(fs_item_id)
         self.assertTrue(fs_item is not None)
         self.assertEquals(fs_item['name'], 'Document 1.txt')
@@ -281,7 +275,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Check folder item
         fs_item_id = remote_client.make_folder(self.workspace_id,
-            'Folder 1')
+            'Folder 1').uid
         fs_item = remote_client.get_fs_item(fs_item_id)
         self.assertTrue(fs_item is not None)
         self.assertEquals(fs_item['name'], 'Folder 1')
@@ -304,9 +298,9 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Create 2 remote folders inside the workspace sync root
         fs_item_1_id = remote_file_system_client.make_folder(
-            self.workspace_id, 'Folder 1')
+            self.workspace_id, 'Folder 1').uid
         fs_item_2_id = remote_file_system_client.make_folder(
-            self.workspace_id, 'Folder 2')
+            self.workspace_id, 'Folder 2').uid
         folder_1_uid = fs_item_1_id.rsplit("#", 1)[1]
         folder_2_uid = fs_item_2_id.rsplit("#", 1)[1]
 
@@ -338,18 +332,20 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Create a document by streaming a text file
         file_path = remote_client.make_tmp_file("Some content.")
-        fs_item_id = remote_client.stream_file(self.workspace_id, file_path,
+        fs_item_info = remote_client.stream_file(self.workspace_id, file_path,
                                                filename='My streamed file.txt')
-        self.assertEquals(remote_client.get_info(fs_item_id).name,
+        fs_item_id = fs_item_info.uid
+        self.assertEquals(fs_item_info.name,
                         'My streamed file.txt')
         self.assertEquals(remote_client.get_content(fs_item_id),
                           "Some content.")
 
         # Update a document by streaming a new text file
         file_path = remote_client.make_tmp_file("Other content.")
-        remote_client.stream_update(fs_item_id, file_path,
+        fs_item_info = remote_client.stream_update(fs_item_id, file_path,
                                     filename='My updated file.txt')
-        self.assertEquals(remote_client.get_info(fs_item_id).name,
+        self.assertEqual(fs_item_info.uid, fs_item_id)
+        self.assertEquals(fs_item_info.name,
                         'My updated file.txt')
         self.assertEquals(remote_client.get_content(fs_item_id),
                           "Other content.")
@@ -357,9 +353,8 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
         copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
-        fs_item_id = remote_client.stream_file(self.workspace_id, file_path)
+        fs_item_info = remote_client.stream_file(self.workspace_id, file_path)
         local_client = LocalClient(self.upload_tmp_dir)
-        fs_item_info = remote_client.get_info(fs_item_id)
         self.assertEquals(fs_item_info.name, 'testFile.pdf')
         self.assertEquals(fs_item_info.digest,
                           local_client.get_info('/testFile.pdf').get_digest())
@@ -370,10 +365,9 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
         copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
-        fs_item_id = remote_client.stream_file(self.workspace_id, file_path,
+        fs_item_info = remote_client.stream_file(self.workspace_id, file_path,
                                                mime_type='pdf')
         local_client = LocalClient(self.upload_tmp_dir)
-        fs_item_info = remote_client.get_info(fs_item_id)
         self.assertEquals(fs_item_info.name, 'testFile.pdf')
         self.assertEquals(fs_item_info.digest,
                           local_client.get_info('/testFile.pdf').get_digest())
@@ -383,8 +377,9 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         # Upload a PDF file, should create a File document
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
         copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
-        fs_item_id = self.remote_file_system_client_1.stream_file(
+        fs_item_info = self.remote_file_system_client_1.stream_file(
                                             self.workspace_id, file_path)
+        fs_item_id = fs_item_info.uid
         doc_uid = fs_item_id.rsplit('#', 1)[1]
         doc_type = self.remote_document_client_1.get_info(doc_uid).doc_type
         self.assertEquals(doc_type, 'File')
@@ -392,8 +387,9 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         # Upload a JPG file, should create a Picture document
         file_path = os.path.join(self.upload_tmp_dir, 'cat.jpg')
         copyfile('nxdrive/tests/resources/cat.jpg', file_path)
-        fs_item_id = self.remote_file_system_client_1.stream_file(
+        fs_item_info = self.remote_file_system_client_1.stream_file(
                                             self.workspace_id, file_path)
+        fs_item_id = fs_item_info.uid
         doc_uid = fs_item_id.rsplit('#', 1)[1]
         doc_type = self.remote_document_client_1.get_info(doc_uid).doc_type
         self.assertEquals(doc_type, 'Picture')

@@ -14,7 +14,7 @@ class TestConflicts(IntegrationTestCase):
         self.remote_document_client_1.register_as_root(self.workspace)
         toplevel_folder_info = self.remote_file_system_client_1.get_filesystem_root_info()
         self.workspace_id = self.remote_file_system_client_1.get_children_info(toplevel_folder_info.uid)[0].uid
-        self.file_id = self.remote_file_system_client_1.make_file(self.workspace_id, 'test.txt', 'Some content')
+        self.file_id = self.remote_file_system_client_1.make_file(self.workspace_id, 'test.txt', 'Some content').uid
 
     def test_self_conflict(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
