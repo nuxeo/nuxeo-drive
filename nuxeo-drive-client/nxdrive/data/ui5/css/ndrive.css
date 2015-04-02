@@ -13,6 +13,26 @@ body {
   visibility: hidden; }
 
 /* =Systray window */
+#systray-hello,
+#systray-hello > div {
+  background-color: #eff5fd;
+  height: 100%; }
+
+#systray-hello p:first-child {
+  background-color: white;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1); }
+
+#systray-hello img {
+  height: 20px; }
+
+#systray-hello p {
+  padding: 15px 20px;
+  margin-bottom: 20px; }
+
+#systray-hello .actions {
+  padding: 0 20px;
+  margin-top: 50px; }
+
 #systray-top, #systray-bottom {
   background-color: #f6f6f6;
   color: #213f7d;
