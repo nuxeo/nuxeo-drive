@@ -639,9 +639,11 @@ class Engine(QObject):
                 icon = find_icon("NuxeoDrive_Windows_Xp_Folder.ico")
             else:
                 icon = find_icon("NuxeoDrive_Windows_Folder.ico")
+        else:
+            # No implementation on Linux
+            return
         locker = local_client.unlock_ref('/', unlock_parent=False)
         try:
-            log.debug("Set the icon: %s", icon)
             local_client.set_folder_icon('/', icon)
         finally:
             local_client.lock_ref('/', locker)
