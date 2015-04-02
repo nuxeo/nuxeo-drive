@@ -4,6 +4,7 @@
 			{{ pair.name }}
 		</div>
 		<div class="panel-body">
+			<span style="color: #999; margin-bottom: 10px;cursor: pointer;" ng-click="open_local(pair.local_parent_path)" translate translate-values="{ path:'{{ pair.local_parent_path }}'}">FILE_PATH</span><br />
 			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_sync_date }}'}">LAST_SYNCHRONIZED</span><br />
 			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ contributor:'{{ pair.last_contributor }}'}">LAST_CONTRIBUTOR</span><br />
   			<div class="btn-group" role="group" aria-label="...">
@@ -29,6 +30,7 @@
 			{{ pair.name }}
 		</div>
 		<div class="panel-body">
+			<span style="color: #999; margin-bottom: 10px;cursor: pointer;" ng-click="open_local(pair.local_parent_path)" translate translate-values="{ path:'{{ pair.local_parent_path }}'}">FILE_PATH</span><br />
 			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_sync_date }}'}">LAST_SYNCHRONIZED</span>
 			<span style="color: #999; margin-bottom: 10px;">{{ pair.last_error }}</span>
   			<div class="pull-right btn-group">
