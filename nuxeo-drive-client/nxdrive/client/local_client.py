@@ -92,7 +92,7 @@ class LocalClient(BaseClient):
     """Client API implementation for the local file system"""
 
     # TODO: initialize the prefixes and suffix with a dedicated Nuxeo
-    # Automation operations fetched at controller init time.
+    # Automation operations fetched at manager init time.
 
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
                  ignored_suffixes=None, check_suspended=None):

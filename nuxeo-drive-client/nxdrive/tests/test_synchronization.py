@@ -9,10 +9,11 @@ from nose.plugins.skip import SkipTest
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
-from nxdrive.engine.dao.model import LastKnownState
-from nxdrive.engine.controller import Controller
 from nxdrive.tests import RemoteTestClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
+
+# TODO NXDRIVE-170: refactor
+LastKnownState = None
 
 
 class TestSynchronization(IntegrationTestCase):
@@ -872,7 +873,9 @@ class TestSynchronization(IntegrationTestCase):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Initialize a controller with page size = 1 for deleted items
         # detection query
-        ctl = Controller(self.nxdrive_conf_folder_1, page_size=1)
+        # TODO NXDRIVE-170: refactor
+        #ctl = Controller(self.nxdrive_conf_folder_1, page_size=1)
+        ctl = None
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
         ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)

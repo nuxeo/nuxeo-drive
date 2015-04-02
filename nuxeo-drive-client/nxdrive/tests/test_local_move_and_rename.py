@@ -4,9 +4,11 @@ import sys
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
-from nxdrive.engine.dao.model import LastKnownState
 from nxdrive.client.common import NotFound
 from nose.plugins.skip import SkipTest
+
+# TODO NXDRIVE-170: refactor
+LastKnownState = None
 
 
 class TestLocalMoveAndRename(UnitTestCase):

@@ -438,7 +438,7 @@ class CliHandler(object):
             sys.exit(0)
 
     def handle(self, argv):
-        """Parse options, setup logs and controller and dispatch execution."""
+        """Parse options, setup logs and manager and dispatch execution."""
         options = self.parse_cli(argv)
         # 'start' is the default command if None is provided
         command = options.command = getattr(options, 'command', 'launch')
@@ -458,7 +458,7 @@ class CliHandler(object):
             self._install_faulthandler(options)
 
         if command != 'test':
-            # Initialize a controller for this process, except for the tests
+            # Initialize a manager for this process, except for the tests
             # as they initialize their own
             self.manager = self.get_manager(options)
 
@@ -537,11 +537,13 @@ class CliHandler(object):
         return 0
 
     def local_folders(self, options):
+        # TODO: refactor
         server_bindings = self.controller.list_server_bindings()
         print [sb.local_folder for sb in server_bindings]
         return 0
 
     def status(self, options):
+        # TODO: refactor
         states = self.controller.children_states(options.folder)
         self.log.debug("Children status of %s:", options.folder)
         for filename, status in states:
@@ -660,7 +662,6 @@ class CliHandler(object):
             "nxdrive.tests.test_security_updates",
             "nxdrive.tests.test_shared_folders",
             "nxdrive.tests.test_synchronization",
-            "nxdrive.tests.test_synchronizer",
             "nxdrive.tests.test_translator",
             "nxdrive.tests.test_updater",
             "nxdrive.tests.test_utils",

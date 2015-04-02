@@ -9,7 +9,6 @@ import time
 
 import nxdrive
 from nxdrive.utils import safe_long_path
-from nxdrive.engine.dao.model import LastKnownState
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
@@ -214,10 +213,12 @@ class IntegrationTestCase(unittest.TestCase):
         """Utility to quickly introspect the current known states"""
         if session is None:
             session = self.controller_1.get_session()
-        pairs = session.query(LastKnownState).order_by(
-            LastKnownState.local_path,
-            LastKnownState.remote_parent_path,
-            LastKnownState.remote_name).all()
+        # TODO NXDRIVE-170: refactor
+#         pairs = session.query(LastKnownState).order_by(
+#             LastKnownState.local_path,
+#             LastKnownState.remote_parent_path,
+#             LastKnownState.remote_name).all()
+        pairs = []
         if not get_pair_state:
             return [(p.local_path, p.local_state, p.remote_state)
                     for p in pairs]
@@ -253,6 +254,7 @@ class IntegrationTestCase(unittest.TestCase):
             file_count += len(filenames)
         return (dir_count, file_count)
 
+    # TODO NXDRIVE-170: refactor
     def init_default_drive(self, local_user=1, remote_user=1):
         # Bind the server and root workspace
         ctl = self.controller_1

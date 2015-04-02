@@ -114,7 +114,7 @@ class Engine(QObject):
 
         self.timeout = 30
         self._handshake_timeout = 60
-        # Make all the automation client related to this controller
+        # Make all the automation client related to this manager
         # share cookies using threadsafe jar
         self.cookie_jar = CookieJar()
         self._manager = manager
