@@ -6,8 +6,8 @@ import hashlib
 import os
 import shutil
 import re
-import sys
 from nxdrive.client.common import BaseClient
+from nxdrive.osi import AbstractOSIntegration
 
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
@@ -171,7 +171,7 @@ class LocalClient(BaseClient):
         path = self._abspath(ref)
         log.trace('Removing xattr %s from %s', name, path)
         locker = self.unlock_path(path, False)
-        if sys.platform == 'win32':
+        if AbstractOSIntegration.is_windows():
             pathAlt = path + ":" + name
             try:
                 os.remove(pathAlt)
@@ -187,7 +187,7 @@ class LocalClient(BaseClient):
         else:
             try:
                 import xattr
-                if sys.platform == 'darwin':
+                if AbstractOSIntegration.is_mac():
                     xattr.removexattr(path, name)
                 else:
                     xattr.removexattr(path, 'user.' + name)
@@ -198,34 +198,33 @@ class LocalClient(BaseClient):
         '''
             Unset the red icon
         '''
-        if sys.platform == "win32":
+        if AbstractOSIntegration.is_windows():
             # TODO Clean version
             desktop_ini_file_path = os.path.join(self._abspath(ref), "desktop.ini")
-        if sys.platform == "darwin":
+        if AbstractOSIntegration.is_mac():
             desktop_ini_file_path = os.path.join(self._abspath(ref), "Icon\r")
         if os.path.exists(desktop_ini_file_path):
             os.remove(desktop_ini_file_path)
 
     def has_folder_icon(self, ref):
         target_folder = self._abspath(ref)
-        if sys.platform == "darwin":
+        if AbstractOSIntegration.is_mac():
             meta_file = os.path.join(target_folder, "Icon\r")
             return os.path.exists(meta_file)
-        if sys.platform == 'win32':
+        if AbstractOSIntegration.is_windows():
             meta_file = os.path.join(target_folder, "desktop.ini")
             return os.path.exists(meta_file)
         return False
 
     def set_folder_icon(self, ref, icon):
-        if sys.platform == 'win32':
+        if AbstractOSIntegration.is_windows():
             self.set_folder_icon_win32(ref, icon)
-        elif sys.platform == 'darwin':
+        elif AbstractOSIntegration.is_mac():
             self.set_folder_icon_darwin(ref, icon)
 
     def set_folder_icon_win32(self, ref, icon):
         import win32con
         import win32api
-        import platform
         '''
             Configure red color icon for a folder Windows / Mac
         '''
@@ -244,7 +243,7 @@ class LocalClient(BaseClient):
         IconFile=icon_file_path
         IconIndex=0
         """
-        if platform.platform().__contains__("Windows-XP"):
+        if AbstractOSIntegration.os_version_below("5.2"):
             desktop_ini_content = ini_file_content_xp.replace("icon_file_path", icon)
         else:
             desktop_ini_content = ini_file_content.replace("icon_file_path", icon)
@@ -318,7 +317,7 @@ class LocalClient(BaseClient):
         path = self._abspath(ref)
         log.trace('Setting xattr %s with value %s on %s', name, remote_id, path)
         locker = self.unlock_path(path, False)
-        if sys.platform == 'win32':
+        if AbstractOSIntegration.is_windows():
             pathAlt = path + ":" + name
             try:
                 with open(pathAlt, "w") as f:
@@ -338,7 +337,7 @@ class LocalClient(BaseClient):
                 import xattr
                 if type(remote_id).__name__ == "unicode":
                     remote_id = unicodedata.normalize('NFC', remote_id).encode('ascii','ignore')
-                if sys.platform == 'darwin':
+                if AbstractOSIntegration.is_mac():
                     xattr.setxattr(path, name, remote_id)
                 else:
                     xattr.setxattr(path, 'user.' + name, remote_id)
@@ -352,7 +351,7 @@ class LocalClient(BaseClient):
 
     @staticmethod
     def get_path_remote_id(path, name="ndrive"):
-        if sys.platform == 'win32':
+        if AbstractOSIntegration.is_windows():
             path = path + ":" + name
             try:
                 with open(path, "r") as f:
@@ -362,7 +361,7 @@ class LocalClient(BaseClient):
         else:
             import xattr
             try:
-                if sys.platform == 'darwin':
+                if AbstractOSIntegration.is_mac():
                     value = xattr.getxattr(path, name)
                 else:
                     value = xattr.getxattr(path, 'user.' + name)
@@ -580,7 +579,7 @@ class LocalClient(BaseClient):
                 # Must use a temp rename as FS is not case sensitive
                 temp_path = os.tempnam(self._abspath(parent),
                                        '.ren_' + old_name + '_')
-                if sys.platform == 'win32':
+                if AbstractOSIntegration.is_windows():
                     import ctypes
                     ctypes.windll.kernel32.SetFileAttributesW(
                                                 unicode(temp_path), 2)
@@ -593,7 +592,7 @@ class LocalClient(BaseClient):
                                                                 new_name, old_name)
             if old_name != new_name:
                 shutil.move(source_os_path, target_os_path)
-            if sys.platform == 'win32':
+            if AbstractOSIntegration.is_windows():
                 import ctypes
                 # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
                 ctypes.windll.kernel32.SetFileAttributesW(
