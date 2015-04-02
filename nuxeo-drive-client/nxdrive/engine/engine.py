@@ -591,7 +591,7 @@ class Engine(QObject):
                 BaseClient.unset_path_readonly(self._local_folder)
             self._make_local_folder(self._local_folder)
             self._add_top_level_state()
-            self._set_root_icon(self._local_folder)
+            self._set_root_icon()
             BaseClient.set_path_readonly(self._local_folder)
 
     def _make_local_folder(self, local_folder):
