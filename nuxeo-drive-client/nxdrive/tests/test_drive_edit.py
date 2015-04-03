@@ -1,16 +1,29 @@
+import os
 import time
 from nose.plugins.skip import SkipTest
 
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
+from nxdrive.tests.common_unit_test import UnitTestCase
 
 
-class TestDriveEdit(IntegrationTestCase):
+class TestDriveEdit(UnitTestCase):
 
     locally_edited_path = ('/default-domain/UserWorkspaces/'
                            + 'nuxeoDriveTestUser-user-1/Collections/'
                            + LOCALLY_EDITED_FOLDER_NAME)
+
+    def test_filename_encoding(self):
+        self.manager_1.start()
+        remote = self.remote_document_client_1
+
+        doc_id = remote.make_file('/', u'Mode op\xe9ratoire.odt', 'Some content.')
+        drive_edit = self.manager_1.get_drive_edit()
+
+        filename = 'Mode%20op%C3%A9ratoire.docx'
+        edited_file_path = drive_edit._prepare_edit(self.nuxeo_url, doc_id, filename)
+        self.assertTrue(os.path.exists(edited_file_path))
 
     def test_drive_edit_non_synced_doc(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")

@@ -75,7 +75,7 @@ class DriveEdit(Worker):
                 remote_client.get_blob(info.uid, file_out=file_out)
         return file_out
 
-    def edit(self, server_url, doc_id, filename, user=None, download_url=None):
+    def _prepare_edit(self, server_url, doc_id, filename, user=None, download_url=None):
         engine = self._get_engine(server_url, user)
         if engine is None:
             # TO_REVIEW Display an error message
@@ -122,6 +122,11 @@ class DriveEdit(Worker):
             os.unlink(file_path)
         os.rename(tmp_file, file_path)
 
+        return file_path
+
+    def edit(self, server_url, doc_id, filename, user=None, download_url=None):
+        # Download file
+        file_path = self._prepare_edit(server_url, doc_id, filename, user=user, download_url=download_url)
         # Launch it
         self._manager.open_local_file(file_path)
 
