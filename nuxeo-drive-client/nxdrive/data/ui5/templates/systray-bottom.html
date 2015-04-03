@@ -2,7 +2,10 @@
 	
   </div>
 <div class="sync-status">
-  <div ng-show="engine.syncing != 'syncing'">
+  <div ng-show="engine.paused">
+    <span title="{{ENGINE_PAUSED | translate }}" class="glyphicon glyphicon-pause"></span>
+  </div>
+  <div ng-show="engine.syncing != 'syncing' && !engine.paused">
     <span title="{{SYNCHRONIZATION_COMPLETED | translate }}" class="glyphicon glyphicon-ok"></span>
   </div>
   <div ng-show="!engine.paused && engine.syncing == 'syncing'">

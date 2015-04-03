@@ -100,7 +100,8 @@ LABELS={
 		"OPEN_REMOTE": "Open remote",
 		"RESOLVE": "Resolve",
 		"DUPLICATING": "Duplicating...",
-		"FILE_PATH": "Path: {{ path }}"
+		"FILE_PATH": "Path: {{ path }}",
+		"ENGINE_PAUSED": "Suspended"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -203,6 +204,7 @@ LABELS={
 		"OPEN_REMOTE": "Ouvrir le fichier distant",
 		"RESOLVE": "Résolution",
 		"DUPLICATING": "Duplication en cours",
-		"FILE_PATH": "Chemin: {{ path }}"
+		"FILE_PATH": "Chemin: {{ path }}",
+		"ENGINE_PAUSED": "Suspendu"
 	}
 }
