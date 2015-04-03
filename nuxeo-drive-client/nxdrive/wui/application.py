@@ -169,7 +169,7 @@ class Application(QApplication):
             conflicts = self._get_conflicts_dialog(engine)
             self._create_unique_dialog("conflicts", conflicts)
         else:
-            conflicts.set_engine(engine)
+            conflicts._api.set_engine(engine)
         self._show_window(conflicts)
 
     @QtCore.pyqtSlot()
