@@ -106,7 +106,12 @@ body {
   font-size: 10px; }
 
 .list-group .document {
-  color: #434343; }
+  color: #434343;
+  display: inline-block;
+  max-width: 215px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap; }
 
 #systray .list-group-item:first-child {
   border-top: none; }
