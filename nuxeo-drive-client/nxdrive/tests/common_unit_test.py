@@ -14,6 +14,7 @@ from nxdrive.manager import Manager
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
 from nxdrive.tests.common import TEST_DEFAULT_DELAY
+from nxdrive import __version__
 from PyQt4 import QtCore
 from threading import Thread
 from time import sleep
@@ -112,9 +113,10 @@ class UnitTestCase(unittest.TestCase):
         self.nxdrive_conf_folder_1 = os.path.join(
             self.local_test_folder_1, u'nuxeo-drive-conf')
         os.mkdir(self.nxdrive_conf_folder_1)
+        self.nxdrive_conf_folder_2 = os.path.join(
+            self.local_test_folder_2, u'nuxeo-drive-conf')
+        os.mkdir(self.nxdrive_conf_folder_2)
 
-        # Set echo to True to enable SQL statements and transactions logging
-        # and echo_pool to True to enable connection pool logging
         from mock import Mock
         options = Mock()
         options.delay = TEST_DEFAULT_DELAY
@@ -122,11 +124,12 @@ class UnitTestCase(unittest.TestCase):
         options.log_level_file = None
         options.update_site_url = None
         options.beta_update_site_url = None
-        self.static_drive_home = tempfile.mkdtemp(u'-nuxeo-drive-test')
-        log.debug('Created test home directory: %s', self.static_drive_home)
-        options.nxdrive_home = self.static_drive_home
-        self.manager = Manager(options)
-        self.version = self.manager.get_version()
+        options.nxdrive_home = self.nxdrive_conf_folder_1
+        self.manager_1 = Manager(options)
+        options.nxdrive_home = self.nxdrive_conf_folder_2
+        Manager._singleton = None
+        self.manager_2 = Manager(options)
+        self.version = __version__
         # Long timeout for the root client that is responsible for the test
         # environment set: this client is doing the first query on the Nuxeo
         # server and might need to wait for a long time without failing for
@@ -145,9 +148,9 @@ class UnitTestCase(unittest.TestCase):
         credentials = [c.strip().split(u":") for c in credentials.split(u",")]
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
-        self.engine_1 = self.manager.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1,
+        self.engine_1 = self.manager_1.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1,
                                                  self.password_1, start_engine=False)
-        self.engine_2 = self.manager.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2,
+        self.engine_2 = self.manager_2.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2,
                                                  self.password_2, start_engine=False)
         self.engine_1.syncCompleted.connect(self.sync_completed)
         self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.remote_scan_completed)
@@ -262,7 +265,8 @@ class UnitTestCase(unittest.TestCase):
     def tearDownApp(self):
         log.debug("TearDown unit test")
         # Unbind all
-        self.manager.unbind_all()
+        self.manager_1.unbind_all()
+        self.manager_2.unbind_all()
         Manager._singleton = None
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
@@ -283,15 +287,6 @@ class UnitTestCase(unittest.TestCase):
             except:
                 pass
 
-        if os.path.exists(self.static_drive_home):
-            try:
-                log.debug('Test home directory exists: %s, deleting it', self.static_drive_home)
-                shutil.rmtree(safe_long_path(self.static_drive_home))
-                log.debug('Test home directory deleted')
-            except:
-                log.debug('Error while trying to delete test home directory')
-        else:
-            log.debug("Test home directory %s doesn't exist, nothing to do", self.static_drive_home)
         del self.engine_1
         self.engine_1 = None
         del self.engine_2
