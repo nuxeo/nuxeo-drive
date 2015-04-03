@@ -146,9 +146,9 @@ class Application(QApplication):
         new_state = "asleep"
         if len(engines) == 0 or paused or offline:
             new_state = "disabled"
-        if invalid_credentials:
+        elif invalid_credentials:
             new_state = 'stopping'
-        if syncing:
+        elif syncing:
             new_state = 'transferring'
         log.debug("Should change icon to %s", new_state)
         self.set_icon_state(new_state)
