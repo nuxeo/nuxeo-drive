@@ -453,7 +453,8 @@ class RemoteWatcher(EngineWorker):
                                 remote_parent_path = os.path.dirname(new_info.path)
                                 # TODO Add modify local_path and local_parent_path if needed
                             self._dao.update_remote_state(doc_pair, new_info, remote_parent_path)
-                            self._force_scan_recursive(doc_pair, consistent_new_info, remote_path=new_info.path, force_recursion=(eventId == "securityUpdated"))
+                            self._force_scan_recursive(doc_pair, consistent_new_info, remote_path=new_info.path,
+                                                       force_recursion=(eventId == "securityUpdated"))
 
                     updated = True
                     refreshed.add(remote_ref)

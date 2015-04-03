@@ -145,8 +145,10 @@ class UnitTestCase(unittest.TestCase):
         credentials = [c.strip().split(u":") for c in credentials.split(u",")]
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
-        self.engine_1 = self.manager.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1, self.password_1, start_engine=False)
-        self.engine_2 = self.manager.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2, self.password_2, start_engine=False)
+        self.engine_1 = self.manager.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1,
+                                                 self.password_1, start_engine=False)
+        self.engine_2 = self.manager.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2,
+                                                 self.password_2, start_engine=False)
         self.engine_1.syncCompleted.connect(self.sync_completed)
         self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.remote_scan_completed)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
@@ -241,12 +243,14 @@ class UnitTestCase(unittest.TestCase):
     def run(self, result=None):
         self.app = QtCore.QCoreApplication([])
         self.setUpApp()
+
         # TODO Should use a specific application
         def launch_test():
             sleep(1)
             super(UnitTestCase, self).run(result)
             self.app.quit()
             log.debug("UnitTest thread finished")
+
         sync_thread = Thread(target=launch_test)
         sync_thread.start()
         self.app.exec_()
@@ -375,4 +379,4 @@ class UnitTestCase(unittest.TestCase):
             # Not the nicest
             if retry > 0:
                 log.debug("Retry to wait")
-                self.wait(retry-1)
+                self.wait(retry - 1)

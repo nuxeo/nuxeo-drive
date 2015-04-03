@@ -15,8 +15,7 @@ import os
 import uuid
 import platform
 import sys
-import logging  
-from nxdrive.engine import dao
+import logging
 log = get_logger(__name__)
 
 

@@ -1,5 +1,4 @@
 import time
-import sys
 
 from nxdrive.tests.common import IntegrationTestCase
 from nose.plugins.skip import SkipTest
