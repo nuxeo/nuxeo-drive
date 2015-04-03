@@ -157,7 +157,7 @@ LABELS={
 		"ERRORS_SYSTRAY": "{{ error_files }} erreurs",
 		"SYNCHRONIZATION_COMPLETED": "Synchronisation terminée",
 		"SYNCHRONIZATION_IN_PROGRESS": "Synchronisation en cours",
-		"RECENTLY_UPDATED": "Mis à jour",
+		"RECENTLY_UPDATED": "Derniers fichiers mis à jour",
 		"OPEN_ROOT_FOLDER": "Ouvrir le dossier Nuxeo Drive",
 		"OPEN_SERVER": "Accéder au serveur Nuxeo",
 		"UNAVAILABLE_UPDATE_SITE": "Site de mise à jour indisponible",

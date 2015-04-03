@@ -1,5 +1,5 @@
   <div>
-  	<span>{{ engine.name }}</span>
+    <span class="account-name">{{ engine.name }}</span>
     <span class="glyphicon glyphicon-cog" ng-click="advanced_systray()"></span>
   	<ul class="engine-navbar" ng-show="engines.length > 1">
   		<li ng-repeat="engine in engines" ng-class="getEngineClass(engine)">

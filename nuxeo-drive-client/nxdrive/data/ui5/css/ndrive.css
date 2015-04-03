@@ -49,6 +49,13 @@ body {
 #systray-top .label {
   text-shadow: none; }
 
+#systray-top .account-name {
+  display: inline-block;
+  max-width: 150px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap; }
+
 #systray-top .glyphicon-cog {
   display: inline-block;
   float: right;
@@ -181,6 +188,10 @@ body {
 .engine-navbar .currentEngine:hover {
   background-color: #f9f9f9;
   border-bottom: 1px solid #f9f9f9; }
+
+.engine-navbar img {
+  height: 16px;
+  width: 16px; }
 
 .engine-navbar > li > a {
   padding: 10px 5px;
