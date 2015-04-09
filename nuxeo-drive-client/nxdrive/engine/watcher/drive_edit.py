@@ -21,6 +21,7 @@ log = get_logger(__name__)
 
 class DriveEdit(Worker):
     localScanFinished = pyqtSignal()
+    driveEditUploadCompleted = pyqtSignal()
     '''
     classdocs
     '''
@@ -131,11 +132,13 @@ class DriveEdit(Worker):
         self._manager.open_local_file(file_path)
 
     def _handle_queue(self):
+        uploaded = False
         while (not self._upload_queue.empty()):
             try:
                 ref = self._upload_queue.get_nowait()
+                log.trace('Handling DriveEdit queue ref: %r', ref)
             except Empty:
-                return
+                break
             uid = self._local_client.get_remote_id(ref)
             server_url = self._local_client.get_remote_id(ref, "nxdriveedit")
             engine = self._get_engine(server_url)
@@ -144,10 +147,14 @@ class DriveEdit(Worker):
             # Dont update if digest are the same
             info = self._local_client.get_info(ref)
             if info.get_digest() == digest:
-                return
+                continue
             # TO_REVIEW Should check if blob has changed ?
             # Update the document - should verify the hash - NXDRIVE-187
             remote_client.stream_update(uid, self._local_client._abspath(ref))
+            uploaded = True
+        if uploaded:
+            log.debug('Emitting driveEditUploadCompleted')
+            self.driveEditUploadCompleted.emit()
 
     def _execute(self):
         try:
