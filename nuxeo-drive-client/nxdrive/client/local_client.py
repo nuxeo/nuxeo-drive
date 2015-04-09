@@ -505,12 +505,15 @@ class LocalClient(BaseClient):
             path = parent + u"/" + name
         return path, os_path, name
 
-    def update_content(self, ref, content):
-        remote_id = self.get_remote_id(ref)
+    def update_content(self, ref, content, xattr_names=['ndrive']):
+        xattrs = {}
+        for name in xattr_names:
+            xattrs[name] = self.get_remote_id(ref, name=name)
         with open(self._abspath(ref), "wb") as f:
             f.write(content)
-        if remote_id is not None:
-            self.set_remote_id(ref, remote_id)
+        for name in xattr_names:
+            if xattrs[name] is not None:
+                self.set_remote_id(ref, xattrs[name], name=name)
 
     def delete(self, ref):
         locker = self.unlock_ref(ref)
