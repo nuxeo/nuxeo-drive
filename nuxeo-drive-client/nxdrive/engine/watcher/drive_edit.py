@@ -133,7 +133,8 @@ class DriveEdit(Worker):
         # Download file
         file_path = self._prepare_edit(server_url, doc_id, filename, user=user, download_url=download_url)
         # Launch it
-        self._manager.open_local_file(file_path)
+        if file_path is not None:
+            self._manager.open_local_file(file_path)
 
     def _handle_queue(self):
         uploaded = False
