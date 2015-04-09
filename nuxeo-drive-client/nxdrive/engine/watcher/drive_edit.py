@@ -9,6 +9,7 @@ from nxdrive.client.local_client import LocalClient
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import safe_filename, NotFound
+from nxdrive.utils import force_decode
 import os
 import sys
 import urllib2
@@ -91,13 +92,16 @@ class DriveEdit(Worker):
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
 
+        log.trace('Raw filename: %r', filename)
         filename = safe_filename(urllib2.unquote(filename))
-        if isinstance(filename, bytes):
-            decoded_filename = filename.decode('utf-8')
-        else:
+        log.trace('Unquoted filename = %r', filename)
+        decoded_filename = force_decode(filename)
+        if decoded_filename is None:
             decoded_filename = filename
-            filename = filename.encode('utf-8')
-        log.debug('Editing %s', decoded_filename)
+        else:
+            # Always use utf-8 encoding for xattr
+            filename = decoded_filename.encode('utf-8')
+        log.debug("Editing %r ('nxdriveeditname' xattr: %r)", decoded_filename, filename)
         file_path = os.path.join(dir_path, decoded_filename)
 
         # Download the file
@@ -227,7 +231,9 @@ class DriveEdit(Worker):
             name = self._local_client.get_remote_id(ref, "nxdriveeditname")
             if name is None:
                 return
-            name = name.decode('utf-8')
+            decoded_name = force_decode(name)
+            if decoded_name is not None:
+                name = decoded_name
             if name != file_name:
                 return
             if queue:

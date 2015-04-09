@@ -2,10 +2,11 @@ import os
 import time
 from nose.plugins.skip import SkipTest
 
-from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.tests.common_unit_test import UnitTestCase
+
+DRIVE_EDIT_XATTR_NAMES = ['ndrive', 'nxdriveedit', 'nxdriveeditdigest', 'nxdriveeditname']
 
 
 class TestDriveEdit(UnitTestCase):
@@ -14,16 +15,46 @@ class TestDriveEdit(UnitTestCase):
                            + 'nuxeoDriveTestUser-user-1/Collections/'
                            + LOCALLY_EDITED_FOLDER_NAME)
 
+    def setUpApp(self):
+        super(TestDriveEdit, self).setUpApp()
+        self.drive_edit = self.manager_1.get_drive_edit()
+        self.drive_edit.driveEditUploadCompleted.connect(self.sync_completed)
+        self.drive_edit.start()
+
+        self.remote = self.remote_document_client_1
+        self.local = LocalClient(os.path.join(self.nxdrive_conf_folder_1, 'edit'))
+
+    def tearDownApp(self):
+        self.drive_edit.stop()
+        super(TestDriveEdit, self).tearDownApp()
+
     def test_filename_encoding(self):
-        self.manager_1.start()
-        remote = self.remote_document_client_1
+        filename = u'Mode op\xe9ratoire.txt'
+        doc_id = self.remote.make_file('/', filename, 'Some content.')
 
-        doc_id = remote.make_file('/', u'Mode op\xe9ratoire.odt', 'Some content.')
-        drive_edit = self.manager_1.get_drive_edit()
+        # Linux / Win + Chrome: quoted utf-8 encoded
+        browser_filename = 'Mode%20op%C3%A9ratoire.txt'
+        self._drive_edit_update(doc_id, filename, browser_filename, 'Win + Chrome')
 
-        filename = 'Mode%20op%C3%A9ratoire.docx'
-        edited_file_path = drive_edit._prepare_edit(self.nuxeo_url, doc_id, filename)
-        self.assertTrue(os.path.exists(edited_file_path))
+        # Win + IE: unquoted utf-8 encoded
+        browser_filename = 'Mode op\xc3\xa9ratoire.txt'
+        self._drive_edit_update(doc_id, filename, browser_filename, 'Win + IE')
+
+        # Win + FF: quoted string containing unicode
+        browser_filename = 'Mode%20op\xe9ratoire.txt'
+        self._drive_edit_update(doc_id, filename, browser_filename, 'Win + FF')
+
+    def _drive_edit_update(self, doc_id, filename, browser_filename, content):
+        # Download file
+        local_path = '/%s/%s' % (doc_id, filename)
+        self.drive_edit._prepare_edit(self.nuxeo_url, doc_id, browser_filename)
+        self.assertTrue(self.local.exists(local_path))
+        self.wait_sync(1, fail_if_timeout=False)
+
+        # Update file content
+        self.local.update_content(local_path, content, xattr_names=DRIVE_EDIT_XATTR_NAMES)
+        self.wait_sync()
+        self.assertEquals(self.remote.get_content('/' + filename), content)
 
     def test_drive_edit_non_synced_doc(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
