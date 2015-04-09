@@ -273,7 +273,7 @@ def force_decode(string, codecs=['utf8', 'cp1252']):
             pass
     log.debug("Cannot decode string '%s' with any of the given codecs: %r",
               string, codecs)
-    return ''
+    return None
 
 
 def encrypt(plaintext, secret, lazy=True):

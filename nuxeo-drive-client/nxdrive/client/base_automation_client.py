@@ -239,14 +239,20 @@ class BaseAutomationClient(BaseClient):
         except urllib2.URLError as e:
             msg = base_error_message
             if hasattr(e, 'message') and e.message:
-                msg = msg + force_decode(": " + e.message)
+                e_msg = force_decode(": " + e.message)
+                if e_msg is not None:
+                    msg = msg + e_msg
             elif hasattr(e, 'reason') and e.reason:
                 if (hasattr(e.reason, 'message')
                     and e.reason.message):
-                    msg = msg + force_decode(": " + e.reason.message)
+                    e_msg = force_decode(": " + e.reason.message)
+                    if e_msg is not None:
+                        msg = msg + e_msg
                 elif (hasattr(e.reason, 'strerror')
                     and e.reason.strerror):
-                    msg = msg + force_decode(": " + e.reason.strerror)
+                    e_msg = force_decode(": " + e.reason.strerror)
+                    if e_msg is not None:
+                        msg = msg + e_msg
             if self.is_proxy:
                 msg = (msg + "\nPlease check your Internet connection,"
                        + " make sure the Nuxeo server URL is valid"
