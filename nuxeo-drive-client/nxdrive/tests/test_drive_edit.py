@@ -44,6 +44,10 @@ class TestDriveEdit(UnitTestCase):
         browser_filename = 'Mode%20op\xe9ratoire.txt'
         self._drive_edit_update(doc_id, filename, browser_filename, 'Win + FF')
 
+        # OSX + Chrome / OSX + FF: quoted utf-8 encoded, except for white spaces!
+        browser_filename = 'Mode op%C3%A9ratoire.docx'
+        self._drive_edit_update(doc_id, filename, browser_filename, 'OS X + Chrome or FF')
+
     def _drive_edit_update(self, doc_id, filename, browser_filename, content):
         # Download file
         local_path = '/%s/%s' % (doc_id, filename)
