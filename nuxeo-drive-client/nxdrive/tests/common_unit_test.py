@@ -125,6 +125,7 @@ class UnitTestCase(unittest.TestCase):
 
         from mock import Mock
         options = Mock()
+        options.debug = False
         options.delay = TEST_DEFAULT_DELAY
         options.force_locale = None
         options.log_level_file = None
