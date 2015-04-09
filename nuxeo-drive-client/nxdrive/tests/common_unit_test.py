@@ -214,6 +214,7 @@ class UnitTestCase(unittest.TestCase):
         self.remote_file_system_client_1 = remote_file_system_client_1
         self.remote_file_system_client_2 = remote_file_system_client_2
 
+    @QtCore.pyqtSlot()
     def sync_completed(self):
         log.debug("Sync completed")
         self._wait_sync = False
