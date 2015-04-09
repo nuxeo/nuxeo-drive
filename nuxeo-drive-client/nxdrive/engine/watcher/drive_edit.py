@@ -45,7 +45,7 @@ class DriveEdit(Worker):
 
     def _cleanup(self):
         log.debug("Cleanup DriveEdit folder")
-        shutil.rmtree(self._folder, True)
+        shutil.rmtree(self._folder, ignore_errors=True)
         if not os.path.exists(self._folder):
             os.mkdir(self._folder)
 
