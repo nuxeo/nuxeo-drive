@@ -28,6 +28,7 @@ class Worker(QObject):
     _engine = None
     _pause = False
     actionUpdate = pyqtSignal(object)
+    stopWorker = pyqtSignal()
 
     def __init__(self, thread=None, name=None):
         super(Worker, self).__init__()
@@ -40,6 +41,7 @@ class Worker(QObject):
             name = type(self).__name__
         self._name = name
         self._thread.terminated.connect(self._terminated)
+        self.stopWorker.connect(self.quit)
 
     @pyqtSlot()
     def quit(self):
@@ -55,7 +57,12 @@ class Worker(QObject):
         self._thread.start()
 
     def stop(self):
-        self._thread.stop()
+        self.stopWorker.emit()
+        if not self._thread.wait(5000):
+            log.warn("Thread is not responding - terminate it")
+            self._thread.terminate()
+        if self._thread.isRunning():
+            self._thread.wait(5000)
 
     def resume(self):
         self._pause = False
