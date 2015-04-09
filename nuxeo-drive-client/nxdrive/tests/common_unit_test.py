@@ -19,6 +19,12 @@ from PyQt4 import QtCore
 from threading import Thread
 from time import sleep
 
+WindowsError = None
+try:
+    from exceptions import WindowsError
+except ImportError:
+    pass  # This will never be raised under Unix
+
 DEFAULT_WAIT_SYNC_TIMEOUT = 20
 DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 
@@ -266,26 +272,17 @@ class UnitTestCase(unittest.TestCase):
         log.debug("TearDown unit test")
         # Unbind all
         self.manager_1.unbind_all()
+        self.manager_1._dao.dispose()
         self.manager_2.unbind_all()
+        self.manager_2._dao.dispose()
         Manager._singleton = None
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
         self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
 
-        if os.path.exists(self.upload_tmp_dir):
-            shutil.rmtree(safe_long_path(self.upload_tmp_dir))
-
-        if os.path.exists(self.local_test_folder_1):
-            try:
-                shutil.rmtree(safe_long_path(self.local_test_folder_1))
-            except:
-                pass
-
-        if os.path.exists(self.local_test_folder_2):
-            try:
-                shutil.rmtree(safe_long_path(self.local_test_folder_2))
-            except:
-                pass
+        self._clean_dir(self.upload_tmp_dir)
+        self._clean_dir(self.local_test_folder_1)
+        self._clean_dir(self.local_test_folder_2)
 
         del self.engine_1
         self.engine_1 = None
@@ -303,6 +300,15 @@ class UnitTestCase(unittest.TestCase):
         self.remote_file_system_client_1 = None
         del self.remote_file_system_client_2
         self.remote_file_system_client_2 = None
+
+    def _clean_dir(self, _dir):
+        if os.path.exists(_dir):
+            to_remove = safe_long_path(_dir)
+            try:
+                shutil.rmtree(to_remove)
+            except Exception as e:
+                if type(e) == WindowsError:
+                    os.system('rmdir /S /Q %s' % to_remove)
 
     def _interact(self, pause=0):
         self.app.processEvents()
