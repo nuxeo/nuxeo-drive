@@ -315,7 +315,7 @@ class LocalClient(BaseClient):
     def set_remote_id(self, ref, remote_id, name='ndrive'):
         # Can be move to another class
         path = self._abspath(ref)
-        log.debug('Setting xattr %s with value %r on %r', name, remote_id, path)
+        log.trace('Setting xattr %s with value %r on %r', name, remote_id, path)
         locker = self.unlock_path(path, False)
         if AbstractOSIntegration.is_windows():
             pathAlt = path + ":" + name
