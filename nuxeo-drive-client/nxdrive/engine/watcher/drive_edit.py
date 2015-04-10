@@ -155,6 +155,8 @@ class DriveEdit(Worker):
                 continue
             # TO_REVIEW Should check if blob has changed ?
             # Update the document - should verify the hash - NXDRIVE-187
+            log.trace('Uploading file %s with content %r', self._local_client._abspath(ref),
+                      self._local_client.get_content(ref))
             remote_client.stream_update(uid, self._local_client._abspath(ref))
             uploaded = True
         if uploaded:
