@@ -53,7 +53,7 @@ class TestDriveEdit(UnitTestCase):
         local_path = '/%s/%s' % (doc_id, filename)
         self.drive_edit._prepare_edit(self.nuxeo_url, doc_id, browser_filename)
         self.assertTrue(self.local.exists(local_path))
-        self.wait_sync(1, fail_if_timeout=False)
+        self.wait_sync(2, fail_if_timeout=False)
 
         # Update file content
         self.local.update_content(local_path, content, xattr_names=DRIVE_EDIT_XATTR_NAMES)
