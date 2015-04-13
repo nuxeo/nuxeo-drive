@@ -164,13 +164,23 @@ class Manager(QtCore.QObject):
             raise Exception("Only one instance of Manager can be create")
         Manager._singleton = self
         super(Manager, self).__init__()
+        self.client_version = __version__
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
         self.nxdrive_home = os.path.realpath(self.nxdrive_home)
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
         self.remote_watcher_delay = options.delay
         self._debug = options.debug
-        self._dao = self._create_dao()
+        self._engine_definitions = None
+        self._engine_types = dict()
+        from nxdrive.engine.engine import Engine
+        self._engine_types["NXDRIVE"] = Engine
+        self._engines = None
+        self.proxies = None
+        self.proxy_exceptions = None
+        self._app_updater = None
+        self._dao = None
+        self._create_dao()
         # Now we can update the logger if needed
         if options.log_level_file is not None:
             # Set the log_level_file option
@@ -187,27 +197,19 @@ class Manager(QtCore.QObject):
         self._dao.update_config("beta_update_url", options.beta_update_site_url)
 
         self._os = AbstractOSIntegration.get(self)
-        self.proxies = None
         self._started = False
-        self.proxy_exceptions = None
-        self._engines = None
         # Pause if in debug
         self._pause = self.is_debug()
-        self._engine_definitions = None
-        self._engine_types = dict()
         self.device_id = self._dao.get_config("device_id")
         self.updated = False  # self.update_version()
         if self.device_id is None:
             self.generate_device_id()
-        self.client_version = __version__
 
         self._create_notification_service()
 
-        from nxdrive.engine.engine import Engine
-        self._engine_types["NXDRIVE"] = Engine
         self.load()
 
-        # Create and start the auto-update verification thread
+        # Create the application update verification thread
         self._create_updater(options.update_check_delay)
 
         # Force language
@@ -305,19 +307,21 @@ class Manager(QtCore.QObject):
     def _get_db(self):
         return os.path.join(normalized_path(self.nxdrive_home), "manager.db")
 
+    def get_dao(self):
+        return self._dao
+
     def _migrate(self):
         from nxdrive.engine.dao.sqlite import ManagerDAO
-        dao = ManagerDAO(self._get_db())
+        self._dao = ManagerDAO(self._get_db())
         old_db = os.path.join(normalized_path(self.nxdrive_home), "nxdrive.db")
         if os.path.exists(old_db):
             import sqlite3
             from nxdrive.engine.dao.sqlite import CustomRow
-            conn = sqlite3.connect(self.db)
+            conn = sqlite3.connect(old_db)
             conn.row_factory = CustomRow
             c = conn.cursor()
-            rows = c.execute("SELECT * FROM device_config LIMIT 1")
-            if rows.rowcount == 1:
-                cfg = rows[0]
+            cfg = c.execute("SELECT * FROM device_config LIMIT 1").fetchone()
+            if cfg is not None:
                 self.device_id = cfg.device_id
                 self._dao.update_config("device_id", cfg.device_id)
                 self._dao.update_config("proxy_config", cfg.proxy_config)
@@ -326,42 +330,38 @@ class Manager(QtCore.QObject):
                 self._dao.update_config("proxy_port", cfg.proxy_port)
                 self._dao.update_config("proxy_authenticated", cfg.proxy_authenticated)
                 self._dao.update_config("proxy_username", cfg.proxy_username)
-                self._dao.update_config("proxy_password", cfg.proxy_password)
-            # Copy server binding
-            rows = c.execute("SELECT * FROM server_bindings")
-            if rows.rowcount == 0:
-                return dao
-            engine = None
-            engine_def = None
-            for row in rows:
-                log.trace("Binding Row from DS1 %r", row)
-                row.url = row.server_url
-                row.username = row.remote_user
-                row.token = row.remote_token
-                row.password = row.remote_password
-                engine_def = row
-                engine = self.manager.bind_engine("CPODRIVE", row["local_folder"], "Default", row, starts=False)
-                log.trace("Resulting server binding remote_token %r", row.remote_token)
-                break
-            c.execute("DELETE FROM server_bindings")
+                self._dao.update_config("auto_update", cfg.auto_update)
+            # Copy first server binding
+            row = c.execute("SELECT * FROM server_bindings").fetchone()
+            if row is None:
+                return
+            row.url = row.server_url
+            log.debug("Binding server from Nuxeo Drive V1: [%s, %s]", row.url, row.remote_user)
+            row.username = row.remote_user
+            row.password = None
+            row.token = row.remote_token
+            engine_def = row
+            engine = self.bind_engine(self._get_default_server_type(), row["local_folder"],
+                                      self._get_engine_name(row.url), row, starts=False)
+            log.trace("Resulting server binding remote_token %r", row.remote_token)
             conn.commit()
             # Copy the filters
             filters = c.execute("SELECT * FROM filters")
             for filter_obj in filters:
-                if engine_def.local_path != filter_obj.local_path:
+                if engine_def.local_folder != filter_obj.local_folder:
                     continue
                 log.trace("Filter Row from DS1 %r", filter_obj)
                 engine.add_filter(filter_obj["path"])
-        return dao
 
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import ManagerDAO
         if not os.path.exists(self._get_db()):
             try:
-                return self._migrate()
-            except:
-                pass
-        return ManagerDAO(self._get_db())
+                self._migrate()
+                return
+            except Exception as e:
+                log.error(e, exc_info=True)
+        self._dao = ManagerDAO(self._get_db())
 
     def _create_updater(self, update_check_delay):
         # Enable the capacity to extend the AppUpdater
@@ -423,7 +423,8 @@ class Manager(QtCore.QObject):
         return self._app_updater
 
     def refresh_update_status(self):
-        self.get_updater().refresh_status()
+        if self.get_updater() is not None:
+            self.get_updater().refresh_status()
 
     def _refresh_engine_update_infos(self):
         engines = self.get_engines()
@@ -750,16 +751,21 @@ class Manager(QtCore.QObject):
     def bind_server(self, local_folder, url, username, password, name=None, start_engine=True):
         from collections import namedtuple
         if name is None:
-            import urlparse
-            urlp = urlparse.urlparse(url)
-            name = urlp.hostname
+            name = self._get_engine_name(url)
         binder = namedtuple('binder', ['username', 'password', 'url'])
         binder.username = username
         binder.password = password
         binder.url = url
         return self.bind_engine(self._get_default_server_type(), local_folder, name, binder, starts=start_engine)
 
+    def _get_engine_name(self, server_url):
+        import urlparse
+        urlp = urlparse.urlparse(server_url)
+        return urlp.hostname
+
     def _check_local_folder_available(self, local_folder):
+        if self._engine_definitions is None:
+            return True
         if not local_folder.endswith('/'):
             local_folder = local_folder + '/'
         for engine in self._engine_definitions:
