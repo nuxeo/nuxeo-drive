@@ -41,13 +41,13 @@ class ManagerDAOTest(unittest.TestCase):
         dao = manager.get_dao()
 
         # Check Manager config
-        self.assertEquals(dao.get_config('device_id'), '8025aa54e1e311e481b7c8f733c9742b')
+        self.assertEquals(dao.get_config('device_id'), '210c83e2e1fe11e48a5bc8f733c9742b')
         self.assertEquals(dao.get_config('proxy_config'), 'Manual')
         self.assertEquals(dao.get_config('proxy_type'), 'http')
         self.assertEquals(dao.get_config('proxy_server'), 'proxy.server.com')
         self.assertEquals(dao.get_config('proxy_port'), '80')
         self.assertEquals(dao.get_config('proxy_authenticated'), '1')
-        self.assertEquals(dao.get_config('proxy_username'), 'proxy_user')
+        self.assertEquals(dao.get_config('proxy_username'), 'Administrator')
         self.assertEquals(dao.get_config('auto_update'), '1')
         self.assertEquals(dao.get_config('proxy_config'), 'Manual')
 
@@ -64,5 +64,5 @@ class ManagerDAOTest(unittest.TestCase):
         engine_db = os.path.join(self.test_folder, 'ndrive_%s.db' % engine_uid)
         engine_dao = EngineDAO(engine_db)
         self.assertEquals(engine_dao.get_config('server_url'), 'http://localhost:8080/nuxeo/')
-        self.assertEquals(engine_dao.get_config('remote_user'), 'joe')
-        self.assertEquals(engine_dao.get_config('remote_token'), 'db4d93a3-bbb2-4c84-a26d-0b82a6f4bd87')
+        self.assertEquals(engine_dao.get_config('remote_user'), 'Administrator')
+        self.assertEquals(engine_dao.get_config('remote_token'), '04c334d2-64f2-4bf8-bd6b-125ca3fea2c9')
