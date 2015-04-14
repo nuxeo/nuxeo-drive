@@ -582,8 +582,7 @@ class Engine(QObject):
         self.get_update_infos(nxclient)
         # Check for the root
         # If the top level state for the server binding doesn't exist,
-        # create the local folder and the top level state. This can be
-        # the case when initializing the DB manually with a SQL script.
+        # create the local folder and the top level state.
         root = self._dao.get_state_from_local("/")
         if root is None:
             from nxdrive.client.common import BaseClient
