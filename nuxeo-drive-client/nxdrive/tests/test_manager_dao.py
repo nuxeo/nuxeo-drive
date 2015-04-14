@@ -7,6 +7,15 @@ import nxdrive
 from mock import Mock
 from nxdrive.manager import Manager
 from nxdrive.engine.dao.sqlite import EngineDAO
+from nxdrive.logging_config import configure
+
+
+def configure_logger():
+    configure(
+        console_level='DEBUG',
+        command_name='test',
+    )
+configure_logger()
 
 
 class ManagerDAOTest(unittest.TestCase):
