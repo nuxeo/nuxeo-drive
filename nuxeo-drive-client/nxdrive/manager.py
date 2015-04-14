@@ -332,25 +332,30 @@ class Manager(QtCore.QObject):
                 self._dao.update_config("proxy_username", cfg.proxy_username)
                 self._dao.update_config("auto_update", cfg.auto_update)
             # Copy first server binding
-            row = c.execute("SELECT * FROM server_bindings").fetchone()
-            if row is None:
+            rows = c.execute("SELECT * FROM server_bindings").fetchall()
+            if not rows:
                 return
-            row.url = row.server_url
-            log.debug("Binding server from Nuxeo Drive V1: [%s, %s]", row.url, row.remote_user)
-            row.username = row.remote_user
-            row.password = None
-            row.token = row.remote_token
-            engine_def = row
-            engine = self.bind_engine(self._get_default_server_type(), row["local_folder"],
-                                      self._get_engine_name(row.url), row, starts=False)
-            log.trace("Resulting server binding remote_token %r", row.remote_token)
-            # Copy the filters
+            first_row = True
+            for row in rows:
+                row.url = row.server_url
+                log.debug("Binding server from Nuxeo Drive V1: [%s, %s]", row.url, row.remote_user)
+                row.username = row.remote_user
+                row.password = None
+                row.token = row.remote_token
+                engine = self.bind_engine(self._get_default_server_type(), row["local_folder"],
+                                          self._get_engine_name(row.url), row, starts=False)
+                log.trace("Resulting server binding remote_token %r", row.remote_token)
+                if first_row:
+                    first_engine_def = row
+                    first_engine = engine
+                    first_row = False
+            # Copy filters for first engine as V1 only supports filtering for the first server binding
             filters = c.execute("SELECT * FROM filters")
             for filter_obj in filters:
-                if engine_def.local_folder != filter_obj.local_folder:
+                if first_engine_def.local_folder != filter_obj.local_folder:
                     continue
                 log.trace("Filter Row from DS1 %r", filter_obj)
-                engine.add_filter(filter_obj["path"])
+                first_engine.add_filter(filter_obj["path"])
 
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import ManagerDAO
