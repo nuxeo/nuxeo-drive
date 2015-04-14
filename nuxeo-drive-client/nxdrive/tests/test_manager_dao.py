@@ -57,6 +57,11 @@ class ManagerDAOTest(unittest.TestCase):
         token = remote_client.request_token()
         c.execute("UPDATE server_bindings SET remote_token='%s' WHERE local_folder='%s'" % (
             token, '/home/ataillefer/Nuxeo Drive'))
+
+        # Update local folder with test temp dir
+        local_folder = os.path.join(self.test_folder, 'Nuxeo Drive')
+        c.execute("UPDATE server_bindings SET local_folder='%s' WHERE local_folder='%s'" % (
+            local_folder, '/home/ataillefer/Nuxeo Drive'))
         conn.commit()
 
         # Create Manager with old DB migration
@@ -87,7 +92,7 @@ class ManagerDAOTest(unittest.TestCase):
         engine = engines[0]
         self.assertEquals(engine.engine, 'NXDRIVE')
         self.assertEquals(engine.name, 'localhost')
-        self.assertEquals(engine.local_folder, '/home/ataillefer/Nuxeo Drive')
+        self.assertEquals(engine.local_folder, local_folder)
 
         # Check engine config
         engine_uid = engine.uid
