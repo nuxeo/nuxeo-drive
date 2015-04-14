@@ -31,8 +31,7 @@ class TestReadOnly(UnitTestCase):
                 grant="true")
 
     def test_rename_readonly_file(self):
-        if sys.platform == 'win32' or sys.platform == 'darwin':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace
@@ -119,7 +118,7 @@ class TestReadOnly(UnitTestCase):
     def test_file_readonly_change(self):
         if os.sys.platform == 'win32':
             raise SkipTest('Readonly folder let new file creation')
-        if os.sys.platform == 'darwin':
+        else:
             raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local = self.local_client_1
         remote = self.remote_document_client_1

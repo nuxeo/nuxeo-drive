@@ -405,7 +405,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEquals(len(session.query(LastKnownState).all()), 0)
 
     def test_local_rename_readonly_folder(self):
-        if sys.platform == 'win32':
+        if sys.platform == 'win32' or sys.platform == 'darwin':
             raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
