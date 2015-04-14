@@ -344,7 +344,6 @@ class Manager(QtCore.QObject):
             engine = self.bind_engine(self._get_default_server_type(), row["local_folder"],
                                       self._get_engine_name(row.url), row, starts=False)
             log.trace("Resulting server binding remote_token %r", row.remote_token)
-            conn.commit()
             # Copy the filters
             filters = c.execute("SELECT * FROM filters")
             for filter_obj in filters:
