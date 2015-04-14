@@ -1,10 +1,11 @@
 import unittest
 import os
-import sys
 import shutil
 import tempfile
-import nxdrive
+import sqlite3
 from mock import Mock
+import nxdrive
+from nxdrive.client import RemoteDocumentClient
 from nxdrive.manager import Manager
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.logging_config import configure
@@ -22,6 +23,15 @@ class ManagerDAOTest(unittest.TestCase):
 
     def setUp(self):
         self.test_folder = tempfile.mkdtemp(u'-nxdrive-tests')
+        self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
+        self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
+        self.admin_password = os.environ.get('NXDRIVE_TEST_PASSWORD')
+        if self.nuxeo_url is None:
+            self.nuxeo_url = "http://localhost:8080/nuxeo"
+        if self.admin_user is None:
+            self.admin_user = "Administrator"
+        if self.admin_password is None:
+            self.admin_password = "Administrator"
 
     def tearDown(self):
         shutil.rmtree(self.test_folder)
@@ -38,6 +48,17 @@ class ManagerDAOTest(unittest.TestCase):
             f.write(db.read())
         db.close()
 
+        # Update token with one acquired against the test server
+        conn = sqlite3.connect(old_db)
+        c = conn.cursor()
+        device_id = c.execute("SELECT device_id FROM device_config LIMIT 1").fetchone()[0]
+        remote_client = RemoteDocumentClient(self.nuxeo_url, self.admin_user, device_id, nxdrive.__version__,
+                                             password=self.admin_password)
+        token = remote_client.request_token()
+        c.execute("UPDATE server_bindings SET remote_token='%s' WHERE local_folder='%s'" % (
+            token, '/home/ataillefer/Nuxeo Drive'))
+        conn.commit()
+
         # Create Manager with old DB migration
         options = Mock()
         options.debug = False
@@ -50,7 +71,7 @@ class ManagerDAOTest(unittest.TestCase):
         dao = manager.get_dao()
 
         # Check Manager config
-        self.assertEquals(dao.get_config('device_id'), '210c83e2e1fe11e48a5bc8f733c9742b')
+        self.assertEquals(dao.get_config('device_id'), device_id)
         self.assertEquals(dao.get_config('proxy_config'), 'Manual')
         self.assertEquals(dao.get_config('proxy_type'), 'http')
         self.assertEquals(dao.get_config('proxy_server'), 'proxy.server.com')
@@ -74,4 +95,4 @@ class ManagerDAOTest(unittest.TestCase):
         engine_dao = EngineDAO(engine_db)
         self.assertEquals(engine_dao.get_config('server_url'), 'http://localhost:8080/nuxeo/')
         self.assertEquals(engine_dao.get_config('remote_user'), 'Administrator')
-        self.assertEquals(engine_dao.get_config('remote_token'), '04c334d2-64f2-4bf8-bd6b-125ca3fea2c9')
+        self.assertEquals(engine_dao.get_config('remote_token'), token)
