@@ -568,10 +568,10 @@ class Manager(QtCore.QObject):
         return nuxeo_drive_folder
 
     def _increment_local_folder(self, basefolder, name):
-        nuxeo_drive_folder = os.path.join(basefolder, self._get_default_nuxeo_drive_name())
+        nuxeo_drive_folder = os.path.join(basefolder, name)
         num = 2
         while (not self._check_local_folder_available(nuxeo_drive_folder)):
-            nuxeo_drive_folder = os.path.join(basefolder, self._get_default_nuxeo_drive_name() + " " + str(num))
+            nuxeo_drive_folder = os.path.join(basefolder, name + " " + str(num))
             num = num + 1
             if num > 10:
                 return ""
