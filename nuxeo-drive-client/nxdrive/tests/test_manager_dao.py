@@ -10,6 +10,12 @@ from nxdrive.manager import Manager
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.logging_config import configure
 
+WindowsError = None
+try:
+    from exceptions import WindowsError
+except ImportError:
+    pass  # This will never be raised under Unix
+
 
 def configure_logger():
     configure(
@@ -34,7 +40,16 @@ class ManagerDAOTest(unittest.TestCase):
             self.admin_password = "Administrator"
 
     def tearDown(self):
-        shutil.rmtree(self.test_folder)
+        Manager._singleton = None
+        self._clean_dir(self.test_folder)
+
+    def _clean_dir(self, _dir):
+        if os.path.exists(_dir):
+            try:
+                shutil.rmtree(_dir)
+            except Exception as e:
+                if type(e) == WindowsError:
+                    os.system('rmdir /S /Q %s' % _dir)
 
     def _get_db(self, name):
         nxdrive_path = os.path.dirname(nxdrive.__file__)
