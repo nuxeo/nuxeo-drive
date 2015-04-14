@@ -1,3 +1,5 @@
+import sys
+from nose.plugins.skip import SkipTest
 from nxdrive.tests.common_unit_test import UnitTestCase
 
 
@@ -70,6 +72,8 @@ class TestLocalFilter(UnitTestCase):
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
     def test_synchronize_local_filter_with_move(self):
+        if sys.platform == 'darwin':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Bind the server and root workspace
         self.engine_1.start()
         # Get local and remote clients
@@ -139,6 +143,8 @@ class TestLocalFilter(UnitTestCase):
         self.assertFalse(local.exists('/Test/Subfolder/SubSubfolder/joe4.txt'))
 
     def test_synchronize_local_filter_with_remote_trash(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Bind the server and root workspace
         self.engine_1.start()
         self.wait_sync()

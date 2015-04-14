@@ -1,5 +1,6 @@
 import os
 import time
+import sys
 
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
@@ -64,6 +65,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         return self.engine_1.get_dao().get_normal_state_from_remote(remote)
 
     def test_remote_rename_file(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         remote_client = self.remote_client_1
         local_client = self.local_client_1
 
@@ -495,6 +498,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(file_1_1_state.local_name, u'Original File 1.1.txt')
 
     def test_remote_move_to_non_sync_root(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Grant ReadWrite permission on Workspaces for test user
         workspaces_path = u'/default-domain/workspaces'
         op_input = "doc:" + workspaces_path
