@@ -343,6 +343,8 @@ class TestRemoteDeletion(UnitTestCase):
         self._check_pair_state('/Test folder/jack renamed.odt', 'synchronized')
 
     def test_synchronize_local_folder_rename_remote_deletion(self):
+        if sys.platform == 'win32':
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test local folder rename followed by remote deletion"""
         # Bind the server and root workspace
 
