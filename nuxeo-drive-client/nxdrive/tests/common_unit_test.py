@@ -214,8 +214,6 @@ class UnitTestCase(unittest.TestCase):
         self.remote_file_system_client_1 = remote_file_system_client_1
         self.remote_file_system_client_2 = remote_file_system_client_2
 
-        self._wait_sync = True
-
     @QtCore.pyqtSlot()
     def sync_completed(self):
         log.debug("Sync completed")
@@ -225,10 +223,10 @@ class UnitTestCase(unittest.TestCase):
         # First wait for server
         self.wait()
         log.debug("Wait for sync")
+        self._wait_sync = True
         while timeout > 0:
             sleep(1)
             if not self._wait_sync:
-                self._wait_sync = True
                 return
             timeout = timeout - 1
         if fail_if_timeout:
