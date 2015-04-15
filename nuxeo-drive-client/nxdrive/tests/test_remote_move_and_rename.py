@@ -55,7 +55,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.file_3_id = self.remote_client_1.make_file(self.folder_2_id,
             u'Original File 3.txt',
             content=u'Some Content 3'.encode('utf-8')).uid
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
     def wait2(self):
         # Not sure we want launch the WaitForAsyncCompletion
@@ -74,7 +74,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
             u'Renamed File 1.txt')
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # Check remote file name
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
@@ -103,7 +103,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_1_id).name,
             u'Renamed File 1.1 \xe9.txt')
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
             u'Renamed Again File 1.txt')
@@ -155,7 +155,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(remote_client.get_content(self.file_1_id),
             'Updated content')
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # Check local file name
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
@@ -174,7 +174,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_id).parent_uid,
             self.folder_1_id)
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # Check remote file
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
@@ -211,7 +211,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(remote_client.get_info(self.file_1_id).parent_uid,
             self.folder_1_id)
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # Check remote file
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
@@ -245,7 +245,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # The client folder has been renamed
         self.assertFalse(local_client.exists(u'/Original Folder 1'))
@@ -291,10 +291,10 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         self.assertTrue(local_client.exists('/Original Folder 1'))
         remote_client.rename(self.folder_1_id, 'Original folder 1')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local_client.exists('/Original folder 1'))
         remote_client.rename(self.folder_1_id, 'Original Folder 1')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local_client.exists('/Original Folder 1'))
 
     def test_remote_move_folder(self):
@@ -310,7 +310,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Synchronize: only the folder move is detected: all
         # the descendants are automatically realigned
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # Check remote folder
         self.assertEquals(remote_client.get_info(self.folder_1_id).name,
@@ -382,7 +382,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # The content of the renamed folders is left unchanged
         # Check child name
@@ -427,7 +427,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Synchronize: only the sync root folder renaming is detected: all
         # the descendants are automatically realigned
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # The client folder has been renamed
         self.assertFalse(local_client.exists(u'/Nuxeo Drive Test Workspace'))
@@ -534,7 +534,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
                                 u'/Non synchronized folder/Original Folder 1'))
 
             # Synchronize: the folder move is detected as a deletion
-            self.wait_sync()
+            self.wait_sync(wait_for_async=True)
 
             # Check local folder
             self.assertFalse(local_client.exists(u'/Original Folder 1'))

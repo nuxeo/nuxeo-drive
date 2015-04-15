@@ -427,7 +427,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             permission="Read")
         self.root_remote_client.block_inheritance(folder_1_path,
                                                   overwrite=False)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         # Check can_rename flag in pair state
         folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(uid)
         self.assertFalse(folder_1_state.remote_can_rename)

@@ -35,13 +35,13 @@ class TestRemoteDeletion(UnitTestCase):
         remote.make_folder('/', 'Test folder')
         remote.make_file('/Test folder', 'joe.txt', 'Some content')
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
         # Delete remote folder then synchronize
         remote.delete('/Test folder')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test folder'))
 
         # Restore folder from trash then synchronize
@@ -50,20 +50,20 @@ class TestRemoteDeletion(UnitTestCase):
         # through a dedicated operation
         remote.undelete('/Test folder')
         remote.undelete('/Test folder/joe.txt')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
         # Delete sync root then synchronize
         remote.delete('/')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/'))
 
         # Restore sync root from trash then synchronize
         remote.undelete('/')
         remote.undelete('/Test folder')
         remote.undelete('/Test folder/joe.txt')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
@@ -118,7 +118,7 @@ class TestRemoteDeletion(UnitTestCase):
         remote.make_folder('/Test folder', 'Sub folder 1')
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
                          'Content')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         self.assertTrue(local.exists('/Test folder/jack.odt'))
@@ -138,7 +138,7 @@ class TestRemoteDeletion(UnitTestCase):
                         'Other content')
         # Update file
         local.update_content('/Test folder/joe.odt', 'Some updated content')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         # Only locally modified content should exist
         # and should be marked as 'unsynchronized', other content should
         # have been deleted
@@ -175,7 +175,7 @@ class TestRemoteDeletion(UnitTestCase):
         remote.undelete('/Test folder/jack.odt')
         remote.undelete('/Test folder/Sub folder 1')
         remote.undelete('/Test folder/Sub folder 1/sub file 1.txt')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         # Remotely restored documents should be merged with
         # locally modified content which should be unmarked
         # as 'unsynchronized' and therefore synchronized upstream
@@ -252,7 +252,7 @@ class TestRemoteDeletion(UnitTestCase):
         remote.delete('/Test folder/jack.odt')
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.update_content('/Test folder/jack.odt', 'Some updated content')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         # File should be kept locally and be marked as 'unsynchronized'.
         # Local check
         self.assertTrue(local.exists('/Test folder/jack.odt'))
@@ -261,13 +261,12 @@ class TestRemoteDeletion(UnitTestCase):
         # Remote check
         self.assertFalse(remote.exists('/Test folder/jack.odt'))
         # State check
-        self.wait_sync()
         self._check_pair_state('/Test folder', 'synchronized')
         self._check_pair_state('/Test folder/jack.odt', 'unsynchronized')
 
         # Remotely restore file from the trash then synchronize
         remote.undelete('/Test folder/jack.odt')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         # Remotely restored file should be merged with locally modified file
         # with a conflict detection and both files should be marked
         # as 'synchronized'
@@ -304,7 +303,7 @@ class TestRemoteDeletion(UnitTestCase):
         remote.delete('/Test folder/jack.odt')
         time.sleep(self.OS_STAT_MTIME_RESOLUTION)
         local.rename('/Test folder/jack.odt', 'jack renamed.odt')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         # File should be kept locally and be marked as 'synchronized'
         # Local check
         self.assertFalse(local.exists('/Test folder/jack.odt'))
@@ -314,13 +313,12 @@ class TestRemoteDeletion(UnitTestCase):
         # Remote check
         self.assertFalse(remote.exists('/Test folder/jack.odt'))
         # State check
-        self.wait_sync()
         self._check_pair_state('/Test folder', 'synchronized')
         self._check_pair_state('/Test folder/jack renamed.odt', 'synchronized')
 
         # Remotely restore file from the trash then synchronize
         remote.undelete('/Test folder/jack.odt')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         # Remotely restored file should be merged with locally renamed file
         # and both files should be marked as 'synchronized'
         # Local check
@@ -357,7 +355,7 @@ class TestRemoteDeletion(UnitTestCase):
         test_folder_uid = remote.make_folder('/', 'Test folder')
         remote.make_file(test_folder_uid, 'joe.odt', 'Some content')
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
 
@@ -374,7 +372,7 @@ class TestRemoteDeletion(UnitTestCase):
         # Delete remote folder then synchronize
         remote.delete('/Test folder')
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertFalse(remote.exists('/Test folder renamed'))
         self.assertFalse(local.exists('/Test folder renamed'))
 

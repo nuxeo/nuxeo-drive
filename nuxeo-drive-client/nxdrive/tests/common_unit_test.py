@@ -219,10 +219,11 @@ class UnitTestCase(unittest.TestCase):
         log.debug("Sync completed")
         self._wait_sync = False
 
-    def wait_sync(self, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True):
-        # First wait for server
-        self.wait()
+    def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True):
         log.debug("Wait for sync")
+        # First wait for server if needed
+        if wait_for_async:
+            self.wait()
         self._wait_sync = True
         while timeout > 0:
             sleep(1)

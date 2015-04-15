@@ -34,7 +34,7 @@ class TestLocalFilter(UnitTestCase):
         # then synchronize
         remote.make_folder('/', 'Test folder')
         remote.make_file('/Test folder', 'joe.txt', 'Some content')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         # Fake server binding with the unit test class
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
@@ -93,7 +93,7 @@ class TestLocalFilter(UnitTestCase):
                                                     'Some qwqwqontent')
 
         # Fake server binding with the unit test class
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test'))
         self.assertTrue(local.exists('/Test/joe.txt'))
         self.assertTrue(local.exists('/Test/Filtered'))
@@ -119,7 +119,7 @@ class TestLocalFilter(UnitTestCase):
 
         # Move joe.txt to filtered folder on the server
         remote.move(doc_file.uid, filtered_doc.uid)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # It now delete on the client
         self.assertFalse(local.exists('/Test/joe.txt'))
@@ -132,7 +132,7 @@ class TestLocalFilter(UnitTestCase):
         # Now move the subfolder
         doc_file = remote.get_info('/Test/Subfolder')
         remote.move(doc_file.uid, filtered_doc.uid)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # Check that all has been deleted
         self.assertFalse(local.exists('/Test/joe.txt'))
@@ -145,9 +145,7 @@ class TestLocalFilter(UnitTestCase):
     def test_synchronize_local_filter_with_remote_trash(self):
         if sys.platform == 'win32':
             raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        # Bind the server and root workspace
         self.engine_1.start()
-        self.wait_sync()
 
         # Get local and remote clients
         local = self.local_client_1
@@ -158,7 +156,7 @@ class TestLocalFilter(UnitTestCase):
         remote.make_folder('/', 'Test')
         remote.make_file('/Test', 'joe.txt', 'Some content')
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test'))
         self.assertTrue(local.exists('/Test/joe.txt'))
 
@@ -175,7 +173,7 @@ class TestLocalFilter(UnitTestCase):
 
         # Delete remote folder then synchronize
         remote.delete('/Test')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test'))
 
         # Restore folder from trash then synchronize
@@ -185,5 +183,5 @@ class TestLocalFilter(UnitTestCase):
         remote.undelete('/Test')
         remote.undelete('/Test/joe.txt')
         # NXDRIVE-xx check that the folder is not created as it is filtered
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test'))

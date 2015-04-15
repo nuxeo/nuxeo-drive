@@ -36,7 +36,7 @@ class TestSecurityUpdates(UnitTestCase):
         remote.make_folder('/', 'Test folder')
         remote.make_file('/Test folder', 'joe.txt', 'Some content')
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
@@ -45,14 +45,14 @@ class TestSecurityUpdates(UnitTestCase):
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   self.TEST_WORKSPACE_PATH + '/Test folder',
                                   False)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test folder'))
 
         # Add Read permission back for test user then synchronize
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   self.TEST_WORKSPACE_PATH + '/Test folder',
                                   True)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
@@ -61,14 +61,14 @@ class TestSecurityUpdates(UnitTestCase):
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   self.TEST_WORKSPACE_PATH,
                                   False)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/'))
 
         # Add Read permission back for test user then synchronize
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   self.TEST_WORKSPACE_PATH,
                                   True)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
@@ -116,7 +116,7 @@ class TestSecurityUpdates(UnitTestCase):
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
                          'Content')
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         self.assertTrue(local.exists('/Test folder/jack.odt'))
@@ -152,7 +152,7 @@ class TestSecurityUpdates(UnitTestCase):
         root_remote.update_content(test_folder_path + '/joe.odt',
                 'Some remotely updated content')
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         # Only locally modified content should exist
         # and should be marked as 'unsynchronized', other content should
         # have been deleted.
@@ -215,7 +215,7 @@ class TestSecurityUpdates(UnitTestCase):
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   self.TEST_WORKSPACE_PATH + '/Test folder',
                                   True)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         # Remote documents should be merged with locally modified content
         # which should be unmarked as 'unsynchronized' and therefore
         # synchronized upstream.

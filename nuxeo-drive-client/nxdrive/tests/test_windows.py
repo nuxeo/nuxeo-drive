@@ -15,7 +15,7 @@ class TestWindows(UnitTestCase):
         local = LocalClient(self.local_test_folder_1)
         remote = self.remote_document_client_1
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # Create 2 files with the same name but different content
         # in separate folders
@@ -68,7 +68,7 @@ class TestWindows(UnitTestCase):
         remote.make_file('/', 'test_delete.docx', 'Some content to delete.')
 
         # Launch first synchronization
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/test_update.docx'))
         self.assertTrue(local.exists('/test_delete.docx'))
 
@@ -88,7 +88,7 @@ class TestWindows(UnitTestCase):
         remote.make_file('/', 'other.docx', 'Other content.')
 
         # Synchronize
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         if sys.platform == 'win32':
             # As local file are locked, a WindowsError should occur during the
             # local update process, therefore:

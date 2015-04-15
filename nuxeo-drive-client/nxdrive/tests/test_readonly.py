@@ -11,7 +11,7 @@ class TestReadOnly(UnitTestCase):
     def setUp(self):
         super(TestReadOnly, self).setUp()
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
 
     def _set_readonly_permission(self, user, doc_path, grant):
@@ -45,7 +45,7 @@ class TestReadOnly(UnitTestCase):
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', True)
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         self.assertTrue(local.exists('/Test folder/jack.odt'))
@@ -133,7 +133,7 @@ class TestReadOnly(UnitTestCase):
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', True)
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         self.assertTrue(local.exists('/Test folder/jack.odt'))
@@ -144,7 +144,7 @@ class TestReadOnly(UnitTestCase):
         # Remove the readonly
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', False)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         fname = os.path.join(self.sync_root_folder_1, 'Test folder',
                                 'test.txt')
         fname2 = os.path.join(self.sync_root_folder_1, 'Test folder',
@@ -159,7 +159,7 @@ class TestReadOnly(UnitTestCase):
         # Put it back readonly
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', True)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # Check it works
         self.assertFalse(self.touch(fname))
