@@ -3,7 +3,6 @@
 import sys
 import errno
 import json
-import re
 from urlparse import urljoin
 from urllib2 import URLError
 from urllib2 import HTTPError
@@ -141,7 +140,7 @@ class AppUpdater(PollWorker):
                         " features won't be available")
         else:
             # Update information successfully fetched
-            log.info("Fetched information from update site %s: update"
+            log.debug("Fetched information from update site %s: update"
                      " status = '%s', update version = '%s'",
                      self.update_site, update_status, update_version)
             if update_status in [UPDATE_STATUS_DOWNGRADE_NEEDED, UPDATE_STATUS_UPGRADE_NEEDED]:
@@ -172,7 +171,7 @@ class AppUpdater(PollWorker):
                 self.updateAvailable.emit()
             else:
                 # Application is up-to-date
-                log.info("Application is up-to-date")
+                log.debug("Application is up-to-date")
 
     def set_version_finder(self, version_finder):
         self.esky_app._set_version_finder(version_finder)
@@ -211,7 +210,7 @@ class AppUpdater(PollWorker):
             return version
         except HTTPError as e:
             version = DEFAULT_SERVER_MIN_VERSION
-            log.warning(missing_msg + ", using default one: %s", DEFAULT_SERVER_MIN_VERSION)
+            log.debug(missing_msg + ", using default one: %s", DEFAULT_SERVER_MIN_VERSION)
         except URLError as e:
             self._handle_URL_error(e)
         except socket.timeout as e:
@@ -297,7 +296,7 @@ class AppUpdater(PollWorker):
             client_min_version = self.min_client_version
             server_min_version = self.min_server_version
             if (client_version == latest_version):
-                log.info("Client version %s is up-to-date regarding server"
+                log.debug("Client version %s is up-to-date regarding server"
                          " version %s.", client_version, self.min_server_version)
                 return (UPDATE_STATUS_UP_TO_DATE, None)
 
