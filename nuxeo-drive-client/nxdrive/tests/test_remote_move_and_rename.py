@@ -65,8 +65,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         return self.engine_1.get_dao().get_normal_state_from_remote(remote)
 
     def test_remote_rename_file(self):
-        if sys.platform == 'win32' or sys.platform == 'darwin':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         remote_client = self.remote_client_1
         local_client = self.local_client_1
 
