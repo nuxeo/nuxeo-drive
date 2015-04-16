@@ -160,6 +160,8 @@ class EngineWorker(Worker):
     def _clean(self, reason, e=None):
         if e is not None and type(e) == HTTPError:
             if e.code == 401:
+                log.error("Got 401 HTTPError while cleaning EngineWorker '%s', setting invalid credentials", self._name,
+                          exc_info=True)
                 self._engine.set_invalid_credentials(True)
                 self._reset_clients()
         self._engine.get_dao().dispose_thread()

@@ -43,6 +43,8 @@ class RemoteWatcher(EngineWorker):
         try:
             self._client = engine.get_remote_client()
         except Unauthorized:
+            log.error('Got Unauthorized exception while trying to get remote client, setting invalid credentials',
+                      exc_info=True)
             self._engine.set_invalid_credentials()
         except URLError, HTTPError:
             self._client = None
@@ -300,6 +302,8 @@ class RemoteWatcher(EngineWorker):
             raise e
         except HTTPError as e:
             if e.code == 401:
+                log.error('Got 401 HTTPError while trying to handle remote changes, setting invalid credentials',
+                          exc_info=True)
                 self._engine.set_invalid_credentials()
             else:
                 log.exception(e)
