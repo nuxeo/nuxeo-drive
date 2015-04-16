@@ -101,10 +101,6 @@ class TestRemoteDocumentClient(IntegrationTestCase):
 
         doc_2 = remote_client.make_file(self.workspace, 'Document 2.txt',
                                   content=self.SOME_TEXT_CONTENT)
-        # Wait to make sure transaction is commited
-        # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
-        # fixed
-        self.wait()
 
         self.assertTrue(remote_client.exists(doc_2))
         self.assertEquals(remote_client.get_content(doc_2),
@@ -313,10 +309,6 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         doc_ref = remote_client.stream_file(self.workspace,
                                   'Streamed text file', file_path,
                                   filename='My streamed file.txt')
-        # Wait to make sure transaction is commited
-        # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
-        # fixed
-        self.wait()
         self.assertEquals(remote_client.get_info(doc_ref).name,
                           'Streamed text file')
         self.assertEquals(remote_client.get_content(doc_ref), "Some content.")
@@ -325,10 +317,6 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         file_path = remote_client.make_tmp_file("Other content.")
         remote_client.stream_update(doc_ref, file_path,
                                     filename='My updated file.txt')
-        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
-        # wait for a while to ensure transaction is committed before
-        # Blob response is serialized and sent to the client
-        self.wait()
         self.assertEquals(remote_client.get_content(doc_ref), "Other content.")
 
         # Create a document by streaming a binary file
@@ -336,10 +324,6 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
         doc_ref = remote_client.stream_file(self.workspace,
                                   'Streamed binary file', file_path)
-        # Wait to make sure transaction is commited
-        # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
-        # fixed
-        self.wait()
         local_client = LocalClient(self.upload_tmp_dir)
         doc_info = remote_client.get_info(doc_ref)
         self.assertEquals(doc_info.name, 'Streamed binary file')
@@ -355,10 +339,6 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         doc_ref = remote_client.stream_file(self.workspace,
                                   'Streamed binary file',
                                   file_path, mime_type='pdf')
-        # Wait to make sure transaction is commited
-        # TODO: remove when https://jira.nuxeo.com/browse/NXP-10964 is
-        # fixed
-        self.wait()
         local_client = LocalClient(self.upload_tmp_dir)
         doc_info = remote_client.get_info(doc_ref)
         self.assertEquals(doc_info.name, 'Streamed binary file')
@@ -400,26 +380,14 @@ class TestRemoteDocumentClient(IntegrationTestCase):
 
         # Update doc and restore it to version 1.0
         remote_client.update_content(doc, "Twice updated content.")
-        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
-        # wait for a while to ensure transaction is commited before
-        # Blob response is serialized and sent to the client
-        self.wait()
         self.assertEquals(remote_client.get_content(doc),
                           "Twice updated content.")
         remote_client.restore_version(version_1_uid)
-        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
-        # wait for a while to ensure transaction is commited before
-        # Blob response is serialized and sent to the client
-        self.wait()
         self.assertEquals(remote_client.get_content(doc),
                           "Initial content.")
 
         # Restore doc to version 1.1
         remote_client.restore_version(version_2_uid)
-        # As a workaround for https://jira.nuxeo.com/browse/NXP-10964,
-        # wait for a while to ensure transaction is commited before
-        # Blob response is serialized and sent to the client
-        self.wait()
         self.assertEquals(remote_client.get_content(doc),
                           "Updated content.")
 

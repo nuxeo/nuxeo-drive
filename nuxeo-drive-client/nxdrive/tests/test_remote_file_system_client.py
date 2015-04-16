@@ -239,9 +239,6 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         # Check non existing file system item (document without content)
         doc_uid = self.remote_document_client_1.make_file(self.workspace,
             'Document 2.txt')
-        # Wait to be sure that the file creation has been committed
-        # See https://jira.nuxeo.com/browse/NXP-10964
-        time.sleep(1.0)
         fs_item_id = self.FS_ITEM_ID_PREFIX + doc_uid
         self.assertFalse(remote_client.exists(fs_item_id))
 
