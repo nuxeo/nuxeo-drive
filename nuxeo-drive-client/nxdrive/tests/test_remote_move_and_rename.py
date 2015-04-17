@@ -57,10 +57,6 @@ class TestRemoteMoveAndRename(UnitTestCase):
             content=u'Some Content 3'.encode('utf-8')).uid
         self.wait_sync(wait_for_async=True)
 
-    def wait2(self):
-        # Not sure we want launch the WaitForAsyncCompletion
-        pass
-
     def _get_state(self, remote):
         return self.engine_1.get_dao().get_normal_state_from_remote(remote)
 
