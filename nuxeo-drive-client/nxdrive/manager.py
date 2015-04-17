@@ -421,7 +421,7 @@ class Manager(QtCore.QObject):
         return beta_update_url
 
     def is_beta_channel_available(self):
-        return self._get_beta_update_url(True) is not None
+        return self._get_beta_update_url(False) is not None
 
     def get_updater(self):
         return self._app_updater
@@ -431,6 +431,7 @@ class Manager(QtCore.QObject):
             self.get_updater().refresh_status()
 
     def _refresh_engine_update_infos(self):
+        log.debug('Refreshing engine infos')
         engines = self.get_engines()
         if engines:
             for engine in engines.itervalues():
