@@ -442,12 +442,14 @@ class Engine(QObject):
     @pyqtSlot()
     def _check_last_sync(self):
         from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
-        log.debug('Checking sync completed: queue manager is %s and overall size = %d',
-                  'active' if self._queue_manager.active() else 'inactive', self._queue_manager.get_overall_size())
+        qm_active = self._queue_manager.active()
+        qm_size = self._queue_manager.get_overall_size()
+        empty_polls = self._remote_watcher.get_metrics()["empty_polls"]
+        log.debug('Checking sync completed: queue manager is %s, overall size = %d, empty polls count = %d',
+                  'active' if qm_active else 'inactive', qm_size, empty_polls)
         local_metrics = self._local_watcher.get_metrics()
-        if (self._queue_manager.get_overall_size() == 0 and not self._queue_manager.active()
-            and self._remote_watcher.get_metrics()["empty_polls"] > 0 and
-            (current_milli_time() - local_metrics["last_event"]) > WIN_MOVE_RESOLUTION_PERIOD):
+        if (qm_size == 0 and not qm_active and empty_polls > 0
+                and (current_milli_time() - local_metrics["last_event"]) > WIN_MOVE_RESOLUTION_PERIOD):
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
             if local_metrics['last_event'] == 0:
                 log.warn("No watchdog event detected but sync is completed")
