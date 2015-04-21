@@ -214,9 +214,11 @@ class UnitTestCase(unittest.TestCase):
         self.remote_file_system_client_1 = remote_file_system_client_1
         self.remote_file_system_client_2 = remote_file_system_client_2
 
+        self.empty_polls = 0
+
     @QtCore.pyqtSlot()
     def sync_completed(self):
-        log.debug("Sync completed")
+        # TODO NXDRIVE-170: handle multiple engines
         self._wait_sync = False
 
     def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True):
@@ -228,7 +230,19 @@ class UnitTestCase(unittest.TestCase):
         while timeout > 0:
             sleep(1)
             if not self._wait_sync:
-                return
+                if wait_for_async:
+                    # TODO NXDRIVE-170: handle multiple engines
+                    metrics = self.engine_1._remote_watcher.get_metrics()
+                    empty_polls_metric = metrics['empty_polls']
+                    log.trace("Sync completed, empty_polls = %d, metrics['empty_polls'] = %d",
+                              self.empty_polls, empty_polls_metric)
+                    if self.empty_polls == 0 or empty_polls_metric <= self.empty_polls:
+                        self.empty_polls = empty_polls_metric
+                        log.debug('Ended wait for sync, setting empty_polls to %d', self.empty_polls)
+                        return
+                else:
+                    log.debug("Sync completed, ended wait for sync")
+                    return
             timeout = timeout - 1
         if fail_if_timeout:
             self.fail("Wait for sync timeout expired")
@@ -258,6 +272,7 @@ class UnitTestCase(unittest.TestCase):
 
         # TODO Should use a specific application
         def launch_test():
+            log.debug("UnitTest thread started")
             sleep(1)
             super(UnitTestCase, self).run(result)
             self.app.quit()
