@@ -1,6 +1,7 @@
 from nxdrive.client import NotFound
 from nxdrive.client import LocalClient
 from nxdrive.tests.common import IntegrationTestCase
+from nxdrive.client.base_automation_client import CorruptedFile
 from shutil import copyfile
 import hashlib
 import time
@@ -87,6 +88,34 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         fs_item_id = self.FS_ITEM_ID_PREFIX + doc_uid
         self.assertRaises(NotFound,
             remote_client.get_content, fs_item_id)
+
+    def test_wrong_hash(self):
+        remote_client = self.remote_file_system_client_1
+        hash_method =  None
+        # Check file with content
+        fs_item_id = remote_client.make_file(self.workspace_id,
+            'Document 1.txt', "Content of doc 1.").uid
+        # Monkey patch teh get_info to change hash
+        def get_info(fs_item_id, parent_fs_item_id=None,
+                 raise_if_missing=True):
+            fs_item = remote_client.get_fs_item(fs_item_id,
+                                   parent_fs_item_id=parent_fs_item_id)
+            fs_item['digest']='aaaaa'
+            if hash_method is not None:
+                fs_item['digestAlgorithm'] = hash_method
+            if fs_item is None:
+                if raise_if_missing:
+                    raise NotFound("Could not find '%s' on '%s'" % (
+                        fs_item_id, self.server_url))
+                return None
+            return remote_client.file_to_info(fs_item)
+
+        remote_client.get_info = get_info
+        self.assertRaises(CorruptedFile, remote_client.get_content, fs_item_id)
+        file_path = os.path.join(self.local_test_folder_1, 'Document 1.txt')
+        self.assertRaises(CorruptedFile, remote_client.stream_content, fs_item_id, file_path)
+        hash_method = 'not_hash'
+        self.assertRaises(ValueError, remote_client.get_content, fs_item_id)
 
     def test_stream_content(self):
         remote_client = self.remote_file_system_client_1

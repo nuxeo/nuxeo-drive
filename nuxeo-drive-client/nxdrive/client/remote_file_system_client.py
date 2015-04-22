@@ -79,7 +79,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         download_url = self.server_url + fs_item_info.download_url
         FileAction("Download", None,
                                         fs_item_info.name, 0)
-        content, _ = self.do_get(download_url)
+        content, _ = self.do_get(download_url, digest=fs_item_info.digest, digest_algorithm=fs_item_info.digest_algorithm)
         self.end_action()
         return content
 
@@ -99,7 +99,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
                                 + DOWNLOAD_TMP_FILE_SUFFIX)
         FileAction("Download", file_out, file_name, 0)
-        _, tmp_file = self.do_get(download_url, file_out=file_out)
+        _, tmp_file = self.do_get(download_url, file_out=file_out, digest=fs_item_info.digest, digest_algorithm=fs_item_info.digest_algorithm)
         self.end_action()
         return tmp_file
 

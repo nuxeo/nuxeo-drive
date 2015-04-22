@@ -7,6 +7,7 @@ import urllib2
 import random
 import time
 import os
+import hashlib
 import tempfile
 from urllib import urlencode
 from poster.streaminghttp import get_handlers
@@ -94,6 +95,9 @@ def get_proxy_handler(proxies, proxy_exceptions=None, url=None):
 class AddonNotInstalled(Exception):
     pass
 
+
+class CorruptedFile(Exception):
+    pass
 
 class Unauthorized(Exception):
 
@@ -651,7 +655,13 @@ class BaseAutomationClient(BaseClient):
                 current_action.progress += buffer_size
             yield r
 
-    def do_get(self, url, file_out=None):
+    def do_get(self, url, file_out=None, digest=None, digest_algorithm='md5'):
+        h = None
+        if digest_algorithm is not None:
+            digester = getattr(hashlib, digest_algorithm, None)
+            if digester is None:
+                raise ValueError('Unknow digest method: ' + digest_algorithm)
+            h = digester()
         headers = self._get_common_headers()
         base_error_message = (
             "Failed to connect to Nuxeo server %r with user %r"
@@ -682,6 +692,8 @@ class BaseAutomationClient(BaseClient):
                                 current_action.progress += (
                                                     self.get_download_buffer())
                             f.write(buffer_)
+                            if h is not None:
+                                h.update(buffer_)
                         if self._remote_error is not None:
                             # Simulate a configurable remote (e.g. network or
                             # server) error for the tests
@@ -690,11 +702,20 @@ class BaseAutomationClient(BaseClient):
                             # Simulate a configurable local error (e.g. "No
                             # space left on device") for the tests
                             raise self._local_error
+                    if digest is not None and digest != h.hexdigest():
+                        if os.path.exists(file_out):
+                            os.remove(file_out)
+                        raise CorruptedFile("Corrupted file")
                     return None, file_out
                 finally:
                     self.lock_path(file_out, locker)
             else:
-                return response.read(), None
+                result = response.read()
+                if h is not None:
+                    h.update(result)
+                    if digest is not None and digest != h.hexdigest():
+                        raise CorruptedFile("Corrupted file")
+                return result, None
         except urllib2.HTTPError as e:
             if e.code == 401 or e.code == 403:
                 raise Unauthorized(self.server_url, self.user_id, e.code)
