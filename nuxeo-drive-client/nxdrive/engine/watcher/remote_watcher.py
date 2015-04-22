@@ -29,10 +29,9 @@ class RemoteWatcher(EngineWorker):
     remoteScanFinished = pyqtSignal()
 
     def __init__(self, engine, dao, delay):
-        super(RemoteWatcher, self).__init__(engine)
+        super(RemoteWatcher, self).__init__(engine, dao)
         self.unhandle_fs_event = False
         self.local_full_scan = dict()
-        self._dao = dao
         self._full_scan_mode = False
         self._last_sync_date = self._dao.get_config('remote_last_sync_date')
         self._last_event_log_id = self._dao.get_config('remote_last_event_log_id')

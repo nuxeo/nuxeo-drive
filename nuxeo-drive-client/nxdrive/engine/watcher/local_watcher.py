@@ -27,12 +27,11 @@ class LocalWatcher(EngineWorker):
         '''
         Constructor
         '''
-        super(LocalWatcher, self).__init__(engine)
+        super(LocalWatcher, self).__init__(engine, dao)
         self.unhandle_fs_event = False
         self._event_handler = None
         self.local_full_scan = dict()
         self._local_scan_finished = False
-        self._dao = dao
         self.client = engine.get_local_client()
         self._metrics = dict()
         self._metrics['last_local_scan_time'] = -1

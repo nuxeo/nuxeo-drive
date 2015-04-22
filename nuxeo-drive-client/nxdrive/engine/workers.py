@@ -150,9 +150,10 @@ class Worker(QObject):
 
 
 class EngineWorker(Worker):
-    def __init__(self, engine, thread=None, name=None):
+    def __init__(self, engine, dao, thread=None, name=None):
         super(EngineWorker, self).__init__(thread, name)
         self._engine = engine
+        self._dao = dao
 
     def _reset_clients(self):
         pass
@@ -165,6 +166,12 @@ class EngineWorker(Worker):
                 self._engine.set_invalid_credentials(True)
                 self._reset_clients()
         self._engine.get_dao().dispose_thread()
+
+    def increase_error(self, doc_pair, error, exception=None):
+        details = repr(exception) if exception else None
+        log.debug('Increasing error [%s] (%r) for %r', error, details, doc_pair)
+        self._dao.increase_error(doc_pair, error, details)
+        self._engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
 
 class PollWorker(Worker):
