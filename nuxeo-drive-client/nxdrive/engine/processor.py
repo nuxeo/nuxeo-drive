@@ -108,14 +108,20 @@ class Processor(EngineWorker):
                     self._current_metrics["handler"] = doc_pair.pair_state
                     self._current_metrics["start_time"] = current_milli_time()
                     log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
-                    sync_handler(doc_pair, local_client, remote_client)
-                    self._current_metrics["end_time"] = current_milli_time()
-                    self.pairSync.emit(doc_pair, self._current_metrics)
-                    # TO_REVIEW May have a call to reset_error
-                    log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
+                    try:
+                        sync_handler(doc_pair, local_client, remote_client)
+                        self._current_metrics["end_time"] = current_milli_time()
+                        self.pairSync.emit(doc_pair, self._current_metrics)
+                        # TO_REVIEW May have a call to reset_error
+                        log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
+                    except Exception as e:
+                        log.exception(e)
+                        self.increase_error(doc_pair, "SYNC HANDLER: %s" % handler_name, exception=e)
+                        self._current_item = self._get_item()
+                        continue
             except Exception as e:
-                self._increase_error(doc_pair, "EXCEPTION", exception=e)
                 log.exception(e)
+                self.increase_error(doc_pair, "EXCEPTION", exception=e)
                 raise e
             finally:
                 self.release_state()
