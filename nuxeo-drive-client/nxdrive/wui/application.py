@@ -150,7 +150,7 @@ class Application(QApplication):
             new_state = 'stopping'
         elif syncing:
             new_state = 'transferring'
-        log.debug("Should change icon to %s", new_state)
+        log.trace("Should change icon to %s", new_state)
         self.set_icon_state(new_state)
 
     def _get_settings_dialog(self, section):
