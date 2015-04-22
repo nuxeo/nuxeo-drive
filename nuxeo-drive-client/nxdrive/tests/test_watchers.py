@@ -149,5 +149,8 @@ class TestWatchers(UnitTestCase):
         # Launch local scan and check upstream synchronization
         self.engine_1.start()
         self.wait_sync()
-        self.assertFalse(remote.exists(u'/Accentue\u0301.txt'))
+        if sys.platform == "darwin":
+            self.assertTrue(remote.exists(u'/Accentue\u0301.txt'))
+        else:
+            self.assertFalse(remote.exists(u'/Accentue\u0301.txt'))
         self.assertTrue(remote.exists(u'/No special character.txt'))

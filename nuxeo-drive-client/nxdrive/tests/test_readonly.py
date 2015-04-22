@@ -4,7 +4,9 @@ import sys
 
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
+from nxdrive.logging_config import get_logger
 
+log = get_logger(__name__)
 
 class TestReadOnly(UnitTestCase):
 
@@ -31,7 +33,6 @@ class TestReadOnly(UnitTestCase):
                 grant="true")
 
     def test_rename_readonly_file(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace
@@ -118,8 +119,6 @@ class TestReadOnly(UnitTestCase):
     def test_file_readonly_change(self):
         if os.sys.platform == 'win32':
             raise SkipTest('Readonly folder let new file creation')
-        else:
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace

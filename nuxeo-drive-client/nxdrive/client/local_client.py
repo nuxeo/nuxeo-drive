@@ -549,12 +549,21 @@ class LocalClient(BaseClient):
             self.lock_ref(ref, locker & 2)
 
     def delete_final(self, ref):
-        self.unset_readonly(ref)
-        os_path = self._abspath(ref)
-        if os.path.isfile(os_path):
-            os.unlink(os_path)
-        elif os.path.isdir(os_path):
-            shutil.rmtree(os_path)
+        locker = 0
+        parent_ref = None
+        try:
+            if ref is not '/':
+                parent_ref = os.path.dirname(ref)
+                locker = self.unlock_ref(parent_ref, False)
+            self.unset_readonly(ref)
+            os_path = self._abspath(ref)
+            if os.path.isfile(os_path):
+                os.unlink(os_path)
+            elif os.path.isdir(os_path):
+                shutil.rmtree(os_path)
+        finally:
+            if parent_ref is not None:
+                self.lock_ref(parent_ref, locker)
 
     def exists(self, ref):
         os_path = self._abspath(ref)
