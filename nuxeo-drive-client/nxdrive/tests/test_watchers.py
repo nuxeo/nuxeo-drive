@@ -132,3 +132,22 @@ class TestWatchers(UnitTestCase):
         self.assertEqual(len(children), 5)
         for child in children:
             self.assertEqual(child.pair_state, 'parent_locally_deleted')
+
+    def test_local_scan_encoding(self):
+        # TODO NXDRIVE-188: adapt when fixed
+        # Encoded filename should pass and find another way to trigger the error
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+        # Synchronize test workspace
+        self.engine_1.start()
+        self.wait_sync()
+        self.engine_1.stop()
+        # Create a local file with a Unicode combining accent to trigger an error during local scan
+        # and another file with no special characters
+        local.make_file('/', u'Accentue\u0301.txt', 'Content')
+        local.make_file('/', u'No special character.txt', 'Content')
+        # Launch local scan and check upstream synchronization
+        self.engine_1.start()
+        self.wait_sync()
+        self.assertFalse(remote.exists(u'/Accentue\u0301.txt'))
+        self.assertTrue(remote.exists(u'/No special character.txt'))
