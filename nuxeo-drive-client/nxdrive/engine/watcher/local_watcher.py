@@ -423,8 +423,7 @@ class LocalWatcher(EngineWorker):
                 return
             log.trace('Unhandled case: %r %s %s', evt, rel_path, file_name)
         except Exception as e:
-            log.warn("Watchdog exception : %r" % e)
-            log.exception(e)
+            log.error('Watchdog exception', exc_info=True)
         finally:
             self._end_action()
 
