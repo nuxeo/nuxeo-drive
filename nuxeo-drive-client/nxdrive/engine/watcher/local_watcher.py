@@ -62,7 +62,6 @@ class LocalWatcher(EngineWorker):
                     self._win_dequeue_delete()
                     self._end_action()
         except ThreadInterrupt:
-            self._stop_watchdog()
             raise
         finally:
             self._stop_watchdog()
