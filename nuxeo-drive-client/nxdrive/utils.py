@@ -409,10 +409,10 @@ class PidLockFile(object):
                 pid = os.getpid()
                 try:
                     pid = int(f.read().strip())
-                    _ = psutil.Process(pid)
-                    # TODO https://jira.nuxeo.com/browse/NXDRIVE-26: Check if
-                    # we can skip the process name verif as it can be
-                    # overridden
+                    p = psutil.Process(pid)
+                    # If process has been created after the lock file
+                    if p.create_time() > os.path.getctime(pid_filepath):
+                        raise ValueError
                     return pid
                 except (ValueError, psutil.NoSuchProcess):
                     pass

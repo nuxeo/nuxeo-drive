@@ -395,11 +395,19 @@ class CliHandler(object):
 
     def load_config(self, parser):
         import ConfigParser
+        config_name = 'config.ini'
         config = ConfigParser.ConfigParser()
-        if os.path.exists('config.ini'):
-            config.readfp(open('config.ini'))
-        config.read([os.path.expanduser(os.path.join(self.default_home,
-                                                           'config.ini'))])
+        configs = []
+        path = os.path.join(os.path.dirname(sys.executable), config_name)
+        if os.path.exists(path):
+            configs.append(path)
+        if os.path.exists(config_name):
+            configs.append(config_name)
+        user_ini = os.path.expanduser(os.path.join(self.default_home, config_name))
+        if os.path.exists(user_ini):
+            configs.append(user_ini)
+        if len(configs) > 0:
+            config.read(configs)
         if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
             env = config.get(ConfigParser.DEFAULTSECT, 'env')
             args = {}
