@@ -1,4 +1,5 @@
 """GUI prompt to manage metadata"""
+import os
 from nxdrive.logging_config import get_logger
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import Qt
@@ -87,3 +88,6 @@ class MetadataApplication(QtGui.QApplication):
 
     def get_window_icon(self):
         return find_icon('nuxeo_drive_icon_64.png')
+
+    def get_cache_folder(self):
+        return os.path.join(self.manager.get_configuration_folder(), "cache", "wui")
