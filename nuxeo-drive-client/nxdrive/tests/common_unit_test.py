@@ -31,7 +31,7 @@ DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 
 def configure_logger():
     configure(
-        console_level='TRACE',
+        console_level='DEBUG',
         command_name='test',
         force_configure=True,
     )
@@ -229,8 +229,6 @@ class UnitTestCase(unittest.TestCase):
         self._wait_sync = True
         while timeout > 0:
             sleep(1)
-            log.debug(self.engine_1.get_queue_manager().get_metrics())
-            log.debug(self.engine_1.get_metrics())
             if not self._wait_sync:
                 if wait_for_async:
                     # TODO NXDRIVE-170: handle multiple engines
