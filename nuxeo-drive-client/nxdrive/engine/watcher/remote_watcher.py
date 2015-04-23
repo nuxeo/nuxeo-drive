@@ -27,6 +27,7 @@ class RemoteWatcher(EngineWorker):
     initiate = pyqtSignal()
     updated = pyqtSignal()
     remoteScanFinished = pyqtSignal()
+    changesFound = pyqtSignal(object)
 
     def __init__(self, engine, dao, delay):
         super(RemoteWatcher, self).__init__(engine, dao)
@@ -357,6 +358,7 @@ class RemoteWatcher(EngineWorker):
             log.debug("%d remote changes detected", n_changes)
             self._metrics['last_changes'] = n_changes
             self._metrics['empty_polls'] = 0
+            self.changesFound.emit(n_changes)
         else:
             self._metrics['empty_polls'] = self._metrics['empty_polls'] + 1
 

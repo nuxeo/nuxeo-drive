@@ -161,6 +161,7 @@ class UnitTestCase(unittest.TestCase):
                                                  self.password_2, start_engine=False)
         self.engine_1.syncCompleted.connect(self.sync_completed)
         self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.remote_scan_completed)
+        self.engine_1.get_remote_watcher().changesFound.connect(self.remote_changes_found)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
@@ -214,7 +215,8 @@ class UnitTestCase(unittest.TestCase):
         self.remote_file_system_client_1 = remote_file_system_client_1
         self.remote_file_system_client_2 = remote_file_system_client_2
 
-        self.empty_polls = 0
+        self._wait_remote_scan = True
+        self._remote_changes_count = 0
 
     @QtCore.pyqtSlot()
     def sync_completed(self):
@@ -232,13 +234,13 @@ class UnitTestCase(unittest.TestCase):
             if not self._wait_sync:
                 if wait_for_async:
                     # TODO NXDRIVE-170: handle multiple engines
-                    metrics = self.engine_1._remote_watcher.get_metrics()
-                    empty_polls_metric = metrics['empty_polls']
-                    log.trace("Sync completed, empty_polls = %d, metrics['empty_polls'] = %d",
-                              self.empty_polls, empty_polls_metric)
-                    if self.empty_polls == 0 or empty_polls_metric <= self.empty_polls:
-                        self.empty_polls = empty_polls_metric
-                        log.debug('Ended wait for sync, setting empty_polls to %d', self.empty_polls)
+                    log.debug('Sync completed, _wait_remote_scan = %r, found %d remote change(s)',
+                              self._wait_remote_scan, self._remote_changes_count)
+                    if not self._wait_remote_scan or self._remote_changes_count > 0:
+                        self._wait_remote_scan = True
+                        self._remote_changes_count = 0
+                        log.debug('Ended wait for sync, setting _wait_remote_scan to True'
+                                  ' and _remote_changes_count to 0')
                         return
                 else:
                     log.debug("Sync completed, ended wait for sync")
@@ -249,9 +251,14 @@ class UnitTestCase(unittest.TestCase):
         else:
             log.debug("Wait for sync timeout")
 
+    @QtCore.pyqtSlot()
     def remote_scan_completed(self):
         log.debug('Remote scan completed')
         self._wait_remote_scan = False
+
+    @QtCore.pyqtSlot(int)
+    def remote_changes_found(self, change_count):
+        self._remote_changes_count = change_count
 
     def wait_remote_scan(self, timeout=DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT):
         log.debug("Wait for remote scan")
@@ -259,6 +266,7 @@ class UnitTestCase(unittest.TestCase):
         while timeout > 0:
             sleep(1)
             if not self._wait_remote_scan:
+                log.debug("Ended wait for remote scan")
                 return
             timeout = timeout - 1
         self.fail("Wait for remote scan timeout expired")
