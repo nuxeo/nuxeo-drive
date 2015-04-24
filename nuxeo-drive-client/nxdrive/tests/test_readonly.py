@@ -140,6 +140,11 @@ class TestReadOnly(UnitTestCase):
         self.assertTrue(local.exists(
                                 '/Test folder/Sub folder 1/sub file 1.txt'))
 
+        # Update the content on the server
+        self.root_remote_client.update_content(self.TEST_WORKSPACE_PATH + '/Test folder/joe.odt', 'Some remotely updated content', 'joe.odt')
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(local.get_content('/Test folder/joe.odt'), 'Some remotely updated content')
+
         # Remove the readonly
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
                     self.TEST_WORKSPACE_PATH + '/Test folder', False)
