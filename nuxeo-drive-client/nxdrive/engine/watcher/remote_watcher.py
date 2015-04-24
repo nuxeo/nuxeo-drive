@@ -234,7 +234,7 @@ class RemoteWatcher(EngineWorker):
                 if (child_pair.folderish == child_info.folderish
                     and child_pair.local_digest == child_info.digest):
                     # Use version+1 as we just update the remote info
-                    self._dao.synchronize_state(child_pair, child_pair.version + 1)
+                    self._dao.synchronize_state(child_pair, version=child_pair.version + 1)
                     # Push the remote_Id
                     self._local_client.set_remote_id(local_path, child_info.uid)
                     if child_pair.folderish:

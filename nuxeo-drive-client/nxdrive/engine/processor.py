@@ -225,7 +225,7 @@ class Processor(EngineWorker):
                                           versionned=False)
             log.trace("Put remote_ref in %s", remote_ref)
             local_client.set_remote_id(doc_pair.local_path, remote_ref)
-            self._dao.synchronize_state(doc_pair, doc_pair.version)
+            self._dao.synchronize_state(doc_pair)
             if doc_pair.folderish:
                 self._dao.queue_children(doc_pair)
         else:
@@ -453,7 +453,7 @@ class Processor(EngineWorker):
         self._refresh_local_state(doc_pair, local_client.get_info(path))
         if doc_pair.folderish:
             self._dao.queue_children(doc_pair)
-        if not self._dao.synchronize_state(doc_pair, doc_pair.version):
+        if not self._dao.synchronize_state(doc_pair):
             log.debug("Pair is not in synchronized state (version issue): %r", doc_pair)
 
     def _create_remotely(self, local_client, remote_client, doc_pair, parent_pair, name):

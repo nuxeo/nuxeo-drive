@@ -661,7 +661,6 @@ class Engine(QObject):
         self._dao.update_remote_state(row, remote_info, '', versionned=False)
         local_client.set_root_id(self._server_url + "|" + self._remote_user +
                             "|" + self._manager.device_id + "|" + self._uid)
-        # Use version+1 as we just update the remote info
         self._dao.synchronize_state(row)
         # The root should also be sync
 

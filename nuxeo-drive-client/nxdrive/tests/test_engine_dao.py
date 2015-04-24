@@ -103,10 +103,10 @@ class EngineDAOTest(unittest.TestCase):
         self.assertEquals(self._dao.get_error_count(), 0)
         self.assertEquals(self._dao.get_error_count(2), 1)
         # Synchronize with wrong version should fail
-        self.assertFalse(self._dao.synchronize_state(row, row.version-1))
+        self.assertFalse(self._dao.synchronize_state(row, version=row.version-1))
         self.assertEquals(self._dao.get_error_count(2), 1)
         # Synchronize should reset error
-        self.assertTrue(self._dao.synchronize_state(row, row.version))
+        self.assertTrue(self._dao.synchronize_state(row))
         self.assertEquals(self._dao.get_error_count(2), 0)
 
     def test_remote_scans(self):

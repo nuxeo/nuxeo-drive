@@ -360,7 +360,7 @@ class LocalWatcher(EngineWorker):
             self._dao.update_local_state(doc_pair, local_info, queue=queue)
             # No need to change anything on sync folder
             if (not queue):
-                self._dao.synchronize_state(doc_pair, doc_pair.version + 1)
+                self._dao.synchronize_state(doc_pair, version=doc_pair.version + 1)
 
     def _handle_watchdog_root_event(self, evt):
         pass
