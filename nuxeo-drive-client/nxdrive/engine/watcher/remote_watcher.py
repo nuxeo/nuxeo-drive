@@ -295,7 +295,7 @@ class RemoteWatcher(EngineWorker):
             else:
                 self.updated.emit()
             return True
-        except BadStatusLine as e:
+        except (BadStatusLine, URLError) as e:
             # Pause the rest of the engine
             self._engine.set_offline()
         except ThreadInterrupt as e:
