@@ -273,6 +273,8 @@ class RemoteWatcher(EngineWorker):
                 self._client.fetch_api()
                 # if retrieved
                 self._engine.set_offline(False)
+            except ThreadInterrupt as e:
+                raise e
             except:
                 pass
         try:
