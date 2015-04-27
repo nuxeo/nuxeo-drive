@@ -147,6 +147,7 @@ class Engine(QObject):
         self._queue_manager = self._create_queue_manager(processors)
         # Launch queue processors after first remote_watcher pass
         self._remote_watcher.initiate.connect(self._queue_manager.init_processors)
+        self._remote_watcher.remoteWatcherStopped.connect(self._queue_manager.shutdown_processors)
         # Connect last_sync checked
         self._remote_watcher.updated.connect(self._check_last_sync)
         # Connect for sync start

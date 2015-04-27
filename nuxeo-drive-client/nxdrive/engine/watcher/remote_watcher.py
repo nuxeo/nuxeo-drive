@@ -28,6 +28,7 @@ class RemoteWatcher(EngineWorker):
     updated = pyqtSignal()
     remoteScanFinished = pyqtSignal()
     changesFound = pyqtSignal(object)
+    remoteWatcherStopped = pyqtSignal()
 
     def __init__(self, engine, dao, delay):
         super(RemoteWatcher, self).__init__(engine, dao)
@@ -73,15 +74,19 @@ class RemoteWatcher(EngineWorker):
 
     def _execute(self):
         first_pass = True
-        while (1):
-            self._interact()
-            if self._current_interval == 0:
-                self._current_interval = self.server_interval
-                if self._handle_changes(first_pass):
-                    first_pass = False
-            else:
-                self._current_interval = self._current_interval - 1
-            sleep(1)
+        try:
+            while (1):
+                self._interact()
+                if self._current_interval == 0:
+                    self._current_interval = self.server_interval
+                    if self._handle_changes(first_pass):
+                        first_pass = False
+                else:
+                    self._current_interval = self._current_interval - 1
+                sleep(1)
+        except ThreadInterrupt:
+            self.remoteWatcherStopped.emit()
+            raise
 
     def _scan_remote(self, from_state=None):
         """Recursively scan the bound remote folder looking for updates"""

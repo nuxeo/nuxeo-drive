@@ -78,6 +78,10 @@ class QueueManager(QObject):
         self.newItem.connect(self.launch_processors)
         self.queueProcessing.emit()
 
+    def shutdown_processors(self):
+        log.trace("Shutdown processors")
+        self.newItem.disconnect(self.launch_processors)
+
     def init_queue(self, queue):
         # Dont need to change modify as State is compatible with QueueItem
         for item in queue:
