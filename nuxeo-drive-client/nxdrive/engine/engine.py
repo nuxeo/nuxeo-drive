@@ -17,7 +17,6 @@ import os
 import datetime
 from cookielib import CookieJar
 from nxdrive.gui.resources import find_icon
-#from nxdrive.engine.activity import Action.actions
 
 log = get_logger(__name__)
 

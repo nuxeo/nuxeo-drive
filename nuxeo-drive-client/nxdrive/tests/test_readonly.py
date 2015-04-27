@@ -8,6 +8,7 @@ from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)
 
+
 class TestReadOnly(UnitTestCase):
 
     def setUp(self):
