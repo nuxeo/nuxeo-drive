@@ -539,6 +539,7 @@ class EngineDAO(ConfigurationDAO):
         version = ''
         if versionned:
             version = ', version=version+1'
+            log.trace('Increasing version to %d for pair %r', row.version + 1, info)
         self._lock.acquire()
         try:
             con = self._get_write_connection()
@@ -863,6 +864,8 @@ class EngineDAO(ConfigurationDAO):
     def synchronize_state(self, row, version=None, state='synchronized'):
         if version is None:
             version = row.version
+        log.trace('Try to synchronize state for [local_path=%s, remote_name=%s, version=%s] with version=%s',
+                  row.local_path, row.remote_name, row.version, version)
         self._lock.acquire()
         try:
             con = self._get_write_connection()
@@ -884,6 +887,7 @@ class EngineDAO(ConfigurationDAO):
         version = ''
         if versionned:
             version = ', version=version+1'
+            log.trace('Increasing version to %d for pair %r', row.version + 1, info)
         self._lock.acquire()
         try:
             con = self._get_write_connection()

@@ -200,6 +200,7 @@ class RemoteWatcher(EngineWorker):
             children[child.remote_ref] = child
 
         for child_info in children_info:
+            log.trace('Scanning remote child: %r', child_info)
             child_pair = None
             new_pair = False
             if child_info.uid in children:
@@ -261,7 +262,7 @@ class RemoteWatcher(EngineWorker):
         self._dao.clean_scanned()
 
     def _handle_changes(self, first_pass=False):
-        log.debug("Handle remote changes")
+        log.debug("Handle remote changes, first_pass=%r", first_pass)
         try:
             self._client = self._engine.get_remote_client()
         except:
