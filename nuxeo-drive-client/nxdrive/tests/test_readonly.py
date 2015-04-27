@@ -13,7 +13,7 @@ class TestReadOnly(UnitTestCase):
     def setUp(self):
         super(TestReadOnly, self).setUp()
         self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
+        self.wait_remote_scan()
         self.engine_1.stop()
 
     def _set_readonly_permission(self, user, doc_path, grant):
@@ -72,6 +72,7 @@ class TestReadOnly(UnitTestCase):
         local.set_readonly('/Test folder')
 
         # TODO Might rollback if rollback only !
+        self.wait_sync()
         self.assertFalse(remote.exists('/Test folder/local.odt'))
         self.assertFalse(remote.exists('/Test folder/Local sub folder 2'))
         self.assertFalse(remote.exists(
