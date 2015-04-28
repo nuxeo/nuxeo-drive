@@ -45,7 +45,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.local_client_1.make_file('/Original Folder 2',
             u'Original File 3.txt',
             content=u'Some Content 3'.encode('utf-8'))
-        self.wait_sync()
+        # Increase timeout as noticed it was sometimes insufficient in Jenkins build
+        self.wait_sync(timeout=30)
 
     def test_local_rename_file(self):
         local_client = self.local_client_1
