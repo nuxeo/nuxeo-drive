@@ -24,12 +24,18 @@ class EngineDAOTest(unittest.TestCase):
             os.remove(dao.get_db())
 
     def get_db_temp_file(self):
-        tmp_db = tempfile.NamedTemporaryFile(suffix="test_db")
+        tmp_db = tempfile.NamedTemporaryFile(suffix="test_db", dir=self.tmpdir)
         if sys.platform == 'win32':
             tmp_db.close()
         return tmp_db
 
     def setUp(self):
+        self.workspace = os.environ.get('WORKSPACE')
+        self.tmpdir = None
+        if self.workspace is not None:
+            self.tmpdir = os.path.join(self.workspace, "tmp")
+            if not os.path.isdir(self.tmpdir):
+                os.makedirs(self.tmpdir)
         self.tmp_db = self.get_db_temp_file()
         db = open(self._get_default_db(), 'rb')
         with open(self.tmp_db.name, 'wb') as f:

@@ -8,6 +8,12 @@ from nxdrive.commandline import CliHandler
 class CommandLineTestCase(unittest.TestCase):
     def setUp(self):
         self.cmd = CliHandler()
+        self.workspace = os.environ.get('WORKSPACE')
+        self.tmpdir = None
+        if self.workspace is not None:
+            self.tmpdir = os.path.join(self.workspace, "tmp")
+            if not os.path.isdir(self.tmpdir):
+                os.makedirs(self.tmpdir)
 
     def create_ini(self, filename='config.ini', env='PROD'):
         with open(filename, 'w+') as inifile:
@@ -63,7 +69,7 @@ class CommandLineTestCase(unittest.TestCase):
         self.assertEqual(options.log_level_console, "DEV",
                             "The config.ini shoud link to DEV")
         # user config.ini override
-        self.cmd.default_home = tempfile.mkdtemp("config")
+        self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
         conf = os.path.join(self.cmd.default_home, 'config.ini')
         self.create_ini(conf, "PROD")
         options = self.cmd.parse_cli([])

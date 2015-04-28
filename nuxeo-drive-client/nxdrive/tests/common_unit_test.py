@@ -92,6 +92,7 @@ class UnitTestCase(unittest.TestCase):
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD')
+        self.workspace = os.environ.get('WORKSPACE')
 
         # Take default parameter if none has been set
         if self.nuxeo_url is None:
@@ -100,14 +101,19 @@ class UnitTestCase(unittest.TestCase):
             self.admin_user = "Administrator"
         if self.password is None:
             self.password = "Administrator"
+        self.tmpdir = None
+        if self.workspace is not None:
+            self.tmpdir = os.path.join(self.workspace, "tmp")
+            if not os.path.isdir(self.tmpdir):
+                os.makedirs(self.tmpdir)
 
         if None in (self.nuxeo_url, self.admin_user, self.password):
             raise unittest.SkipTest(
                 "No integration server configuration found in environment.")
 
         # Check the local filesystem test environment
-        self.local_test_folder_1 = tempfile.mkdtemp(u'-nxdrive-tests-user-1')
-        self.local_test_folder_2 = tempfile.mkdtemp(u'-nxdrive-tests-user-2')
+        self.local_test_folder_1 = tempfile.mkdtemp(u'-nxdrive-tests-user-1', dir=self.tmpdir)
+        self.local_test_folder_2 = tempfile.mkdtemp(u'-nxdrive-tests-user-2', dir=self.tmpdir)
 
         self.local_nxdrive_folder_1 = os.path.join(
             self.local_test_folder_1, u'Nuxeo Drive')
@@ -181,7 +187,7 @@ class UnitTestCase(unittest.TestCase):
 
         # Document client to be used to create remote test documents
         # and folders
-        self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads')
+        self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads', dir=self.tmpdir)
         remote_document_client_1 = RemoteDocumentClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.version,

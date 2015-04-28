@@ -28,7 +28,13 @@ configure_logger()
 class ManagerDAOTest(unittest.TestCase):
 
     def setUp(self):
-        self.test_folder = tempfile.mkdtemp(u'-nxdrive-tests')
+        self.workspace = os.environ.get('WORKSPACE')
+        self.tmpdir = None
+        if self.workspace is not None:
+            self.tmpdir = os.path.join(self.workspace, "tmp")
+            if not os.path.isdir(self.tmpdir):
+                os.makedirs(self.tmpdir)
+        self.test_folder = tempfile.mkdtemp(u'-nxdrive-tests', dir=self.tmpdir)
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
         self.admin_password = os.environ.get('NXDRIVE_TEST_PASSWORD')
