@@ -13,7 +13,7 @@ class TestReadOnly(UnitTestCase):
     def setUp(self):
         super(TestReadOnly, self).setUp()
         self.engine_1.start()
-        self.wait_remote_scan()
+        self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
 
     def _set_readonly_permission(self, user, doc_path, grant):
