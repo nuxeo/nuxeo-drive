@@ -1,6 +1,5 @@
 import os
 import time
-import sys
 
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
