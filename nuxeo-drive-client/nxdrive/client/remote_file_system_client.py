@@ -121,9 +121,12 @@ class RemoteFileSystemClient(BaseAutomationClient):
         Creates a temporary file from the content then streams it.
         """
         file_path = self.make_tmp_file(content)
-        fs_item = self.execute_with_blob_streaming("NuxeoDrive.CreateFile",
-            file_path, filename=name, parentId=parent_id)
-        return self.file_to_info(fs_item)
+        try:
+            fs_item = self.execute_with_blob_streaming("NuxeoDrive.CreateFile",
+                file_path, filename=name, parentId=parent_id)
+            return self.file_to_info(fs_item)
+        finally:
+            os.remove(file_path)
 
     def stream_file(self, parent_id, file_path, filename=None, mime_type=None):
         """Create a document by streaming the file with the given path"""
@@ -139,12 +142,15 @@ class RemoteFileSystemClient(BaseAutomationClient):
         Creates a temporary file from the content then streams it.
         """
         file_path = self.make_tmp_file(content)
-        if filename is None:
-            filename = self.get_info(fs_item_id).name
-        fs_item = self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
-            file_path, filename=filename, mime_type=mime_type,
-            id=fs_item_id)
-        return self.file_to_info(fs_item)
+        try:
+            if filename is None:
+                filename = self.get_info(fs_item_id).name
+            fs_item = self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
+                file_path, filename=filename, mime_type=mime_type,
+                id=fs_item_id)
+            return self.file_to_info(fs_item)
+        finally:
+            os.remove(file_path)
 
     def stream_update(self, fs_item_id, file_path, parent_fs_item_id=None,
                       filename=None):

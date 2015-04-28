@@ -530,6 +530,10 @@ class BaseAutomationClient(BaseClient):
         self.execute("NuxeoDrive.WaitForAsyncCompletion")
 
     def make_tmp_file(self, content):
+        """Create a temporary file with the given content for streaming upload purpose.
+
+        Make sure that you remove the temporary file with os.remove() when done with it.
+        """
         fd, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
                                    dir=self.upload_tmp_dir)
         with open(path, "wb") as f:

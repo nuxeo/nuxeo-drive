@@ -358,8 +358,10 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Create a document by streaming a text file
         file_path = remote_client.make_tmp_file("Some content.")
-        fs_item_info = remote_client.stream_file(self.workspace_id, file_path,
-                                               filename='My streamed file.txt')
+        try:
+            fs_item_info = remote_client.stream_file(self.workspace_id, file_path, filename='My streamed file.txt')
+        finally:
+            os.remove(file_path)
         fs_item_id = fs_item_info.uid
         self.assertEquals(fs_item_info.name,
                         'My streamed file.txt')
@@ -368,8 +370,10 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Update a document by streaming a new text file
         file_path = remote_client.make_tmp_file("Other content.")
-        fs_item_info = remote_client.stream_update(fs_item_id, file_path,
-                                    filename='My updated file.txt')
+        try:
+            fs_item_info = remote_client.stream_update(fs_item_id, file_path, filename='My updated file.txt')
+        finally:
+            os.remove(file_path)
         self.assertEqual(fs_item_info.uid, fs_item_id)
         self.assertEquals(fs_item_info.name,
                         'My updated file.txt')

@@ -306,17 +306,21 @@ class TestRemoteDocumentClient(IntegrationTestCase):
 
         # Create a document by streaming a text file
         file_path = remote_client.make_tmp_file("Some content.")
-        doc_ref = remote_client.stream_file(self.workspace,
-                                  'Streamed text file', file_path,
-                                  filename='My streamed file.txt')
+        try:
+            doc_ref = remote_client.stream_file(self.workspace, 'Streamed text file', file_path,
+                                                filename='My streamed file.txt')
+        finally:
+            os.remove(file_path)
         self.assertEquals(remote_client.get_info(doc_ref).name,
                           'Streamed text file')
         self.assertEquals(remote_client.get_content(doc_ref), "Some content.")
 
         # Update a document by streaming a new text file
         file_path = remote_client.make_tmp_file("Other content.")
-        remote_client.stream_update(doc_ref, file_path,
-                                    filename='My updated file.txt')
+        try:
+            remote_client.stream_update(doc_ref, file_path, filename='My updated file.txt')
+        finally:
+            os.remove(file_path)
         self.assertEquals(remote_client.get_content(doc_ref), "Other content.")
 
         # Create a document by streaming a binary file
