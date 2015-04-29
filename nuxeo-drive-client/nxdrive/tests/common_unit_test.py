@@ -17,6 +17,7 @@ from nxdrive import __version__
 from PyQt4 import QtCore
 from threading import Thread
 from time import sleep
+from nxdrive.client.common import BaseClient
 
 WindowsError = None
 try:
@@ -435,6 +436,11 @@ class UnitTestCase(unittest.TestCase):
         if os.path.exists(_dir):
             to_remove = safe_long_path(_dir)
             try:
+                for dirpath, dirnames, filenames in os.walk(to_remove):
+                    for dirname in dirnames:
+                        BaseClient.unset_path_readonly(os.path.join(dirpath, dirname))
+                    for filename in filenames:
+                        BaseClient.unset_path_readonly(os.path.join(dirpath, filename))
                 shutil.rmtree(to_remove)
             except Exception as e:
                 if type(e) == WindowsError:
