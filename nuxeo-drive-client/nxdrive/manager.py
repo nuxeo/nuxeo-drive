@@ -830,6 +830,10 @@ class Manager(QtCore.QObject):
         for engine in self._engine_definitions:
             self.unbind_engine(engine.uid)
 
+    def dispose_db(self):
+        if self._dao is not None:
+            self._dao.dispose()
+
     def get_engines(self):
         return self._engines
 

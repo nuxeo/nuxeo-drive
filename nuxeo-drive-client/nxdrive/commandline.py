@@ -438,6 +438,7 @@ class CliHandler(object):
             self.manager.get_osi().uninstall()
             # Remove all token first
             self.manager.unbind_all()
+            self.manager.dispose_db()
             import shutil
             shutil.rmtree(self.manager.nxdrive_home)
         except Exception, e:
