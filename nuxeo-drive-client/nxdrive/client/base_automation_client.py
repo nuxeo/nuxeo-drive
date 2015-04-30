@@ -149,14 +149,19 @@ class BaseAutomationClient(BaseClient):
                  proxies=None, proxy_exceptions=None,
                  password=None, token=None, repository=DEFAULT_REPOSITORY_NAME,
                  ignored_prefixes=None, ignored_suffixes=None,
-                 timeout=20, blob_timeout=None, cookie_jar=None,
+                 timeout=20, blob_timeout=60, cookie_jar=None,
                  upload_tmp_dir=None, check_suspended=None):
 
         # Function to check during long-running processing like upload /
         # download if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
 
+        if timeout is None or timeout < 0:
+            timeout = 20
         self.timeout = timeout
+        # Dont allow null timeout
+        if blob_timeout is None or blob_timeout < 0:
+            blob_timeout = 60
         self.blob_timeout = blob_timeout
         if ignored_prefixes is not None:
             self.ignored_prefixes = ignored_prefixes
