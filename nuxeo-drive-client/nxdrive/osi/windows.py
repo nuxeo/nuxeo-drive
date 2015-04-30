@@ -20,9 +20,16 @@ class WindowsIntegration(AbstractOSIntegration):
         return self.get_menu_parent_key() + '\\command'
 
     def _delete_reg_value(self, reg, path, value):
-        key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_ALL_ACCESS)
-        _winreg.DeleteValue(key, value)
+        try:
+            key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_ALL_ACCESS)
+        except Exception, e:
+            return False
+        try:
+            _winreg.DeleteValue(key, value)
+        except Exception, e:
+            return False
         _winreg.CloseKey(key)
+        return True
 
     def _update_reg_key(self, reg, path, attributes=()):
         """Helper function to create / set a key with attribute values"""
@@ -110,10 +117,13 @@ class WindowsIntegration(AbstractOSIntegration):
         )
 
     def _recursive_delete(self, reg, start_path, end_path):
-        while (len(start_path) < len(end_path)):
-            _winreg.DeleteKey(reg, end_path)
-            end_path = end_path[0:end_path.rfind('\\')]
-            
+        try:
+            while (len(start_path) < len(end_path)):
+                _winreg.DeleteKey(reg, end_path)
+                end_path = end_path[0:end_path.rfind('\\')]
+        except Exception, e:
+            pass
+
     def unregister_protocol_handlers(self):
         app_name = self._manager.get_appname()
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
@@ -141,9 +151,9 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def unregister_contextual_menu(self):
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-        self._delete_reg_value(reg, self.get_menu_key(), '')
-        _winreg.DeleteKey(reg, self.get_menu_key())
-        _winreg.DeleteKey(reg, self.get_menu_parent_key())
+        if self._delete_reg_value(reg, self.get_menu_key(), ''):
+            _winreg.DeleteKey(reg, self.get_menu_key())
+            _winreg.DeleteKey(reg, self.get_menu_parent_key())
 
     def register_folder_link(self, name, folder_path):
         file_lnk = self._get_folder_link(name)
