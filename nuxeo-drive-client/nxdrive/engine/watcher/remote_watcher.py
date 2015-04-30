@@ -126,7 +126,11 @@ class RemoteWatcher(EngineWorker):
         if parent_path == '/':
             parent_path = ''
         # If pair is present already
-        child_info = self._client.get_info(remote_ref)
+        try:
+            child_info = self._client.get_info(remote_ref)
+        except NotFound:
+            # The folder has been deleted
+            return
         doc_pair = self._dao.get_state_from_remote_with_path(remote_ref, parent_path)
         if doc_pair is not None:
             self._scan_remote_recursive(doc_pair, child_info)
