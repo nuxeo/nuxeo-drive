@@ -23,20 +23,10 @@ class WindowsIntegration(AbstractOSIntegration):
         try:
             key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_ALL_ACCESS)
         except Exception, e:
-            # Sometimes the app is installed, but not run 
-            # Hence the path argument is invalid
-            # It throws WindowsError 2: The system cannot find the file specified
-            # The uninstallation doesn't complete if exception is not caught
-            print e
             return False
         try:
             _winreg.DeleteValue(key, value)
         except Exception, e:
-            # Certain options, when not selected, could cause
-            # OpenKey return value, subkey, containing no corresponding value
-            # DeleteValue will throw WindowsError 2: The system cannot find the file specified
-            # Exception caught here, otherwise uninstallation will not complete
-            print e
             return False
         _winreg.CloseKey(key)
         return True
@@ -132,8 +122,8 @@ class WindowsIntegration(AbstractOSIntegration):
                 _winreg.DeleteKey(reg, end_path)
                 end_path = end_path[0:end_path.rfind('\\')]
         except Exception, e:
-            print e
-            
+            pass
+
     def unregister_protocol_handlers(self):
         app_name = self._manager.get_appname()
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
