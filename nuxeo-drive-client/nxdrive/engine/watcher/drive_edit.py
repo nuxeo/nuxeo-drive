@@ -78,7 +78,7 @@ class DriveEdit(Worker):
         return file_out
 
     def _prepare_edit(self, server_url, doc_id, filename, user=None, download_url=None):
-        engine = self._get_engine(server_url, user)
+        engine = self._get_engine(server_url, user=user)
         if engine is None:
             # TO_REVIEW Display an error message
             log.debug("No engine found for %s(%s)", server_url, doc_id)
@@ -119,6 +119,8 @@ class DriveEdit(Worker):
         ref = self._local_client.get_path(tmp_file)
         self._local_client.set_remote_id(ref, doc_id)
         self._local_client.set_remote_id(ref, server_url, "nxdriveedit")
+        if user is not None:
+            self._local_client.set_remote_id(ref, user, "nxdriveedituser")
         self._local_client.set_remote_id(ref, info.digest, "nxdriveeditdigest")
         self._local_client.set_remote_id(ref, filename, "nxdriveeditname")
         # Rename to final filename
@@ -146,7 +148,8 @@ class DriveEdit(Worker):
                 break
             uid = self._local_client.get_remote_id(ref)
             server_url = self._local_client.get_remote_id(ref, "nxdriveedit")
-            engine = self._get_engine(server_url)
+            user = self._local_client.get_remote_id(ref, "nxdriveedituser")
+            engine = self._get_engine(server_url, user=user)
             remote_client = engine.get_remote_doc_client()
             digest = self._local_client.get_remote_id(ref, "nxdriveeditdigest")
             # Dont update if digest are the same
