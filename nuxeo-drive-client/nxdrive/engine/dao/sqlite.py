@@ -609,11 +609,11 @@ class EngineDAO(ConfigurationDAO):
 
     def get_states_from_partial_local(self, path):
         c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE local_path LIKE '" + path + "%'").fetchall()
+        return c.execute("SELECT * FROM States WHERE local_path LIKE ?", (path + '%',)).fetchall()
 
     def get_states_from_partial_remote(self, ref):
         c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_ref LIKE '%" + ref + "'").fetchall()
+        return c.execute("SELECT * FROM States WHERE remote_ref LIKE ?", ('%' + ref,)).fetchall()
 
     def get_normal_state_from_remote(self, ref):
         # TODO Select the only states that is not a collection
@@ -650,8 +650,8 @@ class EngineDAO(ConfigurationDAO):
         return state
 
     def _get_recursive_condition(self, doc_pair):
-        return (" WHERE local_parent_path LIKE '" + doc_pair.local_path + "/%'"
-                    + " OR local_parent_path = '" + doc_pair.local_path + "'")
+        return (" WHERE local_parent_path LIKE '" + self._escape(doc_pair.local_path) + "/%'"
+                    + " OR local_parent_path = '" + self._escape(doc_pair.local_path) + "'")
 
     def update_remote_parent_path(self, doc_pair, new_path):
         self._lock.acquire()
@@ -660,7 +660,8 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             if doc_pair.folderish:
                 remote_path = doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
-                query = "UPDATE States SET remote_parent_path='%s/%s' || substr(remote_parent_path,%d)" % (new_path, doc_pair.remote_ref, len(remote_path)+1)
+                query = "UPDATE States SET remote_parent_path='%s/%s' || substr(remote_parent_path,%d)" % (
+                    self._escape(new_path), self._escape(doc_pair.remote_ref), len(remote_path) + 1)
                 query = query + self._get_recursive_condition(doc_pair)
                 log.trace("Update remote_parent_path: " + query)
                 c.execute(query)
@@ -678,8 +679,11 @@ class EngineDAO(ConfigurationDAO):
             if doc_pair.folderish:
                 if new_path == '/':
                     new_path = ''
+                escaped_new_path = self._escape(new_path)
+                escaped_new_name = self._escape(new_name)
                 query = ("UPDATE States SET local_parent_path='%s/%s' || substr(local_parent_path,%d), local_path='%s/%s' || substr(local_path,%d)" %
-                                (new_path, new_name, len(doc_pair.local_path)+1,new_path, new_name, len(doc_pair.local_path)+1)) 
+                         (escaped_new_path, escaped_new_name, len(doc_pair.local_path) + 1,
+                          escaped_new_path, escaped_new_name, len(doc_pair.local_path)+1))
                 query = query + self._get_recursive_condition(doc_pair)
                 c.execute(query)
             # Dont need to update the path as it is refresh later
@@ -921,7 +925,7 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             # ADD IT
-            c.execute("INSERT INTO RemoteScan(path) VALUES('" + path + "')")
+            c.execute("INSERT INTO RemoteScan(path) VALUES(?)", (path,))
             if self.auto_commit:
                 con.commit()
         except sqlite3.IntegrityError:
@@ -1000,9 +1004,9 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             # DELETE ANY SUBFILTERS
-            c.execute("DELETE FROM Filters WHERE path LIKE '" + path + "%'")
+            c.execute("DELETE FROM Filters WHERE path LIKE ?", (path + '%',))
             # ADD IT
-            c.execute("INSERT INTO Filters(path) VALUES('" + path + "')")
+            c.execute("INSERT INTO Filters(path) VALUES(?)", (path,))
             # TODO ADD THIS path AS remotely_deleted
             if self.auto_commit:
                 con.commit()
@@ -1016,9 +1020,12 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM Filters WHERE path LIKE '" + path + "%'")
+            c.execute("DELETE FROM Filters WHERE path LIKE ?", (path + '%',))
             if self.auto_commit:
                 con.commit()
             self._filters = self.get_filters()
         finally:
             self._lock.release()
+
+    def _escape(self, _str):
+        return _str.replace("'", "''")
