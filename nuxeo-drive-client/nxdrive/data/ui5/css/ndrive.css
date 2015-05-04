@@ -80,7 +80,7 @@ body {
 #sub-menu {
   background-color: #f9f9f9;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
-  color: #aaa;
+  color: #213f7d;
   font-size: .9em;
   margin: 40px 0 0;
   padding: 6px 15px;
@@ -94,8 +94,8 @@ body {
   margin-left: 10px; }
 
 #sub-menu .glyphicon {
-  color: #aaa;
-  padding-top: 4px; }
+  color: #213f7d;
+  padding: 4px 3px 3px 0; }
 
 #systray .list-group {
   height: 260px;
