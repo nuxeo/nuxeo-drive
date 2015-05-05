@@ -151,9 +151,10 @@ class LocalClient(BaseClient):
 
     def clean_xattr_folder_recursive(self, path):
         for child in self.get_children_info(path):
-            self.unlock_ref(child.path, unlock_parent=False)
+            locker = self.unlock_ref(child.path, unlock_parent=False)
             if child.remote_ref is not None:
                 self.remove_remote_id(child.path)
+            self.lock_ref(child.path, locker)
             if child.folderish:
                 self.clean_xattr_folder_recursive(child.path)
 

@@ -55,6 +55,8 @@ DEFAULT_IGNORED_PREFIXES = [
     '.',  # hidden Unix files
     '~$',  # Windows lock files
     'Thumbs.db',  # Thumbnails files
+    'Icon\r', # Mac Icon
+    'desktop.ini', # Icon for windows
 ]
 
 DEFAULT_IGNORED_SUFFIXES = [

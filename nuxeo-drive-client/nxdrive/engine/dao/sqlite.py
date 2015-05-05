@@ -724,12 +724,22 @@ class EngineDAO(ConfigurationDAO):
             self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
         finally:
             self._lock.release()
-        con = self._get_read_connection(factory=StateRow)
-        c = con.cursor()
-        rows = c.execute("SELECT * FROM States" + self._get_recursive_condition(doc_pair)).fetchall()
-        for row in rows:
-            log.trace('Pushing %r', row)
-            self._queue_pair_state(row.id, row.folderish, row.pair_state)
+
+    def mark_descendants_locally_created(self, doc_pair):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            update = "UPDATE States SET remote_digest=NULL, remote_ref=NULL, remote_parent_path=NULL, last_remote_updated=NULL, remote_name=NULL, remote_state='unknown', local_state='created', pair_state='locally_created'"
+            c.execute(update + " WHERE id=" + str(doc_pair.id))
+            if doc_pair.folderish:
+                c.execute(update + self._get_recursive_condition(doc_pair))
+            if self.auto_commit:
+                con.commit()
+            log.trace('Pushing %r', doc_pair)
+            self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
+        finally:
+            self._lock.release()
 
     def remove_state(self, doc_pair):
         self._lock.acquire()
