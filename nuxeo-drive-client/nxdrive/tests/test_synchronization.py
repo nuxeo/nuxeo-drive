@@ -109,6 +109,22 @@ class TestSynchronization(IntegrationTestCase):
         # Let's just check remote document hasn't changed
         self.assertEquals(remote.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
 
+    def test_single_quote_escaping(self):
+        remote = self.remote_document_client_1
+        local = LocalClient(self.local_nxdrive_folder_1)
+        self.setUpDrive_1(bind_root=False)
+
+        remote.make_folder('/', "APPEL D'OFFRES")
+        remote.register_as_root("/APPEL D'OFFRES")
+        self.wait()
+        self.ndrive()
+        self.assertTrue(local.exists("/APPEL D'OFFRES"))
+
+        remote.unregister_as_root("/APPEL D'OFFRES")
+        self.wait()
+        self.ndrive()
+        self.assertFalse(local.exists("/APPEL D'OFFRES"))
+
     def test_synchronization_modification_on_created_file(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         ctl = self.controller_1
