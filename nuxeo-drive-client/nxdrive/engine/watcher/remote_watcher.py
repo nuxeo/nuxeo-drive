@@ -100,7 +100,7 @@ class RemoteWatcher(EngineWorker):
         except NotFound:
             log.debug("Marking %r as remotely deleted.", from_state)
             # Should unbind ?
-            #from_state.update_remote(None)
+            # from_state.update_remote(None)
             self._dao.commit()
             self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
             return
@@ -136,15 +136,13 @@ class RemoteWatcher(EngineWorker):
             self._scan_remote_recursive(doc_pair, child_info)
             return
         log.debug("parent_path: '%s'\t'%s'\t'%s'", parent_path, os.path.basename(parent_path),
-                                        os.path.dirname(parent_path))
-        parent_pair = self._dao.get_state_from_remote_with_path(
-                                        os.path.basename(parent_path),
-                                        os.path.dirname(parent_path))
+                  os.path.dirname(parent_path))
+        parent_pair = self._dao.get_state_from_remote_with_path(os.path.basename(parent_path),
+                                                                os.path.dirname(parent_path))
         log.debug("scan_pair: parent_pair: %r", parent_pair)
         local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
         remote_parent_path = parent_pair.remote_parent_path + '/' + child_info.uid
-        row_id = self._dao.insert_remote_state(child_info, remote_parent_path,
-                                              local_path, parent_pair.local_path)
+        row_id = self._dao.insert_remote_state(child_info, remote_parent_path, local_path, parent_pair.local_path)
         doc_pair = self._dao.get_state_from_id(row_id, from_write=True)
         if child_info.folderish:
             self._scan_remote_recursive(doc_pair, child_info)
@@ -213,15 +211,13 @@ class RemoteWatcher(EngineWorker):
                     child_pair.remote_state = 'modified'
                 self._dao.update_remote_state(child_pair, child_info, remote_parent_path)
             else:
-                child_pair, new_pair = self._find_remote_child_match_or_create(
-                                                            doc_pair, child_info)
-            if ((new_pair or force_recursion)
-                and remote_info.folderish):
+                child_pair, new_pair = self._find_remote_child_match_or_create(doc_pair, child_info)
+            if ((new_pair or force_recursion) and remote_info.folderish):
                     to_scan.append((child_pair, child_info))
         # Delete remaining
         for deleted in children.values():
             # TODO Should be DAO
-            #self._dao.mark_descendants_remotely_deleted(deleted)
+            # self._dao.mark_descendants_remotely_deleted(deleted)
             self._dao.delete_remote_state(deleted)
 
         for folder in to_scan:
@@ -241,8 +237,7 @@ class RemoteWatcher(EngineWorker):
                 child_pair = None
             else:
                 self._dao.update_remote_state(child_pair, child_info, remote_parent_path)
-                if (child_pair.folderish == child_info.folderish
-                    and child_pair.local_digest == child_info.digest):
+                if (child_pair.folderish == child_info.folderish and child_pair.local_digest == child_info.digest):
                     # Use version+1 as we just update the remote info
                     self._dao.synchronize_state(child_pair, version=child_pair.version + 1)
                     # Push the remote_Id
@@ -251,8 +246,7 @@ class RemoteWatcher(EngineWorker):
                         self._dao.queue_children(child_pair)
                 child_pair = self._dao.get_state_from_id(child_pair.id, from_write=True)
                 return child_pair, False
-        row_id = self._dao.insert_remote_state(child_info, remote_parent_path,
-                                              local_path, parent_pair.local_path)
+        row_id = self._dao.insert_remote_state(child_info, remote_parent_path, local_path, parent_pair.local_path)
         child_pair = self._dao.get_state_from_id(row_id, from_write=True)
         return child_pair, True
 
@@ -332,8 +326,7 @@ class RemoteWatcher(EngineWorker):
 
     def _get_changes(self):
         """Fetch incremental change summary from the server"""
-        summary = self._client.get_changes(self._last_root_definitions,
-                                    self._last_event_log_id, self._last_sync_date)
+        summary = self._client.get_changes(self._last_root_definitions, self._last_event_log_id, self._last_sync_date)
 
         self._last_root_definitions = summary['activeSynchronizationRootDefinitions']
         self._last_sync_date = summary['syncDate']
@@ -423,8 +416,7 @@ class RemoteWatcher(EngineWorker):
                         remote_parent_factory = doc_pair.remote_parent_ref.split('#', 1)[0]
                         new_info_parent_factory = new_info.parent_uid.split('#', 1)[0]
                         # Specific cases of a move on a locally edited doc
-                        if (eventId == 'documentMoved'
-                            and remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME):
+                        if (eventId == 'documentMoved' and remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME):
                                 # If moved from a non sync root to a sync root, break to creation case
                                 # (updated is False).
                                 # If moved from a sync root to a non sync root, break to noop
@@ -445,14 +437,13 @@ class RemoteWatcher(EngineWorker):
                             if remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME:
                                 new_info_parent_uid = doc_pair.remote_parent_ref
                                 new_info_path = (doc_pair.remote_parent_path + '/' + remote_ref)
-                                consistent_new_info = RemoteFileInfo(new_info.name, new_info.uid,
-                                                            new_info_parent_uid, new_info_path, new_info.folderish,
-                                                            new_info.last_modification_time,
-                                                            new_info.last_contributor,
-                                                            new_info.digest, new_info.digest_algorithm,
-                                                            new_info.download_url, new_info.can_rename,
-                                                            new_info.can_delete, new_info.can_update,
-                                                            new_info.can_create_child)
+                                consistent_new_info = RemoteFileInfo(new_info.name, new_info.uid, new_info_parent_uid,
+                                                                     new_info_path, new_info.folderish,
+                                                                     new_info.last_modification_time,
+                                                                     new_info.last_contributor, new_info.digest,
+                                                                     new_info.digest_algorithm, new_info.download_url,
+                                                                     new_info.can_rename, new_info.can_delete,
+                                                                     new_info.can_update, new_info.can_create_child)
                             # Perform a regular document update on a document
                             # that has been updated, renamed or moved
                             eventId = change.get('eventId')
@@ -460,7 +451,7 @@ class RemoteWatcher(EngineWorker):
                                       " for doc_pair '%s' (force_recursion:%d)", doc_pair_repr,
                                       (eventId == "securityUpdated"))
                             remote_parent_path = doc_pair.remote_parent_path
-                            #if (new_info.digest != doc_pair.local_digest or
+                            # if (new_info.digest != doc_pair.local_digest or
                             #     safe_filename(new_info.name) != doc_pair.local_name
                             #     or new_info.parent_uid != doc_pair.remote_parent_ref):
                             if doc_pair.remote_state != 'created':
@@ -482,9 +473,7 @@ class RemoteWatcher(EngineWorker):
                 parent_pairs = self._dao.get_states_from_remote(new_info.parent_uid)
                 for parent_pair in parent_pairs:
 
-                    child_pair, new_pair = (self
-                        ._find_remote_child_match_or_create(
-                        parent_pair, new_info))
+                    child_pair, new_pair = (self._find_remote_child_match_or_create(parent_pair, new_info))
                     if new_pair:
                         log.debug("Marked doc_pair '%s' as remote creation",
                                   child_pair.remote_name)
@@ -500,5 +489,4 @@ class RemoteWatcher(EngineWorker):
                     break
 
                 if not created:
-                    log.debug("Could not match changed document to a "
-                                "bound local folder: %r", new_info)
+                    log.debug("Could not match changed document to a bound local folder: %r", new_info)

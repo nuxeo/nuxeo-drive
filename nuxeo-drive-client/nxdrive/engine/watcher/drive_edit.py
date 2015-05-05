@@ -152,7 +152,7 @@ class DriveEdit(Worker):
             engine = self._get_engine(server_url, user=user)
             remote_client = engine.get_remote_doc_client()
             digest = self._local_client.get_remote_id(ref, "nxdriveeditdigest")
-            # Dont update if digest are the same
+            # Don't update if digest are the same
             info = self._local_client.get_info(ref)
             if info.get_digest() == digest:
                 continue

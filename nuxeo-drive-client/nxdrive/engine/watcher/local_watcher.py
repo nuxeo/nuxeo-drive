@@ -103,8 +103,7 @@ class LocalWatcher(EngineWorker):
                 continue
             self._dao.delete_local_state(self._delete_files[deleted])
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
-        log.debug("Full scan finished in %dms",
-                    self._metrics['last_local_scan_time'])
+        log.debug("Full scan finished in %dms", self._metrics['last_local_scan_time'])
         self._local_scan_finished = True
         self.localScanFinished.emit()
 
@@ -256,8 +255,7 @@ class LocalWatcher(EngineWorker):
         log.debug("Watching FS modification on : %s", self.client.base_folder)
         self._event_handler = DriveFSEventHandler(self)
         self._observer = Observer()
-        self._observer.schedule(self._event_handler, self.client.base_folder,
-                          recursive=True)
+        self._observer.schedule(self._event_handler, self.client.base_folder, recursive=True)
         self._observer.start()
         # Be sure to have at least one watchdog event
         timeout = 30
@@ -352,8 +350,7 @@ class LocalWatcher(EngineWorker):
                     return
                 doc_pair.local_digest = digest
                 doc_pair.local_state = 'modified'
-            queue = not (evt.event_type == 'modified' and doc_pair.folderish
-                                    and doc_pair.local_state == 'modified')
+            queue = not (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified')
             if (self._windows and doc_pair.folderish and evt.event_type == 'modified'):
                 # Windows forgets some event sometimes
                 self._scan_recursive(local_info, recursive=False)
@@ -380,15 +377,13 @@ class LocalWatcher(EngineWorker):
             parent_rel_path = self.client.get_path(parent_path)
             doc_pair = self._dao.get_state_from_local(rel_path)
             # Dont care about ignored file, unless it is moved
-            if (self.client.is_ignored(parent_rel_path, file_name)
-                  and evt.event_type != 'moved'):
+            if (self.client.is_ignored(parent_rel_path, file_name) and evt.event_type != 'moved'):
                 return
             if self.client.is_temp_file(file_name):
                 return
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
-                    log.debug("Ignoring %s as marked unsynchronized",
-                          doc_pair.local_path)
+                    log.debug("Ignoring %s as marked unsynchronized", doc_pair.local_path)
                     return
                 self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
                 return
@@ -431,7 +426,7 @@ class LocalWatcher(EngineWorker):
                     self._scan_recursive(local_info)
                 return
             log.trace('Unhandled case: %r %s %s', evt, rel_path, file_name)
-        except Exception as e:
+        except Exception:
             log.error('Watchdog exception', exc_info=True)
         finally:
             self._end_action()
