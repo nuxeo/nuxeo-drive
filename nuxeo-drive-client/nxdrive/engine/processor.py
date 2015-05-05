@@ -277,12 +277,16 @@ class Processor(EngineWorker):
         moved = False
         if doc_pair.local_name != doc_pair.remote_name:
             try:
-                log.debug('Renaming remote file according to local : %r',
-                                                    doc_pair)
-                remote_info = remote_client.rename(doc_pair.remote_ref,
-                                                        doc_pair.local_name)
-                renamed = True
-                self._refresh_remote(doc_pair, remote_client, remote_info=remote_info)
+                if doc_pair.remote_can_rename:
+                    log.debug('Renaming remote file according to local : %r',
+                                                        doc_pair)
+                    remote_info = remote_client.rename(doc_pair.remote_ref,
+                                                            doc_pair.local_name)
+                    renamed = True
+                    self._refresh_remote(doc_pair, remote_client, remote_info=remote_info)
+                else:
+                    self._handle_failed_remote_rename(doc_pair, doc_pair)
+                    return
             except Exception as e:
                 log.debug(e)
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
@@ -296,14 +300,18 @@ class Processor(EngineWorker):
         if parent_pair is None:
             raise Exception("Should have a parent pair")
         if parent_ref != doc_pair.remote_parent_ref:
-            log.debug('Moving remote file according to local : %r', doc_pair)
-            # Bug if move in a parent with no rights / partial move
-            # if rename at the same time
-            parent_path = parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
-            remote_info = remote_client.move(doc_pair.remote_ref,
-                        parent_pair.remote_ref)
-            moved = True
-            self._dao.update_remote_state(doc_pair, remote_info, parent_path, versionned=False)
+            if doc_pair.remote_can_rename:
+                log.debug('Moving remote file according to local : %r', doc_pair)
+                # Bug if move in a parent with no rights / partial move
+                # if rename at the same time
+                parent_path = parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+                remote_info = remote_client.move(doc_pair.remote_ref,
+                            parent_pair.remote_ref)
+                moved = True
+                self._dao.update_remote_state(doc_pair, remote_info, parent_path, versionned=False)
+            else:
+                # Move it back
+                self._handle_failed_remote_move(doc_pair, doc_pair)
         # Handle modification at the same time if needed
         if update:
             self._synchronize_locally_modified(doc_pair, local_client, remote_client)
@@ -541,6 +549,9 @@ class Processor(EngineWorker):
                 and remote_parent_pair is not None
                 and local_parent_pair.id != remote_parent_pair.id,
                 remote_parent_pair)
+
+    def _handle_failed_remote_move(self, source_pair, target_pair):
+        pass
 
     def _handle_failed_remote_rename(self, source_pair, target_pair):
         # An error occurs return false
