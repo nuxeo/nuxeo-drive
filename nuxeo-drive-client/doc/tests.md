@@ -13,3 +13,10 @@ Typically:
 - Launch the pydev server from the Debug perspective
 - Set the PYDEV_DEBUG environment variable to `True` on the test's Debug Configuration
 - Debug the test!
+
+# How to debug multi-threaded unit tests
+
+Add these lines where you want to break:
+
+    import pydevd
+    pydevd.settrace('localhost', trace_only_current_thread=False)
