@@ -101,7 +101,10 @@ LABELS={
 		"RESOLVE": "Resolve",
 		"DUPLICATING": "Duplicating...",
 		"FILE_PATH": "Path: {{ path }}",
-		"ENGINE_PAUSED": "Suspended"
+		"ENGINE_PAUSED": "Suspended",
+		"BUG_REPORT": "Report a bug",
+		"CREATE_REPORT": "Click to generate a bug report",
+		"REPORT_GENERATED": "Report generated:<br />{{ path }}"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -205,6 +208,9 @@ LABELS={
 		"RESOLVE": "Résolution",
 		"DUPLICATING": "Duplication en cours",
 		"FILE_PATH": "Chemin: {{ path }}",
-		"ENGINE_PAUSED": "Suspendu"
+		"ENGINE_PAUSED": "Suspendu",
+		"BUG_REPORT": "Rapporter un bug",
+		"CREATE_REPORT": "Cliquer ici pour rapporter un probleme",
+		"REPORT_GENERATED": "Report genéré:<br />{{ path }}"
 	}
 }

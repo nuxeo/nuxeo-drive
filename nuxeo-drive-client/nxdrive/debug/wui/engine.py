@@ -5,55 +5,16 @@ from PyQt4 import QtCore
 from nxdrive.wui.dialog import WebDialog
 from nxdrive.wui.dialog import WebDriveApi
 from nxdrive.logging_config import get_logger
-from logging.handlers import BufferingHandler
+from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler
 from nxdrive.osi import parse_protocol_url
 import logging
 import time
-from copy import copy
 log = get_logger(__name__)
-genericLog = logging.getLogger()
-MAX_LOG_DISPLAYED = 100
-
-
-class CustomMemoryHandler(BufferingHandler):
-    def __init__(self, capacity=MAX_LOG_DISPLAYED):
-        super(CustomMemoryHandler, self).__init__(capacity)
-        self._old_buffer = None
-
-    def flush(self):
-        # Flush
-        self.acquire()
-        try:
-            self._old_buffer = copy(self.buffer)
-            self.buffer = []
-        finally:
-            self.release()
-
-    def get_buffer(self, size):
-        adds = []
-        result = []
-        self.acquire()
-        try:
-            result = copy(self.buffer)
-            result.reverse()
-            if len(result) < size and self._old_buffer is not None:
-                adds = copy(self._old_buffer[(size-len(result)-1):])
-        finally:
-            self.release()
-        adds.reverse()
-        for record in adds:
-            result.append(record)
-        return result
 
 
 class DebugDriveApi(WebDriveApi):
     def __init__(self, application, dlg):
         super(DebugDriveApi, self).__init__(application, dlg)
-        self.logHandler = CustomMemoryHandler(MAX_LOG_DISPLAYED)
-        genericLog.addHandler(self.logHandler)
-
-    def __del__(self):
-        genericLog.removeHandler(self.logHandler)
 
     def _get_full_queue(self, queue, dao=None):
         result = []
@@ -97,8 +58,9 @@ class DebugDriveApi(WebDriveApi):
 
     def _get_logs(self, limit=MAX_LOG_DISPLAYED):
         logs = []
-        buffer = self.logHandler.get_buffer(limit)
-        for record in buffer:
+        handler = get_handler(get_logger(None), "memory")
+        log_buffer = handler.get_buffer(limit)
+        for record in log_buffer:
             logs.append(self._export_log_record(record))
             limit = limit - 1
             if limit == 0:
@@ -115,7 +77,8 @@ class DebugDriveApi(WebDriveApi):
     @QtCore.pyqtSlot(result=str)
     def get_logs(self):
         try:
-            return str(self.logHandler.get_buffer())
+            handler = get_handler(get_logger(None), "memory")
+            return str(handler.get_buffer(MAX_LOG_DISPLAYED))
         except Exception as e:
             log.exception(e)
             return None

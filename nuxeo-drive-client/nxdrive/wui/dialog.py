@@ -455,6 +455,15 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return False
 
+    @QtCore.pyqtSlot(result=str)
+    def generate_report(self):
+        try:
+            path = self._manager.generate_report()
+            return path
+        except Exception as e:
+            log.exception(e)
+            return ""
+
     @QtCore.pyqtSlot(bool, result=str)
     def set_tracking(self, value):
         try:

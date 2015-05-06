@@ -659,6 +659,12 @@ class Manager(QtCore.QObject):
     def _get_binary_name(self):
         return 'ndrive'
 
+    def generate_report(self):
+        from nxdrive.report import Report
+        report = Report(self)
+        report.generate()
+        return report.get_path()
+
     def find_exe_path(self):
         """Introspect the Python runtime to find the frozen Windows exe"""
         import nxdrive

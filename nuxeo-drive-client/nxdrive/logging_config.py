@@ -1,8 +1,9 @@
 """Utilities to log nxdrive operations and failures"""
 
 import logging
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler, BufferingHandler
 import os
+from copy import copy
 
 
 TRACE = 5
@@ -18,6 +19,38 @@ FILE_HANDLER = None
 _logging_context = dict()
 
 is_logging_configured = False
+MAX_LOG_DISPLAYED = 500
+
+
+class CustomMemoryHandler(BufferingHandler):
+    def __init__(self, capacity=MAX_LOG_DISPLAYED):
+        super(CustomMemoryHandler, self).__init__(capacity)
+        self._old_buffer = None
+
+    def flush(self):
+        # Flush
+        self.acquire()
+        try:
+            self._old_buffer = copy(self.buffer)
+            self.buffer = []
+        finally:
+            self.release()
+
+    def get_buffer(self, size):
+        adds = []
+        result = []
+        self.acquire()
+        try:
+            result = copy(self.buffer)
+            result.reverse()
+            if len(result) < size and self._old_buffer is not None:
+                adds = copy(self._old_buffer[(size-len(result)-1):])
+        finally:
+            self.release()
+        adds.reverse()
+        for record in adds:
+            result.append(record)
+        return result
 
 
 def configure(use_file_handler=False, log_filename=None, file_level='INFO',
@@ -86,6 +119,13 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
             FILE_HANDLER = file_handler
             root_logger.addHandler(file_handler)
 
+        # Add memory logger to allow instant report
+        memory_handler = CustomMemoryHandler()
+        # Put in TRACE
+        memory_handler.setLevel(5)
+        memory_handler.set_name("memory")
+        memory_handler.setFormatter(formatter)
+        root_logger.addHandler(memory_handler)
         if filter_inotify:
             root_logger.addFilter(logging.Filter('watchdog.observers.inotify_buffer'))
 

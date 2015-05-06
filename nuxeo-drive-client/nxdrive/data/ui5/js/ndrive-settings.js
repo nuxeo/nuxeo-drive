@@ -15,8 +15,12 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.setLogLevel = function() {
 		drive.set_log_level($scope.log_level);
 	}
+	$scope.lastReport = null;
 	$scope.locale = drive.locale();
 	$scope.languages = angular.fromJson(drive.get_languages());
+	$scope.generateReport = function() {
+		$scope.lastReport = drive.generate_report();
+	}
 	$scope.setLocale = function() {
 		console.log("setLocale " + $scope.locale);
 		drive.set_language($scope.locale);
