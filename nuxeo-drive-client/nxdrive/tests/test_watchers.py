@@ -134,23 +134,54 @@ class TestWatchers(UnitTestCase):
             self.assertEqual(child.pair_state, 'parent_locally_deleted')
 
     def test_local_scan_encoding(self):
-        # TODO NXDRIVE-188: adapt when fixed
-        # Encoded filename should pass and find another way to trigger the error
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Synchronize test workspace
         self.engine_1.start()
         self.wait_sync()
         self.engine_1.stop()
-        # Create a local file with a Unicode combining accent to trigger an error during local scan
-        # and another file with no special characters
-        local.make_file('/', u'Accentue\u0301.txt', 'Content')
-        local.make_file('/', u'No special character.txt', 'Content')
+        # Create files with Unicode combining accents, Unicode latin characters and no special characters
+        local.make_file(u'/', u'Accentue\u0301.odt', u'Content')
+        local.make_folder(u'/', u'P\xf4le applicatif')
+        local.make_file(u'/P\xf4le applicatif', u'e\u0302tre ou ne pas \xeatre.odt', u'Content')
+        local.make_file(u'/', u'No special character.odt', u'Content')
         # Launch local scan and check upstream synchronization
         self.engine_1.start()
         self.wait_sync()
-        if sys.platform == "darwin":
-            self.assertTrue(remote.exists(u'/Accentue\u0301.txt'))
-        else:
-            self.assertFalse(remote.exists(u'/Accentue\u0301.txt'))
-        self.assertTrue(remote.exists(u'/No special character.txt'))
+        self.engine_1.stop()
+        self.assertTrue(remote.exists(u'/Accentue\u0301.odt'))
+        self.assertTrue(remote.exists(u'/P\xf4le applicatif'))
+        self.assertTrue(remote.exists(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'))
+        self.assertTrue(remote.exists(u'/No special character.odt'))
+
+        # Check rename using normalized names as previous local scan has normalized them on the file system
+        local.rename(u'/Accentu\xe9.odt', u'Accentue\u0301 avec un e\u0302 et un \xe9.odt')
+        local.rename(u'/P\xf4le applicatif', u'P\xf4le applique\u0301')
+        # LocalClient.rename calls LocalClient.get_info then the FileInfo constructor which normalizes names
+        # on the file system, thus we need to use the normalized name for the parent folder
+        local.rename(u'/P\xf4le appliqu\xe9/\xeatre ou ne pas \xeatre.odt', u'avoir et e\u0302tre.odt')
+        self.engine_1.start()
+        self.wait_sync()
+        self.engine_1.stop()
+        self.assertEquals(remote.get_info(u'/Accentue\u0301.odt').name, u'Accentu\xe9 avec un \xea et un \xe9.odt')
+        self.assertEquals(remote.get_info(u'/P\xf4le applicatif').name, u'P\xf4le appliqu\xe9')
+        self.assertEquals(remote.get_info(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt').name,
+                          u'avoir et \xeatre.odt')
+        # Check content update
+        local.update_content(u'/Accentu\xe9 avec un \xea et un \xe9.odt', u'Updated content')
+        local.update_content(u'/P\xf4le appliqu\xe9/avoir et \xeatre.odt', u'Updated content')
+        self.engine_1.start()
+        self.wait_sync()
+        self.engine_1.stop()
+        self.assertEquals(remote.get_content(u'/Accentue\u0301.odt'), u'Updated content')
+        self.assertEquals(remote.get_content(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'),
+                          u'Updated content')
+
+        # Check delete
+        local.delete_final(u'/Accentu\xe9 avec un \xea et un \xe9.odt')
+        local.delete_final(u'/P\xf4le appliqu\xe9/avoir et \xeatre.odt')
+        self.engine_1.start()
+        self.wait_sync()
+        self.engine_1.stop()
+        self.assertFalse(remote.exists(u'/Accentue\u0301.odt'))
+        self.assertFalse(remote.exists(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'))

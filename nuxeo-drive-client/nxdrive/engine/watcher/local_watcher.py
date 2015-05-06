@@ -305,6 +305,11 @@ class LocalWatcher(EngineWorker):
             log.trace("Don't update as in process %r", doc_pair)
             return
         if (evt.event_type == 'moved'):
+            # Ignore normalization of the filename on the file system
+            # See https://jira.nuxeo.com/browse/NXDRIVE-188
+            if evt.dest_path == normalize_event_filename(evt.src_path):
+                log.debug('Ignoring move from %r to normalized name: %r', evt.src_path, evt.dest_path)
+                return
             src_path = normalize_event_filename(evt.dest_path)
             rel_path = self.client.get_path(src_path)
             local_info = self.client.get_info(rel_path, raise_if_missing=False)
@@ -446,6 +451,12 @@ class DriveFSEventHandler(FileSystemEventHandler):
 def normalize_event_filename(filename):
     import unicodedata
     if sys.platform == 'darwin':
-        return unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
+        normalized_filename = unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
     else:
-        return unicodedata.normalize('NFC', unicode(filename))
+        normalized_filename = unicodedata.normalize('NFC', unicode(filename))
+    # Normalize name on the file system if not normalized
+    # See https://jira.nuxeo.com/browse/NXDRIVE-188
+    if os.path.exists(filename) and normalized_filename != filename:
+        log.debug('Forcing normalization of %r to %r', filename, normalized_filename)
+        os.rename(filename, normalized_filename)
+    return normalized_filename

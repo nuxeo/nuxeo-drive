@@ -89,7 +89,7 @@ class StateRow(CustomRow):
         return self.__unicode__().encode('ascii', 'ignore')
 
     def __unicode__(self):
-        return u"%s[%d](Local: %s, Remote: %s, Local state: %s, Remote state: %s, State: %s)" % (
+        return u"%s[%d](Local: %r, Remote: %s, Local state: %s, Remote state: %s, State: %s)" % (
             self.__class__.__name__, self.id, self.local_path, self.remote_ref, self.local_state, self.remote_state,
             self.pair_state)
 

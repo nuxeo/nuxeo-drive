@@ -40,8 +40,18 @@ class FileInfo(object):
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
         self.size = size
+        filepath = os.path.join(root, path[1:].replace(u'/', os.path.sep))
         root = unicodedata.normalize('NFC', root)
         path = unicodedata.normalize('NFC', path)
+        normalized_filepath = os.path.join(root, path[1:].replace(u'/', os.path.sep))
+        self.filepath = normalized_filepath
+
+        # Normalize name on the file system if not normalized
+        # See https://jira.nuxeo.com/browse/NXDRIVE-188
+        if os.path.exists(filepath) and normalized_filepath != filepath:
+            log.debug('Forcing normalization of %r to %r', filepath, normalized_filepath)
+            os.rename(filepath, normalized_filepath)
+
         self.root = root  # the sync root folder local path
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
@@ -56,9 +66,6 @@ class FileInfo(object):
         # Precompute base name once and for all are it's often useful in
         # practice
         self.name = os.path.basename(path)
-
-        self.filepath = os.path.join(
-            root, path[1:].replace(u'/', os.path.sep))
 
     def __repr__(self):
         return self.__unicode__().encode('ascii', 'ignore')
