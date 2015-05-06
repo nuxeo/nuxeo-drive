@@ -79,7 +79,7 @@ class FileInfo(object):
             return None
         digester = getattr(hashlib, self._digest_func, None)
         if digester is None:
-            raise ValueError('Unknow digest method: ' + self.digest_func)
+            raise ValueError('Unknow digest method: ' + self._digest_func)
 
         h = digester()
         with open(safe_long_path(self.filepath), 'rb') as f:

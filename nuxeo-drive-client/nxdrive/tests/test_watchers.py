@@ -3,6 +3,7 @@
 '''
 import sys
 from nxdrive.tests.common_unit_test import UnitTestCase
+from nxdrive.client import LocalClient
 from nose.plugins.skip import SkipTest
 
 
@@ -132,6 +133,28 @@ class TestWatchers(UnitTestCase):
         self.assertEqual(len(children), 5)
         for child in children:
             self.assertEqual(child.pair_state, 'parent_locally_deleted')
+
+    def test_local_scan_error(self):
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+        # Synchronize test workspace
+        self.engine_1.start()
+        self.wait_sync()
+        self.engine_1.stop()
+        # Create a local file and use an invalid digest function in local watcher file system client to trigger an error
+        # during local scan
+        local.make_file('/', u'Test file.odt', 'Content')
+        self.engine_1._local_watcher.client = LocalClient(self.local_nxdrive_folder_1, digest_func='invalid')
+        self.engine_1.start()
+        self.wait_sync()
+        self.engine_1.stop()
+        self.assertFalse(remote.exists(u'/Test file.odt'))
+
+        # Set back original local watcher file system client, launch local scan and check upstream synchronization
+        self.engine_1._local_watcher.client = self.engine_1.get_local_client()
+        self.engine_1.start()
+        self.wait_sync()
+        self.assertTrue(remote.exists(u'/Test file.odt'))
 
     def test_local_scan_encoding(self):
         local = self.local_client_1
