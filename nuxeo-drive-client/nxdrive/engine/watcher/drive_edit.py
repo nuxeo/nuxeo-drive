@@ -217,7 +217,7 @@ class DriveEdit(Worker):
 
     def handle_watchdog_event(self, evt):
         self._action = Action("Handle watchdog event")
-        log.debug("handle_watchdog_event %s on %s", evt.event_type, evt.src_path)
+        log.debug("Handling watchdog event [%s] on %r", evt.event_type, evt.src_path)
         try:
             src_path = normalize_event_filename(evt.src_path)
             # Event on the folder by itself

@@ -321,7 +321,7 @@ class LocalWatcher(EngineWorker):
                 remote_parent_ref = self.client.get_remote_id(rel_parent_path)
                 if not (local_info.name == doc_pair.local_name and
                         doc_pair.remote_parent_ref == remote_parent_ref):
-                    log.debug("Detect move for %s (%r)", local_info.name, doc_pair)
+                    log.debug("Detect move for %r (%r)", local_info.name, doc_pair)
                     doc_pair.local_state = 'moved'
                 elif doc_pair.local_state == 'moved':
                     # The pair was moved but it has been canceled manually
@@ -370,7 +370,7 @@ class LocalWatcher(EngineWorker):
     def handle_watchdog_event(self, evt):
         self._metrics['last_event'] = current_milli_time()
         self._action = Action("Handle watchdog event")
-        log.debug("Handling watchdog event [%s] on %s", evt.event_type, evt.src_path)
+        log.debug("Handling watchdog event [%s] on %r", evt.event_type, evt.src_path)
         try:
             src_path = normalize_event_filename(evt.src_path)
             rel_path = self.client.get_path(src_path)
