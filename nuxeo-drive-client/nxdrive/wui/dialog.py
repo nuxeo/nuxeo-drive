@@ -559,7 +559,7 @@ class WebDriveApi(QtCore.QObject):
             local_folder_path = base_folder
             # TODO Might isolate to a specific api
             dir_path = QtGui.QFileDialog.getExistingDirectory(
-                caption='Select Nuxeo Drive folder location',
+                caption=Translator.get('BROWSE_DIALOG_CAPTION'),
                 directory=base_folder)
             if dir_path:
                 dir_path = unicode(dir_path)

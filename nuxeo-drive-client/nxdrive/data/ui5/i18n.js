@@ -104,7 +104,8 @@ LABELS={
 		"ENGINE_PAUSED": "Suspended",
 		"BUG_REPORT": "Report a bug",
 		"CREATE_REPORT": "Click to generate a bug report",
-		"REPORT_GENERATED": "Report generated:<br />{{ path }}"
+		"REPORT_GENERATED": "Report generated:<br />{{ path }}",
+		"BROWSE_DIALOG_CAPTION": "Select Nuxeo Drive folder location"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -211,6 +212,7 @@ LABELS={
 		"ENGINE_PAUSED": "Suspendu",
 		"BUG_REPORT": "Rapporter un bug",
 		"CREATE_REPORT": "Cliquer ici pour rapporter un probleme",
-		"REPORT_GENERATED": "Report genéré:<br />{{ path }}"
+		"REPORT_GENERATED": "Report genéré:<br />{{ path }}",
+		"BROWSE_DIALOG_CAPTION": "Choisir un dossier"
 	}
 }
