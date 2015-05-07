@@ -559,7 +559,7 @@ class WebDriveApi(QtCore.QObject):
             local_folder_path = base_folder
             # TODO Might isolate to a specific api
             dir_path = QtGui.QFileDialog.getExistingDirectory(
-                caption='Select Nuxeo Drive folder location',
+                caption=self._get_caption_browse_folder(),
                 directory=base_folder)
             if dir_path:
                 dir_path = unicode(dir_path)
@@ -571,6 +571,9 @@ class WebDriveApi(QtCore.QObject):
         except Exception as e:
             log.exception(e)
             return ""
+
+    def _get_caption_browse_folder(self):
+        return 'Select Nuxeo Drive folder location'
 
     @QtCore.pyqtSlot()
     def show_file_status(self):
