@@ -15,6 +15,8 @@ SERVER_MIN_VERSION = '5.6'
 
 
 def read_version(init_file):
+    if 'VERSION' in os.environ:
+        return os.environ['VERSION']
     with open(init_file, 'rb') as f:
         return f.readline().split("=")[1].strip().replace('\'', '')
 
