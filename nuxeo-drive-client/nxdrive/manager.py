@@ -823,6 +823,7 @@ class Manager(QtCore.QObject):
     def unbind_engine(self, uid):
         if self._engines is None:
             self.load()
+        self._engines[uid].suspend()
         self._engines[uid].unbind()
         self._dao.delete_engine(uid)
         # Refresh the engines definition
