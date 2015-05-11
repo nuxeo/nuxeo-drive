@@ -268,10 +268,16 @@ class RemoteWatcher(EngineWorker):
     def _check_offline(self):
         try:
             self._client = self._engine.get_remote_client()
+        except HTTPError as e:
+            if e.code == 401 or e.code == 403:
+                if not self._engine.has_invalid_credentials():
+                    self._engine.set_invalid_credentials()
+        except Unauthorized:
+            log.debug("Unauthorized caugt")
+            if not self._engine.has_invalid_credentials():
+                self._engine.set_invalid_credentials()
         except:
-            if self._client is None and not self._engine.is_offline():
-                self._engine.set_offline()
-            return None
+            pass
         if self._client is None:
             if not self._engine.is_offline():
                 self._engine.set_offline()
@@ -322,18 +328,19 @@ class RemoteWatcher(EngineWorker):
             else:
                 self.updated.emit()
             return True
-        except (BadStatusLine, URLError) as e:
-            # Pause the rest of the engine
-            self._engine.set_offline()
-        except ThreadInterrupt as e:
-            raise e
         except HTTPError as e:
-            if e.code == 401:
+            if e.code == 401 or e.code == 403:
                 log.error('Got 401 HTTPError while trying to handle remote changes, setting invalid credentials',
                           exc_info=True)
                 self._engine.set_invalid_credentials()
             else:
                 log.exception(e)
+            self._engine.set_offline()
+        except (BadStatusLine, URLError) as e:
+            # Pause the rest of the engine
+            self._engine.set_offline()
+        except ThreadInterrupt as e:
+            raise e
         except Exception as e:
             log.exception(e)
         finally:
