@@ -118,9 +118,14 @@ class RemoteWatcher(EngineWorker):
 
     @pyqtSlot(str)
     def scan_pair(self, remote_path):
+        self._dao.add_path_to_scan(str(remote_path))
+
+    def _scan_pair(self, remote_path):
         if remote_path is None:
             return
         remote_path = str(remote_path)
+        if remote_path[-1:] == '/':
+            remote_path = remote_path[0:-1]
         remote_ref = os.path.basename(remote_path)
         parent_path = os.path.dirname(remote_path)
         if parent_path == '/':
@@ -255,32 +260,40 @@ class RemoteWatcher(EngineWorker):
         if path == '/':
             self._scan_remote()
         else:
-            self.scan_pair(path)
+            self._scan_pair(path)
+        self._dao.delete_path_to_scan(path)
         self._dao.delete_config('remote_need_full_scan')
         self._dao.clean_scanned()
 
-    def _handle_changes(self, first_pass=False):
-        log.debug("Handle remote changes, first_pass=%r", first_pass)
+    def _check_offline(self):
         try:
             self._client = self._engine.get_remote_client()
         except:
             if self._client is None and not self._engine.is_offline():
                 self._engine.set_offline()
-            return False
+            return None
         if self._client is None:
             if not self._engine.is_offline():
                 self._engine.set_offline()
-            return False
+            return None
         if self._engine.is_offline():
             try:
                 # Try to get the api
                 self._client.fetch_api()
                 # if retrieved
                 self._engine.set_offline(False)
+                return self._client
             except ThreadInterrupt as e:
                 raise e
             except:
-                pass
+                return None
+        return self._client
+
+    def _handle_changes(self, first_pass=False):
+        log.debug("Handle remote changes, first_pass=%r", first_pass)
+        self._client = self._check_offline()
+        if self._client is None:
+            return False
         try:
             if self._last_remote_full_scan is None:
                 log.debug("Remote full scan")
@@ -293,6 +306,14 @@ class RemoteWatcher(EngineWorker):
             full_scan = self._dao.get_config('remote_need_full_scan', None)
             if full_scan is not None:
                 self._partial_full_scan(full_scan)
+                return
+            else:
+                paths = self._dao.get_paths_to_scan()
+                if len(paths) > 0:
+                    remote_ref = paths[0].path
+                    self._dao.update_config('remote_need_full_scan', remote_ref)
+                    self._partial_full_scan(remote_ref)
+                    return
             self._action = Action("Handle remote changes")
             self._update_remote_states()
             self._save_changes_state()
@@ -352,8 +373,9 @@ class RemoteWatcher(EngineWorker):
         summary = self._get_changes()
         if summary['hasTooManyChanges']:
             log.debug("Forced full scan by server")
-            self._dao.update_config('remote_need_full_scan', '/')
-            self._scan_remote()
+            remote_path = '/'
+            self._dao.add_path_to_scan(remote_path)
+            self._dao.update_config('remote_need_full_scan', remote_path)
             return
         # Fetch all events and consider the most recent first
         sorted_changes = sorted(summary['fileSystemChanges'],

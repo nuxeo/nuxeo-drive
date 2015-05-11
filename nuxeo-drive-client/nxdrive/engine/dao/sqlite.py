@@ -344,6 +344,9 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute(u"UPDATE States SET last_transfer = 'upload' WHERE last_local_updated < last_remote_updated AND folderish=0;")
             cursor.execute(u"UPDATE States SET last_transfer = 'download' WHERE last_local_updated > last_remote_updated AND folderish=0;")
             self.update_config(SCHEMA_VERSION, 1)
+        if (version < 2):
+            cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
+            self.update_config(SCHEMA_VERSION, 2)
 
     def _create_state_table(self, cursor, force=False):
         if force:
@@ -362,6 +365,7 @@ class EngineDAO(ConfigurationDAO):
         super(EngineDAO, self)._init_db(cursor)
         cursor.execute("CREATE TABLE if not exists Filters(path STRING NOT NULL, PRIMARY KEY(path))")
         cursor.execute("CREATE TABLE if not exists RemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
+        cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
         self._create_state_table(cursor)
 
     def _get_read_connection(self, factory=StateRow):
@@ -927,6 +931,42 @@ class EngineDAO(ConfigurationDAO):
         if not path.endswith("/"):
             path = path + "/"
         return path
+
+    def add_path_to_scan(self, path):
+        path = self._clean_filter_path(path)
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            # Remove any subchilds as it is gonna be scanned anyway
+            c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (path+'%',))
+            # ADD IT
+            c.execute("INSERT INTO ToRemoteScan(path) VALUES(?)", (path,))
+            if self.auto_commit:
+                con.commit()
+        except sqlite3.IntegrityError:
+            pass
+        finally:
+            self._lock.release()
+
+    def delete_path_to_scan(self, path):
+        path = self._clean_filter_path(path)
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            # ADD IT
+            c.execute("DELETE FROM ToRemoteScan WHERE path=?", (path,))
+            if self.auto_commit:
+                con.commit()
+        except sqlite3.IntegrityError:
+            pass
+        finally:
+            self._lock.release()
+
+    def get_paths_to_scan(self):
+        c = self._get_read_connection().cursor()
+        return c.execute(u"SELECT * FROM ToRemoteScan").fetchall()
 
     def add_path_scanned(self, path):
         path = self._clean_filter_path(path)
