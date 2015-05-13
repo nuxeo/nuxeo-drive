@@ -216,6 +216,20 @@ class Processor(EngineWorker):
                 # TODO Check if the file is already on the server with the good digest
                 log.debug("Creating remote document '%s' in folder '%s'",
                           name, parent_pair.remote_name)
+                info = local_client.get_info(doc_pair.local_path)
+                if info.size != doc_pair.size:
+                    # Size has changed ( copy must still be running )
+                    doc_pair.local_digest = "TO_COMPUTE"
+                    self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
+                    # Wait 60s for it
+                    log.trace("Postpone creation of local file: %r", doc_pair)
+                    doc_pair.error_count = 1
+                    self._engine.get_queue_manager().push_error(doc_pair, exception=None)
+                    return
+                if doc_pair.local_digest == "TO_COMPUTE":
+                    doc_pair.local_digest = info.get_digest()
+                    log.trace("Creation of postponed local file: %r", doc_pair)
+                    self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
                 fs_item_info = remote_client.stream_file(
                     parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
                 remote_ref = fs_item_info.uid
@@ -352,7 +366,7 @@ class Processor(EngineWorker):
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
         try:
             is_renaming = doc_pair.remote_name != doc_pair.local_name
-            if doc_pair.remote_digest != doc_pair.local_digest != None:
+            if doc_pair.remote_digest != doc_pair.local_digest and doc_pair.local_digest != None:
                 os_path = local_client._abspath(doc_pair.local_path)
                 if is_renaming:
                     new_os_path = os.path.join(os.path.dirname(os_path),
