@@ -19,7 +19,7 @@ FILE_HANDLER = None
 _logging_context = dict()
 
 is_logging_configured = False
-MAX_LOG_DISPLAYED = 500
+MAX_LOG_DISPLAYED = 5000
 
 
 class CustomMemoryHandler(BufferingHandler):
