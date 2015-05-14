@@ -238,7 +238,12 @@ class Processor(EngineWorker):
             self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path,
                                           versionned=False)
             log.trace("Put remote_ref in %s", remote_ref)
-            local_client.set_remote_id(doc_pair.local_path, remote_ref)
+            try:
+                local_client.set_remote_id(doc_pair.local_path, remote_ref)
+            except (NotFound, IOError):
+                new_pair = self._dao.get_state_from_id(doc_pair.id)
+                local_client.set_remote_id(new_pair.local_path, remote_ref)
+                return
             self._dao.synchronize_state(doc_pair)
             if doc_pair.folderish:
                 self._dao.queue_children(doc_pair)

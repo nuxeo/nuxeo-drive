@@ -301,9 +301,6 @@ class LocalWatcher(EngineWorker):
             self._dao.delete_local_state(doc_pair)
 
     def _handle_watchdog_event_on_known_pair(self, doc_pair, evt, rel_path):
-        if doc_pair.processor > 0:
-            log.trace("Don't update as in process %r", doc_pair)
-            return
         if (evt.event_type == 'moved'):
             # Ignore normalization of the filename on the file system
             # See https://jira.nuxeo.com/browse/NXDRIVE-188
@@ -327,6 +324,9 @@ class LocalWatcher(EngineWorker):
                     # The pair was moved but it has been canceled manually
                     doc_pair.local_state = 'synchronized'
                 self._dao.update_local_state(doc_pair, local_info)
+            return
+        if doc_pair.processor > 0:
+            log.trace("Don't update as in process %r", doc_pair)
             return
         if evt.event_type == 'deleted':
             # Delay on Windows the delete event
@@ -370,7 +370,10 @@ class LocalWatcher(EngineWorker):
     def handle_watchdog_event(self, evt):
         self._metrics['last_event'] = current_milli_time()
         self._action = Action("Handle watchdog event")
-        log.debug("Handling watchdog event [%s] on %r", evt.event_type, evt.src_path)
+        if evt.event_type == 'moved':
+            log.debug("Handling watchdog event [%s] on %s to %s", evt.event_type, evt.src_path, evt.dest_path)
+        else:
+            log.debug("Handling watchdog event [%s] on %r", evt.event_type, evt.src_path)
         try:
             src_path = normalize_event_filename(evt.src_path)
             rel_path = self.client.get_path(src_path)
