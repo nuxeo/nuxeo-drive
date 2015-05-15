@@ -268,7 +268,7 @@ class LocalClient(BaseClient):
                 win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
                 win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_SYSTEM)
             except Exception as e:
-                log.error("Exception when setting folder icon to red color : %s", e)
+                log.error("Exception when setting folder icon : %r", e)
         else:
             win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
             win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
@@ -328,9 +328,12 @@ class LocalClient(BaseClient):
         if AbstractOSIntegration.is_windows():
             pathAlt = path + ":" + name
             try:
+                if not os.path.exists(path):
+                    raise NotFound()
                 with open(pathAlt, "w") as f:
                     f.write(remote_id)
             except IOError as e:
+                # Should not happen
                 if e.errno == os.errno.EACCES:
                     self.unset_path_readonly(path)
                     with open(pathAlt, "w") as f:
