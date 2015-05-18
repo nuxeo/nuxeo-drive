@@ -61,4 +61,4 @@ class Report(object):
                 log.debug("Engine metrics: '%s'", engine.get_metrics())
                 self.copy_db(myzip, engine.get_dao())
                 # Might want threads too here
-            myzip.writestr("debug.log", self._export_logs())
+            myzip.writestr("debug.log", self._export_logs().encode('utf-8').strip())
