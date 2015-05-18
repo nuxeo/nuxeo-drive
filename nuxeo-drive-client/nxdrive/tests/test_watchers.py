@@ -157,8 +157,7 @@ class TestWatchers(UnitTestCase):
         self.assertTrue(remote.exists(u'/Test file.odt'))
 
     def test_local_scan_encoding(self):
-        if sys.platform == 'darwin' or sys.platform == 'win32':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-188")
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-188")
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Synchronize test workspace
