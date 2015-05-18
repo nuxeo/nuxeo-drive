@@ -93,6 +93,7 @@ class UnitTestCase(unittest.TestCase):
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD')
         self.workspace = os.environ.get('WORKSPACE')
+        self.result = None
 
         # Take default parameter if none has been set
         if self.nuxeo_url is None:
@@ -283,7 +284,7 @@ class UnitTestCase(unittest.TestCase):
     def run(self, result=None):
         self.app = QtCore.QCoreApplication([])
         self.setUpApp()
-
+        self.result = result
         # TODO Should use a specific application
         def launch_test():
             log.debug("UnitTest thread started")
@@ -301,6 +302,8 @@ class UnitTestCase(unittest.TestCase):
         log.debug("UnitTest run finished")
 
     def tearDownApp(self):
+        if self.result is not None and not self.result.wasSuccessful():
+            self.generate_report()
         log.debug("TearDown unit test")
         # Unbind all
         self.manager_1.unbind_all()
@@ -401,6 +404,13 @@ class UnitTestCase(unittest.TestCase):
         while (len(queue) > 0):
             result.append(dao.get_state_from_id(queue.pop().id))
         return result
+
+    def generate_report(self):
+        if not "REPORT_PATH" in os.environ:
+            return
+        report_path = os.path.join(os.environ["REPORT_PATH"], self.id())
+        self.manager_1.generate_report(report_path)
+        log.debug("Report generated in '%s'", report_path)
 
     def wait(self, retry=3):
         try:

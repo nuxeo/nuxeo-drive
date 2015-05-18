@@ -196,7 +196,8 @@ class ConfigurationDAO(QObject):
     def dispose_thread(self):
         if not hasattr(self._conns, '_conn'):
             return
-        self._connections.remove(self._conns._conn)
+        if self._conns._conn in self._connections:
+            self._connections.remove(self._conns._conn)
         self._conns._conn = None
 
     def _get_write_connection(self, factory=CustomRow):

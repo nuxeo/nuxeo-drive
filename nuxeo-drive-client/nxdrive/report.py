@@ -16,17 +16,20 @@ class Report(object):
     classdocs
     '''
 
-    def __init__(self, manager):
+    def __init__(self, manager, report_path=None):
         '''
         Constructor
         '''
         self._manager = manager
-        self._report_name = 'report_' + datetime.now().strftime('%y%m%d_%H%M%S')
-        folder = os.path.join(self._manager.get_configuration_folder(), 'reports')
+        if report_path is None:
+            self._report_name = 'report_' + datetime.now().strftime('%y%m%d_%H%M%S')
+            folder = os.path.join(self._manager.get_configuration_folder(), 'reports')
+        else:
+            self._report_name = os.path.basename(report_path)
+            folder = os.path.dirname(report_path)
         if not os.path.exists(folder):
             os.mkdir(folder)
-        self._zipfile = os.path.join(self._manager.get_configuration_folder(),
-                              'reports', self._report_name + '.zip')
+        self._zipfile = os.path.join(folder, self._report_name + '.zip')
 
     def copy_db(self, myzip, dao):
         # Lock to avoid inconsistence
