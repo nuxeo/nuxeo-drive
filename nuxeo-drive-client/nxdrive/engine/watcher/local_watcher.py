@@ -302,6 +302,11 @@ class LocalWatcher(EngineWorker):
 
     def _handle_watchdog_event_on_known_pair(self, doc_pair, evt, rel_path):
         if (evt.event_type == 'moved'):
+            # Ignore move to Office tmp file
+            dest_filename = os.path.basename(evt.dest_path)
+            if dest_filename.startswith('~') and dest_filename.endswith('.tmp'):
+                log.debug('Ignoring Office tmp file: %r', evt.dest_path)
+                return
             # Ignore normalization of the filename on the file system
             # See https://jira.nuxeo.com/browse/NXDRIVE-188
             if evt.dest_path == normalize_event_filename(evt.src_path):
