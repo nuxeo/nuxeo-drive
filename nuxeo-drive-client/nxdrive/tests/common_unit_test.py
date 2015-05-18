@@ -94,6 +94,7 @@ class UnitTestCase(unittest.TestCase):
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD')
         self.workspace = os.environ.get('WORKSPACE')
         self.result = None
+        self.tearedDown = False
 
         # Take default parameter if none has been set
         if self.nuxeo_url is None:
@@ -301,9 +302,20 @@ class UnitTestCase(unittest.TestCase):
         del self.app
         log.debug("UnitTest run finished")
 
+    def tearDown(self):
+        unittest.TestCase.tearDown(self)
+        if not self.tearedDown:
+            self.tearDownApp()
+
     def tearDownApp(self):
-        if self.result is not None and not self.result.wasSuccessful():
+        if self.tearedDown:
+            return
+        import sys
+        if sys.exc_info() != (None, None, None):
             self.generate_report()
+        elif self.result is not None:
+            if hasattr(self.result, "wasSuccessful") and not self.result.wasSuccessful():
+                self.generate_report()
         log.debug("TearDown unit test")
         # Unbind all
         self.manager_1.unbind_all()
@@ -335,6 +347,7 @@ class UnitTestCase(unittest.TestCase):
         self.remote_file_system_client_1 = None
         del self.remote_file_system_client_2
         self.remote_file_system_client_2 = None
+        self.tearedDown = True
 
     def _clean_dir(self, _dir):
         if os.path.exists(_dir):
