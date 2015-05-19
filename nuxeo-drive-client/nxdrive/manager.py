@@ -555,18 +555,15 @@ class Manager(QtCore.QObject):
                     my_documents = unicode(my_documents.decode(ENCODING))
 
             if os.path.exists(my_documents):
-                nuxeo_drive_folder = self._increment_local_folder(my_documents,
-                                                  self._get_default_nuxeo_drive_name())
-                log.info("Will use '%s' as default Nuxeo Drive folder location"
-                         " under Windows", nuxeo_drive_folder)
+                nuxeo_drive_folder = self._increment_local_folder(my_documents, self._get_default_nuxeo_drive_name())
+                log.debug("Will use '%s' as default Nuxeo Drive folder location under Windows", nuxeo_drive_folder)
                 return nuxeo_drive_folder
 
         # Fall back on home folder otherwise
         user_home = os.path.expanduser('~')
         user_home = unicode(user_home.decode(ENCODING))
         nuxeo_drive_folder = self._increment_local_folder(user_home, self._get_default_nuxeo_drive_name())
-        log.info("Will use '%s' as default Nuxeo Drive folder location",
-                 nuxeo_drive_folder)
+        log.debug("Will use '%s' as default Nuxeo Drive folder location", nuxeo_drive_folder)
         return nuxeo_drive_folder
 
     def _increment_local_folder(self, basefolder, name):
