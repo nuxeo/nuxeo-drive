@@ -581,27 +581,6 @@ class Manager(QtCore.QObject):
     def get_configuration_folder(self):
         return self.nxdrive_home
 
-    def get_server_binding_settings(self):
-        """Fetch server binding settings from database"""
-        if len(self._engine_definitions) == 0:
-            return ServerBindingSettings(
-                local_folder=self._get_default_nuxeo_drive_folder())
-        else:
-            # TODO: handle multiple server bindings, for now take the first one
-            # See https://jira.nuxeo.com/browse/NXP-12716
-            sb = self._engine_definitions[0]
-            engine = self._engines[sb.uid]
-            return engine.get_binder()
-
-    def is_credentials_update_required(self):
-        if len(self._engine_definitions) == 0:
-            return True
-        # TO_REVIEW Check per engine if auth is required ?
-        for engine in self._engines.values():
-            if engine.has_invalid_credentials():
-                return True
-        return False
-
     def open_local_file(self, file_path):
         """Launch the local OS program on the given file / folder."""
         log.debug('Launching editor on %s', file_path)
