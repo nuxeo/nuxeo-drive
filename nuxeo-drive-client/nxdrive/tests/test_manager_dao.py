@@ -39,7 +39,9 @@ class ManagerDAOTest(unittest.TestCase):
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
         self.admin_password = os.environ.get('NXDRIVE_TEST_PASSWORD')
         if self.nuxeo_url is None:
-            self.nuxeo_url = "http://localhost:8080/nuxeo"
+            self.nuxeo_url = "http://localhost:8080/nuxeo/"
+        if not self.nuxeo_url.endswith('/'):
+            self.nuxeo_url += '/'
         if self.admin_user is None:
             self.admin_user = "Administrator"
         if self.admin_password is None:
@@ -79,6 +81,10 @@ class ManagerDAOTest(unittest.TestCase):
         c.execute("UPDATE server_bindings SET remote_token='%s' WHERE local_folder='%s'" % (
             token, '/home/ataillefer/Nuxeo Drive'))
 
+        # Update server URL with test server URL
+        c.execute("UPDATE server_bindings SET server_url='%s' WHERE local_folder='%s'" % (
+            self.nuxeo_url, '/home/ataillefer/Nuxeo Drive'))
+
         # Update local folder with test temp dir
         local_folder = os.path.join(self.test_folder, 'Nuxeo Drive')
         c.execute("UPDATE server_bindings SET local_folder='%s' WHERE local_folder='%s'" % (
@@ -112,13 +118,13 @@ class ManagerDAOTest(unittest.TestCase):
         self.assertEquals(len(engines), 1)
         engine = engines[0]
         self.assertEquals(engine.engine, 'NXDRIVE')
-        self.assertEquals(engine.name, 'localhost')
+        self.assertEquals(engine.name, manager._get_engine_name(self.nuxeo_url))
         self.assertEquals(engine.local_folder, local_folder)
 
         # Check engine config
         engine_uid = engine.uid
         engine_db = os.path.join(self.test_folder, 'ndrive_%s.db' % engine_uid)
         engine_dao = EngineDAO(engine_db)
-        self.assertEquals(engine_dao.get_config('server_url'), 'http://localhost:8080/nuxeo/')
+        self.assertEquals(engine_dao.get_config('server_url'), self.nuxeo_url)
         self.assertEquals(engine_dao.get_config('remote_user'), 'Administrator')
         self.assertEquals(engine_dao.get_config('remote_token'), token)
