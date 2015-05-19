@@ -183,6 +183,7 @@ def path_join(parent, child):
 
 
 def default_nuxeo_drive_folder():
+    # TODO: Factorize with manager.get_default_nuxeo_drive_folder
     """Find a reasonable location for the root Nuxeo Drive folder
 
     This folder is user specific, typically under the home folder.

@@ -513,6 +513,7 @@ class Manager(QtCore.QObject):
         return 'Nuxeo Drive'
 
     def get_default_nuxeo_drive_folder(self):
+        # TODO: Factorize with utils.default_nuxeo_drive_folder
         """Find a reasonable location for the root Nuxeo Drive folder
 
         This folder is user specific, typically under the home folder.
