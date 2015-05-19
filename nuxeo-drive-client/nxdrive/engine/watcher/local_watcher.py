@@ -154,6 +154,12 @@ class LocalWatcher(EngineWorker):
                             self._metrics['new_files'] = self._metrics['new_files'] + 1
                             self._dao.insert_local_state(child_info, info.path)
                             self._protected_files[remote_id] = True
+                        elif doc_pair.processor > 0:
+                            log.debug('Skip pair as it is being processed: %r', doc_pair)
+                            continue
+                        elif doc_pair.local_path == child_info.path:
+                            log.debug('Skip pair as it is not a real move: %r', doc_pair)
+                            continue
                         elif not self.client.exists(doc_pair.local_path):
                             log.debug("Found a moved file")
                             doc_pair.local_state = 'moved'
