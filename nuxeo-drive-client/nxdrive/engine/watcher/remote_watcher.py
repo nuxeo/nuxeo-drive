@@ -137,6 +137,7 @@ class RemoteWatcher(EngineWorker):
             # The folder has been deleted
             return
         doc_pair = self._dao.get_state_from_remote_with_path(remote_ref, parent_path)
+        log.debug("Remote scan_pair: %s", doc_pair.local_path)
         if doc_pair is not None:
             self._scan_remote_recursive(doc_pair, child_info)
             return
@@ -151,6 +152,7 @@ class RemoteWatcher(EngineWorker):
         doc_pair = self._dao.get_state_from_id(row_id, from_write=True)
         if child_info.folderish:
             self._scan_remote_recursive(doc_pair, child_info)
+        log.debug("Remote scan_pair ended: %s", doc_pair.local_path)
 
     def _check_modified(self, child_pair, child_info):
         if child_pair.remote_can_delete != child_info.can_delete:

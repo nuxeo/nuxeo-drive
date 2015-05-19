@@ -50,10 +50,6 @@ class TestLocalFilter(UnitTestCase):
         self.wait_sync()
         self.assertFalse(local.exists('/Test folder'))
 
-        # Restore folder from trash then synchronize
-        # Undeleting each item as following 'undelete' transition
-        # doesn't act recursively, should use TrashService instead
-        # through a dedicated operation
         self.engine_1.remove_filter(doc_path)
         self.wait_sync()
         self.assertTrue(local.exists('/Test folder'))
