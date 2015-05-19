@@ -478,10 +478,11 @@ class Processor(EngineWorker):
         local_client.set_remote_id(path, doc_pair.remote_ref)
         self._handle_readonly(local_client, doc_pair)
         self._refresh_local_state(doc_pair, local_client.get_info(path))
-        if doc_pair.folderish:
-            self._dao.queue_children(doc_pair)
         if not self._dao.synchronize_state(doc_pair):
             log.debug("Pair is not in synchronized state (version issue): %r", doc_pair)
+        # Queue children after, race condition was leading to a forgotten child, will lead now to an eventual double queued
+        if doc_pair.folderish:
+            self._dao.queue_children(doc_pair)
 
     def _create_remotely(self, local_client, remote_client, doc_pair, parent_pair, name):
         local_parent_path = parent_pair.local_path
