@@ -162,6 +162,7 @@ class DriveEdit(Worker):
             user = self._local_client.get_remote_id(ref, "nxdriveedituser")
             engine = self._get_engine(server_url, user=user)
             remote_client = engine.get_remote_doc_client()
+            remote_client.check_suspended = self.stop_client
             digest = self._local_client.get_remote_id(ref, "nxdriveeditdigest")
             # Don't update if digest are the same
             info = self._local_client.get_info(ref)
