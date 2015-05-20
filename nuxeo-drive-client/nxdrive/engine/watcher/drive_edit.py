@@ -42,6 +42,15 @@ class DriveEdit(Worker):
         self._folder = folder
         self._local_client = LocalClient(self._folder)
         self._upload_queue = Queue()
+        self._stop = False
+
+    def stop(self):
+        super(DriveEdit, self).stop()
+        self._stop = True
+
+    def stop_client(self, reason):
+        if self._stop:
+            raise ThreadInterrupt
 
     def _cleanup(self):
         log.debug("Cleanup DriveEdit folder")
@@ -85,6 +94,8 @@ class DriveEdit(Worker):
             return
         # Get document info
         remote_client = engine.get_remote_doc_client()
+        # Avoid any link with the engine, remote_doc are not cached so we can do that
+        remote_client.check_suspended = self.stop_client
         info = remote_client.get_info(doc_id)
 
         # Create local structure
