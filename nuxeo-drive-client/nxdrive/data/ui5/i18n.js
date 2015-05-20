@@ -210,9 +210,9 @@ LABELS={
 		"DUPLICATING": "Duplication en cours",
 		"FILE_PATH": "Chemin: {{ path }}",
 		"ENGINE_PAUSED": "Suspendu",
-		"BUG_REPORT": "Rapporter un bug",
-		"CREATE_REPORT": "Cliquer ici pour rapporter un probleme",
-		"REPORT_GENERATED": "Report genéré:<br />{{ path }}",
+		"BUG_REPORT": "Signaler un problème",
+		"CREATE_REPORT": "Cliquer ici pour générer un rapport et signaler un problème",
+		"REPORT_GENERATED": "Rapport généré :<br />{{ path }}",
 		"BROWSE_DIALOG_CAPTION": "Choisir un dossier"
 	}
 }
