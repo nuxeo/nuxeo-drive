@@ -606,7 +606,7 @@ class LocalClient(BaseClient):
                     import ctypes
                     ctypes.windll.kernel32.SetFileAttributesW(
                                                 unicode(temp_path), 2)
-                shutil.move(source_os_path, temp_path)
+                os.rename(source_os_path, temp_path)
                 source_os_path = temp_path
                 # Try the os rename part
                 target_os_path = self._abspath(os.path.join(parent, new_name))
@@ -614,7 +614,7 @@ class LocalClient(BaseClient):
                 target_os_path, new_name = self._abspath_deduped(parent,
                                                                 new_name, old_name)
             if old_name != new_name:
-                shutil.move(source_os_path, target_os_path)
+                os.rename(source_os_path, target_os_path)
             if AbstractOSIntegration.is_windows():
                 import ctypes
                 # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
