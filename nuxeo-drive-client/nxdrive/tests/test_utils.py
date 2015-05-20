@@ -43,9 +43,8 @@ class TestUtils(unittest.TestCase):
                           'application/msword')
         self.assertEquals(guess_mime_type('office.xls'),
                           'application/vnd.ms-excel')
-        self.assertIn(guess_mime_type('office.ppt'), [
-                          'application/vnd.ms-powerpoint',
-                          'application/x-mspowerpoint'])
+        self.assertEquals(guess_mime_type('office.ppt'),
+                          'application/vnd.ms-powerpoint')
 
         # PDF
         self.assertEquals(guess_mime_type('document.pdf'),
