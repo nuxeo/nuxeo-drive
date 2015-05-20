@@ -205,6 +205,10 @@ class LocalWatcher(EngineWorker):
                             != child_pair.last_local_updated and child_pair.processor == 0):
                         log.trace("Update file %s", child_info.path)
                         remote_ref = self.client.get_remote_id(child_pair.local_path)
+                        if remote_ref is not None and child_pair.remote_ref is None:
+                            log.debug("Possible race condition between remote and local scan, let's refresh pair: %r",
+                                      child_pair)
+                            child_pair = self._dao.get_state_from_id(child_pair.id)
                         if remote_ref != child_pair.remote_ref:
                             # TO_REVIEW
                             # Load correct doc_pair | Put the others one back to children
