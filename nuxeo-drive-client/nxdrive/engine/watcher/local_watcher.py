@@ -209,6 +209,11 @@ class LocalWatcher(EngineWorker):
                             log.debug("Possible race condition between remote and local scan, let's refresh pair: %r",
                                       child_pair)
                             child_pair = self._dao.get_state_from_id(child_pair.id)
+                            if child_pair.remote_ref is None:
+                                log.debug("Pair not yet handled by remote scan (remote_ref is None) but existing"
+                                          " remote_id xattr, let's set it to None: %r", child_pair)
+                                self.client.remove_remote_id(child_pair.local_path)
+                                remote_ref = None
                         if remote_ref != child_pair.remote_ref:
                             # TO_REVIEW
                             # Load correct doc_pair | Put the others one back to children
