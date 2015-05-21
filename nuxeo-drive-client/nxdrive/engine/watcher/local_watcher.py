@@ -150,7 +150,8 @@ class LocalWatcher(EngineWorker):
                         log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
                         if doc_pair is None:
-                            log.debug("Can't found reference put in locally_created state")
+                            log.debug("Can't find reference for %s in database, put it in locally_created state",
+                                      child_info.path)
                             self._metrics['new_files'] = self._metrics['new_files'] + 1
                             self._dao.insert_local_state(child_info, info.path)
                             self._protected_files[remote_id] = True
