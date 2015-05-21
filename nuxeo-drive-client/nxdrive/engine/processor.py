@@ -122,6 +122,7 @@ class Processor(EngineWorker):
                         self._current_item = self._get_item()
                         continue
             except ThreadInterrupt:
+                self._engine.get_queue_manager().push(doc_pair)
                 raise
             except Exception as e:
                 log.exception(e)
