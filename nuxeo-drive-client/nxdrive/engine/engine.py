@@ -11,7 +11,7 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.utils import normalized_path
 from nxdrive.utils import current_milli_time
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.engine.workers import Worker, ThreadInterrupt
+from nxdrive.engine.workers import Worker
 from threading import local
 import os
 import datetime
@@ -664,10 +664,6 @@ class Engine(QObject):
         self._dao.synchronize_state(row)
         # The root should also be sync
 
-    def suspend_client(self, reason):
-        if self.is_paused() or self._stopped:
-            raise ThreadInterrupt
-
     def complete_binder(self, row):
         # Add more information
         row.server_url = self._server_url
@@ -696,7 +692,7 @@ class Engine(QObject):
                         proxy_exceptions=self._manager.proxy_exceptions,
                         password=self._remote_password,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
-                        token=self._remote_token, check_suspended=self.suspend_client)
+                        token=self._remote_token, check_suspended=None)
             else:
                 remote_client = self.remote_fs_client_factory(
                         self._server_url, self._remote_user,
@@ -705,7 +701,7 @@ class Engine(QObject):
                         proxy_exceptions=self._manager.proxy_exceptions,
                         password=self._remote_password,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
-                        token=self._remote_token, check_suspended=self.suspend_client)
+                        token=self._remote_token, check_suspended=None)
             if client_cache_timestamp is None:
                 client_cache_timestamp = 0
                 self._client_cache_timestamps[cache_key] = 0
@@ -720,7 +716,7 @@ class Engine(QObject):
             proxy_exceptions=self._manager.proxy_exceptions,
             password=self._remote_password, token=self._remote_token,
             repository=repository, base_folder=base_folder,
-            timeout=self.timeout, cookie_jar=self.cookie_jar, check_suspended=self.suspend_client)
+            timeout=self.timeout, cookie_jar=self.cookie_jar)
 
     def create_processor(self, item_getter, name=None):
         from nxdrive.engine.processor import Processor

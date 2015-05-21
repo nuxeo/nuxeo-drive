@@ -3,7 +3,7 @@ Created on 14 janv. 2015
 
 @author: Remi Cattiau
 '''
-from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
+from nxdrive.engine.workers import EngineWorker
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.common import NotFound
@@ -114,15 +114,11 @@ class Processor(EngineWorker):
                         self.pairSync.emit(doc_pair, self._current_metrics)
                         # TO_REVIEW May have a call to reset_error
                         log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
-                    except ThreadInterrupt:
-                        raise
                     except Exception as e:
                         log.exception(e)
                         self.increase_error(doc_pair, "SYNC HANDLER: %s" % handler_name, exception=e)
                         self._current_item = self._get_item()
                         continue
-            except ThreadInterrupt:
-                raise
             except Exception as e:
                 log.exception(e)
                 self.increase_error(doc_pair, "EXCEPTION", exception=e)
