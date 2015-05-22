@@ -344,6 +344,7 @@ class QueueManager(QObject):
         if (self._local_folder_queue.empty() and self._local_file_queue.empty()
                 and self._remote_file_queue.empty() and self._local_file_queue.qsize()):
             self.queueEmpty.emit()
+            return
         log.trace("Launching processors")
         if self._local_folder_thread is None and not self._local_folder_queue.empty() and self._local_folder_enable:
             log.debug("creating local folder processor")

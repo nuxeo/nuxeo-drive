@@ -89,6 +89,9 @@ class Processor(EngineWorker):
                 if (parent_path == ''):
                     parent_path = "/"
                 if not local_client.exists(parent_path):
+                    if doc_pair.pair_state == "remotely_deleted":
+                        self._dao.remove_state(doc_pair)
+                        continue
                     log.trace("Republish as parent doesn't exist : %r", doc_pair)
                     self.increase_error(doc_pair, error="NO_PARENT")
                     self._current_item = self._get_item()
@@ -178,6 +181,7 @@ class Processor(EngineWorker):
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
                     self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                    self._handle_unsynchronized(local_client, doc_pair)
                 return
         self._dao.synchronize_state(doc_pair)
 
@@ -264,6 +268,7 @@ class Processor(EngineWorker):
                 self._dao.remove_state(doc_pair)
             else:
                 self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                self._handle_unsynchronized(local_client, doc_pair)
 
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):
         if doc_pair.remote_ref is not None:
@@ -324,7 +329,7 @@ class Processor(EngineWorker):
         if parent_pair is None:
             raise Exception("Should have a parent pair")
         if parent_ref != doc_pair.remote_parent_ref:
-            if doc_pair.remote_can_rename:
+            if doc_pair.remote_can_delete:
                 log.debug('Moving remote file according to local : %r', doc_pair)
                 # Bug if move in a parent with no rights / partial move
                 # if rename at the same time
@@ -612,6 +617,10 @@ class Processor(EngineWorker):
 
     def _is_locally_edited_folder(self, doc_pair):
         return doc_pair.local_path.endswith(LOCALLY_EDITED_FOLDER_NAME)
+
+    def _handle_unsynchronized(self, local_client, doc_pair):
+        # Used for overwrite
+        pass
 
     def _handle_readonly(self, local_client, doc_pair):
         # Don't use readonly on folder for win32 and on Locally Edited
