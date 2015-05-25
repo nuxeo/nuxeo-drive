@@ -112,6 +112,10 @@ On Linux, depending on the distribution, you may need a special mount option (us
 
     sudo mount -oremount,user_xattr /dev/sda3
 
+Make sure that the latest version of ``pip`` is installed::
+
+    sudo easy_install -U pip
+
 Then install the required system and Python packages and the Nuxeo Drive code itself::
 
     sudo apt-get install python-pip python-dev python-qt4 libffi-dev
