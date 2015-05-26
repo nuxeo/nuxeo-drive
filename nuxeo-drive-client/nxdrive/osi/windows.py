@@ -3,10 +3,10 @@
 '''
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.logging_config import get_logger
-import _winreg
 import os
 import sys
-
+if sys.platform == "win32":
+    import _winreg
 log = get_logger(__name__)
 
 

@@ -11,8 +11,10 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.utils import normalized_path
 from nxdrive.utils import current_milli_time
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.engine.workers import Worker, ThreadInterrupt
+from nxdrive.engine.workers import Worker, ThreadInterrupt, PairInterrupt
+from nxdrive.engine.activity import Action, FileAction
 from threading import local
+from time import sleep
 import os
 import datetime
 from cookielib import CookieJar
@@ -112,6 +114,8 @@ class Engine(QObject):
         self.remote_filtered_fs_client_factory = remote_filtered_fs_client_factory
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
+        # Folder locker - LocalFolder processor can prevent others processors to operate on a folder
+        self._folder_lock = None
 
         self.timeout = 30
         self._handshake_timeout = 60
@@ -168,6 +172,15 @@ class Engine(QObject):
             if queue_size > 0:
                 self._sync_started = True
                 self.syncStarted.emit(queue_size)
+
+    def set_local_folder_lock(self, path):
+        self._folder_lock = path
+        # Check for each processor
+        while self.get_queue_manager().has_file_processors_on(path):
+            sleep(1)
+
+    def release_folder_lock(self):
+        self._folder_lock = None
 
     def get_last_files(self, number, direction=None):
         return self._dao.get_last_files(number, direction)
@@ -607,7 +620,7 @@ class Engine(QObject):
         for thread in self._threads:
             if isinstance(thread, Processor):
                 pair = thread._current_doc_pair
-                if pair.local_path.starts_with(doc_pair.local_path):
+                if pair.local_path.startswith(doc_pair.local_path):
                     thread.quit()
 
     def get_local_client(self):
@@ -667,6 +680,14 @@ class Engine(QObject):
     def suspend_client(self, reason):
         if self.is_paused() or self._stopped:
             raise ThreadInterrupt
+        # Get action
+        current_file = None
+        action = Action.get_current_action()
+        if isinstance(action, FileAction):
+            current_file = action.filepath
+        if (current_file is not None and self._folder_lock is not None
+             and current_file.startswith(self._folder_lock)):
+            raise PairInterrupt
 
     def complete_binder(self, row):
         # Add more information

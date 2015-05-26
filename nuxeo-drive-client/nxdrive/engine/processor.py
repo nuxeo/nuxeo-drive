@@ -3,7 +3,7 @@ Created on 14 janv. 2015
 
 @author: Remi Cattiau
 '''
-from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
+from nxdrive.engine.workers import EngineWorker, ThreadInterrupt, PairInterrupt
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.common import NotFound
@@ -119,6 +119,12 @@ class Processor(EngineWorker):
                         log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
                     except ThreadInterrupt:
                         raise
+                    except PairInterrupt:
+                        from time import sleep
+                        # Wait one second to avoid retrying to quickly
+                        sleep(1)
+                        self._engine.get_queue_manager().push(doc_pair)
+                        continue
                     except Exception as e:
                         log.exception(e)
                         self.increase_error(doc_pair, "SYNC HANDLER: %s" % handler_name, exception=e)
@@ -418,6 +424,8 @@ class Processor(EngineWorker):
                               " document '%s'.", doc_pair.remote_name)
                 else:
                     file_or_folder = 'folder' if doc_pair.folderish else 'file'
+                    if (is_move or is_renaming) and doc_pair.folderish:
+                        self._engine.set_local_folder_lock(doc_pair.local_path)
                     if is_move:
                         # move and potential rename
                         moved_name = doc_pair.remote_name if is_renaming else doc_pair.local_name
@@ -450,6 +458,10 @@ class Processor(EngineWorker):
                 " process).",
                 doc_pair)
             raise e
+        finally:
+            if doc_pair.folderish:
+                # Release folder lock in any case
+                self._engine.release_folder_lock()
 
     def _synchronize_remotely_created(self, doc_pair, local_client, remote_client):
         name = doc_pair.remote_name
@@ -520,6 +532,8 @@ class Processor(EngineWorker):
         try:
             if doc_pair.local_state != 'deleted':
                 log.debug("Deleting locally %s", local_client._abspath(doc_pair.local_path))
+                if doc_pair.folderish:
+                    self._engine.set_local_folder_lock(doc_pair.local_path)
                 if self._engine.use_trash():
                     local_client.delete(doc_pair.local_path)
                 else:
@@ -535,6 +549,9 @@ class Processor(EngineWorker):
                 " concurrent file access (probably opened by another"
                 " process).", doc_pair)
             raise e
+        finally:
+            if doc_pair.folderish:
+                self._engine.release_folder_lock()
 
     def _synchronize_unknown_deleted(self, doc_pair, local_client, remote_client):
         # Somehow a pair can get to an inconsistent state:
