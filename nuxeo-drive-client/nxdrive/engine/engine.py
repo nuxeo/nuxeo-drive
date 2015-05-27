@@ -624,7 +624,7 @@ class Engine(QObject):
         for thread in self._threads:
             if hasattr(thread, "worker") and isinstance(thread.worker, Processor):
                 pair = thread.worker._current_doc_pair
-                if pair.id == pair_id:
+                if pair is not None and pair.id == pair_id:
                     thread.worker.quit()
 
     def get_local_client(self):
