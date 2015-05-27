@@ -366,17 +366,21 @@ class Processor(EngineWorker):
                   doc_pair)
         self._dao.remove_state(doc_pair)
 
+    def _get_temporary_file(self, file_path):
+        from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
+        from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
+        file_dir = os.path.dirname(file_path)
+        file_name = os.path.basename(file_path)
+        file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
+                                + DOWNLOAD_TMP_FILE_SUFFIX)
+        return file_out
+
     def _download_content(self, local_client, remote_client, doc_pair, file_path):
         # Check if the file is already on the HD
         pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
         if pair:
             import shutil
-            from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
-            from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
-            file_dir = os.path.dirname(file_path)
-            file_name = os.path.basename(file_path)
-            file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
-                                + DOWNLOAD_TMP_FILE_SUFFIX)
+            file_out = self._get_temporary_file(file_path)
             shutil.copy(local_client._abspath(pair.local_path), file_out)
             return file_out
         tmp_file = remote_client.stream_content(
@@ -535,6 +539,11 @@ class Processor(EngineWorker):
                 log.debug("Deleting locally %s", local_client._abspath(doc_pair.local_path))
                 if doc_pair.folderish:
                     self._engine.set_local_folder_lock(doc_pair.local_path)
+                else:
+                    # Check for nxpart to clean up
+                    file_out = self._get_temporary_file(local_client._abspath(doc_pair.local_path))
+                    if os.path.exists(file_out):
+                        os.remove(file_out)
                 if self._engine.use_trash():
                     local_client.delete(doc_pair.local_path)
                 else:

@@ -109,6 +109,44 @@ class TestRemoteDeletion(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test folder'))
 
+    @patch('nxdrive.client.base_automation_client.os.fstatvfs')
+    def test_synchronize_remote_deletion_while_download_file(self, mock_os):
+        global has_delete
+        from mock import Mock
+        mock_os.return_value = Mock()
+        mock_os.return_value.f_bsize = 4096
+        has_delete = False
+
+        # Add delay when upload and download
+        def suspend_check(reason):
+            global has_delete
+            time.sleep(1)
+            Engine.suspend_client(self.engine_1, reason)
+            if not has_delete:
+                # Delete remote file while downloading
+                try:
+                    remote.delete('/Test folder/testFile.pdf')
+                    has_delete = True
+                except:
+                    pass
+
+        self.engine_1.suspend_client = suspend_check
+        self.engine_1.start()
+        # Get local and remote clients
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+
+        # Create documents in the remote root workspace
+        # then synchronize
+        remote.make_folder('/', 'Test folder')
+        with open('nxdrive/tests/resources/testFile.pdf', 'r') as content_file:
+            content = content_file.read()
+        remote.make_file('/Test folder', 'testFile.pdf', content)
+
+        self.wait_sync(wait_for_async=True)
+        self.assertFalse(local.exists('/Test folder/testFile.pdf'))
+        self.assertFalse(local.exists('/Test folder/.testFile.pdf.nxpart'))
+
     def test_synchronize_remote_deletion_local_modification(self):
         raise SkipTest("Behavior has changed with trash feature - remove this test ?")
         """Test remote deletion with concurrent local modification

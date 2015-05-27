@@ -9,6 +9,8 @@ from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.utils import normalized_path
+from nxdrive.engine.processor import Processor
+from threading import current_thread
 from nxdrive.utils import current_milli_time
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.workers import Worker, ThreadInterrupt, PairInterrupt
@@ -618,13 +620,12 @@ class Engine(QObject):
             # TODO self.register_folder_link(local_folder)
         # Put the ROOT in readonly
 
-    def cancel_action_on(self, doc_pair, recursive=True):
-        from nxdrive.engine.processor import Processor
+    def cancel_action_on(self, pair_id):
         for thread in self._threads:
-            if isinstance(thread, Processor):
-                pair = thread._current_doc_pair
-                if pair.local_path.startswith(doc_pair.local_path):
-                    thread.quit()
+            if hasattr(thread, "worker") and isinstance(thread.worker, Processor):
+                pair = thread.worker._current_doc_pair
+                if pair.id == pair_id:
+                    thread.worker.quit()
 
     def get_local_client(self):
         return LocalClient(self._local_folder)
@@ -683,6 +684,13 @@ class Engine(QObject):
     def suspend_client(self, reason):
         if self.is_paused() or self._stopped:
             raise ThreadInterrupt
+        # Verify thread status
+        thread_id = current_thread().ident
+        for thread in self._threads:
+            if hasattr(thread, "worker") and isinstance(thread.worker, Processor):
+                if (thread.worker._thread_id == thread_id and
+                        thread.worker._continue == False):
+                    raise ThreadInterrupt
         # Get action
         current_file = None
         action = Action.get_current_action()
