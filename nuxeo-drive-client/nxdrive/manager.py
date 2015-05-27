@@ -736,13 +736,14 @@ class Manager(QtCore.QObject):
     def _get_default_server_type(self):
         return "NXDRIVE"
 
-    def bind_server(self, local_folder, url, username, password, name=None, start_engine=True):
+    def bind_server(self, local_folder, url, username, password, token=None, name=None, start_engine=True):
         from collections import namedtuple
         if name is None:
             name = self._get_engine_name(url)
-        binder = namedtuple('binder', ['username', 'password', 'url'])
+        binder = namedtuple('binder', ['username', 'password', 'token', 'url'])
         binder.username = username
         binder.password = password
+        binder.token = token
         binder.url = url
         return self.bind_engine(self._get_default_server_type(), local_folder, name, binder, starts=start_engine)
 

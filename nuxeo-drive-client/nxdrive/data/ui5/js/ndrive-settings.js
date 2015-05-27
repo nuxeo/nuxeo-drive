@@ -35,6 +35,9 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.bindServer = function() {
 		self.bindServer($scope, $translate);
 	}
+	$scope.webAuthent = function() {
+		self.webAuthent($scope, $translate);
+	}
 	$scope.validForm = function() {
 		return ($scope.currentAccount.username != '' && $scope.password != ''
 			&& $scope.currentAccount.local_folder != '' && $scope.currentAccount.server_url != '');
@@ -187,4 +190,7 @@ SettingsController.prototype.bindServer = function($scope, $translate) {
 	} else {
 		$scope.setErrorMessage($translate.instant(res));
 	}
+}
+SettingsController.prototype.webAuthent = function($scope, $translate) {
+	drive.web_authent($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.name);
 }

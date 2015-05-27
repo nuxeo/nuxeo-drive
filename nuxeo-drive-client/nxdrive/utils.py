@@ -33,6 +33,15 @@ WIN32_PATCHED_MIME_TYPES = {
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 }
 
+DEVICE_DESCRIPTIONS = {
+    'linux2': 'Linux Desktop',
+    'darwin': 'Mac OSX Desktop',
+    'cygwin': 'Windows Desktop',
+    'win32': 'Windows Desktop',
+}
+
+TOKEN_PERMISSION = 'ReadWrite'
+
 
 def current_milli_time():
     return int(round(time.time() * 1000))
