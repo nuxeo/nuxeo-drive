@@ -1,14 +1,21 @@
 import time
-import sys
+import os
 
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
+from nxdrive.engine.engine import Engine
+from shutil import copyfile
+
+from mock import patch
+
+
+def fstatsvfs(fd):
+    return 4096
 
 
 class TestRemoteDeletion(UnitTestCase):
 
     def test_synchronize_remote_deletion(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that deleting remote documents is impacted client side
 
         Use cases:
@@ -68,9 +75,42 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
+    @patch('nxdrive.client.base_automation_client.os.fstatvfs')
+    def test_synchronize_remote_deletion_while_upload(self, mock_os):
+        from mock import Mock
+        mock_os.return_value = Mock()
+        mock_os.return_value.f_bsize = 4096
+        # Bind the server and root workspace
+        self.engine_1.start()
+
+        # Add delay when upload and download
+        def suspend_check(reason):
+            time.sleep(1)
+            Engine.suspend_client(self.engine_1, reason)
+
+        self.engine_1.suspend_client = suspend_check
+        # Get local and remote clients
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+
+        # Create documents in the remote root workspace
+        # then synchronize
+        remote.make_folder('/', 'Test folder')
+        self.wait_sync(wait_for_async=True)
+
+        # Create a document by streaming a binary file
+        file_path = os.path.join(local._abspath('/Test folder'), 'testFile.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        file_path = os.path.join(local._abspath('/Test folder'), 'testFile2.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+
+        # Delete remote folder then synchronize
+        remote.delete('/Test folder')
+        self.wait_sync(wait_for_async=True)
+        self.assertFalse(local.exists('/Test folder'))
+
     def test_synchronize_remote_deletion_local_modification(self):
-        raise SkipTest("Skipped waiting for"
-                       " https://jira.nuxeo.com/browse/NXDRIVE-80 to be fixed or trash feature review")
+        raise SkipTest("Behavior has changed with trash feature - remove this test ?")
         """Test remote deletion with concurrent local modification
 
         Use cases:
@@ -340,8 +380,6 @@ class TestRemoteDeletion(UnitTestCase):
         self._check_pair_state('/Test folder/jack renamed.odt', 'synchronized')
 
     def test_synchronize_local_folder_rename_remote_deletion(self):
-        if sys.platform == 'win32':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test local folder rename followed by remote deletion"""
         # Bind the server and root workspace
 

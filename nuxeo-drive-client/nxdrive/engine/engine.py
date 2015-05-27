@@ -176,8 +176,11 @@ class Engine(QObject):
     def set_local_folder_lock(self, path):
         self._folder_lock = path
         # Check for each processor
+        log.trace("Local Folder locking on '%s'", path)
         while self.get_queue_manager().has_file_processors_on(path):
+            log.trace("Local folder locking wait for file processor to finish")
             sleep(1)
+        log.debug("Local Folder lock setup completed on '%s'", path)
 
     def release_folder_lock(self):
         self._folder_lock = None
@@ -684,9 +687,12 @@ class Engine(QObject):
         current_file = None
         action = Action.get_current_action()
         if isinstance(action, FileAction):
-            current_file = action.filepath
+            client = self.get_local_client()
+            current_file = client.get_path(action.filepath)
         if (current_file is not None and self._folder_lock is not None
              and current_file.startswith(self._folder_lock)):
+            log.debug("PairInterrupt '%s' because lock on '%s'",
+                      current_file, self._folder_lock)
             raise PairInterrupt
 
     def complete_binder(self, row):
