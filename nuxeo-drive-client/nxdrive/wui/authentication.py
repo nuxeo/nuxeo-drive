@@ -7,10 +7,10 @@ from nxdrive.wui.translator import Translator
 log = get_logger(__name__)
 
 
-class WebAuthentApi(QtCore.QObject):
+class WebAuthenticationApi(QtCore.QObject):
 
     def __init__(self, settings_view, callback, local_folder, server_url, engine_name):
-        super(WebAuthentApi, self).__init__()
+        super(WebAuthenticationApi, self).__init__()
         self._settings_view = settings_view
         self._callback = callback
         self._local_folder = local_folder
@@ -27,7 +27,7 @@ class WebAuthentApi(QtCore.QObject):
         self._settings_view.reload()
 
 
-class WebAuthentDialog(WebDialog):
+class WebAuthenticationDialog(WebDialog):
 
     def __init__(self, application, server_url, token_params, api):
         url = server_url
@@ -35,8 +35,8 @@ class WebAuthentDialog(WebDialog):
             url += '/'
         url += 'drive_login.jsp?'
         url += urlencode(token_params)
-        super(WebAuthentDialog, self).__init__(application, url,
-                                               title=Translator.get("WEB_AUTHENTICATION_WINDOW_TITLE"), api=api)
+        super(WebAuthenticationDialog, self).__init__(application, url,
+                                                      title=Translator.get("WEB_AUTHENTICATION_WINDOW_TITLE"), api=api)
         # TODO
         self.resize(800, 800)
 #         self.setWindowFlags(Qt.WindowStaysOnTopHint)

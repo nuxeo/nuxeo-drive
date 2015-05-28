@@ -35,8 +35,8 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.bindServer = function() {
 		self.bindServer($scope, $translate);
 	}
-	$scope.webAuthent = function() {
-		self.webAuthent($scope, $translate);
+	$scope.webAuthentication = function() {
+		self.webAuthentication($scope, $translate);
 	}
 	$scope.validForm = function() {
 		return ($scope.currentAccount.username != '' && $scope.password != ''
@@ -191,6 +191,6 @@ SettingsController.prototype.bindServer = function($scope, $translate) {
 		$scope.setErrorMessage($translate.instant(res));
 	}
 }
-SettingsController.prototype.webAuthent = function($scope, $translate) {
-	drive.web_authent($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.name);
+SettingsController.prototype.webAuthentication = function($scope, $translate) {
+	drive.web_authentication($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.name);
 }

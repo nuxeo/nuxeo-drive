@@ -8,8 +8,8 @@ from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
 
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
-from nxdrive.wui.authentication import WebAuthentApi
-from nxdrive.wui.authentication import WebAuthentDialog
+from nxdrive.wui.authentication import WebAuthenticationApi
+from nxdrive.wui.authentication import WebAuthenticationDialog
 from nxdrive.manager import ProxySettings, FolderAlreadyUsed
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.wui.translator import Translator
@@ -104,7 +104,7 @@ class WebSettingsApi(WebDriveApi):
         return ""
 
     @QtCore.pyqtSlot(str, str, str)
-    def web_authent(self, local_folder, server_url, engine_name):
+    def web_authentication(self, local_folder, server_url, engine_name):
         server_url = str(server_url)
         token_params = {
             'deviceId': self._manager.get_device_id(),
@@ -114,8 +114,8 @@ class WebSettingsApi(WebDriveApi):
         device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
         if device_description:
             token_params['deviceDescription'] = device_description
-        api = WebAuthentApi(self._dialog._view, self.create_account, local_folder, server_url, engine_name)
-        dialog = WebAuthentDialog(QtCore.QCoreApplication.instance(), server_url, token_params, api)
+        api = WebAuthenticationApi(self._dialog._view, self.create_account, local_folder, server_url, engine_name)
+        dialog = WebAuthenticationDialog(QtCore.QCoreApplication.instance(), server_url, token_params, api)
         dialog.setWindowModality(QtCore.Qt.NonModal)
         dialog.show()
 
