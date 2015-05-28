@@ -5,7 +5,7 @@ from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
 from nxdrive.engine.engine import Engine
 from shutil import copyfile
-
+import sys
 from mock import patch
 
 
@@ -75,11 +75,7 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
-    @patch('nxdrive.client.base_automation_client.os.fstatvfs')
-    def test_synchronize_remote_deletion_while_upload(self, mock_os):
-        from mock import Mock
-        mock_os.return_value = Mock()
-        mock_os.return_value.f_bsize = 4096
+    def _remote_deletion_while_upload(self):
         # Bind the server and root workspace
         self.engine_1.start()
 
@@ -109,12 +105,18 @@ class TestRemoteDeletion(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test folder'))
 
-    @patch('nxdrive.client.base_automation_client.os.fstatvfs')
-    def test_synchronize_remote_deletion_while_download_file(self, mock_os):
+    def test_synchronize_remote_deletion_while_upload(self):
+        if sys.platform != 'win32':
+            with patch('nxdrive.client.base_automation_client.os.fstatvfs') as mock_os:
+                from mock import Mock
+                mock_os.return_value = Mock()
+                mock_os.return_value.f_bsize = 4096
+                self._remote_deletion_while_upload()
+        else:
+            self._remote_deletion_while_upload()
+
+    def _remote_deletion_while_download_file(self):
         global has_delete
-        from mock import Mock
-        mock_os.return_value = Mock()
-        mock_os.return_value.f_bsize = 4096
         has_delete = False
 
         # Add delay when upload and download
@@ -146,6 +148,16 @@ class TestRemoteDeletion(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test folder/testFile.pdf'))
         self.assertFalse(local.exists('/Test folder/.testFile.pdf.nxpart'))
+
+    def test_synchronize_remote_deletion_while_download_file(self):
+        if sys.platform != 'win32':
+            with patch('os.path.isdir', return_value=False) as mock_os:
+                from mock import Mock
+                mock_os.return_value = Mock()
+                mock_os.return_value.f_bsize = 4096
+                self._remote_deletion_while_download_file()
+        else:
+            self._remote_deletion_while_download_file()
 
     def test_synchronize_remote_deletion_local_modification(self):
         raise SkipTest("Behavior has changed with trash feature - remove this test ?")
