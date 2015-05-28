@@ -14,6 +14,10 @@ log = get_logger(__name__)
 class ThreadInterrupt(Exception):
     pass
 
+
+class PairInterrupt(Exception):
+    pass
+
 '''
 ' Utility class that handle one thread
 '''

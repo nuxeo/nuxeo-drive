@@ -147,6 +147,8 @@ class RemoteWatcher(EngineWorker):
         parent_pair = self._dao.get_state_from_remote_with_path(os.path.basename(parent_path),
                                                                 os.path.dirname(parent_path))
         log.debug("scan_pair: parent_pair: %r", parent_pair)
+        if parent_pair is None:
+            return
         local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
         remote_parent_path = parent_pair.remote_parent_path + '/' + child_info.uid
         row_id = self._dao.insert_remote_state(child_info, remote_parent_path, local_path, parent_pair.local_path)

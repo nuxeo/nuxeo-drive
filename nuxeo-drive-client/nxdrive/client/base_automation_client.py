@@ -386,24 +386,27 @@ class BaseAutomationClient(BaseClient):
         """
         batch_id = self._generate_unique_id()
         tick = time.time()
-        upload_result = self.upload(batch_id, file_path, filename=filename,
-                                    mime_type=mime_type)
-        upload_duration = int(time.time() - tick)
-        # Use upload duration * 2 as Nuxeo transaction timeout
-        tx_timeout = max(DEFAULT_NUXEO_TX_TIMEOUT, upload_duration * 2)
-        log.trace('Using %d seconds [max(%d, 2 * upload time=%d)] as Nuxeo'
-                  ' transaction timeout for batch execution of %s'
-                  ' with file %s', tx_timeout, DEFAULT_NUXEO_TX_TIMEOUT,
-                  upload_duration, command, file_path)
-        if upload_result['uploaded'] == 'true':
-            FileAction("Upload", file_path, filename)
-            result = self.execute_batch(command, batch_id, '0', tx_timeout,
-                                      **params)
+        action = FileAction("Upload", file_path, filename)
+        try:
+            upload_result = self.upload(batch_id, file_path, filename=filename,
+                                        mime_type=mime_type)
+            upload_duration = int(time.time() - tick)
+            action.transfer_duration = upload_duration
+            # Use upload duration * 2 as Nuxeo transaction timeout
+            tx_timeout = max(DEFAULT_NUXEO_TX_TIMEOUT, upload_duration * 2)
+            log.trace('Using %d seconds [max(%d, 2 * upload time=%d)] as Nuxeo'
+                      ' transaction timeout for batch execution of %s'
+                      ' with file %s', tx_timeout, DEFAULT_NUXEO_TX_TIMEOUT,
+                      upload_duration, command, file_path)
+            if upload_result['uploaded'] == 'true':
+                result = self.execute_batch(command, batch_id, '0', tx_timeout,
+                                          **params)
+                return result
+            else:
+                raise ValueError("Bad response from batch upload with id '%s'"
+                                 " and file path '%s'" % (batch_id, file_path))
+        finally:
             self.end_action()
-            return result
-        else:
-            raise ValueError("Bad response from batch upload with id '%s'"
-                             " and file path '%s'" % (batch_id, file_path))
 
     def get_upload_buffer(self, input_file):
         if sys.platform != 'win32':

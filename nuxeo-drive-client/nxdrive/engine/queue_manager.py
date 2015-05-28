@@ -169,6 +169,8 @@ class QueueManager(QObject):
                 self._local_folder_queue.put(state)
                 log.trace('Pushed to _local_folder_queue, now of size: %d', self._local_folder_queue.qsize())
             else:
+                if "deleted" in state.pair_state:
+                    self._engine.cancel_action_on(state.id)
                 self._local_file_queue.put(state)
                 log.trace('Pushed to _local_file_queue, now of size: %d', self._local_file_queue.qsize())
             self.newItem.emit(row_id)
@@ -177,6 +179,8 @@ class QueueManager(QObject):
                 self._remote_folder_queue.put(state)
                 log.trace('Pushed to _remote_folder_queue, now of size: %d', self._remote_folder_queue.qsize())
             else:
+                if "deleted" in state.pair_state:
+                    self._engine.cancel_action_on(state.id)
                 self._remote_file_queue.put(state)
                 log.trace('Pushed to _remote_file_queue, now of size: %d', self._remote_file_queue.qsize())
             self.newItem.emit(row_id)
@@ -339,11 +343,33 @@ class QueueManager(QObject):
         return (self._local_folder_queue.qsize() + self._local_file_queue.qsize()
                 + self._remote_folder_queue.qsize() + self._remote_file_queue.qsize())
 
+    def is_processing_file(self, worker, path):
+        if not hasattr(worker, "_current_doc_pair"):
+            return False
+        if (worker._current_doc_pair is None or
+            worker._current_doc_pair.local_path is None):
+            return False
+        return worker._current_doc_pair.local_path.startswith(path)
+
+    def has_file_processors_on(self, path):
+        # First check local and remote file
+        if self._local_file_thread is not None:
+            if self.is_processing_file(self._local_file_thread.worker, path):
+                return True
+        if self._remote_file_thread is not None:
+            if self.is_processing_file(self._remote_file_thread.worker, path):
+                return True
+        for thread in self._processors_pool:
+            if self.is_processing_file(thread.worker, path):
+                return True
+        return False
+
     @pyqtSlot()
     def launch_processors(self):
         if (self._local_folder_queue.empty() and self._local_file_queue.empty()
                 and self._remote_file_queue.empty() and self._local_file_queue.qsize()):
             self.queueEmpty.emit()
+            return
         log.trace("Launching processors")
         if self._local_folder_thread is None and not self._local_folder_queue.empty() and self._local_folder_enable:
             log.debug("creating local folder processor")

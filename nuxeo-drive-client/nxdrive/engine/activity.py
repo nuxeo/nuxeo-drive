@@ -72,6 +72,7 @@ class FileAction(Action):
     filepath = None
     filename = None
     size = None
+    transfer_duration = None
 
     def __init__(self, actionType, filepath, filename=None, size=None):
         super(FileAction, self).__init__(actionType, 0)

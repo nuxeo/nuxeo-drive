@@ -3,7 +3,7 @@ Created on 14 janv. 2015
 
 @author: Remi Cattiau
 '''
-from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
+from nxdrive.engine.workers import EngineWorker, ThreadInterrupt, PairInterrupt
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.client.common import NotFound
@@ -89,6 +89,9 @@ class Processor(EngineWorker):
                 if (parent_path == ''):
                     parent_path = "/"
                 if not local_client.exists(parent_path):
+                    if doc_pair.pair_state == "remotely_deleted":
+                        self._dao.remove_state(doc_pair)
+                        continue
                     log.trace("Republish as parent doesn't exist : %r", doc_pair)
                     self.increase_error(doc_pair, error="NO_PARENT")
                     self._current_item = self._get_item()
@@ -116,6 +119,13 @@ class Processor(EngineWorker):
                         log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
                     except ThreadInterrupt:
                         raise
+                    except PairInterrupt:
+                        from time import sleep
+                        # Wait one second to avoid retrying to quickly
+                        log.trace("PairInterrupt wait 1s and requeue on %r", doc_pair)
+                        sleep(1)
+                        self._engine.get_queue_manager().push(doc_pair)
+                        continue
                     except Exception as e:
                         log.exception(e)
                         self.increase_error(doc_pair, "SYNC HANDLER: %s" % handler_name, exception=e)
@@ -178,6 +188,7 @@ class Processor(EngineWorker):
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
                     self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                    self._handle_unsynchronized(local_client, doc_pair)
                 return
         self._dao.synchronize_state(doc_pair)
 
@@ -264,6 +275,7 @@ class Processor(EngineWorker):
                 self._dao.remove_state(doc_pair)
             else:
                 self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                self._handle_unsynchronized(local_client, doc_pair)
 
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):
         if doc_pair.remote_ref is not None:
@@ -324,7 +336,7 @@ class Processor(EngineWorker):
         if parent_pair is None:
             raise Exception("Should have a parent pair")
         if parent_ref != doc_pair.remote_parent_ref:
-            if doc_pair.remote_can_rename:
+            if doc_pair.remote_can_delete:
                 log.debug('Moving remote file according to local : %r', doc_pair)
                 # Bug if move in a parent with no rights / partial move
                 # if rename at the same time
@@ -354,17 +366,21 @@ class Processor(EngineWorker):
                   doc_pair)
         self._dao.remove_state(doc_pair)
 
+    def _get_temporary_file(self, file_path):
+        from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
+        from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
+        file_dir = os.path.dirname(file_path)
+        file_name = os.path.basename(file_path)
+        file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
+                                + DOWNLOAD_TMP_FILE_SUFFIX)
+        return file_out
+
     def _download_content(self, local_client, remote_client, doc_pair, file_path):
         # Check if the file is already on the HD
         pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
         if pair:
             import shutil
-            from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
-            from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
-            file_dir = os.path.dirname(file_path)
-            file_name = os.path.basename(file_path)
-            file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
-                                + DOWNLOAD_TMP_FILE_SUFFIX)
+            file_out = self._get_temporary_file(file_path)
             shutil.copy(local_client._abspath(pair.local_path), file_out)
             return file_out
         tmp_file = remote_client.stream_content(
@@ -413,6 +429,8 @@ class Processor(EngineWorker):
                               " document '%s'.", doc_pair.remote_name)
                 else:
                     file_or_folder = 'folder' if doc_pair.folderish else 'file'
+                    if (is_move or is_renaming) and doc_pair.folderish:
+                        self._engine.set_local_folder_lock(doc_pair.local_path)
                     if is_move:
                         # move and potential rename
                         moved_name = doc_pair.remote_name if is_renaming else doc_pair.local_name
@@ -445,6 +463,10 @@ class Processor(EngineWorker):
                 " process).",
                 doc_pair)
             raise e
+        finally:
+            if doc_pair.folderish:
+                # Release folder lock in any case
+                self._engine.release_folder_lock()
 
     def _synchronize_remotely_created(self, doc_pair, local_client, remote_client):
         name = doc_pair.remote_name
@@ -515,6 +537,13 @@ class Processor(EngineWorker):
         try:
             if doc_pair.local_state != 'deleted':
                 log.debug("Deleting locally %s", local_client._abspath(doc_pair.local_path))
+                if doc_pair.folderish:
+                    self._engine.set_local_folder_lock(doc_pair.local_path)
+                else:
+                    # Check for nxpart to clean up
+                    file_out = self._get_temporary_file(local_client._abspath(doc_pair.local_path))
+                    if os.path.exists(file_out):
+                        os.remove(file_out)
                 if self._engine.use_trash():
                     local_client.delete(doc_pair.local_path)
                 else:
@@ -530,6 +559,9 @@ class Processor(EngineWorker):
                 " concurrent file access (probably opened by another"
                 " process).", doc_pair)
             raise e
+        finally:
+            if doc_pair.folderish:
+                self._engine.release_folder_lock()
 
     def _synchronize_unknown_deleted(self, doc_pair, local_client, remote_client):
         # Somehow a pair can get to an inconsistent state:
@@ -612,6 +644,10 @@ class Processor(EngineWorker):
 
     def _is_locally_edited_folder(self, doc_pair):
         return doc_pair.local_path.endswith(LOCALLY_EDITED_FOLDER_NAME)
+
+    def _handle_unsynchronized(self, local_client, doc_pair):
+        # Used for overwrite
+        pass
 
     def _handle_readonly(self, local_client, doc_pair):
         # Don't use readonly on folder for win32 and on Locally Edited
