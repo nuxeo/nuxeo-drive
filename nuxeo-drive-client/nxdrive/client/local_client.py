@@ -330,8 +330,11 @@ class LocalClient(BaseClient):
             try:
                 if not os.path.exists(path):
                     raise NotFound()
+                stat = os.stat(path)
                 with open(pathAlt, "w") as f:
                     f.write(remote_id)
+                # Avoid time modified change
+                os.utime(path, (stat.st_atime, stat.st_mtime))
             except IOError as e:
                 # Should not happen
                 if e.errno == os.errno.EACCES:

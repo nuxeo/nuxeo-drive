@@ -204,6 +204,20 @@ def test_get_new_file():
 
 
 @with_temp_folder
+def test_xattr():
+    ref = lcclient.make_file(TEST_WORKSPACE, u'File 2.txt', content=b"baz\n")
+    path = lcclient._abspath(ref)
+    mtime = int(os.path.getmtime(path))
+    from time import sleep
+    sleep(1)
+    lcclient.set_remote_id(ref, 'TEST')
+    assert_true(mtime == int(os.path.getmtime(path)))
+    sleep(1)
+    lcclient.remove_remote_id(ref)
+    assert_true(mtime == int(os.path.getmtime(path)))
+
+
+@with_temp_folder
 def test_get_path():
     abs_path = os.path.join(
                         LOCAL_TEST_FOLDER, 'Some Workspace', 'Test doc.txt')
