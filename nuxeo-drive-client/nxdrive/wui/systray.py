@@ -143,6 +143,7 @@ class WebSystrayView(WebDialog):
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint);
 
     def replace(self):
+        log.trace("Icon is %r", self._icon)
         rect = self._icon.geometry()
         if rect.x() < 100:
             x = rect.x() + rect.width()
@@ -153,6 +154,7 @@ class WebSystrayView(WebDialog):
         else:
             x = rect.x() + rect.width() - self.width()
             y = rect.y() - self.height()
+        log.trace("Move systray menu to %d/%d", x, y)
         self.move(x, y)
 
     def show(self):
@@ -214,6 +216,7 @@ class WebSystray(QtGui.QMenu):
 
     @QtCore.pyqtSlot()
     def onShow(self):
+        log.trace("Show systray menu")
         if self.dlg is None:
             self.dlg = WebSystrayView(self._application, self._systray_icon)
             # Close systray when app is quitting
