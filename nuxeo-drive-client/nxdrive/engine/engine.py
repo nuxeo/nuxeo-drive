@@ -325,6 +325,9 @@ class Engine(QObject):
     def get_server_url(self):
         return self._dao.get_config("server_url")
 
+    def get_remote_user(self):
+        return self._dao.get_config("remote_user")
+
     def get_remote_token(self):
         return self._dao.get_config("remote_token")
 
@@ -555,6 +558,13 @@ class Engine(QObject):
         self._remote_token = nxclient.request_token()
         if self._remote_token is None:
             raise Exception
+        self._dao.update_config("remote_token", self._remote_token)
+        self.set_invalid_credentials(False)
+        self.start()
+
+    def update_token(self, token):
+        self._load_configuration()
+        self._remote_token = token
         self._dao.update_config("remote_token", self._remote_token)
         self.set_invalid_credentials(False)
         self.start()

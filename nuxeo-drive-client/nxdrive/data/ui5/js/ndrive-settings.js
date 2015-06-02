@@ -39,6 +39,9 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.webAuthentication = function() {
 		self.webAuthentication($scope, $translate);
 	}
+	$scope.updateToken = function() {
+		self.updateToken($scope, $translate);
+	}
 	$scope.validForm = function() {
 		if ($scope.webAuthenticationAvailable) {
 			return ($scope.currentAccount.local_folder && $scope.currentAccount.server_url);
@@ -188,6 +191,11 @@ var SettingsController = function($scope, $interval, $translate) {
 			$scope.setErrorMessage($translate.instant(accountCreationError));
 			drive.set_account_creation_error("");
 		}
+		tokenUpdateError = drive.get_token_update_error();
+		if(tokenUpdateError != "") {
+			$scope.tokenUpdateError = tokenUpdateError;
+			drive.set_token_update_error("");
+		}
 	}
 }
 
@@ -227,4 +235,10 @@ SettingsController.prototype.webAuthentication = function($scope, $translate) {
 		$scope.setErrorMessage($translate.instant(res));
 	}
 }
+SettingsController.prototype.updateToken = function($scope, $translate) {
+	$scope.reinitMsgs();
+	res = drive.web_update_token($scope.currentAccount.uid);
+	if (res != "") {
+		$scope.setErrorMessage($translate.instant(res));
+	}
 }

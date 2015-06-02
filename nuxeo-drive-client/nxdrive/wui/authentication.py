@@ -48,6 +48,34 @@ class WebAuthenticationApi(QtCore.QObject):
                 self._settings_api.set_account_creation_error(error)
             self._settings_api.get_dialog().get_view().reload()
 
+    @QtCore.pyqtSlot(str)
+    def update_token(self, token):
+        error = None
+        engine = self._callback_params['engine']
+        try:
+            token = str(token)
+            log.debug('Updating token for account [%s, %s, %s]',
+                      engine.get_local_folder(), engine.get_server_url(), engine.get_remote_user())
+            self._settings_api.update_token(engine, token)
+        except urllib2.URLError as e:
+            log.exception(e)
+            if e.errno == 61:
+                error = 'CONNECTION_REFUSED'
+            else:
+                error = 'CONNECTION_ERROR'
+        except urllib2.HTTPError as e:
+            log.exception(e)
+            error = 'CONNECTION_ERROR'
+        except:
+            log.exception('Unexpected error while trying to update token for account [%s, %s, %s]',
+                          engine.get_local_folder(), engine.get_server_url(), engine.get_remote_user())
+            error = 'CONNECTION_UNKNOWN'
+        finally:
+            self._dialog.accept()
+            if error is not None:
+                self._settings_api.set_token_update_error(error)
+            self._settings_api.get_dialog().get_view().reload()
+
 
 class WebAuthenticationDialog(WebDialog):
 

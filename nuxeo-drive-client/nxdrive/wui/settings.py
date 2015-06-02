@@ -35,6 +35,7 @@ class WebSettingsApi(WebDriveApi):
         # Attributes for the web authentication feedback
         self._new_local_folder = ""
         self._account_creation_error = ""
+        self._token_update_error = ""
 
     @QtCore.pyqtSlot(result=str)
     def get_default_section(self):
@@ -173,6 +174,27 @@ class WebSettingsApi(WebDriveApi):
             if conn is not None:
                 conn.close()
 
+    def update_token(self, engine, token):
+        engine.update_token(token)
+
+    @QtCore.pyqtSlot(str, result=str)
+    def web_update_token(self, uid):
+        try:
+            engine = self._get_engine(uid)
+            if engine is None:
+                return 'CONNECTION_UNKNOWN'
+            server_url = engine.get_server_url()
+            url = self._get_authentication_url(server_url) + '&' + urlencode({'updateToken': True})
+            callback_params = {
+                'engine': engine,
+            }
+            log.debug('Opening login window to update token from server %s', server_url)
+            self._open_authentication_dialog(url, callback_params)
+            return ''
+        except:
+            log.exception('Unexpected error while trying to open web authentication window for token update')
+            return 'CONNECTION_UNKNOWN'
+
     def _open_authentication_dialog(self, url, callback_params):
         api = WebAuthenticationApi(self, callback_params)
         dialog = WebAuthenticationDialog(QtCore.QCoreApplication.instance(), url, api)
@@ -215,6 +237,20 @@ class WebSettingsApi(WebDriveApi):
     def set_account_creation_error(self, error):
         try:
             self._account_creation_error = error
+        except Exception as e:
+            log.exception(e)
+
+    @QtCore.pyqtSlot(result=str)
+    def get_token_update_error(self):
+        try:
+            return self._token_update_error
+        except Exception as e:
+            log.exception(e)
+
+    @QtCore.pyqtSlot(str)
+    def set_token_update_error(self, error):
+        try:
+            self._token_update_error = error
         except Exception as e:
             log.exception(e)
 
