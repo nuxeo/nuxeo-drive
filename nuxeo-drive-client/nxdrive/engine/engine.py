@@ -333,6 +333,7 @@ class Engine(QObject):
         return url
 
     def _load_configuration(self):
+        self._web_authentication = self._dao.get_config("web_authentication", "0") == "1"
         self._server_url = self._dao.get_config("server_url")
         self._remote_user = self._dao.get_config("remote_user")
         self._remote_password = self._dao.get_config("remote_password")
@@ -341,6 +342,9 @@ class Engine(QObject):
 
     def get_server_url(self):
         return self._dao.get_config("server_url")
+
+    def get_remote_user(self):
+        return self._dao.get_config("remote_user")
 
     def get_remote_token(self):
         return self._dao.get_config("remote_token")
@@ -383,6 +387,7 @@ class Engine(QObject):
     def get_binder(self):
         from nxdrive.manager import ServerBindingSettings
         return ServerBindingSettings(server_url=self._server_url,
+                        web_authentication=self._web_authentication,
                         server_version=None,
                         username=self._remote_user,
                         local_folder=self._local_folder,
@@ -575,13 +580,19 @@ class Engine(QObject):
         self.set_invalid_credentials(False)
         self.start()
 
+    def update_token(self, token):
+        self._load_configuration()
+        self._remote_token = token
+        self._dao.update_config("remote_token", self._remote_token)
+        self.set_invalid_credentials(False)
+        self.start()
+
     def bind(self, binder):
         self._server_url = self._normalize_url(binder.url)
         self._remote_user = binder.username
         self._remote_password = binder.password
-        self._remote_token = None
-        if hasattr(binder, 'token'):
-            self._remote_token = binder.token
+        self._remote_token = binder.token
+        self._web_authentication = self._remote_token is not None
         nxclient = self.remote_doc_client_factory(
             self._server_url, self._remote_user, self._manager.device_id,
             self._manager.client_version, proxies=self._manager.proxies,
@@ -595,6 +606,7 @@ class Engine(QObject):
             # password in the DB
             self._remote_password = None
         # Save the configuration
+        self._dao.update_config("web_authentication", self._web_authentication)
         self._dao.update_config("server_url", self._server_url)
         self._dao.update_config("remote_user", self._remote_user)
         self._dao.update_config("remote_password", self._remote_password)

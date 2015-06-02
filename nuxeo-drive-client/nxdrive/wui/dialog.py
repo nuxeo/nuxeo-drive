@@ -49,6 +49,9 @@ class WebDriveApi(QtCore.QObject):
         # Avoid to fail on non serializable object
         return json.dumps(obj, default=self._json_default)
 
+    def get_dialog(self):
+        return self._dialog
+
     def set_dialog(self, dlg):
         self._dialog = dlg
 
@@ -65,6 +68,7 @@ class WebDriveApi(QtCore.QObject):
         result["queue"] = engine.get_queue_manager().get_metrics()
         # TODO Make it more generic
         bind = engine.get_binder()
+        result["web_authentication"] = bind.web_authentication
         result["server_url"] = bind.server_url
         result["username"] = bind.username
         result["need_password_update"] = bind.pwd_update_required
@@ -674,6 +678,9 @@ class WebDialog(QtGui.QDialog):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
         self.activateWindow()
+
+    def get_view(self):
+        return self._view
 
     @QtCore.pyqtSlot()
     def show(self):

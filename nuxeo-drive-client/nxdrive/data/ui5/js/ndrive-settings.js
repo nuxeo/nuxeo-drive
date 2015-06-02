@@ -5,6 +5,7 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.section = ""
 	$scope.local_folder = "";
 	$scope.currentAccount = "";
+	$scope.webAuthenticationAvailable = true;
 	$scope.show_activities = drive.show_activities;
 	$scope.auto_start = drive.get_auto_start();
 	$scope.beta_channel_available = drive.is_beta_channel_available();
@@ -35,9 +36,19 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.bindServer = function() {
 		self.bindServer($scope, $translate);
 	}
+	$scope.webAuthentication = function() {
+		self.webAuthentication($scope, $translate);
+	}
+	$scope.updateToken = function() {
+		self.updateToken($scope, $translate);
+	}
 	$scope.validForm = function() {
-		return ($scope.currentAccount.username != '' && $scope.password != ''
-			&& $scope.currentAccount.local_folder != '' && $scope.currentAccount.server_url != '');
+		if ($scope.webAuthenticationAvailable) {
+			return ($scope.currentAccount.local_folder && $scope.currentAccount.server_url);
+		} else {
+			return ($scope.currentAccount.username && $scope.password
+				&& $scope.currentAccount.local_folder && $scope.currentAccount.server_url);
+		}
 	}
 	$scope.browse = function() {
 		$scope.reinitMsgs();
@@ -115,6 +126,7 @@ var SettingsController = function($scope, $interval, $translate) {
 			} else {
 				$scope.changeAccount($scope.newAccount);
 			}
+			$scope.webAuthenticationAvailable = true;
 		} else {
 			button.addClass("btn-danger");
 			button.html($translate.instant("CONFIRM_DISCONNECT"));
@@ -152,12 +164,38 @@ var SettingsController = function($scope, $interval, $translate) {
 	}
 	$scope.reinitNewAccount();
 	$scope.changeSection(drive.get_default_section());
+	newLocalFolder = drive.get_new_local_folder();
 	if ($scope.engines.length > 0) {
 		if ($scope.currentAccount == "") {
-			$scope.changeAccount($scope.engines[0]);
+			if (newLocalFolder == "") {
+				$scope.changeAccount($scope.engines[0]);
+			} else {
+				for (i = 0; i < $scope.engines.length; i++) {
+					if ($scope.engines[i].local_folder == newLocalFolder) {
+						$scope.changeAccount($scope.engines[i]);
+						break;
+					}
+				}
+			}
 		}
 	} else {
 		$scope.changeAccount($scope.newAccount);
+	}
+	// Handle web authentication feedback
+	if (newLocalFolder != "") {
+		$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
+		drive.set_new_local_folder("");
+	} else {
+		accountCreationError = drive.get_account_creation_error();
+		if (accountCreationError != "") {
+			$scope.setErrorMessage($translate.instant(accountCreationError));
+			drive.set_account_creation_error("");
+		}
+		tokenUpdateError = drive.get_token_update_error();
+		if(tokenUpdateError != "") {
+			$scope.tokenUpdateError = tokenUpdateError;
+			drive.set_token_update_error("");
+		}
 	}
 }
 
@@ -185,6 +223,22 @@ SettingsController.prototype.bindServer = function($scope, $translate) {
 		$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
 		$scope.beta_channel_available = drive.is_beta_channel_available();
 	} else {
+		$scope.setErrorMessage($translate.instant(res));
+	}
+}
+SettingsController.prototype.webAuthentication = function($scope, $translate) {
+	$scope.reinitMsgs();
+	res = drive.web_authentication($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.name);
+	if (res == "false") {
+		$scope.webAuthenticationAvailable = false;
+	} else if (res != "true") {
+		$scope.setErrorMessage($translate.instant(res));
+	}
+}
+SettingsController.prototype.updateToken = function($scope, $translate) {
+	$scope.reinitMsgs();
+	res = drive.web_update_token($scope.currentAccount.uid);
+	if (res != "") {
 		$scope.setErrorMessage($translate.instant(res));
 	}
 }
