@@ -24,10 +24,17 @@ from urllib import urlencode
 DRIVE_STARTUP_PAGE = 'drive_login.jsp'
 
 
+class StartupPageConnectionError(Exception):
+    pass
+
+
 class WebSettingsApi(WebDriveApi):
 
     def __init__(self, application, dlg=None):
         super(WebSettingsApi, self).__init__(application, dlg)
+        # Attributes for the web authentication feedback
+        self._new_local_folder = ""
+        self._account_creation_error = ""
 
     @QtCore.pyqtSlot(result=str)
     def get_default_section(self):
@@ -104,6 +111,7 @@ class WebSettingsApi(WebDriveApi):
         try:
             # Handle local folder
             local_folder = str(local_folder.toUtf8()).decode('utf-8')
+            self._check_local_folder(local_folder)
 
             # Handle server URL
             server_url = str(server_url)
@@ -131,9 +139,17 @@ class WebSettingsApi(WebDriveApi):
                 log.debug('Web authentication not available on server %s, falling back on basic authentication',
                           server_url)
                 return "false"
+        except FolderAlreadyUsed:
+            return 'FOLDER_USED'
+        except StartupPageConnectionError:
+            return 'CONNECTION_ERROR'
         except:
             log.exception('Unexpected error while trying to open web authentication window')
             return 'CONNECTION_UNKNOWN'
+
+    def _check_local_folder(self, local_folder):
+        if not self._manager.check_local_folder_available(local_folder):
+            raise FolderAlreadyUsed()
 
     def _connect_startup_page(self, server_url):
         conn = None
@@ -152,6 +168,7 @@ class WebSettingsApi(WebDriveApi):
             return conn.getresponse().status
         except:
             log.exception('Error while trying to connect to Nuxeo Drive startup page with URL %s', server_url)
+            raise StartupPageConnectionError()
         finally:
             if conn is not None:
                 conn.close()
@@ -172,6 +189,34 @@ class WebSettingsApi(WebDriveApi):
         if device_description:
             token_params['deviceDescription'] = device_description
         return server_url + DRIVE_STARTUP_PAGE + '?' + urlencode(token_params)
+
+    @QtCore.pyqtSlot(result=str)
+    def get_new_local_folder(self):
+        try:
+            return self._new_local_folder
+        except Exception as e:
+            log.exception(e)
+
+    @QtCore.pyqtSlot(str)
+    def set_new_local_folder(self, local_folder):
+        try:
+            self._new_local_folder = local_folder
+        except Exception as e:
+            log.exception(e)
+
+    @QtCore.pyqtSlot(result=str)
+    def get_account_creation_error(self):
+        try:
+            return self._account_creation_error
+        except Exception as e:
+            log.exception(e)
+
+    @QtCore.pyqtSlot(str)
+    def set_account_creation_error(self, error):
+        try:
+            self._account_creation_error = error
+        except Exception as e:
+            log.exception(e)
 
     @QtCore.pyqtSlot(result=str)
     def get_proxy_settings(self):

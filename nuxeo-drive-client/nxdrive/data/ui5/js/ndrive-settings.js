@@ -161,12 +161,33 @@ var SettingsController = function($scope, $interval, $translate) {
 	}
 	$scope.reinitNewAccount();
 	$scope.changeSection(drive.get_default_section());
+	newLocalFolder = drive.get_new_local_folder();
 	if ($scope.engines.length > 0) {
 		if ($scope.currentAccount == "") {
-			$scope.changeAccount($scope.engines[0]);
+			if (newLocalFolder == "") {
+				$scope.changeAccount($scope.engines[0]);
+			} else {
+				for (i = 0; i < $scope.engines.length; i++) {
+					if ($scope.engines[i].local_folder == newLocalFolder) {
+						$scope.changeAccount($scope.engines[i]);
+						break;
+					}
+				}
+			}
 		}
 	} else {
 		$scope.changeAccount($scope.newAccount);
+	}
+	// Handle web authentication feedback
+	if (newLocalFolder != "") {
+		$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
+		drive.set_new_local_folder("");
+	} else {
+		accountCreationError = drive.get_account_creation_error();
+		if (accountCreationError != "") {
+			$scope.setErrorMessage($translate.instant(accountCreationError));
+			drive.set_account_creation_error("");
+		}
 	}
 }
 
