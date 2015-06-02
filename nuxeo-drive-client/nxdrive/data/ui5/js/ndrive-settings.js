@@ -40,8 +40,12 @@ var SettingsController = function($scope, $interval, $translate) {
 		self.webAuthentication($scope, $translate);
 	}
 	$scope.validForm = function() {
-		return ($scope.currentAccount.username != '' && $scope.password != ''
-			&& $scope.currentAccount.local_folder != '' && $scope.currentAccount.server_url != '');
+		if ($scope.webAuthenticationAvailable) {
+			return ($scope.currentAccount.local_folder && $scope.currentAccount.server_url);
+		} else {
+			return ($scope.currentAccount.username && $scope.password
+				&& $scope.currentAccount.local_folder && $scope.currentAccount.server_url);
+		}
 	}
 	$scope.browse = function() {
 		$scope.reinitMsgs();
