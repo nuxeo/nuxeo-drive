@@ -52,10 +52,11 @@ class MissingToken(Exception):
 class ServerBindingSettings(object):
     """Summarize server binding settings"""
 
-    def __init__(self, server_url=None, server_version=None,
+    def __init__(self, web_authentication=False, server_url=None, server_version=None,
                  username=None, password=None,
                  local_folder=None, initialized=False,
                  pwd_update_required=False):
+        self.web_authentication = web_authentication
         self.server_url = server_url
         self.server_version = server_version
         self.username = username
@@ -65,10 +66,10 @@ class ServerBindingSettings(object):
         self.pwd_update_required = pwd_update_required
 
     def __repr__(self):
-        return ("ServerBindingSettings<server_url=%s, server_version=%s, "
+        return ("ServerBindingSettings<web_authentication=%r, server_url=%s, server_version=%s, "
                 "username=%s, local_folder=%s, initialized=%r, "
                 "pwd_update_required=%r>") % (
-                    self.server_url, self.server_version, self.username,
+                    self.web_authentication, self.server_url, self.server_version, self.username,
                     self.local_folder, self.initialized,
                     self.pwd_update_required)
 
@@ -569,7 +570,7 @@ class Manager(QtCore.QObject):
     def _increment_local_folder(self, basefolder, name):
         nuxeo_drive_folder = os.path.join(basefolder, name)
         num = 2
-        while (not self._check_local_folder_available(nuxeo_drive_folder)):
+        while (not self.check_local_folder_available(nuxeo_drive_folder)):
             nuxeo_drive_folder = os.path.join(basefolder, name + " " + str(num))
             num = num + 1
             if num > 10:
@@ -736,13 +737,14 @@ class Manager(QtCore.QObject):
     def _get_default_server_type(self):
         return "NXDRIVE"
 
-    def bind_server(self, local_folder, url, username, password, name=None, start_engine=True):
+    def bind_server(self, local_folder, url, username, password, token=None, name=None, start_engine=True):
         from collections import namedtuple
         if name is None:
             name = self._get_engine_name(url)
-        binder = namedtuple('binder', ['username', 'password', 'url'])
+        binder = namedtuple('binder', ['username', 'password', 'token', 'url'])
         binder.username = username
         binder.password = password
+        binder.token = token
         binder.url = url
         return self.bind_engine(self._get_default_server_type(), local_folder, name, binder, starts=start_engine)
 
@@ -751,7 +753,7 @@ class Manager(QtCore.QObject):
         urlp = urlparse.urlparse(server_url)
         return urlp.hostname
 
-    def _check_local_folder_available(self, local_folder):
+    def check_local_folder_available(self, local_folder):
         if self._engine_definitions is None:
             return True
         if not local_folder.endswith('/'):
@@ -766,7 +768,7 @@ class Manager(QtCore.QObject):
 
     def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
         """Bind a local folder to a remote nuxeo server"""
-        if not self._check_local_folder_available(local_folder):
+        if not self.check_local_folder_available(local_folder):
             raise FolderAlreadyUsed()
         if not engine_type in self._engine_types:
             raise EngineTypeMissing()

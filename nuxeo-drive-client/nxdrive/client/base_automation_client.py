@@ -19,6 +19,8 @@ from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
 from nxdrive.engine.activity import Action, FileAction
+from nxdrive.utils import DEVICE_DESCRIPTIONS
+from nxdrive.utils import TOKEN_PERMISSION
 from nxdrive.utils import guess_mime_type
 from nxdrive.utils import force_decode
 from urllib2 import ProxyHandler
@@ -28,12 +30,6 @@ import socket
 
 log = get_logger(__name__)
 
-DEVICE_DESCRIPTIONS = {
-    'linux2': 'Linux Desktop',
-    'darwin': 'Mac OSX Desktop',
-    'cygwin': 'Windows Desktop',
-    'win32': 'Windows Desktop',
-}
 CHANGE_SUMMARY_OPERATION = 'NuxeoDrive.GetChangeSummary'
 DEFAULT_NUXEO_TX_TIMEOUT = 300
 
@@ -142,8 +138,6 @@ class BaseAutomationClient(BaseClient):
 
     # Parameters used when negotiating authentication token:
     application_name = 'Nuxeo Drive'
-
-    permission = 'ReadWrite'
 
     def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
@@ -495,7 +489,7 @@ class BaseAutomationClient(BaseClient):
         parameters = {
             'deviceId': self.device_id,
             'applicationName': self.application_name,
-            'permission': self.permission,
+            'permission': TOKEN_PERMISSION,
             'revoke': 'true' if revoke else 'false',
         }
         device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
