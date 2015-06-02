@@ -121,7 +121,6 @@ class WebSettingsApi(WebDriveApi):
 
             # Connect to startup page
             status = self._connect_startup_page(server_url)
-            log.debug('status = %d', status)
             if status < 400:
                 # Page exists, let's open authentication dialog
                 engine_name = unicode(engine_name)
@@ -132,8 +131,10 @@ class WebSettingsApi(WebDriveApi):
                     'server_url': server_url,
                     'engine_name': engine_name,
                 }
-                log.debug('Web authentication is available on server %s, opening login window', server_url)
-                self._open_authentication_dialog(self._get_authentication_url(server_url), callback_params)
+                url = self._get_authentication_url(server_url)
+                log.debug('Web authentication is available on server %s, opening login window with URL %s',
+                          server_url, url)
+                self._open_authentication_dialog(url, callback_params)
                 return "true"
             else:
                 # Startup page is not available
@@ -166,7 +167,9 @@ class WebSettingsApi(WebDriveApi):
             else:
                 conn = httplib.HTTPConnection(hostname, port)
             conn.request('HEAD', path)
-            return conn.getresponse().status
+            status = conn.getresponse().status
+            log.debug('Status code for %s = %d', server_url + DRIVE_STARTUP_PAGE, status)
+            return status
         except:
             log.exception('Error while trying to connect to Nuxeo Drive startup page with URL %s', server_url)
             raise StartupPageConnectionError()
@@ -188,7 +191,7 @@ class WebSettingsApi(WebDriveApi):
             callback_params = {
                 'engine': engine,
             }
-            log.debug('Opening login window to update token from server %s', server_url)
+            log.debug('Opening login window for token update with URL %s', url)
             self._open_authentication_dialog(url, callback_params)
             return ''
         except:
