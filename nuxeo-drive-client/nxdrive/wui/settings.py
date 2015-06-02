@@ -17,6 +17,11 @@ from nxdrive.utils import DEVICE_DESCRIPTIONS
 from nxdrive.utils import TOKEN_PERMISSION
 import sys
 import urllib2
+import httplib
+import urlparse
+from urllib import urlencode
+
+DRIVE_STARTUP_PAGE = 'drive_login.jsp'
 
 
 class WebSettingsApi(WebDriveApi):
@@ -68,7 +73,7 @@ class WebSettingsApi(WebDriveApi):
         name = unicode(name)
         if name == '':
             name = None
-        self._manager.bind_server(local_folder, url, username, password, name, start_engine)
+        self._manager.bind_server(local_folder, url, username, password, name=name, start_engine=start_engine)
         return ""
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
@@ -91,21 +96,73 @@ class WebSettingsApi(WebDriveApi):
             # Map error here
             return "CONNECTION_UNKNOWN"
 
-    # TODO: factorize with _bind_server
     def create_account(self, local_folder, url, username, token, name, start_engine=True):
-        local_folder = str(local_folder.toUtf8()).decode('utf-8')
-        url = str(url)
-        username = str(username)
-        token = str(token)
-        name = unicode(name)
-        if name == '':
-            name = None
         self._manager.bind_server(local_folder, url, username, None, token=token, name=name, start_engine=start_engine)
-        return ""
 
-    @QtCore.pyqtSlot(str, str, str)
+    @QtCore.pyqtSlot(str, str, str, result=str)
     def web_authentication(self, local_folder, server_url, engine_name):
-        server_url = str(server_url)
+        try:
+            # Handle local folder
+            local_folder = str(local_folder.toUtf8()).decode('utf-8')
+
+            # Handle server URL
+            server_url = str(server_url)
+            if not server_url.endswith('/'):
+                server_url += '/'
+
+            # Connect to startup page
+            status = self._connect_startup_page(server_url)
+            log.debug('status = %d', status)
+            if status < 400:
+                # Page exists, let's open authentication dialog
+                engine_name = unicode(engine_name)
+                if engine_name == '':
+                    engine_name = None
+                callback_params = {
+                    'local_folder': local_folder,
+                    'server_url': server_url,
+                    'engine_name': engine_name,
+                }
+                log.debug('Web authentication is available on server %s, opening login window', server_url)
+                self._open_authentication_dialog(self._get_authentication_url(server_url), callback_params)
+                return "true"
+            else:
+                # Startup page is not available
+                log.debug('Web authentication not available on server %s, falling back on basic authentication',
+                          server_url)
+                return "false"
+        except:
+            log.exception('Unexpected error while trying to open web authentication window')
+            return 'CONNECTION_UNKNOWN'
+
+    def _connect_startup_page(self, server_url):
+        conn = None
+        try:
+            parsed_url = urlparse.urlparse(server_url)
+            scheme = parsed_url.scheme
+            hostname = parsed_url.hostname
+            port = parsed_url.port
+            path = parsed_url.path
+            path += DRIVE_STARTUP_PAGE
+            if scheme == 'https':
+                conn = httplib.HTTPSConnection(hostname, port)
+            else:
+                conn = httplib.HTTPConnection(hostname, port)
+            conn.request('HEAD', path)
+            return conn.getresponse().status
+        except:
+            log.exception('Error while trying to connect to Nuxeo Drive startup page with URL %s', server_url)
+        finally:
+            if conn is not None:
+                conn.close()
+
+    def _open_authentication_dialog(self, url, callback_params):
+        api = WebAuthenticationApi(self, callback_params)
+        dialog = WebAuthenticationDialog(QtCore.QCoreApplication.instance(), url, api)
+        dialog.setWindowModality(QtCore.Qt.NonModal)
+        dialog.show()
+
+    def _get_authentication_url(self, server_url):
         token_params = {
             'deviceId': self._manager.get_device_id(),
             'applicationName': self._manager.get_appname(),
@@ -114,10 +171,7 @@ class WebSettingsApi(WebDriveApi):
         device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
         if device_description:
             token_params['deviceDescription'] = device_description
-        api = WebAuthenticationApi(self._dialog._view, self.create_account, local_folder, server_url, engine_name)
-        dialog = WebAuthenticationDialog(QtCore.QCoreApplication.instance(), server_url, token_params, api)
-        dialog.setWindowModality(QtCore.Qt.NonModal)
-        dialog.show()
+        return server_url + DRIVE_STARTUP_PAGE + '?' + urlencode(token_params)
 
     @QtCore.pyqtSlot(result=str)
     def get_proxy_settings(self):

@@ -5,6 +5,7 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.section = ""
 	$scope.local_folder = "";
 	$scope.currentAccount = "";
+	$scope.webAuthenticationAvailable = true;
 	$scope.show_activities = drive.show_activities;
 	$scope.auto_start = drive.get_auto_start();
 	$scope.beta_channel_available = drive.is_beta_channel_available();
@@ -118,6 +119,7 @@ var SettingsController = function($scope, $interval, $translate) {
 			} else {
 				$scope.changeAccount($scope.newAccount);
 			}
+			$scope.webAuthenticationAvailable = true;
 		} else {
 			button.addClass("btn-danger");
 			button.html($translate.instant("CONFIRM_DISCONNECT"));
@@ -192,5 +194,12 @@ SettingsController.prototype.bindServer = function($scope, $translate) {
 	}
 }
 SettingsController.prototype.webAuthentication = function($scope, $translate) {
-	drive.web_authentication($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.name);
+	$scope.reinitMsgs();
+	res = drive.web_authentication($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.name);
+	if (res == "false") {
+		$scope.webAuthenticationAvailable = false;
+	} else if (res != "true") {
+		$scope.setErrorMessage($translate.instant(res));
+	}
+}
 }
