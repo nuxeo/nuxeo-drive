@@ -35,6 +35,7 @@ class Tracker(Worker):
         for _, engine in self._manager.get_engines().iteritems():
             self.connect_engine(engine)
         self._manager.newEngine.connect(self.connect_engine)
+        self._manager.get_updater().appUpdated.connect(self._send_app_update_event)
 
     @QtCore.pyqtSlot(object)
     def connect_engine(self, engine):
@@ -53,6 +54,11 @@ class Tracker(Worker):
             user_agent = user_agent + "Linux)"
         user_agent = user_agent + ")"
         return user_agent
+
+    @QtCore.pyqtSlot(object)
+    def _send_app_update_event(self, version):
+        self._tracker.send('event', category='AppUpdate', action='Update', label="Version",
+                               value=version)
 
     @QtCore.pyqtSlot(object, object)
     def _send_sync_event(self, pair, metrics):
