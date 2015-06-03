@@ -5,14 +5,15 @@ import sys
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nose.plugins.skip import SkipTest
-
+from nxdrive.logging_config import get_logger
+log = get_logger(__name__)
 
 class TestWatchers(UnitTestCase):
 
     def test_local_scan(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         files, folders = self.make_local_tree()
         self.queue_manager_1.suspend()
+        self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_remote_scan()
         metrics = self.queue_manager_1.get_metrics()
@@ -26,10 +27,10 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(len(res), folders + files + 1)
 
     def test_reconcile_scan(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         files, folders = self.make_local_tree()
         self.make_server_tree()
         self.queue_manager_1.suspend()
+        self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_remote_scan()
         # Remote as one more file
@@ -43,11 +44,11 @@ class TestWatchers(UnitTestCase):
             self.assertEqual(item.pair_state, "synchronized")
 
     def test_remote_scan(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         files, folders = self.make_server_tree()
         # Add the workspace folder
         folders = folders + 1
         self.queue_manager_1.suspend()
+        self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_remote_scan()
         metrics = self.queue_manager_1.get_metrics()
@@ -61,16 +62,16 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(len(res), folders + files + 1)
 
     def test_local_watchdog_creation(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Test the creation after first local scan
         self.queue_manager_1.suspend()
+        self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_remote_scan()
         metrics = self.queue_manager_1.get_metrics()
         self.assertEquals(metrics["local_folder_queue"], 0)
         self.assertEquals(metrics["local_file_queue"], 0)
         files, folders = self.make_local_tree()
-        self.wait_sync(2, fail_if_timeout=False)
+        self.wait_sync(fail_if_timeout=False)
         metrics = self.queue_manager_1.get_metrics()
         self.assertEquals(metrics["local_folder_queue"], 2)
         self.assertEquals(metrics["local_file_queue"], 1)
@@ -84,8 +85,8 @@ class TestWatchers(UnitTestCase):
         if sys.platform == 'win32':
             from time import sleep
             from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
-            sleep(WIN_MOVE_RESOLUTION_PERIOD + 1)
-        self.wait_sync(1, fail_if_timeout=False)
+            sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000 + 1)
+        self.wait_sync(fail_if_timeout=False)
         return '/' + self.workspace_title + path + '/'
 
     def test_local_watchdog_delete_non_synced(self):
@@ -96,19 +97,17 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(len(children), 0)
 
     def test_local_scan_delete_non_synced(self):
-        if sys.platform == 'win32':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Test the deletion after first local scan
         self.test_local_scan()
         self.engine_1.stop()
         path = self._delete_folder_1()
         self.engine_1.start()
-        self.wait_sync(1, fail_if_timeout=False)
+        #self.wait_remote_scan()
+        self.wait_sync(fail_if_timeout=False)
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
         self.assertEquals(len(children), 0)
 
     def test_local_watchdog_delete_synced(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Test the deletion after first local scan
         self.test_reconcile_scan()
         path = self._delete_folder_1()
@@ -120,13 +119,12 @@ class TestWatchers(UnitTestCase):
             self.assertEqual(child.pair_state, 'parent_locally_deleted')
 
     def test_local_scan_delete_synced(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Test the deletion after first local scan
         self.test_reconcile_scan()
         self.engine_1.stop()
         path = self._delete_folder_1()
         self.engine_1.start()
-        self.wait_sync(1, fail_if_timeout=False)
+        self.wait_sync(fail_if_timeout=False)
         child = self.engine_1.get_dao().get_state_from_local(path[:-1])
         self.assertEqual(child.pair_state, 'locally_deleted')
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
@@ -157,7 +155,6 @@ class TestWatchers(UnitTestCase):
         self.assertTrue(remote.exists(u'/Test file.odt'))
 
     def test_local_scan_encoding(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-188")
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Synchronize test workspace
@@ -211,8 +208,6 @@ class TestWatchers(UnitTestCase):
         self.assertFalse(remote.exists(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'))
 
     def test_watchdog_encoding(self):
-        if sys.platform == 'darwin' or sys.platform == 'win32':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-188")
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Start engine

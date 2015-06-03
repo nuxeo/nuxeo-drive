@@ -33,6 +33,8 @@ class QueueManager(QObject):
     newError = pyqtSignal(object)
     queueEmpty = pyqtSignal()
     queueProcessing = pyqtSignal()
+    # Only used by Unit Test
+    _disable = False
     '''
     classdocs
     '''
@@ -366,8 +368,8 @@ class QueueManager(QObject):
 
     @pyqtSlot()
     def launch_processors(self):
-        if (self._local_folder_queue.empty() and self._local_file_queue.empty()
-                and self._remote_file_queue.empty() and self._local_file_queue.qsize()):
+        if (self._disable or (self._local_folder_queue.empty() and self._local_file_queue.empty()
+                and self._remote_file_queue.empty() and self._local_file_queue.qsize())):
             self.queueEmpty.emit()
             return
         log.trace("Launching processors")
