@@ -52,7 +52,7 @@
       <p translate ng-show="tokenUpdateError == null">UNAUTHORIZED</p>
       <div class="input-group">
 	      <span class="input-group-btn">
-	        <button class="btn btn-default" ng-click="updateToken()" type="button" translate>LOGIN</button>
+	        <button class="btn btn-default" ng-click="updateToken()" type="button" translate>CONNECT</button>
 	      </span>
 	   </div>
     </div>
@@ -61,7 +61,7 @@
     <div class="col-sm-offset-2 col-sm-10">
       <button type="button" ng-blur="unbindBlur()" id="unbindButton" class="btn btn-default" ng-click="unbindServer($event)" ng-show="currentAccount.uid != null" translate>DISCONNECT</button>
       <button type="button" class="btn btn-default btn-primary" ng-show="!webAuthenticationAvailable && !currentAccount.initialized" ng-disabled="!validForm()" ng-click="bindServer()" translate>CONNECT</button>
-      <button type="button" class="btn btn-default btn-primary" ng-show="webAuthenticationAvailable && !currentAccount.initialized" ng-disabled="!validForm()" ng-click="webAuthentication()" translate>LOGIN</button>
+      <button type="button" class="btn btn-default btn-primary" ng-show="webAuthenticationAvailable && !currentAccount.initialized" ng-disabled="!validForm()" ng-click="webAuthentication()" translate>CONNECT</button>
       <button style="float:right;" type="button" class="btn btn-default" ng-show="currentAccount.uid != null" ng-click="filters()" translate>SELECT_SYNC_FOLDERS</button>
     </div>
   </div>
