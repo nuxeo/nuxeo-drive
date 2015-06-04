@@ -155,6 +155,7 @@ class TestWatchers(UnitTestCase):
         self.assertTrue(remote.exists(u'/Test file.odt'))
 
     def test_local_scan_encoding(self):
+        raise SkipTest("NXDRIVE-170: encoding random failure")
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Synchronize test workspace
@@ -208,6 +209,7 @@ class TestWatchers(UnitTestCase):
         self.assertFalse(remote.exists(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'))
 
     def test_watchdog_encoding(self):
+        raise SkipTest("NXDRIVE-170: encoding random failure")
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Start engine
