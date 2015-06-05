@@ -223,11 +223,11 @@ class LocalWatcher(EngineWorker):
                             if remote_ref is None and not child_info.folderish:
                                 # Alternative stream or xattr can have been removed by external software or user
                                 digest = child_info.get_digest()
-                                if old_pair.local_digest != digest:
-                                    old_pair.local_digest = digest
-                                    old_pair.local_state = 'modified'
-                                self.client.set_remote_id(child_pair.local_path, old_pair.remote_ref)
-                                self._dao.update_local_state(old_pair, child_info)
+                                if child_pair.local_digest != digest:
+                                    child_pair.local_digest = digest
+                                    child_pair.local_state = 'modified'
+                                self.client.set_remote_id(child_pair.local_path, child_pair.remote_ref)
+                                self._dao.update_local_state(child_pair, child_info)
                                 continue
                             old_pair = self._dao.get_normal_state_from_remote(remote_ref)
                             if old_pair is None:
