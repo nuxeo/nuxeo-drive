@@ -73,7 +73,6 @@ class UnitTestCase(unittest.TestCase):
     # resolution of some databases (MySQL...)
     REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
 
-
     # 1s resolution on HFS+ on OSX
     # 2s resolution on FAT but can be ignored as no Jenkins is running the test
     # suite under windows on FAT partitions
@@ -161,9 +160,9 @@ class UnitTestCase(unittest.TestCase):
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
         self.engine_1 = self.manager_1.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1,
-                                                 self.password_1, start_engine=False)
+                                                   self.password_1, start_engine=False)
         self.engine_2 = self.manager_2.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2,
-                                                 self.password_2, start_engine=False)
+                                                   self.password_2, start_engine=False)
         self.engine_1.syncCompleted.connect(self.sync_completed)
         self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.remote_scan_completed)
         self.engine_1.get_remote_watcher().changesFound.connect(self.remote_changes_found)
@@ -179,10 +178,8 @@ class UnitTestCase(unittest.TestCase):
 
         self.local_root_client_1 = self.engine_1.get_local_client()
         self.local_root_client_2 = self.engine_2.get_local_client()
-        self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1,
-                                         self.workspace_title))
-        self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2,
-                                         self.workspace_title))
+        self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
+        self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2, self.workspace_title))
 
         # Document client to be used to create remote test documents
         # and folders
@@ -283,6 +280,7 @@ class UnitTestCase(unittest.TestCase):
         self.app = QtCore.QCoreApplication([])
         self.setUpApp()
         self.result = result
+
         # TODO Should use a specific application
         def launch_test():
             log.debug("UnitTest thread started")
@@ -376,8 +374,7 @@ class UnitTestCase(unittest.TestCase):
         folder_2 = local_client.make_folder(root, u'Folder 2')
 
         # create some files
-        local_client.make_file(folder_2, u'Duplicated File.txt',
-                                content=b"Some content.")
+        local_client.make_file(folder_2, u'Duplicated File.txt', content=b"Some content.")
 
         local_client.make_file(folder_1, u'File 1.txt', content=b"aaa")
         local_client.make_file(folder_1_1, u'File 2.txt', content=b"bbb")
@@ -416,7 +413,7 @@ class UnitTestCase(unittest.TestCase):
         return result
 
     def generate_report(self):
-        if not "REPORT_PATH" in os.environ:
+        if "REPORT_PATH" not in os.environ:
             return
         report_path = os.path.join(os.environ["REPORT_PATH"], self.id())
         self.manager_1.generate_report(report_path)

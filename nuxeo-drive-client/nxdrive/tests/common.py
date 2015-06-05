@@ -177,10 +177,8 @@ class IntegrationTestCase(unittest.TestCase):
         self.remote_file_system_client_1 = remote_file_system_client_1
         self.remote_file_system_client_2 = remote_file_system_client_2
 
-        self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1,
-                                         self.workspace_title))
-        self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2,
-                                         self.workspace_title))
+        self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
+        self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2, self.workspace_title))
         ndrive_path = os.path.dirname(nxdrive.__file__)
         ndrive_exec = os.path.join(ndrive_path, '..', 'scripts', 'ndrive.py')
         cmdline = ndrive_exec
@@ -271,11 +269,9 @@ class IntegrationTestCase(unittest.TestCase):
 
         # Get local and remote clients
         if local_user == 1:
-            local = LocalClient(os.path.join(self.local_nxdrive_folder_1,
-                                         self.workspace_title))
+            local = LocalClient(os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
         else:
-            local = LocalClient(os.path.join(self.local_nxdrive_folder_2,
-                                         self.workspace_title))
+            local = LocalClient(os.path.join(self.local_nxdrive_folder_2, self.workspace_title))
         if remote_user == 1:
             remote = self.remote_document_client_1
         else:
