@@ -106,7 +106,9 @@ LABELS={
 		"BUG_REPORT": "Report a bug",
 		"CREATE_REPORT": "Click to generate a bug report",
 		"REPORT_GENERATED": "Report generated:<br />{{ path }}",
-		"BROWSE_DIALOG_CAPTION": "Select Nuxeo Drive folder location"
+		"BROWSE_DIALOG_CAPTION": "Select Nuxeo Drive folder location",
+		"NO_CONFLICTS_TITLE": "No conflicts or errors left",
+		"NO_CONFLICTS_BODY": "You have resolved all conflicts and errors remaining"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -215,6 +217,8 @@ LABELS={
 		"BUG_REPORT": "Signaler un problème",
 		"CREATE_REPORT": "Cliquer ici pour générer un rapport et signaler un problème",
 		"REPORT_GENERATED": "Rapport généré :<br />{{ path }}",
-		"BROWSE_DIALOG_CAPTION": "Choisir un dossier"
+		"BROWSE_DIALOG_CAPTION": "Choisir un dossier",
+		"NO_CONFLICTS_TITLE": "Aucun conflit ou erreur",
+		"NO_CONFLICTS_BODY": "Vous avez résolu tout les conflits ou erreurs"
 	}
 }

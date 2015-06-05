@@ -1,4 +1,12 @@
 <div id="content" style="padding: 10px;" ng-controller="DriveConflictsCtl">
+	<div class="panel panel-default" ng-show="conflicts.length == 0 && errors.length == 0">
+		<div class="panel-heading" translate>
+			NO_CONFLICTS_TITLE
+		</div>
+		<div class="panel-body" translate>
+			NO_CONFLICTS_BODY
+		</div>
+	</div>
 	<div class="panel panel-default" ng-repeat="pair in conflicts">
 		<div class="panel-heading">
 			{{ pair.name }}
