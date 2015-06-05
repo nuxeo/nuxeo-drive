@@ -4,7 +4,6 @@ import unittest
 import tempfile
 import hashlib
 import shutil
-import time
 
 from nxdrive.utils import safe_long_path
 from nxdrive.client import RemoteDocumentClient
@@ -74,8 +73,6 @@ class UnitTestCase(unittest.TestCase):
     # resolution of some databases (MySQL...)
     REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
 
-    # 1s time resolution because of the datetime resolution of MYSQL
-    AUDIT_CHANGE_FINDER_TIME_RESOLUTION = 1.0
 
     # 1s resolution on HFS+ on OSX
     # 2s resolution on FAT but can be ignored as no Jenkins is running the test
@@ -427,8 +424,6 @@ class UnitTestCase(unittest.TestCase):
 
     def wait(self, retry=3):
         try:
-            if not self.root_remote_client.is_event_log_id_available():
-                time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
             self.root_remote_client.wait()
         except OSError.TimeoutError as e:
             log.debug("Exception while waiting for server : %r", e)

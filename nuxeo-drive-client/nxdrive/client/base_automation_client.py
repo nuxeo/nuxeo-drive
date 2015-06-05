@@ -36,6 +36,9 @@ DEFAULT_NUXEO_TX_TIMEOUT = 300
 DOWNLOAD_TMP_FILE_PREFIX = '.'
 DOWNLOAD_TMP_FILE_SUFFIX = '.nxpart'
 
+# 1s audit time resolution because of the datetime resolution of MYSQL
+AUDIT_CHANGE_FINDER_TIME_RESOLUTION = 1.0
+
 socket.setdefaulttimeout(DEFAULT_NUXEO_TX_TIMEOUT)
 
 
@@ -479,6 +482,9 @@ class BaseAutomationClient(BaseClient):
     def is_event_log_id_available(self):
         return self.is_event_log_id
 
+    def is_elasticsearch_audit(self):
+        return 'NuxeoDrive.WaitForElasticsearchCompletion' in self.operations
+
     def request_token(self, revoke=False):
         """Request and return a new token for the user"""
         base_error_message = (
@@ -529,7 +535,15 @@ class BaseAutomationClient(BaseClient):
         self.request_token(revoke=True)
 
     def wait(self):
-        self.execute("NuxeoDrive.WaitForAsyncCompletion")
+        # Used for tests
+        if self.is_elasticsearch_audit():
+            self.execute("NuxeoDrive.WaitForElasticsearchCompletion")
+        else:
+            # Backward compatibility with JPA audit implementation,
+            # in which case we are also backward compatible with date based resolution
+            if not self.is_event_log_id_available():
+                time.sleep(AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
+            self.execute("NuxeoDrive.WaitForAsyncCompletion")
 
     def make_tmp_file(self, content):
         """Create a temporary file with the given content for streaming upload purpose.

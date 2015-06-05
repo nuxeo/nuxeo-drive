@@ -5,7 +5,6 @@ import unittest
 import tempfile
 import hashlib
 import shutil
-import time
 
 import nxdrive
 from nxdrive.utils import safe_long_path
@@ -58,9 +57,6 @@ class IntegrationTestCase(unittest.TestCase):
     # seconds in RemoteFileSystemClient.file_to_info() because of the datetime
     # resolution of some databases (MySQL...)
     REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
-
-    # 1s time resolution because of the datetime resolution of MYSQL
-    AUDIT_CHANGE_FINDER_TIME_RESOLUTION = 1.0
 
     # 1s resolution on HFS+ on OSX
     # 2s resolution on FAT but can be ignored as no Jenkins is running the test
@@ -287,8 +283,6 @@ class IntegrationTestCase(unittest.TestCase):
         return syn, local, remote
 
     def wait(self):
-        if not self.root_remote_client.is_event_log_id_available():
-            time.sleep(self.AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
         self.root_remote_client.wait()
 
     def setUpDrive_1(self, bind_root=True, root=None, firstSync=False):
