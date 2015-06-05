@@ -40,17 +40,6 @@ class RemoteWatcher(EngineWorker):
         self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
         self._last_remote_full_scan = self._dao.get_config('remote_last_full_scan')
         self._client = None
-        # TO_REVIEW Can be removed
-        try:
-            self._client = engine.get_remote_client()
-        except Unauthorized:
-            log.error('Got Unauthorized exception while trying to get remote client, setting invalid credentials',
-                      exc_info=True)
-            self._engine.set_invalid_credentials()
-        except URLError, HTTPError:
-            self._client = None
-        except Exception as e:
-            log.exception(e)
         self._local_client = engine.get_local_client()
         self._metrics = dict()
         self._metrics['last_remote_scan_time'] = -1
