@@ -91,8 +91,10 @@ WebDialog
   Base of all Nuxeo Drive window, it is basically a WebKit view with a drive javascript object mapped by the Javascript API
 
 QT is heavily used in the new client here is a diagram of the signals/slots connexions : https://www.lucidchart.com/publicSegments/view/54efbff4-c180-41d8-9184-0b1d0a00c10b/image.png
-Remote Watcher logic : https://www.lucidchart.com/invitations/accept/8dbb7a33-dc61-496c-89db-8914e57ed08e
-Local Watcher logic : https://www.lucidchart.com/invitations/accept/8f6b478e-e066-4a92-bf5f-2c8de39b8221
+
+Remote Watcher logic : https://www.lucidchart.com/documents/view/3081771a-786b-486e-bfaa-ee7ae77a3807
+
+Local Watcher logic : https://www.lucidchart.com/documents/view/21ec315b-3917-44aa-b9bd-5ccedfcfb02f
 
 Nuxeo Drive Client under Linux & Mac OS X
 -----------------------------------------
