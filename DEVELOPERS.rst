@@ -3,10 +3,6 @@ Nuxeo Drive contributor guide
 
 This guide is for developers willing to work on the Nuxeo Drive codebase itself.
 
-For more details please read the technical documentation available here:
-
-  http://doc.nuxeo.com/x/TYzZ
-
 Note that many behaviors of Nuxeo Drive can be customized without actually
 changing the code of Nuxeo Drive but by contributing to the server side
 extension points instead.
@@ -29,12 +25,11 @@ This guide will introduce:
 Server side Java components
 ---------------------------
 
-To build the project and run the tests, use maven::
-
-  mvn install
+To build the nuxeo-drive addon see the related
+`nuxeo-drive-server <https://github.com/nuxeo/nuxeo-drive-server>`_ GitHub repository.
 
 To build the marketplace package see the related
-`Github repository <https://github.com/nuxeo/marketplace-drive>`_.
+`marketplace-drive <https://github.com/nuxeo/marketplace-drive>`_ Github repository.
 
 
 Client side Architecture
