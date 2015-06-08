@@ -16,6 +16,7 @@ import uuid
 import platform
 import sys
 import logging
+from urlparse import urlparse
 log = get_logger(__name__)
 
 
@@ -91,6 +92,36 @@ class ProxySettings(object):
         self.exceptions = exceptions
         if dao is not None:
             self.load(dao)
+
+    def from_url(self, url):
+        if not "://" in url:
+            url = "all://" + url
+        url_obj = urlparse(url)
+        self.username = url_obj.username
+        self.password = url_obj.password
+        self.authenticated = (self.username is not None and
+                              self.password is not None)
+        self.port = url_obj.port
+        self.server = url_obj.hostname
+        if url_obj.scheme == "all":
+            self.proxy_type = None
+        else:
+            self.proxy_type = url_obj.scheme
+        self.config = "Manual"
+
+    def to_url(self, with_credentials=True):
+        if self.config != "Manual":
+            return ""
+        result = ""
+        if self.proxy_type is not None:
+            result = self.proxy_type + "://"
+        if with_credentials and self.authenticated:
+            result = result + self.username + ":" + self.password + "@"
+        result = result + self.server + ":" + str(self.port)
+        return result
+
+    def set_exceptions(self, exceptions):
+        self.exceptions = exceptions
 
     def save(self, dao, token=None):
         # Encrypt password with token as the secret
@@ -182,6 +213,10 @@ class Manager(QtCore.QObject):
         self._app_updater = None
         self._dao = None
         self._create_dao()
+        if options.proxy_server is not None:
+            proxy = ProxySettings()
+            proxy.from_url(options.proxy_server)
+            proxy.save(self._dao)
         # Now we can update the logger if needed
         if options.log_level_file is not None:
             # Set the log_level_file option
@@ -196,7 +231,7 @@ class Manager(QtCore.QObject):
         # Persist update URL infos
         self._dao.update_config("update_url", options.update_site_url)
         self._dao.update_config("beta_update_url", options.beta_update_site_url)
-
+        self.refresh_proxies()
         self._os = AbstractOSIntegration.get(self)
         self._started = False
         # Pause if in debug

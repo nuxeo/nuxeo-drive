@@ -1,9 +1,58 @@
 import sys
 import unittest
 from nxdrive.utils import guess_mime_type
+from nxdrive.manager import ProxySettings
 
 
 class TestUtils(unittest.TestCase):
+
+    def test_proxy_settings(self):
+        proxy = ProxySettings()
+        proxy.from_url("localhost:3128")
+        self.assertEqual(proxy.username, None)
+        self.assertEqual(proxy.password, None)
+        self.assertEqual(proxy.authenticated, False)
+        self.assertEqual(proxy.server, "localhost")
+        self.assertEqual(proxy.port, 3128)
+        self.assertEqual(proxy.proxy_type, None)
+        self.assertEqual(proxy.to_url(), 'localhost:3128')
+        self.assertEqual(proxy.to_url(False), 'localhost:3128')
+        proxy.from_url("user@localhost:3128")
+        self.assertEqual(proxy.username, "user")
+        self.assertEqual(proxy.password, None)
+        self.assertEqual(proxy.authenticated, False)
+        self.assertEqual(proxy.server, "localhost")
+        self.assertEqual(proxy.port, 3128)
+        self.assertEqual(proxy.proxy_type, None)
+        self.assertEqual(proxy.to_url(), 'localhost:3128')
+        self.assertEqual(proxy.to_url(False), 'localhost:3128')
+        proxy.from_url("user:password@localhost:3128")
+        self.assertEqual(proxy.username, "user")
+        self.assertEqual(proxy.password, "password")
+        self.assertEqual(proxy.authenticated, True)
+        self.assertEqual(proxy.server, "localhost")
+        self.assertEqual(proxy.port, 3128)
+        self.assertEqual(proxy.proxy_type, None)
+        self.assertEqual(proxy.to_url(), 'user:password@localhost:3128')
+        self.assertEqual(proxy.to_url(False), 'localhost:3128')
+        proxy.from_url("http://user:password@localhost:3128")
+        self.assertEqual(proxy.username, "user")
+        self.assertEqual(proxy.password, "password")
+        self.assertEqual(proxy.authenticated, True)
+        self.assertEqual(proxy.server, "localhost")
+        self.assertEqual(proxy.port, 3128)
+        self.assertEqual(proxy.proxy_type, 'http')
+        self.assertEqual(proxy.to_url(), 'http://user:password@localhost:3128')
+        self.assertEqual(proxy.to_url(False), 'http://localhost:3128')
+        proxy.from_url("https://user:password@localhost:3129")
+        self.assertEqual(proxy.username, "user")
+        self.assertEqual(proxy.password, "password")
+        self.assertEqual(proxy.authenticated, True)
+        self.assertEqual(proxy.server, "localhost")
+        self.assertEqual(proxy.port, 3129)
+        self.assertEqual(proxy.proxy_type, 'https')
+        self.assertEqual(proxy.to_url(), 'https://user:password@localhost:3129')
+        self.assertEqual(proxy.to_url(False), 'https://localhost:3129')
 
     def test_guess_mime_type(self):
 

@@ -69,7 +69,7 @@ var SettingsController = function($scope, $interval, $translate) {
 	}
 	$scope.saveProxy = function() {
 		$scope.reinitMsgs();
-		drive.set_proxy_settings($scope.proxy.config, $scope.proxy.type, $scope.proxy.server, 0, $scope.proxy.authenticated, $scope.proxy.username, $scope.proxy.password)
+		drive.set_proxy_settings($scope.proxy.config, $scope.proxy.url, $scope.proxy.authenticated, $scope.proxy.username, $scope.proxy.password)
 	}
 	$scope.setTracking = function() {
 		$scope.reinitMsgs();

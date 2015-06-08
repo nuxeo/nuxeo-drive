@@ -262,6 +262,7 @@ class WebSettingsApi(WebDriveApi):
         try:
             result = dict()
             settings = self._manager.get_proxy_settings()
+            result["url"] = settings.to_url(with_credentials=False)
             result["config"] = settings.config
             result["type"] = settings.proxy_type
             result["server"] = settings.server
@@ -274,20 +275,18 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, str, str, str, str, str, str, result=str)
-    def set_proxy_settings(self, config='System', proxy_type=None,
-                 server=None, port=None,
+    @QtCore.pyqtSlot(str, str, str, str, str, result=str)
+    def set_proxy_settings(self, config='System', server=None,
                  authenticated=False, username=None, password=None):
         try:
             config = str(config)
-            proxy_type = str(proxy_type)
-            server = str(server)
-            port = int(str(port))
-            authenticated = "true" == authenticated
-            username = str(username)
-            password = str(password)
-            settings = ProxySettings(config=config, proxy_type=proxy_type, port=port, server=server,
-                                     authenticated=authenticated, username=username, password=password)
+            url = str(server)
+            settings = ProxySettings(config=config)
+            if config == "Manual":
+                settings.from_url(url)
+            settings.authenticated = "true" == authenticated
+            settings.username = str(username)
+            settings.password = str(password)
             self._manager.set_proxy_settings(settings)
         except Exception as e:
             log.exception(e)

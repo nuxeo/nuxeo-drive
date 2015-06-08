@@ -125,6 +125,18 @@ class CliHandler(object):
             help="Fire a debugger (ipdb or pdb) one uncaught error."
         )
         common_parser.add_argument(
+            "--proxy-type",
+            help="Choose a type of proxy"
+        )
+        common_parser.add_argument(
+            "--proxy-server",
+            help="Define proxy server"
+        )
+        common_parser.add_argument(
+            "--proxy-exceptions",
+            help="Add proxy exceptions ( separated by a comma )"
+        )
+        common_parser.add_argument(
             "--debug-pydev", default=False, action="store_true",
             help="Allow debugging with a PyDev server."
         )
