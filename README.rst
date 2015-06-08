@@ -149,7 +149,7 @@ Regular usage
 
 
 Command-line usage (advanced)
-----------------------------
+-----------------------------
 
 The desktop synchronization client can also be operated from the command-line:
 
@@ -242,7 +242,7 @@ Roadmap
 
 The backlog_ is handled by Jira.
 
-.. _backlog: https://jira.nuxeo.com/secure/IssueNavigator.jspa?reset=true&jqlQuery=component+%3D+%22Nuxeo+Drive%22+AND+project+%3D+NXP++and+type+%3D+%22User+story%22+and+resolution+%3D+Unresolved+ORDER+BY+%22Backlog+priority%22+DESC
+.. _backlog: https://jira.nuxeo.com/issues/?jql=%28project%20%3D%20%22Nuxeo%20Drive%20%22%20OR%20component%20%3D%20%22Nuxeo%20Drive%22%20OR%20project%20%3D%20NXDOC%20AND%20Tags%20%3D%20drive%29%20AND%20resolution%20%3D%20Unresolved%20ORDER%20BY%20Rank%20ASC
 
 
 Developing on Nuxeo Drive
