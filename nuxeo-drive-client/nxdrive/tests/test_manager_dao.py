@@ -96,6 +96,7 @@ class ManagerDAOTest(unittest.TestCase):
         options.debug = False
         options.force_locale = None
         options.log_level_file = None
+        options.proxy_server = None
         options.update_site_url = None
         options.beta_update_site_url = None
         options.nxdrive_home = self.test_folder
