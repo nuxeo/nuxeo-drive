@@ -132,6 +132,7 @@ class UnitTestCase(unittest.TestCase):
         options.debug = False
         options.delay = TEST_DEFAULT_DELAY
         options.force_locale = None
+        options.proxy_server = None
         options.log_level_file = None
         options.update_site_url = None
         options.beta_update_site_url = None
