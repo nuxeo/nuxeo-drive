@@ -207,7 +207,9 @@ For more options, type::
 Reporting bugs
 ==============
 
-You can log DEBUG information directly in the console by using the
+You can generate a bug report in the Advanced tab of the Settings panel.
+
+You can also log DEBUG information directly in the console by using the
 following command-line::
 
     ndrive --log-level-console=DEBUG
