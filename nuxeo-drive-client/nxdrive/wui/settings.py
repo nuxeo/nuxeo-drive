@@ -121,7 +121,8 @@ class WebSettingsApi(WebDriveApi):
 
             # Connect to startup page
             status = self._connect_startup_page(server_url)
-            if status < 400:
+            # Server will send a 401 in case of anonymous user configuration
+            if status < 400 or status == 401:
                 # Page exists, let's open authentication dialog
                 engine_name = unicode(engine_name)
                 if engine_name == '':
@@ -213,6 +214,8 @@ class WebSettingsApi(WebDriveApi):
         device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
         if device_description:
             token_params['deviceDescription'] = device_description
+        # Force login in case of anonymous user configuration
+        token_params['forceAnonymousLogin'] = 'true'
         return server_url + DRIVE_STARTUP_PAGE + '?' + urlencode(token_params)
 
     @QtCore.pyqtSlot(result=str)
