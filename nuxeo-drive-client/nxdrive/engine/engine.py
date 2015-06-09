@@ -339,6 +339,8 @@ class Engine(QObject):
         self._remote_password = self._dao.get_config("remote_password")
         self._remote_token = self._dao.get_config("remote_token")
         self._device_id = self._manager.device_id
+        if self._remote_password is None and self._remote_token is None:
+            self.set_invalid_credentials(True)
 
     def get_server_url(self):
         return self._dao.get_config("server_url")
@@ -578,6 +580,8 @@ class Engine(QObject):
             raise Exception
         self._dao.update_config("remote_token", self._remote_token)
         self.set_invalid_credentials(False)
+        # In case of a binding
+        self._check_root()
         self.start()
 
     def update_token(self, token):
@@ -588,19 +592,24 @@ class Engine(QObject):
         self.start()
 
     def bind(self, binder):
+        check_credential = True
+        if hasattr(binder, 'no_check') and binder.no_check:
+            check_credential = False
         self._server_url = self._normalize_url(binder.url)
         self._remote_user = binder.username
         self._remote_password = binder.password
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
-        nxclient = self.remote_doc_client_factory(
-            self._server_url, self._remote_user, self._manager.device_id,
-            self._manager.client_version, proxies=self._manager.proxies,
-            proxy_exceptions=self._manager.proxy_exceptions,
-            password=self._remote_password, token=self._remote_token,
-            timeout=self._handshake_timeout)
-        if self._remote_token is None:
-            self._remote_token = nxclient.request_token()
+        nxclient = None
+        if check_credential:
+            nxclient = self.remote_doc_client_factory(
+                self._server_url, self._remote_user, self._manager.device_id,
+                self._manager.client_version, proxies=self._manager.proxies,
+                proxy_exceptions=self._manager.proxy_exceptions,
+                password=self._remote_password, token=self._remote_token,
+                timeout=self._handshake_timeout)
+            if self._remote_token is None:
+                self._remote_token = nxclient.request_token()
         if self._remote_token is not None:
             # The server supports token based identification: do not store the
             # password in the DB
@@ -611,10 +620,14 @@ class Engine(QObject):
         self._dao.update_config("remote_user", self._remote_user)
         self._dao.update_config("remote_password", self._remote_password)
         self._dao.update_config("remote_token", self._remote_token)
-        self.get_update_infos(nxclient)
-        # Check for the root
-        # If the top level state for the server binding doesn't exist,
-        # create the local folder and the top level state.
+        if nxclient:
+            self.get_update_infos(nxclient)
+            # Check for the root
+            # If the top level state for the server binding doesn't exist,
+            # create the local folder and the top level state.
+            self._check_root()
+
+    def _check_root(self):
         root = self._dao.get_state_from_local("/")
         if root is None:
             from nxdrive.client.common import BaseClient

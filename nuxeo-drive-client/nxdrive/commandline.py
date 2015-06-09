@@ -588,12 +588,17 @@ class CliHandler(object):
         return 0
 
     def bind_server(self, options):
+        check_credentials = True
         if options.password is None:
             password = getpass()
         else:
             password = options.password
+            if password == "":
+                password = None
+                check_credentials = False
         self.manager.bind_server(options.local_folder, options.nuxeo_url,
-                                    options.username, password, start_engine=False)
+                                    options.username, password, start_engine=False,
+                                    check_credentials=check_credentials)
         return 0
 
     def unbind_server(self, options):
