@@ -156,7 +156,15 @@ if sys.platform == 'win32':
             if os.path.exists(icon_file):
                 msilib.add_data(self.db, "Property", [("ARPPRODUCTICON", "InstallIcon")])
                 msilib.add_data(self.db, "Icon", [("InstallIcon", msilib.Binary(icon_file))])
-
+            # Add the possibility to bind an engine with MSI
+            msilib.add_data(db, "CustomAction", [("NuxeoDriveBinder", 82,
+                                         self.get_win_targetName(),
+                                         "bind-server --password \"[TARGETPASSWORD]\" --local-folder \"[TARGETDRIVEFOLDER]\" [TARGETUSERNAME] [TARGETURL]")])
+            msilib.add_data(db, "Property", [("TARGETURL", ""), ("TARGETUSERNAME", ""), ("TARGETDRIVEFOLDER", ""), ("TARGETPASSWORD", "")])
+            msilib.add_data(db, "InstallExecuteSequence",
+                            [("NuxeoDriveBinder",
+                              'NOT (TARGETUSERNAME="" OR TARGETURL="")',
+                              -1)])
             # Allow to customize the MSI
             if getattr(self.attribs, 'customize_msi', None) is not None:
                 self.attribs.customize_msi(self.db)

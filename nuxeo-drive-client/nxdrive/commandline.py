@@ -596,6 +596,8 @@ class CliHandler(object):
             if password == "":
                 password = None
                 check_credentials = False
+        if options.local_folder is None or options.local_folder == "":
+            options.local_folder = DEFAULT_NX_DRIVE_FOLDER
         self.manager.bind_server(options.local_folder, options.nuxeo_url,
                                     options.username, password, start_engine=False,
                                     check_credentials=check_credentials)
