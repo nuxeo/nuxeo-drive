@@ -160,11 +160,11 @@ The desktop synchronization client can also be operated from the command-line:
 
    If you installed the ``.dmg`` package for OSX, the binary is::
 
-       /Applications/Nuxeo\ Drive.app/Contents/MacOS/Nuxeo\ Drive
+       /Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive
 
-   You can alias it in your bashrc with:
+   You can alias it in your bashrc with::
 
-       alias ndrive="/Applications/Nuxeo\ Drive.app/Contents/MacOS/Nuxeo\ Drive"
+       alias ndrive="/Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive"
 
 2. Launch the synchronization program (no automatic background mode
    yet, this will come in future versions)::
