@@ -6,6 +6,9 @@ from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
 from nose.plugins.skip import SkipTest
+from nxdrive.engine.engine import Engine
+from shutil import copyfile
+from mock import patch
 
 
 class TestRemoteMoveAndRename(UnitTestCase):
@@ -59,6 +62,106 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
     def _get_state(self, remote):
         return self.engine_1.get_dao().get_normal_state_from_remote(remote)
+
+    def _remote_rename_while_upload(self):
+        # Bind the server and root workspace
+        self.engine_1.start()
+        # Get local and remote clients
+        local = self.local_client_1
+        remote = self.remote_file_system_client_1
+
+        # Add delay when upload and download
+        def suspend_check(reason):
+            if not local.exists('/Test folder renamed'):
+                time.sleep(1)
+            Engine.suspend_client(self.engine_1, reason)
+
+        self.engine_1.suspend_client = suspend_check
+
+        # Create documents in the remote root workspace
+        # then synchronize
+        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
+                            + self.workspace)
+        self.workspace_pair_local_path = u'/' + self.workspace_title
+
+        folder_id = remote.make_folder(self.workspace_id, u'Test folder').uid
+        self.wait_sync(wait_for_async=True)
+
+        # Create a document by streaming a binary file
+        file_path = os.path.join(local._abspath('/Test folder'), 'testFile.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        file_path = os.path.join(local._abspath('/Test folder'), 'testFile2.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+
+        # Rename remote folder then synchronize
+        self.remote_file_system_client_1.rename(folder_id, u'Test folder renamed')
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+        self.assertFalse(local.exists('/Test folder'))
+        self.assertTrue(local.exists('/Test folder renamed'))
+        self.assertTrue(local.exists('/Test folder renamed/testFile.pdf'))
+        self.assertTrue(local.exists('/Test folder renamed/testFile2.pdf'))
+
+    def test_synchronize_remote_rename_while_upload(self):
+        if sys.platform != 'win32':
+            with patch('nxdrive.client.base_automation_client.os.fstatvfs') as mock_os:
+                from mock import Mock
+                mock_os.return_value = Mock()
+                mock_os.return_value.f_bsize = 4096
+                self._remote_rename_while_upload()
+        else:
+            self._remote_rename_while_upload()
+
+    def _remote_rename_while_download_file(self):
+        global has_rename
+        has_rename = False
+        # Get local and remote clients
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+
+        # Add delay when upload and download
+        def suspend_check(reason):
+            global has_rename
+            time.sleep(1)
+            Engine.suspend_client(self.engine_1, reason)
+            if not has_rename:
+                # Rename remote file while downloading
+                try:
+                    self.remote_file_system_client_1.rename(folder_id, u'Test folder renamed')
+                    has_rename = True
+                except:
+                    pass
+
+        self.engine_1.suspend_client = suspend_check
+        self.engine_1.start()
+
+        # Create documents in the remote root workspace
+        # then synchronize
+        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
+                            + self.workspace)
+        self.workspace_pair_local_path = u'/' + self.workspace_title
+
+        folder_id = self.remote_file_system_client_1.make_folder(self.workspace_id, u'Test folder').uid
+
+        with open('nxdrive/tests/resources/testFile.pdf', 'r') as content_file:
+            content = content_file.read()
+        self.remote_document_client_1.make_file('/Test folder', 'testFile.pdf', content)
+
+        # Rename remote folder then synchronize
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+        self.assertFalse(local.exists('/Test folder'))
+        self.assertTrue(local.exists('/Test folder renamed'))
+        self.assertTrue(local.exists('/Test folder renamed/testFile.pdf'))
+
+
+    def test_synchronize_remote_rename_while_download_file(self):
+        if sys.platform != 'win32':
+            with patch('os.path.isdir', return_value=False) as mock_os:
+                from mock import Mock
+                mock_os.return_value = Mock()
+                mock_os.return_value.f_bsize = 4096
+                self._remote_rename_while_download_file()
+        else:
+            self._remote_rename_while_download_file()
 
     def test_remote_rename_file(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
