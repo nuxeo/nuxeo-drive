@@ -122,7 +122,7 @@ class Processor(EngineWorker):
                     except PairInterrupt:
                         from time import sleep
                         # Wait one second to avoid retrying to quickly
-                        self._current_item = None
+                        self._current_doc_pair = None
                         log.trace("PairInterrupt wait 1s and requeue on %r", doc_pair)
                         sleep(1)
                         self._engine.get_queue_manager().push(doc_pair)

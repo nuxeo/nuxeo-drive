@@ -121,7 +121,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Add delay when upload and download
         def suspend_check(reason):
             global has_rename
-            time.sleep(1)
+            if local.exists('/Test folder'):
+                time.sleep(1)
             Engine.suspend_client(self.engine_1, reason)
             if not has_rename:
                 # Rename remote file while downloading
