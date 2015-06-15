@@ -1056,6 +1056,8 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             # DELETE ANY SUBFILTERS
             c.execute("DELETE FROM Filters WHERE path LIKE ?", (path + '%',))
+            # PREVENT ANY RESCAN
+            c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (path+'%',))
             # ADD IT
             c.execute("INSERT INTO Filters(path) VALUES(?)", (path,))
             # TODO ADD THIS path AS remotely_deleted

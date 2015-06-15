@@ -113,6 +113,9 @@ class RemoteWatcher(EngineWorker):
         if remote_path is None:
             return
         remote_path = str(remote_path)
+        if self._dao.is_filter(remote_path):
+            # Skip if filter
+            return
         if remote_path[-1:] == '/':
             remote_path = remote_path[0:-1]
         remote_ref = os.path.basename(remote_path)
