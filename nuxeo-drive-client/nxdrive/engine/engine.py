@@ -178,7 +178,7 @@ class Engine(QObject):
     def set_local_folder_lock(self, path):
         self._folder_lock = path
         # Check for each processor
-        log.trace("Local Folder locking on '%s'", path)
+        log.debug("Local Folder locking on '%s'", path)
         while self.get_queue_manager().has_file_processors_on(path):
             log.trace("Local folder locking wait for file processor to finish")
             sleep(1)
