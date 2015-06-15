@@ -22,7 +22,7 @@ class QueueItem(object):
         self.pair_state = pair_state
 
     def __repr__(self):
-        return "%s[%d](Folderish:%d, State: %s)" % (
+        return "%s[%s](Folderish:%d, State: %s)" % (
                         self.__class__.__name__, self.id,
                         self.folderish, self.pair_state)
 
@@ -33,6 +33,7 @@ class QueueManager(QObject):
     newError = pyqtSignal(object)
     queueEmpty = pyqtSignal()
     queueProcessing = pyqtSignal()
+    queueFinishedProcessing = pyqtSignal()
     # Only used by Unit Test
     _disable = False
     '''
@@ -351,7 +352,10 @@ class QueueManager(QObject):
         if (worker._current_doc_pair is None or
             worker._current_doc_pair.local_path is None):
             return False
-        return worker._current_doc_pair.local_path.startswith(path)
+        result = worker._current_doc_pair.local_path.startswith(path)
+        if result:
+            log.trace("Worker(%r) is processing: %s", worker.get_metrics(), path)
+        return result
 
     def has_file_processors_on(self, path):
         # First check local and remote file
@@ -371,6 +375,9 @@ class QueueManager(QObject):
         if (self._disable or (self._local_folder_queue.empty() and self._local_file_queue.empty()
                 and self._remote_file_queue.empty() and self._local_file_queue.qsize())):
             self.queueEmpty.emit()
+            if (self._local_file_thread is None and self._local_folder_thread is None and self._remote_file_thread is None
+                and self._remote_folder_thread is None and len(self._processors_pool) > 0):
+                self.queueFinishedProcessing.emit()
             return
         log.trace("Launching processors")
         if self._local_folder_thread is None and not self._local_folder_queue.empty() and self._local_folder_enable:
