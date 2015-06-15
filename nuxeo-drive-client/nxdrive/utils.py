@@ -444,6 +444,7 @@ class PidLockFile(object):
                         msg = ("Failed to remove stalled pid file: %s for"
                                " stopped process %d: %r"
                                % (pid_filepath, pid, e))
+                        return pid
                     log.warning(msg)
         self.locked = True
         return None
