@@ -22,7 +22,7 @@ class QueueItem(object):
         self.pair_state = pair_state
 
     def __repr__(self):
-        return "%s[%s](Folderish:%d, State: %s)" % (
+        return "%s[%s](Folderish:%s, State: %s)" % (
                         self.__class__.__name__, self.id,
                         self.folderish, self.pair_state)
 
