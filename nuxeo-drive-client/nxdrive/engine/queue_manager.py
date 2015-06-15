@@ -373,10 +373,10 @@ class QueueManager(QObject):
     @pyqtSlot()
     def launch_processors(self):
         if (self._disable or (self._local_folder_queue.empty() and self._local_file_queue.empty()
-                and self._remote_file_queue.empty() and self._local_file_queue.qsize())):
+                and self._remote_folder_queue.empty() and self._remote_file_queue.empty())):
             self.queueEmpty.emit()
             if (self._local_file_thread is None and self._local_folder_thread is None and self._remote_file_thread is None
-                and self._remote_folder_thread is None and len(self._processors_pool) > 0):
+                and self._remote_folder_thread is None and len(self._processors_pool) == 0):
                 self.queueFinishedProcessing.emit()
             return
         log.trace("Launching processors")
