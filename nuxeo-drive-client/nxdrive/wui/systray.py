@@ -129,6 +129,8 @@ class WebSystrayApi(WebDriveApi):
 
 
 class WebSystrayView(WebDialog):
+    DEFAULT_WIDTH = 300
+    DEFAULT_HEIGHT = 370
     '''
     classdocs
     '''
@@ -139,21 +141,36 @@ class WebSystrayView(WebDialog):
         super(WebSystrayView, self).__init__(application, "systray.html", api=WebSystrayApi(application, self))
         self._icon = icon
         self._view.setFocusProxy(self)
-        self.resize(300, 370)
+        self.resize(WebSystrayView.DEFAULT_WIDTH, WebSystrayView.DEFAULT_HEIGHT)
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint);
 
     def replace(self):
         log.trace("Icon is %r", self._icon)
         rect = self._icon.geometry()
-        if rect.x() < 100:
-            x = rect.x() + rect.width()
-            y = rect.y() - self.height() + rect.height()
-        elif rect.y() < 100:
-            x = rect.x() + rect.width() - self.width()
+        log.trace("IconRect is : %s,%s | %s,%s",rect.x(), rect.y(), rect.width(), rect.height())
+        from PyQt4.QtGui import QApplication, QCursor
+        from PyQt4.QtCore import QRect
+        desktop = QApplication.desktop()
+        log.trace("Screen id is %d", desktop.screenNumber(rect.topLeft()))
+        screen = desktop.availableGeometry(desktop.screenNumber(rect.topLeft()))
+        pos = screen
+        log.trace("AvailableRect is : %s,%s | %s,%s",pos.x(), pos.y(), pos.width(), pos.height())
+        pos = desktop.screenGeometry(desktop.screenNumber(rect.topLeft()))
+        log.trace("ScreenRect is : %s,%s | %s,%s",pos.x(), pos.y(), pos.width(), pos.height())
+        pos = QCursor.pos()
+        log.trace("Cursor is : %s,%s",pos.x(), pos.y())
+        if not rect.contains(pos) or (rect.x() == 0 and rect.y() == 0):
+            rect = QRect(pos.x()-pos.x()%rect.width(), pos.y()-pos.y()%rect.height(), rect.width(), rect.height())
+            log.trace("Adjusting X/Y to %d/%d", rect.x(), rect.y())
+            pos = rect
+            log.trace("New rect is : %s,%s | %s,%s",pos.x(), pos.y(), pos.width(), pos.height())
+        x = rect.x() + rect.width() - self.width()
+        y = rect.y() - self.height()
+        # Prevent the systray to be hiddens
+        if y < 0:
             y = rect.y() + rect.height()
-        else:
-            x = rect.x() + rect.width() - self.width()
-            y = rect.y() - self.height()
+        if x < 0:
+            x = rect.x()
         log.trace("Move systray menu to %d/%d", x, y)
         self.move(x, y)
 
