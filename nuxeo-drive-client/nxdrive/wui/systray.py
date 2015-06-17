@@ -160,7 +160,11 @@ class WebSystrayView(WebDialog):
         pos = QCursor.pos()
         log.trace("Cursor is : %s,%s",pos.x(), pos.y())
         if not rect.contains(pos) or (rect.x() == 0 and rect.y() == 0):
-            rect = QRect(pos.x()-pos.x()%rect.width(), pos.y()-pos.y()%rect.height(), rect.width(), rect.height())
+            # Avoid any modulo 0
+            if rect.width() == 0 or rect.height() == 0:
+                rect = QRect(pos.x(), pos.y(), rect.width(), rect.height())
+            else:
+                rect = QRect(pos.x()-pos.x()%rect.width(), pos.y()-pos.y()%rect.height(), rect.width(), rect.height())
             log.trace("Adjusting X/Y to %d/%d", rect.x(), rect.y())
             pos = rect
             log.trace("New rect is : %s,%s | %s,%s",pos.x(), pos.y(), pos.width(), pos.height())
