@@ -269,11 +269,12 @@ class RemoteWatcher(EngineWorker):
         except HTTPError as e:
             if e.code == 401 or e.code == 403:
                 if not self._engine.has_invalid_credentials():
-                    self._engine.set_invalid_credentials()
-        except Unauthorized:
-            log.debug("Unauthorized caugt")
+                    self._engine.set_invalid_credentials(reason='got HTTPError %d while checking if offline' % e.code,
+                                                         exception=e)
+        except Unauthorized as e:
             if not self._engine.has_invalid_credentials():
-                self._engine.set_invalid_credentials()
+                self._engine.set_invalid_credentials(reason='got Unauthorized with code %s while checking if offline'
+                                                     % e.code if hasattr(e, 'code') and e.code else 'None', exception=e)
         except:
             pass
         if self._client is None:
@@ -328,9 +329,8 @@ class RemoteWatcher(EngineWorker):
             return True
         except HTTPError as e:
             if e.code == 401 or e.code == 403:
-                log.error('Got 401 HTTPError while trying to handle remote changes, setting invalid credentials',
-                          exc_info=True)
-                self._engine.set_invalid_credentials()
+                self._engine.set_invalid_credentials(reason='got HTTPError %d while trying to handle remote changes'
+                                                     % e.code, exception=e)
             else:
                 log.exception(e)
             self._engine.set_offline()

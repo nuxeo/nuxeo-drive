@@ -248,7 +248,7 @@ class Application(QApplication):
     def _debug_toggle_invalid_credentials(self):
         sender = self.sender()
         engine = sender.data().toPyObject()
-        engine.set_invalid_credentials(not engine.has_invalid_credentials())
+        engine.set_invalid_credentials(not engine.has_invalid_credentials(), reason='debug')
 
     @QtCore.pyqtSlot()
     def _debug_show_file_status(self):

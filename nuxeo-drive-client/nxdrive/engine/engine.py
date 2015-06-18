@@ -340,7 +340,7 @@ class Engine(QObject):
         self._remote_token = self._dao.get_config("remote_token")
         self._device_id = self._manager.device_id
         if self._remote_password is None and self._remote_token is None:
-            self.set_invalid_credentials(True)
+            self.set_invalid_credentials(reason="found no password nor token in engine configuration")
 
     def get_server_url(self):
         return self._dao.get_config("server_url")
@@ -399,10 +399,14 @@ class Engine(QObject):
     def get_local_folder(self):
         return self._local_folder
 
-    def set_invalid_credentials(self, value=True):
+    def set_invalid_credentials(self, value=True, reason=None, exception=None):
         changed = self._invalid_credentials != value
         self._invalid_credentials = value
         if value and changed:
+            msg = 'Setting invalid credentials'
+            if reason is not None:
+                msg += ', reason is: %s' % reason
+            log.error(msg, exc_info=exception is not None)
             self.invalidAuthentication.emit()
 
     def has_invalid_credentials(self):
