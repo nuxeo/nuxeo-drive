@@ -127,13 +127,13 @@ class DriveEdit(Worker):
             log.debug("Download failed")
             return
         # Set the remote_id
-        ref = self._local_client.get_path(tmp_file)
-        self._local_client.set_remote_id(ref, doc_id)
-        self._local_client.set_remote_id(ref, server_url, "nxdriveedit")
+        dir_path = self._local_client.get_path(os.path.dirname(file_path))
+        self._local_client.set_remote_id(dir_path, doc_id)
+        self._local_client.set_remote_id(dir_path, server_url, "nxdriveedit")
         if user is not None:
-            self._local_client.set_remote_id(ref, user, "nxdriveedituser")
-        self._local_client.set_remote_id(ref, info.digest, "nxdriveeditdigest")
-        self._local_client.set_remote_id(ref, filename, "nxdriveeditname")
+            self._local_client.set_remote_id(dir_path, user, "nxdriveedituser")
+        self._local_client.set_remote_id(dir_path, info.digest, "nxdriveeditdigest")
+        self._local_client.set_remote_id(dir_path, filename, "nxdriveeditname")
         # Rename to final filename
         # Under Windows first need to delete target file if exists, otherwise will get a 183 WindowsError
         if sys.platform == 'win32' and os.path.exists(file_path):
@@ -157,13 +157,14 @@ class DriveEdit(Worker):
                 log.trace('Handling DriveEdit queue ref: %r', ref)
             except Empty:
                 break
-            uid = self._local_client.get_remote_id(ref)
-            server_url = self._local_client.get_remote_id(ref, "nxdriveedit")
-            user = self._local_client.get_remote_id(ref, "nxdriveedituser")
+            dir_path = os.path.dirname(ref)
+            uid = self._local_client.get_remote_id(dir_path)
+            server_url = self._local_client.get_remote_id(dir_path, "nxdriveedit")
+            user = self._local_client.get_remote_id(dir_path, "nxdriveedituser")
             engine = self._get_engine(server_url, user=user)
             remote_client = engine.get_remote_doc_client()
             remote_client.check_suspended = self.stop_client
-            digest = self._local_client.get_remote_id(ref, "nxdriveeditdigest")
+            digest = self._local_client.get_remote_id(dir_path, "nxdriveeditdigest")
             # Don't update if digest are the same
             info = self._local_client.get_info(ref)
             if info.get_digest() == digest:
@@ -246,7 +247,8 @@ class DriveEdit(Worker):
                 ref = self._local_client.get_path(evt.dest_path)
                 file_name = os.path.basename(evt.dest_path)
                 queue = True
-            name = self._local_client.get_remote_id(ref, "nxdriveeditname")
+            dir_path = self._local_client.get_path(os.path.dirname(src_path))
+            name = self._local_client.get_remote_id(dir_path, "nxdriveeditname")
             if name is None:
                 return
             decoded_name = force_decode(name)
