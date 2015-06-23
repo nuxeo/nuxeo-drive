@@ -92,6 +92,7 @@ class Application(QApplication):
         self.engineWidget = None
 
         self.aboutToQuit.connect(self.manager.stop)
+        self.manager.dropEngine.connect(self.dropped_engine)
 
         # Timer to spin the transferring icon
         self.icon_spin_timer = QtCore.QTimer()
@@ -130,6 +131,11 @@ class Application(QApplication):
         from nxdrive.wui.translator import Translator
         Translator(self.manager, self.get_htmlpage('i18n.js'),
                         self.manager.get_config("locale", self.options.locale))
+
+    @QtCore.pyqtSlot(object)
+    def dropped_engine(self, engine):
+        # Update icon in case the engine dropped was syncing
+        self.change_systray_icon()
 
     @QtCore.pyqtSlot()
     def change_systray_icon(self):
