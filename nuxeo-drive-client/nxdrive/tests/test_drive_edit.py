@@ -45,7 +45,7 @@ class TestDriveEdit(UnitTestCase):
         self._drive_edit_update(doc_id, filename, browser_filename, 'Win + FF')
 
         # OSX + Chrome / OSX + FF: quoted utf-8 encoded, except for white spaces!
-        browser_filename = 'Mode op%C3%A9ratoire.docx'
+        browser_filename = 'Mode op%C3%A9ratoire.txt'
         self._drive_edit_update(doc_id, filename, browser_filename, 'OS X + Chrome or FF')
 
     def _drive_edit_update(self, doc_id, filename, browser_filename, content):
@@ -56,7 +56,7 @@ class TestDriveEdit(UnitTestCase):
         self.wait_sync(2, fail_if_timeout=False)
 
         # Update file content
-        self.local.update_content(local_path, content, xattr_names=DRIVE_EDIT_XATTR_NAMES)
+        self.local.update_content(local_path, content)
         self.wait_sync()
         self.assertEquals(self.remote.get_content('/' + filename), content)
 
