@@ -76,8 +76,6 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
     def _remote_deletion_while_upload(self):
-        # Bind the server and root workspace
-        self.engine_1.start()
 
         # Add delay when upload and download
         def suspend_check(reason):
@@ -85,6 +83,10 @@ class TestRemoteDeletion(UnitTestCase):
             Engine.suspend_client(self.engine_1, reason)
 
         self.engine_1.suspend_client = suspend_check
+        # Bind the server and root workspace
+        self.engine_1.invalidate_client_cache()
+        self.engine_1.start()
+
         # Get local and remote clients
         local = self.local_client_1
         remote = self.remote_document_client_1
@@ -133,6 +135,8 @@ class TestRemoteDeletion(UnitTestCase):
                     pass
 
         self.engine_1.suspend_client = suspend_check
+        # Bind the server and root workspace
+        self.engine_1.invalidate_client_cache()
         self.engine_1.start()
         # Get local and remote clients
         local = self.local_client_1

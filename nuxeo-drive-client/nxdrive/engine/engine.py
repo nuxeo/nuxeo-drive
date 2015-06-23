@@ -15,7 +15,6 @@ from nxdrive.utils import current_milli_time
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.workers import Worker, ThreadInterrupt, PairInterrupt
 from nxdrive.engine.activity import Action, FileAction
-from threading import local
 from time import sleep
 import os
 import datetime
@@ -107,6 +106,7 @@ class Engine(QObject):
         super(Engine, self).__init__()
 
         self.version = manager.get_version()
+        self._remote_clients = dict()
         # Used for binding server / roots and managing tokens
         self.remote_doc_client_factory = remote_doc_client_factory
 
@@ -136,7 +136,6 @@ class Engine(QObject):
         self._sync_started = False
         self._invalid_credentials = False
         self._offline_state = False
-        self._local = local()
         self._threads = list()
         self._client_cache_timestamps = dict()
         self._dao = self._create_dao()
@@ -552,9 +551,7 @@ class Engine(QObject):
         log.debug("Engine %s stopped", self._uid)
 
     def _get_client_cache(self):
-        if not hasattr(self._local, 'remote_clients'):
-            self._local.remote_clients = dict()
-        return self._local.remote_clients
+        return self._remote_clients
 
     def use_trash(self):
         return True
@@ -670,7 +667,7 @@ class Engine(QObject):
 
     @pyqtSlot()
     def invalidate_client_cache(self):
-        self._client_cache_timestamps.clear()
+        self._remote_clients.clear()
 
     def _set_root_icon(self):
         local_client = self.get_local_client()
@@ -745,13 +742,8 @@ class Engine(QObject):
         cache = self._get_client_cache()
 
         cache_key = (self._manager.device_id, filtered)
-        remote_client_cache = cache.get(cache_key)
-        if remote_client_cache is not None:
-            remote_client = remote_client_cache[0]
-            timestamp = remote_client_cache[1]
-        client_cache_timestamp = self._client_cache_timestamps.get(cache_key)
-
-        if remote_client_cache is None or timestamp < client_cache_timestamp:
+        remote_client = cache.get(cache_key)
+        if remote_client is None:
             if filtered:
                 remote_client = self.remote_filtered_fs_client_factory(
                         self._server_url, self._remote_user,
@@ -770,11 +762,8 @@ class Engine(QObject):
                         password=self._remote_password,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
                         token=self._remote_token, check_suspended=self.suspend_client)
-            if client_cache_timestamp is None:
-                client_cache_timestamp = 0
-                self._client_cache_timestamps[cache_key] = 0
-            cache[cache_key] = remote_client, client_cache_timestamp
-        return cache[cache_key][0]
+            cache[cache_key] = remote_client
+        return remote_client
 
     def get_remote_doc_client(self, repository=DEFAULT_REPOSITORY_NAME, base_folder=None):
         return self.remote_doc_client_factory(

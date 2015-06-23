@@ -121,9 +121,6 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Add delay when upload and download
         def suspend_check(reason):
             global has_rename
-            if local.exists('/Test folder'):
-                time.sleep(1)
-            Engine.suspend_client(self.engine_1, reason)
             if not has_rename:
                 # Rename remote file while downloading
                 try:
@@ -131,9 +128,13 @@ class TestRemoteMoveAndRename(UnitTestCase):
                     has_rename = True
                 except:
                     pass
+            if local.exists('/Test folder'):
+                time.sleep(1)
+            Engine.suspend_client(self.engine_1, reason)
 
         self.engine_1.suspend_client = suspend_check
         self.engine_1.start()
+        self.engine_1.invalidate_client_cache()
 
         # Create documents in the remote root workspace
         # then synchronize
