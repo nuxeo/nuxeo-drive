@@ -6,6 +6,8 @@ from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client.common import NotFound
 from nose.plugins.skip import SkipTest
+from time import sleep
+from nxdrive.engine.dao.sqlite import EngineDAO
 
 # TODO NXDRIVE-170: refactor
 LastKnownState = None
@@ -47,6 +49,53 @@ class TestLocalMoveAndRename(UnitTestCase):
             content=u'Some Content 3'.encode('utf-8'))
         # Increase timeout as noticed it was sometimes insufficient in Jenkins build
         self.wait_sync(timeout=30)
+
+    def test_local_rename_folder_while_creating(self):
+        global marker
+        local_client = self.local_client_1
+        root_local_client = self.local_root_client_1
+        remote_client = self.remote_document_client_1
+        marker = False
+        def update_remote_state(row, info, remote_parent_path=None, versionned=True):
+            global marker
+            EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path, versionned)
+            if row.local_name == 'New Folder' and not marker:
+                root_local_client.rename(row.local_path, 'Renamed Folder')
+                sleep(5)
+                marker = True
+        self.engine_1._dao.update_remote_state = update_remote_state
+        local_client.make_folder('/', 'New Folder')
+        self.wait_sync(fail_if_timeout=False)
+        
+        self.assertTrue(local_client.exists(u'/Renamed Folder'))
+        self.assertFalse(local_client.exists(u'/New Folder'))
+        # Path dont change on Nuxeo
+        info = remote_client.get_info(u'/New Folder')
+        self.assertEquals('Renamed Folder', info.name)
+
+    def test_local_rename_file_while_creating(self):
+        global marker
+        local_client = self.local_client_1
+        root_local_client = self.local_root_client_1
+        remote_client = self.remote_document_client_1
+        marker = False
+        def update_remote_state(row, info, remote_parent_path=None, versionned=True):
+            global marker
+            EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path, versionned)
+            if row.local_name == 'File.txt' and not marker:
+                root_local_client.rename(row.local_path, 'Renamed File.txt')
+                sleep(5)
+                marker = True
+        self.engine_1._dao.update_remote_state = update_remote_state
+        self.local_client_1.make_file('/', u'File.txt',
+            content=u'Some Content 2'.encode('utf-8'))
+        self.wait_sync(fail_if_timeout=False)
+        
+        self.assertTrue(local_client.exists(u'/Renamed File.txt'))
+        self.assertFalse(local_client.exists(u'/File.txt'))
+        # Path dont change on Nuxeo
+        info = remote_client.get_info(u'/File.txt')
+        self.assertEquals('Renamed File.txt', info.name)
 
     def test_local_rename_file(self):
         local_client = self.local_client_1

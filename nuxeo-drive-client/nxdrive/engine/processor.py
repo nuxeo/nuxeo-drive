@@ -260,6 +260,8 @@ class Processor(EngineWorker):
             except (NotFound, IOError):
                 new_pair = self._dao.get_state_from_id(doc_pair.id)
                 local_client.set_remote_id(new_pair.local_path, remote_ref)
+                # File has been moved during creation
+                self._synchronize_locally_moved(new_pair, local_client, remote_client, update=False)
                 return
             self._dao.synchronize_state(doc_pair)
             if doc_pair.folderish:
