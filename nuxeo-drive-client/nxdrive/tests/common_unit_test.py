@@ -24,6 +24,9 @@ try:
 except ImportError:
     pass  # This will never be raised under Unix
 
+if 'DRIVE_YAPPI' in os.environ:
+    import yappi
+
 DEFAULT_WAIT_SYNC_TIMEOUT = 20
 DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 
@@ -274,6 +277,32 @@ class UnitTestCase(unittest.TestCase):
             timeout = timeout - 1
         self.fail("Wait for remote scan timeout expired")
 
+    def is_profiling(self):
+        return 'DRIVE_YAPPI' in os.environ and yappi is not None
+
+    def setup_profiler(self):
+        if not self.is_profiling():
+            return
+        yappi.start()
+
+    def teardown_profiler(self):
+        if not self.is_profiling():
+            return
+        path = os.environ["DRIVE_YAPPI"]
+        if not os.path.exists(path):
+            os.mkdir(path)
+        report_path = os.path.join(path, self.id() + '-yappi-threads')
+        with open(report_path,'w') as fd:
+            columns={0:("name",80), 1:("tid", 15), 2:("ttot", 8), 3:("scnt", 10)}
+            yappi.get_thread_stats().print_all(out=fd, columns=columns)
+        report_path = os.path.join(path, self.id() + '-yappi-fcts')
+        with open(report_path,'w') as fd:
+            columns={0:("name",80), 1:("ncall", 5), 2:("tsub", 8), 3:("ttot", 8), 4:("tavg",8)}
+            stats = yappi.get_func_stats()
+            stats.strip_dirs()
+            stats.print_all(out=fd, columns=columns)
+        log.debug("Profiler Report generated in '%s'", report_path)
+
     def _run(self, result=None):
         self.setUpApp()
 
@@ -286,7 +315,9 @@ class UnitTestCase(unittest.TestCase):
         def launch_test():
             log.debug("UnitTest thread started")
             sleep(1)
+            self.setup_profiler()
             super(UnitTestCase, self).run(result)
+            self.teardown_profiler()
             self.app.quit()
             log.debug("UnitTest thread finished")
 
