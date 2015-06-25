@@ -390,10 +390,10 @@ class LocalWatcher(EngineWorker):
                 # Windows forgets some event sometimes
                 # TODO Disabled for testing on Jenkins
                 self._scan_recursive(local_info, recursive=False)
-            self._dao.update_local_state(doc_pair, local_info, queue=queue)
             # No need to change anything on sync folder
-            if (not queue):
-                self._dao.synchronize_state(doc_pair, version=doc_pair.version + 1)
+            if (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified'):
+                doc_pair.local_state = 'synchronized'
+            self._dao.update_local_state(doc_pair, local_info, queue=queue)
 
     def _handle_watchdog_root_event(self, evt):
         pass

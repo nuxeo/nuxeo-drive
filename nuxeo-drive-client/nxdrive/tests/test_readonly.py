@@ -94,7 +94,8 @@ class TestReadOnly(UnitTestCase):
         try:
             with open(fname, 'w') as f:
                 f.write('Test')
-        except:
+        except Exception as e:
+            log.debug('Exception occurs during touch: %r', e)
             return False
         return True
 
