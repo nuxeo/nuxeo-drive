@@ -66,7 +66,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.engine_1._dao.update_remote_state = update_remote_state
         local_client.make_folder('/', 'New Folder')
         self.wait_sync(fail_if_timeout=False)
-        
+
         self.assertTrue(local_client.exists(u'/Renamed Folder'))
         self.assertFalse(local_client.exists(u'/New Folder'))
         # Path dont change on Nuxeo
@@ -162,8 +162,6 @@ class TestLocalMoveAndRename(UnitTestCase):
             u'Original Folder 1')
 
     def test_local_rename_file_uppercase(self):
-        if sys.platform == 'win32':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -215,8 +213,6 @@ class TestLocalMoveAndRename(UnitTestCase):
             u'Original Folder 1')
 
     def test_local_move_and_rename_file(self):
-        if sys.platform == 'darwin':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -284,8 +280,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.wait()
 
     def test_local_move_folder(self):
-        if sys.platform == 'win32':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -330,8 +324,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.wait()
 
     def test_concurrent_local_rename_folder(self):
-        if sys.platform == 'win32':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -457,8 +449,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEquals(len(session.query(LastKnownState).all()), 0)
 
     def test_local_rename_readonly_folder(self):
-        if sys.platform == 'win32' or sys.platform == 'darwin':
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 

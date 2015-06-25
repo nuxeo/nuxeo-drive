@@ -137,6 +137,6 @@ class DefaultNotificationService(NotificationService):
 
     def _invalidAuthentication(self):
         engine_uid = self.sender()._uid
-        notification = Notification("INVALID_CREDENTIALS", engine=engine_uid,
+        notification = Notification("INVALID_CREDENTIALS", engine_uid=engine_uid,
                                         level=Notification.LEVEL_ERROR, unique=True)
         self.send_notification(notification)
