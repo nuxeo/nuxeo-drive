@@ -527,11 +527,11 @@ class RemoteWatcher(EngineWorker):
             # Mark as deleted
             skip = False
             for processed in delete_processed:
-                if delete_pair.local_path.starts_with(processed.local_path):
+                if delete_pair.local_path.startswith(processed.local_path):
                     skip = True
                     break
             if skip:
                 continue
-            delete_processed.append(doc_pair)
-            log.debug("Marking doc_pair '%r' as deleted", doc_pair)
-            self._dao.delete_remote_state(doc_pair)
+            delete_processed.append(delete_pair)
+            log.debug("Marking doc_pair '%r' as deleted", delete_pair)
+            self._dao.delete_remote_state(delete_pair)
