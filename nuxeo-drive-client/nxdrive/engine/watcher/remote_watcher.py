@@ -426,12 +426,12 @@ class RemoteWatcher(EngineWorker):
                     doc_pair_repr = doc_pair.local_path if doc_pair.local_path is not None else doc_pair.remote_name
                     # This change has no fileSystemItem, it can be either
                     # a "deleted" event or a "securityUpdated" event
-                    if fs_item is None:
-                        if eventId == 'deleted':
-                            log.debug("Marking doc_pair '%s' as deleted",
+                    if eventId == 'deleted':
+                        log.debug("Marking doc_pair '%s' as deleted",
                                       doc_pair_repr)
-                            self._dao.delete_remote_state(doc_pair)
-                        elif eventId == 'securityUpdated':
+                        self._dao.delete_remote_state(doc_pair)
+                    elif fs_item is None:
+                        if eventId == 'securityUpdated':
                             log.debug("Security has been updated for"
                                       " doc_pair '%s' denying Read access,"
                                       " marking it as deleted",
