@@ -396,6 +396,7 @@ class RemoteWatcher(EngineWorker):
 
         # Scan events and update the related pair states
         refreshed = set()
+        delete_queue = []
         for change in sorted_changes:
 
             # Check if synchronization thread was suspended
@@ -427,9 +428,9 @@ class RemoteWatcher(EngineWorker):
                     # This change has no fileSystemItem, it can be either
                     # a "deleted" event or a "securityUpdated" event
                     if eventId == 'deleted':
-                        log.debug("Marking doc_pair '%s' as deleted",
+                        log.debug("Push doc_pair '%s' in delete queue",
                                       doc_pair_repr)
-                        self._dao.delete_remote_state(doc_pair)
+                        delete_queue.append(doc_pair)
                     elif fs_item is None:
                         if eventId == 'securityUpdated':
                             log.debug("Security has been updated for"
@@ -517,3 +518,20 @@ class RemoteWatcher(EngineWorker):
 
                 if not created:
                     log.debug("Could not match changed document to a bound local folder: %r", new_info)
+
+        # Sort by path the deletion to only mark parent
+        sorted_deleted = sorted(delete_queue,
+                                key=lambda x: x.local_path, reverse=False)
+        delete_processed = []
+        for delete_pair in sorted_deleted:
+            # Mark as deleted
+            skip = False
+            for processed in delete_processed:
+                if delete_pair.local_path.starts_with(processed.local_path):
+                    skip = True
+                    break
+            if skip:
+                continue
+            delete_processed.append(doc_pair)
+            log.debug("Marking doc_pair '%r' as deleted", doc_pair)
+            self._dao.delete_remote_state(doc_pair)
