@@ -428,9 +428,15 @@ class RemoteWatcher(EngineWorker):
                     # This change has no fileSystemItem, it can be either
                     # a "deleted" event or a "securityUpdated" event
                     if eventId == 'deleted':
-                        log.debug("Push doc_pair '%s' in delete queue",
+                        if fs_item is None:
+                            log.debug("Push doc_pair '%s' in delete queue",
                                       doc_pair_repr)
-                        delete_queue.append(doc_pair)
+                            delete_queue.append(doc_pair)
+                        else:
+                            log.debug("Ignore delete on doc_pair '%s' as a fsItem is attached". doc_pair_repr)
+                            # To ignore completely put updated to true
+                            updated = True
+                            break
                     elif fs_item is None:
                         if eventId == 'securityUpdated':
                             log.debug("Security has been updated for"
