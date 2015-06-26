@@ -427,8 +427,8 @@ class NuxeoDriveSetup(object):
             # Include cffi compiled C extension under Linux
             if sys.platform.startswith('linux'):
                 import xattr
-                includeFiles = [(os.path.join(os.path.dirname(xattr.__file__), '_cffi__x282d9483x6ee6f75.so'),
-                                 '_cffi__x282d9483x6ee6f75.so')]
+                includeFiles = [(os.path.join(os.path.dirname(xattr.__file__), '_cffi__x7c9e2f59xb862c7dd.so'),
+                                 '_cffi__x7c9e2f59xb862c7dd.so')]
                 freeze_options['options']['bdist_esky']['freezer_options'].update({
                     "includeFiles": includeFiles
                 })
@@ -440,7 +440,7 @@ class NuxeoDriveSetup(object):
             import py2app  # install the py2app command
             import xattr
             ext_modules = [xattr.lib.ffi.verifier.get_extension()]
-            includes.append("_cffi__x282d9483x6ee6f75")
+            includes.append("_cffi__x7c9e2f59xb862c7dd")
             name = attribs.get_CFBundleName()
             py2app_options = dict(
                 iconfile=icon,
