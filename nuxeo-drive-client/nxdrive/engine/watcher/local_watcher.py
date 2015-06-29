@@ -54,13 +54,19 @@ class LocalWatcher(EngineWorker):
             self._action = Action("Full local scan")
             self._scan()
             self._end_action()
+            # Check windows dequeue only every 100 loops ( every 1s )
+            interval = 100
             while (1):
                 self._interact()
-                sleep(1)
+                sleep(0.01)
                 if self._windows:
+                    interval = interval - 1
+                    if interval > 0:
+                        continue
                     self._action = Action("Dequeue delete")
                     self._win_dequeue_delete()
                     self._end_action()
+                    interval = 100
         except ThreadInterrupt:
             raise
         finally:

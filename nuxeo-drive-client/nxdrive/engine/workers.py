@@ -86,7 +86,7 @@ class Worker(QObject):
         # Handle thread pause
         while (self._pause and self._continue):
             QCoreApplication.processEvents()
-            sleep(1)
+            sleep(0.01)
         # Handle thread interruption
         if not self._continue:
             raise ThreadInterrupt()
@@ -94,7 +94,7 @@ class Worker(QObject):
     def _execute(self):
         while (1):
             self._interact()
-            sleep(1)
+            sleep(0.01)
 
     def _terminated(self):
         log.debug("Thread %s(%r) terminated"
@@ -200,7 +200,7 @@ class PollWorker(Worker):
             if self._next_check - int(time()) <= 0:
                 self._poll()
                 self._next_check = int(time()) + self._check_interval
-            sleep(1)
+            sleep(0.01)
 
     def _poll(self):
         pass
@@ -214,7 +214,7 @@ class DummyWorker(Worker):
     def _execute(self):
         while (1):
             self._interact()
-            sleep(1)
+            sleep(0.01)
 
 
 '''
@@ -225,7 +225,7 @@ class DummyWorker(Worker):
 class CrazyWorker(Worker):
     def _execute(self):
         while (1):
-            sleep(1)
+            sleep(0.01)
 
 '''
 ' Just a DummyWorker with progression from 0 to 100

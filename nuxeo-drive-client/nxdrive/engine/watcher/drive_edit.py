@@ -192,7 +192,7 @@ class DriveEdit(Worker):
                     self._handle_queue()
                 except NotFound:
                     pass
-                sleep(1)
+                sleep(0.01)
         except ThreadInterrupt:
             raise
         finally:
