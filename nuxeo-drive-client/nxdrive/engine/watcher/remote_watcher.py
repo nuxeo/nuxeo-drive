@@ -426,8 +426,6 @@ class RemoteWatcher(EngineWorker):
             if doc_pairs:
                 for doc_pair in doc_pairs:
                     doc_pair_repr = doc_pair.local_path if doc_pair.local_path is not None else doc_pair.remote_name
-                    # This change has no fileSystemItem, it can be either
-                    # a "deleted" event or a "securityUpdated" event
                     if eventId == 'deleted':
                         if fs_item is None:
                             log.debug("Push doc_pair '%s' in delete queue",
