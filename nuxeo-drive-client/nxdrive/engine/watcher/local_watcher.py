@@ -386,10 +386,6 @@ class LocalWatcher(EngineWorker):
                 doc_pair.local_digest = digest
                 doc_pair.local_state = 'modified'
             queue = not (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified')
-            if (False and self._windows and doc_pair.folderish and evt.event_type == 'modified'):
-                # Windows forgets some event sometimes
-                # TODO Disabled for testing on Jenkins
-                self._scan_recursive(local_info, recursive=False)
             # No need to change anything on sync folder
             if (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified'):
                 doc_pair.local_state = 'synchronized'
