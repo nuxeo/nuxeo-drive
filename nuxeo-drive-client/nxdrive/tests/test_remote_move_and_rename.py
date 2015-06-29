@@ -8,6 +8,7 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.engine.engine import Engine
 from shutil import copyfile
 from mock import patch
+from nose.plugins.skip import SkipTest
 
 
 class TestRemoteMoveAndRename(UnitTestCase):
@@ -381,6 +382,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertEquals(folder_1_1_state.local_name, u'Sub-Folder 1.1')
 
     def test_remote_rename_case_folder(self):
+        if sys.platform.startswith('linux'):
+            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         remote_client = self.remote_client_1
         local_client = self.local_client_1
 
