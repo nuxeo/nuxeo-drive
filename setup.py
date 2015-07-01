@@ -260,6 +260,14 @@ class NuxeoDriveAttributes(object):
                 '\\fonttbl{\\f0\\froman\\fprq2 Times New Roman;}}'\
                 '{\\colortbl\\red0\\green0\\blue0;}' + license_ + '}'
 
+    def customize_msi(self, db):
+        import msilib
+        # Add the possibility to bind an engine with MSI
+        msilib.add_data(db, "CustomAction", [("NuxeoDriveBinder", 82,
+                        self.get_win_targetName(),
+                        "bind-server --password \"[TARGETPASSWORD]\" --local-folder \"[TARGETDRIVEFOLDER]\" [TARGETUSERNAME] [TARGETURL]")])
+        msilib.add_data(db, "InstallExecuteSequence", [("NuxeoDriveBinder",
+                              'NOT (TARGETUSERNAME="" OR TARGETURL="")', -1)])
 
 class NuxeoDriveSetup(object):
 
