@@ -665,6 +665,7 @@ class CliHandler(object):
         # List the test modules explicitly as recursive discovery is broken
         # when the app is frozen.
         argv += [
+            "nxdrive.tests.test_blacklist_queue",
             "nxdrive.tests.test_commandline",
             "nxdrive.tests.test_conflicts",
             "nxdrive.tests.test_copy",
