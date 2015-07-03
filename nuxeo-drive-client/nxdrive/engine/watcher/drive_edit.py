@@ -3,6 +3,8 @@
 '''
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.workers import Worker, ThreadInterrupt
+from nxdrive.engine.blacklist_queue import BlacklistQueue
+from urllib2 import HTTPError
 from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler, normalize_event_filename
 from nxdrive.engine.activity import Action
 from nxdrive.client.local_client import LocalClient
@@ -42,6 +44,7 @@ class DriveEdit(Worker):
         self._folder = folder
         self._local_client = LocalClient(self._folder)
         self._upload_queue = Queue()
+        self._error_queue = BlacklistQueue()
         self._stop = False
 
     def stop(self):
@@ -68,6 +71,18 @@ class DriveEdit(Worker):
                 server_url = server_url[:-1]
             if server_url == url and (user is None or user == bind.username):
                 return engine
+        # Some backend are case insensitive
+        if user is None:
+            return None
+        user = user.lower()
+        for engine in self._manager.get_engines().values():
+            bind = engine.get_binder()
+            server_url = bind.server_url
+            if server_url.endswith('/'):
+                server_url = server_url[:-1]
+            if server_url == url and user == bind.username.lower():
+                return engine
+        return None
 
     def _download_content(self, engine, remote_client, info, file_path, url=None):
         file_dir = os.path.dirname(file_path)
@@ -151,6 +166,12 @@ class DriveEdit(Worker):
 
     def _handle_queue(self):
         uploaded = False
+        # Unqueue any errors
+        item = self._error_queue.get()
+        while (item is not None):
+            self._upload_queue.put(item.get())
+            item = self._error_queue.get()
+        # Handle the upload queue
         while (not self._upload_queue.empty()):
             try:
                 ref = self._upload_queue.get_nowait()
@@ -167,13 +188,21 @@ class DriveEdit(Worker):
             digest = self._local_client.get_remote_id(dir_path, "nxdriveeditdigest")
             # Don't update if digest are the same
             info = self._local_client.get_info(ref)
-            if info.get_digest() == digest:
+            try:
+                if info.get_digest() == digest:
+                    continue
+                # TO_REVIEW Should check if blob has changed ?
+                # Update the document - should verify the hash - NXDRIVE-187
+                log.debug('Uploading file %s for user %s', self._local_client._abspath(ref),
+                          user)
+                remote_client.stream_update(uid, self._local_client._abspath(ref))
+            except ThreadInterrupt:
+                raise
+            except Exception as e:
+                # Try again in 30s
+                log.trace("Exception on drive edit: %r", e)
+                self._error_queue.push(ref, ref)
                 continue
-            # TO_REVIEW Should check if blob has changed ?
-            # Update the document - should verify the hash - NXDRIVE-187
-            log.debug('Uploading file %s for user %s', self._local_client._abspath(ref),
-                      user)
-            remote_client.stream_update(uid, self._local_client._abspath(ref))
             uploaded = True
         if uploaded:
             log.debug('Emitting driveEditUploadCompleted')
