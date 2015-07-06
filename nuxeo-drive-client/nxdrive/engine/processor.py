@@ -5,7 +5,7 @@ Created on 14 janv. 2015
 '''
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt, PairInterrupt
 from nxdrive.logging_config import get_logger
-from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
+from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME, UNACCESSIBLE_HASH
 from nxdrive.client.common import NotFound
 from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time
@@ -92,8 +92,7 @@ class Processor(EngineWorker):
                     if doc_pair.pair_state == "remotely_deleted":
                         self._dao.remove_state(doc_pair)
                         continue
-                    log.trace("Republish as parent doesn't exist : %r", doc_pair)
-                    self.increase_error(doc_pair, error="NO_PARENT")
+                    self._handle_no_parent(doc_pair, local_client, remote_client)
                     self._current_item = self._get_item()
                     continue
                 self._current_metrics = dict()
@@ -154,6 +153,10 @@ class Processor(EngineWorker):
             log.debug("Auto-resolve conflict has folder has same remote_id")
             self._dao.synchronize_state(doc_pair)
 
+    def _handle_no_parent(self, doc_pair, local_client, remote_client):
+        log.trace("Republish as parent doesn't exist : %r", doc_pair)
+        self.increase_error(doc_pair, error="NO_PARENT")
+
     def _update_speed_metrics(self):
         action = Action.get_last_file_action()
         if action:
@@ -166,8 +169,20 @@ class Processor(EngineWorker):
             self._current_metrics["speed"] = speed
 
     def _synchronize_locally_modified(self, doc_pair, local_client, remote_client):
+        if doc_pair.local_digest == UNACCESSIBLE_HASH:
+            # Try to update
+            info = local_client.get_info(doc_pair.local_path)
+            log.trace("Modification of postponed local file: %r", doc_pair)
+            self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
+            doc_pair.local_digest = info.get_digest()
+            if doc_pair.local_digest == UNACCESSIBLE_HASH:
+                self._postpone_pair(doc_pair)
+                return
         if doc_pair.remote_digest != doc_pair.local_digest:
             if doc_pair.remote_can_update:
+                if doc_pair.local_digest == UNACCESSIBLE_HASH:
+                    self._postpone_pair(doc_pair)
+                    return
                 log.debug("Updating remote document '%s'.",
                           doc_pair.local_name)
                 fs_item_info = remote_client.stream_update(
@@ -196,6 +211,12 @@ class Processor(EngineWorker):
     def _get_normal_state_from_remote_ref(self, ref):
         # TODO Select the only states that is not a collection
         return self._dao.get_normal_state_from_remote(ref)
+
+    def _postpone_pair(self, doc_pair):
+        # Wait 60s for it
+        log.trace("Postpone creation of local file: %r", doc_pair)
+        doc_pair.error_count = 1
+        self._engine.get_queue_manager().push_error(doc_pair, exception=None)
 
     def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
         name = os.path.basename(doc_pair.local_path)
@@ -236,17 +257,17 @@ class Processor(EngineWorker):
                 info = local_client.get_info(doc_pair.local_path)
                 if info.size != doc_pair.size:
                     # Size has changed ( copy must still be running )
-                    doc_pair.local_digest = "TO_COMPUTE"
+                    doc_pair.local_digest = UNACCESSIBLE_HASH
                     self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
-                    # Wait 60s for it
-                    log.trace("Postpone creation of local file: %r", doc_pair)
-                    doc_pair.error_count = 1
-                    self._engine.get_queue_manager().push_error(doc_pair, exception=None)
+                    self._postpone_pair(doc_pair)
                     return
-                if doc_pair.local_digest == "TO_COMPUTE":
+                if doc_pair.local_digest == UNACCESSIBLE_HASH:
                     doc_pair.local_digest = info.get_digest()
                     log.trace("Creation of postponed local file: %r", doc_pair)
                     self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
+                    if doc_pair.local_digest == UNACCESSIBLE_HASH:
+                        self._postpone_pair(doc_pair)
+                        return
                 fs_item_info = remote_client.stream_file(
                     parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
                 remote_ref = fs_item_info.uid

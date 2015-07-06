@@ -6,7 +6,7 @@ import hashlib
 import os
 import shutil
 import re
-from nxdrive.client.common import BaseClient
+from nxdrive.client.common import BaseClient, UNACCESSIBLE_HASH
 from nxdrive.osi import AbstractOSIntegration
 
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
@@ -82,16 +82,19 @@ class FileInfo(object):
             raise ValueError('Unknow digest method: ' + self._digest_func)
 
         h = digester()
-        with open(safe_long_path(self.filepath), 'rb') as f:
-            while True:
-                # Check if synchronization thread was suspended
-                if self.check_suspended is not None:
-                    self.check_suspended('Digest computation: %s'
-                                         % self.filepath)
-                buffer_ = f.read(FILE_BUFFER_SIZE)
-                if buffer_ == '':
-                    break
-                h.update(buffer_)
+        try:
+            with open(safe_long_path(self.filepath), 'rb') as f:
+                while True:
+                    # Check if synchronization thread was suspended
+                    if self.check_suspended is not None:
+                        self.check_suspended('Digest computation: %s'
+                                             % self.filepath)
+                    buffer_ = f.read(FILE_BUFFER_SIZE)
+                    if buffer_ == '':
+                        break
+                    h.update(buffer_)
+        except IOError:
+            return UNACCESSIBLE_HASH
         return h.hexdigest()
 
 
