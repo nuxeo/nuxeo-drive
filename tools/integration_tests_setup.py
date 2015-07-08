@@ -45,6 +45,8 @@ LESSMSI_FOLDER = 'lessmsi'
 EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
 NUXEO_DRIVE_HOME_FOLDER = os.path.expanduser('~\.nuxeo-drive')
 
+NOSETESTS_LOGGING_FORMAT = "'%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s %(message)s'"
+
 
 def pflush(message):
     """This is required to have messages in the right order in jenkins"""
@@ -217,7 +219,7 @@ def clean_pyc(dir_):
 def run_tests_from_msi(extracted_msi_folder, base_folder):
     clean_home_folder()
     ndrive = os.path.join(extracted_msi_folder, 'SourceDir', 'ndrive.exe')
-    execute(ndrive + " test -w " + base_folder)
+    execute(ndrive + " test -w " + base_folder + " --logging-format=" + NOSETESTS_LOGGING_FORMAT)
 
 
 def clean_home_folder(dir_=None):
@@ -229,7 +231,7 @@ def clean_home_folder(dir_=None):
 
 def run_tests_from_source(base_folder):
     pflush("PATH detected by Python = " + os.environ.get('PATH'))
-    cmd = "cd " + base_folder + " && nosetests -v -x"
+    cmd = "cd " + base_folder + " && nosetests -v -x --logging-format=" + NOSETESTS_LOGGING_FORMAT
     execute(cmd)
 
 

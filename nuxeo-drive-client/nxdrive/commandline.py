@@ -350,6 +350,9 @@ class CliHandler(object):
             "--nologcapture", default=False, action="store_true",
             help="Disable nose logging capture plugin.")
         test_parser.add_argument(
+            "--logging-format", help="Format of noestests log capture statements."
+            " Uses the same format as used by standard logging handlers.")
+        test_parser.add_argument(
             "--with-coverage", default=False, action="store_true",
             help="Compute coverage report.")
         test_parser.add_argument(
@@ -646,6 +649,12 @@ class CliHandler(object):
         if options.nologcapture:
             argv += [
                 '--nologcapture',
+            ]
+
+        if options.logging_format:
+            argv += [
+                '--logging-format',
+                options.logging_format,
             ]
 
         if options.with_coverage:
