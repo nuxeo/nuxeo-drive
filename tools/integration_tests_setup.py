@@ -45,7 +45,7 @@ LESSMSI_FOLDER = 'lessmsi'
 EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
 NUXEO_DRIVE_HOME_FOLDER = os.path.expanduser('~\.nuxeo-drive')
 
-NOSETESTS_LOGGING_FORMAT = "'%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s %(message)s'"
+NOSETESTS_LOGGING_FORMAT = '"%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s %(message)s"'
 
 
 def pflush(message):
