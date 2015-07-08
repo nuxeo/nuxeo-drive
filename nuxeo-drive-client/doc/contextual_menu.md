@@ -7,7 +7,7 @@
 
 ### Install the extension
 
-    cp nuxeo-drive-client/nxdrive/contextual_menu/nautilus/metadata_view.py ~/.local/share/nautilus-python/extensions
+    cp nuxeo-drive-client/doc/nautilus/contextual_menu.py ~/.local/share/nautilus-python/extensions
 
 ## Windows
 
