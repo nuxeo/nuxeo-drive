@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import inspect
 from threading import Lock, local, current_thread
 from datetime import datetime
 from nxdrive.logging_config import get_logger
@@ -94,6 +95,20 @@ class StateRow(CustomRow):
             self.pair_state)
 
 
+class LogLock(object):
+    def __init__(self):
+        self._lock = Lock()
+
+    def acquire(self):
+        log.trace("lock acquire: %s", inspect.stack()[1][3])
+        self._lock.acquire()
+        log.trace("lock acquired")
+
+    def release(self):
+        self._lock.release()
+        log.trace("lock released: %s", inspect.stack()[1][3])
+
+
 class FakeLock(object):
     def acquire(self):
         pass
@@ -123,7 +138,7 @@ class ConfigurationDAO(QObject):
         self._tx_lock = Lock()
         # If we dont share connection no need to lock
         if self.share_connection:
-            self._lock = Lock()
+            self._lock = LogLock()
         else:
             self._lock = FakeLock()
         # Use to clean
@@ -671,6 +686,17 @@ class EngineDAO(ConfigurationDAO):
                 log.trace("Update remote_parent_path: " + query)
                 c.execute(query)
             c.execute("UPDATE States SET remote_parent_path=? WHERE id=?", (new_path, doc_pair.id))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def update_local_paths(self, doc_pair):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET local_parent_path=?, local_path=? WHERE id=?", (doc_pair.local_parent_path, doc_pair.local_path, doc_pair.id))
             if self.auto_commit:
                 con.commit()
         finally:
