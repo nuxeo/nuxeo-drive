@@ -105,8 +105,8 @@ class LogLock(object):
         log.trace("lock acquired")
 
     def release(self):
+        log.trace("lock release: %s", inspect.stack()[1][3])
         self._lock.release()
-        log.trace("lock released: %s", inspect.stack()[1][3])
 
 
 class FakeLock(object):
