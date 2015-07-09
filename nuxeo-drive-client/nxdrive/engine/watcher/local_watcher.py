@@ -355,7 +355,8 @@ class LocalWatcher(EngineWorker):
                 if not (local_info.name == doc_pair.local_name and
                         doc_pair.remote_parent_ref == remote_parent_ref):
                     log.debug("Detect move for %r (%r)", local_info.name, doc_pair)
-                    doc_pair.local_state = 'moved'
+                    if doc_pair.local_state != 'created':
+                        doc_pair.local_state = 'moved'
                 elif doc_pair.local_state == 'moved':
                     # The pair was moved but it has been canceled manually
                     doc_pair.local_state = 'synchronized'
@@ -431,7 +432,8 @@ class LocalWatcher(EngineWorker):
             if evt.event_type == 'deleted':
                 log.debug('Unknown pair deleted: %s', rel_path)
                 return
-            if evt.event_type == 'created':
+            # if the pair is modified and not known consider as created
+            if evt.event_type == 'created' or evt.event_type == 'modified':
                 # If doc_pair is not None mean
                 # the creation has been catched by scan
                 # As Windows send a delete / create event for reparent
@@ -466,7 +468,7 @@ class LocalWatcher(EngineWorker):
                 if local_info.folderish:
                     self._scan_recursive(local_info)
                 return
-            log.trace('Unhandled case: %r %s %s', evt, rel_path, file_name)
+            log.debug('Unhandled case: %r %s %s', evt, rel_path, file_name)
         except Exception:
             log.error('Watchdog exception', exc_info=True)
         finally:

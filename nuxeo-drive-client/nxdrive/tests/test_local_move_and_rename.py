@@ -279,6 +279,43 @@ class TestLocalMoveAndRename(UnitTestCase):
         # The more things change, the more they remain the same.
         self.wait()
 
+    def test_local_rename_file_after_create(self):
+        # Office 2010 and >, create a tmp file with 8 chars and move it right after
+        global marker
+        local_client = self.local_client_1
+        self.local_client_1.make_file('/', u'File.txt',
+            content=u'Some Content 2'.encode('utf-8'))
+        self.local_client_1.rename('/File.txt', 'Renamed File.txt')
+        self.wait_sync(fail_if_timeout=False)
+        self.assertTrue(local_client.exists(u'/Renamed File.txt'))
+        self.assertFalse(local_client.exists(u'/File.txt'))
+        # Path dont change on Nuxeo
+        self.assertIsNotNone(local_client.get_remote_id('/Renamed File.txt'))
+
+    def test_local_rename_file_after_create_detected(self):
+        # Office 2010 and >, create a tmp file with 8 chars and move it right after
+        global marker
+        local_client = self.local_client_1
+        marker = False
+        def insert_local_state(info, parent_path):
+            global marker
+            if info.name == 'File.txt' and not marker:
+                self.local_client_1.rename('/File.txt', 'Renamed File.txt')
+                sleep(2)
+                marker = True
+            EngineDAO.insert_local_state(self.engine_1._dao, info, parent_path)
+        self.engine_1._dao.insert_local_state = insert_local_state
+        # Might be blacklisted once
+        self.engine_1.get_queue_manager()._error_interval = 3
+        self.local_client_1.make_file('/', u'File.txt',
+            content=u'Some Content 2'.encode('utf-8'))
+        sleep(10)
+        self.wait_sync(fail_if_timeout=False)
+        self.assertTrue(local_client.exists(u'/Renamed File.txt'))
+        self.assertFalse(local_client.exists(u'/File.txt'))
+        # Path dont change on Nuxeo
+        self.assertIsNotNone(local_client.get_remote_id('/Renamed File.txt'))
+
     def test_local_move_folder(self):
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
