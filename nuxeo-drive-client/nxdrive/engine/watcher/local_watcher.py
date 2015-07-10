@@ -432,6 +432,29 @@ class LocalWatcher(EngineWorker):
             if evt.event_type == 'deleted':
                 log.debug('Unknown pair deleted: %s', rel_path)
                 return
+            
+            if (evt.event_type == 'moved'):
+                dest_filename = os.path.basename(evt.dest_path)
+                if (self.client.is_ignored(parent_rel_path, dest_filename)):
+                    return
+                # Ignore normalization of the filename on the file system
+                # See https://jira.nuxeo.com/browse/NXDRIVE-188
+                if evt.dest_path == normalize_event_filename(evt.src_path):
+                    log.debug('Ignoring move from %r to normalized name: %r', evt.src_path, evt.dest_path)
+                    return
+                src_path = normalize_event_filename(evt.dest_path)
+                rel_path = self.client.get_path(src_path)
+                local_info = self.client.get_info(rel_path, raise_if_missing=False)
+                if local_info is not None:
+                    rel_parent_path = self.client.get_path(os.path.dirname(src_path))
+                    if rel_parent_path == '':
+                        rel_parent_path = '/'
+                    self._dao.insert_local_state(local_info, rel_parent_path)
+                    # An event can be missed inside a new created folder as
+                    # watchdog will put listener after it
+                    if local_info.folderish:
+                        self._scan_recursive(local_info)
+                return
             # if the pair is modified and not known consider as created
             if evt.event_type == 'created' or evt.event_type == 'modified':
                 # If doc_pair is not None mean
