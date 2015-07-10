@@ -730,13 +730,13 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             update = "UPDATE States SET local_digest=NULL, last_local_updated=NULL, local_name=NULL, remote_state='deleted', pair_state='remotely_deleted'"
-            c.execute(update + " WHERE id=?", doc_pair.id)
+            c.execute(update + " WHERE id=?", (doc_pair.id,))
             if doc_pair.folderish:
                 c.execute(update + self._get_recursive_condition(doc_pair))
             if self.auto_commit:
                 con.commit()
             log.trace('Pushing %r', doc_pair)
-            self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair)
+            self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
         finally:
             self._lock.release()
 
