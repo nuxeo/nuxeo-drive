@@ -661,7 +661,8 @@ class Manager(QtCore.QObject):
         return self._dao.update_config(key, value)
 
     def get_auto_update(self):
-        return self._dao.get_config("auto_update", "0") == "1"
+        # By default auto update
+        return self._dao.get_config("auto_update", "1") == "1"
 
     def set_auto_update(self, value):
         self._dao.update_config("auto_update", value)
