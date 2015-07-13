@@ -352,14 +352,15 @@ class LocalWatcher(EngineWorker):
                     rel_parent_path = '/'
                 # Ignore inner movement
                 remote_parent_ref = self.client.get_remote_id(rel_parent_path)
-                if not (local_info.name == doc_pair.local_name and
+                if (doc_pair.remote_name == local_info.name and
+                        doc_pair.remote_parent_ref == remote_parent_ref):
+                        # The pair was moved but it has been canceled manually
+                        doc_pair.local_state = 'synchronized'
+                elif not (local_info.name == doc_pair.local_name and
                         doc_pair.remote_parent_ref == remote_parent_ref):
                     log.debug("Detect move for %r (%r)", local_info.name, doc_pair)
                     if doc_pair.local_state != 'created':
                         doc_pair.local_state = 'moved'
-                elif doc_pair.local_state == 'moved':
-                    # The pair was moved but it has been canceled manually
-                    doc_pair.local_state = 'synchronized'
                 self._dao.update_local_state(doc_pair, local_info)
             return
         if doc_pair.processor > 0:
