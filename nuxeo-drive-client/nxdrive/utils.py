@@ -414,6 +414,7 @@ class PidLockFile(object):
             process_name = self.key
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
         if os.path.exists(pid_filepath):
+            pid = None
             with open(safe_long_path(pid_filepath), 'rb') as f:
                 pid = os.getpid()
                 try:
@@ -425,27 +426,27 @@ class PidLockFile(object):
                     return pid
                 except (ValueError, psutil.NoSuchProcess):
                     pass
-                # This is a pid file that is empty or pointing to either a
-                # stopped process or a non-nxdrive process: let's delete it if
-                # possible
-                try:
-                    os.unlink(pid_filepath)
-                    if pid is None:
-                        msg = "Removed old empty pid file: %s" % pid_filepath
-                    else:
-                        msg = ("Removed old pid file: %s for stopped process"
-                               " %d" % (pid_filepath, pid))
-                    log.info(msg)
-                except Exception, e:
-                    if pid is None:
-                        msg = ("Failed to remove empty stalled pid file: %s:"
-                               " %r" % (pid_filepath, e))
-                    else:
-                        msg = ("Failed to remove stalled pid file: %s for"
-                               " stopped process %d: %r"
-                               % (pid_filepath, pid, e))
-                        return pid
-                    log.warning(msg)
+            # This is a pid file that is empty or pointing to either a
+            # stopped process or a non-nxdrive process: let's delete it if
+            # possible
+            try:
+                os.unlink(pid_filepath)
+                if pid is None:
+                    msg = "Removed old empty pid file: %s" % pid_filepath
+                else:
+                    msg = ("Removed old pid file: %s for stopped process"
+                           " %d" % (pid_filepath, pid))
+                log.info(msg)
+            except Exception, e:
+                if pid is None:
+                    msg = ("Failed to remove empty stalled pid file: %s:"
+                           " %r" % (pid_filepath, e))
+                else:
+                    msg = ("Failed to remove stalled pid file: %s for"
+                           " stopped process %d: %r"
+                           % (pid_filepath, pid, e))
+                    return pid
+                log.warning(msg)
         self.locked = True
         return None
 
