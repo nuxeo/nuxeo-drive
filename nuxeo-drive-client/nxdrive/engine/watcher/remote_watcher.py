@@ -306,6 +306,7 @@ class RemoteWatcher(EngineWorker):
                 self._action = Action("Remote scanning")
                 self._scan_remote()
                 self._end_action()
+                # Might need to handle the changes now
                 if first_pass:
                     self.initiate.emit()
                 return True
@@ -315,11 +316,11 @@ class RemoteWatcher(EngineWorker):
                 return
             else:
                 paths = self._dao.get_paths_to_scan()
-                if len(paths) > 0:
+                while len(paths) > 0:
                     remote_ref = paths[0].path
                     self._dao.update_config('remote_need_full_scan', remote_ref)
                     self._partial_full_scan(remote_ref)
-                    return
+                    paths = self._dao.get_paths_to_scan()
             self._action = Action("Handle remote changes")
             self._update_remote_states()
             self._save_changes_state()
