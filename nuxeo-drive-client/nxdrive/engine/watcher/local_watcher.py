@@ -361,7 +361,7 @@ class LocalWatcher(EngineWorker):
                     log.debug("Detect move for %r (%r)", local_info.name, doc_pair)
                     if doc_pair.local_state != 'created':
                         doc_pair.local_state = 'moved'
-                self._dao.update_local_state(doc_pair, local_info)
+                self._dao.update_local_state(doc_pair, local_info, versionned=False)
             return
         if doc_pair.processor > 0:
             log.trace("Don't update as in process %r", doc_pair)
