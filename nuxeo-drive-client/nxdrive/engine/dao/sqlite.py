@@ -923,7 +923,10 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
-        return c.rowcount == 1
+        result = c.rowcount == 1
+        if not result:
+            log.trace("Was not able to synchronize state: %r", row)
+        return result
 
     def update_remote_state(self, row, info, remote_parent_path=None, versionned=True):
         pair_state = self._get_pair_state(row)
