@@ -90,6 +90,9 @@ class AbstractOSIntegration(object):
     def register_startup(self):
         pass
 
+    def is_partition_supported(self, folder):
+        return True
+
     def uninstall(self):
         self.unregister_contextual_menu()
         self.unregister_desktop_link()

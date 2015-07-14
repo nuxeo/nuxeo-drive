@@ -149,6 +149,17 @@ class WindowsIntegration(AbstractOSIntegration):
             [(app_name, _winreg.REG_SZ, exe_path)],
         )
 
+    def is_partition_supported(self, folder):
+        if folder[-1] != os.path.sep:
+            folder = folder + os.path.sep
+        import win32file
+        if win32file.GetDriveType(folder) != win32file.DRIVE_FIXED:
+            return False
+        volume = win32file.GetVolumePathName(folder)
+        import win32api
+        t = win32api.GetVolumeInformation(volume)
+        return t[-1] == 'NTFS'
+
     def unregister_contextual_menu(self):
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
         if self._delete_reg_value(reg, self.get_menu_key(), ''):

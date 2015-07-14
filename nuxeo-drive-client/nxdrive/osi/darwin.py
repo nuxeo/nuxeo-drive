@@ -138,6 +138,26 @@ class DarwinIntegration(AbstractOSIntegration):
         # Dont unregister, should be removed when Bundle removed
         pass
 
+    def is_partition_supported(self, folder):
+        result = False
+        to_delete = not os.path.exists(folder)
+        try:
+            if to_delete:
+                os.mkdir(folder)
+            import xattr
+            attr = "drive-test"
+            xattr.setxattr(folder, attr, attr)
+            if xattr.getxattr(folder, attr) == attr:
+                result = True
+            xattr.removexattr(folder, attr)
+        finally:
+            try:
+                if to_delete:
+                    os.rmdir(folder)
+            except:
+                pass
+        return result
+
     def register_folder_link(self, folder_path):
         try:
             from LaunchServices import LSSharedFileListCreate

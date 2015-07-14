@@ -21,6 +21,8 @@ WIN_MOVE_RESOLUTION_PERIOD = 2000
 
 class LocalWatcher(EngineWorker):
     localScanFinished = pyqtSignal()
+    rootMoved = pyqtSignal(str)
+    rootDeleted = pyqtSignal()
     '''
     classdocs
     '''
@@ -49,6 +51,9 @@ class LocalWatcher(EngineWorker):
 
     def _execute(self):
         try:
+            if not self.client.exists('/'):
+                self.rootDeleted.emit()
+                return
             self._action = Action("Setup watchdog")
             self._scanning = True
             self._scanning_lock = Lock()
@@ -61,9 +66,11 @@ class LocalWatcher(EngineWorker):
             while not self._watchdog_queue.empty():
                 evt = self._watchdog_queue.get()
                 self._scanning_lock.acquire()
-                if self._watchdog_queue.empty():
-                    self._scanning = False
-                self._scanning_lock.release()
+                try:
+                    if self._watchdog_queue.empty():
+                        self._scanning = False
+                finally:
+                    self._scanning_lock.release()
                 self.handle_watchdog_event(evt, force=True)
             self._scanning = False
             # Check windows dequeue only every 100 loops ( every 1s )
@@ -412,7 +419,14 @@ class LocalWatcher(EngineWorker):
             self._dao.update_local_state(doc_pair, local_info, queue=queue)
 
     def _handle_watchdog_root_event(self, evt):
-        pass
+        if evt.event_type == 'modified' or evt.event_type == 'created':
+            pass
+        if evt.event_type == 'moved':
+            log.warn("Root has been moved to ")
+            self.rootMoved.emit(evt.dest_path)
+        if evt.event_type == 'deleted':
+            log.warn("Root has been deleted")
+            self.rootDeleted.emit()
 
     def handle_watchdog_event(self, evt, force=False):
         self._metrics['last_event'] = current_milli_time()
@@ -432,7 +446,7 @@ class LocalWatcher(EngineWorker):
         try:
             src_path = normalize_event_filename(evt.src_path)
             rel_path = self.client.get_path(src_path)
-            if len(rel_path) == 0:
+            if len(rel_path) == 0 or rel_path == '/':
                 self._handle_watchdog_root_event(evt)
                 return
             file_name = os.path.basename(src_path)
