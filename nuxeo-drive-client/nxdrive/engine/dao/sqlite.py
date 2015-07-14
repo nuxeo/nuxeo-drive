@@ -761,7 +761,7 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            update = "UPDATE States SET remote_digest=NULL, remote_ref=NULL, remote_parent_path=NULL, last_remote_updated=NULL, remote_name=NULL, remote_state='unknown', local_state='created', pair_state='locally_created'"
+            update = "UPDATE States SET remote_digest=NULL, remote_ref=NULL, remote_parent_ref=NULL, remote_parent_path=NULL, last_remote_updated=NULL, remote_name=NULL, remote_state='unknown', local_state='created', pair_state='locally_created'"
             c.execute(update + " WHERE id=" + str(doc_pair.id))
             if doc_pair.folderish:
                 c.execute(update + self._get_recursive_condition(doc_pair))
