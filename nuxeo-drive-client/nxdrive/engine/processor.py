@@ -479,7 +479,10 @@ class Processor(EngineWorker):
                         self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path), new_path)
                         self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(local_client, doc_pair)
-            self._dao.synchronize_state(doc_pair)
+            if not self._dao.synchronize_state(doc_pair):
+                # requeue item
+                self.release_state()
+                self._engine.get_queue_manager().push_ref(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
         except (IOError, WindowsError) as e:
             log.warning(
                 "Delaying local update of remotely modified content %r due to"
