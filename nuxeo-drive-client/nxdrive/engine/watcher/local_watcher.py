@@ -7,6 +7,7 @@ from watchdog.events import FileSystemEventHandler
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
 from nxdrive.engine.activity import Action
+from Queue import Queue
 import sys
 import os
 from time import sleep
@@ -49,11 +50,22 @@ class LocalWatcher(EngineWorker):
     def _execute(self):
         try:
             self._action = Action("Setup watchdog")
+            self._scanning = True
+            self._scanning_lock = Lock()
+            self._watchdog_queue = Queue()
             self._setup_watchdog()
             log.debug("Watchdog setup finished")
             self._action = Action("Full local scan")
             self._scan()
             self._end_action()
+            while not self._watchdog_queue.empty():
+                evt = self._watchdog_queue.get()
+                self._scanning_lock.acquire()
+                if self._watchdog_queue.empty():
+                    self._scanning = False
+                self._scanning_lock.release()
+                self.handle_watchdog_event(evt, force=True)
+            self._scanning = False
             # Check windows dequeue only every 100 loops ( every 1s )
             interval = 100
             while (1):
@@ -402,8 +414,16 @@ class LocalWatcher(EngineWorker):
     def _handle_watchdog_root_event(self, evt):
         pass
 
-    def handle_watchdog_event(self, evt):
+    def handle_watchdog_event(self, evt, force=False):
         self._metrics['last_event'] = current_milli_time()
+        if self._scanning and not force:
+            self._scanning_lock.acquire()
+            try:
+                if self._scanning:
+                    self._watchdog_queue.put(evt)
+                    return
+            finally:
+                self._scanning_lock.release()
         self._action = Action("Handle watchdog event")
         if evt.event_type == 'moved':
             log.debug("Handling watchdog event [%s] on %s to %s", evt.event_type, evt.src_path, evt.dest_path)
@@ -433,7 +453,6 @@ class LocalWatcher(EngineWorker):
             if evt.event_type == 'deleted':
                 log.debug('Unknown pair deleted: %s', rel_path)
                 return
-            
             if (evt.event_type == 'moved'):
                 dest_filename = os.path.basename(evt.dest_path)
                 if (self.client.is_ignored(parent_rel_path, dest_filename)):
