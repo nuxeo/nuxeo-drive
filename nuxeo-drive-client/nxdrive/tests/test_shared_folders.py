@@ -1,13 +1,11 @@
-from nxdrive.tests.common import IntegrationTestCase
+from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import LocalClient
-from nose.plugins.skip import SkipTest
 
 
-class TestSharedFolders(IntegrationTestCase):
+class TestSharedFolders(UnitTestCase):
 
     def test_move_sync_root_child_to_user_workspace(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """See https://jira.nuxeo.com/browse/NXP-14870"""
 
         admin_remote_client = self.root_remote_client
@@ -50,14 +48,11 @@ class TestSharedFolders(IntegrationTestCase):
             # As user2 register parent folder as a sync root
             remote_user2.register_as_root(parent_folder_path)
 
-            # Bind server for user2
-            ctl_2 = self.controller_2
-            ctl_2.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url,
-                            self.user_2, self.password_2)
+            # Start engine for user2
+            self.engine_2.start()
 
-            # Launch first synchronization
-            syn_2 = ctl_2.synchronizer
-            self._synchronize(syn_2)
+            # Wait for synchronization
+            self.wait_sync(wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True)
 
             # Check locally synchronized content
             self.assertEquals(len(local_user2.get_children_info('/')), 1)
@@ -68,8 +63,8 @@ class TestSharedFolders(IntegrationTestCase):
             remote_user1.move(parent_folder_path + '/Child',
                               user1_workspace_path)
 
-            # Synchronize
-            self._synchronize(syn_2)
+            # Wait for synchronization
+            self.wait_sync(wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True)
 
             # Check locally synchronized content
             self.assertFalse(local_user2.exists('/Parent/Child'))
