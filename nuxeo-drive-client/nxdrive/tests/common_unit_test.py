@@ -86,7 +86,7 @@ class UnitTestCase(unittest.TestCase):
     # Nuxeo max length for document name
     DOC_NAME_MAX_LENGTH = 24
 
-    def setUpApp(self):
+    def setUpApp(self, server_profile=None):
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
@@ -154,6 +154,10 @@ class UnitTestCase(unittest.TestCase):
             self.nuxeo_url, self.admin_user,
             u'nxdrive-test-administrator-device', self.version,
             password=self.password, base_folder=u'/', timeout=60)
+
+        # Activate given profile if needed, eg. permission hierarchy
+        if server_profile is not None:
+            root_remote_client.activate_profile(server_profile)
 
         # Call the Nuxeo operation to setup the integration test environment
         credentials = root_remote_client.execute(
@@ -362,7 +366,7 @@ class UnitTestCase(unittest.TestCase):
         if not self.tearedDown:
             self.tearDownApp()
 
-    def tearDownApp(self):
+    def tearDownApp(self, server_profile=None):
         if self.tearedDown:
             return
         import sys
@@ -381,6 +385,10 @@ class UnitTestCase(unittest.TestCase):
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
         self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
+
+        # Deactivate given profile if needed, eg. permission hierarchy
+        if server_profile is not None:
+            self.root_remote_client.deactivate_profile(server_profile)
 
         self._clean_dir(self.upload_tmp_dir)
         self._clean_dir(self.local_test_folder_1)
