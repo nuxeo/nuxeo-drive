@@ -137,8 +137,8 @@ class Application(QApplication):
         # Update icon in case the engine dropped was syncing
         self.change_systray_icon()
 
-    @QtCore.pyqtSlot()
-    def change_systray_icon(self):
+    @QtCore.pyqtSlot(str)
+    def change_systray_icon(self, uid):
         syncing = False
         engines = self.manager.get_engines()
         invalid_credentials = True

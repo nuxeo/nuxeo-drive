@@ -26,8 +26,8 @@ from nxdrive.engine.workers import ThreadInterrupt
 class RemoteWatcher(EngineWorker):
     initiate = pyqtSignal()
     updated = pyqtSignal()
-    remoteScanFinished = pyqtSignal()
-    changesFound = pyqtSignal(object)
+    remoteScanFinished = pyqtSignal(str)
+    changesFound = pyqtSignal(str, int)
     remoteWatcherStopped = pyqtSignal()
 
     def __init__(self, engine, dao, delay):
@@ -47,6 +47,9 @@ class RemoteWatcher(EngineWorker):
         self._metrics['empty_polls'] = 0
         self.server_interval = delay
         self._current_interval = 0
+
+    def get_engine(self):
+        return self._engine
 
     def get_metrics(self):
         metrics = super(RemoteWatcher, self).get_metrics()
@@ -104,7 +107,7 @@ class RemoteWatcher(EngineWorker):
         self._dao.commit()
         self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
         log.debug("Remote scan finished in %dms", self._metrics['last_remote_scan_time'])
-        self.remoteScanFinished.emit()
+        self.remoteScanFinished.emit(self.get_engine().get_uid())
 
     @pyqtSlot(str)
     def scan_pair(self, remote_path):
@@ -392,7 +395,7 @@ class RemoteWatcher(EngineWorker):
             log.debug("%d remote changes detected", n_changes)
             self._metrics['last_changes'] = n_changes
             self._metrics['empty_polls'] = 0
-            self.changesFound.emit(n_changes)
+            self.changesFound.emit(self.get_engine().get_uid(), n_changes)
         else:
             self._metrics['empty_polls'] = self._metrics['empty_polls'] + 1
 

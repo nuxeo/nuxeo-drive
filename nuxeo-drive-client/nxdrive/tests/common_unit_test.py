@@ -170,6 +170,9 @@ class UnitTestCase(unittest.TestCase):
         self.engine_1.syncCompleted.connect(self.sync_completed)
         self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.remote_scan_completed)
         self.engine_1.get_remote_watcher().changesFound.connect(self.remote_changes_found)
+        self.engine_2.syncCompleted.connect(self.sync_completed)
+        self.engine_2.get_remote_watcher().remoteScanFinished.connect(self.remote_scan_completed)
+        self.engine_2.get_remote_watcher().changesFound.connect(self.remote_changes_found)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
@@ -221,32 +224,52 @@ class UnitTestCase(unittest.TestCase):
         self.remote_file_system_client_1 = remote_file_system_client_1
         self.remote_file_system_client_2 = remote_file_system_client_2
 
-        self._wait_remote_scan = True
-        self._remote_changes_count = 0
+        self._wait_sync = {self.engine_1.get_uid(): True, self.engine_2.get_uid(): True}
+        self._wait_remote_scan = {self.engine_1.get_uid(): True, self.engine_2.get_uid(): True}
+        self._remote_changes_count = {self.engine_1.get_uid(): 0, self.engine_2.get_uid(): 0}
 
-    @QtCore.pyqtSlot()
-    def sync_completed(self):
-        # TODO NXDRIVE-170: handle multiple engines
-        self._wait_sync = False
+    @QtCore.pyqtSlot(str)
+    def sync_completed(self, uid):
+        uid = str(uid)
+        if not uid:
+            for uid in self._wait_sync.iterkeys():
+                self._wait_sync[uid] = False
+        else:
+            self._wait_sync[uid] = False
 
-    def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True):
+    def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True,
+                  wait_for_engine_1=True, wait_for_engine_2=False):
         log.debug("Wait for sync")
         # First wait for server if needed
         if wait_for_async:
             self.wait()
-        self._wait_sync = True
+        self._wait_sync = {
+            self.engine_1.get_uid(): wait_for_engine_1,
+            self.engine_2.get_uid(): wait_for_engine_2
+        }
         while timeout > 0:
             sleep(1)
-            if not self._wait_sync:
+            if sum(self._wait_sync.values()) == 0:
                 if wait_for_async:
-                    # TODO NXDRIVE-170: handle multiple engines
-                    log.debug('Sync completed, _wait_remote_scan = %r, found %d remote change(s)',
+                    log.debug('Sync completed, _wait_remote_scan = %r, remote changes = %r',
                               self._wait_remote_scan, self._remote_changes_count)
-                    if not self._wait_remote_scan or self._remote_changes_count > 0:
-                        self._wait_remote_scan = True
-                        self._remote_changes_count = 0
-                        log.debug('Ended wait for sync, setting _wait_remote_scan to True'
-                                  ' and _remote_changes_count to 0')
+                    wait_remote_scan = False
+                    if wait_for_engine_1:
+                        wait_remote_scan = self._wait_remote_scan[self.engine_1.get_uid()]
+                    if wait_for_engine_2:
+                        wait_remote_scan = wait_remote_scan or self._wait_remote_scan[self.engine_2.get_uid()]
+                    is_remote_changes = True
+                    if wait_for_engine_1:
+                        is_remote_changes = self._remote_changes_count[self.engine_1.get_uid()] > 0
+                    if wait_for_engine_2:
+                        is_remote_changes = (is_remote_changes
+                                             and self._remote_changes_count[self.engine_2.get_uid()] > 0)
+                    if (not wait_remote_scan or is_remote_changes):
+                        self._wait_remote_scan = {self.engine_1.get_uid(): wait_for_engine_1,
+                                                  self.engine_2.get_uid(): wait_for_engine_2}
+                        self._remote_changes_count = {self.engine_1.get_uid(): 0, self.engine_2.get_uid(): 0}
+                        log.debug('Ended wait for sync, setting _wait_remote_scan values to True'
+                                  ' and _remote_changes_count values to 0')
                         return
                 else:
                     log.debug("Sync completed, ended wait for sync")
@@ -257,21 +280,26 @@ class UnitTestCase(unittest.TestCase):
         else:
             log.debug("Wait for sync timeout")
 
-    @QtCore.pyqtSlot()
-    def remote_scan_completed(self):
-        log.debug('Remote scan completed')
-        self._wait_remote_scan = False
+    @QtCore.pyqtSlot(str)
+    def remote_scan_completed(self, uid):
+        uid = str(uid)
+        log.debug('Remote scan completed for engine %s', uid)
+        self._wait_remote_scan[uid] = False
 
-    @QtCore.pyqtSlot(int)
-    def remote_changes_found(self, change_count):
-        self._remote_changes_count = change_count
+    @QtCore.pyqtSlot(str, int)
+    def remote_changes_found(self, uid, change_count):
+        uid = str(uid)
+        change_count = int(change_count)
+        self._remote_changes_count[uid] = change_count
 
-    def wait_remote_scan(self, timeout=DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT):
+    def wait_remote_scan(self, timeout=DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT, wait_for_engine_1=True,
+                         wait_for_engine_2=False):
         log.debug("Wait for remote scan")
-        self._wait_remote_scan = True
+        self._wait_remote_scan = {self.engine_1.get_uid(): wait_for_engine_1,
+                                  self.engine_2.get_uid(): wait_for_engine_2}
         while timeout > 0:
             sleep(1)
-            if not self._wait_remote_scan:
+            if sum(self._wait_remote_scan.values()) == 0:
                 log.debug("Ended wait for remote scan")
                 return
             timeout = timeout - 1

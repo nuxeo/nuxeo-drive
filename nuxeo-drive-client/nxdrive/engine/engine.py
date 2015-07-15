@@ -49,9 +49,10 @@ class EngineLogger(QObject):
         else:
             log.log(self._level, msg, pair)
 
-    @pyqtSlot()
-    def logSyncComplete(self):
-        log.log(self._level, "Synchronization is complete")
+    @pyqtSlot(str)
+    def logSyncComplete(self, uid):
+        uid = str(uid)
+        log.log(self._level, "Synchronization is complete for engine %s", uid)
 
     @pyqtSlot(object)
     def logSyncStart(self):
@@ -87,7 +88,7 @@ class Engine(QObject):
     _stop = pyqtSignal()
     _scanPair = pyqtSignal(str)
     syncStarted = pyqtSignal(object)
-    syncCompleted = pyqtSignal()
+    syncCompleted = pyqtSignal(str)
     syncSuspended = pyqtSignal()
     syncResumed = pyqtSignal()
     invalidAuthentication = pyqtSignal()
@@ -398,6 +399,9 @@ class Engine(QObject):
     def get_local_folder(self):
         return self._local_folder
 
+    def get_uid(self):
+        return self._uid
+
     def set_invalid_credentials(self, value=True, reason=None, exception=None):
         changed = self._invalid_credentials != value
         self._invalid_credentials = value
@@ -483,8 +487,8 @@ class Engine(QObject):
                 log.warn("No watchdog event detected but sync is completed")
             if self._sync_started:
                 self._sync_started = False
-            log.debug('Emitting syncCompleted')
-            self.syncCompleted.emit()
+            log.debug('Emitting syncCompleted for engine %s', self.get_uid())
+            self.syncCompleted.emit(self.get_uid())
 
     def _thread_finished(self):
         for thread in self._threads:
