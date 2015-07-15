@@ -71,7 +71,7 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(metrics["local_folder_queue"], 0)
         self.assertEquals(metrics["local_file_queue"], 0)
         files, folders = self.make_local_tree()
-        self.wait_sync(2, fail_if_timeout=False)
+        self.wait_sync(timeout=2, fail_if_timeout=False)
         metrics = self.queue_manager_1.get_metrics()
         self.assertEquals(metrics["local_folder_queue"], 2)
         self.assertEquals(metrics["local_file_queue"], 1)
@@ -86,7 +86,7 @@ class TestWatchers(UnitTestCase):
             from time import sleep
             from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
             sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000 + 1)
-        self.wait_sync(1, fail_if_timeout=False)
+        self.wait_sync(timeout=1, fail_if_timeout=False)
         return '/' + self.workspace_title + path + '/'
 
     def test_local_watchdog_delete_non_synced(self):
@@ -102,7 +102,7 @@ class TestWatchers(UnitTestCase):
         self.engine_1.stop()
         path = self._delete_folder_1()
         self.engine_1.start()
-        self.wait_sync(1, fail_if_timeout=False)
+        self.wait_sync(timeout=1, fail_if_timeout=False)
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
         self.assertEquals(len(children), 0)
 
@@ -123,7 +123,7 @@ class TestWatchers(UnitTestCase):
         self.engine_1.stop()
         path = self._delete_folder_1()
         self.engine_1.start()
-        self.wait_sync(1, fail_if_timeout=False)
+        self.wait_sync(timeout=1, fail_if_timeout=False)
         child = self.engine_1.get_dao().get_state_from_local(path[:-1])
         self.assertEqual(child.pair_state, 'locally_deleted')
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
