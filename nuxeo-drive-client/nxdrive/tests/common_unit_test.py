@@ -335,9 +335,6 @@ class UnitTestCase(unittest.TestCase):
             stats.print_all(out=fd, columns=columns)
         log.debug("Profiler Report generated in '%s'", report_path)
 
-    def _run(self, result=None):
-        self.setUpApp()
-
     def run(self, result=None):
         self.app = QtCore.QCoreApplication([])
         self.setUpApp()
