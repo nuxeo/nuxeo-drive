@@ -36,11 +36,8 @@ class TestSharedFolders(UnitTestCase):
             # As user1 grant Everything permission to user2 on parent folder
             parent_folder_path = user1_workspace_path + '/Parent'
             op_input = "doc:" + parent_folder_path
-            admin_remote_client.execute("Document.SetACE",
-                op_input=op_input,
-                user="nuxeoDriveTestUser_user_2",
-                permission="Everything",
-                grant="true")
+            admin_remote_client.execute("Document.SetACE", op_input=op_input, user="nuxeoDriveTestUser_user_2",
+                                        permission="Everything", grant="true")
 
             # As user1 create a child folder in parent folder
             remote_user1.make_folder(parent_folder_path, 'Child')

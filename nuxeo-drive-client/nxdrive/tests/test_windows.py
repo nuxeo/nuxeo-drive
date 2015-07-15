@@ -5,7 +5,6 @@ import sys
 from nxdrive.client import LocalClient
 from shutil import copyfile
 from nxdrive.tests.common_unit_test import UnitTestCase
-from nose.plugins.skip import SkipTest
 
 
 class TestWindows(UnitTestCase):
