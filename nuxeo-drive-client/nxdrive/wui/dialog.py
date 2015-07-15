@@ -121,6 +121,7 @@ class WebDriveApi(QtCore.QObject):
         result["local_path"] = state.local_path
         result["local_parent_path"] = state.local_parent_path
         result["remote_ref"] = state.remote_ref
+        result["folderish"] = state.folderish
         result["last_transfer"] = state.last_transfer
         result["id"] = state.id
         return result
