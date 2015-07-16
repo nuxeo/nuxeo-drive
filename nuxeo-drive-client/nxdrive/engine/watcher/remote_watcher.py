@@ -551,6 +551,9 @@ class RemoteWatcher(EngineWorker):
                     break
             if skip:
                 continue
+            # Verify the file is really deleted
+            if self._client.exists(delete_pair.remote_ref):
+                continue
             delete_processed.append(delete_pair)
             log.debug("Marking doc_pair '%r' as deleted", delete_pair)
             self._dao.delete_remote_state(delete_pair)
