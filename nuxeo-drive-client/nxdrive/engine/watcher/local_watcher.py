@@ -479,7 +479,9 @@ class LocalWatcher(EngineWorker):
                 src_path = normalize_event_filename(evt.dest_path)
                 rel_path = self.client.get_path(src_path)
                 local_info = self.client.get_info(rel_path, raise_if_missing=False)
-                if local_info is not None:
+                doc_pair = self._dao.get_state_from_local(rel_path)
+                # If the file exsit but not the pair
+                if local_info is not None and doc_pair is None:
                     rel_parent_path = self.client.get_path(os.path.dirname(src_path))
                     if rel_parent_path == '':
                         rel_parent_path = '/'
