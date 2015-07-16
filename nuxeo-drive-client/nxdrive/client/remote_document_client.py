@@ -266,7 +266,10 @@ class RemoteDocumentClient(BaseAutomationClient):
 
         # Normalize using NFC to make the tests more intuitive
         name = props['dc:title']
-        version = str(props['uid:major_version']) + "." + str(props['uid:minor_version'])
+        if 'uid:major_version' in props and 'uid:minor_version' in props:
+            version = str(props['uid:major_version']) + "." + str(props['uid:minor_version'])
+        else:
+            version = None
         if name is not None:
             name = unicodedata.normalize('NFC', name)
         return NuxeoDocumentInfo(
