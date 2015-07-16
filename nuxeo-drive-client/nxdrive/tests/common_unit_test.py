@@ -61,8 +61,11 @@ class TestQApplication(QtCore.QCoreApplication):
 
     @QtCore.pyqtSlot()
     def sync_completed(self):
-        uid = self.sender().get_uid()
-        log.debug("Sync Completed slot for: %s", uid)
+        if hasattr(self.sender(), 'get_uid'):
+            uid = self.sender().get_uid()
+            log.debug("Sync Completed slot for: %s", uid)
+        else:
+            uid = None
         if not uid:
             for uid in self._test._wait_sync.iterkeys():
                 self._test._wait_sync[uid] = False

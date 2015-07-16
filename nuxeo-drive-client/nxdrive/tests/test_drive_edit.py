@@ -18,7 +18,7 @@ class TestDriveEdit(UnitTestCase):
     def setUpApp(self):
         super(TestDriveEdit, self).setUpApp()
         self.drive_edit = self.manager_1.get_drive_edit()
-        self.drive_edit.driveEditUploadCompleted.connect(self.slots.sync_completed)
+        self.drive_edit.driveEditUploadCompleted.connect(self.app.sync_completed)
         self.drive_edit.start()
 
         self.remote = self.remote_document_client_1
