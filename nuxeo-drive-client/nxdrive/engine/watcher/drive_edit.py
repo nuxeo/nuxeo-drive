@@ -24,7 +24,7 @@ log = get_logger(__name__)
 
 class DriveEdit(Worker):
     localScanFinished = pyqtSignal()
-    driveEditUploadCompleted = pyqtSignal(str)
+    driveEditUploadCompleted = pyqtSignal()
     '''
     classdocs
     '''
@@ -206,7 +206,7 @@ class DriveEdit(Worker):
             uploaded = True
         if uploaded:
             log.debug('Emitting driveEditUploadCompleted')
-            self.driveEditUploadCompleted.emit('')
+            self.driveEditUploadCompleted.emit()
 
     def _execute(self):
         try:

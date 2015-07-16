@@ -42,8 +42,8 @@ class ConsoleApplication(QCoreApplication):
     def connect_engine_quit(self, engine):
         engine.syncCompleted.connect(self.quit_if_sync_completed)
 
-    @QtCore.pyqtSlot(str)
-    def quit_if_sync_completed(self, uid):
+    @QtCore.pyqtSlot()
+    def quit_if_sync_completed(self):
         self.sender().stop()
         if self.manager.is_syncing():
             return

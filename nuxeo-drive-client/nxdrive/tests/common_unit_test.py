@@ -61,6 +61,33 @@ class TestQApplication(QtCore.QCoreApplication):
         self._test_thread.start()
 
 
+class SlotObject(QtCore.QObject):
+
+    def __init__(self, test_case):
+        self._test = test_case
+
+    @QtCore.pyqtSlot()
+    def sync_completed(self):
+        uid = self.sender().get_uid()
+        if not uid:
+            for uid in self._test._wait_sync.iterkeys():
+                self._test._wait_sync[uid] = False
+        else:
+            self._test._wait_sync[uid] = False
+
+    @QtCore.pyqtSlot()
+    def remote_scan_completed(self):
+        uid = self.sender().get_uid()
+        log.debug('Remote scan completed for engine %s', uid)
+        self._test._wait_remote_scan[uid] = False
+
+    @QtCore.pyqtSlot(int)
+    def remote_changes_found(self, change_count):
+        uid = self.sender().get_uid()
+        change_count = int(change_count)
+        self._test._remote_changes_count[uid] = change_count
+
+
 class UnitTestCase(unittest.TestCase):
 
     TEST_WORKSPACE_PATH = (
@@ -93,6 +120,7 @@ class UnitTestCase(unittest.TestCase):
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD')
         self.workspace = os.environ.get('WORKSPACE')
         self.result = None
+        self.slots = SlotObject(self)
         self.tearedDown = False
 
         # Take default parameter if none has been set
@@ -171,12 +199,12 @@ class UnitTestCase(unittest.TestCase):
                                                    self.password_1, start_engine=False)
         self.engine_2 = self.manager_2.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2,
                                                    self.password_2, start_engine=False)
-        self.engine_1.syncCompleted.connect(self.sync_completed)
-        self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.remote_scan_completed)
-        self.engine_1.get_remote_watcher().changesFound.connect(self.remote_changes_found)
-        self.engine_2.syncCompleted.connect(self.sync_completed)
-        self.engine_2.get_remote_watcher().remoteScanFinished.connect(self.remote_scan_completed)
-        self.engine_2.get_remote_watcher().changesFound.connect(self.remote_changes_found)
+        self.engine_1.syncCompleted.connect(self.slots.sync_completed)
+        self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.slots.remote_scan_completed)
+        self.engine_1.get_remote_watcher().changesFound.connect(self.slots.remote_changes_found)
+        self.engine_2.syncCompleted.connect(self.slots.sync_completed)
+        self.engine_2.get_remote_watcher().remoteScanFinished.connect(self.slots.remote_scan_completed)
+        self.engine_2.get_remote_watcher().changesFound.connect(self.slots.remote_changes_found)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
@@ -232,15 +260,6 @@ class UnitTestCase(unittest.TestCase):
         self._wait_remote_scan = {self.engine_1.get_uid(): True, self.engine_2.get_uid(): True}
         self._remote_changes_count = {self.engine_1.get_uid(): 0, self.engine_2.get_uid(): 0}
 
-    @QtCore.pyqtSlot(str)
-    def sync_completed(self, uid):
-        uid = str(uid)
-        if not uid:
-            for uid in self._wait_sync.iterkeys():
-                self._wait_sync[uid] = False
-        else:
-            self._wait_sync[uid] = False
-
     def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True,
                   wait_for_engine_1=True, wait_for_engine_2=False):
         log.debug("Wait for sync")
@@ -283,18 +302,6 @@ class UnitTestCase(unittest.TestCase):
             self.fail("Wait for sync timeout expired")
         else:
             log.debug("Wait for sync timeout")
-
-    @QtCore.pyqtSlot(str)
-    def remote_scan_completed(self, uid):
-        uid = str(uid)
-        log.debug('Remote scan completed for engine %s', uid)
-        self._wait_remote_scan[uid] = False
-
-    @QtCore.pyqtSlot(str, int)
-    def remote_changes_found(self, uid, change_count):
-        uid = str(uid)
-        change_count = int(change_count)
-        self._remote_changes_count[uid] = change_count
 
     def wait_remote_scan(self, timeout=DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT, wait_for_engine_1=True,
                          wait_for_engine_2=False):

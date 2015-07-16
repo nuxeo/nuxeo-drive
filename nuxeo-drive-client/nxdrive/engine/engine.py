@@ -49,10 +49,10 @@ class EngineLogger(QObject):
         else:
             log.log(self._level, msg, pair)
 
-    @pyqtSlot(str)
-    def logSyncComplete(self, uid):
-        uid = str(uid)
-        log.log(self._level, "Synchronization is complete for engine %s", uid)
+    @pyqtSlot()
+    def logSyncComplete(self):
+        log.log(self._level, "Synchronization is complete for engine %s",
+                self.sender().get_uid())
 
     @pyqtSlot(object)
     def logSyncStart(self):
@@ -88,7 +88,7 @@ class Engine(QObject):
     _stop = pyqtSignal()
     _scanPair = pyqtSignal(str)
     syncStarted = pyqtSignal(object)
-    syncCompleted = pyqtSignal(str)
+    syncCompleted = pyqtSignal()
     syncSuspended = pyqtSignal()
     syncResumed = pyqtSignal()
     invalidAuthentication = pyqtSignal()
@@ -488,7 +488,7 @@ class Engine(QObject):
             if self._sync_started:
                 self._sync_started = False
             log.debug('Emitting syncCompleted for engine %s', self.get_uid())
-            self.syncCompleted.emit(self.get_uid())
+            self.syncCompleted.emit()
 
     def _thread_finished(self):
         for thread in self._threads:
