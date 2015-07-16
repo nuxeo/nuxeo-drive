@@ -169,6 +169,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         remote_client = self.remote_client_1
         local_client = self.local_client_1
 
+        file_1_docref = self.file_1_id.split("#")[-1]
+        file_1_version = self.remote_document_client_1.get_info(file_1_docref).version
         # Rename /Original File 1.txt to /Renamed File 1.txt
         remote_client.rename(self.file_1_id, u'Renamed File 1.txt')
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
@@ -176,9 +178,10 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         self.wait_sync(wait_for_async=True)
 
+        version = self.remote_document_client_1.get_info(file_1_docref).version
         # Check remote file name
-        self.assertEquals(remote_client.get_info(self.file_1_id).name,
-            u'Renamed File 1.txt')
+        self.assertEquals(remote_client.get_info(self.file_1_id).name, u'Renamed File 1.txt')
+        self.assertEquals(file_1_version, version, "Version should not increased")
         # Check local file name
         self.assertFalse(local_client.exists(u'/Original File 1.txt'))
         self.assertTrue(local_client.exists(u'/Renamed File 1.txt'))
@@ -205,10 +208,12 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         self.wait_sync(wait_for_async=True)
 
-        self.assertEquals(remote_client.get_info(self.file_1_id).name,
-            u'Renamed Again File 1.txt')
+        info = remote_client.get_info(self.file_1_id)
+        self.assertEquals(info.name, u'Renamed Again File 1.txt')
         self.assertEquals(remote_client.get_info(self.file_1_1_id).name,
             u'Renamed File 1.1 \xe9.txt')
+        version = self.remote_document_client_1.get_info(file_1_docref).version
+        self.assertEquals(file_1_version, version, "Version should not increased")
         # Check local file names
         self.assertFalse(local_client.exists(u'/Renamed File 1.txt'))
         self.assertTrue(local_client.exists(u'/Renamed Again File 1.txt'))

@@ -39,6 +39,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'digest',  # digest of the document
     'repository',  # server repository name
     'doc_type',  # Nuxeo document type
+    'version', # Nuxeo version
     # TODO: add filename?
 ])
 
@@ -265,12 +266,13 @@ class RemoteDocumentClient(BaseAutomationClient):
 
         # Normalize using NFC to make the tests more intuitive
         name = props['dc:title']
+        version = str(props['uid:major_version']) + "." + str(props['uid:minor_version'])
         if name is not None:
             name = unicodedata.normalize('NFC', name)
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
             doc['path'], folderish, last_update, lastContributor,
-            digest, self.repository, doc['type'])
+            digest, self.repository, doc['type'], version)
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):
