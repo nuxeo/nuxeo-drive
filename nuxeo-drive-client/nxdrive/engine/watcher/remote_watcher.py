@@ -112,6 +112,7 @@ class RemoteWatcher(EngineWorker):
     @pyqtSlot(str)
     def scan_pair(self, remote_path):
         self._dao.add_path_to_scan(str(remote_path))
+        self._current_interval = 0
 
     def _scan_pair(self, remote_path):
         if remote_path is None:
