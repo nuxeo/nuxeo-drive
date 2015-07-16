@@ -55,20 +55,14 @@ class TestThread(QtCore.QThread):
 
 class TestQApplication(QtCore.QCoreApplication):
 
-    def __init__(self, argv, method, method_arg):
+    def __init__(self, argv, test_case):
         super(TestQApplication, self).__init__(argv)
-        self._test_thread = TestThread(method, method_arg)
-        self._test_thread.start()
-
-
-class SlotObject(QtCore.QObject):
-
-    def __init__(self, test_case):
         self._test = test_case
 
     @QtCore.pyqtSlot()
     def sync_completed(self):
         uid = self.sender().get_uid()
+        log.debug("Sync Completed slot for: %s", uid)
         if not uid:
             for uid in self._test._wait_sync.iterkeys():
                 self._test._wait_sync[uid] = False
@@ -77,13 +71,14 @@ class SlotObject(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def remote_scan_completed(self):
-        uid = self.sender().get_uid()
+        uid = self.sender().get_engine().get_uid()
         log.debug('Remote scan completed for engine %s', uid)
         self._test._wait_remote_scan[uid] = False
 
     @QtCore.pyqtSlot(int)
     def remote_changes_found(self, change_count):
-        uid = self.sender().get_uid()
+        uid = self.sender().get_engine().get_uid()
+        log.debug("Remote changes slot for: %s", uid)
         change_count = int(change_count)
         self._test._remote_changes_count[uid] = change_count
 
@@ -120,7 +115,6 @@ class UnitTestCase(unittest.TestCase):
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD')
         self.workspace = os.environ.get('WORKSPACE')
         self.result = None
-        self.slots = SlotObject(self)
         self.tearedDown = False
 
         # Take default parameter if none has been set
@@ -199,12 +193,12 @@ class UnitTestCase(unittest.TestCase):
                                                    self.password_1, start_engine=False)
         self.engine_2 = self.manager_2.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2,
                                                    self.password_2, start_engine=False)
-        self.engine_1.syncCompleted.connect(self.slots.sync_completed)
-        self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.slots.remote_scan_completed)
-        self.engine_1.get_remote_watcher().changesFound.connect(self.slots.remote_changes_found)
-        self.engine_2.syncCompleted.connect(self.slots.sync_completed)
-        self.engine_2.get_remote_watcher().remoteScanFinished.connect(self.slots.remote_scan_completed)
-        self.engine_2.get_remote_watcher().changesFound.connect(self.slots.remote_changes_found)
+        self.engine_1.syncCompleted.connect(self.app.sync_completed)
+        self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
+        self.engine_1.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
+        self.engine_2.syncCompleted.connect(self.app.sync_completed)
+        self.engine_2.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
+        self.engine_2.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
@@ -343,7 +337,7 @@ class UnitTestCase(unittest.TestCase):
         log.debug("Profiler Report generated in '%s'", report_path)
 
     def run(self, result=None):
-        self.app = QtCore.QCoreApplication([])
+        self.app = TestQApplication([], self)
         self.setUpApp()
         self.result = result
 
