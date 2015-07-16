@@ -412,7 +412,12 @@ class RemoteWatcher(EngineWorker):
 
             eventId = change.get('eventId')
             remote_ref = change['fileSystemItemId']
-            if remote_ref in refreshed:
+            processed = False
+            for refreshed_ref in refreshed:
+                if refreshed_ref.endswith(remote_ref):
+                    processed = True
+                    break
+            if processed:
                 # A more recent version was already processed
                 continue
             fs_item = change.get('fileSystemItem')
@@ -426,7 +431,9 @@ class RemoteWatcher(EngineWorker):
                 # Relax constraint on factory name in FileSystemItem id to
                 # match 'deleted' or 'securityUpdated' events.
                 # See https://jira.nuxeo.com/browse/NXDRIVE-167
-                doc_pairs = self._dao.get_states_from_partial_remote(remote_ref)
+                doc_pair = self._dao.get_first_state_from_partial_remote(remote_ref)
+                if doc_pair is not None:
+                    doc_pairs = [doc_pair]
 
             updated = False
             if doc_pairs:

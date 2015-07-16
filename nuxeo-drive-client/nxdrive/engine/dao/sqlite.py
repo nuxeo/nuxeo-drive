@@ -631,9 +631,10 @@ class EngineDAO(ConfigurationDAO):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE local_path LIKE ?", (path + '%',)).fetchall()
 
-    def get_states_from_partial_remote(self, ref):
+    def get_first_state_from_partial_remote(self, ref):
         c = self._get_read_connection(factory=StateRow).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_ref LIKE ?", ('%' + ref,)).fetchall()
+        return c.execute("SELECT * FROM States WHERE remote_ref LIKE ? ORDER BY last_remote_updated ASC LIMIT 1",
+                         ('%' + ref,)).fetchone()
 
     def get_normal_state_from_remote(self, ref):
         # TODO Select the only states that is not a collection
