@@ -146,7 +146,7 @@ class RemoteWatcher(EngineWorker):
         if parent_pair is None:
             return
         local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
-        remote_parent_path = parent_pair.remote_parent_path + '/' + child_info.uid
+        remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
         row_id = self._dao.insert_remote_state(child_info, remote_parent_path, local_path, parent_pair.local_path)
         doc_pair = self._dao.get_state_from_id(row_id, from_write=True)
         if child_info.folderish:

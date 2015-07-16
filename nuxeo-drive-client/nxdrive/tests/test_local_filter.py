@@ -55,6 +55,10 @@ class TestLocalFilter(UnitTestCase):
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
+        self.engine_1.add_filter(doc_path)
+        self.wait_sync()
+        self.assertFalse(local.exists('/Test folder'))
+
         # Delete sync root then synchronize
         self.engine_1.add_filter(root_path)
         self.wait_sync()
