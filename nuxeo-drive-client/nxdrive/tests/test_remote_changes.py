@@ -154,13 +154,15 @@ class TestRemoteChanges(IntegrationTestCase):
         summary = self.get_changes()
 
         self.assertEquals(len(summary['fileSystemChanges']), 2)
-        change = summary['fileSystemChanges'][0]
-        self.assertEquals(change['eventId'], u'rootRegistered')
-        self.assertEquals(change['fileSystemItemName'], u'Nuxeo Drive Test Workspace')
-        self.assertEquals(change['fileSystemItemId'], u'defaultSyncRootFolderItemFactory#default#%s' % self.workspace)
-        self.assertIsNotNone(change['fileSystemItem'])
-        change = summary['fileSystemChanges'][1]
-        self.assertEquals(change['eventId'], u'deleted')
-        self.assertEquals(change['fileSystemItemName'], u'Folder 1')
-        self.assertEquals(change['fileSystemItemId'], u'default#%s' % folder_1)
-        self.assertIsNone(change['fileSystemItem'])
+        for change in summary['fileSystemChanges']:
+            if change['eventId'] == u'rootRegistered':
+                self.assertEquals(change['fileSystemItemName'], u'Nuxeo Drive Test Workspace')
+                self.assertEquals(change['fileSystemItemId'],
+                                  u'defaultSyncRootFolderItemFactory#default#%s' % self.workspace)
+                self.assertIsNotNone(change['fileSystemItem'])
+            elif change['eventId'] == u'deleted':
+                self.assertEquals(change['fileSystemItemName'], u'Folder 1')
+                self.assertEquals(change['fileSystemItemId'], u'default#%s' % folder_1)
+                self.assertIsNone(change['fileSystemItem'])
+            else:
+                self.fail('Unexpected event %s' % change['eventId'])
