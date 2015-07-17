@@ -665,7 +665,6 @@ class WebDialog(QtGui.QDialog):
                 filename=u"///"+filename
             url = QtCore.QUrl(filename)
             url.setScheme("file")
-        log.debug("url for QT is %s",url)
         self._view.load(url)
         self._frame = self._view.page().mainFrame()
         if api is None:
