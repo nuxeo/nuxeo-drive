@@ -7,6 +7,7 @@ from nxdrive.client import LocalClient
 from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
 
+
 class TestWatchers(UnitTestCase):
 
     def test_local_scan(self):

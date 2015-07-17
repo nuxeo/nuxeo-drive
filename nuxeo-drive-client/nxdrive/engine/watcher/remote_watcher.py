@@ -554,16 +554,7 @@ class RemoteWatcher(EngineWorker):
             if skip:
                 continue
             # Verify the file is really deleted
-            # Cannot use exists or get_fs_info as this will return result anyway
-            updated_pair = self._dao.get_state_from_id(delete_pair.id)
-            childs = self._client.get_children_info(updated_pair.remote_parent_ref)
-            to_continue = False
-            for child in childs:
-                if child.uid == delete_pair.remote_ref:
-                    log.warn("Skip the deletion as item is there: %r", delete_pair)
-                    to_continue = True
-                    break
-            if to_continue:
+            if self._client.get_fs_item(delete_pair.remote_ref) is not None:
                 continue
             delete_processed.append(delete_pair)
             log.debug("Marking doc_pair '%r' as deleted", delete_pair)
