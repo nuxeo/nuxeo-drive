@@ -661,8 +661,11 @@ class WebDialog(QtGui.QDialog):
                 url.setRawHeader("X-Authentication-Token", QtCore.QByteArray(token))
         else:
             log.debug("Load web file : %s", filename)
+            if filename[0] != '/':
+                filename=u"///"+filename
             url = QtCore.QUrl(filename)
             url.setScheme("file")
+        log.debug("url for QT is %s",url)
         self._view.load(url)
         self._frame = self._view.page().mainFrame()
         if api is None:
