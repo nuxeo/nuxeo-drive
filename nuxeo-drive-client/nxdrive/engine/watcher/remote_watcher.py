@@ -552,7 +552,15 @@ class RemoteWatcher(EngineWorker):
             if skip:
                 continue
             # Verify the file is really deleted
-            if self._client.exists(delete_pair.remote_ref):
+            # Cannot use exists or get_fs_info as this will return result anyway
+            childs = self._client.get_children_info(delete_pair.remote_parent_ref)
+            to_continue = False
+            for child in childs:
+                if child.uid == delete_pair.remote_ref:
+                    log.warn("Skip the deletion as item is there: %r", delete_pair)
+                    to_continue = True
+                    break
+            if to_continue:
                 continue
             delete_processed.append(delete_pair)
             log.debug("Marking doc_pair '%r' as deleted", delete_pair)
