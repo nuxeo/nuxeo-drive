@@ -85,6 +85,12 @@ class TestQApplication(QtCore.QCoreApplication):
         change_count = int(change_count)
         self._test._remote_changes_count[uid] = change_count
 
+    @QtCore.pyqtSlot()
+    def no_remote_changes_found(self,):
+        uid = self.sender().get_engine().get_uid()
+        log.trace("No remote changes slot for: %s", uid)
+        self._test._no_remote_changes[uid] = True
+
 
 class UnitTestCase(unittest.TestCase):
 
@@ -199,9 +205,11 @@ class UnitTestCase(unittest.TestCase):
         self.engine_1.syncCompleted.connect(self.app.sync_completed)
         self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
         self.engine_1.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
+        self.engine_1.get_remote_watcher().noChangesFound.connect(self.app.no_remote_changes_found)
         self.engine_2.syncCompleted.connect(self.app.sync_completed)
         self.engine_2.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
         self.engine_2.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
+        self.engine_2.get_remote_watcher().noChangesFound.connect(self.app.no_remote_changes_found)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
@@ -256,6 +264,7 @@ class UnitTestCase(unittest.TestCase):
         self._wait_sync = {self.engine_1.get_uid(): True, self.engine_2.get_uid(): True}
         self._wait_remote_scan = {self.engine_1.get_uid(): True, self.engine_2.get_uid(): True}
         self._remote_changes_count = {self.engine_1.get_uid(): 0, self.engine_2.get_uid(): 0}
+        self._no_remote_changes = {self.engine_1.get_uid(): False, self.engine_2.get_uid(): False}
 
     def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True,
                   wait_for_engine_1=True, wait_for_engine_2=False):
@@ -267,29 +276,37 @@ class UnitTestCase(unittest.TestCase):
             self.engine_1.get_uid(): wait_for_engine_1,
             self.engine_2.get_uid(): wait_for_engine_2
         }
+        self._no_remote_changes = {self.engine_1.get_uid(): not wait_for_engine_1,
+                                   self.engine_2.get_uid(): not wait_for_engine_2}
         while timeout > 0:
             sleep(1)
             if sum(self._wait_sync.values()) == 0:
                 if wait_for_async:
-                    log.debug('Sync completed, _wait_remote_scan = %r, remote changes = %r',
-                              self._wait_remote_scan, self._remote_changes_count)
+                    log.debug('Sync completed, _wait_remote_scan = %r, remote changes count = %r,'
+                              ' no remote changes = %r',
+                              self._wait_remote_scan, self._remote_changes_count, self._no_remote_changes)
                     wait_remote_scan = False
                     if wait_for_engine_1:
                         wait_remote_scan = self._wait_remote_scan[self.engine_1.get_uid()]
                     if wait_for_engine_2:
                         wait_remote_scan = wait_remote_scan or self._wait_remote_scan[self.engine_2.get_uid()]
                     is_remote_changes = True
+                    is_change_summary_over = True
                     if wait_for_engine_1:
                         is_remote_changes = self._remote_changes_count[self.engine_1.get_uid()] > 0
+                        is_change_summary_over = self._no_remote_changes[self.engine_1.get_uid()]
                     if wait_for_engine_2:
                         is_remote_changes = (is_remote_changes
                                              and self._remote_changes_count[self.engine_2.get_uid()] > 0)
-                    if (not wait_remote_scan or is_remote_changes):
+                        is_change_summary_over = (is_change_summary_over
+                                                  and self._no_remote_changes[self.engine_2.get_uid()])
+                    if (not wait_remote_scan or is_remote_changes and is_change_summary_over):
                         self._wait_remote_scan = {self.engine_1.get_uid(): wait_for_engine_1,
                                                   self.engine_2.get_uid(): wait_for_engine_2}
                         self._remote_changes_count = {self.engine_1.get_uid(): 0, self.engine_2.get_uid(): 0}
-                        log.debug('Ended wait for sync, setting _wait_remote_scan values to True'
-                                  ' and _remote_changes_count values to 0')
+                        self._no_remote_changes = {self.engine_1.get_uid(): False, self.engine_2.get_uid(): False}
+                        log.debug('Ended wait for sync, setting _wait_remote_scan values to True,'
+                                  ' _remote_changes_count values to 0 and _no_remote_changes values to False')
                         return
                 else:
                     log.debug("Sync completed, ended wait for sync")
