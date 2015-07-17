@@ -553,7 +553,8 @@ class RemoteWatcher(EngineWorker):
                 continue
             # Verify the file is really deleted
             # Cannot use exists or get_fs_info as this will return result anyway
-            childs = self._client.get_children_info(delete_pair.remote_parent_ref)
+            updated_pair = self._dao.get_state_from_id(delete_pair.id)
+            childs = self._client.get_children_info(updated_pair.remote_parent_ref)
             to_continue = False
             for child in childs:
                 if child.uid == delete_pair.remote_ref:
