@@ -700,6 +700,7 @@ class CliHandler(object):
             "nxdrive.tests.test_remote_move_and_rename",
             "nxdrive.tests.test_security_updates",
             "nxdrive.tests.test_shared_folders",
+            "nxdrive.tests.test_sync_roots",
             "nxdrive.tests.test_synchronization",
             "nxdrive.tests.test_translator",
             "nxdrive.tests.test_updater",
