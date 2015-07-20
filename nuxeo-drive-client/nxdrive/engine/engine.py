@@ -91,6 +91,8 @@ class Engine(QObject):
     syncCompleted = pyqtSignal()
     syncSuspended = pyqtSignal()
     syncResumed = pyqtSignal()
+    rootDeleted = pyqtSignal()
+    rootMoved = pyqtSignal(str)
     invalidAuthentication = pyqtSignal()
     newConflict = pyqtSignal(object)
     newSync = pyqtSignal(object, object)
@@ -148,6 +150,8 @@ class Engine(QObject):
         self._remote_watcher = self._create_remote_watcher(remote_watcher_delay)
         self.create_thread(worker=self._remote_watcher, start_connect=False)
         # Launch remote_watcher after first local scan
+        self._local_watcher.rootDeleted.connect(self.rootDeleted)
+        self._local_watcher.rootMoved.connect(self.rootMoved)
         self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
         self._queue_manager = self._create_queue_manager(processors)
         # Launch queue processors after first remote_watcher pass
@@ -214,6 +218,7 @@ class Engine(QObject):
         self._dao.add_filter(path)
         pair = self._dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
         if pair is None:
+            log.debug("Can't find the pair: %s (%s)", remote_ref, remote_parent_path)
             return
         self._dao.delete_remote_state(pair)
 
@@ -316,6 +321,9 @@ class Engine(QObject):
         tag = 'drive-fs-test'
         tag_value = 'NXDRIVE_VERIFICATION'
         client = self.get_local_client()
+        if not client.exists('/'):
+            self.rootDeleted.emit()
+            return False
         client.set_remote_id('/', tag_value, tag)
         if client.get_remote_id('/', tag) != tag_value:
             return False
