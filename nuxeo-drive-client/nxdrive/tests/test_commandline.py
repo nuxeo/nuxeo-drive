@@ -8,10 +8,10 @@ from nxdrive.commandline import CliHandler
 class CommandLineTestCase(unittest.TestCase):
     def setUp(self):
         self.cmd = CliHandler()
-        self.workspace = os.environ.get('WORKSPACE')
+        self.build_workspace = os.environ.get('WORKSPACE')
         self.tmpdir = None
-        if self.workspace is not None:
-            self.tmpdir = os.path.join(self.workspace, "tmp")
+        if self.build_workspace is not None:
+            self.tmpdir = os.path.join(self.build_workspace, "tmp")
             if not os.path.isdir(self.tmpdir):
                 os.makedirs(self.tmpdir)
 

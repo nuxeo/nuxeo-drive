@@ -24,12 +24,12 @@ SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 
 def setup_temp_folder():
     global lcclient, LOCAL_TEST_FOLDER, TEST_WORKSPACE
-    workspace = os.environ.get('WORKSPACE')
+    build_workspace = os.environ.get('WORKSPACE')
     tmpdir = None
-    if workspace is not None:
-            tmpdir = os.path.join(workspace, "tmp")
-            if not os.path.isdir(tmpdir):
-                os.makedirs(tmpdir)
+    if build_workspace is not None:
+        tmpdir = os.path.join(build_workspace, "tmp")
+        if not os.path.isdir(tmpdir):
+            os.makedirs(tmpdir)
     LOCAL_TEST_FOLDER = tempfile.mkdtemp(u'-nuxeo-drive-tests', dir=tmpdir)
     lcclient = LocalClient(LOCAL_TEST_FOLDER)
     TEST_WORKSPACE = lcclient.make_folder(u'/', u'Some Workspace')
