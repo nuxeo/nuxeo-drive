@@ -189,7 +189,7 @@ class Processor(EngineWorker):
                     doc_pair.remote_ref,
                     local_client._abspath(doc_pair.local_path),
                     parent_fs_item_id=doc_pair.remote_parent_ref,
-                    filename=doc_pair.local_name,
+                    filename=doc_pair.remote_name,# Use remote name to avoid rename in case of duplicate
                 )
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
@@ -526,6 +526,10 @@ class Processor(EngineWorker):
                 # TO_REVIEW May need to overwrite
                 self._dao.set_conflict_state(doc_pair)
                 return
+            elif remote_ref is not None:
+                # Case of several documents with same name or case insensitive hard drive
+                # TODO dedup
+                path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
         local_client.set_remote_id(path, doc_pair.remote_ref)
         self._handle_readonly(local_client, doc_pair)
         self._refresh_local_state(doc_pair, local_client.get_info(path))

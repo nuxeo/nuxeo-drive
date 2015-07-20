@@ -39,9 +39,12 @@ class TestSynchronization(IntegrationTestCase):
         self.assertTrue(local.exists('/Folder 1/Folder 1.2'))
         self.assertEquals(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
         self.assertTrue(local.exists('/Folder 2'))
-        # TODO: uncomment when https://jira.nuxeo.com/browse/NXDRIVE-221 is fixed
-#         self.assertEquals(local.get_content('/Folder 2/Duplicated File.txt'), "Some content.")
-#         self.assertEquals(local.get_content('/Folder 2/Duplicated File__1.txt'), "Other content.")
+        # Cannot predicte the resolution in advance
+        if local.get_content('/Folder 2/Duplicated File.txt') == "Some content.":
+            self.assertEquals(local.get_content('/Folder 2/Duplicated File__1.txt'), "Other content.")
+        else:
+            self.assertEquals(local.get_content('/Folder 2/Duplicated File.txt'), "Other content.")
+            self.assertEquals(local.get_content('/Folder 2/Duplicated File__1.txt'), "Some content.")
         self.assertEquals(local.get_content('/Folder 2/File 4.txt'), "ddd")
         self.assertEquals(local.get_content('/File 5.txt'), "eee")
 
@@ -60,8 +63,7 @@ class TestSynchronization(IntegrationTestCase):
         # We should now be fully synchronized
         folder_count, file_count = self.get_local_child_count(self.local_nxdrive_folder_1)
         self.assertEquals(folder_count, 5)
-        # TODO: use self.assertTrue(file_count, 7) when https://jira.nuxeo.com/browse/NXDRIVE-221 is fixed
-        self.assertTrue(file_count >= 5)
+        self.assertTrue(file_count, 7)
 
         # Wait a bit for file time stamps to increase enough: on OSX HFS+ the
         # file modification time resolution is 1s for instance
