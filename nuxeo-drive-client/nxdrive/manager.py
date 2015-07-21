@@ -924,7 +924,7 @@ class Manager(QtCore.QObject):
         try:
             engine = self.get_engines()[root_values[3]]
         except:
-            raise ValueError('Unkown engine %s for %s' %
-                             (file_path, root_values[3]))
+            raise ValueError('Unknown engine %s for %s' %
+                             (root_values[3], file_path))
         metadata_url = engine.get_metadata_url(remote_ref)
         return (metadata_url, engine.get_remote_token(), engine, remote_ref)
