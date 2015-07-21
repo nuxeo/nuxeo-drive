@@ -66,7 +66,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
             test2_path = '/%s' % (self._dedup_name('test'))
         else:
             test_path = '/%s' % (self._dedup_name('test'))
-            test2_path = '/Test'
+            test2_path = '/test'
         self.assertTrue(local.exists(test_path))
         self.assertTrue(local.exists(test2_path))
         self.assertEquals(len(local.get_children_info('/')), 2)
