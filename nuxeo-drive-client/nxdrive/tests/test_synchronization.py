@@ -20,6 +20,7 @@ class TestSynchronization(IntegrationTestCase):
 
     def test_binding_initialization_and_first_sync(self):
         local = self.local_client_1
+        remote = self.remote_document_client_1
 
         # Create some documents in a Nuxeo workspace and bind this server to a
         # Nuxeo Drive local folder
@@ -40,6 +41,8 @@ class TestSynchronization(IntegrationTestCase):
         self.assertEquals(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
         self.assertTrue(local.exists('/Folder 2'))
         # Cannot predicte the resolution in advance
+        self.assertTrue(remote.get_content(self._duplicate_file_1), "Some content.")
+        self.assertTrue(remote.get_content(self._duplicate_file_2), "Other content.")
         if local.get_content('/Folder 2/Duplicated File.txt') == "Some content.":
             self.assertEquals(local.get_content('/Folder 2/Duplicated File__1.txt'), "Other content.")
         else:

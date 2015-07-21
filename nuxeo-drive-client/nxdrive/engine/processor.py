@@ -60,7 +60,7 @@ class Processor(EngineWorker):
         try:
             if path in Processor.path_locks:
                 Processor.path_locks[path].release()
-                Processor.path_locks[path] = None
+                del Processor.path_locks[path]
         finally:
             Processor.path_locker.release()
 
