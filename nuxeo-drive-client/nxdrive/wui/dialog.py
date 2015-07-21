@@ -621,7 +621,7 @@ class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
         if self.token is not None:
             req.setRawHeader("X-Authentication-Token", QtCore.QByteArray(self.token))
         # Block TTF under Mac
-        if str(req.url().path()).endswith(".ttf") and sys.platform == "darwin":
+        if sys.platform == "darwin" and unicode(req.url().path()).endswith(".ttf"):
             # Block .ttf file for now as there are badly displayed
             return super(TokenNetworkAccessManager, self).createRequest(op,
                         QtNetwork.QNetworkRequest(QtCore.QUrl()), outgoingData)
