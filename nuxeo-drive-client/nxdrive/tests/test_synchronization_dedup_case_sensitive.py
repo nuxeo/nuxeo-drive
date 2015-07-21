@@ -1,6 +1,4 @@
 import os
-import sys
-from unittest import SkipTest
 
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.logging_config import get_logger
@@ -8,12 +6,10 @@ from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
 
 
-class TestDedupInsensitiveCaseSync(UnitTestCase):
+class TestDedupSensitiveCaseSync(UnitTestCase):
 
     def setUp(self):
-        super(TestDedupInsensitiveCaseSync, self).setUp()
-        if sys.platform.startswith('linux'):
-            raise SkipTest("Case insensitive test")
+        super(TestDedupSensitiveCaseSync, self).setUp()
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
@@ -21,140 +17,140 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         name, suffix = os.path.splitext(name)
         return "%s__%d%s" % (name, idx, suffix)
 
-    def test_dedup_files(self):
+    def test2_dedup_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace
         # then synchronize
-        joe_uid = remote.make_file('/', 'joe.odt', 'Some content')
-        Joe_uid = remote.make_file('/', 'Joe.odt', 'Some content')
+        joe_uid = remote.make_file('/', 'joe.odt', 'Some content 1')
+        joe2_uid = remote.make_file('/', 'joe.odt', 'Some content 2')
         self.wait_sync(wait_for_async=True)
         childs = local.get_children_info('/')
-        if childs[0].name == 'joe.odt' or childs[1].name == 'joe.odt':
+        if joe_uid in local.get_remote_id(childs[0].path):
             joe_path = '/joe.odt'
-            Joe_path = '/%s' % (self._dedup_name('Joe.odt'))
+            joe2_path = '/%s' % (self._dedup_name('joe.odt'))
         else:
             joe_path = '/%s' % (self._dedup_name('joe.odt'))
-            Joe_path = '/Joe.odt'
+            joe2_path = '/joe.odt'
         self.assertTrue(local.exists(joe_path))
-        self.assertTrue(local.exists(Joe_path))
+        self.assertTrue(local.exists(joe2_path))
         self.assertEquals(len(local.get_children_info('/')), 2)
         self.assertEquals(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEquals(remote.get_info(Joe_uid).name, 'Joe.odt')
-        local.update_content(joe_path, 'Update content joe')
-        local.update_content(Joe_path, 'Update content Joe')
+        self.assertEquals(remote.get_info(joe2_uid).name, 'joe.odt')
+        local.update_content(joe_path, 'Update content 1')
+        local.update_content(joe2_path, 'Update content 2')
         self.wait_sync(wait_for_async=True)
         # Verify the content has changed
-        self.assertEquals(remote.get_content(joe_uid), 'Update content joe')
-        self.assertEquals(remote.get_content(Joe_uid), 'Update content Joe')
+        self.assertEquals(remote.get_content(joe_uid), 'Update content 1')
+        self.assertEquals(remote.get_content(joe2_uid), 'Update content 2')
         # Verify the name are the same
         self.assertEquals(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEquals(remote.get_info(Joe_uid).name, 'Joe.odt')
+        self.assertEquals(remote.get_info(joe2_uid).name, 'joe.odt')
         local.delete(joe_path)
         self.wait_sync(wait_for_async=True)
-        self.assertTrue(remote.exists(Joe_uid))
+        self.assertTrue(remote.exists(joe2_uid))
         self.assertFalse(remote.exists(joe_uid))
-        self.assertTrue(local.exists(Joe_path))
+        self.assertTrue(local.exists(joe2_path))
 
-    def test_dedup_folders(self):
+    def test2_dedup_folders(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace
         # then synchronize
         test_uid = remote.make_folder('/', 'test')
-        Test_uid = remote.make_folder('/', 'Test')
+        test2_uid = remote.make_folder('/', 'test')
         self.wait_sync(wait_for_async=True)
         childs = local.get_children_info('/')
-        if childs[0].name == 'test' or childs[1].name == 'test':
+        if test_uid in local.get_remote_id(childs[0].path):
             test_path = '/test'
-            Test_path = '/%s' % (self._dedup_name('Test'))
+            test2_path = '/%s' % (self._dedup_name('test'))
         else:
             test_path = '/%s' % (self._dedup_name('test'))
-            Test_path = '/Test'
+            test2_path = '/Test'
         self.assertTrue(local.exists(test_path))
-        self.assertTrue(local.exists(Test_path))
+        self.assertTrue(local.exists(test2_path))
         self.assertEquals(len(local.get_children_info('/')), 2)
         self.assertEquals(remote.get_info(test_uid).name, 'test')
-        self.assertEquals(remote.get_info(Test_uid).name, 'Test')
+        self.assertEquals(remote.get_info(test2_uid).name, 'test')
 
-    def test_dedup_move_files(self):
+    def test2_dedup_move_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
         remote.make_folder('/', 'test')
-        Joe_uid = remote.make_file('/', 'Joe.odt', 'Some content')
+        joe2_uid = remote.make_file('/', 'joe.odt', 'Some content')
         joe_uid = remote.make_file('/test', 'joe.odt', 'Some content')
-        Joe_dedup = self._dedup_name('Joe.odt')
+        joe2_dedup = self._dedup_name('joe.odt')
         self.wait_sync(wait_for_async=True)
         # Check initial sync
         self.assertTrue(local.exists('/test'))
-        self.assertTrue(local.exists('/Joe.odt'))
+        self.assertTrue(local.exists('/joe.odt'))
         self.assertTrue(local.exists('/test/joe.odt'))
         # Move to a folder containing same file to verify the dedup
-        remote.move(Joe_uid, '/test')
+        remote.move(joe2_uid, '/test')
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEquals(remote.get_info(Joe_uid).name, 'Joe.odt')
-        self.assertTrue(local.exists('/test/' + Joe_dedup))
+        self.assertEquals(remote.get_info(joe2_uid).name, 'joe.odt')
+        self.assertTrue(local.exists('/test/' + joe2_dedup))
         self.assertTrue(local.exists('/test/joe.odt'))
         # Move it back to a non dedup folder
-        remote.move(Joe_uid, '/')
+        remote.move(joe2_uid, '/')
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEquals(remote.get_info(Joe_uid).name, 'Joe.odt')
-        self.assertTrue(local.exists('/Joe.odt'))
+        self.assertEquals(remote.get_info(joe2_uid).name, 'joe.odt')
+        self.assertTrue(local.exists('/joe.odt'))
         self.assertTrue(local.exists('/test/joe.odt'))
         # Move again to a dedup folder
-        remote.move(Joe_uid, '/test')
+        remote.move(joe2_uid, '/test')
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEquals(remote.get_info(Joe_uid).name, 'Joe.odt')
-        self.assertTrue(local.exists('/test/' + Joe_dedup))
+        self.assertEquals(remote.get_info(joe2_uid).name, 'joe.odt')
+        self.assertTrue(local.exists('/test/' + joe2_dedup))
         self.assertTrue(local.exists('/test/joe.odt'))
         # Move locally without renaming
-        local.move('/test/' + Joe_dedup, '/')
+        local.move('/test/' + joe2_dedup, '/')
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEquals(remote.get_info(Joe_uid).name, Joe_dedup)
+        self.assertEquals(remote.get_info(joe2_uid).name, joe2_dedup)
         # Might want go back to the original name
-        self.assertTrue(local.exists('/' + Joe_dedup))
+        self.assertTrue(local.exists('/' + joe2_dedup))
         self.assertTrue(local.exists('/test/joe.odt'))
 
-    def test_dedup_move_folders(self):
+    def test2_dedup_move_folders(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
         test_uid = remote.make_folder('/', 'test')
-        Test_uid = remote.make_folder('/test', 'Test')
-        Test_dedup = self._dedup_name('Test')
+        test2_uid = remote.make_folder('/test', 'test')
+        test2_dedup = self._dedup_name('test')
         self.wait_sync(wait_for_async=True)
         # Check initial sync
         self.assertTrue(local.exists('/test'))
-        self.assertTrue(local.exists('/test/Test'))
+        self.assertTrue(local.exists('/test/test'))
         # Move to a folder containing same file to verify the dedup
-        remote.move(Test_uid, '/')
+        remote.move(test2_uid, '/')
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(test_uid).name, 'test')
-        self.assertEquals(remote.get_info(Test_uid).name, 'Test')
+        self.assertEquals(remote.get_info(test2_uid).name, 'test')
         self.assertTrue(local.exists('/test'))
-        self.assertTrue(local.exists('/' + Test_dedup))
+        self.assertTrue(local.exists('/' + test2_dedup))
         # Move it back to a non dedup folder
-        remote.move(Test_uid, '/test')
+        remote.move(test2_uid, '/test')
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(test_uid).name, 'test')
-        self.assertEquals(remote.get_info(Test_uid).name, 'Test')
+        self.assertEquals(remote.get_info(test2_uid).name, 'test')
         self.assertTrue(local.exists('/test'))
-        self.assertTrue(local.exists('/test/Test'))
+        self.assertTrue(local.exists('/test/test'))
         # Move again to a dedup folder
-        remote.move(Test_uid, '/')
+        remote.move(test2_uid, '/')
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(test_uid).name, 'test')
-        self.assertEquals(remote.get_info(Test_uid).name, 'Test')
-        self.assertTrue(local.exists('/' + Test_dedup))
+        self.assertEquals(remote.get_info(test2_uid).name, 'test')
+        self.assertTrue(local.exists('/' + test2_dedup))
         self.assertTrue(local.exists('/test'))
         # Move locally without renaming
-        local.move('/' + Test_dedup, '/test')
+        local.move('/' + test2_dedup, '/test')
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(test_uid).name, 'test')
-        self.assertEquals(remote.get_info(Test_uid).name, Test_dedup)
+        self.assertEquals(remote.get_info(test2_uid).name, test2_dedup)
         # Might want go back to the original name
-        self.assertTrue(local.exists('/test/' + Test_dedup))
-        self.assertFalse(local.exists('/' + Test_dedup))
+        self.assertTrue(local.exists('/test/' + test2_dedup))
+        self.assertFalse(local.exists('/' + test2_dedup))
