@@ -10,6 +10,7 @@ from nxdrive.client.common import NotFound
 from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time
 from PyQt4.QtCore import pyqtSignal
+from threading import Lock
 import os
 log = get_logger(__name__)
 
@@ -25,6 +26,8 @@ class Processor(EngineWorker):
     classdocs
     '''
     pairSync = pyqtSignal(object, object)
+    path_locks = dict()
+    path_locker = Lock()
 
     def __init__(self, engine, item_getter, name=None):
         '''
@@ -35,6 +38,31 @@ class Processor(EngineWorker):
         self._current_doc_pair = None
         self._get_item = item_getter
         self._engine = engine
+
+    def _lock_path(self, path):
+        log.trace("Get lock for '%s'", path)
+        lock = None
+        Processor.path_locker.acquire()
+        try:
+            if path in Processor.path_locks:
+                lock = Processor.path_locks[path]
+            else:
+                lock = Lock()
+        finally:
+            Processor.path_locker.release()
+        log.trace("Locking '%s'", path)
+        lock.acquire()
+        Processor.path_locks[path] = lock
+
+    def _unlock_path(self, path):
+        log.trace("Unlocking '%s'", path)
+        Processor.path_locker.acquire()
+        try:
+            if path in Processor.path_locks:
+                Processor.path_locks[path].release()
+                Processor.path_locks[path] = None
+        finally:
+            Processor.path_locker.release()
 
     def _clean(self, reason, e=None):
         super(Processor, self)._clean(reason, e)
@@ -514,22 +542,26 @@ class Processor(EngineWorker):
             # It is filtered so skip and remove from the LastKnownState
             self._dao.remove_state(doc_pair)
             return
-        if not local_client.exists(doc_pair.local_path):
-            path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
-        else:
-            path = doc_pair.local_path
-            remote_ref = local_client.get_remote_id(doc_pair.local_path)
-            if remote_ref is not None and remote_ref == doc_pair.remote_ref:
-                log.debug('remote_ref (xattr) = %s, doc_pair.remote_ref = %s => setting conflicted state', remote_ref,
-                          doc_pair.remote_ref)
-                # Set conflict state for now
-                # TO_REVIEW May need to overwrite
-                self._dao.set_conflict_state(doc_pair)
-                return
-            elif remote_ref is not None:
-                # Case of several documents with same name or case insensitive hard drive
-                # TODO dedup
+        try:
+            self._lock_path(doc_pair.local_path)
+            if not local_client.exists(doc_pair.local_path):
                 path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
+            else:
+                path = doc_pair.local_path
+                remote_ref = local_client.get_remote_id(doc_pair.local_path)
+                if remote_ref is not None and remote_ref == doc_pair.remote_ref:
+                    log.debug('remote_ref (xattr) = %s, doc_pair.remote_ref = %s => setting conflicted state', remote_ref,
+                              doc_pair.remote_ref)
+                    # Set conflict state for now
+                    # TO_REVIEW May need to overwrite
+                    self._dao.set_conflict_state(doc_pair)
+                    return
+                elif remote_ref is not None:
+                    # Case of several documents with same name or case insensitive hard drive
+                    # TODO dedup
+                    path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
+        finally:
+            self._unlock_path(doc_pair.local_path)
         local_client.set_remote_id(path, doc_pair.remote_ref)
         self._handle_readonly(local_client, doc_pair)
         self._refresh_local_state(doc_pair, local_client.get_info(path))
