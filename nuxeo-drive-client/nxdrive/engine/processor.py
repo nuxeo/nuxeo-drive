@@ -542,26 +542,22 @@ class Processor(EngineWorker):
             # It is filtered so skip and remove from the LastKnownState
             self._dao.remove_state(doc_pair)
             return
-        try:
-            self._lock_path(doc_pair.local_path)
-            if not local_client.exists(doc_pair.local_path):
+        if not local_client.exists(doc_pair.local_path):
+            path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
+        else:
+            path = doc_pair.local_path
+            remote_ref = local_client.get_remote_id(doc_pair.local_path)
+            if remote_ref is not None and remote_ref == doc_pair.remote_ref:
+                log.debug('remote_ref (xattr) = %s, doc_pair.remote_ref = %s => setting conflicted state', remote_ref,
+                          doc_pair.remote_ref)
+                # Set conflict state for now
+                # TO_REVIEW May need to overwrite
+                self._dao.set_conflict_state(doc_pair)
+                return
+            elif remote_ref is not None:
+                # Case of several documents with same name or case insensitive hard drive
+                # TODO dedup
                 path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
-            else:
-                path = doc_pair.local_path
-                remote_ref = local_client.get_remote_id(doc_pair.local_path)
-                if remote_ref is not None and remote_ref == doc_pair.remote_ref:
-                    log.debug('remote_ref (xattr) = %s, doc_pair.remote_ref = %s => setting conflicted state', remote_ref,
-                              doc_pair.remote_ref)
-                    # Set conflict state for now
-                    # TO_REVIEW May need to overwrite
-                    self._dao.set_conflict_state(doc_pair)
-                    return
-                elif remote_ref is not None:
-                    # Case of several documents with same name or case insensitive hard drive
-                    # TODO dedup
-                    path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
-        finally:
-            self._unlock_path(doc_pair.local_path)
         local_client.set_remote_id(path, doc_pair.remote_ref)
         self._handle_readonly(local_client, doc_pair)
         self._refresh_local_state(doc_pair, local_client.get_info(path))
@@ -587,7 +583,13 @@ class Processor(EngineWorker):
                           local_client._abspath(parent_pair.local_path))
                 tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
                 # Rename tmp file
-                local_client.rename(local_client.get_path(tmp_file), name)
+                try:
+                    local_client.rename(local_client.get_path(tmp_file), name)
+                except IOError as e:
+                    if e.errno == 2:
+                        # Retry directly
+                        raise PairInterrupt
+                    raise e
                 self._dao.update_last_transfer(doc_pair.id, "download")
         finally:
             local_client.lock_ref(local_parent_path, lock)
