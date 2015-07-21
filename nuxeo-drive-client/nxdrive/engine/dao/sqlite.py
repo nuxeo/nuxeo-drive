@@ -837,11 +837,10 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            children = c.execute("SELECT * FROM States WHERE local_parent_path=? AND " +
-                                    self._get_to_sync_condition(), (row.local_path, )).fetchall()
-            log.debug("Queuing %d children of '%s'", len(children), row.local_path)
+            children = c.execute("SELECT * FROM States WHERE remote_parent_ref=? or local_parent_path=? AND " +
+                                    self._get_to_sync_condition(), (row.remote_ref, row.local_path)).fetchall()
+            log.debug("Queuing %d children of '%r'", len(children), row)
             for child in children:
-                log.trace('Pushing %r', child)
                 self._queue_pair_state(child.id, child.folderish, child.pair_state)
         finally:
             self._lock.release()
