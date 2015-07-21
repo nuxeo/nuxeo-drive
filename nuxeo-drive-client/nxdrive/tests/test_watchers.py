@@ -104,7 +104,7 @@ class TestWatchers(UnitTestCase):
         self.engine_1.stop()
         path = self._delete_folder_1()
         self.engine_1.start()
-        self.wait_sync(timeout=1, fail_if_timeout=False)
+        self.wait_sync(timeout=5, fail_if_timeout=False)
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
         self.assertEquals(len(children), 0)
 
@@ -125,7 +125,7 @@ class TestWatchers(UnitTestCase):
         self.engine_1.stop()
         path = self._delete_folder_1()
         self.engine_1.start()
-        self.wait_sync(timeout=1, fail_if_timeout=False)
+        self.wait_sync(timeout=5, fail_if_timeout=False)
         child = self.engine_1.get_dao().get_state_from_local(path[:-1])
         self.assertEqual(child.pair_state, 'locally_deleted')
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
@@ -143,14 +143,19 @@ class TestWatchers(UnitTestCase):
         # Create a local file and use an invalid digest function in local watcher file system client to trigger an error
         # during local scan
         local.make_file('/', u'Test file.odt', 'Content')
-        self.engine_1._local_watcher.client = LocalClient(self.local_nxdrive_folder_1, digest_func='invalid')
+
+        def get_local_client():
+            return LocalClient(self.local_nxdrive_folder_1, digest_func='invalid')
+
+        original_getter = self.engine_1.get_local_client
+        self.engine_1.get_local_client = get_local_client
         self.engine_1.start()
         self.wait_sync()
         self.engine_1.stop()
         self.assertFalse(remote.exists(u'/Test file.odt'))
 
         # Set back original local watcher file system client, launch local scan and check upstream synchronization
-        self.engine_1._local_watcher.client = self.engine_1.get_local_client()
+        self.engine_1.get_local_client = original_getter
         self.engine_1.start()
         self.wait_sync()
         self.assertTrue(remote.exists(u'/Test file.odt'))

@@ -571,9 +571,17 @@ class Engine(QObject):
             if not thread.wait(5000):
                 log.warn("Thread is not responding - terminate it")
                 thread.terminate()
+        if not self._local_watcher._thread.wait(5000):
+            self._local_watcher._thread.terminate()
+        if not self._remote_watcher._thread.wait(5000):
+            self._remote_watcher._thread.terminate()
         for thread in self._threads:
             if thread.isRunning():
                 thread.wait(5000)
+        if not self._remote_watcher._thread.isRunning():
+            self._remote_watcher._thread.wait(5000)
+        if not self._local_watcher._thread.isRunning():
+            self._local_watcher._thread.wait(5000)
         log.debug("Engine %s stopped", self._uid)
 
     def _get_client_cache(self):
