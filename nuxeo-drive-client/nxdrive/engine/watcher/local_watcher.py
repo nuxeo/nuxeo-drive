@@ -33,9 +33,16 @@ class LocalWatcher(EngineWorker):
         super(LocalWatcher, self).__init__(engine, dao)
         self.unhandle_fs_event = False
         self._event_handler = None
+        self._windows = (sys.platform == 'win32')
+        if self._windows:
+            log.debug('Windows detected so delete event will be delayed by 2s')
+        # TODO Review to delete
+        self._init()
+
+    def _init(self):
         self.local_full_scan = dict()
         self._local_scan_finished = False
-        self.client = engine.get_local_client()
+        self.client = self._engine.get_local_client()
         self._metrics = dict()
         self._metrics['last_local_scan_time'] = -1
         self._metrics['new_files'] = 0
@@ -43,14 +50,13 @@ class LocalWatcher(EngineWorker):
         self._metrics['delete_files'] = 0
         self._metrics['last_event'] = 0
         self._observer = None
-        self._windows = (sys.platform == 'win32')
-        if self._windows:
-            log.debug('Windows detected so delete event will be delayed by 2s')
+        self._root_observer = None
         self._win_lock = Lock()
         self._delete_events = dict()
 
     def _execute(self):
         try:
+            self._init()
             if not self.client.exists('/'):
                 self.rootDeleted.emit()
                 return
@@ -304,6 +310,7 @@ class LocalWatcher(EngineWorker):
         from watchdog.observers import Observer
         log.debug("Watching FS modification on : %s", self.client.base_folder)
         self._event_handler = DriveFSEventHandler(self)
+        self._root_event_handler = DriveFSRootEventHandler(self, os.path.basename(self.client.base_folder))
         self._observer = Observer()
         self._observer.schedule(self._event_handler, self.client.base_folder, recursive=True)
         self._observer.start()
@@ -326,22 +333,37 @@ class LocalWatcher(EngineWorker):
                 os.remove(fname)
         finally:
             self.client.lock_ref('/', lock)
+        self._root_observer = Observer()
+        self._root_observer.schedule(self._root_event_handler, os.path.dirname(self.client.base_folder), recursive=False)
+        self._root_observer.start()
 
     def _stop_watchdog(self, raise_on_error=True):
-        if self._observer is None:
-            return
-        log.info("Stopping FS Observer thread")
-        try:
-            self._observer.stop()
-        except Exception as e:
-            log.warn("Can't stop FS observer : %r", e)
-        # Wait for all observers to stop
-        try:
-            self._observer.join()
-        except Exception as e:
-            log.warn("Can't join FS observer : %r", e)
-        # Delete all observers
-        self._observer = None
+        if self._observer is not None:
+            log.info("Stopping FS Observer thread")
+            try:
+                self._observer.stop()
+            except Exception as e:
+                log.warn("Can't stop FS observer : %r", e)
+            # Wait for all observers to stop
+            try:
+                self._observer.join()
+            except Exception as e:
+                log.warn("Can't join FS observer : %r", e)
+            # Delete all observers
+            self._observer = None
+        if self._root_observer is not None:
+            log.info("Stopping FS root Observer thread")
+            try:
+                self._root_observer.stop()
+            except Exception as e:
+                log.warn("Can't stop FS root observer : %r", e)
+            # Wait for all observers to stop
+            try:
+                self._root_observer.join()
+            except Exception as e:
+                log.warn("Can't join FS root observer : %r", e)
+            # Delete all observers
+            self._root_observer = None
 
     def _handle_watchdog_delete(self, doc_pair):
         doc_pair.update_state('deleted', doc_pair.remote_state)
@@ -418,7 +440,7 @@ class LocalWatcher(EngineWorker):
                 doc_pair.local_state = 'synchronized'
             self._dao.update_local_state(doc_pair, local_info, queue=queue)
 
-    def _handle_watchdog_root_event(self, evt):
+    def handle_watchdog_root_event(self, evt):
         if evt.event_type == 'modified' or evt.event_type == 'created':
             pass
         if evt.event_type == 'moved':
@@ -447,7 +469,7 @@ class LocalWatcher(EngineWorker):
             src_path = normalize_event_filename(evt.src_path)
             rel_path = self.client.get_path(src_path)
             if len(rel_path) == 0 or rel_path == '/':
-                self._handle_watchdog_root_event(evt)
+                self.handle_watchdog_root_event(evt)
                 return
             file_name = os.path.basename(src_path)
             parent_path = os.path.dirname(src_path)
@@ -543,6 +565,21 @@ class DriveFSEventHandler(FileSystemEventHandler):
     def on_any_event(self, event):
         self.counter = self.counter + 1
         self.watcher.handle_watchdog_event(event)
+
+
+class DriveFSRootEventHandler(FileSystemEventHandler):
+    def __init__(self, watcher, name):
+        super(DriveFSRootEventHandler, self).__init__()
+        self.name = name
+        self.counter = 0
+        self.watcher = watcher
+
+    def on_any_event(self, event):
+        log.trace("DriveFSROOT: %s : need: %s",os.path.basename(event.src_path), self.name)
+        if os.path.basename(event.src_path) != self.name:
+            return
+        self.counter = self.counter + 1
+        self.watcher.handle_watchdog_root_event(event)
 
 
 def normalize_event_filename(filename):

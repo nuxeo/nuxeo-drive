@@ -179,6 +179,20 @@ class Engine(QObject):
                 self._sync_started = True
                 self.syncStarted.emit(queue_size)
 
+    def reinit(self):
+        started = not self._stopped
+        if started:
+            self.stop()
+        self._dao.reinit_states()
+        self._dao.delete_config("remote_last_sync_date")
+        self._dao.delete_config("remote_last_event_log_id")
+        self._dao.delete_config("remote_last_event_last_root_definitions")
+        self._dao.delete_config("remote_last_full_scan")
+        self._dao.delete_config("last_sync_date")
+        self._check_root()
+        if started:
+            self.start()
+
     def set_local_folder_lock(self, path):
         self._folder_lock = path
         # Check for each processor

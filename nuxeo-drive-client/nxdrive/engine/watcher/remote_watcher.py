@@ -33,6 +33,12 @@ class RemoteWatcher(EngineWorker):
 
     def __init__(self, engine, dao, delay):
         super(RemoteWatcher, self).__init__(engine, dao)
+        self.server_interval = delay
+        # Review to delete
+        self._init()
+        self._current_interval = 0
+
+    def _init(self):
         self.unhandle_fs_event = False
         self.local_full_scan = dict()
         self._full_scan_mode = False
@@ -41,13 +47,11 @@ class RemoteWatcher(EngineWorker):
         self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
         self._last_remote_full_scan = self._dao.get_config('remote_last_full_scan')
         self._client = None
-        self._local_client = engine.get_local_client()
+        self._local_client = self._engine.get_local_client()
         self._metrics = dict()
         self._metrics['last_remote_scan_time'] = -1
         self._metrics['last_remote_update_time'] = -1
         self._metrics['empty_polls'] = 0
-        self.server_interval = delay
-        self._current_interval = 0
 
     def get_engine(self):
         return self._engine
@@ -68,6 +72,7 @@ class RemoteWatcher(EngineWorker):
     def _execute(self):
         first_pass = True
         try:
+            self._init()
             while (1):
                 self._interact()
                 if self._current_interval == 0:

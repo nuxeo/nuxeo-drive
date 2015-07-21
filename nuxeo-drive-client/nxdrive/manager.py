@@ -527,7 +527,7 @@ class Manager(QtCore.QObject):
                 try:
                     engine.start()
                 except Exception as e:
-                    log.debug("Could not start the engine: %s", uid)
+                    log.debug("Could not start the engine: %s [%r]", uid, e)
         log.debug("Emitting started")
         # Check only if manager is started
         self._handle_os()

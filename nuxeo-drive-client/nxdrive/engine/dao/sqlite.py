@@ -414,6 +414,20 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
         return c.rowcount == 1
 
+    def reinit_states(self):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("DROP TABLE States")
+            self._create_state_table(c, force=True)
+            con.commit()
+            log.trace("Vacuum sqlite")
+            con.execute("VACUUM")
+            log.trace("Vacuum sqlite finished")
+        finally:
+            self._lock.release()
+
     def reinit_processors(self):
         self._lock.acquire()
         try:
