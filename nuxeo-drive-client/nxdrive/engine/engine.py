@@ -528,6 +528,7 @@ class Engine(QObject):
         if not self.check_fs_marker():
             raise FsMarkerException()
         self._stopped = False
+        Processor.soft_locks = dict()
         log.debug("Engine start")
         for thread in self._threads:
             thread.start()

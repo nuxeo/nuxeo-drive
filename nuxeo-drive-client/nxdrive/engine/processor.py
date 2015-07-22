@@ -42,6 +42,7 @@ class Processor(EngineWorker):
 
     def _unlock_soft_path(self, path):
         log.trace("Soft unlocking: %s", path)
+        path = path.lower()
         Processor.path_locker.acquire()
         try:
             del Processor.soft_locks[path]
@@ -52,16 +53,17 @@ class Processor(EngineWorker):
 
     def _lock_soft_path(self, path):
         log.trace("Soft locking: %s", path)
+        path = path.lower()
         Processor.path_locker.acquire()
         try:
             if path in Processor.soft_locks:
                 raise PairInterrupt
             else:
                 Processor.soft_locks[path] = True
-                return True
-            return False
+                return path
         finally:
             Processor.path_locker.release()
+        return None
 
     def _lock_path(self, path):
         log.trace("Get lock for '%s'", path)
@@ -106,7 +108,7 @@ class Processor(EngineWorker):
     def _execute(self):
         self._current_metrics = dict()
         self._current_item = self._get_item()
-        soft_lock = False
+        soft_lock = None
         while (self._current_item != None):
             # Take client every time as it is cached in engine
             local_client = self._engine.get_local_client()
@@ -193,8 +195,8 @@ class Processor(EngineWorker):
                 self.increase_error(doc_pair, "EXCEPTION", exception=e)
                 raise e
             finally:
-                if soft_lock:
-                    self._unlock_soft_path(doc_pair.local_path)
+                if soft_lock is not None:
+                    self._unlock_soft_path(soft_lock)
                 self.release_state()
             self._interact()
             self._current_item = self._get_item()
