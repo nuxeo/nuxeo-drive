@@ -94,6 +94,7 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(joe_uid).name, 'joe.odt')
         self.assertEquals(remote.get_info(Joe_uid).name, 'Joe.odt')
+        self.assertFalse(local.exists('/Joe.odt'))
         self.assertTrue(local.exists('/test/' + Joe_dedup))
         self.assertTrue(local.exists('/test/joe.odt'))
         # Move it back to a non dedup folder
@@ -101,6 +102,7 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(joe_uid).name, 'joe.odt')
         self.assertEquals(remote.get_info(Joe_uid).name, 'Joe.odt')
+        self.assertFalse(local.exists('/test/' + Joe_dedup))
         self.assertTrue(local.exists('/Joe.odt'))
         self.assertTrue(local.exists('/test/joe.odt'))
         # Move again to a dedup folder
@@ -108,6 +110,7 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertEquals(remote.get_info(joe_uid).name, 'joe.odt')
         self.assertEquals(remote.get_info(Joe_uid).name, 'Joe.odt')
+        self.assertFalse(local.exists('/Joe.odt'))
         self.assertTrue(local.exists('/test/' + Joe_dedup))
         self.assertTrue(local.exists('/test/joe.odt'))
         # Move locally without renaming
@@ -117,6 +120,7 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.assertEquals(remote.get_info(Joe_uid).name, Joe_dedup)
         # Might want go back to the original name
         self.assertTrue(local.exists('/' + Joe_dedup))
+        self.assertFalse(local.exists('/test/' + Joe_dedup))
         self.assertTrue(local.exists('/test/joe.odt'))
 
     def test_dedup_move_folders(self):
