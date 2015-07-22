@@ -10,6 +10,7 @@ from nxdrive.client.base_automation_client import BaseAutomationClient
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.engine.activity import FileAction
+from threading import current_thread
 from nxdrive.engine.workers import PairInterrupt
 
 
@@ -98,7 +99,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         file_dir = os.path.dirname(file_path)
         file_name = os.path.basename(file_path)
         file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
-                                + DOWNLOAD_TMP_FILE_SUFFIX)
+                                + str(current_thread().ident) + DOWNLOAD_TMP_FILE_SUFFIX)
         FileAction("Download", file_out, file_name, 0)
         try:
             _, tmp_file = self.do_get(download_url, file_out=file_out, digest=fs_item_info.digest, digest_algorithm=fs_item_info.digest_algorithm)
