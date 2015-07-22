@@ -582,6 +582,8 @@ class Engine(QObject):
             self._remote_watcher._thread.wait(5000)
         if not self._local_watcher._thread.isRunning():
             self._local_watcher._thread.wait(5000)
+        # Soft locks needs to be reinit in case of threads termination
+        Processor.soft_locks = dict()
         log.debug("Engine %s stopped", self._uid)
 
     def _get_client_cache(self):
