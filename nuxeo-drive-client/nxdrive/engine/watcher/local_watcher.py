@@ -15,8 +15,8 @@ from threading import Lock
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 log = get_logger(__name__)
 
-# Windows 4s between resolution of delete event
-WIN_MOVE_RESOLUTION_PERIOD = 4000
+# Windows 2s between resolution of delete event
+WIN_MOVE_RESOLUTION_PERIOD = 2000
 
 
 class LocalWatcher(EngineWorker):
