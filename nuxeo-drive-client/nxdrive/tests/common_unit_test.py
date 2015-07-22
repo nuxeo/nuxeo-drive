@@ -3,9 +3,7 @@ import os
 import unittest
 import tempfile
 import hashlib
-import shutil
 
-from nxdrive.utils import safe_long_path
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
@@ -13,17 +11,11 @@ from nxdrive.manager import Manager
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
 from nxdrive.tests.common import TEST_DEFAULT_DELAY
+from nxdrive.tests.common import clean_dir
 from nxdrive import __version__
 from PyQt4 import QtCore
 from threading import Thread
 from time import sleep
-from nxdrive.client.common import BaseClient
-
-WindowsError = None
-try:
-    from exceptions import WindowsError
-except ImportError:
-    pass  # This will never be raised under Unix
 
 if 'DRIVE_YAPPI' in os.environ:
     import yappi
@@ -410,9 +402,9 @@ class UnitTestCase(unittest.TestCase):
         if server_profile is not None:
             self.root_remote_client.deactivate_profile(server_profile)
 
-        self._clean_dir(self.upload_tmp_dir)
-        self._clean_dir(self.local_test_folder_1)
-        self._clean_dir(self.local_test_folder_2)
+        clean_dir(self.upload_tmp_dir)
+        clean_dir(self.local_test_folder_1)
+        clean_dir(self.local_test_folder_2)
 
         del self.engine_1
         self.engine_1 = None
@@ -431,20 +423,6 @@ class UnitTestCase(unittest.TestCase):
         del self.remote_file_system_client_2
         self.remote_file_system_client_2 = None
         self.tearedDown = True
-
-    def _clean_dir(self, _dir):
-        if os.path.exists(_dir):
-            to_remove = safe_long_path(_dir)
-            try:
-                for dirpath, dirnames, filenames in os.walk(to_remove):
-                    for dirname in dirnames:
-                        BaseClient.unset_path_readonly(os.path.join(dirpath, dirname))
-                    for filename in filenames:
-                        BaseClient.unset_path_readonly(os.path.join(dirpath, filename))
-                shutil.rmtree(to_remove)
-            except Exception as e:
-                if type(e) == WindowsError:
-                    os.system('rmdir /S /Q %s' % to_remove)
 
     def _interact(self, pause=0):
         self.app.processEvents()

@@ -11,8 +11,15 @@ from nxdrive.utils import safe_long_path
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
+from nxdrive.client.common import BaseClient
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
+
+WindowsError = None
+try:
+    from exceptions import WindowsError
+except ImportError:
+    pass  # This will never be raised under Unix
 
 DEFAULT_CONSOLE_LOG_LEVEL = 'DEBUG'
 
@@ -41,6 +48,21 @@ def execute(cmd, exit_on_failure=True):
     if code != 0 and exit_on_failure:
         log.error("Command %s returned with code %d", cmd, code)
         sys.exit(code)
+
+
+def clean_dir(_dir):
+    if os.path.exists(_dir):
+        to_remove = safe_long_path(_dir)
+        try:
+            for dirpath, dirnames, filenames in os.walk(to_remove):
+                for dirname in dirnames:
+                    BaseClient.unset_path_readonly(os.path.join(dirpath, dirname))
+                for filename in filenames:
+                    BaseClient.unset_path_readonly(os.path.join(dirpath, filename))
+            shutil.rmtree(to_remove)
+        except Exception as e:
+            if type(e) == WindowsError:
+                os.system('rmdir /S /Q %s' % to_remove)
 
 
 class IntegrationTestCase(unittest.TestCase):
@@ -194,20 +216,9 @@ class IntegrationTestCase(unittest.TestCase):
         # since they use the same users as the remote document clients
         self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
 
-        if os.path.exists(self.upload_tmp_dir):
-            shutil.rmtree(safe_long_path(self.upload_tmp_dir))
-
-        if os.path.exists(self.local_test_folder_1):
-            try:
-                shutil.rmtree(safe_long_path(self.local_test_folder_1))
-            except:
-                pass
-
-        if os.path.exists(self.local_test_folder_2):
-            try:
-                shutil.rmtree(safe_long_path(self.local_test_folder_2))
-            except:
-                pass
+        clean_dir(self.upload_tmp_dir)
+        clean_dir(self.local_test_folder_1)
+        clean_dir(self.local_test_folder_2)
 
     def get_all_states(self, session=None, get_pair_state=False):
         """Utility to quickly introspect the current known states"""
