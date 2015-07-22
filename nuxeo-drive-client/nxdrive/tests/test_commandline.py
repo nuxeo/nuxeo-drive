@@ -3,6 +3,7 @@ import os
 import tempfile
 
 from nxdrive.commandline import CliHandler
+from nxdrive.tests.common import clean_dir
 
 
 class CommandLineTestCase(unittest.TestCase):
@@ -42,41 +43,44 @@ class CommandLineTestCase(unittest.TestCase):
                             "Should be debug test")
 
     def test_default_override(self):
-        self.clean_ini()
-        argv = ["ndrive",
-                "--log-level-console", "DEBUG_TEST",
-                "console"]
-        # Default value
-        options = self.cmd.parse_cli([])
-        self.assertEqual(options.log_level_console, "INFO",
-                            "The official default is INFO")
-        # Normal arg
-        options = self.cmd.parse_cli(argv)
-        self.assertEqual(options.log_level_console, "DEBUG_TEST",
-                            "Should be debug test")
-        # config.ini override
-        self.create_ini()
-        options = self.cmd.parse_cli([])
-        self.assertEqual(options.log_level_console, "PROD",
-                            "The config.ini shoud link to PROD")
-        # config.ini override, but arg specified
-        options = self.cmd.parse_cli(argv)
-        self.assertEqual(options.log_level_console, "DEBUG_TEST",
-                            "Should be debug test")
-        # other usage section
-        self.create_ini(env='DEV')
-        options = self.cmd.parse_cli([])
-        self.assertEqual(options.log_level_console, "DEV",
-                            "The config.ini shoud link to DEV")
-        # user config.ini override
         self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
-        conf = os.path.join(self.cmd.default_home, 'config.ini')
-        self.create_ini(conf, "PROD")
-        options = self.cmd.parse_cli([])
-        self.assertEqual(options.log_level_console, "PROD",
-                            "The config.ini shoud link to PROD")
-        self.clean_ini(conf)
-        options = self.cmd.parse_cli([])
-        self.assertEqual(options.log_level_console, "DEV",
-                            "The config.ini shoud link to DEV")
-        self.clean_ini()
+        try:
+            self.clean_ini()
+            argv = ["ndrive",
+                    "--log-level-console", "DEBUG_TEST",
+                    "console"]
+            # Default value
+            options = self.cmd.parse_cli([])
+            self.assertEqual(options.log_level_console, "INFO",
+                                "The official default is INFO")
+            # Normal arg
+            options = self.cmd.parse_cli(argv)
+            self.assertEqual(options.log_level_console, "DEBUG_TEST",
+                                "Should be debug test")
+            # config.ini override
+            self.create_ini()
+            options = self.cmd.parse_cli([])
+            self.assertEqual(options.log_level_console, "PROD",
+                                "The config.ini shoud link to PROD")
+            # config.ini override, but arg specified
+            options = self.cmd.parse_cli(argv)
+            self.assertEqual(options.log_level_console, "DEBUG_TEST",
+                                "Should be debug test")
+            # other usage section
+            self.create_ini(env='DEV')
+            options = self.cmd.parse_cli([])
+            self.assertEqual(options.log_level_console, "DEV",
+                                "The config.ini shoud link to DEV")
+            # user config.ini override
+            conf = os.path.join(self.cmd.default_home, 'config.ini')
+            self.create_ini(conf, "PROD")
+            options = self.cmd.parse_cli([])
+            self.assertEqual(options.log_level_console, "PROD",
+                                "The config.ini shoud link to PROD")
+            self.clean_ini(conf)
+            options = self.cmd.parse_cli([])
+            self.assertEqual(options.log_level_console, "DEV",
+                                "The config.ini shoud link to DEV")
+            self.clean_ini()
+        finally:
+            clean_dir(self.cmd.default_home)

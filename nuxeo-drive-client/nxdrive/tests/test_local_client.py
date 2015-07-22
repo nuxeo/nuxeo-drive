@@ -11,6 +11,7 @@ from nose.tools import assert_raises
 
 from nxdrive.client import LocalClient
 from nxdrive.client import NotFound
+from nxdrive.tests.common import clean_dir
 
 
 LOCAL_TEST_FOLDER = None
@@ -36,8 +37,7 @@ def setup_temp_folder():
 
 
 def teardown_temp_folder():
-    if os.path.exists(LOCAL_TEST_FOLDER):
-        shutil.rmtree(LOCAL_TEST_FOLDER)
+    clean_dir(LOCAL_TEST_FOLDER)
 
 
 with_temp_folder = with_setup(setup_temp_folder, teardown_temp_folder)

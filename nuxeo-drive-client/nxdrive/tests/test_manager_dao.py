@@ -9,6 +9,7 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.manager import Manager
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.logging_config import configure
+from nxdrive.tests.common import clean_dir
 
 WindowsError = None
 try:
@@ -49,15 +50,7 @@ class ManagerDAOTest(unittest.TestCase):
 
     def tearDown(self):
         Manager._singleton = None
-        self._clean_dir(self.test_folder)
-
-    def _clean_dir(self, _dir):
-        if os.path.exists(_dir):
-            try:
-                shutil.rmtree(_dir)
-            except Exception as e:
-                if type(e) == WindowsError:
-                    os.system('rmdir /S /Q %s' % _dir)
+        clean_dir(self.test_folder)
 
     def _get_db(self, name):
         nxdrive_path = os.path.dirname(nxdrive.__file__)
