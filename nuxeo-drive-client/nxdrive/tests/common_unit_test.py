@@ -339,12 +339,12 @@ class UnitTestCase(unittest.TestCase):
         if not os.path.exists(path):
             os.mkdir(path)
         report_path = os.path.join(path, self.id() + '-yappi-threads')
-        with open(report_path,'w') as fd:
-            columns={0:("name",80), 1:("tid", 15), 2:("ttot", 8), 3:("scnt", 10)}
+        with open(report_path, 'w') as fd:
+            columns = {0: ("name", 80), 1: ("tid", 15), 2: ("ttot", 8), 3: ("scnt", 10)}
             yappi.get_thread_stats().print_all(out=fd, columns=columns)
         report_path = os.path.join(path, self.id() + '-yappi-fcts')
-        with open(report_path,'w') as fd:
-            columns={0:("name",80), 1:("ncall", 5), 2:("tsub", 8), 3:("ttot", 8), 4:("tavg",8)}
+        with open(report_path, 'w') as fd:
+            columns = {0: ("name", 80), 1: ("ncall", 5), 2: ("tsub", 8), 3: ("ttot", 8), 4: ("tavg", 8)}
             stats = yappi.get_func_stats()
             stats.strip_dirs()
             stats.print_all(out=fd, columns=columns)
