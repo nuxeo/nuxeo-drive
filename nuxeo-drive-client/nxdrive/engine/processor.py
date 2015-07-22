@@ -28,6 +28,7 @@ class Processor(EngineWorker):
     pairSync = pyqtSignal(object, object)
     path_locks = dict()
     path_locker = Lock()
+    soft_locks = dict()
 
     def __init__(self, engine, item_getter, name=None):
         '''
@@ -38,6 +39,29 @@ class Processor(EngineWorker):
         self._current_doc_pair = None
         self._get_item = item_getter
         self._engine = engine
+
+    def _unlock_soft_path(self, path):
+        log.trace("Soft unlocking: %s", path)
+        Processor.path_locker.acquire()
+        try:
+            del Processor.soft_locks[path]
+        except Exception as e:
+            log.trace(e)
+        finally:
+            Processor.path_locker.release()
+
+    def _lock_soft_path(self, path):
+        log.trace("Soft locking: %s", path)
+        Processor.path_locker.acquire()
+        try:
+            if path in Processor.soft_locks:
+                raise PairInterrupt
+            else:
+                Processor.soft_locks[path] = True
+                return True
+            return False
+        finally:
+            Processor.path_locker.release()
 
     def _lock_path(self, path):
         log.trace("Get lock for '%s'", path)
@@ -82,6 +106,7 @@ class Processor(EngineWorker):
     def _execute(self):
         self._current_metrics = dict()
         self._current_item = self._get_item()
+        soft_lock = False
         while (self._current_item != None):
             # Take client every time as it is cached in engine
             local_client = self._engine.get_local_client()
@@ -139,6 +164,7 @@ class Processor(EngineWorker):
                     self._current_metrics["start_time"] = current_milli_time()
                     log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
                     try:
+                        soft_lock = self._lock_soft_path(doc_pair.local_path)
                         sync_handler(doc_pair, local_client, remote_client)
                         self._current_metrics["end_time"] = current_milli_time()
                         self.pairSync.emit(doc_pair, self._current_metrics)
@@ -150,7 +176,7 @@ class Processor(EngineWorker):
                         from time import sleep
                         # Wait one second to avoid retrying to quickly
                         self._current_doc_pair = None
-                        log.trace("PairInterrupt wait 1s and requeue on %r", doc_pair)
+                        log.debug("PairInterrupt wait 1s and requeue on %r", doc_pair)
                         sleep(1)
                         self._engine.get_queue_manager().push(doc_pair)
                         continue
@@ -167,6 +193,8 @@ class Processor(EngineWorker):
                 self.increase_error(doc_pair, "EXCEPTION", exception=e)
                 raise e
             finally:
+                if soft_lock:
+                    self._unlock_soft_path(doc_pair.local_path)
                 self.release_state()
             self._interact()
             self._current_item = self._get_item()
@@ -583,13 +611,7 @@ class Processor(EngineWorker):
                           local_client._abspath(parent_pair.local_path))
                 tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
                 # Rename tmp file
-                try:
-                    local_client.rename(local_client.get_path(tmp_file), name)
-                except IOError as e:
-                    if e.errno == 2:
-                        # Retry directly
-                        raise PairInterrupt
-                    raise e
+                local_client.rename(local_client.get_path(tmp_file), name)
                 self._dao.update_last_transfer(doc_pair.id, "download")
         finally:
             local_client.lock_ref(local_parent_path, lock)
