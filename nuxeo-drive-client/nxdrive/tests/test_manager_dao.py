@@ -83,6 +83,7 @@ class ManagerDAOTest(unittest.TestCase):
         c.execute("UPDATE server_bindings SET local_folder='%s' WHERE local_folder='%s'" % (
             local_folder, '/home/ataillefer/Nuxeo Drive'))
         conn.commit()
+        conn.close()
 
         # Create Manager with old DB migration
         options = Mock()
@@ -122,3 +123,6 @@ class ManagerDAOTest(unittest.TestCase):
         self.assertEquals(engine_dao.get_config('server_url'), self.nuxeo_url)
         self.assertEquals(engine_dao.get_config('remote_user'), 'Administrator')
         self.assertEquals(engine_dao.get_config('remote_token'), token)
+
+        engine_dao.dispose()
+        manager.dispose_all()

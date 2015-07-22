@@ -390,9 +390,9 @@ class UnitTestCase(unittest.TestCase):
         log.debug("TearDown unit test")
         # Unbind all
         self.manager_1.unbind_all()
-        self.manager_1._dao.dispose()
+        self.manager_1.dispose_db()
         self.manager_2.unbind_all()
-        self.manager_2._dao.dispose()
+        self.manager_2.dispose_db()
         Manager._singleton = None
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients

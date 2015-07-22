@@ -385,6 +385,8 @@ class Manager(QtCore.QObject):
                     first_engine_def = row
                     first_engine = engine
                     first_row = False
+                else:
+                    engine.dispose_db()
             # Copy filters for first engine as V1 only supports filtering for the first server binding
             filters = c.execute("SELECT * FROM filters")
             for filter_obj in filters:
@@ -392,6 +394,7 @@ class Manager(QtCore.QObject):
                     continue
                 log.trace("Filter Row from DS1 %r", filter_obj)
                 first_engine.add_filter(filter_obj["path"])
+            first_engine.dispose_db()
 
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import ManagerDAO
@@ -859,6 +862,11 @@ class Manager(QtCore.QObject):
     def dispose_db(self):
         if self._dao is not None:
             self._dao.dispose()
+
+    def dispose_all(self):
+        for engine in self.get_engines().values():
+            engine.dispose_db()
+        self.dispose_db()
 
     def get_engines(self):
         return self._engines

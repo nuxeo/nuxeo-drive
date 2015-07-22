@@ -325,7 +325,7 @@ class Engine(QObject):
             doc_client.revoke_token()
         except Exception as e:
             log.exception(e)
-        self._dao.dispose()
+        self.dispose_db()
         # Remove DB
         log.debug("Remove DB file %s", self._get_db_file())
         os.remove(self._get_db_file())
@@ -812,3 +812,7 @@ class Engine(QObject):
     def create_processor(self, item_getter, name=None):
         from nxdrive.engine.processor import Processor
         return Processor(self, item_getter, name=name)
+
+    def dispose_db(self):
+        if self._dao is not None:
+            self._dao.dispose()

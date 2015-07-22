@@ -202,7 +202,7 @@ class ConfigurationDAO(QObject):
         log.trace(query)
 
     def dispose(self):
-        log.debug("Disposing the sqlite")
+        log.debug("Disposing sqlite database %r", self.get_db())
         for con in self._connections:
             con.close()
         self._connections = []
