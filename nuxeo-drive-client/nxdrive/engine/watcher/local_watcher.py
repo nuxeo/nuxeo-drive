@@ -15,8 +15,8 @@ from threading import Lock
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 log = get_logger(__name__)
 
-# Windows 2s between resolution of delete event
-WIN_MOVE_RESOLUTION_PERIOD = 2000
+# Windows 4s between resolution of delete event
+WIN_MOVE_RESOLUTION_PERIOD = 4000
 
 
 class LocalWatcher(EngineWorker):
@@ -35,7 +35,7 @@ class LocalWatcher(EngineWorker):
         self._event_handler = None
         self._windows = (sys.platform == 'win32')
         if self._windows:
-            log.debug('Windows detected so delete event will be delayed by 2s')
+            log.debug('Windows detected so delete event will be delayed by %dms', WIN_MOVE_RESOLUTION_PERIOD)
         # TODO Review to delete
         self._init()
 
@@ -451,6 +451,7 @@ class LocalWatcher(EngineWorker):
             self.rootDeleted.emit()
 
     def handle_watchdog_event(self, evt, force=False):
+        log.trace("watchdog event: %r", evt)
         self._metrics['last_event'] = current_milli_time()
         if self._scanning and not force:
             self._scanning_lock.acquire()
