@@ -17,7 +17,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         name, suffix = os.path.splitext(name)
         return "%s__%d%s" % (name, idx, suffix)
 
-    def test2_dedup_files(self):
+    def test_dedup_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace
@@ -52,7 +52,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         self.assertFalse(remote.exists(joe_uid))
         self.assertTrue(local.exists(joe2_path))
 
-    def test2_dedup_folders(self):
+    def test_dedup_folders(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace
@@ -73,7 +73,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         self.assertEquals(remote.get_info(test_uid).name, 'test')
         self.assertEquals(remote.get_info(test2_uid).name, 'test')
 
-    def test2_dedup_move_files(self):
+    def test_dedup_move_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
         remote.make_folder('/', 'test')
@@ -115,7 +115,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         self.assertTrue(local.exists('/' + joe2_dedup))
         self.assertTrue(local.exists('/test/joe.odt'))
 
-    def test2_dedup_move_folders(self):
+    def test_dedup_move_folders(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
         test_uid = remote.make_folder('/', 'test')

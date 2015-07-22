@@ -313,6 +313,7 @@ class UnitTestCase(unittest.TestCase):
                     return
             timeout = timeout - 1
         if fail_if_timeout:
+            log.warn("Wait for sync timeout has expired")
             self.fail("Wait for sync timeout expired")
         else:
             log.debug("Wait for sync timeout")
