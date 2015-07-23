@@ -938,6 +938,21 @@ class EngineDAO(ConfigurationDAO):
         finally:
             self._lock.release()
         result = c.rowcount == 1
+        # Retry without version for folder
+        if not result and state == 'synchronized' and row.folderish:
+            self._lock.acquire()
+            try:
+                con = self._get_write_connection()
+                c = con.cursor()
+                c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
+                          "pair_state=?, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
+                          "WHERE id=? and local_path=? and remote_name=? and remote_ref=? and remote_parent_ref=?",
+                          (state, datetime.utcnow(), row.id, row.local_path, row.remote_name, row.remote_ref, row.remote_parent_ref))
+                if self.auto_commit:
+                    con.commit()
+            finally:
+                self._lock.release()
+            result = c.rowcount == 1
         if not result:
             log.trace("Was not able to synchronize state: %r", row)
         return result
