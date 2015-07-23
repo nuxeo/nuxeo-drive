@@ -261,6 +261,7 @@ class Processor(EngineWorker):
                     local_client.delete(doc_pair.local_path)
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
+                    log.debug("Set pair unsynchronized: %r", doc_pair)
                     self._dao.synchronize_state(doc_pair, state='unsynchronized')
                     self._handle_unsynchronized(local_client, doc_pair)
                 return
@@ -356,6 +357,7 @@ class Processor(EngineWorker):
                 local_client.delete(doc_pair.local_path)
                 self._dao.remove_state(doc_pair)
             else:
+                log.debug("Set pair unsynchronized: %r", doc_pair)
                 self._dao.synchronize_state(doc_pair, state='unsynchronized')
                 self._handle_unsynchronized(local_client, doc_pair)
 
