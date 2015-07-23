@@ -94,7 +94,7 @@ class TestWindows(UnitTestCase):
             #   modified
             # - Synchronization should not fail: doc pairs should be
             #   blacklisted and other remote modifications should be locally synchronized
-            self.assertTrue(local.exists('/.test_update.docx.nxpart'))
+            self.assertNxPart('/', 'test_update.docx')
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEquals(local.get_content('/test_update.docx'),
                               'Some content to update.')
@@ -109,7 +109,7 @@ class TestWindows(UnitTestCase):
             self.wait_sync()
             # Blacklisted files should be ignored as delay (60 seconds by
             # default) is not expired, nothing should have changed
-            self.assertTrue(local.exists('/.test_update.docx.nxpart'))
+            self.assertNxPart('/', 'test_update.docx')
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEquals(local.get_content('/test_update.docx'),
                               'Some content to update.')
@@ -130,6 +130,8 @@ class TestWindows(UnitTestCase):
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEquals(local.get_content('/test_update.docx'),
                               'Updated content.')
+            # TODO Autoclean
+            #self.assertNxPart('/', 'test_update.docx', False)
             self.assertFalse(local.exists('/.test_update.docx.part'))
             self.assertFalse(local.exists('/test_delete.docx'))
         else:
@@ -138,3 +140,20 @@ class TestWindows(UnitTestCase):
                               'Updated content.')
             self.assertFalse(local.exists('/.test_update.docx.nxpart'))
             self.assertFalse(local.exists('/test_delete.docx'))
+
+    def assertNxPart(self, path, name=None, present=True):
+        os_path = self.local_client_1._abspath(path)
+        children = os.listdir(os_path)
+        for child in children:
+            if len(child) < 8:
+                continue
+            if name is not None and len(child) < len(name) + 8:
+                continue
+            if child[0] == "." and child[-7:] == ".nxpart":
+                if name is None or child[1:len(name)+1] == name:
+                    if present:
+                        return
+                    else:
+                        self.fail("nxpart found in : '%s'" % (path))
+        if present:
+            self.fail("nxpart not found in : '%s'" % (path))
