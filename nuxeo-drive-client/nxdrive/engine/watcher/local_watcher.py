@@ -61,24 +61,12 @@ class LocalWatcher(EngineWorker):
                 self.rootDeleted.emit()
                 return
             self._action = Action("Setup watchdog")
-            self._scanning = True
-            self._scanning_lock = Lock()
             self._watchdog_queue = Queue()
             self._setup_watchdog()
             log.debug("Watchdog setup finished")
             self._action = Action("Full local scan")
             self._scan()
             self._end_action()
-            while not self._watchdog_queue.empty():
-                evt = self._watchdog_queue.get()
-                self._scanning_lock.acquire()
-                try:
-                    if self._watchdog_queue.empty():
-                        self._scanning = False
-                finally:
-                    self._scanning_lock.release()
-                self.handle_watchdog_event(evt, force=True)
-            self._scanning = False
             # Check windows dequeue only every 100 loops ( every 1s )
             interval = 100
             while (1):
@@ -92,6 +80,9 @@ class LocalWatcher(EngineWorker):
                     self._win_dequeue_delete()
                     self._end_action()
                     interval = 100
+                while (not self._watchdog_queue.empty()):
+                    evt = self._watchdog_queue.get()
+                    self.handle_watchdog_event(evt)
         except ThreadInterrupt:
             raise
         finally:
@@ -319,7 +310,7 @@ class LocalWatcher(EngineWorker):
         lock = self.client.unlock_ref('/', False)
         try:
             fname = self.client._abspath('/.watchdog_setup')
-            while (self._metrics['last_event'] == 0):
+            while (self._watchdog_queue.empty()):
                 with open(fname, 'a'):
                     os.utime(fname, None)
                 sleep(1)
@@ -450,17 +441,9 @@ class LocalWatcher(EngineWorker):
             log.warn("Root has been deleted")
             self.rootDeleted.emit()
 
-    def handle_watchdog_event(self, evt, force=False):
+    def handle_watchdog_event(self, evt):
         log.trace("watchdog event: %r", evt)
         self._metrics['last_event'] = current_milli_time()
-        if self._scanning and not force:
-            self._scanning_lock.acquire()
-            try:
-                if self._scanning:
-                    self._watchdog_queue.put(evt)
-                    return
-            finally:
-                self._scanning_lock.release()
         self._action = Action("Handle watchdog event")
         if evt.event_type == 'moved':
             log.debug("Handling watchdog event [%s] on %s to %s", evt.event_type, evt.src_path, evt.dest_path)
@@ -572,7 +555,7 @@ class DriveFSEventHandler(FileSystemEventHandler):
 
     def on_any_event(self, event):
         self.counter = self.counter + 1
-        self.watcher.handle_watchdog_event(event)
+        self.watcher._watchdog_queue.put(event)
 
 
 class DriveFSRootEventHandler(FileSystemEventHandler):

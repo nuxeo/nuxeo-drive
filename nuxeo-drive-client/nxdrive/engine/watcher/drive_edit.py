@@ -210,6 +210,7 @@ class DriveEdit(Worker):
 
     def _execute(self):
         try:
+            self._watchdog_queue = Queue()
             self._action = Action("Clean up folder")
             self._cleanup()
             self._action = Action("Setup watchdog")
@@ -221,6 +222,9 @@ class DriveEdit(Worker):
                     self._handle_queue()
                 except NotFound:
                     pass
+                while (not self._watchdog_queue.empty()):
+                    evt = self._watchdog_queue.get()
+                    self.handle_watchdog_event(evt)
                 sleep(0.01)
         except ThreadInterrupt:
             raise
