@@ -253,9 +253,9 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
 
     @QtCore.pyqtSlot()
-    def discard_notification(self, id):
+    def discard_notification(self, id_):
         try:
-            self._manager.get_notification_service().discard_notification(id)
+            self._manager.get_notification_service().discard_notification(id_)
         except Exception as e:
             log.exception(e)
             return ""
@@ -626,8 +626,7 @@ class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
             # Block .ttf file for now as there are badly displayed
             return super(TokenNetworkAccessManager, self).createRequest(op,
                         QtNetwork.QNetworkRequest(QtCore.QUrl()), outgoingData)
-        return super(TokenNetworkAccessManager, self).createRequest(op, 
-                                                        req, outgoingData)
+        return super(TokenNetworkAccessManager, self).createRequest(op, req, outgoingData)
 
 
 class WebDialog(QtGui.QDialog):
@@ -664,7 +663,7 @@ class WebDialog(QtGui.QDialog):
         else:
             log.debug("Load web file : %s", filename)
             if filename[0] != '/':
-                filename=u"///"+filename
+                filename = u"///" + filename
             url = QtCore.QUrl(filename)
             url.setScheme("file")
         self._view.load(url)
