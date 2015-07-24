@@ -6,6 +6,7 @@ Created on 28 janv. 2015
 TODO: Find a better way for the try/catch on slot
 '''
 from PyQt4 import QtGui, QtCore, QtWebKit, QtNetwork
+from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import FileAction, Action
 from nxdrive.client.base_automation_client import Unauthorized
@@ -659,6 +660,7 @@ class WebDialog(QtGui.QDialog):
             url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
             if token is not None:
                 url.setRawHeader("X-Authentication-Token", QtCore.QByteArray(token))
+            self._set_proxy(application.manager)
         else:
             log.debug("Load web file : %s", filename)
             if filename[0] != '/':
@@ -681,6 +683,21 @@ class WebDialog(QtGui.QDialog):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
         self.activateWindow()
+
+    def _set_proxy(self, manager):
+        proxy_settings = manager.get_proxy_settings()
+        if proxy_settings.config == 'Manual':
+            if proxy_settings.server and proxy_settings.port:
+                proxy = QNetworkProxy(QNetworkProxy.HttpProxy, hostName=proxy_settings.server,
+                                      port=int(proxy_settings.port))
+                if proxy_settings.authenticated:
+                    proxy.setPassword(proxy_settings.password)
+                    proxy.setUser(proxy_settings.username)
+                QNetworkProxy.setApplicationProxy(proxy)
+        elif proxy_settings.config == 'System':
+            QNetworkProxyFactory.setUseSystemConfiguration(True)
+        else:
+            QNetworkProxy.setApplicationProxy(QNetworkProxy(QNetworkProxy.NoProxy))
 
     def get_view(self):
         return self._view
