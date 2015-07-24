@@ -11,6 +11,7 @@ from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
 from nxdrive.utils import find_resource_dir
 from nxdrive.wui.translator import Translator
+from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory
 
 log = get_logger(__name__)
 
@@ -427,6 +428,7 @@ class Application(QApplication):
 
     def show_metadata(self, file_path):
         from nxdrive.wui.metadata import CreateMetadataWebDialog
+        self.handle_proxy_settings()
         self._metadata_dialog = CreateMetadataWebDialog(self.manager, file_path)
         self._metadata_dialog.show()
 
@@ -459,3 +461,25 @@ class Application(QApplication):
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)
         return super(Application, self).event(event)
+
+    def handle_proxy_settings(self):
+        '''Configure QNetworkProxy settings to be same
+         as proxy settings provided in Advanced Tab'''
+        try:
+            proxy_settings = self.manager.get_proxy_settings()
+            if proxy_settings.config == 'Manual':
+                if proxy_settings.server and proxy_settings.port:
+                    proxy = QNetworkProxy(QNetworkProxy.HttpProxy,
+                                          proxy_settings.server,
+                                          int(proxy_settings.port))
+                    if proxy_settings.authenticated:
+                        proxy.setPassword(proxy_settings.password)
+                        proxy.setUser(proxy_settings.username)
+                    QNetworkProxy.setApplicationProxy(proxy)
+            elif proxy_settings.config == "System":
+                QNetworkProxyFactory.setUseSystemConfiguration(True)
+            else:
+                QNetworkProxy.setApplicationProxy(QNetworkProxy
+                                                  (QNetworkProxy.NoProxy))
+        except Exception as e:
+            log.exception(e)
