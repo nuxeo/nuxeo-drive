@@ -158,7 +158,7 @@ class DarwinIntegration(AbstractOSIntegration):
                 pass
         return result
 
-    def register_folder_link(self, folder_path):
+    def register_folder_link(self, folder_path, name=None):
         try:
             from LaunchServices import LSSharedFileListCreate
             from LaunchServices import kLSSharedFileListFavoriteItems
@@ -170,7 +170,8 @@ class DarwinIntegration(AbstractOSIntegration):
                         " skipping favorite link creation")
             return
         folder_path = normalized_path(folder_path)
-        folder_name = os.path.basename(folder_path)
+        if not name:
+            name = os.path.basename(folder_path)
 
         lst = LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems,
                                      None)
@@ -187,7 +188,7 @@ class DarwinIntegration(AbstractOSIntegration):
 
         # Register the folder as favorite if not already there
         item = LSSharedFileListInsertItemURL(
-            lst, kLSSharedFileListItemBeforeFirst, folder_name, None, url,
+            lst, kLSSharedFileListItemBeforeFirst, name, None, url,
             {}, [])
         if item is not None:
             log.debug("Registered new favorite in Finder for: %s", folder_path)
