@@ -517,7 +517,7 @@ class LocalWatcher(EngineWorker):
                 # This might be a move but Windows don't emit this event...
                 if local_info.remote_ref is not None:
                     from_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
-                    if from_pair.processor > 0 or from_pair.local_path == rel_path:
+                    if from_pair is not None and from_pair.processor > 0 or from_pair.local_path == rel_path:
                         # First condition is in process
                         # Second condition is a race condition
                         log.trace("Ignore creation or modification as the coming pair is being processed")
