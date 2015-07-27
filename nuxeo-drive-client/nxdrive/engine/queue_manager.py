@@ -394,7 +394,8 @@ class QueueManager(QObject):
         if self._remote_file_thread is None and not self._remote_file_queue.empty() and self._remote_file_enable:
             log.debug("creating remote file processor")
             self._remote_file_thread = self._create_thread(self._get_remote_file, name="RemoteFileProcessor")
-        # Might be launch with no queue to pick
+        if self._remote_file_queue.qsize() + self._local_file_queue.qsize() == 0:
+            return
         while len(self._processors_pool) < self._max_processors:
             log.debug("creating additional file processor")
             self._processors_pool.append(self._create_thread(self._get_file, name="GenericProcessor"))
