@@ -219,7 +219,7 @@ class QueueManager(QObject):
                       WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE,
                       exception.strerror if hasattr(exception, 'strerror') else '')
             error_count = 1
-        if error_count >= self._error_threshold:
+        if error_count > self._error_threshold:
             log.debug("Giving up on pair : %r", doc_pair)
             return
         interval = self._error_interval * error_count
