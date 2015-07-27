@@ -395,6 +395,8 @@ class BaseAutomationClient(BaseClient):
                       ' transaction timeout for batch execution of %s'
                       ' with file %s', tx_timeout, DEFAULT_NUXEO_TX_TIMEOUT,
                       upload_duration, command, file_path)
+            if upload_duration > 0:
+                log.trace("Speed for %d o is %d s : %f o/s", os.stat(file_path).st_size, upload_duration, os.stat(file_path).st_size / upload_duration)
             if upload_result['uploaded'] == 'true':
                 result = self.execute_batch(command, batch_id, '0', tx_timeout,
                                           **params)
