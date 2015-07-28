@@ -56,6 +56,7 @@ class LocalWatcher(EngineWorker):
 
     def _execute(self):
         try:
+            trigger_local_scan = False
             self._init()
             if not self.client.exists('/'):
                 self.rootDeleted.emit()
@@ -72,7 +73,15 @@ class LocalWatcher(EngineWorker):
             while (1):
                 self._interact()
                 sleep(0.01)
+                if trigger_local_scan:
+                    self._action = Action("Full local scan")
+                    self._scan()
+                    trigger_local_scan = False
+                    self._end_action()
                 while (not self._watchdog_queue.empty()):
+                    # Dont retest if already local scan
+                    if not trigger_local_scan and self._watchdog_queue.qsize() > 50:
+                        trigger_local_scan = True
                     evt = self._watchdog_queue.get()
                     self.handle_watchdog_event(evt)
                     self._win_delete_check()
