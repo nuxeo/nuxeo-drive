@@ -21,9 +21,9 @@ class TestWatchers(UnitTestCase):
         metrics = self.queue_manager_1.get_metrics()
 
         # Workspace should have been reconcile
-        self.assertEquals(metrics["total_queue"], 4)
-        self.assertEquals(metrics["local_folder_queue"], 3)
-        self.assertEquals(metrics["local_file_queue"], 1)
+        self.assertEquals(metrics["total_queue"], 7)
+        self.assertEquals(metrics["local_folder_queue"], 5)
+        self.assertEquals(metrics["local_file_queue"], 2)
         res = self.engine_1.get_dao().get_states_from_partial_local('/')
         # With root
         self.assertEquals(len(res), folders + files + 1)
