@@ -165,7 +165,7 @@ class Engine(QObject):
         # Connect components signals to engine signals
         self._queue_manager.newItem.connect(self.newQueueItem)
         self._queue_manager.newError.connect(self.newError)
-        self._dao.newConflict.connect(self.newConflict)
+        self._dao.newConflict.connect(self.conflict_resolver)
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
         # Set the root icon
@@ -557,6 +557,19 @@ class Engine(QObject):
 
     def get_conflicts(self):
         return self._dao.get_conflicts()
+
+    def conflict_resolver(self, row_id):
+        try:
+            pair = self._dao.get_state_from_id(row_id)
+            parent_ref = self.get_local_client().get_remote_id(pair.local_parent_path)
+            if (pair.remote_name == pair.local_name and pair.local_digest == pair.remote_digest
+                and pair.remote_parent_ref == parent_ref):
+                self._dao.synchronize_state(pair)
+            else:
+                # Raise conflict only if not resolvable
+                self.newConflict.emit(row_id)
+        except Exception:
+            pass
 
     def get_errors(self):
         return self._dao.get_errors()

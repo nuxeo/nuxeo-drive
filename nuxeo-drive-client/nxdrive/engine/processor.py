@@ -344,8 +344,6 @@ class Processor(EngineWorker):
                 self._synchronize_locally_moved(new_pair, local_client, remote_client, update=False)
                 return
             self._dao.synchronize_state(doc_pair)
-            if doc_pair.folderish:
-                self._dao.queue_children(doc_pair)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
             log.warning("Won't synchronize %s '%s' created in"
@@ -595,9 +593,6 @@ class Processor(EngineWorker):
         self._refresh_local_state(doc_pair, local_client.get_info(path))
         if not self._dao.synchronize_state(doc_pair):
             log.debug("Pair is not in synchronized state (version issue): %r", doc_pair)
-        # Queue children after, race condition was leading to a forgotten child, will lead now to an eventual double queued
-        if doc_pair.folderish:
-            self._dao.queue_children(doc_pair)
 
     def _create_remotely(self, local_client, remote_client, doc_pair, parent_pair, name):
         local_parent_path = parent_pair.local_path
