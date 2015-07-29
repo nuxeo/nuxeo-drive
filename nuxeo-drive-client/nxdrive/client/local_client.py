@@ -175,7 +175,7 @@ class LocalClient(BaseClient):
         self.set_remote_id('/', value, name="ndriveroot")
 
     def get_root_id(self):
-        self.get_remote_id('/', name="ndriveroot")
+        return self.get_remote_id('/', name="ndriveroot")
 
     def remove_remote_id(self, ref, name='ndrive'):
         # Can be move to another class

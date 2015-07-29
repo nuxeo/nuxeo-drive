@@ -783,11 +783,12 @@ class Manager(QtCore.QObject):
         from collections import namedtuple
         if name is None:
             name = self._get_engine_name(url)
-        binder = namedtuple('binder', ['username', 'password', 'token', 'url', 'no_check'])
+        binder = namedtuple('binder', ['username', 'password', 'token', 'url', 'no_check', 'no_fscheck'])
         binder.username = username
         binder.password = password
         binder.token = token
         binder.no_check = not check_credentials
+        binder.no_fscheck = False
         binder.url = url
         return self.bind_engine(self._get_default_server_type(), local_folder, name, binder, starts=start_engine)
 

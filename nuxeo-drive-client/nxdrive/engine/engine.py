@@ -24,6 +24,14 @@ from nxdrive.gui.resources import find_icon
 log = get_logger(__name__)
 
 
+class InvalidDriveException(Exception):
+    pass
+
+
+class RootAlreadyBindWithDifferentAccount(Exception):
+    pass
+
+
 class FsMarkerException(Exception):
     pass
 
@@ -646,11 +654,16 @@ class Engine(QObject):
         check_credential = True
         if hasattr(binder, 'no_check') and binder.no_check:
             check_credential = False
+        check_fs = True
+        if hasattr(binder, 'no_fscheck') and binder.no_fscheck:
+            check_fs = False
         self._server_url = self._normalize_url(binder.url)
         self._remote_user = binder.username
         self._remote_password = binder.password
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
+        if check_fs:
+            self._check_fs(self._local_folder)
         nxclient = None
         if check_credential:
             nxclient = self.remote_doc_client_factory(
@@ -677,6 +690,18 @@ class Engine(QObject):
             # If the top level state for the server binding doesn't exist,
             # create the local folder and the top level state.
             self._check_root()
+
+    def _check_fs(self, path):
+        if not self._manager.get_osi().is_partition_supported(path):
+            raise InvalidDriveException()
+        if os.path.exists(path):
+            local_client = self.get_local_client()
+            root_id = local_client.get_root_id()
+            if root_id is not None:
+                # server_url|user|device_id|uid
+                token = root_id.split("|")
+                if (self._server_url != token[0] or self._remote_user != token[1]):
+                    raise RootAlreadyBindWithDifferentAccount()
 
     def _check_root(self):
         root = self._dao.get_state_from_local("/")

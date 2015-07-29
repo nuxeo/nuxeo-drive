@@ -139,11 +139,17 @@ class DarwinIntegration(AbstractOSIntegration):
         pass
 
     def is_partition_supported(self, folder):
+        if folder is None:
+            return False
         result = False
         to_delete = not os.path.exists(folder)
         try:
             if to_delete:
                 os.mkdir(folder)
+            if not os.access(folder, os.W_OK):
+                import stat
+                os.chmod(folder, stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
+                                stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
             import xattr
             attr = "drive-test"
             xattr.setxattr(folder, attr, attr)
