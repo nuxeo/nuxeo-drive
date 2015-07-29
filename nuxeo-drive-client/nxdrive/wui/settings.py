@@ -84,8 +84,6 @@ class WebSettingsApi(WebDriveApi):
         name = unicode(name)
         if name == '':
             name = None
-        if name is None:
-            name = self._get_engine_name(url)
         binder = namedtuple('binder', ['username', 'password', 'token', 'url', 'no_check', 'no_fscheck'])
         binder.username = username
         binder.password = password

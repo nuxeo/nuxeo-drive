@@ -66,7 +66,7 @@ class RemoteWatcher(EngineWorker):
         return dict(metrics.items() + self._metrics.items())
 
     @pyqtSlot()
-    def invalidate_client_cache(self):
+    def _reset_clients(self):
         self._client = None
 
     def _execute(self):

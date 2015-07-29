@@ -117,7 +117,11 @@ class ProxySettings(object):
             result = self.proxy_type + "://"
         if with_credentials and self.authenticated:
             result = result + self.username + ":" + self.password + "@"
-        result = result + self.server + ":" + str(self.port)
+        if self.server is not None:
+            if self.port is None:
+                result = result + self.server
+            else:
+                result = result + self.server + ":" + str(self.port)
         return result
 
     def set_exceptions(self, exceptions):
@@ -813,6 +817,8 @@ class Manager(QtCore.QObject):
 
     def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
         """Bind a local folder to a remote nuxeo server"""
+        if name is None and hasattr(binder, 'url'):
+            name = self._get_engine_name(binder.url)
         if not self.check_local_folder_available(local_folder):
             raise FolderAlreadyUsed()
         if not engine_type in self._engine_types:

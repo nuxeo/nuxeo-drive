@@ -110,6 +110,7 @@ class Engine(QObject):
     rootDeleted = pyqtSignal()
     rootMoved = pyqtSignal(str)
     invalidAuthentication = pyqtSignal()
+    invalidClientsCache = pyqtSignal()
     newConflict = pyqtSignal(object)
     newSync = pyqtSignal(object, object)
     newError = pyqtSignal(object)
@@ -750,7 +751,9 @@ class Engine(QObject):
 
     @pyqtSlot()
     def invalidate_client_cache(self):
+        log.debug("Invalidate client cache")
         self._remote_clients.clear()
+        self.invalidClientsCache.emit()
 
     def _set_root_icon(self):
         local_client = self.get_local_client()

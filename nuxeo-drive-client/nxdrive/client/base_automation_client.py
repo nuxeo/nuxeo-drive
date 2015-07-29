@@ -54,18 +54,19 @@ def get_proxies_for_handler(proxy_settings):
     else:
         # Manual proxy settings, build proxy string and exceptions list
         if proxy_settings.authenticated:
-            proxy_string = ("%s://%s:%s@%s:%s") % (
-                                proxy_settings.proxy_type,
+            proxy_string = ("%s:%s@%s:%s") % (
                                 proxy_settings.username,
                                 proxy_settings.password,
                                 proxy_settings.server,
                                 proxy_settings.port)
         else:
-            proxy_string = ("%s://%s:%s") % (
-                                proxy_settings.proxy_type,
+            proxy_string = ("%s:%s") % (
                                 proxy_settings.server,
                                 proxy_settings.port)
-        proxies = {proxy_settings.proxy_type: proxy_string}
+        if proxy_settings.proxy_type is None:
+            proxies = {'http': proxy_string, 'https': proxy_string}
+        else:
+            proxies = {proxy_settings.proxy_type: ("%s://%s" % (proxy_settings.proxy_type, proxy_string))}
         if proxy_settings.exceptions and proxy_settings.exceptions.strip():
             proxy_exceptions = [e.strip() for e in
                                 proxy_settings.exceptions.split(',')]
