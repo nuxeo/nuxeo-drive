@@ -4,7 +4,6 @@
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.workers import Worker, ThreadInterrupt
 from nxdrive.engine.blacklist_queue import BlacklistQueue
-from urllib2 import HTTPError
 from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler, normalize_event_filename
 from nxdrive.engine.activity import Action
 from nxdrive.client.local_client import LocalClient
