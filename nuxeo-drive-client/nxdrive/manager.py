@@ -378,6 +378,7 @@ class Manager(QtCore.QObject):
                 row.username = row.remote_user
                 row.password = None
                 row.token = row.remote_token
+                row.no_fscheck = True
                 engine = self.bind_engine(self._get_default_server_type(), row["local_folder"],
                                           self._get_engine_name(row.url), row, starts=False)
                 log.trace("Resulting server binding remote_token %r", row.remote_token)
