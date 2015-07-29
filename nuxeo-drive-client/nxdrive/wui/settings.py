@@ -98,11 +98,11 @@ class WebSettingsApi(WebDriveApi):
         return ""
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
-    def bind_server(self, local_folder, url, username, password, name):
+    def bind_server(self, local_folder, url, username, password, name, check_fs=True):
         try:
             # Allow to override for other exception handling
             log.debug("URL: '%s'", url)
-            return self._bind_server(local_folder, url, username, password, name)
+            return self._bind_server(local_folder, url, username, password, name, check_fs=check_fs)
         except RootAlreadyBindWithDifferentAccount as e:
             # Ask for the user
             values = dict()
@@ -118,7 +118,7 @@ class WebSettingsApi(WebDriveApi):
             msgbox.exec_()
             if (msgbox.clickedButton() == cancel):
                 return "FOLDER_USED"
-            return self._bind_server(local_folder, url, username, password, name, check_fs=False)
+            return self.bind_server(local_folder, url, username, password, name, check_fs=False)
         except InvalidDriveException:
             return "INVALID_PARTITION"
         except Unauthorized:
