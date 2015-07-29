@@ -487,6 +487,9 @@ class BaseAutomationClient(BaseClient):
     def is_elasticsearch_audit(self):
         return 'NuxeoDrive.WaitForElasticsearchCompletion' in self.operations
 
+    def is_nuxeo_drive_attach_blob(self):
+        return 'NuxeoDrive.AttachBlob' in self.operations
+
     def request_token(self, revoke=False):
         """Request and return a new token for the user"""
         base_error_message = (

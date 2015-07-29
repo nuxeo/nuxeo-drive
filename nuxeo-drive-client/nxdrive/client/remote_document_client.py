@@ -174,12 +174,14 @@ class RemoteDocumentClient(BaseAutomationClient):
             filename = self.get_info(ref).name
         self.attach_blob(self._check_ref(ref), content, filename)
 
-    def stream_update(self, ref, file_path, filename=None, mime_type=None):
+    def stream_update(self, ref, file_path, filename=None, mime_type=None, apply_versioning_policy=False):
         """Update a document by streaming the file with the given path"""
         ref = self._check_ref(ref)
-        self.execute_with_blob_streaming("Blob.Attach", file_path,
-                                         filename=filename, document=ref,
-                                         mime_type=mime_type)
+        op_name = 'NuxeoDrive.AttachBlob' if self.is_nuxeo_drive_attach_blob() else 'Blob.Attach'
+        params = {'document': ref}
+        if self.is_nuxeo_drive_attach_blob():
+            params.update({'applyVersioningPolicy': apply_versioning_policy})
+        self.execute_with_blob_streaming(op_name, file_path, filename=filename, mime_type=mime_type, **params)
 
     def delete(self, ref, use_trash=True):
         op_input = "doc:" + self._check_ref(ref)

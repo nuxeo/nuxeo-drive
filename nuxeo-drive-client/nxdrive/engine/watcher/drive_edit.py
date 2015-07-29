@@ -195,7 +195,7 @@ class DriveEdit(Worker):
                 # Update the document - should verify the hash - NXDRIVE-187
                 log.debug('Uploading file %s for user %s', self._local_client._abspath(ref),
                           user)
-                remote_client.stream_update(uid, self._local_client._abspath(ref))
+                remote_client.stream_update(uid, self._local_client._abspath(ref), apply_versioning_policy=True)
             except ThreadInterrupt:
                 raise
             except Exception as e:
