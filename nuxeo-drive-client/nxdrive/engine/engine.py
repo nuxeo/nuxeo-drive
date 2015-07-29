@@ -29,8 +29,16 @@ class InvalidDriveException(Exception):
 
 
 class RootAlreadyBindWithDifferentAccount(Exception):
-    pass
 
+    def __init__(self, username, url):
+        self._username = username
+        self._url = url
+
+    def get_username(self):
+        return self._username
+
+    def get_url(self):
+        return self._url
 
 class FsMarkerException(Exception):
     pass
@@ -701,7 +709,7 @@ class Engine(QObject):
                 # server_url|user|device_id|uid
                 token = root_id.split("|")
                 if (self._server_url != token[0] or self._remote_user != token[1]):
-                    raise RootAlreadyBindWithDifferentAccount()
+                    raise RootAlreadyBindWithDifferentAccount(token[1], token[0])
 
     def _check_root(self):
         root = self._dao.get_state_from_local("/")

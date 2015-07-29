@@ -103,11 +103,14 @@ class WebSettingsApi(WebDriveApi):
             # Allow to override for other exception handling
             log.debug("URL: '%s'", url)
             return self._bind_server(local_folder, url, username, password, name)
-        except RootAlreadyBindWithDifferentAccount:
+        except RootAlreadyBindWithDifferentAccount as e:
             # Ask for the user
+            values = dict()
+            values["username"] = e.get_username()
+            values["url"] = e.get_url()
             msgbox = QtGui.QMessageBox(QtGui.QMessageBox.Question,
                               self._manager.get_appname(),
-                              Translator.get("ROOT_USED_WITH_OTHER_BINDING"),
+                              Translator.get("ROOT_USED_WITH_OTHER_BINDING", values),
                               QtGui.QMessageBox.NoButton,
                               self._dialog)
             msgbox.addButton(Translator.get("ROOT_USED_CONTINUE"), QtGui.QMessageBox.AcceptRole)
