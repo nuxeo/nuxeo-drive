@@ -1,5 +1,4 @@
 import time
-import sys
 
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION

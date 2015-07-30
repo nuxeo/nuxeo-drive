@@ -11,7 +11,6 @@ from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.engine.activity import FileAction
 from threading import current_thread
-from nxdrive.engine.workers import PairInterrupt
 
 
 log = get_logger(__name__)

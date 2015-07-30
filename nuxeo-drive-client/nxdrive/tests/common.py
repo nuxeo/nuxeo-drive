@@ -246,12 +246,8 @@ class IntegrationTestCase(unittest.TestCase):
         folder_2 = remote_client.make_folder(self.workspace, u'Folder 2')
 
         # create some files on the server
-        self._duplicate_file_1 = remote_client.make_file(folder_2,
-                                u'Duplicated File.txt',
-                                content=b"Some content.")
-        self._duplicate_file_2 = remote_client.make_file(folder_2,
-                                u'Duplicated File.txt',
-                                content=b"Other content.")
+        self._duplicate_file_1 = remote_client.make_file(folder_2, u'Duplicated File.txt', content=b"Some content.")
+        self._duplicate_file_2 = remote_client.make_file(folder_2, u'Duplicated File.txt', content=b"Other content.")
 
         remote_client.make_file(folder_1, u'File 1.txt', content=b"aaa")
         remote_client.make_file(folder_1_1, u'File 2.txt', content=b"bbb")

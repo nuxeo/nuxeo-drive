@@ -96,7 +96,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         # Check file with content
         fs_item_id = remote_client.make_file(self.workspace_id,
             'Document 1.txt', "Content of doc 1.").uid
-        # Monkey patch teh get_info to change hash
+        # Monkey patch the get_info to change hash
         def get_info(fs_item_id, parent_fs_item_id=None,
                  raise_if_missing=True):
             fs_item = remote_client.get_fs_item(fs_item_id,
