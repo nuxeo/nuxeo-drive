@@ -7,6 +7,8 @@ import httplib
 from datetime import datetime
 from nose.plugins.skip import SkipTest
 
+from nxdrive.tests.common import TEST_WORKSPACE_PATH
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nxdrive.tests import RemoteTestClient
@@ -70,7 +72,7 @@ class TestSynchronization(IntegrationTestCase):
 
         # Wait a bit for file time stamps to increase enough: on OSX HFS+ the
         # file modification time resolution is 1s for instance
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
 
         # Let do some local and remote changes concurrently
         local.delete('/File 5.txt')
@@ -102,7 +104,7 @@ class TestSynchronization(IntegrationTestCase):
 
         # Send some binary data that is not valid in utf-8 or ascii
         # (to test the HTTP / Multipart transform layer).
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/Folder 1/File 1.txt', "\x80")
         remote.update_content('/Folder 1/Folder 1.1/File 2.txt', '\x80')
 
@@ -163,7 +165,7 @@ class TestSynchronization(IntegrationTestCase):
 
         # Wait a bit for file time stamps to increase enough: on most OS
         # the file modification time resolution is 1s
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
 
         # Let's modify it offline and rescan locally
         local.update_content('/Folder/File.txt', content='Some content.')
@@ -617,7 +619,7 @@ class TestSynchronization(IntegrationTestCase):
         syn.loop(delay=0, max_loops=1, no_event_init=True)
 
         # Let's modify it concurrently but with the same content (digest)
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content(local_path, 'Same new content.')
 
         remote_2 = self.remote_document_client_2
@@ -634,7 +636,7 @@ class TestSynchronization(IntegrationTestCase):
 
         # Let's trigger another conflict that cannot be resolved
         # automatically:
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content(local_path, 'Local new content.')
 
         remote_2 = self.remote_document_client_2
@@ -814,7 +816,7 @@ class TestSynchronization(IntegrationTestCase):
         self.assertTrue(readonly_folder_state.remote_can_create_child)
 
         # Set remote folder as readonly for test user
-        readonly_folder_path = self.TEST_WORKSPACE_PATH + u'/Readonly folder'
+        readonly_folder_path = TEST_WORKSPACE_PATH + u'/Readonly folder'
         op_input = "doc:" + readonly_folder_path
         self.root_remote_client.execute("Document.SetACE",
             op_input=op_input,
@@ -944,7 +946,7 @@ class TestSynchronization(IntegrationTestCase):
         self.assertTrue(remote.exists('/Local folder/Local file 2.odt'))
 
         # Delete local folder then synchronize
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.delete('/Local folder')
 
         syn.loop(delay=0.1, max_loops=1)

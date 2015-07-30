@@ -1,7 +1,5 @@
 import os
-import hashlib
 import tempfile
-import shutil
 from nose import with_setup
 from nose.tools import assert_true
 from nose.tools import assert_false
@@ -11,16 +9,15 @@ from nose.tools import assert_raises
 
 from nxdrive.client import LocalClient
 from nxdrive.client import NotFound
+from nxdrive.tests.common import EMPTY_DIGEST
+from nxdrive.tests.common import SOME_TEXT_CONTENT
+from nxdrive.tests.common import SOME_TEXT_DIGEST
 from nxdrive.tests.common import clean_dir
 
 
 LOCAL_TEST_FOLDER = None
 TEST_WORKSPACE = None
 lcclient = None
-
-EMPTY_DIGEST = hashlib.md5().hexdigest()
-SOME_TEXT_CONTENT = b"Some text content."
-SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 
 
 def setup_temp_folder():

@@ -4,6 +4,7 @@ import sys
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.client.common import NotFound
 from nose.plugins.skip import SkipTest
 from time import sleep
@@ -498,7 +499,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertTrue(folder_1_state.remote_can_rename)
 
         # Set remote folder as readonly for test user
-        folder_1_path = self.TEST_WORKSPACE_PATH + u'/Original Folder 1'
+        folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
             op_input=op_input,
@@ -562,7 +563,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertTrue(folder_1_state.remote_can_rename)
 
         # Set remote folder as readonly for test user
-        folder_1_path = self.TEST_WORKSPACE_PATH + u'/Original Folder 1'
+        folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
             op_input=op_input,
@@ -647,7 +648,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertTrue(folder_1_state.remote_can_delete)
 
         # Set remote folder as readonly for test user
-        folder_1_path = self.TEST_WORKSPACE_PATH + u'/Original Folder 1'
+        folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
             op_input=op_input,

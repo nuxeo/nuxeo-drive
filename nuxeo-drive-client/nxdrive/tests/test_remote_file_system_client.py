@@ -1,5 +1,6 @@
 from nxdrive.client import NotFound
 from nxdrive.client import LocalClient
+from nxdrive.tests.common import FS_ITEM_ID_PREFIX
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client.base_automation_client import CorruptedFile
 from shutil import copyfile
@@ -66,7 +67,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(info.download_url is None)
 
         # Check non existing file info
-        fs_item_id = self.FS_ITEM_ID_PREFIX + 'fakeId'
+        fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
         self.assertRaises(NotFound,
             remote_client.get_info, fs_item_id)
         self.assertTrue(
@@ -85,7 +86,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         # Check file without content
         doc_uid = self.remote_document_client_1.make_file(self.workspace,
             'Document 2.txt')
-        fs_item_id = self.FS_ITEM_ID_PREFIX + doc_uid
+        fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
         self.assertRaises(NotFound,
             remote_client.get_content, fs_item_id)
 
@@ -262,13 +263,13 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(remote_client.exists(fs_item_id))
 
         # Check non existing file system item (non existing document)
-        fs_item_id = self.FS_ITEM_ID_PREFIX + 'fakeId'
+        fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
         self.assertFalse(remote_client.exists(fs_item_id))
 
         # Check non existing file system item (document without content)
         doc_uid = self.remote_document_client_1.make_file(self.workspace,
             'Document 2.txt')
-        fs_item_id = self.FS_ITEM_ID_PREFIX + doc_uid
+        fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
         self.assertFalse(remote_client.exists(fs_item_id))
 
     # TODO
@@ -309,7 +310,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(fs_item['folder'])
 
         # Check non existing file system item
-        fs_item_id = self.FS_ITEM_ID_PREFIX + 'fakeId'
+        fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
         self.assertTrue(remote_client.get_fs_item(fs_item_id)
                         is None)
 

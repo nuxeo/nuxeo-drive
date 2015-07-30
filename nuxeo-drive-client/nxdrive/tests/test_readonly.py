@@ -1,6 +1,8 @@
 import os
 import time
 
+from nxdrive.tests.common import TEST_WORKSPACE_PATH
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
 from nxdrive.logging_config import get_logger
@@ -44,7 +46,7 @@ class TestReadOnly(UnitTestCase):
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
                          'Content')
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
-                    self.TEST_WORKSPACE_PATH + '/Test folder', True)
+                    TEST_WORKSPACE_PATH + '/Test folder', True)
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
@@ -55,7 +57,7 @@ class TestReadOnly(UnitTestCase):
                                 '/Test folder/Sub folder 1/sub file 1.txt'))
 
         # Local changes
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         # Create new file
         # Fake the readonly forcing
         local.unset_readonly('/Test folder')
@@ -132,7 +134,7 @@ class TestReadOnly(UnitTestCase):
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
                          'Content')
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
-                    self.TEST_WORKSPACE_PATH + '/Test folder', True)
+                    TEST_WORKSPACE_PATH + '/Test folder', True)
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
@@ -143,13 +145,13 @@ class TestReadOnly(UnitTestCase):
                                 '/Test folder/Sub folder 1/sub file 1.txt'))
 
         # Update the content on the server
-        self.root_remote_client.update_content(self.TEST_WORKSPACE_PATH + '/Test folder/joe.odt', 'Some remotely updated content', 'joe.odt')
+        self.root_remote_client.update_content(TEST_WORKSPACE_PATH + '/Test folder/joe.odt', 'Some remotely updated content', 'joe.odt')
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.get_content('/Test folder/joe.odt'), 'Some remotely updated content')
 
         # Remove the readonly
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
-                    self.TEST_WORKSPACE_PATH + '/Test folder', False)
+                    TEST_WORKSPACE_PATH + '/Test folder', False)
         self.wait_sync(wait_for_async=True)
         fname = os.path.join(self.sync_root_folder_1, 'Test folder',
                                 'test.txt')
@@ -164,7 +166,7 @@ class TestReadOnly(UnitTestCase):
         os.remove(fname2)
         # Put it back readonly
         self._set_readonly_permission("nuxeoDriveTestUser_user_1",
-                    self.TEST_WORKSPACE_PATH + '/Test folder', True)
+                    TEST_WORKSPACE_PATH + '/Test folder', True)
         self.wait_sync(wait_for_async=True)
 
         # Check it works

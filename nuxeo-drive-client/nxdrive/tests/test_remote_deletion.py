@@ -1,6 +1,9 @@
 import time
 import os
 
+from nxdrive.tests.common import TEST_WORKSPACE_PATH
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
+from nxdrive.tests.common import DOC_NAME_MAX_LENGTH
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
 from nxdrive.engine.engine import Engine
@@ -223,7 +226,7 @@ class TestRemoteDeletion(UnitTestCase):
         # Delete remote folder and make some local changes
         # concurrently then synchronize
         remote.delete('/Test folder')
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         # Create new file
         local.make_file('/Test folder', 'new.odt', "New content")
         # Create new folder with files
@@ -321,13 +324,13 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(remote_version is not None)
         self.assertTrue(local_version is not None)
         remote_version_ref_length = (len(remote_version.path)
-                                     - len(self.TEST_WORKSPACE_PATH))
+                                     - len(TEST_WORKSPACE_PATH))
         remote_version_ref = remote_version.path[-remote_version_ref_length:]
         self.assertTrue(remote.exists(remote_version_ref))
         self.assertEquals(remote.get_content(remote_version_ref),
                           'Some content')
         local_version_ref_length = (len(local_version.path)
-                                     - len(self.TEST_WORKSPACE_PATH))
+                                     - len(TEST_WORKSPACE_PATH))
         local_version_ref = local_version.path[-local_version_ref_length:]
         self.assertTrue(remote.exists(local_version_ref))
         self.assertEquals(remote.get_content(local_version_ref),
@@ -344,7 +347,7 @@ class TestRemoteDeletion(UnitTestCase):
         # Delete remote file and update its local content
         # concurrently then synchronize
         remote.delete('/Test folder/jack.odt')
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/Test folder/jack.odt', 'Some updated content')
         self.wait_sync(wait_for_async=True)
         # File should be kept locally and be marked as 'unsynchronized'.
@@ -395,7 +398,7 @@ class TestRemoteDeletion(UnitTestCase):
         # Delete remote file and rename it locally
         # concurrently then synchronize
         remote.delete('/Test folder/jack.odt')
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.rename('/Test folder/jack.odt', 'jack renamed.odt')
         self.wait_sync(wait_for_async=True)
         # File should be kept locally and be marked as 'synchronized'
@@ -452,7 +455,7 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(local.exists('/Test folder/joe.odt'))
 
         # Locally rename the folder then synchronize
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.rename('/Test folder', 'Test folder renamed')
 
         self.wait_sync()
@@ -475,8 +478,8 @@ class TestRemoteDeletion(UnitTestCase):
 
     def _truncate_remote_path(self, path):
         doc_name = path.rsplit('/', 1)[1]
-        if len(doc_name) > self.DOC_NAME_MAX_LENGTH:
-            path_length = len(path) - len(doc_name) + self.DOC_NAME_MAX_LENGTH
+        if len(doc_name) > DOC_NAME_MAX_LENGTH:
+            path_length = len(path) - len(doc_name) + DOC_NAME_MAX_LENGTH
             return path[:path_length]
         else:
             return path

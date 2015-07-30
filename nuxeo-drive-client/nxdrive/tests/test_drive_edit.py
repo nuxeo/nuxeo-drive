@@ -3,6 +3,7 @@ import time
 from nose.plugins.skip import SkipTest
 
 from nxdrive.client import LocalClient
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.tests.common_unit_test import UnitTestCase
 
@@ -97,7 +98,7 @@ class TestDriveEdit(UnitTestCase):
         # Update locally edited file
         # Let's first sync because of https://jira.nuxeo.com/browse/NXDRIVE-144
         self._sync(syn)
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Updated content.')
         self._sync(syn, wait_for_async=False)
@@ -110,7 +111,7 @@ class TestDriveEdit(UnitTestCase):
         self.assertEquals(len(local.get_children_info('/%s'
                                             % LOCALLY_EDITED_FOLDER_NAME)), 1)
         # Update locally edited file
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Twice updated content.')
         self._sync(syn, wait_for_async=False)
@@ -148,7 +149,7 @@ class TestDriveEdit(UnitTestCase):
         # Update locally edited file
         # Let's first sync because of https://jira.nuxeo.com/browse/NXDRIVE-144
         self._sync(syn)
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Content updated from Locally Edited.')
         self._sync(syn, wait_for_async=False)
@@ -160,7 +161,7 @@ class TestDriveEdit(UnitTestCase):
                                     'Content updated from Locally Edited.')
 
         # Update file in local sync root
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % self.workspace_title,
                              'Content updated from local sync root.')
         self._sync(syn, wait_for_async=False)
@@ -208,7 +209,7 @@ class TestDriveEdit(UnitTestCase):
         self.assertTrue(local.exists('/%s/test.odt' % self.workspace_title))
 
         # Update file in local sync root
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % self.workspace_title,
                              'Content updated from local sync root.')
         self._sync(syn, wait_for_async=False)
@@ -220,7 +221,7 @@ class TestDriveEdit(UnitTestCase):
                                     'Content updated from local sync root.')
 
         # Update locally edited file
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Content updated from Locally Edited.')
         self._sync(syn, wait_for_async=False)
@@ -265,7 +266,7 @@ class TestDriveEdit(UnitTestCase):
         # Update locally edited file
         # Let's first sync because of https://jira.nuxeo.com/browse/NXDRIVE-144
         self._sync(syn)
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Updated content.')
         self._sync(syn, wait_for_async=False)
@@ -312,7 +313,7 @@ class TestDriveEdit(UnitTestCase):
         # Update locally edited file
         # Let's first sync because of https://jira.nuxeo.com/browse/NXDRIVE-144
         self._sync(syn)
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Content updated from Locally Edited.')
         self._sync(syn, wait_for_async=False)
@@ -363,7 +364,7 @@ class TestDriveEdit(UnitTestCase):
         # Update locally edited file
         # Let's first sync because of https://jira.nuxeo.com/browse/NXDRIVE-144
         self._sync(syn)
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/%s/test.odt' % LOCALLY_EDITED_FOLDER_NAME,
                              'Content updated from Locally Edited.')
         self._sync(syn, wait_for_async=False)

@@ -26,6 +26,33 @@ DEFAULT_CONSOLE_LOG_LEVEL = 'DEBUG'
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
 
+TEST_WORKSPACE_PATH = (
+    u'/default-domain/workspaces/nuxeo-drive-test-workspace')
+FS_ITEM_ID_PREFIX = u'defaultFileSystemItemFactory#default#'
+
+EMPTY_DIGEST = hashlib.md5().hexdigest()
+SOME_TEXT_CONTENT = b"Some text content."
+SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
+
+# 1s time resolution as we truncate remote last modification time to the
+# seconds in RemoteFileSystemClient.file_to_info() because of the datetime
+# resolution of some databases (MySQL...)
+REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
+
+# 1s resolution on HFS+ on OSX
+# 2s resolution on FAT but can be ignored as no Jenkins is running the test
+# suite under windows on FAT partitions
+# ~0.01s resolution for NTFS
+# 0.001s for EXT4FS
+OS_STAT_MTIME_RESOLUTION = 1.0
+
+# Nuxeo max length for document name
+DOC_NAME_MAX_LENGTH = 24
+
+# Default quit timeout used for tests
+# 6s for watcher / 9s for sync
+TEST_DEFAULT_QUIT_TIMEOUT = 30
+
 
 def configure_logger():
     configure(
@@ -66,33 +93,6 @@ def clean_dir(_dir):
 
 
 class IntegrationTestCase(unittest.TestCase):
-
-    TEST_WORKSPACE_PATH = (
-        u'/default-domain/workspaces/nuxeo-drive-test-workspace')
-    FS_ITEM_ID_PREFIX = u'defaultFileSystemItemFactory#default#'
-
-    EMPTY_DIGEST = hashlib.md5().hexdigest()
-    SOME_TEXT_CONTENT = b"Some text content."
-    SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
-
-    # 1s time resolution as we truncate remote last modification time to the
-    # seconds in RemoteFileSystemClient.file_to_info() because of the datetime
-    # resolution of some databases (MySQL...)
-    REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
-
-    # 1s resolution on HFS+ on OSX
-    # 2s resolution on FAT but can be ignored as no Jenkins is running the test
-    # suite under windows on FAT partitions
-    # ~0.01s resolution for NTFS
-    # 0.001s for EXT4FS
-    OS_STAT_MTIME_RESOLUTION = 1.0
-
-    # Nuxeo max length for document name
-    DOC_NAME_MAX_LENGTH = 24
-
-    # Default quit timeout used for tests
-    # 6s for watcher / 9s for sync
-    TEST_DEFAULT_QUIT_TIMEOUT = 30
 
     def _synchronize(self, syn, delay=0.1, loops=1):
         self.wait()
@@ -162,7 +162,7 @@ class IntegrationTestCase(unittest.TestCase):
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
 
-        ws_info = root_remote_client.fetch(self.TEST_WORKSPACE_PATH)
+        ws_info = root_remote_client.fetch(TEST_WORKSPACE_PATH)
         self.workspace = ws_info[u'uid']
         self.workspace_title = ws_info[u'title']
 
@@ -328,6 +328,6 @@ class IntegrationTestCase(unittest.TestCase):
         cmdline += ' --delay=%d' % delay
         if quit_if_done:
             cmdline += ' --quit-if-done'
-        quit_timeout = quit_timeout if quit_timeout is not None else self.TEST_DEFAULT_QUIT_TIMEOUT
+        quit_timeout = quit_timeout if quit_timeout is not None else TEST_DEFAULT_QUIT_TIMEOUT
         cmdline += ' --quit-timeout=%d' % quit_timeout
         execute(cmdline)

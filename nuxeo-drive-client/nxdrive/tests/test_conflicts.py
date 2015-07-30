@@ -1,6 +1,7 @@
 import os
 import time
 
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 from nose.plugins.skip import SkipTest
@@ -34,7 +35,7 @@ class TestConflicts(IntegrationTestCase):
         self.assertTrue(local.exists('/test.txt'))
 
         # Update content on both sides by the same user, remote last
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/test.txt', 'Local update')
         time.sleep(1.0)
         remote.update_content(self.file_id, 'Remote update')
@@ -52,7 +53,7 @@ class TestConflicts(IntegrationTestCase):
 
         # Update content on both sides by the same user, local last
         remote.update_content(self.file_id, 'Remote update 2')
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/test.txt', 'Local update 2')
         self._sync(syn, max_loops=2)
 
@@ -84,7 +85,7 @@ class TestConflicts(IntegrationTestCase):
         self.assertTrue(local.exists('/test.txt'))
 
         # Update content on both sides by different users, remote last
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/test.txt', 'Local update')
         remote.update_content(self.file_id, 'Remote update')
         self._sync(syn, max_loops=2)
@@ -109,7 +110,7 @@ class TestConflicts(IntegrationTestCase):
 
         # Update content on both sides by different users, local last
         remote.update_content(self.file_id, 'Remote update 2')
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/test.txt', 'Local update 2')
         self._sync(syn, max_loops=2)
 
