@@ -672,7 +672,20 @@ class Engine(QObject):
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
         if check_fs:
-            self._check_fs(self._local_folder)
+            created_folder = False
+            try:
+                if not os.path.exists(self._local_folder):
+                    os.mkdir(self._local_folder)
+                    created_folder = True
+                self._check_fs(self._local_folder)
+            except Exception as e:
+                try:
+                    if created_folder:
+                        os.rmdir(self._local_folder)
+                except:
+                    # Ignore any removal exception
+                    pass
+                raise e
         nxclient = None
         if check_credential:
             nxclient = self.remote_doc_client_factory(
