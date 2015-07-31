@@ -22,6 +22,7 @@ from nxdrive.engine.engine import Engine
 from nxdrive.notification import Notification
 from nxdrive.engine.workers import Worker
 from nxdrive.engine.dao.sqlite import StateRow
+from dateutil.tz import tzlocal
 log = get_logger(__name__)
 
 
@@ -111,7 +112,8 @@ class WebDriveApi(QtCore.QObject):
             if date_time == 0:
                 result["last_sync_date"] = ""
             else:
-                result["last_sync_date"] = Translator.format_datetime(date_time)
+                # As date_time is in UTC
+                result["last_sync_date"] = Translator.format_datetime(date_time + tzlocal._dst_offset)
         except Exception as e:
             log.exception(e)
         result["name"] = state.local_name
