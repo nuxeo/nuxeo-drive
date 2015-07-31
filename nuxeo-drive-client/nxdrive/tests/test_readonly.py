@@ -88,7 +88,7 @@ class TestReadOnly(UnitTestCase):
         local.delete(delete_folder)
         local.set_readonly('/Test folder')
         # Should recreate ?
-        self.wait_sync()
+        self.wait_sync(wait_win=True)
         self.assertTrue(remote.exists(delete_folder))
         self.assertTrue(local.exists(delete_folder))
 
