@@ -1,6 +1,7 @@
 """Common test utilities"""
 import os
 import unittest
+import sys
 import tempfile
 
 from nxdrive.client import RemoteDocumentClient
@@ -242,6 +243,10 @@ class UnitTestCase(unittest.TestCase):
         # First wait for server if needed
         if wait_for_async:
             self.wait()
+        if sys.platform == "win32":
+            from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
+            log.trace("Need to wait for Windows delete resolution")
+            sleep(WIN_MOVE_RESOLUTION_PERIOD/1000)
         self._wait_sync = {
             self.engine_1.get_uid(): wait_for_engine_1,
             self.engine_2.get_uid(): wait_for_engine_2
