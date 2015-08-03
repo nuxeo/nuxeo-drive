@@ -126,6 +126,10 @@ class AbstractOSIntegration(object):
     def unregister_desktop_link(self):
         pass
 
+    def is_same_partition(self, folder1, folder2):
+        import os
+        return os.stat(folder1).st_dev == os.stat(folder2).st_dev
+
     @staticmethod
     def os_version_below(version):
         return version_compare(AbstractOSIntegration.get_os_version(), version) < 0

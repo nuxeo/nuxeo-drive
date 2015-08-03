@@ -149,6 +149,11 @@ class WindowsIntegration(AbstractOSIntegration):
             [(app_name, _winreg.REG_SZ, exe_path)],
         )
 
+    def is_same_partition(self, folder1, folder2):
+        import win32file
+        volume = win32file.GetVolumePathName(folder1)
+        return volume == win32file.GetVolumePathName(folder2)
+
     def is_partition_supported(self, folder):
         if folder[-1] != os.path.sep:
             folder = folder + os.path.sep
