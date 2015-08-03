@@ -39,7 +39,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'digest',  # digest of the document's blob
     'repository',  # server repository name
     'doc_type',  # Nuxeo document type
-    'version', # Nuxeo version
+    'version',  # Nuxeo version
     # TODO: add filename?
 ])
 

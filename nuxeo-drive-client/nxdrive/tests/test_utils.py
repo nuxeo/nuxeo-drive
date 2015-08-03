@@ -71,21 +71,18 @@ class TestUtils(unittest.TestCase):
         self.assertIn(guess_mime_type('picture.bmp'), ['image/x-ms-bmp',
                                                        'image/bmp'])
         self.assertEquals(guess_mime_type('picture.tiff'), 'image/tiff')
-        self.assertIn(guess_mime_type('picture.ico'), ['image/x-icon',
-                                                'image/vnd.microsoft.icon'])
+        self.assertIn(guess_mime_type('picture.ico'), ['image/x-icon', 'image/vnd.microsoft.icon'])
 
         # Audio
         self.assertEquals(guess_mime_type('sound.mp3'), 'audio/mpeg')
-        self.assertIn(guess_mime_type('sound.wma'), ['audio/x-ms-wma',
-                                                'application/octet-stream'])
+        self.assertIn(guess_mime_type('sound.wma'), ['audio/x-ms-wma', 'application/octet-stream'])
         self.assertEquals(guess_mime_type('sound.wav'), 'audio/x-wav')
 
         # Video
         self.assertEquals(guess_mime_type('video.mpeg'), 'video/mpeg')
         self.assertEquals(guess_mime_type('video.mp4'), 'video/mp4')
         self.assertEquals(guess_mime_type('video.mov'), 'video/quicktime')
-        self.assertIn(guess_mime_type('video.wmv'), ['video/x-ms-wmv',
-                                                'application/octet-stream'])
+        self.assertIn(guess_mime_type('video.wmv'), ['video/x-ms-wmv', 'application/octet-stream'])
         self.assertIn(guess_mime_type('video.avi'), ['video/x-msvideo',
                                                      'video/avi'])
 
@@ -115,37 +112,29 @@ class TestUtils(unittest.TestCase):
             self.assertEquals(guess_mime_type('text.xml'), 'text/xml')
 
             # Image
-            self.assertIn(guess_mime_type('picture.svg'), ['image/svg+xml',
-                              'application/octet-stream'])
+            self.assertIn(guess_mime_type('picture.svg'), ['image/svg+xml', 'application/octet-stream'])
 
             # Video
             self.assertEquals(guess_mime_type('video.flv'),
                               'application/octet-stream')
 
             # Office
-            self.assertIn(guess_mime_type('office.docx'), [
-                            'application/vnd.openxmlformats-officedocument'
-                            '.wordprocessingml.document',
-                            'application/octet-stream'])
-            self.assertIn(guess_mime_type('office.xlsx'), [
-                            'application/vnd.openxmlformats-officedocument'
-                            '.spreadsheetml.sheet',
-                            'application/octet-stream'])
-            self.assertIn(guess_mime_type('office.pptx'), [
-                            'application/vnd.openxmlformats-officedocument'
-                            '.presentationml.presentation',
-                            'application/x-mspowerpoint.12',
-                            'application/octet-stream'])
+            self.assertIn(guess_mime_type('office.docx'),
+                          ['application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                           'application/octet-stream'])
+            self.assertIn(guess_mime_type('office.xlsx'),
+                          ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                           'application/octet-stream'])
+            self.assertIn(guess_mime_type('office.pptx'),
+                          ['application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                           'application/x-mspowerpoint.12', 'application/octet-stream'])
 
-            self.assertIn(guess_mime_type('office.odt'), [
-                            'application/vnd.oasis.opendocument.text',
-                            'application/octet-stream'])
-            self.assertIn(guess_mime_type('office.ods'), [
-                            'application/vnd.oasis.opendocument.spreadsheet',
-                            'application/octet-stream'])
-            self.assertIn(guess_mime_type('office.odp'), [
-                            'application/vnd.oasis.opendocument.presentation',
-                            'application/octet-stream'])
+            self.assertIn(guess_mime_type('office.odt'),
+                          ['application/vnd.oasis.opendocument.text', 'application/octet-stream'])
+            self.assertIn(guess_mime_type('office.ods'),
+                          ['application/vnd.oasis.opendocument.spreadsheet', 'application/octet-stream'])
+            self.assertIn(guess_mime_type('office.odp'),
+                          ['application/vnd.oasis.opendocument.presentation', 'application/octet-stream'])
         else:
             # Text
             self.assertEquals(guess_mime_type('text.csv'), 'text/csv')
@@ -159,21 +148,15 @@ class TestUtils(unittest.TestCase):
 
             # Office
             self.assertEquals(guess_mime_type('office.docx'),
-                          'application/vnd.openxmlformats-officedocument'
-                          '.wordprocessingml.document')
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
             self.assertEquals(guess_mime_type('office.xlsx'),
-                          'application/vnd.openxmlformats-officedocument'
-                          '.spreadsheetml.sheet')
+                              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             self.assertEquals(guess_mime_type('office.pptx'),
-                          'application/vnd.openxmlformats-officedocument'
-                          '.presentationml.presentation')
+                              'application/vnd.openxmlformats-officedocument.presentationml.presentation')
 
-            self.assertEquals(guess_mime_type('office.odt'),
-                          'application/vnd.oasis.opendocument.text')
-            self.assertEquals(guess_mime_type('office.ods'),
-                          'application/vnd.oasis.opendocument.spreadsheet')
-            self.assertEquals(guess_mime_type('office.odp'),
-                          'application/vnd.oasis.opendocument.presentation')
+            self.assertEquals(guess_mime_type('office.odt'), 'application/vnd.oasis.opendocument.text')
+            self.assertEquals(guess_mime_type('office.ods'), 'application/vnd.oasis.opendocument.spreadsheet')
+            self.assertEquals(guess_mime_type('office.odp'), 'application/vnd.oasis.opendocument.presentation')
 
     def test_guess_digest_algorithm(self):
         s = 'joe'

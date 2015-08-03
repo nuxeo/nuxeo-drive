@@ -192,8 +192,8 @@ class DriveEdit(Worker):
             try:
                 if info.get_digest(digest_func=digest_algorithm) == digest:
                     continue
-                # TO_REVIEW Should check if blob has changed ?
-                # Update the document - should verify the hash - NXDRIVE-187
+                # TO_REVIEW Should check if server-side blob has changed ?
+                # Update the document - should verify the remote hash - NXDRIVE-187
                 log.debug('Uploading file %s for user %s', self._local_client._abspath(ref),
                           user)
                 remote_client.stream_update(uid, self._local_client._abspath(ref), apply_versioning_policy=True)
