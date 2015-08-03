@@ -146,8 +146,10 @@ class DriveEdit(Worker):
         self._local_client.set_remote_id(dir_path, server_url, "nxdriveedit")
         if user is not None:
             self._local_client.set_remote_id(dir_path, user, "nxdriveedituser")
-        self._local_client.set_remote_id(dir_path, info.digest_algorithm, "nxdriveeditdigestalgorithm")
-        self._local_client.set_remote_id(dir_path, info.digest, "nxdriveeditdigest")
+        if info.digest_algorithm is not None:
+            self._local_client.set_remote_id(dir_path, info.digest_algorithm, "nxdriveeditdigestalgorithm")
+        if info.digest is not None:
+            self._local_client.set_remote_id(dir_path, info.digest, "nxdriveeditdigest")
         self._local_client.set_remote_id(dir_path, filename, "nxdriveeditname")
         # Rename to final filename
         # Under Windows first need to delete target file if exists, otherwise will get a 183 WindowsError
