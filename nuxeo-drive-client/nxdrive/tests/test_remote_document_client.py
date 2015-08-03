@@ -5,7 +5,6 @@ from nxdrive.client import NuxeoClient
 from nxdrive.client import Unauthorized
 from nxdrive.client import NotFound
 from nxdrive.client import LocalClient
-from nxdrive.tests.common import EMPTY_DIGEST
 from nxdrive.tests.common import SOME_TEXT_CONTENT
 from nxdrive.tests.common import SOME_TEXT_DIGEST
 from nxdrive.tests.common import IntegrationTestCase
@@ -99,7 +98,8 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         doc_1_info = remote_client.get_info(doc_1)
         self.assertEquals(doc_1_info.name, 'Document 1.txt')
         self.assertEquals(doc_1_info.uid, doc_1)
-        self.assertEquals(doc_1_info.get_digest(), EMPTY_DIGEST)
+        self.assertIsNone(doc_1_info.digest_algorithm)
+        self.assertIsNone(doc_1_info.get_digest())
         self.assertEquals(doc_1_info.folderish, False)
 
         doc_2 = remote_client.make_file(self.workspace, 'Document 2.txt',
@@ -111,6 +111,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         doc_2_info = remote_client.get_info(doc_2)
         self.assertEquals(doc_2_info.name, 'Document 2.txt')
         self.assertEquals(doc_2_info.uid, doc_2)
+        self.assertEquals(doc_2_info.digest_algorithm, 'md5')
         self.assertEquals(doc_2_info.get_digest(), SOME_TEXT_DIGEST)
         self.assertEquals(doc_2_info.folderish, False)
 
@@ -137,7 +138,8 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         folder_1_info = remote_client.get_info(folder_1)
         self.assertEquals(folder_1_info.name, 'A new folder')
         self.assertEquals(folder_1_info.uid, folder_1)
-        self.assertEquals(folder_1_info.get_digest(), None)
+        self.assertIsNone(folder_1_info.digest_algorithm)
+        self.assertIsNone(folder_1_info.get_digest())
         self.assertEquals(folder_1_info.folderish, True)
 
         doc_3 = remote_client.make_file(folder_1, 'Document 3.txt',
@@ -154,7 +156,8 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         folder_1_info = remote_client.get_info(folder_1)
         self.assertEquals(folder_1_info.name, 'A new folder')
         self.assertEquals(folder_1_info.uid, folder_1)
-        self.assertEquals(folder_1_info.get_digest(), None)
+        self.assertIsNone(folder_1_info.digest_algorithm)
+        self.assertIsNone(folder_1_info.get_digest())
         self.assertEquals(folder_1_info.folderish, True)
 
         doc_3 = remote_client.make_file(folder_1, 'Document 3.txt',
@@ -334,6 +337,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         local_client = LocalClient(self.upload_tmp_dir)
         doc_info = remote_client.get_info(doc_ref)
         self.assertEquals(doc_info.name, 'Streamed binary file')
+        self.assertEquals(doc_info.digest_algorithm, 'md5')
         self.assertEquals(doc_info.digest,
                           local_client.get_info('/testFile.pdf').get_digest())
 

@@ -95,7 +95,7 @@ class DriveEdit(Worker):
             shutil.copy(local_client._abspath(pair.local_path), file_out)
         else:
             if url is not None:
-                remote_client.do_get(url, file_out=file_out)
+                remote_client.do_get(url, file_out=file_out, digest=info.digest, digest_algorithm=info.digest_algorithm)
             else:
                 remote_client.get_blob(info.uid, file_out=file_out)
         return file_out

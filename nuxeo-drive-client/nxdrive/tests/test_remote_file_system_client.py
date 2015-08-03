@@ -103,7 +103,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
                                    parent_fs_item_id=parent_fs_item_id)
             fs_item['digest']='aaaaa'
             if hash_method is not None:
-                fs_item['digestAlgorithm'] = hash_method
+                fs_item['digestAlgorithm'] = hash_method.lower()
             if fs_item is None:
                 if raise_if_missing:
                     raise NotFound("Could not find '%s' on '%s'" % (
