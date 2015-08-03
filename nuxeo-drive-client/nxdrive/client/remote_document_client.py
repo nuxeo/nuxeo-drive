@@ -261,7 +261,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             else:
                 digestAlgorithm = blob.get('digestAlgorithm')
                 if digestAlgorithm is not None:
-                    digestAlgorithm = digestAlgorithm.lower()
+                    digestAlgorithm = digestAlgorithm.lower().replace('-', '')
                 digest = blob.get('digest')
 
         # XXX: we need another roundtrip just to fetch the parent uid...

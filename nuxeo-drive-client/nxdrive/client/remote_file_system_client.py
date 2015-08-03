@@ -206,7 +206,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
             can_create_child = fs_item['canCreateChild']
         else:
             digest = fs_item['digest']
-            digest_algorithm = fs_item['digestAlgorithm'].lower()
+            digest_algorithm = fs_item['digestAlgorithm'].lower().replace('-', '')
             download_url = fs_item['downloadURL']
             can_update = fs_item['canUpdate']
             can_create_child = False
