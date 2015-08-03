@@ -146,6 +146,7 @@ class DriveEdit(Worker):
         self._local_client.set_remote_id(dir_path, server_url, "nxdriveedit")
         if user is not None:
             self._local_client.set_remote_id(dir_path, user, "nxdriveedituser")
+        self._local_client.set_remote_id(dir_path, info.digest_algorithm, "nxdriveeditdigestalgorithm")
         self._local_client.set_remote_id(dir_path, info.digest, "nxdriveeditdigest")
         self._local_client.set_remote_id(dir_path, filename, "nxdriveeditname")
         # Rename to final filename
@@ -184,11 +185,12 @@ class DriveEdit(Worker):
             engine = self._get_engine(server_url, user=user)
             remote_client = engine.get_remote_doc_client()
             remote_client.check_suspended = self.stop_client
+            digest_algorithm = self._local_client.get_remote_id(dir_path, "nxdriveeditdigestalgorithm")
             digest = self._local_client.get_remote_id(dir_path, "nxdriveeditdigest")
             # Don't update if digest are the same
             info = self._local_client.get_info(ref)
             try:
-                if info.get_digest() == digest:
+                if info.get_digest(digest_func=digest_algorithm) == digest:
                     continue
                 # TO_REVIEW Should check if blob has changed ?
                 # Update the document - should verify the hash - NXDRIVE-187

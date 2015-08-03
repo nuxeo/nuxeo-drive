@@ -327,9 +327,18 @@ def guess_mime_type(filename):
         log.trace("Guessed mime type '%s' for '%s'", mime_type, filename)
         return mime_type
     else:
-        log.trace("Could not guess mime type for '%s', returing"
-            " 'application/octet-stream'", filename)
+        log.trace("Could not guess mime type for '%s', returing 'application/octet-stream'", filename)
         return "application/octet-stream"
+
+
+def guess_digest_algorithm(digest):
+    # For now only md5 and sha1 are supported
+    if len(digest) == 32:
+        return 'md5'
+    elif len(digest) == 40:
+        return 'sha1'
+    else:
+        raise Exception('Unknown digest algorithm for %s' % digest)
 
 
 def _patch_win32_mime_type(mime_type):

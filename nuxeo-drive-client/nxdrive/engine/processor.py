@@ -204,7 +204,7 @@ class Processor(EngineWorker):
     def _synchronize_conflicted(self, doc_pair, local_client, remote_client):
         # Auto-resolve conflict
         if not doc_pair.folderish:
-            if doc_pair.remote_digest == doc_pair.local_digest:
+            if local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path):
                 log.debug("Auto-resolve conflict has digest are the same")
                 self._dao.synchronize_state(doc_pair)
         elif local_client.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref:
@@ -236,7 +236,7 @@ class Processor(EngineWorker):
             if doc_pair.local_digest == UNACCESSIBLE_HASH:
                 self._postpone_pair(doc_pair)
                 return
-        if doc_pair.remote_digest != doc_pair.local_digest:
+        if not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path):
             if doc_pair.remote_can_update:
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
                     self._postpone_pair(doc_pair)
@@ -474,7 +474,8 @@ class Processor(EngineWorker):
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
         try:
             is_renaming = doc_pair.remote_name != doc_pair.local_name
-            if doc_pair.remote_digest != doc_pair.local_digest and doc_pair.local_digest != None:
+            if (not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path)
+                    and doc_pair.local_digest is not None):
                 os_path = local_client._abspath(doc_pair.local_path)
                 if is_renaming:
                     new_os_path = os.path.join(os.path.dirname(os_path),

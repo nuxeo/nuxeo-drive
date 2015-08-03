@@ -1,6 +1,8 @@
 import sys
+import hashlib
 import unittest
 from nxdrive.utils import guess_mime_type
+from nxdrive.utils import guess_digest_algorithm
 from nxdrive.manager import ProxySettings
 
 
@@ -172,3 +174,17 @@ class TestUtils(unittest.TestCase):
                           'application/vnd.oasis.opendocument.spreadsheet')
             self.assertEquals(guess_mime_type('office.odp'),
                           'application/vnd.oasis.opendocument.presentation')
+
+    def test_guess_digest_algorithm(self):
+        s = 'joe'
+        md5_digest = hashlib.md5(s).hexdigest()
+        self.assertEquals(guess_digest_algorithm(md5_digest), 'md5')
+        sha1_digest = hashlib.sha1(s).hexdigest()
+        self.assertEquals(guess_digest_algorithm(sha1_digest), 'sha1')
+        # For now only md5 and sha1 are supported
+        sha256_digest = hashlib.sha256(s).hexdigest()
+        try:
+            guess_digest_algorithm(sha256_digest)
+            self.fail('Other algorithms than md5 and sha1 should not be supported for now')
+        except:
+            pass

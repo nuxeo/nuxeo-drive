@@ -18,6 +18,7 @@ from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
+from nxdrive.utils import guess_digest_algorithm
 from nxdrive.client.common import FILE_BUFFER_SIZE
 from send2trash import send2trash
 
@@ -73,13 +74,14 @@ class FileInfo(object):
     def __unicode__(self):
         return u"FileInfo[%s, remote_ref=%s]" % (self.filepath, self.remote_ref)
 
-    def get_digest(self):
+    def get_digest(self, digest_func=None):
         """Lazy computation of the digest"""
         if self.folderish:
             return None
-        digester = getattr(hashlib, self._digest_func, None)
+        digest_func = digest_func if digest_func is not None else self._digest_func
+        digester = getattr(hashlib, digest_func, None)
         if digester is None:
-            raise ValueError('Unknow digest method: ' + self._digest_func)
+            raise ValueError('Unknow digest method: ' + digest_func)
 
         h = digester()
         try:
@@ -416,6 +418,16 @@ class LocalClient(BaseClient):
                         digest_func=self._digest_func,
                         check_suspended=self.check_suspended,
                         remote_ref=remote_ref, size=size)
+
+    def is_equal_digests(self, local_digest, remote_digest, local_path, remote_digest_algorithm=None):
+        if local_digest == remote_digest:
+            return True
+        if remote_digest_algorithm is None:
+            remote_digest_algorithm = guess_digest_algorithm(remote_digest)
+        if remote_digest_algorithm == self._digest_func:
+            return False
+        else:
+            return self.get_info(local_path).get_digest(digest_func=remote_digest_algorithm) == remote_digest
 
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()

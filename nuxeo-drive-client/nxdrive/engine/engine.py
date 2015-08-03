@@ -578,9 +578,11 @@ class Engine(QObject):
     def conflict_resolver(self, row_id):
         try:
             pair = self._dao.get_state_from_id(row_id)
-            parent_ref = self.get_local_client().get_remote_id(pair.local_parent_path)
-            if (pair.remote_name == pair.local_name and pair.local_digest == pair.remote_digest
-                and pair.remote_parent_ref == parent_ref):
+            local_client = self.get_local_client()
+            parent_ref = local_client.get_remote_id(pair.local_parent_path)
+            if (pair.remote_name == pair.local_name
+                and local_client.is_equal_digests(pair.local_digest, pair.remote_digest, pair.local_path)
+                    and pair.remote_parent_ref == parent_ref):
                 self._dao.synchronize_state(pair)
             else:
                 # Raise conflict only if not resolvable
