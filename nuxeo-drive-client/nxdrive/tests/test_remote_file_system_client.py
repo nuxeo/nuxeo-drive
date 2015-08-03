@@ -42,7 +42,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertFalse(info.folderish)
         if info.last_contributor:
             self.assertEquals(info.last_contributor, 'nuxeoDriveTestUser_user_1')
-        digest_algorithm = info.digest_algorithm
+        digest_algorithm = info.digest_algorithm.lower()
         self.assertEquals(digest_algorithm, 'md5')
         digest = self._get_digest(digest_algorithm, "Content of doc 1.")
         self.assertEquals(info.digest, digest)
@@ -186,7 +186,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(fs_item_info is not None)
         self.assertEquals(fs_item_info.name, 'My new file.odt')
         self.assertFalse(fs_item_info.folderish)
-        digest_algorithm = fs_item_info.digest_algorithm
+        digest_algorithm = fs_item_info.digest_algorithm.lower()
         self.assertEquals(digest_algorithm, 'md5')
         digest = self._get_digest(digest_algorithm, "Content of my new file.")
         self.assertEquals(fs_item_info.digest, digest)
@@ -197,7 +197,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(fs_item_info is not None)
         self.assertEquals(fs_item_info.name, 'My new note.txt')
         self.assertFalse(fs_item_info.folderish)
-        digest_algorithm = fs_item_info.digest_algorithm
+        digest_algorithm = fs_item_info.digest_algorithm.lower()
         self.assertEquals(digest_algorithm, 'md5')
         digest = self._get_digest(digest_algorithm, "Content of my new note.")
         self.assertEquals(fs_item_info.digest, digest)
