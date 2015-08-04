@@ -679,8 +679,8 @@ class WebDialog(QtGui.QDialog):
             self._api = api
         self._attachJsApi()
         self._frame.javaScriptWindowObjectCleared.connect(self._attachJsApi)
-        self.resize(400, 400)
-        self._view.resize(400, 400)
+        self.resize(550, 600)
+        self._view.resize(550, 600)
         self.setLayout(QtGui.QVBoxLayout())
         self.layout().addWidget(self._view)
         self.layout().setContentsMargins(0, 0, 0, 0)

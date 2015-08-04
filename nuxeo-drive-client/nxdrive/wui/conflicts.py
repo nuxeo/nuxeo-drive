@@ -77,7 +77,7 @@ class WebConflictsApi(WebDriveApi):
         if state is None:
             return None
         result = super(WebConflictsApi, self)._export_state(state)
-        result["last_contributor"] = state.last_remote_modifier
+        result["last_contributor"] = self._engine.get_user_full_name(state.last_remote_modifier)
         date_time = self.get_date_from_sqlite(state.last_remote_updated)
         result["last_remote_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
         date_time = self.get_date_from_sqlite(state.last_local_updated)

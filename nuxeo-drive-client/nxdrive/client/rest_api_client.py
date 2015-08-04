@@ -33,10 +33,10 @@ class RestAPIClient(object):
             cookiejar=cookie_jar)
         self.opener = urllib2.build_opener(cookie_processor)
 
-    def execute(self, doc_path, adapter=None, timeout=-1):
+    def execute(self, relative_url, adapter=None, timeout=-1):
         """Execute a REST API call"""
 
-        url = self.rest_api_url + 'path' + doc_path
+        url = self.rest_api_url + relative_url
         if adapter is not None:
             url += '/@' + adapter
 
@@ -119,3 +119,7 @@ class RestAPIClient(object):
                 # Error message should always be a JSON message,
                 # but sometimes it's not
                 log.debug(detail)
+
+    def get_user_full_name(self, userid, adapter=None, timeout=-1):
+        """Execute a REST API call to get User Information"""
+        return self.execute(relative_url='user/'+ userid)
