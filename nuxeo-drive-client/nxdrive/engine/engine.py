@@ -20,6 +20,7 @@ import os
 import datetime
 from cookielib import CookieJar
 from nxdrive.gui.resources import find_icon
+import urllib2
 
 log = get_logger(__name__)
 
@@ -170,6 +171,8 @@ class Engine(QObject):
         self._scanPair.connect(self._remote_watcher.scan_pair)
         # Set the root icon
         self._set_root_icon()
+        # Set user full name
+        self._user_cache = dict()
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id):
@@ -819,3 +822,29 @@ class Engine(QObject):
     def dispose_db(self):
         if self._dao is not None:
             self._dao.dispose()
+
+    def get_rest_api_client(self):
+        from nxdrive.client.rest_api_client import RestAPIClient
+        rest_client = RestAPIClient(self.get_server_url(), self.get_remote_user(),
+                                        self._manager.get_device_id(), self._manager.client_version, None,
+                                        self.get_remote_token(), timeout=self.timeout, cookie_jar=self.cookie_jar)
+        return rest_client
+
+    def get_user_full_name(self, userid):
+        """
+            Get the last contributor full name
+        """
+        fullname = userid
+        try:
+            if userid in self._user_cache:
+                fullname = self._user_cache[userid]
+            else:
+                rest_client = self.get_rest_api_client()
+                response = rest_client.get_user_full_name(userid)
+                if response and 'properties' in response:
+                    fullname = " ".join([response['properties']['firstName'],
+                                         response['properties']['lastName']]).strip()
+                    self._user_cache[userid] = fullname
+        except urllib2.URLError as e:
+            log.exception(e)
+        return fullname
