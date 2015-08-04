@@ -684,7 +684,6 @@ class BaseAutomationClient(BaseClient):
     def do_get(self, url, file_out=None, digest=None, digest_algorithm='md5'):
         h = None
         if digest_algorithm is not None:
-            digest_algorithm = digest_algorithm.lower()
             digester = getattr(hashlib, digest_algorithm, None)
             if digester is None:
                 raise ValueError('Unknow digest method: ' + digest_algorithm)
