@@ -468,7 +468,7 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             # Check parent to see current pair state
             parent = c.execute("SELECT * FROM States WHERE local_path=?", (doc_pair.local_parent_path,)).fetchone()
-            if parent.pair_state == 'locally_deleted' or parent.pair_state == 'parent_locally_deleted':
+            if parent is not None and (parent.pair_state == 'locally_deleted' or parent.pair_state == 'parent_locally_deleted'):
                 current_state = 'parent_locally_deleted'
             else:
                 current_state = 'locally_deleted'
@@ -914,6 +914,7 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute("UPDATE States SET pair_state='conflicted' WHERE id=?",
                       (row.id, ))
+            self.newConflict.emit(row.id)
             if self.auto_commit:
                 con.commit()
         finally:
@@ -955,6 +956,8 @@ class EngineDAO(ConfigurationDAO):
             result = c.rowcount == 1
         if not result:
             log.trace("Was not able to synchronize state: %r", row)
+        elif row.folderish and state == 'synchronized':
+            self.queue_children(row)
         return result
 
     def update_remote_state(self, row, info, remote_parent_path=None, versionned=True):

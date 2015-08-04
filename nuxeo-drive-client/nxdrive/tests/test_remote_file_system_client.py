@@ -1,5 +1,6 @@
 from nxdrive.client import NotFound
 from nxdrive.client import LocalClient
+from nxdrive.tests.common import FS_ITEM_ID_PREFIX
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client.base_automation_client import CorruptedFile
 from shutil import copyfile
@@ -66,7 +67,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(info.download_url is None)
 
         # Check non existing file info
-        fs_item_id = self.FS_ITEM_ID_PREFIX + 'fakeId'
+        fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
         self.assertRaises(NotFound,
             remote_client.get_info, fs_item_id)
         self.assertTrue(
@@ -85,7 +86,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         # Check file without content
         doc_uid = self.remote_document_client_1.make_file(self.workspace,
             'Document 2.txt')
-        fs_item_id = self.FS_ITEM_ID_PREFIX + doc_uid
+        fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
         self.assertRaises(NotFound,
             remote_client.get_content, fs_item_id)
 
@@ -95,14 +96,14 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         # Check file with content
         fs_item_id = remote_client.make_file(self.workspace_id,
             'Document 1.txt', "Content of doc 1.").uid
-        # Monkey patch teh get_info to change hash
+        # Monkey patch the get_info to change hash
         def get_info(fs_item_id, parent_fs_item_id=None,
                  raise_if_missing=True):
             fs_item = remote_client.get_fs_item(fs_item_id,
                                    parent_fs_item_id=parent_fs_item_id)
             fs_item['digest']='aaaaa'
             if hash_method is not None:
-                fs_item['digestAlgorithm'] = hash_method
+                fs_item['digestAlgorithm'] = hash_method.lower()
             if fs_item is None:
                 if raise_if_missing:
                     raise NotFound("Could not find '%s' on '%s'" % (
@@ -262,13 +263,13 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(remote_client.exists(fs_item_id))
 
         # Check non existing file system item (non existing document)
-        fs_item_id = self.FS_ITEM_ID_PREFIX + 'fakeId'
+        fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
         self.assertFalse(remote_client.exists(fs_item_id))
 
         # Check non existing file system item (document without content)
         doc_uid = self.remote_document_client_1.make_file(self.workspace,
             'Document 2.txt')
-        fs_item_id = self.FS_ITEM_ID_PREFIX + doc_uid
+        fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
         self.assertFalse(remote_client.exists(fs_item_id))
 
     # TODO
@@ -309,7 +310,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(fs_item['folder'])
 
         # Check non existing file system item
-        fs_item_id = self.FS_ITEM_ID_PREFIX + 'fakeId'
+        fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
         self.assertTrue(remote_client.get_fs_item(fs_item_id)
                         is None)
 

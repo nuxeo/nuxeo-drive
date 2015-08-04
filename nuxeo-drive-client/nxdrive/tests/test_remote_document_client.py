@@ -5,6 +5,8 @@ from nxdrive.client import NuxeoClient
 from nxdrive.client import Unauthorized
 from nxdrive.client import NotFound
 from nxdrive.client import LocalClient
+from nxdrive.tests.common import SOME_TEXT_CONTENT
+from nxdrive.tests.common import SOME_TEXT_DIGEST
 from nxdrive.tests.common import IntegrationTestCase
 from nose import SkipTest
 
@@ -96,19 +98,21 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         doc_1_info = remote_client.get_info(doc_1)
         self.assertEquals(doc_1_info.name, 'Document 1.txt')
         self.assertEquals(doc_1_info.uid, doc_1)
-        self.assertEquals(doc_1_info.get_digest(), self.EMPTY_DIGEST)
+        self.assertIsNone(doc_1_info.digest_algorithm)
+        self.assertIsNone(doc_1_info.get_digest())
         self.assertEquals(doc_1_info.folderish, False)
 
         doc_2 = remote_client.make_file(self.workspace, 'Document 2.txt',
-                                  content=self.SOME_TEXT_CONTENT)
+                                  content=SOME_TEXT_CONTENT)
 
         self.assertTrue(remote_client.exists(doc_2))
         self.assertEquals(remote_client.get_content(doc_2),
-                          self.SOME_TEXT_CONTENT)
+                          SOME_TEXT_CONTENT)
         doc_2_info = remote_client.get_info(doc_2)
         self.assertEquals(doc_2_info.name, 'Document 2.txt')
         self.assertEquals(doc_2_info.uid, doc_2)
-        self.assertEquals(doc_2_info.get_digest(), self.SOME_TEXT_DIGEST)
+        self.assertEquals(doc_2_info.digest_algorithm, 'md5')
+        self.assertEquals(doc_2_info.get_digest(), SOME_TEXT_DIGEST)
         self.assertEquals(doc_2_info.folderish, False)
 
         remote_client.delete(doc_2)
@@ -134,11 +138,12 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         folder_1_info = remote_client.get_info(folder_1)
         self.assertEquals(folder_1_info.name, 'A new folder')
         self.assertEquals(folder_1_info.uid, folder_1)
-        self.assertEquals(folder_1_info.get_digest(), None)
+        self.assertIsNone(folder_1_info.digest_algorithm)
+        self.assertIsNone(folder_1_info.get_digest())
         self.assertEquals(folder_1_info.folderish, True)
 
         doc_3 = remote_client.make_file(folder_1, 'Document 3.txt',
-                                   content=self.SOME_TEXT_CONTENT)
+                                   content=SOME_TEXT_CONTENT)
         remote_client.delete(folder_1)
         self.assertFalse(remote_client.exists(folder_1))
         wait_for_deletion(remote_client, doc_3)
@@ -151,11 +156,12 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         folder_1_info = remote_client.get_info(folder_1)
         self.assertEquals(folder_1_info.name, 'A new folder')
         self.assertEquals(folder_1_info.uid, folder_1)
-        self.assertEquals(folder_1_info.get_digest(), None)
+        self.assertIsNone(folder_1_info.digest_algorithm)
+        self.assertIsNone(folder_1_info.get_digest())
         self.assertEquals(folder_1_info.folderish, True)
 
         doc_3 = remote_client.make_file(folder_1, 'Document 3.txt',
-                                   content=self.SOME_TEXT_CONTENT)
+                                   content=SOME_TEXT_CONTENT)
         remote_client.delete(folder_1, use_trash=False)
         self.assertFalse(remote_client.exists(folder_1, use_trash=False))
         wait_for_deletion(remote_client, doc_3, use_trash=False)
@@ -331,6 +337,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         local_client = LocalClient(self.upload_tmp_dir)
         doc_info = remote_client.get_info(doc_ref)
         self.assertEquals(doc_info.name, 'Streamed binary file')
+        self.assertEquals(doc_info.digest_algorithm, 'md5')
         self.assertEquals(doc_info.digest,
                           local_client.get_info('/testFile.pdf').get_digest())
 
@@ -346,8 +353,9 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         local_client = LocalClient(self.upload_tmp_dir)
         doc_info = remote_client.get_info(doc_ref)
         self.assertEquals(doc_info.name, 'Streamed binary file')
+        print doc_info.digest_algorithm
         self.assertEquals(doc_info.digest,
-                          local_client.get_info('/testFile.pdf').get_digest())
+                          local_client.get_info('/testFile.pdf').get_digest(digest_func=doc_info.digest_algorithm))
 
     def test_versioning(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")

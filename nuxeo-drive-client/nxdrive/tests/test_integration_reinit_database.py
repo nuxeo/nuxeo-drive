@@ -3,6 +3,7 @@ import time
 import shutil
 from nose.plugins.skip import SkipTest
 
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common import IntegrationTestCase
 
 
@@ -106,7 +107,7 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
     def test_synchronize_local_change(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Modify the local file
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         self.local.update_content('/Test folder/Test.txt',
                                    'Content has changed')
         # Sync
@@ -134,7 +135,7 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
         self.remote.update_content('/Test folder/Test.txt',
                                    'Content has remote changed')
         # Modify the local file
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         self.local.update_content('/Test folder/Test.txt',
                                    'Content has local changed')
         # Sync

@@ -1,5 +1,7 @@
 import time
 
+from nxdrive.tests.common import TEST_WORKSPACE_PATH
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common import IntegrationTestCase
 from nose.plugins.skip import SkipTest
 
@@ -21,7 +23,7 @@ class TestVersioning(IntegrationTestCase):
         self.remote_client_2 = self.remote_document_client_2
 
         # Call the Nuxeo operation to set the versioning delay to 30 seconds
-        self.versioning_delay = self.OS_STAT_MTIME_RESOLUTION * 30
+        self.versioning_delay = OS_STAT_MTIME_RESOLUTION * 30
         self.root_remote_client.execute(
             "NuxeoDrive.SetVersioningOptions",
             delay=str(self.versioning_delay))
@@ -33,7 +35,7 @@ class TestVersioning(IntegrationTestCase):
             "This is version 0")
         self.ndrive(self.ndrive_1)
         doc = self.root_remote_client.fetch(
-            self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
+            TEST_WORKSPACE_PATH + '/Test versioning.txt')
         self._assert_version(doc, 0, 0)
 
         # Synchronize it for user 2
@@ -42,22 +44,22 @@ class TestVersioning(IntegrationTestCase):
         self.assertTrue(self.local_client_2.exists('/Test versioning.txt'))
 
         # Update it as user 2 => should be versioned
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         self.local_client_2.update_content('/Test versioning.txt',
             "Modified content")
         self.ndrive(self.ndrive_2)
         doc = self.root_remote_client.fetch(
-            self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
+            TEST_WORKSPACE_PATH + '/Test versioning.txt')
         self._assert_version(doc, 0, 1)
 
         # Update it as user 2 => should NOT be versioned
         # since the versioning delay is not passed by
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         self.local_client_2.update_content('/Test versioning.txt',
             "Content twice modified")
         self.ndrive(self.ndrive_2)
         doc = self.root_remote_client.fetch(
-            self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
+            TEST_WORKSPACE_PATH + '/Test versioning.txt')
         self._assert_version(doc, 0, 1)
 
         # Wait for versioning delay expiration then update it as user 2 after
@@ -67,7 +69,7 @@ class TestVersioning(IntegrationTestCase):
             "Updated again!!")
         self.ndrive(self.ndrive_2)
         doc = self.root_remote_client.fetch(
-            self.TEST_WORKSPACE_PATH + '/Test versioning.txt')
+            TEST_WORKSPACE_PATH + '/Test versioning.txt')
         self._assert_version(doc, 0, 2)
 
     def test_version_restore(self):

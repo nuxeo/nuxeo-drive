@@ -1,7 +1,6 @@
 import os
-import hashlib
 import tempfile
-import shutil
+import hashlib
 from nose import with_setup
 from nose.tools import assert_true
 from nose.tools import assert_false
@@ -11,16 +10,15 @@ from nose.tools import assert_raises
 
 from nxdrive.client import LocalClient
 from nxdrive.client import NotFound
+from nxdrive.tests.common import EMPTY_DIGEST
+from nxdrive.tests.common import SOME_TEXT_CONTENT
+from nxdrive.tests.common import SOME_TEXT_DIGEST
 from nxdrive.tests.common import clean_dir
 
 
 LOCAL_TEST_FOLDER = None
 TEST_WORKSPACE = None
 lcclient = None
-
-EMPTY_DIGEST = hashlib.md5().hexdigest()
-SOME_TEXT_CONTENT = b"Some text content."
-SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 
 
 def setup_temp_folder():
@@ -222,3 +220,25 @@ def test_get_path():
     abs_path = os.path.join(
                         LOCAL_TEST_FOLDER, 'Some Workspace', 'Test doc.txt')
     assert_equal(lcclient.get_path(abs_path), '/Some Workspace/Test doc.txt')
+
+
+@with_temp_folder
+def test_is_equal_digests():
+    content = b"joe"
+    local_path = lcclient.make_file(TEST_WORKSPACE, u'File.txt', content=content)
+    local_digest = hashlib.md5(content).hexdigest()
+    # Equal digests
+    assert_true(lcclient.is_equal_digests(local_digest, local_digest, local_path))
+    # Different digests with same digest algorithm
+    other_content = b"jack"
+    remote_digest = hashlib.md5(other_content).hexdigest()
+    assert_not_equal(local_digest, remote_digest)
+    assert_false(lcclient.is_equal_digests(local_digest, remote_digest, local_path))
+    # Different digests with different digest algorithms but same content
+    remote_digest = hashlib.sha1(content).hexdigest()
+    assert_not_equal(local_digest, remote_digest)
+    assert_true(lcclient.is_equal_digests(local_digest, remote_digest, local_path))
+    # Different digests with different digest algorithms and different content
+    remote_digest = hashlib.sha1(other_content).hexdigest()
+    assert_not_equal(local_digest, remote_digest)
+    assert_false(lcclient.is_equal_digests(local_digest, remote_digest, local_path))

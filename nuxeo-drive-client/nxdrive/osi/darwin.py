@@ -139,11 +139,17 @@ class DarwinIntegration(AbstractOSIntegration):
         pass
 
     def is_partition_supported(self, folder):
+        if folder is None:
+            return False
         result = False
         to_delete = not os.path.exists(folder)
         try:
             if to_delete:
                 os.mkdir(folder)
+            if not os.access(folder, os.W_OK):
+                import stat
+                os.chmod(folder, stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
+                                stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
             import xattr
             attr = "drive-test"
             xattr.setxattr(folder, attr, attr)
@@ -158,7 +164,7 @@ class DarwinIntegration(AbstractOSIntegration):
                 pass
         return result
 
-    def register_folder_link(self, folder_path):
+    def register_folder_link(self, folder_path, name=None):
         try:
             from LaunchServices import LSSharedFileListCreate
             from LaunchServices import kLSSharedFileListFavoriteItems
@@ -170,7 +176,8 @@ class DarwinIntegration(AbstractOSIntegration):
                         " skipping favorite link creation")
             return
         folder_path = normalized_path(folder_path)
-        folder_name = os.path.basename(folder_path)
+        if not name:
+            name = os.path.basename(folder_path)
 
         lst = LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems,
                                      None)
@@ -187,7 +194,7 @@ class DarwinIntegration(AbstractOSIntegration):
 
         # Register the folder as favorite if not already there
         item = LSSharedFileListInsertItemURL(
-            lst, kLSSharedFileListItemBeforeFirst, folder_name, None, url,
+            lst, kLSSharedFileListItemBeforeFirst, name, None, url,
             {}, [])
         if item is not None:
             log.debug("Registered new favorite in Finder for: %s", folder_path)

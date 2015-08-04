@@ -3,7 +3,7 @@ Created on 27 janv. 2015
 
 @author: Remi Cattiau
 '''
-from PyQt4 import QtCore
+from PyQt4 import QtCore, QtGui
 from nxdrive.logging_config import get_logger
 log = get_logger(__name__)
 
@@ -12,6 +12,8 @@ from nxdrive.wui.authentication import WebAuthenticationApi
 from nxdrive.wui.authentication import WebAuthenticationDialog
 from nxdrive.manager import ProxySettings, FolderAlreadyUsed
 from nxdrive.client.base_automation_client import Unauthorized
+from nxdrive.engine.engine import RootAlreadyBindWithDifferentAccount
+from nxdrive.engine.engine import InvalidDriveException
 from nxdrive.wui.translator import Translator
 from nxdrive.utils import DEVICE_DESCRIPTIONS
 from nxdrive.utils import TOKEN_PERMISSION
@@ -73,7 +75,8 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
         return ""
 
-    def _bind_server(self, local_folder, url, username, password, name, start_engine=True):
+    def _bind_server(self, local_folder, url, username, password, name, start_engine=True, check_fs=True):
+        from collections import namedtuple
         local_folder = str(local_folder.toUtf8()).decode('utf-8')
         url = str(url)
         username = str(username)
@@ -81,14 +84,41 @@ class WebSettingsApi(WebDriveApi):
         name = unicode(name)
         if name == '':
             name = None
-        self._manager.bind_server(local_folder, url, username, password, name=name, start_engine=start_engine)
+        binder = namedtuple('binder', ['username', 'password', 'token', 'url', 'no_check', 'no_fscheck'])
+        binder.username = username
+        binder.password = password
+        binder.token = None
+        binder.no_check = False
+        binder.no_fscheck = not check_fs
+        binder.url = url
+        log.debug("Binder is : %s/%s/%s", binder.url, binder.username, binder.password)
+        self._manager.bind_engine(self._manager._get_default_server_type(), local_folder, name, binder, starts=start_engine)
         return ""
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
-    def bind_server(self, local_folder, url, username, password, name):
+    def bind_server(self, local_folder, url, username, password, name, check_fs=True):
         try:
             # Allow to override for other exception handling
-            return self._bind_server(local_folder, url, username, password, name)
+            log.debug("URL: '%s'", url)
+            return self._bind_server(local_folder, url, username, password, name, check_fs=check_fs)
+        except RootAlreadyBindWithDifferentAccount as e:
+            # Ask for the user
+            values = dict()
+            values["username"] = e.get_username()
+            values["url"] = e.get_url()
+            msgbox = QtGui.QMessageBox(QtGui.QMessageBox.Question,
+                              self._manager.get_appname(),
+                              Translator.get("ROOT_USED_WITH_OTHER_BINDING", values),
+                              QtGui.QMessageBox.NoButton,
+                              self._dialog)
+            msgbox.addButton(Translator.get("ROOT_USED_CONTINUE"), QtGui.QMessageBox.AcceptRole)
+            cancel = msgbox.addButton(Translator.get("ROOT_USED_CANCEL"), QtGui.QMessageBox.RejectRole)
+            msgbox.exec_()
+            if (msgbox.clickedButton() == cancel):
+                return "FOLDER_USED"
+            return self.bind_server(local_folder, url, username, password, name, check_fs=False)
+        except InvalidDriveException:
+            return "INVALID_PARTITION"
         except Unauthorized:
             return "UNAUTHORIZED"
         except FolderAlreadyUsed:

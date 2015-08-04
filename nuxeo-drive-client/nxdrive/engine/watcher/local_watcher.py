@@ -10,7 +10,7 @@ from nxdrive.engine.activity import Action
 from Queue import Queue
 import sys
 import os
-from time import sleep
+from time import sleep, time
 from threading import Lock
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 log = get_logger(__name__)
@@ -56,6 +56,7 @@ class LocalWatcher(EngineWorker):
 
     def _execute(self):
         try:
+            trigger_local_scan = False
             self._init()
             if not self.client.exists('/'):
                 self.rootDeleted.emit()
@@ -68,25 +69,35 @@ class LocalWatcher(EngineWorker):
             self._scan()
             self._end_action()
             # Check windows dequeue only every 100 loops ( every 1s )
-            interval = 100
+            self._win_delete_interval = int(round(time() * 1000))
             while (1):
                 self._interact()
                 sleep(0.01)
-                if self._windows:
-                    interval = interval - 1
-                    if interval > 0:
-                        continue
-                    self._action = Action("Dequeue delete")
-                    self._win_dequeue_delete()
+                if trigger_local_scan:
+                    self._action = Action("Full local scan")
+                    self._scan()
+                    trigger_local_scan = False
                     self._end_action()
-                    interval = 100
                 while (not self._watchdog_queue.empty()):
+                    # Dont retest if already local scan
+                    if not trigger_local_scan and self._watchdog_queue.qsize() > 50:
+                        trigger_local_scan = True
                     evt = self._watchdog_queue.get()
                     self.handle_watchdog_event(evt)
+                    self._win_delete_check()
+                self._win_delete_check()
+
         except ThreadInterrupt:
             raise
         finally:
             self._stop_watchdog()
+
+    def _win_delete_check(self):
+        if self._windows and self._win_delete_interval < int(round(time() * 1000)) - WIN_MOVE_RESOLUTION_PERIOD:
+            self._action = Action("Dequeue delete")
+            self._win_dequeue_delete()
+            self._end_action()
+            self._win_delete_interval = int(round(time() * 1000))
 
     def _win_dequeue_delete(self):
         self._win_lock.acquire()
@@ -517,7 +528,7 @@ class LocalWatcher(EngineWorker):
                 # This might be a move but Windows don't emit this event...
                 if local_info.remote_ref is not None:
                     from_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
-                    if from_pair is not None and from_pair.processor > 0 or from_pair.local_path == rel_path:
+                    if from_pair is not None and (from_pair.processor > 0 or from_pair.local_path == rel_path):
                         # First condition is in process
                         # Second condition is a race condition
                         log.trace("Ignore creation or modification as the coming pair is being processed")
@@ -555,6 +566,7 @@ class DriveFSEventHandler(FileSystemEventHandler):
 
     def on_any_event(self, event):
         self.counter = self.counter + 1
+        log.trace("Queueing watchdog: %r", event)
         self.watcher._watchdog_queue.put(event)
 
 

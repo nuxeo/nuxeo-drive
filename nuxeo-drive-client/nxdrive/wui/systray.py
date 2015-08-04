@@ -142,7 +142,7 @@ class WebSystrayView(WebDialog):
         self._icon = icon
         self._view.setFocusProxy(self)
         self.resize(WebSystrayView.DEFAULT_WIDTH, WebSystrayView.DEFAULT_HEIGHT)
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint);
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Popup | QtCore.Qt.Dialog);
 
     def replace(self):
         log.trace("Icon is %r", self._icon)

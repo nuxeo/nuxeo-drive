@@ -4,6 +4,8 @@ import sys
 
 from nxdrive.client import LocalClient
 from shutil import copyfile
+from nxdrive.tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common_unit_test import UnitTestCase
 
 
@@ -35,7 +37,7 @@ class TestWindows(UnitTestCase):
 
         # Copy the oldest file to the root workspace and synchronize it.
         # First wait a bit for file time stamps to increase enough.
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         copyfile(os.path.join(self.local_test_folder_1, 'test.odt'),
                  os.path.join(sync_root, 'test.odt'))
         self.wait_sync()
@@ -78,7 +80,7 @@ class TestWindows(UnitTestCase):
         # Update /delete existing remote files and create a new remote file
         # Wait for 1 second to make sure the file's last modification time
         # will be different from the pair state's last remote update time
-        time.sleep(self.REMOTE_MODIFICATION_TIME_RESOLUTION)
+        time.sleep(REMOTE_MODIFICATION_TIME_RESOLUTION)
         remote.update_content('/test_update.docx', 'Updated content.')
         remote.delete('/test_delete.docx')
         remote.make_file('/', 'other.docx', 'Other content.')

@@ -108,7 +108,11 @@ LABELS={
 		"REPORT_GENERATED": "Report generated:<br />{{ path }}",
 		"BROWSE_DIALOG_CAPTION": "Select Nuxeo Drive folder location",
 		"NO_CONFLICTS_TITLE": "No conflicts or errors left",
-		"NO_CONFLICTS_BODY": "You have resolved all conflicts and errors remaining"
+		"NO_CONFLICTS_BODY": "You have resolved all conflicts and errors remaining",
+        "INVALID_PARTITION": "This type of partition is not supported",
+        "ROOT_USED_WITH_OTHER_BINDING": "This folder has been synced with {{ username }} on {{ url }}, do you want to continue ?",
+        "ROOT_USED_CONTINUE": "Continue",
+        "ROOT_USED_CANCEL": "Cancel"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -219,6 +223,10 @@ LABELS={
 		"REPORT_GENERATED": "Rapport généré :<br />{{ path }}",
 		"BROWSE_DIALOG_CAPTION": "Choisir un dossier",
 		"NO_CONFLICTS_TITLE": "Aucun conflit ou erreur",
-		"NO_CONFLICTS_BODY": "Vous avez résolu tout les conflits ou erreurs"
+		"NO_CONFLICTS_BODY": "Vous avez résolu tout les conflits ou erreurs",
+		"INVALID_PARTITION": "Ce type de partition n'est pas supporté",
+        "ROOT_USED_WITH_OTHER_BINDING": "Ce dossier a été synchronisé avec l'utilisateur {{ username }} sur le server {{ url }}, voulez vous continuer ?",
+        "ROOT_USED_CONTINUE": "Continuer",
+        "ROOT_USED_CANCEL": "Annuler"
 	}
 }

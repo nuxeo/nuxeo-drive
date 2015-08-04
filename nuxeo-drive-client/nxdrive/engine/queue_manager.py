@@ -219,7 +219,7 @@ class QueueManager(QObject):
                       WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE,
                       exception.strerror if hasattr(exception, 'strerror') else '')
             error_count = 1
-        if error_count >= self._error_threshold:
+        if error_count > self._error_threshold:
             log.debug("Giving up on pair : %r", doc_pair)
             return
         interval = self._error_interval * error_count
@@ -394,7 +394,7 @@ class QueueManager(QObject):
         if self._remote_file_thread is None and not self._remote_file_queue.empty() and self._remote_file_enable:
             log.debug("creating remote file processor")
             self._remote_file_thread = self._create_thread(self._get_remote_file, name="RemoteFileProcessor")
-        if self._remote_file_queue.qsize() + self._local_file_queue.qsize() <= 2:
+        if self._remote_file_queue.qsize() + self._local_file_queue.qsize() == 0:
             return
         while len(self._processors_pool) < self._max_processors:
             log.debug("creating additional file processor")

@@ -3,6 +3,8 @@ import time
 from threading import Thread
 from nose.plugins.skip import SkipTest
 
+from nxdrive.tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
 
@@ -259,7 +261,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         test_folder_ref = remote._check_ref('/Test folder')
         # Wait for 1 second to make sure the folder's last modification time
         # will be different from the pair state's last remote update time
-        time.sleep(self.REMOTE_MODIFICATION_TIME_RESOLUTION)
+        time.sleep(REMOTE_MODIFICATION_TIME_RESOLUTION)
         remote.update(test_folder_ref,
                       properties={'dc:description': 'Some description.'})
         test_folder = remote.fetch(test_folder_ref)
@@ -315,7 +317,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
 
         # Locally update the file content and remotely update one of its
         # properties concurrently, then synchronize
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/Nuxeo Drive Test Workspace/test.odt',
                              'Updated content.')
         self.assertEquals(local.get_content(
@@ -324,7 +326,7 @@ class TestIntegrationConcurrentSynchronization(IntegrationTestCase):
         test_file_ref = remote._check_ref('/test.odt')
         # Wait for 1 second to make sure the file's last modification time
         # will be different from the pair state's last remote update time
-        time.sleep(self.REMOTE_MODIFICATION_TIME_RESOLUTION)
+        time.sleep(REMOTE_MODIFICATION_TIME_RESOLUTION)
         remote.update(test_file_ref,
                       properties={'dc:description': 'Some description.'})
         test_file = remote.fetch(test_file_ref)

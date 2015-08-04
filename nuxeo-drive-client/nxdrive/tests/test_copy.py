@@ -1,8 +1,8 @@
 
-from nxdrive.tests.common import IntegrationTestCase
+from nxdrive.tests.common_unit_test import UnitTestCase
 
 
-class TestCopy(IntegrationTestCase):
+class TestCopy(UnitTestCase):
 
     def test_synchronize_remote_copy(self):
         local = self.local_client_1
@@ -13,7 +13,8 @@ class TestCopy(IntegrationTestCase):
         remote.make_folder('/', 'Test folder')
 
         # Launch ndrive and check synchronization
-        self.setUpDrive_1(firstSync=True)
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/test.odt'))
@@ -22,7 +23,7 @@ class TestCopy(IntegrationTestCase):
         remote.copy('/test.odt', '/Test folder')
 
         # Launch ndrive and check synchronization
-        self.ndrive()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder/test.odt'))
         self.assertEquals(local.get_content('/Test folder/test.odt'),
                           'Some content.')

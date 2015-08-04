@@ -1,6 +1,7 @@
 import time
-import sys
 
+from nxdrive.tests.common import TEST_WORKSPACE_PATH
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nose.plugins.skip import SkipTest
 
@@ -43,14 +44,14 @@ class TestSecurityUpdates(UnitTestCase):
         # Remove Read permission for test user on a regular folder
         # then synchronize
         self._set_read_permission("nuxeoDriveTestUser_user_1",
-                                  self.TEST_WORKSPACE_PATH + '/Test folder',
+                                  TEST_WORKSPACE_PATH + '/Test folder',
                                   False)
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test folder'))
 
         # Add Read permission back for test user then synchronize
         self._set_read_permission("nuxeoDriveTestUser_user_1",
-                                  self.TEST_WORKSPACE_PATH + '/Test folder',
+                                  TEST_WORKSPACE_PATH + '/Test folder',
                                   True)
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
@@ -59,14 +60,14 @@ class TestSecurityUpdates(UnitTestCase):
         # Remove Read permission for test user on a sync root
         # then synchronize
         self._set_read_permission("nuxeoDriveTestUser_user_1",
-                                  self.TEST_WORKSPACE_PATH,
+                                  TEST_WORKSPACE_PATH,
                                   False)
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/'))
 
         # Add Read permission back for test user then synchronize
         self._set_read_permission("nuxeoDriveTestUser_user_1",
-                                  self.TEST_WORKSPACE_PATH,
+                                  TEST_WORKSPACE_PATH,
                                   True)
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/'))
@@ -126,11 +127,11 @@ class TestSecurityUpdates(UnitTestCase):
 
         # Remove Read permission for test user on a regular folder
         # and make some local and remote changes concurrently then synchronize
-        test_folder_path = self.TEST_WORKSPACE_PATH + '/Test folder'
+        test_folder_path = TEST_WORKSPACE_PATH + '/Test folder'
         self._set_read_permission("nuxeoDriveTestUser_user_1",
                                   test_folder_path, False)
         # Local changes
-        time.sleep(self.OS_STAT_MTIME_RESOLUTION)
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
         # Create new file
         local.make_file('/Test folder', 'local.odt', 'New local content')
         # Create new folder with files
@@ -213,7 +214,7 @@ class TestSecurityUpdates(UnitTestCase):
 
         # Add Read permission back for test user then synchronize
         self._set_read_permission("nuxeoDriveTestUser_user_1",
-                                  self.TEST_WORKSPACE_PATH + '/Test folder',
+                                  TEST_WORKSPACE_PATH + '/Test folder',
                                   True)
         self.wait_sync(wait_for_async=True)
         # Remote documents should be merged with locally modified content
@@ -270,13 +271,13 @@ class TestSecurityUpdates(UnitTestCase):
         self.assertTrue(remote_version is not None)
         self.assertTrue(local_version is not None)
         remote_version_ref_length = (len(remote_version.path)
-                                     - len(self.TEST_WORKSPACE_PATH))
+                                     - len(TEST_WORKSPACE_PATH))
         remote_version_ref = remote_version.path[-remote_version_ref_length:]
         self.assertTrue(remote.exists(remote_version_ref))
         self.assertEquals(remote.get_content(remote_version_ref),
                           'Some remotely updated content')
         local_version_ref_length = (len(local_version.path)
-                                     - len(self.TEST_WORKSPACE_PATH))
+                                     - len(TEST_WORKSPACE_PATH))
         local_version_ref = local_version.path[-local_version_ref_length:]
         self.assertTrue(remote.exists(local_version_ref))
         self.assertEquals(remote.get_content(local_version_ref),

@@ -4,7 +4,6 @@
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.workers import Worker, ThreadInterrupt
 from nxdrive.engine.blacklist_queue import BlacklistQueue
-from urllib2 import HTTPError
 from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler, normalize_event_filename
 from nxdrive.engine.activity import Action
 from nxdrive.client.local_client import LocalClient
@@ -12,6 +11,7 @@ from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import safe_filename, NotFound
 from nxdrive.utils import force_decode
+from nxdrive.utils import guess_digest_algorithm
 import os
 import sys
 import urllib2
@@ -96,7 +96,7 @@ class DriveEdit(Worker):
             shutil.copy(local_client._abspath(pair.local_path), file_out)
         else:
             if url is not None:
-                remote_client.do_get(url, file_out=file_out)
+                remote_client.do_get(url, file_out=file_out, digest=info.digest, digest_algorithm=info.digest_algorithm)
             else:
                 remote_client.get_blob(info.uid, file_out=file_out)
         return file_out
@@ -147,7 +147,13 @@ class DriveEdit(Worker):
         self._local_client.set_remote_id(dir_path, server_url, "nxdriveedit")
         if user is not None:
             self._local_client.set_remote_id(dir_path, user, "nxdriveedituser")
-        self._local_client.set_remote_id(dir_path, info.digest, "nxdriveeditdigest")
+        if info.digest is not None:
+            self._local_client.set_remote_id(dir_path, info.digest, "nxdriveeditdigest")
+            # Set digest algorithm if not sent by the server
+            digest_algorithm = info.digest_algorithm
+            if digest_algorithm is None:
+                digest_algorithm = guess_digest_algorithm(info.digest)
+            self._local_client.set_remote_id(dir_path, digest_algorithm, "nxdriveeditdigestalgorithm")
         self._local_client.set_remote_id(dir_path, filename, "nxdriveeditname")
         # Rename to final filename
         # Under Windows first need to delete target file if exists, otherwise will get a 183 WindowsError
@@ -185,17 +191,18 @@ class DriveEdit(Worker):
             engine = self._get_engine(server_url, user=user)
             remote_client = engine.get_remote_doc_client()
             remote_client.check_suspended = self.stop_client
+            digest_algorithm = self._local_client.get_remote_id(dir_path, "nxdriveeditdigestalgorithm")
             digest = self._local_client.get_remote_id(dir_path, "nxdriveeditdigest")
             # Don't update if digest are the same
             info = self._local_client.get_info(ref)
             try:
-                if info.get_digest() == digest:
+                if info.get_digest(digest_func=digest_algorithm) == digest:
                     continue
-                # TO_REVIEW Should check if blob has changed ?
-                # Update the document - should verify the hash - NXDRIVE-187
+                # TO_REVIEW Should check if server-side blob has changed ?
+                # Update the document - should verify the remote hash - NXDRIVE-187
                 log.debug('Uploading file %s for user %s', self._local_client._abspath(ref),
                           user)
-                remote_client.stream_update(uid, self._local_client._abspath(ref))
+                remote_client.stream_update(uid, self._local_client._abspath(ref), apply_versioning_policy=True)
             except ThreadInterrupt:
                 raise
             except Exception as e:

@@ -104,8 +104,7 @@ def version_compare(x, y):
         y_date_based = 'I' in y_number
         x_snapshot = 'SNAPSHOT' in x_number
         y_snapshot = 'SNAPSHOT' in y_number
-        if (not x_date_based and not x_snapshot
-            and (y_date_based or y_snapshot)):
+        if (not x_date_based and not x_snapshot and (y_date_based or y_snapshot)):
             # y is date-based or snapshot, x is not
             x_number = int(x_number)
             y_number = int(re.sub(ur'-(I.*|SNAPSHOT)', '', y_number))
@@ -158,6 +157,7 @@ def version_compare(x, y):
     if y_numbers:
         return -1
     return 0
+
 
 def normalized_path(path):
     """Return absolute, normalized file path."""
@@ -259,8 +259,7 @@ def find_resource_dir(directory, default_path):
     dir_path = default_path
     if app_resources in nxdrive_path:
         # OSX frozen distribution, bundled as an app
-        dir_path = re.sub(app_resources + ".*", app_resources + directory,
-                             nxdrive_path)
+        dir_path = re.sub(app_resources + ".*", app_resources + directory, nxdrive_path)
 
     elif nxdrive_path.endswith(cxfreeze_suffix):
         # cx_Freeze frozen distribution of nxdrive, data is out of the zip
@@ -327,9 +326,18 @@ def guess_mime_type(filename):
         log.trace("Guessed mime type '%s' for '%s'", mime_type, filename)
         return mime_type
     else:
-        log.trace("Could not guess mime type for '%s', returing"
-            " 'application/octet-stream'", filename)
+        log.trace("Could not guess mime type for '%s', returing 'application/octet-stream'", filename)
         return "application/octet-stream"
+
+
+def guess_digest_algorithm(digest):
+    # For now only md5 and sha1 are supported
+    if len(digest) == 32:
+        return 'md5'
+    elif len(digest) == 40:
+        return 'sha1'
+    else:
+        raise Exception('Unknown digest algorithm for %s' % digest)
 
 
 def _patch_win32_mime_type(mime_type):
@@ -364,14 +372,13 @@ class ServerLoader(object):
             existing_childs[path] = child
         for child in childs:
             child_uid = None
-            if not child.path in existing_childs:
+            if child.path not in existing_childs:
                 if child.folderish:
                     print "Making folder: %s" % child.path
                     child_uid = self._remote_client.make_folder(remote_uid, child.name)
                 else:
                     print "Making file: %s" % child.path
-                    self._remote_client.stream_file(remote_uid,
-                                    self._local_client._abspath(child.path))
+                    self._remote_client.stream_file(remote_uid, self._local_client._abspath(child.path))
             else:
                 child_uid = existing_childs[child.path].uid
             if child.folderish:
@@ -453,9 +460,7 @@ class PidLockFile(object):
     def lock(self):
         pid = self.check_running(process_name=self.key)
         if pid is not None:
-            log.warning(
-                    "%s process with pid %d already running.",
-                    self.key, pid)
+            log.warning("%s process with pid %d already running.", self.key, pid)
             return pid
 
         # Write the pid of this process

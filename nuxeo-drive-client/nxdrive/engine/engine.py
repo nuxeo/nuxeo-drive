@@ -25,6 +25,22 @@ import urllib2
 log = get_logger(__name__)
 
 
+class InvalidDriveException(Exception):
+    pass
+
+
+class RootAlreadyBindWithDifferentAccount(Exception):
+
+    def __init__(self, username, url):
+        self._username = username
+        self._url = url
+
+    def get_username(self):
+        return self._username
+
+    def get_url(self):
+        return self._url
+
 class FsMarkerException(Exception):
     pass
 
@@ -95,6 +111,7 @@ class Engine(QObject):
     rootDeleted = pyqtSignal()
     rootMoved = pyqtSignal(str)
     invalidAuthentication = pyqtSignal()
+    invalidClientsCache = pyqtSignal()
     newConflict = pyqtSignal(object)
     newSync = pyqtSignal(object, object)
     newError = pyqtSignal(object)
@@ -166,7 +183,7 @@ class Engine(QObject):
         # Connect components signals to engine signals
         self._queue_manager.newItem.connect(self.newQueueItem)
         self._queue_manager.newError.connect(self.newError)
-        self._dao.newConflict.connect(self.newConflict)
+        self._dao.newConflict.connect(self.conflict_resolver)
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
         # Set the root icon
@@ -561,6 +578,21 @@ class Engine(QObject):
     def get_conflicts(self):
         return self._dao.get_conflicts()
 
+    def conflict_resolver(self, row_id):
+        try:
+            pair = self._dao.get_state_from_id(row_id)
+            local_client = self.get_local_client()
+            parent_ref = local_client.get_remote_id(pair.local_parent_path)
+            if (pair.remote_name == pair.local_name
+                and local_client.is_equal_digests(pair.local_digest, pair.remote_digest, pair.local_path)
+                    and pair.remote_parent_ref == parent_ref):
+                self._dao.synchronize_state(pair)
+            else:
+                # Raise conflict only if not resolvable
+                self.newConflict.emit(row_id)
+        except Exception:
+            pass
+
     def get_errors(self):
         return self._dao.get_errors()
 
@@ -636,11 +668,29 @@ class Engine(QObject):
         check_credential = True
         if hasattr(binder, 'no_check') and binder.no_check:
             check_credential = False
+        check_fs = True
+        if hasattr(binder, 'no_fscheck') and binder.no_fscheck:
+            check_fs = False
         self._server_url = self._normalize_url(binder.url)
         self._remote_user = binder.username
         self._remote_password = binder.password
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
+        if check_fs:
+            created_folder = False
+            try:
+                if not os.path.exists(self._local_folder):
+                    os.mkdir(self._local_folder)
+                    created_folder = True
+                self._check_fs(self._local_folder)
+            except Exception as e:
+                try:
+                    if created_folder:
+                        os.rmdir(self._local_folder)
+                except:
+                    # Ignore any removal exception
+                    pass
+                raise e
         nxclient = None
         if check_credential:
             nxclient = self.remote_doc_client_factory(
@@ -667,6 +717,18 @@ class Engine(QObject):
             # If the top level state for the server binding doesn't exist,
             # create the local folder and the top level state.
             self._check_root()
+
+    def _check_fs(self, path):
+        if not self._manager.get_osi().is_partition_supported(path):
+            raise InvalidDriveException()
+        if os.path.exists(path):
+            local_client = self.get_local_client()
+            root_id = local_client.get_root_id()
+            if root_id is not None:
+                # server_url|user|device_id|uid
+                token = root_id.split("|")
+                if (self._server_url != token[0] or self._remote_user != token[1]):
+                    raise RootAlreadyBindWithDifferentAccount(token[1], token[0])
 
     def _check_root(self):
         root = self._dao.get_state_from_local("/")
@@ -707,7 +769,9 @@ class Engine(QObject):
 
     @pyqtSlot()
     def invalidate_client_cache(self):
+        log.debug("Invalidate client cache")
         self._remote_clients.clear()
+        self.invalidClientsCache.emit()
 
     def _set_root_icon(self):
         local_client = self.get_local_client()

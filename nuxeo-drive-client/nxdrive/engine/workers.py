@@ -157,8 +157,10 @@ class EngineWorker(Worker):
     def __init__(self, engine, dao, thread=None, name=None):
         super(EngineWorker, self).__init__(thread, name)
         self._engine = engine
+        self._engine.invalidClientsCache.connect(self._reset_clients)
         self._dao = dao
 
+    @pyqtSlot()
     def _reset_clients(self):
         pass
 

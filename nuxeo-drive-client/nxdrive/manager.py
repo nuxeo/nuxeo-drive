@@ -117,7 +117,11 @@ class ProxySettings(object):
             result = self.proxy_type + "://"
         if with_credentials and self.authenticated:
             result = result + self.username + ":" + self.password + "@"
-        result = result + self.server + ":" + str(self.port)
+        if self.server is not None:
+            if self.port is None:
+                result = result + self.server
+            else:
+                result = result + self.server + ":" + str(self.port)
         return result
 
     def set_exceptions(self, exceptions):
@@ -378,6 +382,7 @@ class Manager(QtCore.QObject):
                 row.username = row.remote_user
                 row.password = None
                 row.token = row.remote_token
+                row.no_fscheck = True
                 engine = self.bind_engine(self._get_default_server_type(), row["local_folder"],
                                           self._get_engine_name(row.url), row, starts=False)
                 log.trace("Resulting server binding remote_token %r", row.remote_token)
@@ -783,11 +788,12 @@ class Manager(QtCore.QObject):
         from collections import namedtuple
         if name is None:
             name = self._get_engine_name(url)
-        binder = namedtuple('binder', ['username', 'password', 'token', 'url', 'no_check'])
+        binder = namedtuple('binder', ['username', 'password', 'token', 'url', 'no_check', 'no_fscheck'])
         binder.username = username
         binder.password = password
         binder.token = token
         binder.no_check = not check_credentials
+        binder.no_fscheck = False
         binder.url = url
         return self.bind_engine(self._get_default_server_type(), local_folder, name, binder, starts=start_engine)
 
@@ -811,6 +817,8 @@ class Manager(QtCore.QObject):
 
     def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
         """Bind a local folder to a remote nuxeo server"""
+        if name is None and hasattr(binder, 'url'):
+            name = self._get_engine_name(binder.url)
         if not self.check_local_folder_available(local_folder):
             raise FolderAlreadyUsed()
         if not engine_type in self._engine_types:

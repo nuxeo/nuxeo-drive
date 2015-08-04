@@ -2,6 +2,7 @@ import os
 import time
 import sys
 
+from nxdrive.tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
@@ -198,7 +199,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # the same digest but do not live in the same folder
         # Wait for 1 second to make sure the file's last modification time
         # will be different from the pair state's last remote update time
-        time.sleep(self.REMOTE_MODIFICATION_TIME_RESOLUTION)
+        time.sleep(REMOTE_MODIFICATION_TIME_RESOLUTION)
         remote_client.rename(self.file_1_id, 'Renamed Again File 1.txt')
         self.assertEquals(remote_client.get_info(self.file_1_id).name,
             u'Renamed Again File 1.txt')

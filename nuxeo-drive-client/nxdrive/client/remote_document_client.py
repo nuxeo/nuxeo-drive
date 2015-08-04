@@ -3,7 +3,6 @@
 import unicodedata
 from collections import namedtuple
 from datetime import datetime
-import hashlib
 import os
 import urllib2
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
@@ -36,10 +35,11 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'folderish',  # True is can host child documents
     'last_modification_time',  # last update time
     'last_contributor',  # last contributor
-    'digest',  # digest of the document
+    'digest_algorithm',  # digest algorithm of the document's blob
+    'digest',  # digest of the document's blob
     'repository',  # server repository name
     'doc_type',  # Nuxeo document type
-    'version', # Nuxeo version
+    'version',  # Nuxeo version
     # TODO: add filename?
 ])
 
@@ -174,12 +174,14 @@ class RemoteDocumentClient(BaseAutomationClient):
             filename = self.get_info(ref).name
         self.attach_blob(self._check_ref(ref), content, filename)
 
-    def stream_update(self, ref, file_path, filename=None, mime_type=None):
+    def stream_update(self, ref, file_path, filename=None, mime_type=None, apply_versioning_policy=False):
         """Update a document by streaming the file with the given path"""
         ref = self._check_ref(ref)
-        self.execute_with_blob_streaming("Blob.Attach", file_path,
-                                         filename=filename, document=ref,
-                                         mime_type=mime_type)
+        op_name = 'NuxeoDrive.AttachBlob' if self.is_nuxeo_drive_attach_blob() else 'Blob.Attach'
+        params = {'document': ref}
+        if self.is_nuxeo_drive_attach_blob():
+            params.update({'applyVersioningPolicy': apply_versioning_policy})
+        self.execute_with_blob_streaming(op_name, file_path, filename=filename, mime_type=mime_type, **params)
 
     def delete(self, ref, use_trash=True):
         op_input = "doc:" + self._check_ref(ref)
@@ -249,15 +251,17 @@ class RemoteDocumentClient(BaseAutomationClient):
 
         # TODO: support other main files
         if folderish:
+            digestAlgorithm = None
             digest = None
         else:
             blob = props.get('file:content')
             if blob is None:
-                # Be consistent with empty files on the local filesystem
-                # TODO: find a way to introspect which hash function to use
-                # from the repository configuration
-                digest = hashlib.md5().hexdigest()
+                digestAlgorithm = None
+                digest = None
             else:
+                digestAlgorithm = blob.get('digestAlgorithm')
+                if digestAlgorithm is not None:
+                    digestAlgorithm = digestAlgorithm.lower().replace('-', '')
                 digest = blob.get('digest')
 
         # XXX: we need another roundtrip just to fetch the parent uid...
@@ -275,7 +279,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
             doc['path'], folderish, last_update, lastContributor,
-            digest, self.repository, doc['type'], version)
+            digestAlgorithm, digest, self.repository, doc['type'], version)
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):

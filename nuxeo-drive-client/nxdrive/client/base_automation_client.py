@@ -22,6 +22,7 @@ from nxdrive.engine.activity import Action, FileAction
 from nxdrive.utils import DEVICE_DESCRIPTIONS
 from nxdrive.utils import TOKEN_PERMISSION
 from nxdrive.utils import guess_mime_type
+from nxdrive.utils import guess_digest_algorithm
 from nxdrive.utils import force_decode
 from urllib2 import ProxyHandler
 from urlparse import urlparse
@@ -54,18 +55,19 @@ def get_proxies_for_handler(proxy_settings):
     else:
         # Manual proxy settings, build proxy string and exceptions list
         if proxy_settings.authenticated:
-            proxy_string = ("%s://%s:%s@%s:%s") % (
-                                proxy_settings.proxy_type,
+            proxy_string = ("%s:%s@%s:%s") % (
                                 proxy_settings.username,
                                 proxy_settings.password,
                                 proxy_settings.server,
                                 proxy_settings.port)
         else:
-            proxy_string = ("%s://%s:%s") % (
-                                proxy_settings.proxy_type,
+            proxy_string = ("%s:%s") % (
                                 proxy_settings.server,
                                 proxy_settings.port)
-        proxies = {proxy_settings.proxy_type: proxy_string}
+        if proxy_settings.proxy_type is None:
+            proxies = {'http': proxy_string, 'https': proxy_string}
+        else:
+            proxies = {proxy_settings.proxy_type: ("%s://%s" % (proxy_settings.proxy_type, proxy_string))}
         if proxy_settings.exceptions and proxy_settings.exceptions.strip():
             proxy_exceptions = [e.strip() for e in
                                 proxy_settings.exceptions.split(',')]
@@ -395,6 +397,8 @@ class BaseAutomationClient(BaseClient):
                       ' transaction timeout for batch execution of %s'
                       ' with file %s', tx_timeout, DEFAULT_NUXEO_TX_TIMEOUT,
                       upload_duration, command, file_path)
+            if upload_duration > 0:
+                log.trace("Speed for %d o is %d s : %f o/s", os.stat(file_path).st_size, upload_duration, os.stat(file_path).st_size / upload_duration)
             if upload_result['uploaded'] == 'true':
                 result = self.execute_batch(command, batch_id, '0', tx_timeout,
                                           **params)
@@ -484,6 +488,9 @@ class BaseAutomationClient(BaseClient):
 
     def is_elasticsearch_audit(self):
         return 'NuxeoDrive.WaitForElasticsearchCompletion' in self.operations
+
+    def is_nuxeo_drive_attach_blob(self):
+        return 'NuxeoDrive.AttachBlob' in self.operations
 
     def request_token(self, revoke=False):
         """Request and return a new token for the user"""
@@ -675,9 +682,11 @@ class BaseAutomationClient(BaseClient):
                 current_action.progress += buffer_size
             yield r
 
-    def do_get(self, url, file_out=None, digest=None, digest_algorithm='md5'):
+    def do_get(self, url, file_out=None, digest=None, digest_algorithm=None):
         h = None
-        if digest_algorithm is not None:
+        if digest is not None:
+            if digest_algorithm is None:
+                digest_algorithm = guess_digest_algorithm(digest)
             digester = getattr(hashlib, digest_algorithm, None)
             if digester is None:
                 raise ValueError('Unknow digest method: ' + digest_algorithm)

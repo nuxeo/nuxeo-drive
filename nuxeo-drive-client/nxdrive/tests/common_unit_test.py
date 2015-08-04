@@ -1,8 +1,8 @@
 """Common test utilities"""
 import os
 import unittest
+import sys
 import tempfile
-import hashlib
 
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
@@ -10,6 +10,7 @@ from nxdrive.client import LocalClient
 from nxdrive.manager import Manager
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
+from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.tests.common import TEST_DEFAULT_DELAY
 from nxdrive.tests.common import clean_dir
 from nxdrive import __version__
@@ -86,29 +87,6 @@ class TestQApplication(QtCore.QCoreApplication):
 
 
 class UnitTestCase(unittest.TestCase):
-
-    TEST_WORKSPACE_PATH = (
-        u'/default-domain/workspaces/nuxeo-drive-test-workspace')
-    FS_ITEM_ID_PREFIX = u'defaultFileSystemItemFactory#default#'
-
-    EMPTY_DIGEST = hashlib.md5().hexdigest()
-    SOME_TEXT_CONTENT = b"Some text content."
-    SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
-
-    # 1s time resolution as we truncate remote last modification time to the
-    # seconds in RemoteFileSystemClient.file_to_info() because of the datetime
-    # resolution of some databases (MySQL...)
-    REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
-
-    # 1s resolution on HFS+ on OSX
-    # 2s resolution on FAT but can be ignored as no Jenkins is running the test
-    # suite under windows on FAT partitions
-    # ~0.01s resolution for NTFS
-    # 0.001s for EXT4FS
-    OS_STAT_MTIME_RESOLUTION = 1.0
-
-    # Nuxeo max length for document name
-    DOC_NAME_MAX_LENGTH = 24
 
     def setUpApp(self, server_profile=None):
         # Check the Nuxeo server test environment
@@ -206,7 +184,7 @@ class UnitTestCase(unittest.TestCase):
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
-        ws_info = root_remote_client.fetch(self.TEST_WORKSPACE_PATH)
+        ws_info = root_remote_client.fetch(TEST_WORKSPACE_PATH)
         self.workspace = ws_info[u'uid']
         self.workspace_title = ws_info[u'title']
 
@@ -260,11 +238,15 @@ class UnitTestCase(unittest.TestCase):
         self._no_remote_changes = {self.engine_1.get_uid(): False, self.engine_2.get_uid(): False}
 
     def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True,
-                  wait_for_engine_1=True, wait_for_engine_2=False):
+                  wait_for_engine_1=True, wait_for_engine_2=False, wait_win=False):
         log.debug("Wait for sync")
         # First wait for server if needed
         if wait_for_async:
             self.wait()
+        if sys.platform == "win32" and wait_win:
+            from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
+            log.trace("Need to wait for Windows delete resolution")
+            sleep(WIN_MOVE_RESOLUTION_PERIOD/1000)
         self._wait_sync = {
             self.engine_1.get_uid(): wait_for_engine_1,
             self.engine_2.get_uid(): wait_for_engine_2

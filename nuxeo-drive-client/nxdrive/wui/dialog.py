@@ -6,7 +6,7 @@ Created on 28 janv. 2015
 TODO: Find a better way for the try/catch on slot
 '''
 from PyQt4 import QtGui, QtCore, QtWebKit, QtNetwork
-from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory
+from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QSslCertificate
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import FileAction, Action
 from nxdrive.client.base_automation_client import Unauthorized
@@ -22,6 +22,7 @@ from nxdrive.engine.engine import Engine
 from nxdrive.notification import Notification
 from nxdrive.engine.workers import Worker
 from nxdrive.engine.dao.sqlite import StateRow
+from dateutil.tz import tzlocal
 log = get_logger(__name__)
 
 
@@ -111,7 +112,8 @@ class WebDriveApi(QtCore.QObject):
             if date_time == 0:
                 result["last_sync_date"] = ""
             else:
-                result["last_sync_date"] = Translator.format_datetime(date_time)
+                # As date_time is in UTC
+                result["last_sync_date"] = Translator.format_datetime(date_time + tzlocal._dst_offset)
         except Exception as e:
             log.exception(e)
         result["name"] = state.local_name
@@ -653,6 +655,7 @@ class WebDialog(QtGui.QDialog):
         else:
             filename = page
         self.networkManager = TokenNetworkAccessManager(application, token)
+        self.networkManager.sslErrors.connect(self._sslErrorHandler)
         self._view.page().setNetworkAccessManager(self.networkManager)
         # If connect to a remote page add the X-Authentication-Token
         if filename.startswith("http"):
@@ -682,6 +685,20 @@ class WebDialog(QtGui.QDialog):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
         self.activateWindow()
+
+    def _sslErrorHandler(self, reply, errorList):
+        log.warn('--- Bypassing SSL errors listed below ---')
+        for error in errorList:
+            certificate = error.certificate()
+            o = str(certificate.issuerInfo(QSslCertificate.Organization))
+            cn = str(certificate.issuerInfo(QSslCertificate.CommonName))
+            l = str(certificate.issuerInfo(QSslCertificate.LocalityName))
+            ou = str(certificate.issuerInfo(QSslCertificate.OrganizationalUnitName))
+            c = str(certificate.issuerInfo(QSslCertificate.CountryName))
+            st = str(certificate.issuerInfo(QSslCertificate.StateOrProvinceName))
+            log.warn('%s, certificate: [o=%s, cn=%s, l=%s, ou=%s, c=%s, st=%s]', str(error.errorString()),
+                     o, cn, l, ou, c, st)
+        reply.ignoreSslErrors()
 
     def _set_proxy(self, manager):
         proxy_settings = manager.get_proxy_settings()

@@ -149,6 +149,11 @@ class WindowsIntegration(AbstractOSIntegration):
             [(app_name, _winreg.REG_SZ, exe_path)],
         )
 
+    def is_same_partition(self, folder1, folder2):
+        import win32file
+        volume = win32file.GetVolumePathName(folder1)
+        return volume == win32file.GetVolumePathName(folder2)
+
     def is_partition_supported(self, folder):
         if folder[-1] != os.path.sep:
             folder = folder + os.path.sep
@@ -166,7 +171,7 @@ class WindowsIntegration(AbstractOSIntegration):
             _winreg.DeleteKey(reg, self.get_menu_key())
             _winreg.DeleteKey(reg, self.get_menu_parent_key())
 
-    def register_folder_link(self, name, folder_path):
+    def register_folder_link(self, folder_path, name=None):
         file_lnk = self._get_folder_link(name)
         self._create_shortcut(file_lnk, folder_path)
 
@@ -192,7 +197,7 @@ class WindowsIntegration(AbstractOSIntegration):
         from win32com.shell import shell, shellcon
         return shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
 
-    def _create_shortcut(self, link, filepath, iconpath, description=None):
+    def _create_shortcut(self, link, filepath, iconpath=None, description=None):
         import pythoncom
         from win32com.shell import shell, shellcon
 
