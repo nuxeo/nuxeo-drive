@@ -16,6 +16,11 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.workers import Worker, ThreadInterrupt, PairInterrupt
 from nxdrive.engine.activity import Action, FileAction
 from time import sleep
+WindowsError = None
+try:
+    from exceptions import WindowsError
+except ImportError:
+    pass  # this will never be raised under unix
 import os
 import datetime
 from cookielib import CookieJar
@@ -348,7 +353,10 @@ class Engine(QObject):
         self.dispose_db()
         # Remove DB
         log.debug("Remove DB file %s", self._get_db_file())
-        os.remove(self._get_db_file())
+        try:
+            os.remove(self._get_db_file())
+        except (IOError, WindowsError) as ioe:
+            log.exception(ioe)
         return
 
     def check_fs_marker(self):
@@ -688,7 +696,6 @@ class Engine(QObject):
                     if created_folder:
                         os.rmdir(self._local_folder)
                 except:
-                    # Ignore any removal exception
                     pass
                 raise e
         nxclient = None
