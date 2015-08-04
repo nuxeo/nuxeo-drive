@@ -22,6 +22,7 @@ from nxdrive.engine.activity import Action, FileAction
 from nxdrive.utils import DEVICE_DESCRIPTIONS
 from nxdrive.utils import TOKEN_PERMISSION
 from nxdrive.utils import guess_mime_type
+from nxdrive.utils import guess_digest_algorithm
 from nxdrive.utils import force_decode
 from urllib2 import ProxyHandler
 from urlparse import urlparse
@@ -681,9 +682,11 @@ class BaseAutomationClient(BaseClient):
                 current_action.progress += buffer_size
             yield r
 
-    def do_get(self, url, file_out=None, digest=None, digest_algorithm='md5'):
+    def do_get(self, url, file_out=None, digest=None, digest_algorithm=None):
         h = None
-        if digest_algorithm is not None:
+        if digest is not None:
+            if digest_algorithm is None:
+                digest_algorithm = guess_digest_algorithm(digest)
             digester = getattr(hashlib, digest_algorithm, None)
             if digester is None:
                 raise ValueError('Unknow digest method: ' + digest_algorithm)
