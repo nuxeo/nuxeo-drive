@@ -353,8 +353,9 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         local_client = LocalClient(self.upload_tmp_dir)
         doc_info = remote_client.get_info(doc_ref)
         self.assertEquals(doc_info.name, 'Streamed binary file')
+        print doc_info.digest_algorithm
         self.assertEquals(doc_info.digest,
-                          local_client.get_info('/testFile.pdf').get_digest())
+                          local_client.get_info('/testFile.pdf').get_digest(digest_func=doc_info.digest_algorithm))
 
     def test_versioning(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
