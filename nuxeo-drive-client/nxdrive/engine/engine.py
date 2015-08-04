@@ -874,7 +874,7 @@ class Engine(QObject):
             proxy_exceptions=self._manager.proxy_exceptions,
             password=self._remote_password, token=self._remote_token,
             repository=repository, base_folder=base_folder,
-            timeout=self.timeout, cookie_jar=self.cookie_jar, check_suspended=self.suspend_client)
+            timeout=self._handshake_timeout, cookie_jar=self.cookie_jar, check_suspended=self.suspend_client)
 
     def create_processor(self, item_getter, name=None):
         from nxdrive.engine.processor import Processor
