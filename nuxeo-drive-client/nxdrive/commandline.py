@@ -137,6 +137,10 @@ class CliHandler(object):
             help="Add proxy exceptions ( separated by a comma )"
         )
         common_parser.add_argument(
+            "--consider-ssl-errors", default=False, action="store_true",
+            help="Don't ignore SSL errors in Qt network manager requests."
+        )
+        common_parser.add_argument(
             "--debug-pydev", default=False, action="store_true",
             help="Allow debugging with a PyDev server."
         )

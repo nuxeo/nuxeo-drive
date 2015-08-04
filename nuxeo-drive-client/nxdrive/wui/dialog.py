@@ -655,7 +655,8 @@ class WebDialog(QtGui.QDialog):
         else:
             filename = page
         self.networkManager = TokenNetworkAccessManager(application, token)
-        self.networkManager.sslErrors.connect(self._sslErrorHandler)
+        if not application.options.consider_ssl_errors:
+            self.networkManager.sslErrors.connect(self._sslErrorHandler)
         self._view.page().setNetworkAccessManager(self.networkManager)
         # If connect to a remote page add the X-Authentication-Token
         if filename.startswith("http"):
