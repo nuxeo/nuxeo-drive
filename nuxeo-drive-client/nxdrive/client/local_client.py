@@ -126,7 +126,7 @@ class LocalClient(BaseClient):
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
         self.base_folder = base_folder
-        self._digest_func = digest_func.lower()
+        self._digest_func = digest_func
 
     def is_case_sensitive(self):
         if self._case_sensitive is None:
