@@ -11,6 +11,7 @@ from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import safe_filename, NotFound
 from nxdrive.utils import force_decode
+from nxdrive.utils import guess_digest_algorithm
 import os
 import sys
 import urllib2
@@ -146,10 +147,13 @@ class DriveEdit(Worker):
         self._local_client.set_remote_id(dir_path, server_url, "nxdriveedit")
         if user is not None:
             self._local_client.set_remote_id(dir_path, user, "nxdriveedituser")
-        if info.digest_algorithm is not None:
-            self._local_client.set_remote_id(dir_path, info.digest_algorithm, "nxdriveeditdigestalgorithm")
         if info.digest is not None:
             self._local_client.set_remote_id(dir_path, info.digest, "nxdriveeditdigest")
+            # Set digest algorithm if not sent by the server
+            digest_algorithm = info.digest_algorithm
+            if digest_algorithm is None:
+                digest_algorithm = guess_digest_algorithm(info.digest)
+            self._local_client.set_remote_id(dir_path, digest_algorithm, "nxdriveeditdigestalgorithm")
         self._local_client.set_remote_id(dir_path, filename, "nxdriveeditname")
         # Rename to final filename
         # Under Windows first need to delete target file if exists, otherwise will get a 183 WindowsError
