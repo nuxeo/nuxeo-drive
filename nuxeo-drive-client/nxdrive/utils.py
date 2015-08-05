@@ -428,7 +428,8 @@ class PidLockFile(object):
                     pid = int(f.read().strip())
                     p = psutil.Process(pid)
                     # If process has been created after the lock file
-                    if p.create_time() > os.path.getctime(pid_filepath):
+                    # Changed from getctime() to getmtime() because of Windows' 'file system tunneling'
+                    if p.create_time() > os.path.getmtime(pid_filepath):
                         raise ValueError
                     return pid
                 except (ValueError, psutil.NoSuchProcess):
