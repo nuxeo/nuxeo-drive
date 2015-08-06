@@ -9,9 +9,6 @@ from datetime import datetime
 
 import nx_esky
 from esky.bdist_esky import Executable as es_Executable
-import pkg_resources
-
-packaging = pkg_resources.packaging
 
 OUTPUT_DIR = 'dist'
 SERVER_MIN_VERSION = '5.6'
@@ -336,12 +333,6 @@ class NuxeoDriveSetup(object):
             # a, b, c and d are all 16 bits integers
             version = version.replace('-dev', ".%s" % (
                 timestamp[4:8]))
-            # Normalize version according to distutils policy
-            normalized_version = str(packaging.version.Version(version))
-            if normalized_version != version:
-                print "Normalizing version from %s to %s to be compliant with distutils" % (
-                                                                                        version, normalized_version)
-                version = normalized_version
             update_version(init_file, version)
             print "Updated version to " + version
 
