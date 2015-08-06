@@ -244,7 +244,7 @@ class TestDriveEdit(UnitTestCase):
                                     'Content updated from remote sync root.')
 
     def test_drive_edit_remote_move_non_sync_root_to_sync_root(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
+        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-184")
         ctl = self.controller_1
         ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
                         self.user_1, self.password_1)
