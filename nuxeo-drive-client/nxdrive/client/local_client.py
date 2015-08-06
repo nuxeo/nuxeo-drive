@@ -439,6 +439,10 @@ class LocalClient(BaseClient):
         # http://support.microsoft.com/kb/211632
         if file_name.startswith("~") and file_name.endswith(".tmp"):
             return True
+        # Emacs auto save file
+        # http://www.emacswiki.org/emacs/AutoSave
+        if file_name.startswith("#") and file_name.endswith("#") and len(file_name) > 2:
+            return True
         for suffix in self.ignored_suffixes:
             if file_name.endswith(suffix):
                 ignore = True
