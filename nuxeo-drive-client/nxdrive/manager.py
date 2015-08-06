@@ -554,10 +554,15 @@ class Manager(QtCore.QObject):
                     self.engineNotFound.emit(engine)
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine,
                                                                         remote_watcher_delay=self.remote_watcher_delay)
+            self._engines[engine.uid].online.connect(self._force_autoupdate)
             self.initEngine.emit(self._engines[engine.uid])
 
     def _get_default_nuxeo_drive_name(self):
         return 'Nuxeo Drive'
+
+    def _force_autoupdate(self):
+        if (self._app_updater.get_next_poll() > 60 and self._app_updater.get_last_poll() > 1800):
+            self._app_updater.force_poll()
 
     def get_default_nuxeo_drive_folder(self):
         # TODO: Factorize with utils.default_nuxeo_drive_folder

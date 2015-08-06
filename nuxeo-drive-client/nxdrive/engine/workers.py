@@ -189,23 +189,38 @@ class PollWorker(Worker):
         self._next_check = 0
         self._enable = True
         self._metrics = dict()
+        self._metrics['last_poll'] = 0
 
     def get_metrics(self):
         metrics = super(PollWorker, self).get_metrics()
         metrics['polling_interval'] = self._check_interval
-        metrics['polling_next'] = self._next_check - int(time())
+        metrics['polling_next'] = self.get_next_check()
         return dict(metrics.items() + self._metrics.items())
+
+    def get_last_poll(self):
+        if self._metrics['last_poll'] > 0:
+            return int(time()) - self._metrics['last_poll']
+        else:
+            return -1
+
+    def get_next_poll(self):
+        return self._next_check - int(time())
+
+    @pyqtSlot()
+    def force_poll(self):
+        self._next_check = 0
 
     def _execute(self):
         while (self._enable):
             self._interact()
             if self._next_check - int(time()) <= 0:
-                self._poll()
+                if self._poll():
+                    self._metrics['last_poll'] = int(time())
                 self._next_check = int(time()) + self._check_interval
             sleep(0.01)
 
     def _poll(self):
-        pass
+        return True
 
 '''
 ' Just a DummyWorker with infinite loop

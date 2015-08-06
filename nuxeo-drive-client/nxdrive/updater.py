@@ -124,6 +124,9 @@ class AppUpdater(PollWorker):
             if status != self.last_status:
                 self.last_status = status
             self._handle_status()
+            return status != UPDATE_STATUS_UNAVAILABLE_SITE
+        else:
+            return True
 
     def _handle_status(self):
         update_status = self.last_status[0]
