@@ -268,6 +268,10 @@ class TestUpdater(unittest.TestCase):
         self.assertEquals(version_compare('1.4.0622', '1.3.0524'), 1)
         self.assertEquals(version_compare('1.10', '1.1.2'), 1)
         self.assertEquals(version_compare('2.1.0528', '1.10'), 1)
+        self.assertEquals(version_compare('2.0.0626', '2.0.806'), -1)
+        self.assertEquals(version_compare('2.0.0805', '2.0.806'), -1)
+        self.assertEquals(version_compare('2.0.0905', '2.0.806'), 1)
+        self.assertEquals(version_compare('2.0.805', '2.0.1206'), -1)
 
     def test_get_active_version(self):
         # Active version is None because Esky instance is built from a
