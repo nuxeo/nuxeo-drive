@@ -11,6 +11,7 @@ freeze directory after zipping it if 'create-zipfile' is True.
 """
 
 import sys
+import shutil
 import os
 from esky.bdist_esky import bdist_esky as e_bdist_esky
 from esky.util import get_platform
@@ -29,6 +30,7 @@ class bdist_esky(e_bdist_esky):
     def initialize_options(self):
         e_bdist_esky.initialize_options(self)
         self.create_zipfile = True
+        self.pre_zip_callback = True
         self.rm_freeze_dir_after_zipping = True
 
     def _run(self):
@@ -37,10 +39,19 @@ class bdist_esky(e_bdist_esky):
             self.pre_freeze_callback(self)
         self._run_freeze_scripts()
         if self.pre_zip_callback is not None:
-            self.pre_zip_callback(self)
+            self._pre_zip_callback()
         # Only create zip file from esky freeze if option is passed
         if self.create_zipfile and self.create_zipfile != 'False':
             self._run_create_zipfile()
+
+    def _pre_zip_callback(self):
+        if sys.platform != "win32":
+            return
+
+        # Dupplicate imageformats folder content in root directory
+        appDataDir = os.path.basename(self.bootstrap_dir)
+        imageFormatsPath = os.path.join(self.bootstrap_dir, "appdata", appDataDir, "imageformats")
+        shutil.copytree(imageFormatsPath, os.path.join(self.bootstrap_dir, "imageformats"))
 
     def _run_create_zipfile(self):
         """Zip up the final distribution."""
