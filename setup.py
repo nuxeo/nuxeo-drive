@@ -359,7 +359,7 @@ class NuxeoDriveSetup(object):
             "PyQt4.QtGui",
             "atexit",  # implicitly required by PyQt4
             "cffi",
-            "xattr",
+            "xattr"
         ]
         attribs.append_includes(includes)
         excludes = [
@@ -464,6 +464,7 @@ class NuxeoDriveSetup(object):
             name = attribs.get_CFBundleName()
             py2app_options = dict(
                 iconfile=icon,
+                qt_plugins='imageformats',
                 argv_emulation=False,  # We use QT for URL scheme handling
                 plist=dict(
                     CFBundleDisplayName=attribs.get_CFBundleDisplayName(),
