@@ -331,8 +331,12 @@ class NuxeoDriveSetup(object):
             # msi package version). On the other hand,
             # msi imposes the a.b.c.0 or a.b.c.d format where
             # a, b, c and d are all 16 bits integers
+            # TODO: align on latest distutils versioning
+            month_day = timestamp[4:8]
+            if month_day.startswith('0'):
+                month_day = month_day[1:]
             version = version.replace('-dev', ".%s" % (
-                timestamp[4:8]))
+                month_day))
             update_version(init_file, version)
             print "Updated version to " + version
 
