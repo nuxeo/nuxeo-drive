@@ -12,7 +12,6 @@ except ImportError:
     import pdb
     debugger = pdb
 
-from nxdrive.utils import normalized_path
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.osi.daemon import daemonize
 from nxdrive.utils import default_nuxeo_drive_folder
@@ -582,7 +581,7 @@ class CliHandler(object):
     def metadata(self, options):
         from nxdrive.wui.metadata import MetadataApplication
         self.log.debug('Opening metadata window for %s', options.file)
-        app = MetadataApplication(self.manager, normalized_path(options.file))
+        app = MetadataApplication(self.manager, options)
         return app.exec_()
 
     def edit(self, options):

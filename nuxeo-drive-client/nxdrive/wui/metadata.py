@@ -5,6 +5,7 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import Qt
 from nxdrive.gui.resources import find_icon
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
+from nxdrive.utils import normalized_path
 
 log = get_logger(__name__)
 
@@ -79,11 +80,12 @@ def CreateMetadataWebDialog(manager, file_path, application=None):
 
 
 class MetadataApplication(QtGui.QApplication):
-    def __init__(self, manager, file_path):
+    def __init__(self, manager, options):
         super(MetadataApplication, self).__init__([])
         self.manager = manager
-        self._file_path = file_path
-        self.dialog = CreateMetadataWebDialog(manager, file_path, self)
+        self.options = options
+        self.file_path = normalized_path(options.file)
+        self.dialog = CreateMetadataWebDialog(manager, self.file_path, self)
         self.dialog.show()
 
     def get_window_icon(self):
