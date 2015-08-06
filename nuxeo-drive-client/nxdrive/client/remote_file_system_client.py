@@ -102,6 +102,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
         FileAction("Download", file_out, file_name, 0)
         try:
             _, tmp_file = self.do_get(download_url, file_out=file_out, digest=fs_item_info.digest, digest_algorithm=fs_item_info.digest_algorithm)
+        except Exception as e:
+            if os.path.exists(file_out):
+                os.remove(file_out)
+            raise e
         finally:
             self.end_action()
         return tmp_file

@@ -96,7 +96,7 @@ class TestWindows(UnitTestCase):
             #   modified
             # - Synchronization should not fail: doc pairs should be
             #   blacklisted and other remote modifications should be locally synchronized
-            self.assertNxPart('/', 'test_update.docx')
+            self.assertNxPart('/', 'test_update.docx', False)
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEquals(local.get_content('/test_update.docx'),
                               'Some content to update.')
@@ -111,7 +111,7 @@ class TestWindows(UnitTestCase):
             self.wait_sync()
             # Blacklisted files should be ignored as delay (60 seconds by
             # default) is not expired, nothing should have changed
-            self.assertNxPart('/', 'test_update.docx')
+            self.assertNxPart('/', 'test_update.docx', False)
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEquals(local.get_content('/test_update.docx'),
                               'Some content to update.')

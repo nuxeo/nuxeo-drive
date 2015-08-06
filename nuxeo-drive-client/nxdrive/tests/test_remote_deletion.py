@@ -154,7 +154,6 @@ class TestRemoteDeletion(UnitTestCase):
 
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test folder/testFile.pdf'))
-        self.assertFalse(local.exists('/Test folder/.testFile.pdf.nxpart'))
 
     def test_synchronize_remote_deletion_while_download_file(self):
         if sys.platform != 'win32':

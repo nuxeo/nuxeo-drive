@@ -116,6 +116,7 @@ class Processor(EngineWorker):
             doc_pair = self.acquire_state(self._current_item.id)
             log.debug('Executing processor on %r', doc_pair)
             self._current_doc_pair = doc_pair
+            self._current_temp_file = None
             try:
                 if (doc_pair is None or
                     doc_pair.pair_state == 'synchronized'
@@ -472,6 +473,7 @@ class Processor(EngineWorker):
         return tmp_file
 
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
+        tmp_file = None
         try:
             is_renaming = doc_pair.remote_name != doc_pair.local_name
             if (not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path)
@@ -547,6 +549,11 @@ class Processor(EngineWorker):
                 doc_pair)
             raise e
         finally:
+            if tmp_file is not None:
+                try:
+                    os.remove(tmp_file)
+                except (IOError, WindowsError):
+                    pass
             if doc_pair.folderish:
                 # Release folder lock in any case
                 self._engine.release_folder_lock()
@@ -599,6 +606,7 @@ class Processor(EngineWorker):
         local_parent_path = parent_pair.local_path
         # TODO Shared this locking system / Can have concurrent lock
         lock = local_client.unlock_ref(local_parent_path)
+        tmp_file = None
         try:
             if doc_pair.folderish:
                 log.debug("Creating local folder '%s' in '%s'", name,
@@ -615,6 +623,9 @@ class Processor(EngineWorker):
                 self._dao.update_last_transfer(doc_pair.id, "download")
         finally:
             local_client.lock_ref(local_parent_path, lock)
+            # Clean .nxpart if needed
+            if tmp_file is not None and os.path.exists(tmp_file):
+                os.remove(tmp_file)
         return path
 
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
