@@ -19,6 +19,16 @@ from esky.util import create_zipfile
 from esky.util import really_rmtree
 
 
+def fix_imageformats(self):
+    if sys.platform != "win32":
+        return
+
+    # Dupplicate imageformats folder content in root directory
+    appDataDir = os.path.basename(self.bootstrap_dir)
+    imageFormatsPath = os.path.join(self.bootstrap_dir, "appdata", appDataDir, "imageformats")
+    shutil.copytree(imageFormatsPath, os.path.join(self.bootstrap_dir, "imageformats"))
+
+
 class bdist_esky(e_bdist_esky):
 
     e_bdist_esky.user_options.append(
@@ -30,7 +40,7 @@ class bdist_esky(e_bdist_esky):
     def initialize_options(self):
         e_bdist_esky.initialize_options(self)
         self.create_zipfile = True
-        self.pre_zip_callback = True
+        self.pre_zip_callback = fix_imageformats
         self.rm_freeze_dir_after_zipping = True
 
     def _run(self):
@@ -39,19 +49,10 @@ class bdist_esky(e_bdist_esky):
             self.pre_freeze_callback(self)
         self._run_freeze_scripts()
         if self.pre_zip_callback is not None:
-            self._pre_zip_callback()
+            self.pre_zip_callback(self)
         # Only create zip file from esky freeze if option is passed
         if self.create_zipfile and self.create_zipfile != 'False':
             self._run_create_zipfile()
-
-    def _pre_zip_callback(self):
-        if sys.platform != "win32":
-            return
-
-        # Dupplicate imageformats folder content in root directory
-        appDataDir = os.path.basename(self.bootstrap_dir)
-        imageFormatsPath = os.path.join(self.bootstrap_dir, "appdata", appDataDir, "imageformats")
-        shutil.copytree(imageFormatsPath, os.path.join(self.bootstrap_dir, "imageformats"))
 
     def _run_create_zipfile(self):
         """Zip up the final distribution."""
