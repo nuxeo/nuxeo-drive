@@ -12,8 +12,6 @@ from nxdrive.wui.authentication import WebAuthenticationApi
 from nxdrive.wui.authentication import WebAuthenticationDialog
 from nxdrive.manager import ProxySettings, FolderAlreadyUsed
 from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.client.base_automation_client import get_proxy_handler
-from nxdrive.client.base_automation_client import get_opener_proxies
 from nxdrive.engine.engine import RootAlreadyBindWithDifferentAccount
 from nxdrive.engine.engine import InvalidDriveException
 from nxdrive.wui.translator import Translator
@@ -21,7 +19,8 @@ from nxdrive.utils import DEVICE_DESCRIPTIONS
 from nxdrive.utils import TOKEN_PERMISSION
 import sys
 import urllib2
-import requests
+import httplib
+import urlparse
 from urllib import urlencode
 
 DRIVE_STARTUP_PAGE = 'drive_login.jsp'
@@ -188,13 +187,18 @@ class WebSettingsApi(WebDriveApi):
     def _connect_startup_page(self, server_url):
         conn = None
         try:
-            url = server_url + DRIVE_STARTUP_PAGE
-            proxy_handler = get_proxy_handler(self._manager.get_proxies())
-            opener = urllib2.build_opener(proxy_handler)
-            proxies = get_opener_proxies(opener)
-            r = requests.head(url, proxies=proxies)
-            status = r.status_code
-
+            parsed_url = urlparse.urlparse(server_url)
+            scheme = parsed_url.scheme
+            hostname = parsed_url.hostname
+            port = parsed_url.port
+            path = parsed_url.path
+            path += DRIVE_STARTUP_PAGE
+            if scheme == 'https':
+                conn = httplib.HTTPSConnection(hostname, port)
+            else:
+                conn = httplib.HTTPConnection(hostname, port)
+            conn.request('HEAD', path)
+            status = conn.getresponse().status
             log.debug('Status code for %s = %d', server_url + DRIVE_STARTUP_PAGE, status)
             return status
         except:

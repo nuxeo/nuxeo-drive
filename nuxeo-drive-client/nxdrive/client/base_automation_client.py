@@ -93,13 +93,6 @@ def get_proxy_handler(proxies, proxy_exceptions=None, url=None):
         return urllib2.ProxyHandler(proxies)
 
 
-def get_opener_proxies(opener):
-    for handler in opener.handlers:
-        if isinstance(handler, ProxyHandler):
-            return handler.proxies
-    return None
-
-
 class AddonNotInstalled(Exception):
     pass
 
@@ -210,9 +203,10 @@ class BaseAutomationClient(BaseClient):
 
         # Set Proxy flag
         self.is_proxy = False
-        opener_proxies = get_opener_proxies(self.opener)
-        if opener_proxies:
-            self.is_proxy = True
+        for handler in self.opener.handlers:
+            if isinstance(handler, ProxyHandler):
+                if handler.proxies:
+                    self.is_proxy = True
 
         self.automation_url = server_url + 'site/automation/'
         self.batch_upload_url = 'batch/upload'
