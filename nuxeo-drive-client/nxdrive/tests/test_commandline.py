@@ -30,9 +30,7 @@ class CommandLineTestCase(unittest.TestCase):
             os.remove(filename)
 
     def test_update_site_url(self):
-        argv = ["ndrive",
-                "--update-site-url", "DEBUG_TEST",
-                "console"]
+        argv = ["ndrive", "console", "--update-site-url", "DEBUG_TEST"]
         options = self.cmd.parse_cli([])
         self.assertEqual(options.update_site_url,
                          "http://community.nuxeo.com/static/drive/",
@@ -46,9 +44,7 @@ class CommandLineTestCase(unittest.TestCase):
         self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
         try:
             self.clean_ini()
-            argv = ["ndrive",
-                    "--log-level-console", "DEBUG_TEST",
-                    "console"]
+            argv = ["ndrive", "console", "--log-level-console", "DEBUG_TEST"]
             # Default value
             options = self.cmd.parse_cli([])
             self.assertEqual(options.log_level_console, "INFO",
