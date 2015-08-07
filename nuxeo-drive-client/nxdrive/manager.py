@@ -764,6 +764,9 @@ class Manager(QtCore.QObject):
                                                             proxy_settings)
         self.proxyUpdated.emit(proxy_settings)
 
+    def get_proxies(self):
+        return self.proxies
+
     def get_engine(self, local_folder):
         if self._engines is None:
             self.load()
