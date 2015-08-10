@@ -702,10 +702,12 @@ class Manager(QtCore.QObject):
         log.trace("nxdrive_path: %s", nxdrive_path)
 
         # Detect frozen win32 executable under Windows
-        if nxdrive_path.endswith(WIN32_SUFFIX):
-            log.trace("Detected frozen win32 executable under Windows")
-            exe_path = nxdrive_path.replace(WIN32_SUFFIX,
-                                            self._get_binary_name() + 'w.exe')
+        executable = sys.executable
+        if "appdata" in executable:
+            executable = os.path.join(os.path.dirname(executable),
+                                      "..","..",os.path.basename(
+                                      sys.executable))
+            exe_path = os.path.abspath(executable)
             if os.path.exists(exe_path):
                 log.trace("Returning exe path: %s", exe_path)
                 return exe_path
