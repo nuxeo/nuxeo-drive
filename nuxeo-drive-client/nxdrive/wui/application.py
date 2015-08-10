@@ -11,6 +11,7 @@ from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
 from nxdrive.utils import find_resource_dir
 from nxdrive.wui.translator import Translator
+from nxdrive.wui.systray import DriveSystrayIcon
 
 log = get_logger(__name__)
 
@@ -431,7 +432,7 @@ class Application(QApplication):
         self._metadata_dialog.show()
 
     def setup_systray(self):
-        self._tray_icon = QtGui.QSystemTrayIcon()
+        self._tray_icon = DriveSystrayIcon()
         self._tray_icon.setToolTip(self.manager.get_appname())
         self.set_icon_state("disabled")
         self._tray_icon.show()

@@ -11,6 +11,17 @@ from nxdrive.wui.translator import Translator
 log = get_logger(__name__)
 
 
+class DriveSystrayIcon(QtGui.QSystemTrayIcon):
+
+    def __init__(self):
+        super(DriveSystrayIcon, self).__init__()
+        self.activated.connect(self._show_popup)
+
+    def _show_popup(self, reason):
+        if reason == QtGui.QSystemTrayIcon.Trigger:
+            self.contextMenu().popup(QtGui.QCursor.pos())
+
+
 class WebSystrayApi(WebDriveApi):
 
     @QtCore.pyqtSlot(str)
@@ -140,13 +151,14 @@ class WebSystrayView(WebDialog):
         '''
         super(WebSystrayView, self).__init__(application, "systray.html", api=WebSystrayApi(application, self))
         self._icon = icon
+        self._icon_geometry = None
         self._view.setFocusProxy(self)
         self.resize(WebSystrayView.DEFAULT_WIDTH, WebSystrayView.DEFAULT_HEIGHT)
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Popup | QtCore.Qt.Dialog);
 
     def replace(self):
         log.trace("Icon is %r", self._icon)
-        rect = self._icon.geometry()
+        self._icon_geometry = rect = self._icon.geometry()
         log.trace("IconRect is : %s,%s | %s,%s",rect.x(), rect.y(), rect.width(), rect.height())
         from PyQt4.QtGui import QApplication, QCursor
         from PyQt4.QtCore import QRect
@@ -170,7 +182,7 @@ class WebSystrayView(WebDialog):
             log.trace("New rect is : %s,%s | %s,%s",pos.x(), pos.y(), pos.width(), pos.height())
         x = rect.x() + rect.width() - self.width()
         y = rect.y() - self.height()
-        # Prevent the systray to be hiddens
+        # Prevent the systray to be hidden
         if y < 0:
             y = rect.y() + rect.height()
         if x < 0:
@@ -191,7 +203,13 @@ class WebSystrayView(WebDialog):
         return self.geometry().contains(QtGui.QCursor.pos())
 
     def shouldHide(self):
-        if not (self.underMouse() or self._icon.geometry().contains(QtGui.QCursor.pos())):
+        log.trace("Geometry: %r", self.geometry())
+        log.trace("Cursor is: %r", QtGui.QCursor.pos())
+        log.trace("Icon: %r", self._icon)
+        log.trace("Icon geometry: %r", self._icon_geometry)
+        if not (self.underMouse() or (self._icon and self._icon.geometry().contains(QtGui.QCursor.pos()))
+                or (self._icon_geometry and self._icon_geometry.contains(QtGui.QCursor.pos()))):
+            log.trace('will close menu')
             self.close()
 
     def focusOutEvent(self, event):
