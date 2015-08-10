@@ -218,6 +218,11 @@ class Engine(QObject):
         if started:
             self.start()
 
+    def stop_processor_on(self, path):
+        for worker in self.get_queue_manager().get_processors_on(path, exact_match=True):
+            log.trace("Quitting processor: %r as requested to stop on %s", worker, path)
+            worker.quit()
+
     def set_local_folder_lock(self, path):
         self._folder_lock = path
         # Check for each processor

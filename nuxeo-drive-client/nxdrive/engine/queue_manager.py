@@ -349,16 +349,38 @@ class QueueManager(QObject):
         return (self._local_folder_queue.qsize() + self._local_file_queue.qsize()
                 + self._remote_folder_queue.qsize() + self._remote_file_queue.qsize())
 
-    def is_processing_file(self, worker, path):
+    def is_processing_file(self, worker, path, exact_match=False):
         if not hasattr(worker, "_current_doc_pair"):
             return False
         if (worker._current_doc_pair is None or
             worker._current_doc_pair.local_path is None):
             return False
-        result = worker._current_doc_pair.local_path.startswith(path)
+        if exact_match:
+            result = worker._current_doc_pair.local_path == path
+        else:
+            result = worker._current_doc_pair.local_path.startswith(path)
         if result:
             log.trace("Worker(%r) is processing: %s", worker.get_metrics(), path)
         return result
+
+    def get_processors_on(self, path, exact_match=True):
+        res = []
+        if self._local_folder_thread is not None:
+            if self.is_processing_file(self._local_folder_thread.worker, path, exact_match):
+                res.append(self._local_folder_thread.worker)
+        if self._remote_folder_thread is not None:
+            if self.is_processing_file(self._remote_folder_thread.worker, path, exact_match):
+                res.append(self._remote_folder_thread.worker)
+        if self._local_file_thread is not None:
+            if self.is_processing_file(self._local_file_thread.worker, path, exact_match):
+                res.append(self._local_file_thread.worker)
+        if self._remote_file_thread is not None:
+            if self.is_processing_file(self._remote_file_thread.worker, path, exact_match):
+                res.append(self._remote_file_thread.worker)
+        for thread in self._processors_pool:
+            if self.is_processing_file(thread.worker, path, exact_match):
+                res.append(thread.worker)
+        return res
 
     def has_file_processors_on(self, path):
         # First check local and remote file

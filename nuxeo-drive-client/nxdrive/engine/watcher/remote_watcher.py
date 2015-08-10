@@ -256,7 +256,8 @@ class RemoteWatcher(EngineWorker):
                                                                 child_pair.local_path,
                                                                 remote_digest_algorithm=child_info.digest_algorithm)):
                     # Use version+1 as we just update the remote info
-                    if not self._dao.synchronize_state(child_pair, version=child_pair.version + 1):
+                    synced = self._dao.synchronize_state(child_pair, version=child_pair.version + 1)
+                    if not synced:
                         # Try again, might happens that it has been modified locally and remotelly
                         child_pair = self._dao.get_state_from_id(child_pair.id)
                         if (child_pair.folderish == child_info.folderish
@@ -265,6 +266,11 @@ class RemoteWatcher(EngineWorker):
                                     child_pair.local_path,
                                     remote_digest_algorithm=child_info.digest_algorithm)):
                             self._dao.synchronize_state(child_pair)
+                            child_pair = self._dao.get_state_from_id(child_pair.id)
+                            synced = child_pair.pair_state == 'synchronized'
+                    # Can be updated in previous call
+                    if synced:
+                        self._engine.stop_processor_on(child_pair.local_path)
                     # Push the remote_Id
                     self._local_client.set_remote_id(local_path, child_info.uid)
                     if child_pair.folderish:
