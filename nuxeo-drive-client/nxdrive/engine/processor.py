@@ -139,6 +139,9 @@ class Processor(EngineWorker):
                             self._current_item = self._get_item()
                             continue
                         doc_pair = self._dao.get_state_from_id(doc_pair.id)
+                        if doc_pair is None:
+                            self._current_item = self._get_item()
+                            continue
                     except NotFound:
                         doc_pair.remote_ref = None
                 parent_path = doc_pair.local_parent_path
