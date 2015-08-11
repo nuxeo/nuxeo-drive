@@ -9,7 +9,7 @@ from nxdrive.osi import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
-from nxdrive.utils import find_resource_dir
+from nxdrive.utils import find_resource_dir, current_milli_time
 from nxdrive.wui.translator import Translator
 from nxdrive.wui.systray import DriveSystrayIcon
 
@@ -74,6 +74,7 @@ class Application(QApplication):
 
     def __init__(self, manager, options, argv=()):
         super(Application, self).__init__(list(argv))
+        self.setApplicationName(manager.get_appname())
         self.setQuitOnLastWindowClosed(False)
         self.manager = manager
         self.options = options
@@ -282,6 +283,7 @@ class Application(QApplication):
     def create_debug_menu(self, parent):
         menuDebug = QtGui.QMenu(parent)
         menuDebug.addAction(Translator.get("DEBUG_WINDOW"), self.show_debug_window)
+        menuDebug.addAction(Translator.get("DEBUG_SYSTRAY_MESSAGE"), self._debug_show_message)
         for engine in self.manager.get_engines().values():
             action = QtGui.QAction(engine._name, menuDebug)
             action.setMenu(self._create_debug_engine_menu(engine, menuDebug))
@@ -292,6 +294,11 @@ class Application(QApplication):
     def _get_debug_dialog(self):
         from nxdrive.debug.wui.engine import EngineDialog
         return EngineDialog(self)
+
+    @QtCore.pyqtSlot()
+    def _debug_show_message(self):
+        from nxdrive.utils import current_milli_time
+        self.show_message("Debug Systray message", "This is a random message %d" % (current_milli_time()))
 
     @QtCore.pyqtSlot()
     def show_debug_window(self):
@@ -425,6 +432,9 @@ class Application(QApplication):
 
     def get_mac_app(self):
         return 'ndrive'
+
+    def show_message(self, title, message, icon=QtGui.QSystemTrayIcon.Information, timeout=10000):
+        self._tray_icon.showMessage(title, message, icon, timeout)
 
     def show_metadata(self, file_path):
         from nxdrive.wui.metadata import CreateMetadataWebDialog
