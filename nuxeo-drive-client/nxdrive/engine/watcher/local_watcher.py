@@ -92,6 +92,9 @@ class LocalWatcher(EngineWorker):
         finally:
             self._stop_watchdog()
 
+    def win_queue_empty(self):
+        return len(self._delete_events) == 0
+
     def _win_delete_check(self):
         if self._windows and self._win_delete_interval < int(round(time() * 1000)) - WIN_MOVE_RESOLUTION_PERIOD:
             self._action = Action("Dequeue delete")

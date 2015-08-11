@@ -536,7 +536,10 @@ class Engine(QObject):
                   'active' if qm_active else 'inactive', qm_size, empty_polls)
         local_metrics = self._local_watcher.get_metrics()
         if (qm_size == 0 and not qm_active and empty_polls > 0
-                and (current_milli_time() - local_metrics["last_event"]) > WIN_MOVE_RESOLUTION_PERIOD):
+                and (
+                    not AbstractOSIntegration.is_windows()
+                    or
+                    self._local_watcher.win_queue_empty())):
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
             if local_metrics['last_event'] == 0:
                 log.warn("No watchdog event detected but sync is completed")
