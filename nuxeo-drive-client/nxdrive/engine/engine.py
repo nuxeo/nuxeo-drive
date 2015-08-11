@@ -11,7 +11,6 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.utils import normalized_path
 from nxdrive.engine.processor import Processor
 from threading import current_thread
-from nxdrive.utils import current_milli_time
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.workers import Worker, ThreadInterrupt, PairInterrupt
 from nxdrive.engine.activity import Action, FileAction

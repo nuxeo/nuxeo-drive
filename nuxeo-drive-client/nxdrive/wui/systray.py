@@ -7,7 +7,7 @@ from PyQt4 import QtGui, QtCore
 from nxdrive.logging_config import get_logger
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
-
+from nxdrive.osi import AbstractOSIntegration
 log = get_logger(__name__)
 
 
@@ -16,6 +16,15 @@ class DriveSystrayIcon(QtGui.QSystemTrayIcon):
     def __init__(self):
         super(DriveSystrayIcon, self).__init__()
         self.activated.connect(self._show_popup)
+
+    def showMessage(self, title, message, icon=QtGui.QSystemTrayIcon.Information, timeout = 10000):
+        if AbstractOSIntegration.is_mac():
+            if AbstractOSIntegration.os_version_above("10.8"):
+                from nxdrive.osi.darwin.pyNotificationCenter import notify
+                # Use notification center
+                log.trace("Display systray message: %s | %s | %s", QtCore.QCoreApplication.applicationName(), title, message)
+                return notify(title, None, message)
+        return QtGui.QSystemTrayIcon.showMessage(self, title, message, icon, timeout)
 
     def _show_popup(self, reason):
         if reason == QtGui.QSystemTrayIcon.Trigger:
