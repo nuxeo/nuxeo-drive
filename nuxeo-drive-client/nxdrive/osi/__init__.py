@@ -173,7 +173,7 @@ class AbstractOSIntegration(object):
     @staticmethod
     def get(manager):
         if sys.platform == "darwin":
-            from nxdrive.osi.darwin import DarwinIntegration
+            from nxdrive.osi.darwin.darwin import DarwinIntegration
             log.debug("Using Darwin OS integration")
             return DarwinIntegration(manager)
         elif sys.platform == "win32":
