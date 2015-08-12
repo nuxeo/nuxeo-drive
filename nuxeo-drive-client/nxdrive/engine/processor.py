@@ -29,6 +29,8 @@ class Processor(EngineWorker):
     path_locks = dict()
     path_locker = Lock()
     soft_locks = dict()
+    readonly_locks = dict()
+    readonly_locker = Lock()
 
     def __init__(self, engine, item_getter, name=None):
         '''
@@ -50,6 +52,34 @@ class Processor(EngineWorker):
             log.trace(e)
         finally:
             Processor.path_locker.release()
+
+    def _unlock_readonly(self, local_client, path):
+        # dict[path]=(count, lock)
+        Processor.readonly_locker.acquire()
+        try:
+            if path in Processor.readonly_locks:
+                log.trace("readonly unlock: increase count on %s", path)
+                Processor.readonly_locks[path][0] = Processor.readonly_locks[path][0] + 1
+            else:
+                lock = local_client.unlock_ref(path)
+                log.trace("readonly unlock: unlock on %s with %d", path, lock)
+                Processor.readonly_locks[path] = [1, lock]
+        finally:
+            Processor.readonly_locker.release()
+
+    def _lock_readonly(self, local_client, path):
+        Processor.readonly_locker.acquire()
+        try:
+            if path not in Processor.readonly_locks:
+                log.debug("readonly lock: can't find reference on %s", path)
+                return
+            Processor.readonly_locks[path][0] = Processor.readonly_locks[path][0] - 1
+            log.trace("readonly lock: update lock count on %s to %d", path, Processor.readonly_locks[path][0])
+            if Processor.readonly_locks[path][0] <= 0:
+                local_client.lock_ref(path, Processor.readonly_locks[path][1])
+                log.trace("readonly lock: relocked path: %s with %d", path, Processor.readonly_locks[path][1])
+        finally:
+            Processor.readonly_locker.release()
 
     def _lock_soft_path(self, path):
         log.trace("Soft locking: %s", path)
@@ -608,7 +638,7 @@ class Processor(EngineWorker):
     def _create_remotely(self, local_client, remote_client, doc_pair, parent_pair, name):
         local_parent_path = parent_pair.local_path
         # TODO Shared this locking system / Can have concurrent lock
-        lock = local_client.unlock_ref(local_parent_path)
+        self._unlock_readonly(local_client, local_parent_path)
         tmp_file = None
         try:
             if doc_pair.folderish:
@@ -625,7 +655,7 @@ class Processor(EngineWorker):
                 local_client.rename(local_client.get_path(tmp_file), name)
                 self._dao.update_last_transfer(doc_pair.id, "download")
         finally:
-            local_client.lock_ref(local_parent_path, lock)
+            self._lock_readonly(local_client, local_parent_path)
             # Clean .nxpart if needed
             if tmp_file is not None and os.path.exists(tmp_file):
                 os.remove(tmp_file)
