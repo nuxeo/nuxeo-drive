@@ -154,6 +154,9 @@ class LocalWatcher(EngineWorker):
         info = self.client.get_info(local_path)
         self._scan_recursive(info, recursive=False)
 
+    def empty_events(self):
+        return self._watchdog_queue.empty()
+
     def _scan_recursive(self, info, recursive=True):
         self._interact()
         # Load all children from FS

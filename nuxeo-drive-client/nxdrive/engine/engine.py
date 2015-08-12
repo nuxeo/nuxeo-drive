@@ -535,6 +535,7 @@ class Engine(QObject):
                   'active' if qm_active else 'inactive', qm_size, empty_polls)
         local_metrics = self._local_watcher.get_metrics()
         if (qm_size == 0 and not qm_active and empty_polls > 0
+                and self._local_watcher.empty_events()
                 and (
                     not AbstractOSIntegration.is_windows()
                     or
