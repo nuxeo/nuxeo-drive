@@ -96,6 +96,7 @@ class AbstractOSIntegration(object):
     def uninstall(self):
         self.unregister_contextual_menu()
         self.unregister_desktop_link()
+        self.unregister_folder_link(None)
         self.unregister_protocol_handlers()
         self.unregister_startup()
 

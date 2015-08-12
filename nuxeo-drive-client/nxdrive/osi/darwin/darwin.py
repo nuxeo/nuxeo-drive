@@ -166,8 +166,6 @@ class DarwinIntegration(AbstractOSIntegration):
 
     def register_folder_link(self, folder_path, name=None):
         try:
-            from LaunchServices import LSSharedFileListCreate
-            from LaunchServices import kLSSharedFileListFavoriteItems
             from LaunchServices import LSSharedFileListInsertItemURL
             from LaunchServices import kLSSharedFileListItemBeforeFirst
             from LaunchServices import CFURLCreateWithString
@@ -176,11 +174,10 @@ class DarwinIntegration(AbstractOSIntegration):
                         " skipping favorite link creation")
             return
         folder_path = normalized_path(folder_path)
-        if not name:
-            name = os.path.basename(folder_path)
+        if name is None:
+            name = self._manager.get_appname()
 
-        lst = LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems,
-                                     None)
+        lst = self._get_favorite_list()
         if lst is None:
             log.warning("Could not fetch the Finder favorite list.")
             return
@@ -198,3 +195,42 @@ class DarwinIntegration(AbstractOSIntegration):
             {}, [])
         if item is not None:
             log.debug("Registered new favorite in Finder for: %s", folder_path)
+
+    def unregister_folder_link(self, name):
+        try:
+            from LaunchServices import LSSharedFileListItemRemove
+        except ImportError:
+            log.warning("PyObjC package is not installed:"
+                        " skipping favorite link creation")
+            return
+
+        if name is None:
+            name = self._manager.get_appname()
+
+        lst = self._get_favorite_list()
+        if lst is None:
+            log.warning("Could not fetch the Finder favorite list.")
+            return
+
+        item = self._find_item_in_list(lst, name)
+        if item is None:
+            log.warning("Unable to find the favorite list item")
+            return
+
+        LSSharedFileListItemRemove(lst, item)
+
+    def _get_favorite_list(self):
+        from LaunchServices import LSSharedFileListCreate
+        from LaunchServices import kLSSharedFileListFavoriteItems
+
+        return LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems, None)
+
+    def _find_item_in_list(self, lst, name):
+        from LaunchServices import LSSharedFileListCopySnapshot
+        from LaunchServices import LSSharedFileListItemCopyDisplayName
+
+        for item in LSSharedFileListCopySnapshot(lst, None)[0]:
+            if name == LSSharedFileListItemCopyDisplayName(item):
+                return item
+
+        return None
