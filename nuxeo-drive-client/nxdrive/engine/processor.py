@@ -78,6 +78,7 @@ class Processor(EngineWorker):
             if Processor.readonly_locks[path][0] <= 0:
                 local_client.lock_ref(path, Processor.readonly_locks[path][1])
                 log.trace("readonly lock: relocked path: %s with %d", path, Processor.readonly_locks[path][1])
+                del Processor.readonly_locks[path]
         finally:
             Processor.readonly_locker.release()
 
