@@ -45,7 +45,7 @@ LESSMSI_FOLDER = 'lessmsi'
 EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
 NUXEO_DRIVE_HOME_FOLDER = os.path.expanduser('~\.nuxeo-drive')
 
-NOSETESTS_LOGGING_FORMAT = '"%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s %(message)s"'
+NOSETESTS_LOGGING_FORMAT = '"%(asctime)s %(thread)d %(levelname)-8s %(name)-18s %(message)s"'
 
 
 def pflush(message):
@@ -231,7 +231,7 @@ def clean_home_folder(dir_=None):
 
 def run_tests_from_source(base_folder):
     pflush("PATH detected by Python = " + os.environ.get('PATH'))
-    cmd = "cd " + base_folder + " && nosetests -v -x --logging-format=" + NOSETESTS_LOGGING_FORMAT
+    cmd = "cd " + base_folder + " && nosetests --with-coverage --cover-html --cover-html-dir=../coverage --cover-package=nxdrive -v -x --logging-format=" + NOSETESTS_LOGGING_FORMAT
     execute(cmd)
 
 
