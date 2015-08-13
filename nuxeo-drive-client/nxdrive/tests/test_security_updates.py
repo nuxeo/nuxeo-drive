@@ -9,7 +9,6 @@ from nose.plugins.skip import SkipTest
 class TestSecurityUpdates(UnitTestCase):
 
     def test_synchronize_denying_read_access(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test that denying Read access server side is impacted client side
 
         Use cases:
@@ -75,7 +74,7 @@ class TestSecurityUpdates(UnitTestCase):
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
     def test_synchronize_denying_read_access_local_modification(self):
-        # TO_REVIEW
+        # TO_REVIEW: Trash feature, delete it, might need to modify the behavior
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test denying Read access with concurrent local modification
 
