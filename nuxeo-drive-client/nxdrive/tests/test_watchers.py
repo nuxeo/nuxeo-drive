@@ -1,12 +1,10 @@
 '''
 @author: Remi Cattiau
 '''
-import os
 import sys
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.logging_config import get_logger
-from nose.plugins.skip import SkipTest
 log = get_logger(__name__)
 
 
