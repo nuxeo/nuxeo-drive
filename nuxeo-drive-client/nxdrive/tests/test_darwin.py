@@ -1,11 +1,13 @@
 import unittest
 import sys
 
+from nxdrive.osi import AbstractOSIntegration
+
 
 class DarwinTest(unittest.TestCase):
-    if sys.platform == "darwin":
+    if AbstractOSIntegration.is_mac() and not AbstractOSIntegration.os_version_below("10.10"):
         def test_folder_registration(self):
-            from nxdrive.osi import AbstractOSIntegration
+
             name = "TestCazz"
 
             # Unregister first; to ensure favorite bar is cleaned.
@@ -25,7 +27,6 @@ class DarwinTest(unittest.TestCase):
 
         # Utils methods
         def _is_folder_registered(self, name):
-            from nxdrive.osi import AbstractOSIntegration
 
             os = AbstractOSIntegration.get(None)
             lst = os._get_favorite_list()
