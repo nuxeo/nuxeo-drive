@@ -688,7 +688,6 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_local_root_deletion",
             "nxdrive.tests.test_integration_local_storage_space_issue",
             "nxdrive.tests.test_integration_reinit_database",
-            "nxdrive.tests.test_integration_remote_deleted_parent",
             "nxdrive.tests.test_local_client",
             "nxdrive.tests.test_local_filter",
             "nxdrive.tests.test_local_move_and_rename",
