@@ -41,19 +41,13 @@ class Processor(EngineWorker):
         self._current_doc_pair = None
         self._get_item = item_getter
         self._engine = engine
-        self.path_locker.acquire()
-        try:
-            if self._engine.get_uid() not in Processor.readonly_locks:
-                    Processor.readonly_locks[self._engine.get_uid()] = dict()
-                    Processor.soft_locks[self._engine.get_uid()] = dict()
-                    Processor.path_locks[self._engine.get_uid()] = dict()
-        finally:
-            self.path_locker.release()
 
     def _unlock_soft_path(self, path):
         log.trace("Soft unlocking: %s", path)
         path = path.lower()
         Processor.path_locker.acquire()
+        if self._engine.get_uid() not in Processor.soft_locks:
+            Processor.soft_locks[self._engine.get_uid()] = dict()
         try:
             del Processor.soft_locks[self._engine.get_uid()][path]
         except Exception as e:
@@ -64,6 +58,8 @@ class Processor(EngineWorker):
     def _unlock_readonly(self, local_client, path):
         # dict[path]=(count, lock)
         Processor.readonly_locker.acquire()
+        if self._engine.get_uid() not in Processor.readonly_locks:
+            Processor.readonly_locks[self._engine.get_uid()] = dict()
         try:
             if path in Processor.readonly_locks[self._engine.get_uid()]:
                 log.trace("readonly unlock: increase count on %s", path)
@@ -77,6 +73,8 @@ class Processor(EngineWorker):
 
     def _lock_readonly(self, local_client, path):
         Processor.readonly_locker.acquire()
+        if self._engine.get_uid() not in Processor.readonly_locks:
+            Processor.readonly_locks[self._engine.get_uid()] = dict()
         try:
             if path not in Processor.readonly_locks[self._engine.get_uid()]:
                 log.debug("readonly lock: can't find reference on %s", path)
@@ -94,6 +92,8 @@ class Processor(EngineWorker):
         log.trace("Soft locking: %s", path)
         path = path.lower()
         Processor.path_locker.acquire()
+        if self._engine.get_uid() not in Processor.soft_locks:
+            Processor.soft_locks[self._engine.get_uid()] = dict()
         try:
             if path in Processor.soft_locks[self._engine.get_uid()]:
                 raise PairInterrupt
@@ -108,6 +108,8 @@ class Processor(EngineWorker):
         log.trace("Get lock for '%s'", path)
         lock = None
         Processor.path_locker.acquire()
+        if self._engine.get_uid() not in Processor.path_locks:
+            Processor.path_locks[self._engine.get_uid()] = dict()
         try:
             if path in Processor.path_locks[self._engine.get_uid()]:
                 lock = Processor.path_locks[self._engine.get_uid()][path]
@@ -122,6 +124,8 @@ class Processor(EngineWorker):
     def _unlock_path(self, path):
         log.trace("Unlocking '%s'", path)
         Processor.path_locker.acquire()
+        if self._engine.get_uid() not in Processor.path_locks:
+            Processor.path_locks[self._engine.get_uid()] = dict()
         try:
             if path in Processor.path_locks[self._engine.get_uid()]:
                 Processor.path_locks[self._engine.get_uid()][path].release()
