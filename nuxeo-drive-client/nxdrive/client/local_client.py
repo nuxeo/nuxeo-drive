@@ -107,8 +107,8 @@ class LocalClient(BaseClient):
     # Automation operations fetched at manager init time.
 
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
-                 ignored_suffixes=None, check_suspended=None):
-        self._case_sensitive = None
+                 ignored_suffixes=None, check_suspended=None, case_sensitive=None):
+        self._case_sensitive = case_sensitive
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
@@ -130,6 +130,7 @@ class LocalClient(BaseClient):
 
     def is_case_sensitive(self):
         if self._case_sensitive is None:
+            lock = self.unlock_path(self.base_folder, unlock_parent=False)
             path = os.tempnam(self.base_folder, '.caseTest_')
             os.mkdir(path)
             if os.path.exists(path.upper()):
@@ -137,6 +138,7 @@ class LocalClient(BaseClient):
             else:
                 self._case_sensitive = True
             os.rmdir(path)
+            self.lock_path(self.base_folder, lock)
         return self._case_sensitive
 
     def is_temp_file(self, filename):

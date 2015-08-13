@@ -143,7 +143,8 @@ class Engine(QObject):
         self.invalidAuthentication.connect(self.stop)
         # Folder locker - LocalFolder processor can prevent others processors to operate on a folder
         self._folder_lock = None
-
+        # Case sensitive partition
+        self._case_sensitive = None
         self.timeout = 30
         self._handshake_timeout = 60
         # Make all the automation client related to this manager
@@ -771,7 +772,10 @@ class Engine(QObject):
                     thread.worker.quit()
 
     def get_local_client(self):
-        return LocalClient(self._local_folder)
+        client = LocalClient(self._local_folder, case_sensitive=self._case_sensitive)
+        if self._case_sensitive is None:
+            self._case_sensitive = client.is_case_sensitive()
+        return client
 
     def get_server_version(self):
         return self._dao.get_config("server_version")

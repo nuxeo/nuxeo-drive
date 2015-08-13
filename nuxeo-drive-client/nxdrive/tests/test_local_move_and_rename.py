@@ -405,8 +405,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.wait()
 
     def test_local_rename_sync_root_folder(self):
-        if sys.platform.startswith('linux'):
-            raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         # Use the Administrator to be able to introspect the container of the
         # test workspace.
         remote_client = RemoteDocumentClient(
