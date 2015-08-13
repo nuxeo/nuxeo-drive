@@ -44,7 +44,7 @@ class TestSharedFolders(UnitTestCase):
 
             # As user2 register parent folder as a sync root
             remote_user2.register_as_root(parent_folder_path)
-
+            remote_user2.unregister_as_root(self.workspace)
             # Start engine for user2
             self.engine_2.start()
 
