@@ -4,7 +4,7 @@ import inspect
 from threading import Lock, local, current_thread
 from datetime import datetime
 from nxdrive.logging_config import get_logger
-from PyQt4.QtCore import pyqtSignal, QObject
+from PyQt5.QtCore import pyqtSignal, QObject
 log = get_logger(__name__)
 
 SCHEMA_VERSION = "schema_version"
@@ -845,20 +845,20 @@ class EngineDAO(ConfigurationDAO):
         finally:
             self._lock.release()
 
-    def increase_error(self, row, error, details=None):
+    def increase_error(self, row, error, details=None, incr=1):
         error_date = datetime.utcnow()
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET last_error=?, last_sync_error_date=?, error_count = error_count + 1, last_error_details=? " +
-                      "WHERE id=?", (error, error_date, details, row.id))
+            c.execute("UPDATE States SET last_error=?, last_sync_error_date=?, error_count = error_count + ?, last_error_details=? " +
+                      "WHERE id=?", (error, error_date, incr, details, row.id))
             if self.auto_commit:
                 con.commit()
         finally:
             self._lock.release()
         row.last_error = error
-        row.error_count = row.error_count + 1
+        row.error_count = row.error_count + incr
         row.last_sync_error_date = error_date
 
     def reset_error(self, row):

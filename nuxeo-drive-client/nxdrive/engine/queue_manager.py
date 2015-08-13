@@ -211,6 +211,9 @@ class QueueManager(QObject):
     def _on_new_error(self):
         self._error_timer.start(1000)
 
+    def get_error_threshold(self):
+        return self._error_threshold
+
     def push_error(self, doc_pair, exception=None):
         error_count = doc_pair.error_count
         if (exception is not None and type(exception) == WindowsError
