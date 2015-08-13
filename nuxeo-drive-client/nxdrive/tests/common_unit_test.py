@@ -225,6 +225,7 @@ class UnitTestCase(unittest.TestCase):
 
         # Register root
         remote_document_client_1.register_as_root(self.workspace)
+        remote_document_client_2.register_as_root(self.workspace)
 
         self.root_remote_client = root_remote_client
         self.remote_document_client_1 = remote_document_client_1
