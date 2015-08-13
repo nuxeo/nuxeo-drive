@@ -9,7 +9,6 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.engine.engine import Engine
 from shutil import copyfile
 from mock import patch
-from nose.plugins.skip import SkipTest
 
 
 class TestRemoteMoveAndRename(UnitTestCase):
