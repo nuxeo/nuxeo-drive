@@ -4,7 +4,7 @@ import inspect
 from threading import Lock, local, current_thread
 from datetime import datetime
 from nxdrive.logging_config import get_logger
-from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt4.QtCore import pyqtSignal, QObject
 log = get_logger(__name__)
 
 SCHEMA_VERSION = "schema_version"
