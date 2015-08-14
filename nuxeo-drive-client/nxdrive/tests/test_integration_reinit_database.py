@@ -148,7 +148,7 @@ class TestIntegrationReinitDatabase(IntegrationTestCase):
                           'Local content should be the same as remote one')
         # Sync again
         self._synchronize(3)
-        # Check a conflict is handled locally and remotely
+        # Check a conftlict is handled locally and remotely
         self._check_conflict_locally_and_remotely_handled()
         # Assert content has changed
         self.assertEquals(self.local.get_content('/Test folder/Test.txt'),

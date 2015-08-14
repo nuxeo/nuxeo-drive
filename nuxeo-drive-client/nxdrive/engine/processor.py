@@ -327,12 +327,6 @@ class Processor(EngineWorker):
     def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
         name = os.path.basename(doc_pair.local_path)
         remote_ref = local_client.get_remote_id(doc_pair.local_path)
-        if remote_ref is not None:
-            # TODO Decide what to do
-            log.warn("This document %r has remote_ref %s", doc_pair, remote_ref)
-            # Get the remote doc
-            # Verify it is not already synced elsewhere ( a missed move ? )
-            # If same hash dont do anything and reconcile
         # Find the parent pair to find the ref of the remote folder to
         # create the document
         parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
@@ -348,6 +342,23 @@ class Processor(EngineWorker):
             raise ValueError(
                 "Parent folder of %s is not bound to a remote folder"
                 % doc_pair.local_parent_path)
+        if remote_ref is not None and '#' in remote_ref:
+            # TODO Decide what to do
+            log.warn("This document %r has remote_ref %s", doc_pair, remote_ref)
+            # Get the remote doc
+            # Verify it is not already synced elsewhere ( a missed move ? )
+            # If same hash dont do anything and reconcile
+            remote_doc_client = self._engine.get_remote_doc_client()
+            uid = remote_ref.split('#')[-1]
+            info = remote_doc_client.get_info(uid, raise_if_missing=False, use_trash=False)
+            if info and info.path.endswith('.trashed'):
+                log.debug("Untrash from the client")
+                remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
+                remote_doc_client.undelete(uid)
+                fs_item_info = remote_client.get_info(remote_ref)
+                self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path, versionned=False)
+                self._dao.synchronize_state(doc_pair)
+                return
         parent_ref = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
             remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref

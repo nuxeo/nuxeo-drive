@@ -889,14 +889,22 @@ class Engine(QObject):
         return remote_client
 
     def get_remote_doc_client(self, repository=DEFAULT_REPOSITORY_NAME, base_folder=None):
-        return self.remote_doc_client_factory(
-            self._server_url, self._remote_user,
-            self._manager.device_id, self.version,
-            proxies=self._manager.proxies,
-            proxy_exceptions=self._manager.proxy_exceptions,
-            password=self._remote_password, token=self._remote_token,
-            repository=repository, base_folder=base_folder,
-            timeout=self._handshake_timeout, cookie_jar=self.cookie_jar, check_suspended=self.suspend_client)
+        if self._invalid_credentials:
+            return None
+        cache = self._get_client_cache()
+        cache_key = (self._manager.device_id, 'remote_doc')
+        remote_client = cache.get(cache_key)
+        if remote_client is None:
+            remote_client = self.remote_doc_client_factory(
+                self._server_url, self._remote_user,
+                self._manager.device_id, self.version,
+                proxies=self._manager.proxies,
+                proxy_exceptions=self._manager.proxy_exceptions,
+                password=self._remote_password, token=self._remote_token,
+                repository=repository, base_folder=base_folder,
+                timeout=self._handshake_timeout, cookie_jar=self.cookie_jar, check_suspended=self.suspend_client)
+            cache[cache_key] = remote_client
+        return remote_client
 
     def create_processor(self, item_getter, name=None):
         from nxdrive.engine.processor import Processor
