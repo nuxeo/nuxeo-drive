@@ -138,7 +138,7 @@ class ConfigurationDAO(QObject):
         self._tx_lock = Lock()
         # If we dont share connection no need to lock
         if self.share_connection:
-            self._lock = LogLock()
+            self._lock = Lock()
         else:
             self._lock = FakeLock()
         # Use to clean
