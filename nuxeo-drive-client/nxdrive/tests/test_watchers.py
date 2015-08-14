@@ -193,6 +193,7 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(remote.get_info(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt').name,
                           u'avoir et \xeatre.odt')
         # Check content update
+        log.debug("Update content of avoir et etre")
         local.update_content(u'/Accentu\xe9 avec un \xea et un \xe9.odt', u'Updated content')
         local.update_content(u'/P\xf4le appliqu\xe9/avoir et \xeatre.odt', u'Updated content')
         self.engine_1.start()
