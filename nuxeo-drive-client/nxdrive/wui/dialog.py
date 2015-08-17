@@ -642,6 +642,7 @@ class WebDialog(QtGui.QDialog):
         super(WebDialog, self).__init__()
         self._view = QtWebKit.QWebView()
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+        self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
         if application.manager.is_debug():
             QtWebKit.QWebSettings.globalSettings().setAttribute(QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
         else:

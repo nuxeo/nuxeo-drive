@@ -21,6 +21,7 @@ MANIFEST
 .project
 .settings
 .pydevproject
+.idea
 debian
 venv
 ENV
