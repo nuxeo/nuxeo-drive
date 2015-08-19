@@ -40,6 +40,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'repository',  # server repository name
     'doc_type',  # Nuxeo document type
     'version',  # Nuxeo version
+    'state', # Nuxeo lifecycle state
     # TODO: add filename?
 ])
 
@@ -279,7 +280,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
             doc['path'], folderish, last_update, lastContributor,
-            digestAlgorithm, digest, self.repository, doc['type'], version)
+            digestAlgorithm, digest, self.repository, doc['type'], version, doc['state'])
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):

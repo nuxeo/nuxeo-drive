@@ -351,11 +351,13 @@ class Processor(EngineWorker):
             remote_doc_client = self._engine.get_remote_doc_client()
             uid = remote_ref.split('#')[-1]
             info = remote_doc_client.get_info(uid, raise_if_missing=False, use_trash=False)
-            if info and info.path.endswith('.trashed'):
+            if info and info.state == 'deleted':
                 log.debug("Untrash from the client")
                 remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
                 remote_doc_client.undelete(uid)
                 fs_item_info = remote_client.get_info(remote_ref)
+                if not fs_item_info.path.startswith(remote_parent_path):
+                    fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
                 self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path, versionned=False)
                 self._dao.synchronize_state(doc_pair)
                 return
