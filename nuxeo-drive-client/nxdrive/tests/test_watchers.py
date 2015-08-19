@@ -186,7 +186,7 @@ class TestWatchers(UnitTestCase):
         # on the file system, thus we need to use the normalized name for the parent folder
         local.rename(u'/P\xf4le appliqu\xe9/\xeatre ou ne pas \xeatre.odt', u'avoir et e\u0302tre.odt')
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
         self.assertEquals(remote.get_info(u'/Accentue\u0301.odt').name, u'Accentu\xe9 avec un \xea et un \xe9.odt')
         self.assertEquals(remote.get_info(u'/P\xf4le applicatif').name, u'P\xf4le appliqu\xe9')
@@ -200,6 +200,7 @@ class TestWatchers(UnitTestCase):
         self.wait_sync()
         self.engine_1.stop()
         self.assertEquals(remote.get_content(u'/Accentue\u0301.odt'), u'Updated content')
+        # NXDRIVE-389: Will be Content and not Updated content
         self.assertEquals(remote.get_content(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'),
                           u'Updated content')
 
