@@ -5,6 +5,7 @@ Created on 27 janv. 2015
 '''
 from PyQt4 import QtCore, QtGui
 from nxdrive.logging_config import get_logger
+from nxdrive.client.common import NotFound
 log = get_logger(__name__)
 
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
@@ -117,6 +118,8 @@ class WebSettingsApi(WebDriveApi):
             if (msgbox.clickedButton() == cancel):
                 return "FOLDER_USED"
             return self.bind_server(local_folder, url, username, password, name, check_fs=False)
+        except NotFound:
+            return "FOLDER_DOES_NOT_EXISTS"
         except InvalidDriveException:
             return "INVALID_PARTITION"
         except Unauthorized:

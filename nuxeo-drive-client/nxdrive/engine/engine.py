@@ -4,6 +4,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.commandline import DEFAULT_REMOTE_WATCHER_DELAY
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
+from nxdrive.client.common import NotFound
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import RemoteFilteredFileSystemClient
@@ -696,6 +697,8 @@ class Engine(QObject):
         if check_fs:
             created_folder = False
             try:
+                if not os.path.exists(os.path.dirname(self._local_folder)):
+                    raise NotFound()
                 if not os.path.exists(self._local_folder):
                     os.mkdir(self._local_folder)
                     created_folder = True
