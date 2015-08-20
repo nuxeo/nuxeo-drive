@@ -23,6 +23,10 @@ class BindServerTest(unittest.TestCase):
         self.user = os.environ.get('NXDRIVE_TEST_USER', "Administrator")
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD', "Administrator")
 
+    def tearDown(self):
+        self.manager.unbind_all()
+        self.manager.dispose_all()
+
     def test_bind_local_folder_on_config_folder(self):
         options = Mock()
         options.debug = False
@@ -33,8 +37,9 @@ class BindServerTest(unittest.TestCase):
         options.update_site_url = None
         options.beta_update_site_url = None
         options.nxdrive_home = self.nxdrive_conf_folder
-        manager = Manager(options)
+        self.manager = Manager(options)
 
         with self.assertRaises(FolderAlreadyUsed):
-            manager.bind_server(self.nxdrive_conf_folder, self.nuxeo_url, self.user,
+            self.manager.bind_server(self.nxdrive_conf_folder, self.nuxeo_url, self.user,
                                 self.password, start_engine=False)
+
