@@ -193,7 +193,11 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(remote.get_info(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt').name,
                           u'avoir et \xeatre.odt')
         # Check content update
+        # NXDRIVE-389: Reload the engine to be sure that the pair are all synchronized
         log.debug("Update content of avoir et etre")
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        self.engine_1.stop()
         local.update_content(u'/Accentu\xe9 avec un \xea et un \xe9.odt', u'Updated content')
         local.update_content(u'/P\xf4le appliqu\xe9/avoir et \xeatre.odt', u'Updated content')
         self.engine_1.start()
@@ -201,6 +205,7 @@ class TestWatchers(UnitTestCase):
         self.engine_1.stop()
         self.assertEquals(remote.get_content(u'/Accentue\u0301.odt'), u'Updated content')
         # NXDRIVE-389: Will be Content and not Updated content
+        # it is not consider as synced, so conflict is generated
         self.assertEquals(remote.get_content(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'),
                           u'Updated content')
 
