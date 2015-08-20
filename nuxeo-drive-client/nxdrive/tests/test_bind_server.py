@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from mock import Mock
 from nxdrive.manager import Manager, FolderAlreadyUsed
-from nxdrive.tests.common import TEST_DEFAULT_DELAY
+from nxdrive.tests.common import TEST_DEFAULT_DELAY, clean_dir
 
 
 class BindServerTest(unittest.TestCase):
@@ -26,6 +26,9 @@ class BindServerTest(unittest.TestCase):
     def tearDown(self):
         self.manager.unbind_all()
         self.manager.dispose_all()
+        Manager._singleton = None
+
+        clean_dir(self.local_test_folder)
 
     def test_bind_local_folder_on_config_folder(self):
         options = Mock()
@@ -41,5 +44,4 @@ class BindServerTest(unittest.TestCase):
 
         with self.assertRaises(FolderAlreadyUsed):
             self.manager.bind_server(self.nxdrive_conf_folder, self.nuxeo_url, self.user,
-                                self.password, start_engine=False)
-
+                                     self.password, start_engine=False)
