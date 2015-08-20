@@ -833,6 +833,9 @@ class Manager(QtCore.QObject):
         if self._engines is None:
             self.load()
         local_folder = normalized_path(local_folder)
+        if local_folder == self.get_configuration_folder():
+            # Prevent from binding in the configuration folder
+            raise FolderAlreadyUsed()
         uid = uuid.uuid1().hex
         # TODO Check that engine is not inside another or same position
         engine_def = self._dao.add_engine(engine_type, local_folder, uid, name)

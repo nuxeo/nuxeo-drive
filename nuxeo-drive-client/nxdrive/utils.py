@@ -168,7 +168,7 @@ def normalized_path(path):
 
     # XXX: we could os.path.normcase as well under Windows but it might be the
     # source of unexpected troubles so not doing it for now.
-    return os.path.normpath(os.path.abspath(os.path.expanduser(path)))
+    return os.path.realpath((os.path.normpath(os.path.abspath(os.path.expanduser(path)))))
 
 
 def safe_long_path(path):

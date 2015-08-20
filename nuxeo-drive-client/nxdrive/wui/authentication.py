@@ -1,5 +1,6 @@
 from PyQt4 import QtCore
 from nxdrive.logging_config import get_logger
+from nxdrive.manager import FolderAlreadyUsed
 from nxdrive.wui.dialog import WebDialog
 from nxdrive.wui.translator import Translator
 import urllib2
@@ -8,7 +9,6 @@ log = get_logger(__name__)
 
 
 class WebAuthenticationApi(QtCore.QObject):
-
     def __init__(self, settings_api, callback_params):
         super(WebAuthenticationApi, self).__init__()
         self._settings_api = settings_api
@@ -38,6 +38,8 @@ class WebAuthenticationApi(QtCore.QObject):
         except urllib2.HTTPError as e:
             log.exception(e)
             error = 'CONNECTION_ERROR'
+        except FolderAlreadyUsed:
+            error = 'FOLDER_USED'
         except:
             log.exception('Unexpected error while trying to create a new account [%s, %s, %s]',
                           local_folder, server_url, username)
@@ -78,7 +80,6 @@ class WebAuthenticationApi(QtCore.QObject):
 
 
 class WebAuthenticationDialog(WebDialog):
-
     def __init__(self, application, url, api):
         super(WebAuthenticationDialog, self).__init__(application, url,
                                                       title=Translator.get("WEB_AUTHENTICATION_WINDOW_TITLE"), api=api)
