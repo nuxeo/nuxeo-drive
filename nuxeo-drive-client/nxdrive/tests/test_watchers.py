@@ -196,7 +196,7 @@ class TestWatchers(UnitTestCase):
         # NXDRIVE-389: Reload the engine to be sure that the pair are all synchronized
         log.debug("Update content of avoir et etre")
         self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync(fail_if_timeout=False)
         self.engine_1.stop()
         local.update_content(u'/Accentu\xe9 avec un \xea et un \xe9.odt', u'Updated content')
         local.update_content(u'/P\xf4le appliqu\xe9/avoir et \xeatre.odt', u'Updated content')
