@@ -951,7 +951,7 @@ class EngineDAO(ConfigurationDAO):
             log.trace("Was not able to synchronize state: %r", row)
             con = self._get_read_connection()
             c = con.cursor()
-            row2 = c.execute("SELECT States WHERE id=?", (row.id,)).fetchone()
+            row2 = c.execute("SELECT * FROM States WHERE id=?", (row.id,)).fetchone()
             log.trace("The current row was: %r (version=%r)", (row2, row2.version))
             log.trace("The previous row was: %r (version=%r)", (row, row.version))
         elif row.folderish and state == 'synchronized':
