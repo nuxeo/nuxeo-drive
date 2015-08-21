@@ -295,3 +295,13 @@ a, a:link {
   height: 220px;
   overflow: auto;
   width: 695px; }
+ 
+.checkbox label {
+	width: 100%;
+}
+.checkbox label span {
+	margin-top: -12px;
+}
+.checkbox input[type="checkbox"], .checkbox-inline input[type="checkbox"], .radio input[type="radio"], .radio-inline input[type="radio"] {
+	position: relative !important;
+}
