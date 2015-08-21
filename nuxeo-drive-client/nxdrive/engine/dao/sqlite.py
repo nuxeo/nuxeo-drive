@@ -955,8 +955,8 @@ class EngineDAO(ConfigurationDAO):
             if row2 is None:
                 log.trace("No more row")
             else:
-                log.trace("The current row was: %r (version=%r)", (row2, row2.version))
-            log.trace("The previous row was: %r (version=%r)", (row, row.version))
+                log.trace("The current row was: %r (version=%r)", row2, row2.version)
+            log.trace("The previous row was: %r (version=%r)", row, row.version)
         elif row.folderish and state == 'synchronized':
             self.queue_children(row)
         return result
