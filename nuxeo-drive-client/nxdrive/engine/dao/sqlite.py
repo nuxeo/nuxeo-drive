@@ -952,7 +952,10 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_read_connection()
             c = con.cursor()
             row2 = c.execute("SELECT * FROM States WHERE id=?", (row.id,)).fetchone()
-            log.trace("The current row was: %r (version=%r)", (row2, row2.version))
+            if row2 is None:
+                log.trace("No more row")
+            else:
+                log.trace("The current row was: %r (version=%r)", (row2, row2.version))
             log.trace("The previous row was: %r (version=%r)", (row, row.version))
         elif row.folderish and state == 'synchronized':
             self.queue_children(row)
