@@ -966,6 +966,12 @@ class EngineDAO(ConfigurationDAO):
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
         version = ''
+        # Check if it really needs an update
+        if (row.remote_ref == info.uid and info.parent_uid == row.remote_parent_ref and remote_parent_path == row.remote_parent_path
+            and info.name == row.remote_name and info.last_modification_time == row.last_remote_updated and info.can_rename == row.remote_can_rename
+            and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child
+            and info.last_contributor == row.last_remote_modifier and info.digest == row.remote_digest):
+            return
         if versionned:
             version = ', version=version+1'
             log.trace('Increasing version to %d for pair %r', row.version + 1, info)
@@ -977,11 +983,11 @@ class EngineDAO(ConfigurationDAO):
                       "remote_parent_path=?, remote_name=?, last_remote_updated=?, remote_can_rename=?," +
                       "remote_can_delete=?, remote_can_update=?, " +
                       "remote_can_create_child=?, last_remote_modifier=?, remote_digest=?, local_state=?," +
-                      "remote_state=?, pair_state=?, last_remote_modifier=?" + version + " WHERE id=?",
+                      "remote_state=?, pair_state=?" + version + " WHERE id=?",
                       (info.uid, info.parent_uid, remote_parent_path, info.name,
                        info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                        info.can_create_child, info.last_contributor, info.digest, row.local_state,
-                       row.remote_state, pair_state, info.last_contributor, row.id))
+                       row.remote_state, pair_state, row.id))
             if self.auto_commit:
                 con.commit()
             if row.pair_state != pair_state:
