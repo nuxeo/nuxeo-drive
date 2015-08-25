@@ -133,7 +133,7 @@ class ConfigurationDAO(QObject):
         # For testing purpose only should always be True
         self.share_connection = True
         self.auto_commit = True
-        self.schema_version = 1
+        self.schema_version = self.get_schema_version()
         self.in_tx = None
         self._tx_lock = Lock()
         # If we dont share connection no need to lock
@@ -146,7 +146,6 @@ class ConfigurationDAO(QObject):
         self._create_main_conn()
         self._conn.row_factory = CustomRow
         c = self._conn.cursor()
-        self._init_db(c)
         if migrate:
             res = c.execute("SELECT value FROM Configuration WHERE name='"+SCHEMA_VERSION+"'").fetchone()
             if res is None:
@@ -155,11 +154,16 @@ class ConfigurationDAO(QObject):
                 schema = int(res[0])
             if schema != self.schema_version:
                 self._migrate_db(c, schema)
+        else:
+            self._init_db(c)
         self._conn.commit()
         self._conns = local()
         # FOR PYTHON 3.3...
         #if log.getEffectiveLevel() < 6:
         #    self._conn.set_trace_callback(self._log_trace)
+
+    def get_schema_version(self):
+        return 1
 
     def get_db(self):
         return self._db
@@ -301,12 +305,62 @@ class ConfigurationDAO(QObject):
 
 
 class ManagerDAO(ConfigurationDAO):
-    def __init__(self, db):
-        super(ManagerDAO, self).__init__(db)
+
+    def get_schema_version(self):
+        return 2
 
     def _init_db(self, cursor):
         super(ManagerDAO, self)._init_db(cursor)
         cursor.execute("CREATE TABLE if not exists Engines(uid VARCHAR, engine VARCHAR NOT NULL, name VARCHAR, local_folder VARCHAR NOT NULL UNIQUE, PRIMARY KEY(uid))")
+        cursor.execute("CREATE TABLE if not exists Notifications(uid VARCHAR UNIQUE, engine VARCHAR, level VARCHAR, title VARCHAR, description VARCHAR, content VARCHAR, flags INT, PRIMARY KEY(uid))")
+
+    def insert_notification(self, notification):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("INSERT INTO Notifications(uid,engine,level,title,description,content,flags) VALUES(?,?,?,?,?,?,?)",
+                      (notification.get_uid(), notification.get_engine_uid(), notification.get_level(), notification.get_title(), notification.get_description(), "", notification.get_flags()))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def get_notifications(self, discarded=True):
+        from nxdrive.notification import Notification
+        c = self._get_read_connection().cursor()
+        if discarded:
+            return c.execute("SELECT * FROM Notifications").fetchall()
+        else:
+            return c.execute("SELECT * FROM Notifications WHERE (flags & " + str(Notification.FLAG_DISCARD) + ") = 0").fetchall()
+
+    def discard_notification(self, uid):
+        from nxdrive.notification import Notification
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE Notifications SET flags = (flags | " + str(Notification.FLAG_DISCARD) + ") WHERE uid=? AND (flags & " + str(Notification.FLAG_DISCARDABLE) + ") = " + str(Notification.FLAG_DISCARDABLE), (uid,))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def remove_notification(self, uid):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("DELETE FROM Notifications WHERE uid=?", (uid,))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def _migrate_db(self, cursor, version):
+        if (version < 2):
+            cursor.execute("CREATE TABLE if not exists Notifications(uid VARCHAR, engine VARCHAR, level VARCHAR, title VARCHAR, description VARCHAR, content VARCHAR, flags INT, PRIMARY KEY(uid))")
+            self.update_config(SCHEMA_VERSION, 2)
 
     def get_engines(self):
         c = self._get_read_connection(factory=StateRow).cursor()
@@ -347,12 +401,14 @@ class EngineDAO(ConfigurationDAO):
         '''
         Constructor
         '''
-        self.schema_version = 1
         self._filters = None
         self._queue_manager = None
         super(EngineDAO, self).__init__(db)
         self._filters = self.get_filters()
         self.reinit_processors()
+
+    def get_schema_version(self):
+        return 2
 
     def _migrate_db(self, cursor, version):
         if (version < 1):

@@ -13,11 +13,25 @@ class Notification(object):
     LEVEL_WARNING = "warning"
     LEVEL_ERROR = "danger"
 
-    def __init__(self, notification_type, engine_uid=None, level=LEVEL_INFO, uid=None, unique=False,
-                 replacements=None):
-        self._unique = unique
+    # FLAG VALUE
+    # Discard notification
+    FLAG_DISCARD = 1
+    # Unique ( not depending on time ), only one by type/engine is displayed
+    FLAG_UNIQUE = 2
+    # Can be closed by the user
+    FLAG_DISCARDABLE = 4
+    # Will not be stored when sent
+    FLAG_VOLATILE = 8
+    # Will be stored in the db
+    FLAG_PERSISTENT = 16
+
+    def __init__(self, notification_type, engine_uid=None, level=LEVEL_INFO, uid=None, flags=0, replacements=None):
+        self._flags = flags
         self._type = notification_type
         self._level = level
+        self._title = ""
+        self._description = ""
+        self._engine_uid = engine_uid
         if isinstance(engine_uid, str):
             raise RuntimeError
         self._engine_uid = engine_uid
@@ -26,7 +40,7 @@ class Notification(object):
             self._uid = uid
         else:
             self._uid = Notification.generate_uid(notification_type, engine_uid)
-            if not self._unique:
+            if not self.is_unique():
                 self._uid = self._uid + "_" + str(int(time.time()))
         # For futur usage
         self._volatile = True
@@ -35,8 +49,23 @@ class Notification(object):
         else:
             self._replacements = replacements
 
+    def is_unique(self):
+        return self._flags & Notification.FLAG_UNIQUE
+
+    def is_discard(self):
+        return self._flags & Notification.FLAG_DISCARD
+
+    def is_discardable(self):
+        return self._flags & Notification.FLAG_DISCARDABLE
+
+    def get_flags(self):
+        return self._flags
+
     def add_replacement(self, key, value):
         self._replacements[key] = value
+
+    def get_engine_uid(self):
+        return self._engine_uid
 
     def remove_replacement(self, key):
         if key in self._replacements:
@@ -46,7 +75,7 @@ class Notification(object):
         return self._uid
 
     @staticmethod
-    def generate_uid(self, _type, engine_uid=None):
+    def generate_uid(_type, engine_uid=None):
         result = _type
         if engine_uid:
             result = result + "_" + engine_uid
@@ -58,14 +87,17 @@ class Notification(object):
     def get_level(self):
         return self._level
 
-    def is_unique(self):
-        return self._unique
-
     def is_volatile(self):
         return self._volatile
 
     def get_replacements(self):
         return self._replacements
+
+    def get_title(self):
+        return self._title
+
+    def get_description(self):
+        return self._description
 
     def trigger(self):
         pass
@@ -81,10 +113,11 @@ class NotificationService(QtCore.QObject):
     '''
     classdocs
     '''
-    def __init__(self):
+    def __init__(self, manager):
         super(NotificationService, self).__init__()
         self._lock = Lock()
         self._notifications = dict()
+        self._dao = manager.get_dao()
 
     def get_notifications(self, engine=None, include_generic=True):
         # Might need to use lock and duplicate
@@ -121,6 +154,7 @@ class NotificationService(QtCore.QObject):
         try:
             if uid in self._notifications:
                 del self._notifications[uid]
+            
         finally:
             self._lock.release()
         self.discardNotification.emit(uid)
