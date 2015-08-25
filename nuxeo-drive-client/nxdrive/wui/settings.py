@@ -76,9 +76,10 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
         return ""
 
-    def _bind_server(self, local_folder, url, username, password, name, start_engine=True, check_fs=True):
+    def _bind_server(self, local_folder, url, username, password, name, start_engine=True, check_fs=True, token=None):
         from collections import namedtuple
-        local_folder = str(local_folder.toUtf8()).decode('utf-8')
+        if isinstance(local_folder, QtCore.QString):
+            local_folder = str(local_folder.toUtf8()).decode('utf-8')
         url = str(url)
         username = str(username)
         password = str(password)
@@ -88,7 +89,7 @@ class WebSettingsApi(WebDriveApi):
         binder = namedtuple('binder', ['username', 'password', 'token', 'url', 'no_check', 'no_fscheck'])
         binder.username = username
         binder.password = password
-        binder.token = None
+        binder.token = token
         binder.no_check = False
         binder.no_fscheck = not check_fs
         binder.url = url
@@ -97,11 +98,11 @@ class WebSettingsApi(WebDriveApi):
         return ""
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
-    def bind_server(self, local_folder, url, username, password, name, check_fs=True):
+    def bind_server(self, local_folder, url, username, password, name, check_fs=True, token=None):
         try:
             # Allow to override for other exception handling
             log.debug("URL: '%s'", url)
-            return self._bind_server(local_folder, url, username, password, name, check_fs=check_fs)
+            return self._bind_server(local_folder, url, username, password, name, check_fs=check_fs, token=token)
         except RootAlreadyBindWithDifferentAccount as e:
             # Ask for the user
             values = dict()
@@ -117,7 +118,7 @@ class WebSettingsApi(WebDriveApi):
             msgbox.exec_()
             if (msgbox.clickedButton() == cancel):
                 return "FOLDER_USED"
-            return self.bind_server(local_folder, url, username, password, name, check_fs=False)
+            return self.bind_server(local_folder, url, username, password, name, check_fs=False, token=token)
         except NotFound:
             return "FOLDER_DOES_NOT_EXISTS"
         except InvalidDriveException:
@@ -136,9 +137,6 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
             # Map error here
             return "CONNECTION_UNKNOWN"
-
-    def create_account(self, local_folder, url, username, token, name, start_engine=True):
-        self._manager.bind_server(local_folder, url, username, None, token=token, name=name, start_engine=start_engine)
 
     @QtCore.pyqtSlot(str, str, str, result=str)
     def web_authentication(self, local_folder, server_url, engine_name):

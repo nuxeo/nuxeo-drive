@@ -27,19 +27,11 @@ class WebAuthenticationApi(QtCore.QObject):
             server_url = self._callback_params['server_url']
             engine_name = self._callback_params['engine_name']
             log.debug('Creating new account [%s, %s, %s]', local_folder, server_url, username)
-            self._settings_api.create_account(local_folder, server_url, username, token, engine_name)
-            self._settings_api.set_new_local_folder(local_folder)
-        except urllib2.URLError as e:
-            log.exception(e)
-            if e.errno == 61:
-                error = 'CONNECTION_REFUSED'
-            else:
-                error = 'CONNECTION_ERROR'
-        except urllib2.HTTPError as e:
-            log.exception(e)
-            error = 'CONNECTION_ERROR'
-        except FolderAlreadyUsed:
-            error = 'FOLDER_USED'
+            error = self._settings_api.bind_server(local_folder, server_url, username, password=None, token=token, name=engine_name)
+            log.debug("RETURN FROM BIND_SERVER IS: '%s'", error)
+            if error == "":
+                error = None
+                self._settings_api.set_new_local_folder(local_folder)
         except:
             log.exception('Unexpected error while trying to create a new account [%s, %s, %s]',
                           local_folder, server_url, username)
