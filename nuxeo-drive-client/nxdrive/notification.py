@@ -24,15 +24,21 @@ class Notification(object):
     FLAG_VOLATILE = 8
     # Will be stored in the db
     FLAG_PERSISTENT = 16
+    # Will be display as systray bubble or notification center
+    FLAG_BUBBLE = 32
+    # Will be displayed inside the systray menu
+    FLAG_SYSTRAY = 64
+    # Will be displayed inside the systray menu
+    FLAG_ACTIONABLE = 128
 
-    def __init__(self, notification_type, engine_uid=None, level=LEVEL_INFO, uid=None, flags=0, replacements=None):
+    def __init__(self, notification_type, engine_uid=None, level=LEVEL_INFO, uid=None, flags=0, title="", description="", replacements=None, action=""):
         self._flags = flags
         self._type = notification_type
         self._level = level
-        self._title = ""
-        self._description = ""
-        self._engine_uid = engine_uid
-        if isinstance(engine_uid, str):
+        self._title = title
+        self._description = description
+        self._action = action
+        if engine_uid is not None and isinstance(engine_uid, str):
             raise RuntimeError
         self._engine_uid = engine_uid
         self._time = None
@@ -49,6 +55,12 @@ class Notification(object):
         else:
             self._replacements = replacements
 
+    def is_persistent(self):
+        return self._flags & Notification.FLAG_PERSISTENT
+
+    def is_volatile(self):
+        return self._flags & Notification.FLAG_VOLATILE
+
     def is_unique(self):
         return self._flags & Notification.FLAG_UNIQUE
 
@@ -57,6 +69,12 @@ class Notification(object):
 
     def is_discardable(self):
         return self._flags & Notification.FLAG_DISCARDABLE
+
+    def is_systray(self):
+        return self._flags & Notification.FLAG_SYSTRAY
+
+    def is_bubble(self):
+        return self._flags & Notification.FLAG_BUBBLE
 
     def get_flags(self):
         return self._flags
@@ -87,9 +105,6 @@ class Notification(object):
     def get_level(self):
         return self._level
 
-    def is_volatile(self):
-        return self._volatile
-
     def get_replacements(self):
         return self._replacements
 
@@ -98,6 +113,9 @@ class Notification(object):
 
     def get_description(self):
         return self._description
+
+    def get_content(self):
+        return ""
 
     def trigger(self):
         pass
@@ -140,6 +158,8 @@ class NotificationService(QtCore.QObject):
         self._lock.acquire()
         try:
             self._notifications[notification.get_uid()] = notification
+            if notification.is_persistent():
+                self._dao.insert_notification(notification)
         finally:
             self._lock.release()
         self.newNotification.emit(notification)
@@ -154,10 +174,29 @@ class NotificationService(QtCore.QObject):
         try:
             if uid in self._notifications:
                 del self._notifications[uid]
-            
+            self._dao.discard_notification(uid)
         finally:
             self._lock.release()
         self.discardNotification.emit(uid)
+
+
+class DebugNotification(Notification):
+    def __init__(self, engine_uid):
+        super(InvalidCredentialNotification, self).__init__("DEBUG", engine_uid=engine_uid, level=Notification.LEVEL_ERROR, flags=Notification.FLAG_UNIQUE|Notification.FLAG_PERSISTENT)
+
+    def get_description(self):
+        return "Small description for this debug notification"
+
+    def get_title(self):
+        return "Debug notification"
+
+    def get_action(self):
+        return ""
+
+
+class InvalidCredentialNotification(Notification):
+    def __init__(self, engine_uid):
+        super(InvalidCredentialNotification, self).__init__("INVALID_CREDENTIALS", engine_uid=engine_uid, level=Notification.LEVEL_ERROR, flags=Notification.FLAG_UNIQUE|Notification.FLAG_VOLATILE)
 
 
 class DefaultNotificationService(NotificationService):
@@ -171,6 +210,4 @@ class DefaultNotificationService(NotificationService):
 
     def _invalidAuthentication(self):
         engine_uid = self.sender()._uid
-        notification = Notification("INVALID_CREDENTIALS", engine_uid=engine_uid,
-                                        level=Notification.LEVEL_ERROR, unique=True)
-        self.send_notification(notification)
+        self.send_notification(InvalidCredentialNotification(engine_uid))

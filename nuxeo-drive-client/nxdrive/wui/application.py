@@ -314,6 +314,7 @@ class Application(QApplication):
         for _, engine in self.manager.get_engines().iteritems():
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)
+        self.manager.get_notification_service().newNotification.connect(self._new_notification)
         if not self.manager.get_engines():
             self.show_settings()
         else:
@@ -323,6 +324,11 @@ class Application(QApplication):
                     self.show_settings('Accounts_' + engine._uid)
                     break
         self.manager.start()
+
+    @QtCore.pyqtSlot(object)
+    def _new_notification(self, notification):
+        if notification.is_bubble():
+            self.show_message(notification.get_title(), notification.get_description())
 
     def get_systray_menu(self):
         from nxdrive.wui.systray import WebSystray

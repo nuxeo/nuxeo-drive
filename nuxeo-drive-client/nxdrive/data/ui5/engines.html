@@ -18,6 +18,11 @@
 		$scope.getTemplate = function(name) {
 			return 'templates/' + name + '.html';
 		}
+		$scope.notification = {};
+		$scope.notification.unique = true;
+		$scope.notification.discardable = true;
+		$scope.notification.systray = true;
+		$scope.notification.level = "danger";
 		$scope.engines = angular.fromJson(drive.get_engines());
 		$scope.engine = null;
 		$scope.metrics = null;
@@ -38,6 +43,32 @@
 		$scope.setMetrics = function(name, metrics) {
 			$scope.metrics_name = name;
 			$scope.metrics = metrics;
+		}
+		$scope.sendNotification = function() {
+			var engine_uid = null;
+			var flags = 0;
+			if ($scope.notification.unique) {
+				flags += 2;
+			}
+			if ($scope.notification.discardable) {
+				flags += 4;
+			}
+			if ($scope.notification.persistent) {
+				flags += 16;
+			}
+			if ($scope.notification.bubble) {
+				flags += 32;
+			}
+			if ($scope.notification.systray) {
+				flags += 64;
+			}
+			if ($scope.notification.actionable) {
+				flags += 128;
+			}
+			if ($scope.notification.engine) {
+				engine_uid = $scope.uid;
+			}
+			drive.send_notification("debug", engine_uid, $scope.notification.level, $scope.notification.title, $scope.notification.description, flags, $scope.notification.action);
 		}
 		$scope.pause = function(type) {
 			if ( type == 'engine') {
