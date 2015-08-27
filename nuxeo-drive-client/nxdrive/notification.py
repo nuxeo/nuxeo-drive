@@ -30,26 +30,29 @@ class Notification(object):
     FLAG_SYSTRAY = 64
     # Will be displayed inside the systray menu
     FLAG_ACTIONABLE = 128
+    # Delete the notifciation on discard
+    FLAG_REMOVE_ON_DISCARD = 256
 
-    def __init__(self, notification_type, engine_uid=None, level=LEVEL_INFO, uid=None, flags=0, title="", description="", replacements=None, action=""):
+    def __init__(self, uid=None, uuid=None, engine_uid=None, level=LEVEL_INFO, flags=0, title="", description="", replacements=None, action=""):
         self._flags = flags
-        self._type = notification_type
         self._level = level
         self._title = title
         self._description = description
         self._action = action
+        if uid is None and uuid is None:
+            raise RuntimeError
         if engine_uid is not None and isinstance(engine_uid, str):
             raise RuntimeError
         self._engine_uid = engine_uid
         self._time = None
+        self._uid = uid
         if uid is not None:
-            self._uid = uid
-        else:
-            self._uid = Notification.generate_uid(notification_type, engine_uid)
+            if engine_uid is not None:
+                self._uid = self._uid + "_" + engine_uid
             if not self.is_unique():
                 self._uid = self._uid + "_" + str(int(time.time()))
-        # For futur usage
-        self._volatile = True
+        else:
+            self._uid = uuid
         if replacements is None:
             self._replacements = dict()
         else:
@@ -136,6 +139,12 @@ class NotificationService(QtCore.QObject):
         self._lock = Lock()
         self._notifications = dict()
         self._dao = manager.get_dao()
+        self.load_notifications()
+
+    def load_notifications(self):
+        notifications = self._dao.get_notifications()
+        for notif in notifications:
+            self._notifications[notif.uid] = Notification(uuid=notif.uid, level=notif.level, flags=notif.flags, title=notif.title, description=notif.description)
 
     def get_notifications(self, engine=None, include_generic=True):
         # Might need to use lock and duplicate
@@ -157,9 +166,12 @@ class NotificationService(QtCore.QObject):
         notification._time = int(time.time())
         self._lock.acquire()
         try:
-            self._notifications[notification.get_uid()] = notification
             if notification.is_persistent():
-                self._dao.insert_notification(notification)
+                if notification.get_uid() not in self._notifications:
+                    self._dao.insert_notification(notification)
+                else:
+                    self._dao.update_notification(notification)
+            self._notifications[notification.get_uid()] = notification
         finally:
             self._lock.release()
         self.newNotification.emit(notification)
@@ -172,9 +184,14 @@ class NotificationService(QtCore.QObject):
     def discard_notification(self, uid):
         self._lock.acquire()
         try:
+            remove = False
             if uid in self._notifications:
+                remove = self._notifications[uid].is_remove_on_discard()
                 del self._notifications[uid]
-            self._dao.discard_notification(uid)
+            if remove:
+                self._dao.remove_notification(uid)
+            else:
+                self._dao.discard_notification(uid)
         finally:
             self._lock.release()
         self.discardNotification.emit(uid)

@@ -1,3 +1,8 @@
+<div ng-repeat="notification in notifications" class="notification notification-{{ notification.level }}">
+	<div style="width: 98%; text-align: center; white-space: normal;" translate translate-values="notification.replacements">{{ notification.title }}</div>
+	<div ng-show="notification.discardable" style="font-size: 8px; margin-right: 5px; margin-top: -8px;" class="pull-right" ng-click="discardNotification(notification);"><span class="glyphicon glyphicon-remove"></span></div>
+	<div ng-show="notification.description" style="padding: 5px; width: 98%; text-align: center; white-space: normal; font-weight: normal;" translate translate-values="notification.replacements">{{ notification.description }}</div>
+</div>
 <div ng-show="engine.metrics.invalid_credentials" ng-click="show_settings('Accounts_' + engine.uid)" class="notification notification-danger">
 	<p translate>INVALID_CREDENTIALS</p>
 </div>

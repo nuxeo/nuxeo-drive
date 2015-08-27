@@ -326,6 +326,18 @@ class ManagerDAO(ConfigurationDAO):
         finally:
             self._lock.release()
 
+    def update_notification(self, notification):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE Notifications SET level=?, title=?, description=? WHERE uid = ?",
+                      (notification.get_level(), notification.get_title(), notification.get_description(), notification.get_uid()))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
     def get_notifications(self, discarded=True):
         from nxdrive.notification import Notification
         c = self._get_read_connection().cursor()
