@@ -365,7 +365,7 @@ class WebDriveApi(QtCore.QObject):
     def show_metadata(self, uid, ref):
         try:
             engine = self._get_engine(str(uid))
-            path = engine.get_abspath(str(ref))
+            path = engine.get_abspath(unicode(ref))
             self._application.show_metadata(path)
         except Exception as e:
             log.exception(e)
