@@ -54,6 +54,9 @@ var SystrayController = function($scope, $interval, $translate) {
 		}
 		$scope.updateFiles();
 	}
+	$scope.triggerNotification = function(notification) {
+		drive.trigger_notification(notification.uid);
+	}
 	$scope.discardNotification = function(notification) {
 		drive.discard_notification(notification.uid);
 		$scope.notifications.splice($scope.notifications.indexOf(notification),1);

@@ -19,7 +19,9 @@
 			return 'templates/' + name + '.html';
 		}
 		$scope.notification = {};
-		$scope.notification.unique = true;
+		$scope.notification.title = "Test";
+		$scope.notification.description = "Description";
+		$scope.notification.bubble = true;
 		$scope.notification.discardable = true;
 		$scope.notification.systray = true;
 		$scope.notification.level = "danger";

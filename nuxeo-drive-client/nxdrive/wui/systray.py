@@ -22,7 +22,6 @@ class DriveSystrayIcon(QtGui.QSystemTrayIcon):
             if AbstractOSIntegration.os_version_above("10.8"):
                 from nxdrive.osi.darwin.pyNotificationCenter import notify
                 # Use notification center
-                log.trace("Display systray message: %s | %s | %s", QtCore.QCoreApplication.applicationName(), title, message)
                 return notify(title, None, message)
         return QtGui.QSystemTrayIcon.showMessage(self, title, message, icon, timeout)
 

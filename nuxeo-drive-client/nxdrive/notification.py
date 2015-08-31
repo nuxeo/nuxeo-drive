@@ -58,6 +58,9 @@ class Notification(object):
         else:
             self._replacements = replacements
 
+    def is_remove_on_discard(self):
+        return self._flags & Notification.FLAG_REMOVE_ON_DISCARD
+
     def is_persistent(self):
         return self._flags & Notification.FLAG_PERSISTENT
 
@@ -177,7 +180,8 @@ class NotificationService(QtCore.QObject):
         self.newNotification.emit(notification)
 
     def trigger_notification(self, uid):
-        if not uid in self._notifications[uid]:
+        print "Trigger notification " + uid
+        if not uid in self._notifications:
             return
         self._notifications[uid].trigger()
 

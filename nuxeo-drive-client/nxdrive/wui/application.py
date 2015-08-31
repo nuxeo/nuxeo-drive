@@ -1,7 +1,6 @@
 """Main Qt application handling OS events and system tray UI"""
 
 import os
-import time
 import sys
 import subprocess
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
@@ -12,6 +11,7 @@ from nxdrive.gui.resources import find_icon
 from nxdrive.utils import find_resource_dir, current_milli_time
 from nxdrive.wui.translator import Translator
 from nxdrive.wui.systray import DriveSystrayIcon
+from nxdrive.osi import AbstractOSIntegration
 
 log = get_logger(__name__)
 
@@ -76,10 +76,12 @@ class Application(QApplication):
         super(Application, self).__init__(list(argv))
         self.setApplicationName(manager.get_appname())
         self.setQuitOnLastWindowClosed(False)
+        self._delegator = None
         self.manager = manager
         self.options = options
         self.mainEngine = None
         self.filters_dlg = None
+        self.current_notification = None
         # Make dialog unique
         self.uniqueDialogs = dict()
         # Init translator
@@ -325,10 +327,28 @@ class Application(QApplication):
                     break
         self.manager.start()
 
+    @QtCore.pyqtSlot()
+    def _message_clicked(self):
+        if self.current_notification is None:
+            return
+        self.current_notification.trigger()
+
     @QtCore.pyqtSlot(object)
     def _new_notification(self, notification):
-        if notification.is_bubble():
-            self.show_message(notification.get_title(), notification.get_description())
+        if not notification.is_bubble():
+            return
+        if AbstractOSIntegration.is_mac():
+            if AbstractOSIntegration.os_version_above("10.8"):
+                from nxdrive.osi.darwin.pyNotificationCenter import notify, NotificationDelegator
+                if self._delegator is None:
+                    self._delegator = NotificationDelegator.alloc().init()
+                    self._delegator._manager = self.manager
+                # Use notification center
+                userInfo = dict()
+                userInfo["uuid"] = notification.get_uid()
+                return notify(notification.get_title(), None, notification.get_description(), userInfo=userInfo, delegator=self._delegator)
+        self.current_notification = notification
+        self.show_message(notification.get_title(), notification.get_description())
 
     def get_systray_menu(self):
         from nxdrive.wui.systray import WebSystray
@@ -454,6 +474,7 @@ class Application(QApplication):
         self._tray_icon.show()
         self.tray_icon_menu = self.get_systray_menu()
         self._tray_icon.setContextMenu(self.tray_icon_menu)
+        self._tray_icon.messageClicked.connect(self._message_clicked)
 
     def event(self, event):
         """Handle URL scheme events under OSX"""

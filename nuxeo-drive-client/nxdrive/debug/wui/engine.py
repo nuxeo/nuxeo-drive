@@ -96,7 +96,7 @@ class DebugDriveApi(WebDriveApi):
                 flags = int(flags)
             if engine_uid == '':
                 engine_uid = None
-            notification = Notification(notification_type=notification_type, engine_uid=engine_uid, flags=flags, level=level, action=action, description=description, title=title)
+            notification = Notification(uid=notification_type, engine_uid=engine_uid, flags=flags, level=level, action=action, description=description, title=title)
             self._manager.get_notification_service().send_notification(notification)
             return ""
         except Exception as e:

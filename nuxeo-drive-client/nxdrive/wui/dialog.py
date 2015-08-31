@@ -255,12 +255,20 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
 
     @QtCore.pyqtSlot(str)
+    def trigger_notification(self, id_):
+        try:
+            self._manager.get_notification_service().trigger_notification(str(id_))
+        except Exception as e:
+            log.exception(e)
+        return ""
+
+    @QtCore.pyqtSlot(str)
     def discard_notification(self, id_):
         try:
             self._manager.get_notification_service().discard_notification(str(id_))
         except Exception as e:
             log.exception(e)
-            return ""
+        return ""
 
     def _export_notification(self, notif):
         result = dict()
