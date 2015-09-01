@@ -82,6 +82,9 @@ class Notification(object):
     def is_bubble(self):
         return self._flags & Notification.FLAG_BUBBLE
 
+    def is_actionable(self):
+        return self._flags & Notification.FLAG_ACTIONABLE
+
     def get_flags(self):
         return self._flags
 
@@ -90,6 +93,9 @@ class Notification(object):
 
     def get_engine_uid(self):
         return self._engine_uid
+
+    def get_action(self):
+        return self._action
 
     def remove_replacement(self, key):
         if key in self._replacements:
@@ -141,6 +147,7 @@ class NotificationService(QtCore.QObject):
         super(NotificationService, self).__init__()
         self._lock = Lock()
         self._notifications = dict()
+        self._manager = manager
         self._dao = manager.get_dao()
         self.load_notifications()
 
@@ -183,7 +190,9 @@ class NotificationService(QtCore.QObject):
         print "Trigger notification " + uid
         if not uid in self._notifications:
             return
-        self._notifications[uid].trigger()
+        notification = self._notifications[uid]
+        if notification.is_actionable():
+            self._manager.execute_script(notification.get_action(), notification.get_engine_uid())
 
     def discard_notification(self, uid):
         self._lock.acquire()

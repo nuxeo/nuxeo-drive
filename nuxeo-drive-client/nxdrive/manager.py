@@ -17,6 +17,7 @@ import platform
 import sys
 import logging
 from urlparse import urlparse
+from PyQt4.Qt import QScriptEngine
 log = get_logger(__name__)
 
 
@@ -954,3 +955,7 @@ class Manager(QtCore.QObject):
                              (root_values[3], file_path))
         metadata_url = engine.get_metadata_url(remote_ref)
         return (metadata_url, engine.get_remote_token(), engine, remote_ref)
+
+    def execute_script(self, script, engine_uid=None):
+        engine = QScriptEngine()
+        engine.evaluate(script)
