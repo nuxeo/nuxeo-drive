@@ -1,5 +1,5 @@
 ======================================================
-Nuxeo Drive - Desktop synchronization client for Nuxeo
+Nuxeo Drive - Desktop Synchronization Client for Nuxeo
 ======================================================
 
 This is an ongoing development project for desktop synchronization
@@ -45,10 +45,10 @@ Installing Nuxeo Drive needs two components: a server addon for Nuxeo and a
 desktop program on the user's computer.
 
 
-Server-side marketplace package
+Server-Side Marketplace Package
 -------------------------------
 
-**Stable releases for Nuxeo Drive** are available as a marketplace package from Nuxeo Connect:
+**Stable releases for Nuxeo Drive** are available as a Marketplace package from the Nuxeo Online Services portal:
 
   https://connect.nuxeo.com/nuxeo/site/marketplace/package/nuxeo-drive
 
@@ -56,7 +56,7 @@ You can also fetch the **latest development version** of the
 `marketplace package <http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace>`_
 for the Nuxeo master branch from the Continuous Integration server (use at your own risk).
 
-The marketplace package can be installed using the Admin Center /
+The Marketplace package can be installed using the Admin Center /
 Update Center / Local Packages interface of a Nuxeo server.
 
 Alternatively, from the command line::
@@ -69,12 +69,12 @@ Alternatively, from the command line::
 Windows Desktop Client
 ----------------------
 
-Once the marketplace package is installed, the windows desktop client package
+Once the Marketplace package is installed, the Windows desktop client package
 can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
 ``nuxeo-drive-<version>-win32.msi``
-windows installer from the `Continuous Integration <http://qa.nuxeo.org/jenkins/job/nuxeo-drive-msi/>`_.
+Windows installer from the `Continuous Integration <http://qa.nuxeo.org/jenkins/job/nuxeo-drive-msi/>`_.
 
 Once you installed the package (Administrator rights required) the new folder
 holding the ``ndrive.exe`` and ``ndrivew.exe`` programs will be added to your
@@ -91,7 +91,7 @@ computer.
 Mac OSX Desktop Client
 ----------------------
 
-Once the marketplace package is installed, the OSX desktop client package
+Once the Marketplace package is installed, the OS X desktop client package
 can be downloaded from the ``Home > Nuxeo Drive`` tab.
 
 You can also fetch the latest development version for
@@ -100,7 +100,7 @@ You can also fetch the latest development version for
 from the Continous Integration.
 
 
-Ubuntu/Debian (and other Linux variants) Client
+Ubuntu/Debian (and Other Linux Variants) Client
 -----------------------------------------------
 The ``.deb`` package of the client is not yet available. In the mean time you can install it from source.
 
@@ -131,13 +131,13 @@ Waiting for `NXDRIVE-62 <https://jira.nuxeo.com/browse/NXDRIVE-62>`_ to be resol
     cat $ofile
 
 
-Configuration and usage
+Configuration and Usage
 =======================
 
-Regular usage
+Regular Usage
 -------------
 
-1. Launch the Nuxeo Drive program (e.g. from the start menu under Windows).
+1. Launch the Nuxeo Drive program (e.g. from the Start menu under Windows).
 
 2. A new icon should open in the system tray and a popup menu should open asking
    the user for the URL of the Nuxeo server and credentials.
@@ -148,7 +148,7 @@ Regular usage
    of the system tray icon.
 
 
-Command-line usage (advanced)
+Command-Line Usage (Advanced)
 -----------------------------
 
 The desktop synchronization client can also be operated from the command-line:
@@ -188,7 +188,7 @@ The desktop synchronization client can also be operated from the command-line:
 
 3. Go to your Nuxeo with your browser, navigate to workspaces or
    folder where you have permission to create new documents. Click
-   on the double arrows button right of the title of the folder to
+   on the Nuxeo Drive icon right of the title of the folder to
    treat this folder as a new synchronization root.
 
    Alternatively you can do this operation from the commandline with::
@@ -204,7 +204,7 @@ For more options, type::
     ndrive subcommand --help
 
 
-Reporting bugs
+Reporting Bugs
 ==============
 
 You can generate a bug report in the Advanced tab of the Settings panel.
@@ -214,8 +214,8 @@ following command-line::
 
     ndrive --log-level-console=DEBUG
 
-Then you can create a new jira_ issue mentionning the version of the Nuxeo
-platform, your operating system name and version (e.g. Windows 7), the steps to
+Then you can create a new JIRA_ issue mentionning the version of the Nuxeo
+Platform, your operating system name and version (e.g. Windows 7), the steps to
 reproduce the error and a copy of the logs.
 
 For long running sessions, it is better to dump the debug information in a log
@@ -231,16 +231,16 @@ By default the location of the log file is: ``~/.nuxeo-drive/logs/``
 where ``~`` stands for the location of the user folder. For instance:
 
 - under Windows 7 and 8: ``C:\Users\username\.nuxeo-drive\logs``
-- under Mac OSX: ``/Users/username/.nuxeo-drive/logs``
+- under Mac OS X: ``/Users/username/.nuxeo-drive/logs``
 - under Ubuntu (and other Linux variants): ``/home/username/.nuxeo-drive/logs``
 
-.. _jira: https://jira.nuxeo.com
+.. _JIRA: https://jira.nuxeo.com
 
 
 Roadmap
 =======
 
-The backlog_ is handled by Jira.
+The backlog_ is handled on JIRA.
 
 .. _backlog: https://jira.nuxeo.com/issues/?jql=%28project%20%3D%20%22Nuxeo%20Drive%20%22%20OR%20component%20%3D%20%22Nuxeo%20Drive%22%20OR%20project%20%3D%20NXDOC%20AND%20Tags%20%3D%20drive%29%20AND%20resolution%20%3D%20Unresolved%20ORDER%20BY%20Rank%20ASC
 
