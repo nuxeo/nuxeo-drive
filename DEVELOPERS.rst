@@ -1,4 +1,4 @@
-Nuxeo Drive contributor guide
+Nuxeo Drive Contributor Guide
 =============================
 
 This guide is for developers willing to work on the Nuxeo Drive codebase itself.
@@ -12,27 +12,27 @@ written in Java and the client written in Python.
 
 Nuxeo Drive Client is a Python daemon that looks for changes on the local
 machine filesystem in a specific folder and on a remote workspace on the Nuxeo
-server using the Content Automation HTTP API and propagate those changes one way
-of the other.
+server using the Content Automation HTTP API and propagates those changes one way
+or the other.
 
 This guide will introduce:
 
-- how to build the java components from source
+- how to build the Java components from source code
 - how to set your developer environment to work on the client and run the tests
 - how to freeze the client into self-hosted binaries packages (.msi and .dmg)
 
 
-Server side Java components
+Server-Side Java Components
 ---------------------------
 
 To build the nuxeo-drive addon see the related
 `nuxeo-drive-server <https://github.com/nuxeo/nuxeo-drive-server>`_ GitHub repository.
 
-To build the marketplace package see the related
-`marketplace-drive <https://github.com/nuxeo/marketplace-drive>`_ Github repository.
+To build the Marketplace package see the related
+`marketplace-drive <https://github.com/nuxeo/marketplace-drive>`_ GitHub repository.
 
 
-Client side Architecture
+Client-Side Architecture
 ------------------------
 .. image:: https://www.lucidchart.com/publicSegments/view/54e8e2a7-d2a4-4ec7-9843-5c740a00c10b/image.png
 
@@ -43,13 +43,13 @@ Manager
   Handle all the generic behavior of Nuxeo Drive: auto-updates, bind of an engine, declaration of differents engine types, tracker.
 
 Engine
-  Handle one server synchronization, can be extend to customize the behavior, it create all the synchronization structure: QueueManager, LocalWatcher, RemoteWatcher, DAO.
+  Handle one server synchronization, can be extend to customize the behavior, it creates all the synchronization structure: QueueManager, LocalWatcher, RemoteWatcher, DAO.
 
 DAO
   Abstraction for accessing the SQLite database, each Engine has its own DAO and so database
 
 LocalWatcher
-  Handle the local scan on startup and then the FS events, updating the States stored in DAO, and queueing if needed the State to be processed
+  Handle the local scan on startup and then the FS events, updating the States stored in DAO, and if needed queueing the State to be processed
 
 RemoteWatcher
   Handle the remote scan for the first synchronization and then the incremental polling from the server
@@ -82,24 +82,24 @@ ConsoleApplication
   Console behavior implementation
   
 Application
-  OperatingSystem GUI handle the creation of windows, systray and message
+  OperatingSystem GUI handles the creation of windows, systray and message
 
 Translator
   Load labels translation and offer the translation service as static method
 
 WebDialog
-  Base of all Nuxeo Drive window, it is basically a WebKit view with a drive javascript object mapped by the Javascript API
+  Base of all Nuxeo Drive window, it is basically a WebKit view with a Drive JavaScript object mapped by the JavaScript API
 
-QT is heavily used in the new client here is a diagram of the signals/slots connexions : https://www.lucidchart.com/publicSegments/view/54efbff4-c180-41d8-9184-0b1d0a00c10b/image.png
+QT is heavily used in the new client here is a diagram of the signals/slots connexions: https://www.lucidchart.com/publicSegments/view/54efbff4-c180-41d8-9184-0b1d0a00c10b/image.png
 
-Remote Watcher logic : https://www.lucidchart.com/documents/view/3081771a-786b-486e-bfaa-ee7ae77a3807
+Remote Watcher logic: https://www.lucidchart.com/documents/view/3081771a-786b-486e-bfaa-ee7ae77a3807
 
-Local Watcher logic : https://www.lucidchart.com/documents/view/21ec315b-3917-44aa-b9bd-5ccedfcfb02f
+Local Watcher logic: https://www.lucidchart.com/documents/view/21ec315b-3917-44aa-b9bd-5ccedfcfb02f
 
 Nuxeo Drive Client under Linux & Mac OS X
 -----------------------------------------
 
-**Under OS X**: before installing Python packages, you should probably start by
+**Under OS X**: Before installing Python packages, you should probably start by
 installing your own non-system version of Python 2.7 using homebrew as explained
 in a dedicated section below.
 
@@ -118,7 +118,7 @@ You can persist this settings in your ``.bashrc``.
 
 You can safely ignore warnings about "Unknown distribution option: 'executables'".
 
-To run the tests, install and start a nuxeo server locally, then::
+To run the tests, install and start a Nuxeo server locally, then::
 
   . ./tools/posix/integration_env.sh
   cd nuxeo-drive-client; nosetests nxdrive
@@ -131,8 +131,8 @@ Finder favorite list (a.k.a. "Places")::
 
   pip install PyObjC
 
-WARNING: this will download many large dependencies and sometimes the remote
-server will timeout on some of them: you might need to re-run this command
+WARNING: This will download many large dependencies and sometimes the remote
+server will timeout on some of them. You might need to re-run this command
 several times to get it all installed.
 
 Then install Qt and PyQt for graphical user interface (see below).
@@ -145,14 +145,14 @@ Then install Qt and PyQt for graphical user interface (see below).
 Nuxeo Drive Client under Windows
 --------------------------------
 
-To setup a build environment under Windows you can run the powershell
-script with the administration rights (right click on the powershell
-icon in the programs menu to get the opportunity to "Run as
+To set up a build environment under Windows you can run the PowerShell
+script with the administration rights (right click on the PowerShell
+icon in the Programs menu to get the opportunity to "Run as
 administrator")::
 
   powershell.exe C:\path\to\tools\windows\nxdrive-setup-dev.ps1
 
-Some dependencies such as `psutil` can be tricky to build under windows.  You
+Some dependencies such as `psutil` can be tricky to build under Windows. You
 can use a binary installer from `this site
 <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
 
@@ -190,10 +190,10 @@ You also need to install:
   http://sourceforge.net/projects/pywin32/files/pywin32/Build%20218/pywin32-218.win32-py2.7.exe/download
 
 
-Debian package
+Debian Package
 --------------
 
-**Prerequisite**: install the following Debian packages::
+**Prerequisite**: Install the following Debian packages::
 
   sudo apt-get install dpkg-dev devscripts debhelper cdbs
 
@@ -233,7 +233,7 @@ version of Python, typically 2.7 for now as Python 3.3 is not yet supported by
 Nuxeo Drive.
 
 Also if you want to use your developer workstation to generate a frozen `.msi`
-build of the Nuxeo Drive client to be runnable on all windows platforms (both 32
+build of the Nuxeo Drive client to be runnable on all Windows platforms (both 32
 and 64 bit), be careful to install both the 32 bit versions of Python and PyQt.
 
 
@@ -282,10 +282,10 @@ You can install the ``python-qt4`` package directly::
   sudo apt-get install python-qt4
 
 
-Generating OS specific packages
+Generating OS Specific Packages
 -------------------------------
 
-.msi package for Windows
+.msi Package for Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 To generate the **Windows** ``.msi`` installer, you need to install ``cx_Freeze``
@@ -295,7 +295,7 @@ as explained above. Then run::
 
 The generated ``.msi`` file can be found in the ``dist/`` subfolder.
 
-.app and .dmg packages for Mac OS X
+.app and .dmg Packages for Mac OS X
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To generate the standalone OS X `.app` bundle, you **need** to install a
@@ -323,7 +323,7 @@ can then generate a ``.dmg`` archive running::
   sh tools/osx/create-dmg.sh
 
 
-Installing a standalone Python interpreter on Mac OS X
+Installing a Standalone Python Interpreter on Mac OS X
 ------------------------------------------------------
 
 To install a standalone version of Python under OS X you can use `Homebrew
@@ -348,7 +348,7 @@ can force the overwrite the ``/usr/local/bin/pip`` with::
 
   brew link --overwrite python
 
-Make sure that you are know using your newly installed version of python / pip::
+Make sure that you are know using your newly installed version of Python / pip::
 
   $ export PATH=/usr/local/bin:$PATH
   $ which pip
@@ -357,7 +357,7 @@ Make sure that you are know using your newly installed version of python / pip::
   /usr/local/bin/python
 
 
-Signing the binary packages
+Signing the Binary Packages
 ---------------------------
 
 As OS X and Windows have some default security policies to only allow users to run software they have downloaded off the Internet if it has been signed, we need to sign the Nuxeo Drive binary packages.
@@ -373,11 +373,11 @@ Under Windows
 
 You need to make sure to have a valid PFX certificate file on the build machine, let's say it is located in ``C:\Users\Nuxeo\certificates\nuxeo.com.pfx``.
 
-Once the msi package has been generated by ``cx_Freeze``, you only need to run the following script, making sure the ``CERTIFICATE_PATH`` variable is pointing to the PFX certificate file, in this case ``"%USERPROFILE%\certificates\nuxeo.com.pfx"``::
+Once the MSI package has been generated by ``cx_Freeze``, you only need to run the following script, making sure the ``CERTIFICATE_PATH`` variable is pointing to the PFX certificate file, in this case ``"%USERPROFILE%\certificates\nuxeo.com.pfx"``::
 
   .\tools\windows\sign_msi.bat
 
-It will sign the msi package and verify its signature. It uses the ``signtool`` command which is available as part of the `Windows SDK <http://msdn.microsoft.com/en-us/windowsserver/bb980924.aspx>`_.
+It will sign the MSI package and verify its signature. It uses the ``signtool`` command which is available as part of the `Windows SDK <http://msdn.microsoft.com/en-us/windowsserver/bb980924.aspx>`_.
 
 
 Under OS X
@@ -390,10 +390,10 @@ The signing process will be done when generating the .dmg archive with::
 
   sh tools/osx/create-dmg.sh
 
-It will sign the dmg package and verify its signature. It uses the ``codesign`` and ``spctl`` commands included by default in OS X.
+It will sign the DMG package and verify its signature. It uses the ``codesign`` and ``spctl`` commands included by default in OS X.
 
 
-Manual initialization
+Manual Initialization
 ---------------------
 
 If you need to manually initialize Nuxeo Drive, for example to preset the Nuxeo server URL and proxy configuration before launching Nuxeo Drive the first time (useful for mass deployment),
