@@ -142,7 +142,8 @@ class Processor(EngineWorker):
 
     def acquire_state(self, row_id):
         if self._dao.acquire_processor(self._thread_id, row_id):
-            return self._dao.get_state_from_id(row_id)
+            # Avoid any lock for this call by using the write connection
+            return self._dao.get_state_from_id(row_id, from_write=True)
         return None
 
     def release_state(self):
