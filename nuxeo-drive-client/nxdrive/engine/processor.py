@@ -657,8 +657,11 @@ class Processor(EngineWorker):
                 # TODO dedup
                 path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
         local_client.set_remote_id(path, doc_pair.remote_ref)
-        self._handle_readonly(local_client, doc_pair)
+        if path != doc_pair.local_path and doc_pair.folderish:
+            # Update childs
+            self._dao.update_local_parent_path(doc_pair, os.path.basename(path), os.path.dirname(path))
         self._refresh_local_state(doc_pair, local_client.get_info(path))
+        self._handle_readonly(local_client, doc_pair)
         if not self._dao.synchronize_state(doc_pair):
             log.debug("Pair is not in synchronized state (version issue): %r", doc_pair)
 
