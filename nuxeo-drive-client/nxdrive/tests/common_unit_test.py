@@ -13,6 +13,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.tests.common import TEST_DEFAULT_DELAY
 from nxdrive.tests.common import clean_dir
+from nxdrive.wui.translator import Translator
 from nxdrive import __version__
 from PyQt4 import QtCore
 from threading import Thread
@@ -143,6 +144,10 @@ class UnitTestCase(unittest.TestCase):
         options.beta_update_site_url = None
         options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager(options)
+        import nxdrive
+        nxdrive_path = os.path.dirname(nxdrive.__file__)
+        i18n_path = os.path.join(nxdrive_path, 'tests', 'resources', "i18n.js")
+        Translator(self.manager_1, i18n_path)
         options.nxdrive_home = self.nxdrive_conf_folder_2
         Manager._singleton = None
         self.manager_2 = Manager(options)
