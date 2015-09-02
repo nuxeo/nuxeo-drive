@@ -12,6 +12,7 @@ from nxdrive.utils import find_resource_dir, current_milli_time
 from nxdrive.wui.translator import Translator
 from nxdrive.wui.systray import DriveSystrayIcon
 from nxdrive.osi import AbstractOSIntegration
+from nxdrive.notification import Notification
 
 log = get_logger(__name__)
 
@@ -332,7 +333,7 @@ class Application(QApplication):
     def _message_clicked(self):
         if self.current_notification is None:
             return
-        self.current_notification.trigger()
+        self.manager.get_notification_service().trigger_notification(self.current_notification.get_uid())
 
     def _setup_notification_center(self):
         from nxdrive.osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
@@ -356,7 +357,12 @@ class Application(QApplication):
                 userInfo["uuid"] = notification.get_uid()
                 return notify(notification.get_title(), None, notification.get_description(), userInfo=userInfo)
         self.current_notification = notification
-        self.show_message(notification.get_title(), notification.get_description())
+        icon = QtGui.QSystemTrayIcon.Information
+        if (notification.get_level() == Notification.LEVEL_WARNING):
+            icon = QtGui.QSystemTrayIcon.Warning
+        elif (notification.get_level() == Notification.LEVEL_ERROR):
+            icon =  QtGui.QSystemTrayIcon.Critical
+        self.show_message(notification.get_title(), notification.get_description(), icon=icon)
 
     def get_systray_menu(self):
         from nxdrive.wui.systray import WebSystray

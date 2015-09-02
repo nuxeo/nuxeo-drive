@@ -140,7 +140,7 @@ class Notification(object):
 
     def __repr__(self):
         return "Notification(%s,%s,uid:%s,unique:%d)" % (
-                    self._level, self._type, self._uid, self._unique)
+                    self._level, self.get_title(), self._uid, self.is_unique())
 
 
 class NotificationService(QtCore.QObject):
