@@ -16,13 +16,22 @@ class NotificationDelegator(NSObject):
         info = notification.userInfo()
         if "uuid" not in info or self._manager is None:
             return
+        notifications = self._manager.get_notification_service().get_notifications()
+        if info['uuid'] not in notifications or (info['uuid'] in notifications and
+                                                 notifications[info['uuid']].is_discard_on_trigger()):
+            center.removeDeliveredNotification_(notification)
         self._manager.get_notification_service().trigger_notification(info["uuid"])
 
     def userNotificationCenter_shouldPresentNotification_(self, center, notification):
         return True
 
 
-def notify(title, subtitle, info_text, delay=0, sound=False, userInfo={}, delegator=None):
+def setup_delegator(delegator=None):
+    center = NSUserNotificationCenter.defaultUserNotificationCenter()
+    if delegator is not None:
+        center.setDelegate_(delegator)
+
+def notify(title, subtitle, info_text, delay=0, sound=False, userInfo={}):
     """ Python method to show a desktop notification on Mountain Lion. Where:
         title: Title of notification
         subtitle: Subtitle of notification
@@ -40,6 +49,4 @@ def notify(title, subtitle, info_text, delay=0, sound=False, userInfo={}, delega
     if sound:
         notification.setSoundName_("NSUserNotificationDefaultSoundName")
     center = NSUserNotificationCenter.defaultUserNotificationCenter()
-    if delegator is not None:
-        center.setDelegate_(delegator)
     center.deliverNotification_(notification)

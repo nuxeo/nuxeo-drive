@@ -5,6 +5,7 @@ from PyQt4 import QtCore
 import time
 from threading import Lock
 from nxdrive.logging_config import get_logger
+from nxdrive.wui.translator import Translator
 log = get_logger(__name__)
 
 
@@ -32,6 +33,8 @@ class Notification(object):
     FLAG_ACTIONABLE = 128
     # Delete the notifciation on discard
     FLAG_REMOVE_ON_DISCARD = 256
+    # Discard on trigger
+    FLAG_DISCARD_ON_TRIGGER = 512
 
     def __init__(self, uid=None, uuid=None, engine_uid=None, level=LEVEL_INFO, flags=0, title="", description="", replacements=None, action=""):
         self._flags = flags
@@ -84,6 +87,9 @@ class Notification(object):
 
     def is_actionable(self):
         return self._flags & Notification.FLAG_ACTIONABLE
+
+    def is_discard_on_trigger(self):
+        return self._flags & Notification.FLAG_DISCARD_ON_TRIGGER
 
     def get_flags(self):
         return self._flags
@@ -154,7 +160,7 @@ class NotificationService(QtCore.QObject):
     def load_notifications(self):
         notifications = self._dao.get_notifications()
         for notif in notifications:
-            self._notifications[notif.uid] = Notification(uuid=notif.uid, level=notif.level, flags=notif.flags, title=notif.title, description=notif.description)
+            self._notifications[notif.uid] = Notification(uuid=notif.uid, level=notif.level, action=notif.action, flags=notif.flags, title=notif.title, description=notif.description)
 
     def get_notifications(self, engine=None, include_generic=True):
         # Might need to use lock and duplicate
@@ -193,6 +199,8 @@ class NotificationService(QtCore.QObject):
         notification = self._notifications[uid]
         if notification.is_actionable():
             self._manager.execute_script(notification.get_action(), notification.get_engine_uid())
+        if notification.is_discard_on_trigger():
+            self.discard_notification(uid)
 
     def discard_notification(self, uid):
         self._lock.acquire()
@@ -224,6 +232,30 @@ class DebugNotification(Notification):
         return ""
 
 
+class ErrorNotification(Notification):
+    def __init__(self, engine_uid, doc_pair):
+        values = dict()
+        values["name"] = doc_pair.local_name
+        title = Translator.get("ERROR", values)
+        description = Translator.get("ERROR_ON_FILE", values)
+        super(ErrorNotification, self).__init__("ERROR", title=title, description=description,
+            engine_uid=engine_uid, level=Notification.LEVEL_ERROR,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_ACTIONABLE|Notification.FLAG_BUBBLE|Notification.FLAG_PERSISTENT|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD,
+            action="drive.showConflicts();")
+
+
+class ConflictNotification(Notification):
+    def __init__(self, engine_uid, doc_pair):
+        values = dict()
+        values["name"] = doc_pair.local_name
+        title = Translator.get("CONFLICT", values)
+        description = Translator.get("CONFLICT_ON_FILE", values)
+        super(ConflictNotification, self).__init__("CONFLICT_FILE", title=title, description=description,
+            engine_uid=engine_uid, level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_ACTIONABLE|Notification.FLAG_BUBBLE|Notification.FLAG_PERSISTENT|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD,
+            action="drive.showConflicts();")
+
+
 class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid):
         super(InvalidCredentialNotification, self).__init__("INVALID_CREDENTIALS", engine_uid=engine_uid, level=Notification.LEVEL_ERROR, flags=Notification.FLAG_UNIQUE|Notification.FLAG_VOLATILE)
@@ -231,12 +263,29 @@ class InvalidCredentialNotification(Notification):
 
 class DefaultNotificationService(NotificationService):
     def __init__(self, manager):
-        super(DefaultNotificationService, self).__init__()
+        super(DefaultNotificationService, self).__init__(manager)
         self._manager = manager
         self._manager.initEngine.connect(self._connect_engine)
+        self._manager.newEngine.connect(self._connect_engine)
 
     def _connect_engine(self, engine):
-        engine.invalidAuthentication.connect(self._invalidAuthentication)
+        engine.newConflict.connect(self._newConflict)
+        engine.newError.connect(self._newError)
+        #engine.invalidAuthentication.connect(self._invalidAuthentication)
+
+    def _newError(self, row_id):
+        engine_uid = self.sender()._uid
+        doc_pair = self.sender().get_dao().get_state_from_id(row_id)
+        if doc_pair is None:
+            return
+        self.send_notification(ErrorNotification(engine_uid, doc_pair))
+
+    def _newConflict(self, row_id):
+        engine_uid = self.sender()._uid
+        doc_pair = self.sender().get_dao().get_state_from_id(row_id)
+        if doc_pair is None:
+            return
+        self.send_notification(ConflictNotification(engine_uid, doc_pair))
 
     def _invalidAuthentication(self):
         engine_uid = self.sender()._uid

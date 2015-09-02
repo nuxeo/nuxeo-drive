@@ -32,7 +32,7 @@ class DriveScript(QObject):
                 return None
             engine = self._manager.get_engines().itervalues().next()
         else:
-            engine = self._manager.get_engine(self._engine_uid)
+            engine = self._manager.get_engines()[self._engine_uid]
         return engine
 
 
@@ -55,6 +55,7 @@ class DriveUiScript(DriveScript):
     def showConflicts(self):
         engine = self.get_engine()
         if engine is None:
+            log.debug("No engine for showConflicts: %s", self._engine_uid)
             return
         self._application.show_conflicts_resolution(engine)
 

@@ -118,6 +118,11 @@ class Application(QApplication):
         self.init_checks()
         self.engineWidget = None
 
+        # Setup notification center for Mac
+        if AbstractOSIntegration.is_mac():
+            if AbstractOSIntegration.os_version_above("10.8"):
+                self._setup_notification_center()
+
     def get_cache_folder(self):
         return os.path.join(self.manager.get_configuration_folder(), "cache", "wui")
 
@@ -287,7 +292,6 @@ class Application(QApplication):
     def create_debug_menu(self, parent):
         menuDebug = QtGui.QMenu(parent)
         menuDebug.addAction(Translator.get("DEBUG_WINDOW"), self.show_debug_window)
-        menuDebug.addAction(Translator.get("DEBUG_SYSTRAY_MESSAGE"), self._debug_show_message)
         for engine in self.manager.get_engines().values():
             action = QtGui.QAction(engine._name, menuDebug)
             action.setMenu(self._create_debug_engine_menu(engine, menuDebug))
@@ -298,11 +302,6 @@ class Application(QApplication):
     def _get_debug_dialog(self):
         from nxdrive.debug.wui.engine import EngineDialog
         return EngineDialog(self)
-
-    @QtCore.pyqtSlot()
-    def _debug_show_message(self):
-        from nxdrive.utils import current_milli_time
-        self.show_message("Debug Systray message", "This is a random message %d" % (current_milli_time()))
 
     @QtCore.pyqtSlot()
     def show_debug_window(self):
@@ -335,6 +334,13 @@ class Application(QApplication):
             return
         self.current_notification.trigger()
 
+    def _setup_notification_center(self):
+        from nxdrive.osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
+        if self._delegator is None:
+            self._delegator = NotificationDelegator.alloc().init()
+            self._delegator._manager = self.manager
+        setup_delegator(self._delegator)
+
     @QtCore.pyqtSlot(object)
     def _new_notification(self, notification):
         if not notification.is_bubble():
@@ -348,7 +354,7 @@ class Application(QApplication):
                 # Use notification center
                 userInfo = dict()
                 userInfo["uuid"] = notification.get_uid()
-                return notify(notification.get_title(), None, notification.get_description(), userInfo=userInfo, delegator=self._delegator)
+                return notify(notification.get_title(), None, notification.get_description(), userInfo=userInfo)
         self.current_notification = notification
         self.show_message(notification.get_title(), notification.get_description())
 
