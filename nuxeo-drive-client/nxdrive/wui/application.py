@@ -78,6 +78,8 @@ class Application(QApplication):
         self.setQuitOnLastWindowClosed(False)
         self._delegator = None
         self.manager = manager
+        from nxdrive.scripting import DriveUiScript
+        self.manager.set_script_object(DriveUiScript(manager, self))
         self.options = options
         self.mainEngine = None
         self.filters_dlg = None
@@ -461,6 +463,11 @@ class Application(QApplication):
 
     def show_message(self, title, message, icon=QtGui.QSystemTrayIcon.Information, timeout=10000):
         self._tray_icon.showMessage(title, message, icon, timeout)
+
+    def show_dialog(self, url):
+        from nxdrive.wui.dialog import WebDialog
+        dialog = WebDialog(self, url)
+        dialog.show()
 
     def show_metadata(self, file_path):
         from nxdrive.wui.metadata import CreateMetadataWebDialog

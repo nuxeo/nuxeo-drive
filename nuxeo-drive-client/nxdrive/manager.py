@@ -261,6 +261,8 @@ class Manager(QtCore.QObject):
         self._tracker = None
         if self.get_tracking():
             self._create_tracker()
+        self._script_engine = None
+        self._script_object = None
 
     def _get_file_log_handler(self):
         # Might store it in global static
@@ -956,6 +958,24 @@ class Manager(QtCore.QObject):
         metadata_url = engine.get_metadata_url(remote_ref)
         return (metadata_url, engine.get_remote_token(), engine, remote_ref)
 
+    def set_script_object(self, obj):
+        # Used to enhance scripting with UI
+        self._script_object = obj
+
+    def _create_script_engine(self):
+        from nxdrive.scripting import DriveScript
+        self._script_engine = QScriptEngine()
+        if self._script_object is None:
+            self._script_object = DriveScript(self)
+        self._script_engine.globalObject().setProperty("drive", self._script_engine.newQObject(self._script_object))
+
     def execute_script(self, script, engine_uid=None):
-        engine = QScriptEngine()
-        engine.evaluate(script)
+        if self._script_engine is None:
+            self._create_script_engine()
+            if self._script_engine is None:
+                return
+        self._script_object.set_engine_uid(engine_uid)
+        log.debug("Will execute '%s'", script)
+        result = self._script_engine.evaluate(script)
+        if self._script_engine.hasUncaughtException():
+            log.debug("Execution exception: %r", result.toString())

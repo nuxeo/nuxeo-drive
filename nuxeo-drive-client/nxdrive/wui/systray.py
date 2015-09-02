@@ -84,6 +84,15 @@ class WebSystrayApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
+
+    @QtCore.pyqtSlot(str)
+    def trigger_notification(self, id_):
+        try:
+            super(WebSystrayApi, self).trigger_notification(id_)
+            self._dialog.close()
+        except Exception as e:
+            log.exception(e)
+
     @QtCore.pyqtSlot()
     def open_about(self):
         try:
@@ -234,7 +243,12 @@ class WebSystrayView(WebDialog):
     @QtCore.pyqtSlot()
     def close(self):
         self._icon = None
-        super(WebSystrayView, self).close()
+        try:
+            super(WebSystrayView, self).close()
+        except RuntimeError:
+            # This exception can happen here
+            # wrapped C/C++ object of type WebSystrayView has been deleted
+            pass
 
 
 class WebSystray(QtGui.QMenu):

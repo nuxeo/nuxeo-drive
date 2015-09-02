@@ -356,12 +356,14 @@ class LocalClient(BaseClient):
         else:
             try:
                 import xattr
+                stat = os.stat(path)
                 if type(remote_id).__name__ == "unicode":
                     remote_id = unicodedata.normalize('NFC', remote_id).encode('ascii','ignore')
                 if AbstractOSIntegration.is_mac():
                     xattr.setxattr(path, name, remote_id)
                 else:
                     xattr.setxattr(path, 'user.' + name, remote_id)
+                os.utime(path, (stat.st_atime, stat.st_mtime))
             finally:
                 self.lock_path(path, locker)
 
