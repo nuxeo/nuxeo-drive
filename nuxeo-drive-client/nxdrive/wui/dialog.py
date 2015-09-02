@@ -254,19 +254,31 @@ class WebDriveApi(QtCore.QObject):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot()
-    def discard_notification(self, id_):
+    @QtCore.pyqtSlot(str)
+    def trigger_notification(self, id_):
         try:
-            self._manager.get_notification_service().discard_notification(id_)
+            self._manager.get_notification_service().trigger_notification(str(id_))
         except Exception as e:
             log.exception(e)
-            return ""
+        return ""
+
+    @QtCore.pyqtSlot(str)
+    def discard_notification(self, id_):
+        try:
+            self._manager.get_notification_service().discard_notification(str(id_))
+        except Exception as e:
+            log.exception(e)
+        return ""
 
     def _export_notification(self, notif):
         result = dict()
         result["level"] = notif.get_level()
-        result["type"] = notif.get_type()
         result["uid"] = notif.get_uid()
+        result["title"] = notif.get_title()
+        result["description"] = notif.get_description()
+        result["discardable"] = notif.is_discardable()
+        result["discard"] = notif.is_discard()
+        result["systray"] = notif.is_systray()
         result["replacements"] = notif.get_replacements()
         return result
 

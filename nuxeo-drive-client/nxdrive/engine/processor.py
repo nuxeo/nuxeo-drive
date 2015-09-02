@@ -398,7 +398,7 @@ class Processor(EngineWorker):
             log.trace("Put remote_ref in %s", remote_ref)
             try:
                 local_client.set_remote_id(doc_pair.local_path, remote_ref)
-            except (NotFound, IOError):
+            except (NotFound, IOError, OSError):
                 new_pair = self._dao.get_state_from_id(doc_pair.id)
                 local_client.set_remote_id(new_pair.local_path, remote_ref)
                 # File has been moved during creation

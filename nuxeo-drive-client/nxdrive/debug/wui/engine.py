@@ -74,6 +74,35 @@ class DebugDriveApi(WebDriveApi):
             result["metrics"]["action"] = self._export_action(result["metrics"]["action"])
         return result
 
+    @QtCore.pyqtSlot(str, str, str, str, str, str, str, result=str)
+    def send_notification(self, notification_type, engine_uid, level, title, description, flags, action):
+        from nxdrive.notification import Notification
+        try:
+            if engine_uid is not None:
+                engine_uid = str(engine_uid)
+            if level is not None:
+                level = str(level)
+            if action is not None:
+                action = str(action)
+            if title is not None:
+                title = str(title)
+            if description is not None:
+                description = str(description)
+            if notification_type is not None:
+                notification_type = str(notification_type)
+            if flags is None:
+                flags = 0
+            else:
+                flags = int(flags)
+            if engine_uid == '':
+                engine_uid = None
+            notification = Notification(uid=notification_type, engine_uid=engine_uid, flags=flags, level=level, action=action, description=description, title=title)
+            self._manager.get_notification_service().send_notification(notification)
+            return ""
+        except Exception as e:
+            log.exception(e)
+            return "ERROR"
+
     @QtCore.pyqtSlot(result=str)
     def get_logs(self):
         try:

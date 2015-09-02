@@ -5,6 +5,7 @@ var SystrayController = function($scope, $interval, $translate) {
 	$scope.engine = null;
 	$scope.current_actions = [];
 	$scope.last_files = [];
+	$scope.notifications = [];
 	$scope.syncing_items = 0;
 	$scope.autoUpdate = this.getAutoUpdate();
 	$scope.app_update = this.getUpdateStatus();
@@ -53,9 +54,24 @@ var SystrayController = function($scope, $interval, $translate) {
 		}
 		$scope.updateFiles();
 	}
+	$scope.triggerNotification = function(notification) {
+		drive.trigger_notification(notification.uid);
+	}
+	$scope.discardNotification = function(notification) {
+		drive.discard_notification(notification.uid);
+		$scope.notifications.splice($scope.notifications.indexOf(notification),1);
+	}
 	$scope.setEngine = function(engine) {
 		$scope.engine = engine;
 		$scope.sync = drive.is_syncing($scope.engine.uid);
+		notifications = [];
+		notifs = angular.fromJson(drive.get_notifications($scope.engine.uid));
+		for ( var i in notifs ) {
+			if (notifs[i].systray && !notifs[i].discard) {
+				notifications.push(notifs[i]);
+			}
+		}
+		$scope.notifications = notifications;
 		$scope.current_actions = angular.fromJson(drive.get_actions(engine.uid));
 		$scope.updateFiles();
 		if ($scope.interval == null) {

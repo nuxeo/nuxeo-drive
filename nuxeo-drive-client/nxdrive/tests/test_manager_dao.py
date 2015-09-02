@@ -56,6 +56,37 @@ class ManagerDAOTest(unittest.TestCase):
         nxdrive_path = os.path.dirname(nxdrive.__file__)
         return os.path.join(nxdrive_path, 'tests', 'resources', name)
 
+    def _create_manager(self):
+        options = Mock()
+        options.debug = False
+        options.force_locale = None
+        options.log_level_file = None
+        options.proxy_server = None
+        options.update_site_url = None
+        options.beta_update_site_url = None
+        options.nxdrive_home = self.test_folder
+        manager = Manager(options)
+        return manager
+
+    def test_notifications(self):
+        from nxdrive.notification import Notification
+        notif = Notification('warning', flags=Notification.FLAG_DISCARDABLE)
+        notif2 = Notification('plop')
+        # Create Manager
+        manager = self._create_manager()
+        dao = manager.get_dao()
+        dao.insert_notification(notif)
+        dao.insert_notification(notif2)
+        self.assertEquals(len(dao.get_notifications()), 2)
+        dao.discard_notification(notif.get_uid())
+        self.assertEquals(len(dao.get_notifications(discarded=False)), 1)
+        self.assertEquals(len(dao.get_notifications()), 2)
+        dao.remove_notification(notif.get_uid())
+        self.assertEquals(len(dao.get_notifications()), 1)
+        dao.discard_notification(notif2.get_uid())
+        self.assertEquals(len(dao.get_notifications()), 1)
+        self.assertEquals(len(dao.get_notifications(discarded=True)), 1)
+
     def test_migration_db_v1(self):
         # Initialize old DB
         db = open(self._get_db('test_manager_migration.db'), 'rb')
@@ -86,15 +117,7 @@ class ManagerDAOTest(unittest.TestCase):
         conn.close()
 
         # Create Manager with old DB migration
-        options = Mock()
-        options.debug = False
-        options.force_locale = None
-        options.log_level_file = None
-        options.proxy_server = None
-        options.update_site_url = None
-        options.beta_update_site_url = None
-        options.nxdrive_home = self.test_folder
-        manager = Manager(options)
+        manager = self._create_manager()
         dao = manager.get_dao()
 
         # Check Manager config
@@ -114,7 +137,7 @@ class ManagerDAOTest(unittest.TestCase):
         engine = engines[0]
         self.assertEquals(engine.engine, 'NXDRIVE')
         self.assertEquals(engine.name, manager._get_engine_name(self.nuxeo_url))
-        self.assertEquals(engine.local_folder, local_folder)
+        self.assertTrue(local_folder in engine.local_folder)
 
         # Check engine config
         engine_uid = engine.uid

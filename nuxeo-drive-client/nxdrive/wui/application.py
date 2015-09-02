@@ -1,7 +1,6 @@
 """Main Qt application handling OS events and system tray UI"""
 
 import os
-import time
 import sys
 import subprocess
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
@@ -12,6 +11,7 @@ from nxdrive.gui.resources import find_icon
 from nxdrive.utils import find_resource_dir, current_milli_time
 from nxdrive.wui.translator import Translator
 from nxdrive.wui.systray import DriveSystrayIcon
+from nxdrive.osi import AbstractOSIntegration
 
 log = get_logger(__name__)
 
@@ -76,10 +76,14 @@ class Application(QApplication):
         super(Application, self).__init__(list(argv))
         self.setApplicationName(manager.get_appname())
         self.setQuitOnLastWindowClosed(False)
+        self._delegator = None
         self.manager = manager
+        from nxdrive.scripting import DriveUiScript
+        self.manager.set_script_object(DriveUiScript(manager, self))
         self.options = options
         self.mainEngine = None
         self.filters_dlg = None
+        self.current_notification = None
         # Make dialog unique
         self.uniqueDialogs = dict()
         # Init translator
@@ -113,6 +117,11 @@ class Application(QApplication):
         # Check if actions is required, separate method so it can be override
         self.init_checks()
         self.engineWidget = None
+
+        # Setup notification center for Mac
+        if AbstractOSIntegration.is_mac():
+            if AbstractOSIntegration.os_version_above("10.8"):
+                self._setup_notification_center()
 
     def get_cache_folder(self):
         return os.path.join(self.manager.get_configuration_folder(), "cache", "wui")
@@ -283,7 +292,6 @@ class Application(QApplication):
     def create_debug_menu(self, parent):
         menuDebug = QtGui.QMenu(parent)
         menuDebug.addAction(Translator.get("DEBUG_WINDOW"), self.show_debug_window)
-        menuDebug.addAction(Translator.get("DEBUG_SYSTRAY_MESSAGE"), self._debug_show_message)
         for engine in self.manager.get_engines().values():
             action = QtGui.QAction(engine._name, menuDebug)
             action.setMenu(self._create_debug_engine_menu(engine, menuDebug))
@@ -294,11 +302,6 @@ class Application(QApplication):
     def _get_debug_dialog(self):
         from nxdrive.debug.wui.engine import EngineDialog
         return EngineDialog(self)
-
-    @QtCore.pyqtSlot()
-    def _debug_show_message(self):
-        from nxdrive.utils import current_milli_time
-        self.show_message("Debug Systray message", "This is a random message %d" % (current_milli_time()))
 
     @QtCore.pyqtSlot()
     def show_debug_window(self):
@@ -314,6 +317,7 @@ class Application(QApplication):
         for _, engine in self.manager.get_engines().iteritems():
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)
+        self.manager.get_notification_service().newNotification.connect(self._new_notification)
         if not self.manager.get_engines():
             self.show_settings()
         else:
@@ -323,6 +327,36 @@ class Application(QApplication):
                     self.show_settings('Accounts_' + engine._uid)
                     break
         self.manager.start()
+
+    @QtCore.pyqtSlot()
+    def _message_clicked(self):
+        if self.current_notification is None:
+            return
+        self.current_notification.trigger()
+
+    def _setup_notification_center(self):
+        from nxdrive.osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
+        if self._delegator is None:
+            self._delegator = NotificationDelegator.alloc().init()
+            self._delegator._manager = self.manager
+        setup_delegator(self._delegator)
+
+    @QtCore.pyqtSlot(object)
+    def _new_notification(self, notification):
+        if not notification.is_bubble():
+            return
+        if AbstractOSIntegration.is_mac():
+            if AbstractOSIntegration.os_version_above("10.8"):
+                from nxdrive.osi.darwin.pyNotificationCenter import notify, NotificationDelegator
+                if self._delegator is None:
+                    self._delegator = NotificationDelegator.alloc().init()
+                    self._delegator._manager = self.manager
+                # Use notification center
+                userInfo = dict()
+                userInfo["uuid"] = notification.get_uid()
+                return notify(notification.get_title(), None, notification.get_description(), userInfo=userInfo)
+        self.current_notification = notification
+        self.show_message(notification.get_title(), notification.get_description())
 
     def get_systray_menu(self):
         from nxdrive.wui.systray import WebSystray
@@ -436,6 +470,11 @@ class Application(QApplication):
     def show_message(self, title, message, icon=QtGui.QSystemTrayIcon.Information, timeout=10000):
         self._tray_icon.showMessage(title, message, icon, timeout)
 
+    def show_dialog(self, url):
+        from nxdrive.wui.dialog import WebDialog
+        dialog = WebDialog(self, url)
+        dialog.show()
+
     def show_metadata(self, file_path):
         from nxdrive.wui.metadata import CreateMetadataWebDialog
         self._metadata_dialog = CreateMetadataWebDialog(self.manager, file_path)
@@ -448,6 +487,7 @@ class Application(QApplication):
         self._tray_icon.show()
         self.tray_icon_menu = self.get_systray_menu()
         self._tray_icon.setContextMenu(self.tray_icon_menu)
+        self._tray_icon.messageClicked.connect(self._message_clicked)
 
     def event(self, event):
         """Handle URL scheme events under OSX"""

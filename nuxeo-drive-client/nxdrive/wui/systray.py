@@ -22,7 +22,6 @@ class DriveSystrayIcon(QtGui.QSystemTrayIcon):
             if AbstractOSIntegration.os_version_above("10.8"):
                 from nxdrive.osi.darwin.pyNotificationCenter import notify
                 # Use notification center
-                log.trace("Display systray message: %s | %s | %s", QtCore.QCoreApplication.applicationName(), title, message)
                 return notify(title, None, message)
         return QtGui.QSystemTrayIcon.showMessage(self, title, message, icon, timeout)
 
@@ -81,6 +80,15 @@ class WebSystrayApi(WebDriveApi):
     def open_help(self):
         try:
             self._manager.open_help()
+            self._dialog.close()
+        except Exception as e:
+            log.exception(e)
+
+
+    @QtCore.pyqtSlot(str)
+    def trigger_notification(self, id_):
+        try:
+            super(WebSystrayApi, self).trigger_notification(id_)
             self._dialog.close()
         except Exception as e:
             log.exception(e)
@@ -235,7 +243,12 @@ class WebSystrayView(WebDialog):
     @QtCore.pyqtSlot()
     def close(self):
         self._icon = None
-        super(WebSystrayView, self).close()
+        try:
+            super(WebSystrayView, self).close()
+        except RuntimeError:
+            # This exception can happen here
+            # wrapped C/C++ object of type WebSystrayView has been deleted
+            pass
 
 
 class WebSystray(QtGui.QMenu):

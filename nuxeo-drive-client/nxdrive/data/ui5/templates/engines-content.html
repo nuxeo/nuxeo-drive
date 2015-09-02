@@ -23,7 +23,15 @@
   </div>
 </nav>
 <div class="container-fluid" style="padding-top: 80px;">
-	<div class="row">
+<ul class="nav nav-tabs" role="tablist">
+    <li role="presentation" class="active"><a href="#queues" aria-controls="queues" role="tab" data-toggle="tab">Queues</a></li>
+    <li role="presentation"><a href="#logs" aria-controls="logs" role="tab" data-toggle="tab">Logs</a></li>
+    <li role="presentation"><a href="#metrics" aria-controls="metrics" role="tab" data-toggle="tab">Metrics</a></li>
+    <li role="presentation"><a href="#notifs" aria-controls="metrics" role="tab" data-toggle="tab">Notifications</a></li>
+    <li role="presentation"><a href="#others" aria-controls="settings" role="tab" data-toggle="tab">Others</a></li>
+  </ul>
+  <div class="tab-content">
+	<div class="tab-pane active" role="tabpanel" id="queues">
 		<div class="col-xs-3">
 			<table class="table table-hover table-condensed">
 			<thead>
@@ -97,29 +105,28 @@
 			</div>
 		</div>
 	</div>
-	<div class="row">
-		<div class="col-xs-6">
+	<div class="tab-pane" role="tabpanel" id="logs">
+		<table class="table table-hover table-condensed">
+		<thead>
+			<tr>
+				<th colspan="2"><a href="#" ng-click="refreshLogs()"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;Logs</a></th>
+			</tr>
+		</thead>
+		</table>
+		<div class="logs">
 			<table class="table table-hover table-condensed">
-			<thead>
-				<tr>
-					<th colspan="2"><a href="#" ng-click="refreshLogs()"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;Logs</a></th>
+			<tbody>
+				<tr ng-repeat="log in engine.logs" class="{{ getLogClass(log.severity) }}">
+					<td>{{ log.time }}</td>
+					<td>{{ log.thread }}</td>
+					<td>{{ log.message }}
+					<span class="pull-right" style="font-style: italic;margin-left: 40px;">{{ log.name }}</span></td>
 				</tr>
-			</thead>
+			</tbody>
 			</table>
-			<div class="logs">
-				<table class="table table-hover table-condensed">
-				<tbody>
-					<tr ng-repeat="log in engine.logs" class="{{ getLogClass(log.severity) }}">
-						<td>{{ log.time }}</td>
-						<td>{{ log.thread }}</td>
-						<td>{{ log.message }}
-						<span class="pull-right" style="font-style: italic;margin-left: 40px;">{{ log.name }}</span></td>
-					</tr>
-				</tbody>
-				</table>
-			</div>
 		</div>
-		<div class="col-xs-6">
+	</div>
+	<div class="tab-pane" role="tabpanel" id="metrics">
 		<table class="table table-hover">
 			<thead>
 				<tr>
@@ -140,6 +147,76 @@
 				</tr>
 			</tbody>
 		</table>
+	</div>
+	<div class="tab-pane" role="tabpanel" id="notifs">
+		<form>
+		  <div class="form-group">
+		    <label for="exampleInputEmail1">Title</label>
+		    <input type="text" class="form-control" ng-model="notification.title" id="exampleInputEmail1" placeholder="Title">
+		  </div>
+		  <div class="form-group">
+		    <label for="exampleInputPassword1">Description</label>
+		    <input type="text" class="form-control" ng-model="notification.description" id="exampleInputPassword1" placeholder="Description">
+		  </div>
+		  <div class="form-group">
+		    <label for="exampleInputFile">Level</label><br />
+		    <select  ng-model="notification.level">
+		    	<option value="danger">ERROR</option>
+		    	<option value="warning">WARNING</option>
+		    	<option value="info">INFO</option>
+		    </select>
+		  </div>
+		  <div class="form-group">
+		    <label for="exampleInputFile">Action</label><br />
+		    <input type="text" ng-disabled="!notification.actionable" ng-model="notification.action" class="form-control" id="exampleInputPassword1" placeholder="Action">
+		  </div>
+		  <div class="row">
+		  	<div class="col-xs-3">
+				  <div class="checkbox">
+				    <label>
+				      <input type="checkbox" ng-model="notification.bubble"> Bubble
+				    </label>
+				  </div>
+				  <div class="checkbox">
+				    <label>
+				      <input type="checkbox" ng-model="notification.systray"> Systray
+				    </label>
+				  </div>
+				  <div class="checkbox">
+				    <label>
+				      <input type="checkbox" ng-model="notification.actionable"> Action
+				    </label>
+				  </div>
+			  </div>
+			  <div class="col-xs-3">
+				  <div class="checkbox">
+				    <label>
+				      <input type="checkbox" ng-model="notification.discardable"> Discardable
+				    </label>
+				  </div>
+				  <div class="checkbox">
+				    <label>
+				      <input type="checkbox" ng-model="notification.unique"> Unique
+				    </label>
+				  </div>
+				  <div class="checkbox">
+				    <label>
+				      <input type="checkbox" ng-model="notification.engine"> Engine-specific
+				    </label>
+				  </div>
+			  </div>
+			  <div class="col-xs-3">
+				  <div class="checkbox">
+				    <label>
+				      <input type="checkbox" ng-model="notification.persistent"> Persistent
+				    </label>
+				  </div>
+			  </div>
+		  </div>
+		  <button ng-click="sendNotification()" class="btn btn-default">Send</button>
+		</form>
+	</div>
+	<div class="tab-pane" role="tabpanel" id="others">
 		<table class="table table-hover table-condensed">
 			<thead>
 				<tr>
@@ -180,6 +257,6 @@
 				</tr>
 			</tbody>
 		</table>
-		</div>
 	</div>
+  </div>
 </div>
