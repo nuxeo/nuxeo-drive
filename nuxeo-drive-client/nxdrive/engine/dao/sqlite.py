@@ -146,6 +146,7 @@ class ConfigurationDAO(QObject):
         self._create_main_conn()
         self._conn.row_factory = CustomRow
         c = self._conn.cursor()
+        self._init_db(c)
         if migrate:
             res = c.execute("SELECT value FROM Configuration WHERE name='"+SCHEMA_VERSION+"'").fetchone()
             if res is None:
@@ -154,8 +155,6 @@ class ConfigurationDAO(QObject):
                 schema = int(res[0])
             if schema != self.schema_version:
                 self._migrate_db(c, schema)
-        else:
-            self._init_db(c)
         self._conn.commit()
         self._conns = local()
         # FOR PYTHON 3.3...
@@ -173,12 +172,16 @@ class ConfigurationDAO(QObject):
         tmpname = name + 'Migration'
         cursor.execute("ALTER TABLE " + name + " RENAME TO " + tmpname)
         # Because Windows dont release the table, force the creation
-        self._create_state_table(cursor, force=True)
+        self._create_table(cursor, name, force=True)
         target_cols = self._get_columns(cursor, name)
         source_cols = self._get_columns(cursor, tmpname)
         cols = ', '.join(set(target_cols).intersection(source_cols))
         cursor.execute("INSERT INTO " + name + "(" + cols + ") SELECT " + cols + " FROM " + tmpname)
         cursor.execute("DROP TABLE " + tmpname)
+
+    def _create_table(self, cursor, name, force=False):
+        if name == "Configuration":
+            return self._create_configuration_table(cursor)
 
     def _get_columns(self, cursor, table):
         cols = []
@@ -194,6 +197,9 @@ class ConfigurationDAO(QObject):
     def _init_db(self, cursor):
         # http://www.stevemcarthur.co.uk/blog/post/some-kind-of-disk-io-error-occurred-sqlite
         cursor.execute("PRAGMA journal_mode = MEMORY")
+        self._create_configuration_table(cursor)
+
+    def _create_configuration_table(self, cursor):
         cursor.execute("CREATE TABLE if not exists Configuration(name VARCHAR NOT NULL, value VARCHAR, PRIMARY KEY (name))")
 
     def _create_main_conn(self):
@@ -431,6 +437,11 @@ class EngineDAO(ConfigurationDAO):
         if (version < 2):
             cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
             self.update_config(SCHEMA_VERSION, 2)
+
+    def _create_table(self, cursor, name, force=False):
+        if name == "States":
+            return self._create_state_table(cursor, force)
+        super(EngineDAO, self)._create_table(cursor, name, force)
 
     def _create_state_table(self, cursor, force=False):
         if force:
