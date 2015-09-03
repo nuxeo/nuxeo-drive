@@ -110,7 +110,7 @@ LocalWatcher logic schemas: [https://www.lucidchart.com/documents/view/21ec315b-
 
 ### Mac OS X Requirements
 
-XXX start by installing your own non-system version of Python 2.7 using [Homebrew](https://github.com/Homebrew/homebrew).
+To be able to build the Nuxeo Drive client on Mac OS X, you must install your own non-system version of Python 2.7 using [Homebrew](https://github.com/Homebrew/homebrew).
 
 First you need to install Xcode and its Command Line Tools as they are required for compilation with Homebrew.
 
