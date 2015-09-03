@@ -17,7 +17,7 @@ import platform
 import sys
 import logging
 from urlparse import urlparse
-from PyQt4.Qt import QScriptEngine
+from PyQt4.QtScript import QScriptEngine
 log = get_logger(__name__)
 
 
