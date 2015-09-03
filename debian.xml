@@ -201,7 +201,7 @@
         <copy file="${maven.basedir}/setup.cfg" tofile="${out.dir}/${package.name}-${package.fullversion}/setup.cfg" />
         <copy file="${maven.basedir}/setup.py" tofile="${out.dir}/${package.name}-${package.fullversion}/setup.py" />
         <chmod file="${out.dir}/${package.name}-${package.fullversion}/setup.py" perm="0755" />
-        <copy file="${maven.basedir}/README.rst" tofile="${out.dir}/${package.name}-${package.fullversion}/README.rst" />
+        <copy file="${maven.basedir}/README.md" tofile="${out.dir}/${package.name}-${package.fullversion}/README.md" />
         <!--<copy todir="${out.dir}/${package.name}-${package.fullversion}/nuxeo-drive-client">
             <fileset dir="${maven.basedir}/nuxeo-drive-client">
                 <include name="**" />

@@ -243,7 +243,7 @@ class NuxeoDriveAttributes(object):
         return 'http://github.com/nuxeo/nuxeo-drive'
 
     def get_long_description(self):
-        return open('README.rst').read()
+        return open('README.md').read()
 
     def get_data_files(self):
         return []

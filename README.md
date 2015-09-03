@@ -204,4 +204,4 @@ The [backlog](https://jira.nuxeo.com/issues/?jql=%28project%20%3D%20%22Nuxeo%20D
 
 ## Developing on Nuxeo Drive
 
-See the [contributor guide](https://github.com/nuxeo/nuxeo-drive/blob/master/DEVELOPERS.rst) if you wish to actually contribute to the Nuxeo Drive code base.
+See the [contributor guide](https://github.com/nuxeo/nuxeo-drive/blob/master/DEVELOPERS.md) if you wish to actually contribute to the Nuxeo Drive code base.
