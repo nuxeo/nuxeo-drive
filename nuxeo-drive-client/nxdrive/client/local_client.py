@@ -6,6 +6,7 @@ import hashlib
 import os
 import shutil
 import re
+import tempfile
 from nxdrive.client.common import BaseClient, UNACCESSIBLE_HASH
 from nxdrive.osi import AbstractOSIntegration
 
@@ -131,8 +132,7 @@ class LocalClient(BaseClient):
     def is_case_sensitive(self):
         if self._case_sensitive is None:
             lock = self.unlock_path(self.base_folder, unlock_parent=False)
-            path = os.tempnam(self.base_folder, '.caseTest_')
-            os.mkdir(path)
+            path = tempfile.mkdtemp(prefix='.caseTest_', dir=self.base_folder)
             if os.path.exists(path.upper()):
                 self._case_sensitive = False
             else:
