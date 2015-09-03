@@ -427,8 +427,10 @@ class LocalWatcher(EngineWorker):
             else:
                 # In case of case sensitive can be an issue
                 if self.client.exists(doc_pair.local_path):
-                    # This happens on update don't do anything
-                    return
+                    remote_id = self.client.get_remote_id(doc_pair.local_path)
+                    if remote_id == doc_pair.remote_ref or remote_id is None:
+                        # This happens on update don't do anything
+                        return
                 self._handle_watchdog_delete(doc_pair)
             return
         local_info = self.client.get_info(rel_path, raise_if_missing=False)

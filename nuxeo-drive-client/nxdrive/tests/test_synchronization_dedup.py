@@ -162,3 +162,20 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         # Might want go back to the original name
         self.assertTrue(local.exists('/test/' + Test_dedup))
         self.assertFalse(local.exists('/' + Test_dedup))
+
+    def test_uppercase_lowercase_duplicate(self):
+        remote = self.remote_document_client_1
+        # Test without delay might cause issue on Windows
+        self.doc1 = remote.make_folder('/', 'A')
+        self.wait_sync()
+        self.doc2 = remote.make_folder('/', 'a')
+        self.wait_sync()
+        self.assertTrue(self.local_client_1.exists('/A'))
+        self.assertTrue(self.local_client_1.exists('/a__1'))
+        self.local_client_1.delete('/A')
+        self.local_client_1.rename('/a__1', 'A')
+        self.wait_sync()
+        self.assertTrue(self.local_client_1.exists('/A'))
+        self.assertFalse(self.local_client_1.exists('/a__1'))
+        self.assertTrue(self.remote_document_client_1.exists(self.doc2))
+        self.assertFalse(self.remote_document_client_1.exists(self.doc1))
