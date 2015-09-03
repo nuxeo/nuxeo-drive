@@ -116,7 +116,12 @@ class LocalWatcher(EngineWorker):
                     log.debug("Win: handling watchdog delete for event: %r", evt)
                     self._handle_watchdog_delete(evt_pair)
                 else:
-                    log.debug("Win: ignoring delete event as file still exists: %r", evt)
+                    remote_id = self.client.get_remote_id(evt_pair.local_path)
+                    if remote_id == evt_pair.remote_ref or remote_id is None:
+                        log.debug("Win: ignoring delete event as file still exists: %r", evt)
+                    else:
+                        log.debug("Win: handling watchdog delete for event: %r", evt)
+                        self._handle_watchdog_delete(evt_pair)
                 log.debug("Win: dequeuing delete event: %r", evt)
                 del self._delete_events[evt_pair.remote_ref]
         except ThreadInterrupt:
