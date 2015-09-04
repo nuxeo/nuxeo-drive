@@ -675,7 +675,10 @@ class LocalClient(BaseClient):
     def get_path(self, abspath):
         """Relative path to the local client from an absolute OS path"""
         path = abspath.split(self.base_folder, 1)[1]
-        return path.replace(os.path.sep, '/')
+        rel_path = path.replace(os.path.sep, '/')
+        if rel_path == '':
+            rel_path = u'/'
+        return rel_path
 
     def _abspath(self, ref):
         """Absolute path on the operating system"""

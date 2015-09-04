@@ -491,6 +491,8 @@ class LocalWatcher(EngineWorker):
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
                     log.debug("Ignoring %s as marked unsynchronized", doc_pair.local_path)
+                    if evt.event_type == 'deleted' or evt.event_type == 'moved':
+                        self._dao.remove_state(doc_pair)
                     return
                 self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
                 return
