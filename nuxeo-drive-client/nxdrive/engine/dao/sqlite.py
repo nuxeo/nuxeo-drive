@@ -641,7 +641,7 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET last_transfer=? WHERE id=?", (row_id, transfer))
+            c.execute("UPDATE States SET last_transfer=? WHERE id=?", (transfer, row_id))
             if self.auto_commit:
                 con.commit()
         finally:
@@ -1155,7 +1155,6 @@ class EngineDAO(ConfigurationDAO):
         if state is None:
             return None
         c = self._get_read_connection().cursor()
-        self.get_syncing_count()
         return c.execute(u"SELECT * FROM States WHERE last_sync_date>? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date ASC LIMIT 1", (state.last_sync_date,)).fetchone()
 
     def get_batch_sync_ignore(self):
