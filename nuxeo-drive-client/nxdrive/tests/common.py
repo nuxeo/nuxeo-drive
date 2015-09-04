@@ -202,14 +202,13 @@ class IntegrationTestCase(unittest.TestCase):
         self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
         self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2, self.workspace_title))
         ndrive_path = os.path.dirname(nxdrive.__file__)
-        ndrive_exec = os.path.join(ndrive_path, '..', 'scripts', 'ndrive.py')
-        cmdline = ndrive_exec
+        self.ndrive_exec = os.path.join(ndrive_path, '..', 'scripts', 'ndrive.py')
+        cmdline_options = '--log-level-console=%s' % DEFAULT_CONSOLE_LOG_LEVEL
+        cmdline_options += ' --nxdrive-home="%s"'
         if os.environ.get('PYDEV_DEBUG') == 'True':
-            cmdline += ' --debug-pydev'
-        cmdline += ' --log-level-console=%s' % DEFAULT_CONSOLE_LOG_LEVEL
-        cmdline += ' --nxdrive-home="%s"'
-        self.ndrive_1 = cmdline % self.nxdrive_conf_folder_1
-        self.ndrive_2 = cmdline % self.nxdrive_conf_folder_2
+            cmdline_options += ' --debug-pydev'
+        self.ndrive_1_options = cmdline_options % self.nxdrive_conf_folder_1
+        self.ndrive_2_options = cmdline_options % self.nxdrive_conf_folder_2
 
     def tearDown(self):
         # Don't need to revoke tokens for the file system remote clients
@@ -292,38 +291,39 @@ class IntegrationTestCase(unittest.TestCase):
 
     def setUpDrive_1(self, bind_root=True, root=None, firstSync=False):
         # Bind the server and root workspace
-        self.bind_server(self.ndrive_1, self.user_1, self.nuxeo_url, self.local_nxdrive_folder_1, self.password_1)
+        self.bind_server(self.ndrive_1_options, self.user_1, self.nuxeo_url, self.local_nxdrive_folder_1, self.password_1)
         if bind_root:
             root_to_bind = root if root is not None else self.workspace
-            self.bind_root(self.ndrive_1, root_to_bind, self.local_nxdrive_folder_1)
+            self.bind_root(self.ndrive_1_options, root_to_bind, self.local_nxdrive_folder_1)
         if firstSync:
-            self.ndrive(self.ndrive_1)
+            self.ndrive(self.ndrive_1_options)
 
-    def bind_root(self, ndrive_cmd, workspace, local_folder):
-        cmdline = '%s bind-root "%s" --local-folder="%s"' % (ndrive_cmd, workspace, local_folder)
+    def bind_root(self, ndrive_options, workspace, local_folder):
+        cmdline = '%s bind-root "%s" --local-folder="%s" %s' % (self.ndrive_exec, workspace, local_folder, ndrive_options)
         execute(cmdline)
 
-    def unbind_root(self, ndrive_cmd, workspace, local_folder):
-        cmdline = '%s unbind-root "%s" --local-folder="%s"' % (ndrive_cmd, workspace, local_folder)
+    def unbind_root(self, ndrive_options, workspace, local_folder):
+        cmdline = '%s unbind-root "%s" --local-folder="%s" %s' % (self.ndrive_exec, workspace, local_folder, ndrive_options)
         execute(cmdline)
 
-    def bind_server(self, ndrive_cmd, user, server_url, local_folder, password):
-        cmdline = '%s bind-server %s %s --local-folder="%s" --password=%s' % (
-            ndrive_cmd, user, server_url, local_folder, password)
+    def bind_server(self, ndrive_options, user, server_url, local_folder, password):
+        cmdline = '%s bind-server %s %s --local-folder="%s" --password=%s %s' % (
+            self.ndrive_exec, user, server_url, local_folder, password, ndrive_options)
         execute(cmdline)
 
-    def unbind_server(self, ndrive_cmd, local_folder):
-        cmdline = '%s unbind-server --local-folder="%s"' % (ndrive_cmd, local_folder)
+    def unbind_server(self, ndrive_options, local_folder):
+        cmdline = '%s unbind-server --local-folder="%s"' % (self.ndrive_exec, local_folder, ndrive_options)
         execute(cmdline)
 
-    def ndrive(self, ndrive_cmd=None, quit_if_done=True, quit_timeout=None, delay=None):
-        if ndrive_cmd is None:
-            ndrive_cmd = self.ndrive_1
-        cmdline = ndrive_cmd + ' console'
-        delay = delay if delay is not None else TEST_DEFAULT_DELAY
-        cmdline += ' --delay=%d' % delay
+    def ndrive(self, ndrive_options=None, quit_if_done=True, quit_timeout=None, delay=None):
+        if ndrive_options is None:
+            ndrive_options = self.ndrive_1_options
+        cmdline = self.ndrive_exec + ' console'
         if quit_if_done:
             cmdline += ' --quit-if-done'
         quit_timeout = quit_timeout if quit_timeout is not None else TEST_DEFAULT_QUIT_TIMEOUT
         cmdline += ' --quit-timeout=%d' % quit_timeout
+        delay = delay if delay is not None else TEST_DEFAULT_DELAY
+        cmdline += ' --delay=%d' % delay
+        cmdline += ' ' + ndrive_options
         execute(cmdline)

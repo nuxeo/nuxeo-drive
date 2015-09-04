@@ -54,7 +54,7 @@ class TestSynchronization(IntegrationTestCase):
         self.assertEquals(local.get_content('/File 5.txt'), "eee")
 
         # Unbind root and resynchronize: smoke test
-        self.unbind_root(self.ndrive_1, self.workspace, self.local_nxdrive_folder_1)
+        self.unbind_root(self.ndrive_1_options, self.workspace, self.local_nxdrive_folder_1)
         self.ndrive()
 
     def test_binding_synchronization_empty_start(self):

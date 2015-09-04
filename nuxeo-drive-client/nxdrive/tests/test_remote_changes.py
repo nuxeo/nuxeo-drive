@@ -76,7 +76,7 @@ class TestRemoteChanges(IntegrationTestCase):
         self.assertEquals(change['docUuid'], folder_1)
 
         # Let's register the second root
-        self.bind_root(self.ndrive_1, folder_2, self.local_nxdrive_folder_1)
+        self.bind_root(self.ndrive_1_options, folder_2, self.local_nxdrive_folder_1)
 
         self.wait()
         summary = self.get_changes()
@@ -102,8 +102,8 @@ class TestRemoteChanges(IntegrationTestCase):
         self.assertEquals(len(summary['fileSystemChanges']), 0)
 
         # Let's unregister both roots at the same time
-        self.unbind_root(self.ndrive_1, folder_1, self.local_nxdrive_folder_1)
-        self.unbind_root(self.ndrive_1, folder_2, self.local_nxdrive_folder_1)
+        self.unbind_root(self.ndrive_1_options, folder_1, self.local_nxdrive_folder_1)
+        self.unbind_root(self.ndrive_1_options, folder_2, self.local_nxdrive_folder_1)
 
         self.wait()
         summary = self.get_changes()
@@ -149,7 +149,7 @@ class TestRemoteChanges(IntegrationTestCase):
         self.assertEquals(change['fileSystemItemId'], u'defaultSyncRootFolderItemFactory#default#%s' % folder_1)
 
         # Mark parent folder as a sync root, should unregister Folder 1
-        self.bind_root(self.ndrive_1, self.workspace, self.local_nxdrive_folder_1)
+        self.bind_root(self.ndrive_1_options, self.workspace, self.local_nxdrive_folder_1)
         self.wait()
         summary = self.get_changes()
 
