@@ -477,7 +477,7 @@ class CliHandler(object):
             self._configure_logger(options)
 
         self.log = get_logger(__name__)
-        self.log.debug("Command line: argv=%s, options=%r",
+        self.log.debug("Command line: argv=%r, options=%r",
                        ' '.join(argv), options)
 
         if command != 'test' and command != 'uninstall':
@@ -580,7 +580,7 @@ class CliHandler(object):
 
     def metadata(self, options):
         from nxdrive.wui.metadata import MetadataApplication
-        self.log.debug('Opening metadata window for %s', options.file)
+        self.log.debug('Opening metadata window for %r', options.file)
         app = MetadataApplication(self.manager, options)
         return app.exec_()
 
@@ -744,6 +744,38 @@ def dumpstacks(signal, frame):
     print "\n".join(code)
 
 
+def win32_unicode_argv():
+    """Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
+    strings.
+
+    Versions 2.x of Python don't support Unicode in sys.argv on
+    Windows, with the underlying Windows API instead replacing multi-byte
+    characters with '?'.
+
+    See http://stackoverflow.com/questions/846850/read-unicode-characters-from-command-line-arguments-in-python-2-x-on-windows
+    """
+
+    from ctypes import POINTER, byref, cdll, c_int, windll
+    from ctypes.wintypes import LPCWSTR, LPWSTR
+
+    GetCommandLineW = cdll.kernel32.GetCommandLineW
+    GetCommandLineW.argtypes = []
+    GetCommandLineW.restype = LPCWSTR
+
+    CommandLineToArgvW = windll.shell32.CommandLineToArgvW
+    CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
+    CommandLineToArgvW.restype = POINTER(LPWSTR)
+
+    cmd = GetCommandLineW()
+    argc = c_int(0)
+    argv = CommandLineToArgvW(cmd, byref(argc))
+    if argc.value > 0:
+        # Remove Python executable and commands if present
+        start = argc.value - len(sys.argv)
+        return [argv[i] for i in
+                xrange(start, argc.value)]
+
+
 def main(argv=None):
     # Print thread dump when receiving SIGUSR1,
     # except under Windows (no SIGUSR1)
@@ -753,7 +785,7 @@ def main(argv=None):
     if sys.platform != 'win32':
         signal.signal(signal.SIGUSR1, dumpstacks)
     if argv is None:
-        argv = sys.argv
+        argv = win32_unicode_argv() if sys.platform == 'win32' else sys.argv
     return CliHandler().handle(argv)
 
 if __name__ == "__main__":
