@@ -14,6 +14,7 @@ from nxdrive.wui.authentication import WebAuthenticationDialog
 from nxdrive.manager import ProxySettings, FolderAlreadyUsed
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.base_automation_client import get_proxy_handler
+from nxdrive.client.base_automation_client import get_opener_proxies
 from nxdrive.client.base_automation_client import APPLICATION_NAME
 from nxdrive.engine.engine import RootAlreadyBindWithDifferentAccount
 from nxdrive.engine.engine import InvalidDriveException
@@ -190,6 +191,8 @@ class WebSettingsApi(WebDriveApi):
         try:
             proxy_handler = get_proxy_handler(self._manager.get_proxies())
             opener = urllib2.build_opener(proxy_handler)
+            log.debug('Proxy configuration for startup page connection: %s, effective proxy list: %r',
+                      self._manager.get_proxy_settings().config, get_opener_proxies(opener))
             headers = {
                 'X-Application-Name': APPLICATION_NAME,
                 'X-Device-Id': self._manager.get_device_id(),
