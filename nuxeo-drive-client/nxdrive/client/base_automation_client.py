@@ -78,6 +78,15 @@ def get_proxies_for_handler(proxy_settings):
         return proxies, proxy_exceptions
 
 
+def get_proxy_config(proxies):
+    if proxies is None:
+        return 'System'
+    elif proxies == {}:
+        return 'None'
+    else:
+        return 'Manual'
+
+
 def get_proxy_handler(proxies, proxy_exceptions=None, url=None):
     if proxies is None:
         # No proxies specified, use default proxy detection
@@ -210,6 +219,7 @@ class BaseAutomationClient(BaseClient):
         # Set Proxy flag
         self.is_proxy = False
         opener_proxies = get_opener_proxies(self.opener)
+        log.debug('Proxy configuration: %s, effective proxy list: %r', get_proxy_config(proxies), opener_proxies)
         if opener_proxies:
             self.is_proxy = True
 
