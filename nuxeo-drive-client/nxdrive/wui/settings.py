@@ -13,6 +13,8 @@ from nxdrive.wui.authentication import WebAuthenticationApi
 from nxdrive.wui.authentication import WebAuthenticationDialog
 from nxdrive.manager import ProxySettings, FolderAlreadyUsed
 from nxdrive.client.base_automation_client import Unauthorized
+from nxdrive.client.base_automation_client import get_proxy_handler
+from nxdrive.client.base_automation_client import APPLICATION_NAME
 from nxdrive.engine.engine import RootAlreadyBindWithDifferentAccount
 from nxdrive.engine.engine import InvalidDriveException
 from nxdrive.wui.translator import Translator
@@ -20,11 +22,10 @@ from nxdrive.utils import DEVICE_DESCRIPTIONS
 from nxdrive.utils import TOKEN_PERMISSION
 import sys
 import urllib2
-import httplib
-import urlparse
 from urllib import urlencode
 
 DRIVE_STARTUP_PAGE = 'drive_login.jsp'
+STARTUP_PAGE_CONNECTION_TIMEOUT = 30
 
 
 class StartupPageConnectionError(Exception):
@@ -186,28 +187,26 @@ class WebSettingsApi(WebDriveApi):
             raise FolderAlreadyUsed()
 
     def _connect_startup_page(self, server_url):
-        conn = None
+        url = server_url + DRIVE_STARTUP_PAGE
         try:
-            parsed_url = urlparse.urlparse(server_url)
-            scheme = parsed_url.scheme
-            hostname = parsed_url.hostname
-            port = parsed_url.port
-            path = parsed_url.path
-            path += DRIVE_STARTUP_PAGE
-            if scheme == 'https':
-                conn = httplib.HTTPSConnection(hostname, port)
-            else:
-                conn = httplib.HTTPConnection(hostname, port)
-            conn.request('HEAD', path)
-            status = conn.getresponse().status
-            log.debug('Status code for %s = %d', server_url + DRIVE_STARTUP_PAGE, status)
-            return status
+            proxy_handler = get_proxy_handler(self._manager.get_proxies())
+            opener = urllib2.build_opener(proxy_handler)
+            headers = {
+                'X-Application-Name': APPLICATION_NAME,
+                'X-Device-Id': self._manager.get_device_id(),
+                'X-Client-Version': self._manager.get_version(),
+                'User-Agent': APPLICATION_NAME + "/" + self._manager.get_version(),
+            }
+            req = urllib2.Request(url, headers=headers)
+            response = opener.open(req, timeout=STARTUP_PAGE_CONNECTION_TIMEOUT)
+            status = response.getcode()
+        except urllib2.HTTPError as e:
+            status = e.code
         except:
-            log.exception('Error while trying to connect to Nuxeo Drive startup page with URL %s', server_url)
+            log.exception('Error while trying to connect to Nuxeo Drive startup page with URL %s', url)
             raise StartupPageConnectionError()
-        finally:
-            if conn is not None:
-                conn.close()
+        log.debug('Status code for %s = %d', url, status)
+        return status
 
     def update_token(self, engine, token):
         engine.update_token(token)
