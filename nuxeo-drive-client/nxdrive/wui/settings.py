@@ -95,7 +95,8 @@ class WebSettingsApi(WebDriveApi):
         binder.no_fscheck = not check_fs
         binder.url = url
         log.debug("Binder is : %s/%s/%s", binder.url, binder.username, binder.password)
-        self._manager.bind_engine(self._manager._get_default_server_type(), local_folder, name, binder, starts=start_engine)
+        self._manager.bind_engine(self._manager._get_default_server_type(), local_folder, name, binder,
+                                  starts=start_engine)
         return ""
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
@@ -109,11 +110,9 @@ class WebSettingsApi(WebDriveApi):
             values = dict()
             values["username"] = e.get_username()
             values["url"] = e.get_url()
-            msgbox = QtGui.QMessageBox(QtGui.QMessageBox.Question,
-                              self._manager.get_appname(),
-                              Translator.get("ROOT_USED_WITH_OTHER_BINDING", values),
-                              QtGui.QMessageBox.NoButton,
-                              self._dialog)
+            msgbox = QtGui.QMessageBox(QtGui.QMessageBox.Question, self._manager.get_appname(),
+                                       Translator.get("ROOT_USED_WITH_OTHER_BINDING", values),
+                                       QtGui.QMessageBox.NoButton, self._dialog)
             msgbox.addButton(Translator.get("ROOT_USED_CONTINUE"), QtGui.QMessageBox.AcceptRole)
             cancel = msgbox.addButton(Translator.get("ROOT_USED_CANCEL"), QtGui.QMessageBox.RejectRole)
             msgbox.exec_()
@@ -309,8 +308,7 @@ class WebSettingsApi(WebDriveApi):
             return ""
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
-    def set_proxy_settings(self, config='System', server=None,
-                 authenticated=False, username=None, password=None):
+    def set_proxy_settings(self, config='System', server=None, authenticated=False, username=None, password=None):
         try:
             config = str(config)
             url = str(server)
@@ -338,7 +336,7 @@ class WebSettingsDialog(WebDialog):
         if api is None:
             api = WebSettingsApi(application)
         super(WebSettingsDialog, self).__init__(application, "settings.html",
-                                                 api=api,
+                                                api=api,
                                                 title=Translator.get("SETTINGS_WINDOW_TITLE"))
 
     def set_section(self, section):
