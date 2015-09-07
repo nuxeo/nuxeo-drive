@@ -31,6 +31,8 @@ import socket
 
 log = get_logger(__name__)
 
+APPLICATION_NAME = 'Nuxeo Drive'
+
 CHANGE_SUMMARY_OPERATION = 'NuxeoDrive.GetChangeSummary'
 DEFAULT_NUXEO_TX_TIMEOUT = 300
 
@@ -140,9 +142,6 @@ class BaseAutomationClient(BaseClient):
 
     # Used for testing local device errors when downloading a file
     _local_error = None
-
-    # Parameters used when negotiating authentication token:
-    application_name = 'Nuxeo Drive'
 
     def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
@@ -501,7 +500,7 @@ class BaseAutomationClient(BaseClient):
 
         parameters = {
             'deviceId': self.device_id,
-            'applicationName': self.application_name,
+            'applicationName': APPLICATION_NAME,
             'permission': TOKEN_PERMISSION,
             'revoke': 'true' if revoke else 'false',
         }
@@ -590,8 +589,8 @@ class BaseAutomationClient(BaseClient):
             'X-User-Id': self.user_id,
             'X-Device-Id': self.device_id,
             'X-Client-Version': self.client_version,
-            'User-Agent': self.application_name + "/" + self.client_version,
-            'X-Application-Name': self.application_name,
+            'User-Agent': APPLICATION_NAME + "/" + self.client_version,
+            'X-Application-Name': APPLICATION_NAME,
             self.auth[0]: self.auth[1],
             'Cache-Control': 'no-cache',
         }

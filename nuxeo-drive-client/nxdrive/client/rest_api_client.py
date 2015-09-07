@@ -5,14 +5,13 @@ import json
 import urllib2
 
 from nxdrive.logging_config import get_logger
+from nxdrive.client.base_automation_client import APPLICATION_NAME
 
 log = get_logger(__name__)
 
 
 class RestAPIClient(object):
     """Client for the Nuxeo REST API."""
-
-    application_name = 'Nuxeo Drive'
 
     def __init__(self, server_url, user_id, device_id, client_version,
                  password=None, token=None, timeout=20, cookie_jar=None):
@@ -85,8 +84,8 @@ class RestAPIClient(object):
             'X-User-Id': self.user_id,
             'X-Device-Id': self.device_id,
             'X-Client-Version': self.client_version,
-            'User-Agent': self.application_name + "/" + self.client_version,
-            'X-Application-Name': self.application_name,
+            'User-Agent': APPLICATION_NAME + "/" + self.client_version,
+            'X-Application-Name': APPLICATION_NAME,
             self.auth[0]: self.auth[1],
             'Cache-Control': 'no-cache',
         }
