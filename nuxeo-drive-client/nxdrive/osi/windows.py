@@ -140,13 +140,17 @@ class WindowsIntegration(AbstractOSIntegration):
             log.warning('Not a frozen windows exe: '
                         'skipping startup application registration')
             return
-
+        icon_path = self._manager.find_exe_path() + ",0"
         log.debug("Registering '%s' application %s to registry key %s",
                   app_name, exe_path, self.get_menu_key())
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
         self._update_reg_key(
             reg, self.get_menu_key(),
             [(app_name, _winreg.REG_SZ, exe_path)],
+        )
+        self._update_reg_key(
+            reg, self.get_menu_parent_key(),
+            [("Icon", _winreg.REG_SZ, icon_path)],
         )
 
     def is_same_partition(self, folder1, folder2):
