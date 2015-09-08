@@ -126,6 +126,8 @@ class WebDriveApi(QtCore.QObject):
         result["remote_ref"] = state.remote_ref
         result["folderish"] = state.folderish
         result["last_transfer"] = state.last_transfer
+        if result["last_transfer"] is None:
+            result["last_transfer"] = result["last_sync_direction"]
         result["id"] = state.id
         return result
 
