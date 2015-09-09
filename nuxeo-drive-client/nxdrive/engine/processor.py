@@ -340,6 +340,10 @@ class Processor(EngineWorker):
         if parent_pair is None or parent_pair.remote_ref is None:
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
+            if parent_pair is not None and parent_pair.pair_state == 'unsynchronized':
+                self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                self._handle_unsynchronized(local_client, doc_pair)
+                return
             raise ValueError(
                 "Parent folder of %s is not bound to a remote folder"
                 % doc_pair.local_parent_path)
@@ -630,6 +634,10 @@ class Processor(EngineWorker):
                 "Could not find parent folder of doc %r (%r)"
                 " folder" % (name, doc_pair.remote_ref))
         if parent_pair.local_path is None:
+            if parent_pair.pair_state == 'unsynchronized':
+                self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                self._handle_unsynchronized(local_client, doc_pair)
+                return
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             raise ValueError(
