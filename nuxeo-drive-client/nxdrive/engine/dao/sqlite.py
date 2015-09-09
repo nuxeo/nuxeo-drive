@@ -663,7 +663,7 @@ class EngineDAO(ConfigurationDAO):
                       " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, os.path.dirname(info.path),
                                         os.path.basename(info.path), row.local_state, info.size, row.remote_state,
                                         pair_state, row.id))
-            if row.pair_state != pair_state and queue:
+            if queue:
                 self._queue_pair_state(row.id, info.folderish, pair_state, row)
             if self.auto_commit:
                 con.commit()
@@ -1040,7 +1040,7 @@ class EngineDAO(ConfigurationDAO):
             self.queue_children(row)
         return result
 
-    def update_remote_state(self, row, info, remote_parent_path=None, versionned=True):
+    def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True):
         pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
@@ -1069,7 +1069,7 @@ class EngineDAO(ConfigurationDAO):
                        row.remote_state, pair_state, row.id))
             if self.auto_commit:
                 con.commit()
-            if row.pair_state != pair_state:
+            if queue:
                 self._queue_pair_state(row.id, info.folderish, pair_state)
         finally:
             self._lock.release()

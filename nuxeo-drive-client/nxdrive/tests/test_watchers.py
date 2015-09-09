@@ -16,12 +16,8 @@ class TestWatchers(UnitTestCase):
         self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_remote_scan()
-        metrics = self.queue_manager_1.get_metrics()
 
         # Workspace should have been reconcile
-        self.assertEquals(metrics["total_queue"], 7)
-        self.assertEquals(metrics["local_folder_queue"], 5)
-        self.assertEquals(metrics["local_file_queue"], 2)
         res = self.engine_1.get_dao().get_states_from_partial_local('/')
         # With root
         self.assertEquals(len(res), folders + files + 1)
@@ -51,12 +47,6 @@ class TestWatchers(UnitTestCase):
         self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_remote_scan()
-        metrics = self.queue_manager_1.get_metrics()
-        self.assertEquals(metrics["total_queue"], 1)
-        self.assertEquals(metrics["remote_folder_queue"], 1)
-        self.assertEquals(metrics["remote_file_queue"], 0)
-        self.assertEquals(metrics["local_file_queue"], 0)
-        self.assertEquals(metrics["local_folder_queue"], 0)
         res = self.engine_1.get_dao().get_states_from_partial_local('/')
         # With root
         self.assertEquals(len(res), folders + files + 1)
@@ -73,8 +63,8 @@ class TestWatchers(UnitTestCase):
         files, folders = self.make_local_tree()
         self.wait_sync(timeout=3, fail_if_timeout=False)
         metrics = self.queue_manager_1.get_metrics()
-        self.assertEquals(metrics["local_folder_queue"], 2)
-        self.assertEquals(metrics["local_file_queue"], 1)
+        self.assertNotEquals(metrics["local_folder_queue"], 0)
+        self.assertNotEquals(metrics["local_file_queue"], 0)
         res = self.engine_1.get_dao().get_states_from_partial_local('/')
         # With root
         self.assertEquals(len(res), folders + files + 1)

@@ -340,6 +340,10 @@ class Processor(EngineWorker):
         if parent_pair is None or parent_pair.remote_ref is None:
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
+            if parent_pair is not None and parent_pair.pair_state == 'unsynchronized':
+                self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                self._handle_unsynchronized(local_client, doc_pair)
+                return
             raise ValueError(
                 "Parent folder of %s is not bound to a remote folder"
                 % doc_pair.local_parent_path)
@@ -630,6 +634,10 @@ class Processor(EngineWorker):
                 "Could not find parent folder of doc %r (%r)"
                 " folder" % (name, doc_pair.remote_ref))
         if parent_pair.local_path is None:
+            if parent_pair.pair_state == 'unsynchronized':
+                self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                self._handle_unsynchronized(local_client, doc_pair)
+                return
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             raise ValueError(
@@ -747,12 +755,12 @@ class Processor(EngineWorker):
         if remote_info is None:
             remote_info = None  # Get from remote_client
             remote_info = remote_client.get_info(doc_pair.remote_ref)
-        self._dao.update_remote_state(doc_pair, remote_info, versionned=False)
+        self._dao.update_remote_state(doc_pair, remote_info, versionned=False, queue=False)
 
     def _refresh_local_state(self, doc_pair, local_info):
         if doc_pair.local_digest is None and not doc_pair.folderish:
             doc_pair.local_digest = local_info.get_digest()
-        self._dao.update_local_state(doc_pair, local_info, versionned=False)
+        self._dao.update_local_state(doc_pair, local_info, versionned=False, queue=False)
         doc_pair.local_path = local_info.path
         doc_pair.local_name = os.path.basename(local_info.path)
         doc_pair.last_local_updated = local_info.last_modification_time
@@ -777,7 +785,7 @@ class Processor(EngineWorker):
                 local_client = self._engine.get_local_client()
                 info = local_client.rename(target_pair.local_path,
                                             target_pair.remote_name)
-                self._dao.update_local_state(source_pair, info)
+                self._dao.update_local_state(source_pair, info, queue=False)
                 if source_pair != target_pair:
                     if target_pair.folderish:
                         # Remove "new" created tree

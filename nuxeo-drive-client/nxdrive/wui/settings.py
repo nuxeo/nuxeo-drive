@@ -194,10 +194,10 @@ class WebSettingsApi(WebDriveApi):
             log.debug('Proxy configuration for startup page connection: %s, effective proxy list: %r',
                       self._manager.get_proxy_settings().config, get_opener_proxies(opener))
             headers = {
-                'X-Application-Name': APPLICATION_NAME,
+                'X-Application-Name': self._manager.get_appname(),
                 'X-Device-Id': self._manager.get_device_id(),
                 'X-Client-Version': self._manager.get_version(),
-                'User-Agent': APPLICATION_NAME + "/" + self._manager.get_version(),
+                'User-Agent': self._manager.get_appname() + "/" + self._manager.get_version(),
             }
             req = urllib2.Request(url, headers=headers)
             response = opener.open(req, timeout=STARTUP_PAGE_CONNECTION_TIMEOUT)

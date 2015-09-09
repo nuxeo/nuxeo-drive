@@ -154,6 +154,58 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertTrue(local.exists('/Test folder renamed'))
         self.assertTrue(local.exists('/Test folder renamed/testFile.pdf'))
 
+    def test_synchronize_remote_move_while_download_file(self):
+        return
+        if sys.platform != 'win32':
+            with patch('os.path.isdir', return_value=False) as mock_os:
+                from mock import Mock
+                mock_os.return_value = Mock()
+                mock_os.return_value.f_bsize = 4096
+                self._remote_move_while_download_file()
+        else:
+            self._remote_move_while_download_file()
+
+    def _remote_move_while_download_file(self):
+        global has_rename
+        has_rename = False
+        # Get local and remote clients
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+
+        # Add delay when upload and download
+        def suspend_check(reason):
+            global has_rename
+            if not has_rename:
+                # Rename remote file while downloading
+                try:
+                    self.remote_file_system_client_1.move(file_id, new_folder_id)
+                    has_rename = True
+                except:
+                    pass
+            if local.exists('/Test folder'):
+                time.sleep(1)
+            Engine.suspend_client(self.engine_1, reason)
+
+        self.engine_1.suspend_client = suspend_check
+        self.engine_1.start()
+        self.engine_1.invalidate_client_cache()
+
+        # Create documents in the remote root workspace
+        # then synchronize
+        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
+                            + self.workspace)
+        self.workspace_pair_local_path = u'/' + self.workspace_title
+
+        folder_id = self.remote_file_system_client_1.make_folder(self.workspace_id, u'Test folder').uid
+        new_folder_id = self.remote_file_system_client_1.make_folder(folder_id, u'New folder').uid
+
+        with open('nxdrive/tests/resources/testFile.pdf', 'r') as content_file:
+            content = content_file.read()
+        file_id = self.remote_document_client_1.make_file('/Test folder', 'testFile.pdf', content).uid
+
+        # Rename remote folder then synchronize
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+        self.assertTrue(local.exists('/Test folder/New folder/testFile.pdf'))
 
     def test_synchronize_remote_rename_while_download_file(self):
         if sys.platform != 'win32':
