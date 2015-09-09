@@ -15,7 +15,6 @@ from nxdrive.manager import ProxySettings, FolderAlreadyUsed
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.base_automation_client import get_proxy_handler
 from nxdrive.client.base_automation_client import get_opener_proxies
-from nxdrive.client.base_automation_client import APPLICATION_NAME
 from nxdrive.engine.engine import RootAlreadyBindWithDifferentAccount
 from nxdrive.engine.engine import InvalidDriveException
 from nxdrive.wui.translator import Translator
@@ -27,6 +26,7 @@ from urllib import urlencode
 
 DRIVE_STARTUP_PAGE = 'drive_login.jsp'
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30
+APPLICATION_NAME = 'Nuxeo Drive'
 
 
 class StartupPageConnectionError(Exception):
