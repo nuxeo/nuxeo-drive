@@ -332,7 +332,7 @@ def guess_mime_type(filename):
 
 def guess_digest_algorithm(digest):
     # For now only md5 and sha1 are supported
-    if len(digest) == 32:
+    if digest is None or len(digest) == 32:
         return 'md5'
     elif len(digest) == 40:
         return 'sha1'
