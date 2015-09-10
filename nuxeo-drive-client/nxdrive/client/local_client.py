@@ -396,6 +396,8 @@ class LocalClient(BaseClient):
 
     # Getters
     def get_info(self, ref, raise_if_missing=True):
+        if isinstance(ref, str):
+            ref = unicode(ref)
         os_path = self._abspath(ref)
         if not os.path.exists(os_path):
             if raise_if_missing:
@@ -410,15 +412,13 @@ class LocalClient(BaseClient):
         else:
             size = stat_info.st_size
         mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
-        path = u'/' + os_path[len(safe_long_path(self.base_folder)) + 1:]
-        path = path.replace(os.path.sep, u'/')  # unix style path
         # TODO Do we need to load it everytime ?
         remote_ref = self.get_remote_id(ref)
         # On unix we could use the inode for file move detection but that won't
         # work on Windows. To reduce complexity of the code and the possibility
         # to have Windows specific bugs, let's not use the unix inode at all.
         # uid = str(stat_info.st_ino)
-        return FileInfo(self.base_folder, path, folderish, mtime,
+        return FileInfo(self.base_folder, ref, folderish, mtime,
                         digest_func=self._digest_func,
                         check_suspended=self.check_suspended,
                         remote_ref=remote_ref, size=size)
