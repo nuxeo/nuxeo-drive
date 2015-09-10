@@ -1026,6 +1026,18 @@ class EngineDAO(ConfigurationDAO):
             finally:
                 self._lock.release()
             result = c.rowcount == 1
+        if not result and state == 'unsynchronized':
+            self._lock.acquire()
+            try:
+                con = self._get_write_connection()
+                c = con.cursor()
+                c.execute("UPDATE States SET pair_state=?, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
+                          "WHERE id=?",
+                          (state, datetime.utcnow(), row.id))
+                if self.auto_commit:
+                    con.commit()
+            finally:
+                self._lock.release()
         if not result:
             log.trace("Was not able to synchronize state: %r", row)
             con = self._get_read_connection()
