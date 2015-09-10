@@ -345,6 +345,12 @@ class AppUpdater(PollWorker):
             # Try to update frozen application with the given version. If it
             # fails with a permission error, escalate to root and try again.
             try:
+                self._do_update(version)
+                self.appUpdated.emit(version)
+                return
+            except Exception as e:
+                log.debug("Updater issue will try to get root: %r", e)
+            try:
                 self.esky_app.get_root()
                 self._do_update(version)
                 self.esky_app.drop_root()
@@ -359,11 +365,15 @@ class AppUpdater(PollWorker):
             except Exception as e:
                 # Error during update process, not related to permissions
                 raise UpdateError(e)
+            finally:
+                self.last_status = self._get_update_status()
         else:
             try:
                 self._do_update(version)
             except Exception as e:
                 raise UpdateError(e)
+            finally:
+                self.last_status = self._get_update_status()
         self.appUpdated.emit(version)
 
     def _update_callback(self, status):
