@@ -408,7 +408,17 @@ class Processor(EngineWorker):
                 # File has been moved during creation
                 self._synchronize_locally_moved(new_pair, local_client, remote_client, update=False)
                 return
-            self._dao.synchronize_state(doc_pair)
+            if not self._dao.synchronize_state(doc_pair):
+                # Need to check if this is a remote or local change
+                new_pair = self._dao.get_state_from_id(doc_pair.id)
+                # Only local 'moved' change that can happen on a pair with processor
+                if new_pair.local_state == 'moved':
+                    self._synchronize_locally_moved(new_pair, local_client, remote_client, update=False)
+                else:
+                    if new_pair.remote_state == 'deleted':
+                        self._synchronize_remotely_deleted(new_pair, local_client, remote_client)
+                    else:
+                        self._synchronize_remotely_modified(new_pair, local_client, remote_client)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
             log.warning("Won't synchronize %s '%s' created in"
