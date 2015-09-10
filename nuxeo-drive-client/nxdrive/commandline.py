@@ -124,6 +124,10 @@ class CliHandler(object):
             help="Fire a debugger (ipdb or pdb) one uncaught error."
         )
         common_parser.add_argument(
+            "--nofscheck", default=False, action="store_true",
+            help="Fire a debugger (ipdb or pdb) one uncaught error."
+        )
+        common_parser.add_argument(
             "--proxy-type",
             help="Choose a type of proxy"
         )

@@ -28,7 +28,7 @@ class NotificationDelegator(NSObject):
 
 def setup_delegator(delegator=None):
     center = NSUserNotificationCenter.defaultUserNotificationCenter()
-    if delegator is not None:
+    if delegator is not None and center is not None:
         center.setDelegate_(delegator)
 
 def notify(title, subtitle, info_text, delay=0, sound=False, userInfo={}):
@@ -49,4 +49,5 @@ def notify(title, subtitle, info_text, delay=0, sound=False, userInfo={}):
     if sound:
         notification.setSoundName_("NSUserNotificationDefaultSoundName")
     center = NSUserNotificationCenter.defaultUserNotificationCenter()
-    center.deliverNotification_(notification)
+    if center is not None:
+        center.deliverNotification_(notification)

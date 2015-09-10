@@ -686,7 +686,7 @@ class Engine(QObject):
         check_credential = True
         if hasattr(binder, 'no_check') and binder.no_check:
             check_credential = False
-        check_fs = True
+        check_fs = self._manager.is_checkfs()
         if hasattr(binder, 'no_fscheck') and binder.no_fscheck:
             check_fs = False
         self._server_url = self._normalize_url(binder.url)

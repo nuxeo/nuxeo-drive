@@ -207,6 +207,7 @@ class Manager(QtCore.QObject):
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
         self.remote_watcher_delay = options.delay
+        self._nofscheck = options.nofscheck
         self._debug = options.debug
         self._engine_definitions = None
         self._engine_types = dict()
@@ -319,6 +320,9 @@ class Manager(QtCore.QObject):
 
     def is_debug(self):
         return self._debug
+
+    def is_checkfs(self):
+        return not self._nofscheck
 
     def get_device_id(self):
         return self.device_id
