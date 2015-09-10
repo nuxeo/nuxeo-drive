@@ -26,7 +26,6 @@ from urllib import urlencode
 
 DRIVE_STARTUP_PAGE = 'drive_login.jsp'
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30
-APPLICATION_NAME = 'Nuxeo Drive'
 
 
 class StartupPageConnectionError(Exception):
