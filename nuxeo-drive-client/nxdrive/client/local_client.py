@@ -396,6 +396,8 @@ class LocalClient(BaseClient):
 
     # Getters
     def get_info(self, ref, raise_if_missing=True):
+        if isinstance(ref, str):
+            ref = unicode(ref)
         os_path = self._abspath(ref)
         if not os.path.exists(os_path):
             if raise_if_missing:
