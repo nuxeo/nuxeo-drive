@@ -359,19 +359,23 @@ class AppUpdater(PollWorker):
                     # Under Windows, this means that the sudo popup was
                     # rejected
                     self.esky_app.sudo_proxy = None
-                    raise RootPrivilegeRequired(e)
+                    log.warn("RootPrivilegeRequired: %r", e)
+                    return
                 # Other EnvironmentError, probably not related to permissions
-                raise UpdateError(e)
+                log.warn("UpdateError: %r", e)
+                return
             except Exception as e:
                 # Error during update process, not related to permissions
-                raise UpdateError(e)
+                log.warn("UpdateError: %r", e)
+                return
             finally:
                 self.last_status = self._get_update_status()
         else:
             try:
                 self._do_update(version)
             except Exception as e:
-                raise UpdateError(e)
+                log.warn("UpdateError: %r", e)
+                return
             finally:
                 self.last_status = self._get_update_status()
         self.appUpdated.emit(version)
