@@ -483,7 +483,7 @@ class Processor(EngineWorker):
         if parent_pair is None:
             raise Exception("Should have a parent pair")
         if parent_ref != doc_pair.remote_parent_ref:
-            if doc_pair.remote_can_delete:
+            if doc_pair.remote_can_delete and not parent_pair.pair_state == "unsynchronized":
                 log.debug('Moving remote file according to local : %r', doc_pair)
                 # Bug if move in a parent with no rights / partial move
                 # if rename at the same time
