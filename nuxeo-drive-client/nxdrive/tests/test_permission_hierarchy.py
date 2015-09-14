@@ -10,7 +10,7 @@ log = get_logger(__name__)
 class TestPermissionHierarchy(UnitTestCase):
 
     def setUpApp(self):
-        raise SkipTest("Server issue need investigation")
+        raise SkipTest("NXDRIVE-430: Need to renable")
         super(TestPermissionHierarchy, self).setUpApp(server_profile='permission')
 
     def tearDownApp(self):

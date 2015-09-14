@@ -1,13 +1,14 @@
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import LocalClient
+from unittest import SkipTest
 
 
 class TestSharedFolders(UnitTestCase):
 
     def test_move_sync_root_child_to_user_workspace(self):
         """See https://jira.nuxeo.com/browse/NXP-14870"""
-
+        raise SkipTest("NXDRIVE-430: Need to renable")
         admin_remote_client = self.root_remote_client
         user1_workspace_path = ('/default-domain/UserWorkspaces/'
                                 'nuxeoDriveTestUser-user-1')
