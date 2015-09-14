@@ -47,7 +47,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         digest = self._get_digest(digest_algorithm, "Content of doc 1.")
         self.assertEquals(info.digest, digest)
         file_uid = fs_item_id.rsplit("#", 1)[1]
-        # NXDRIVE-170: The download url seems to have changed from nxbigfile to nxfile
+        # NXP-17827: nxbigile has been replace to nxfile, keep handling both
         cond = (info.download_url == 'nxbigfile/default/' + file_uid + '/blobholder:0/Document%201.txt'
                 or info.download_url == 'nxfile/default/' + file_uid + '/blobholder:0/Document%201.txt')
         self.assertTrue(cond)
