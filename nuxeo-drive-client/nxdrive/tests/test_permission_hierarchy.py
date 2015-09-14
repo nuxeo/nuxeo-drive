@@ -2,6 +2,7 @@ from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.logging_config import get_logger
+from unittest import SkipTest
 
 log = get_logger(__name__)
 
@@ -9,6 +10,7 @@ log = get_logger(__name__)
 class TestPermissionHierarchy(UnitTestCase):
 
     def setUpApp(self):
+        raise SkipTest("Server issue need investigation")
         super(TestPermissionHierarchy, self).setUpApp(server_profile='permission')
 
     def tearDownApp(self):
