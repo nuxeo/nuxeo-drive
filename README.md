@@ -49,7 +49,9 @@ $NUXEO_HOME/bin/nuxeoctl start
 
 ### Ubuntu/Debian (and Other Linux Variants) Client
 
-The .deb package of the client is not yet available. In the mean time you can install it from source code.
+The .deb (or .rpm) package of the client is not yet available. In the mean time you can install it from source code.
+
+*Has been reported to work on: …*
 
 First note that Nuxeo Drive uses [Extended file attributes](http://en.wikipedia.org/wiki/Extended_file_attributes) through the [xattr](https://pypi.python.org/pypi/xattr/) Python wrapper.
 
@@ -69,8 +71,17 @@ sudo easy_install -U pip
 
 Then install the required system and Python packages and the Nuxeo Drive code itself:
 
+Debian package manager:
 ```
 sudo apt-get install python-pip python-dev python-qt4 libffi-dev
+```
+Redhat package manager (RPM):
+```
+sudo yum install python-pip python-devel PyQt4 libffi-devel
+```
+
+Common install actions, not depending on package manger:
+```
 sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/requirements.txt
 sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/master/unix-requirements.txt
 sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git
