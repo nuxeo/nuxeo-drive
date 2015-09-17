@@ -49,13 +49,15 @@ $NUXEO_HOME/bin/nuxeoctl start
 
 ### Ubuntu/Debian (and Other Linux Variants) Client
 
-The .deb (or .rpm) package of the client is not yet available. In the mean time you can install it from source code.
+The .deb (or .rpm) package of the client is not yet available. In the meantime you can install it from source code.
 
 *Has been reported to work on:* Ubuntu >= 12.04.
 
+#### xattr 
+
 First note that Nuxeo Drive uses [Extended file attributes](http://en.wikipedia.org/wiki/Extended_file_attributes) through the [xattr](https://pypi.python.org/pypi/xattr/) Python wrapper.
 
-On Linux, FreeBSD, and Mac OS X, xattrs are enabled in the default kernel.
+On FreeBSD, and Mac OS X, xattrs are enabled in the default kernel.
 
 On Linux, depending on the distribution, you may need a special mount option (`user_xattr`) to enable them for a given file system, e.g.:
 
@@ -63,7 +65,19 @@ On Linux, depending on the distribution, you may need a special mount option (`u
 sudo mount -oremount,user_xattr /dev/sda3
 ```
 
-Then install the required system and Python packages:
+#### Python 2.7 or higher
+
+Nuxeo Drive uses some packages, which are only compatible from **python version 2.7 on**. 
+If this excludes using the standard python installation of certain OS distributions, you may still install python 2.7 (or higher) [manually from the download pages](https://www.python.org/downloads/) on your system. 
+However, this may break other tools in your environment, who need to be consistent with the default python packages.
+Using [Anaconda](http://continuum.io/downloads) to switch between different python installs/environments may help in this case.
+
+Make sure that the latest version of [pip](http://www.pip-installer.org/) is installed:
+
+
+#### Install Nuxeo Drive
+
+Then install the required system and Python packages and the Nuxeo Drive code itself:
 
 Debian package manager:
 
@@ -72,6 +86,7 @@ sudo apt-get install python-pip python-dev python-qt4 libffi-dev git
 ```
 
 Redhat package manager (RPM):
+
 
 ```
 sudo yum install python-pip python-devel PyQt4 libffi-devel git
@@ -102,7 +117,7 @@ sudo sh -c "echo 8192 > $ofile"
 cat $ofile
 ```
 
-### Mac OSX Desktop Client
+### Mac OS X Desktop Client
 
 Once the Marketplace package is installed, the Mac OS X desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab.
 
