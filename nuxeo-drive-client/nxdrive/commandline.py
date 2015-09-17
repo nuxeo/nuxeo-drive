@@ -37,15 +37,11 @@ synchronization process.
 
 Possible commands:
 - console
-- start
-- stop
 - bind-server
 - unbind-server
 - bind-root
 - unbind-root
-- local_folders
 - clean_folder
-- status
 - metadata
 
 To get options for a specific command:
@@ -276,17 +272,6 @@ class CliHandler(object):
         )
         uninstall_parser.set_defaults(command='uninstall')
 
-        # Start / Stop the synchronization daemon
-        start_parser = subparsers.add_parser(
-            'start', help='Start the synchronization as a GUI-less daemon',
-            parents=[common_parser],
-        )
-        start_parser.set_defaults(command='start')
-        stop_parser = subparsers.add_parser(
-            'stop', help='Stop the synchronization daemon',
-            parents=[common_parser],
-        )
-        stop_parser.set_defaults(command='stop')
         console_parser = subparsers.add_parser(
             'console',
             help='Start in GUI-less mode.',
@@ -302,14 +287,6 @@ class CliHandler(object):
             help="Maximum uptime in seconds before quitting."
         )
 
-        # Get the local folders bound to a Nuxeo server
-        local_folder_parser = subparsers.add_parser(
-            'local_folders',
-            help='Fetch the local folders bound to a Nuxeo server.',
-            parents=[common_parser],
-        )
-        local_folder_parser.set_defaults(command='local_folders')
-
         clean_parser = subparsers.add_parser(
             'clean_folder',
             help='Remove all ndrive attribute from this folder and childs.',
@@ -320,18 +297,6 @@ class CliHandler(object):
             help="Local folder to clean.",
         )
         clean_parser.set_defaults(command='clean_folder')
-
-        # Get the children status of the given folder
-        # Default is the Drive local folder
-        status_parser = subparsers.add_parser(
-            'status',
-            help='Fetch the status info of the children of a given folder.',
-            parents=[common_parser],
-        )
-        status_parser.set_defaults(command='status')
-        status_parser.add_argument(
-            "--folder", default=DEFAULT_NX_DRIVE_FOLDER,
-            help="Path to a local Nuxeo Drive folder.")
 
         # Display the metadata window
         metadata_parser = subparsers.add_parser(
@@ -471,7 +436,7 @@ class CliHandler(object):
     def handle(self, argv):
         """Parse options, setup logs and manager and dispatch execution."""
         options = self.parse_cli(argv)
-        # 'start' is the default command if None is provided
+        # 'launch' is the default command if None is provided
         command = options.command = getattr(options, 'command', 'launch')
 
         if command != 'test' and command != 'uninstall':
@@ -524,7 +489,6 @@ class CliHandler(object):
 
     def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
-        # TODO: use the start method as default once implemented
         from nxdrive.utils import PidLockFile
         lock = PidLockFile(self.manager.get_configuration_folder(), "qt")
         if lock.lock() is not None:
@@ -535,18 +499,6 @@ class CliHandler(object):
         lock.unlock()
         self.log.debug("Qt application exited with code %r", exit_code)
         return exit_code
-
-    def start(self, options=None):
-        """Launch the synchronization in a daemonized process (under POSIX)"""
-        # Close DB connections before Daemonization
-        daemonize()
-
-        self.manager = self.get_manager(options)
-        self._configure_logger(options)
-        self.log.debug("Synchronization daemon started.")
-        # TODO Add back max_sync ?
-        self.manager.start()
-        return 0
 
     def clean_folder(self, options):
         from nxdrive.client.local_client import LocalClient
@@ -562,25 +514,6 @@ class CliHandler(object):
             from pydev import pydevd
             pydevd.settrace()
         return self.launch(options=options, console=True)
-
-    def stop(self, options=None):
-        # TODO Implements IPC
-        return 0
-
-    def local_folders(self, options):
-        # TODO: refactor
-        server_bindings = self.controller.list_server_bindings()
-        print [sb.local_folder for sb in server_bindings]
-        return 0
-
-    def status(self, options):
-        # TODO: refactor
-        states = self.controller.children_states(options.folder)
-        self.log.debug("Children status of %s:", options.folder)
-        for filename, status in states:
-            self.log.debug("%s | %s", filename, status)
-        print states
-        return 0
 
     def metadata(self, options):
         from nxdrive.wui.metadata import MetadataApplication
