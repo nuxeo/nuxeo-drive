@@ -157,11 +157,18 @@ class Processor(EngineWorker):
             # Take client every time as it is cached in engine
             local_client = self._engine.get_local_client()
             remote_client = self._engine.get_remote_client()
-            doc_pair = self.acquire_state(self._current_item.id)
-            log.debug('Executing processor on %r', doc_pair)
-            self._current_doc_pair = doc_pair
-            self._current_temp_file = None
+            doc_pair = None
             try:
+                doc_pair = self.acquire_state(self._current_item.id)
+            except:
+                log.trace("Cannot acquire: %r", self._current_item)
+                self._engine.get_queue_manager().push_queue(self._current_item)
+                self._current_item = self._get_item()
+                continue
+            try:
+                log.debug('Executing processor on %r', doc_pair)
+                self._current_doc_pair = doc_pair
+                self._current_temp_file = None
                 if (doc_pair is None or
                     doc_pair.pair_state == 'synchronized'
                     or doc_pair.pair_state == 'unsynchronized'
