@@ -4,7 +4,7 @@ Created on 18 sept. 2015
 @author: Remi Cattiau
 '''
 from nxdrive.wui.dialog import WebDriveApi, WebDialog
-from PyQt4.QtCore import pyqtSlot
+from PyQt4.QtCore import pyqtSlot, Qt
 
 
 class WebModalApi(WebDriveApi):
@@ -52,6 +52,7 @@ class WebModal(WebDialog):
             api = WebModalApi(application)
         super(WebModal, self).__init__(application, page, title, api)
         self.setSizeGripEnabled(False)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self._buttons = dict()
         self._message = message
         self._result = ""

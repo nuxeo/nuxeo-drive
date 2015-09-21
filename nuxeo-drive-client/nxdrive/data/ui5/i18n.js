@@ -118,7 +118,12 @@ LABELS={
         "INVALID_PARTITION": "This type of partition is not supported",
         "ROOT_USED_WITH_OTHER_BINDING": "This folder has been synced with {{ username }} on {{ url }}, do you want to continue ?",
         "ROOT_USED_CONTINUE": "Continue",
-        "ROOT_USED_CANCEL": "Cancel"
+        "ROOT_USED_CANCEL": "Cancel",
+        "DRIVE_ROOT_DELETED": "The synchronization folder '{{ folder }}' of Nuxeo Drive has been deleted, would you like to disconnect from the server or do you want to recreate it.",
+        "DRIVE_ROOT_MOVED": "The synchronization folder '{{ folder }}' of Nuxeo Drive has been moved to '{{ new_folder }}', would you like to update the synchronization location or recreate or disconnect.",
+        "DRIVE_ROOT_RECREATE": "Recreate",
+        "DRIVE_ROOT_DISCONNECT": "Disconnect",
+        "DRIVE_ROOT_MOVE": "Move"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -239,6 +244,11 @@ LABELS={
 		"INVALID_PARTITION": "Ce type de partition n'est pas supporté",
         "ROOT_USED_WITH_OTHER_BINDING": "Ce dossier a été synchronisé avec l'utilisateur {{ username }} sur le server {{ url }}, voulez vous continuer ?",
         "ROOT_USED_CONTINUE": "Continuer",
-        "ROOT_USED_CANCEL": "Annuler"
+        "ROOT_USED_CANCEL": "Annuler",
+        "DRIVE_ROOT_DELETED": "Le dossier de synchronisation '{{ folder }}' de Nuxeo Drive a été supprimé, voulez-vous vous déconnecter ou le recréer.",
+        "DRIVE_ROOT_MOVED": "Le dossier de synchronisation '{{ folder }}' de Nuxeo Drive a été déplacé à '{{ new_folder }}', voulez-vous le mettre à jour, vous déconnecter ou le recréer.",
+        "DRIVE_ROOT_RECREATE": "Recréer",
+        "DRIVE_ROOT_DISCONNECT": "Déconnecter",
+        "DRIVE_ROOT_UPDATE": "Déplacer"
 	}
 }

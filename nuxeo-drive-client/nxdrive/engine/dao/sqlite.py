@@ -384,6 +384,17 @@ class ManagerDAO(ConfigurationDAO):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM Engines").fetchall()
 
+    def update_engine_path(self, engine, path):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE Engines SET local_folder=? WHERE uid=?", (path, engine))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
     def add_engine(self, engine, path, key, name):
         result = None
         self._lock.acquire()

@@ -224,6 +224,13 @@ class Engine(QObject):
             log.trace("Quitting processor: %r as requested to stop on %s", worker, path)
             worker.quit()
 
+    def set_local_folder(self, path):
+        log.debug("Update local folder to '%s'", path)
+        self._local_folder = path
+        self._local_watcher.stop()
+        self._create_local_watcher()
+        self._manager.update_engine_path(self._uid, path)
+
     def set_local_folder_lock(self, path):
         self._folder_lock = path
         # Check for each processor
@@ -368,10 +375,10 @@ class Engine(QObject):
     def check_fs_marker(self):
         tag = 'drive-fs-test'
         tag_value = 'NXDRIVE_VERIFICATION'
-        client = self.get_local_client()
-        if not client.exists('/'):
+        if not os.path.exists(self._local_folder):
             self.rootDeleted.emit()
             return False
+        client = self.get_local_client()
         client.set_remote_id('/', tag_value, tag)
         if client.get_remote_id('/', tag) != tag_value:
             return False
@@ -776,7 +783,7 @@ class Engine(QObject):
 
     def get_local_client(self):
         client = LocalClient(self._local_folder, case_sensitive=self._case_sensitive)
-        if self._case_sensitive is None:
+        if self._case_sensitive is None and os.path.exists(self._local_folder):
             self._case_sensitive = client.is_case_sensitive()
         return client
 

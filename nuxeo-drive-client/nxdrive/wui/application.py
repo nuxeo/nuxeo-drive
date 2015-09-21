@@ -13,6 +13,7 @@ from nxdrive.wui.translator import Translator
 from nxdrive.wui.systray import DriveSystrayIcon
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.notification import Notification
+from nxdrive.wui.modal import WebModal
 
 log = get_logger(__name__)
 
@@ -123,6 +124,43 @@ class Application(QApplication):
         if AbstractOSIntegration.is_mac():
             if AbstractOSIntegration.os_version_above("10.8"):
                 self._setup_notification_center()
+
+    @QtCore.pyqtSlot()
+    def _root_deleted(self):
+        engine = self.sender()
+        info = dict()
+        log.debug("Root has been deleted for engine: %s", engine.get_uid())
+        info["folder"] = engine.get_local_folder()
+        dlg = WebModal(self, Translator.get("DRIVE_ROOT_DELETED", info))
+        dlg.add_button("RECREATE", Translator.get("DRIVE_ROOT_RECREATE"), style="primary")
+        dlg.add_button("DISCONNECT", Translator.get("DRIVE_ROOT_DISCONNECT"), style="danger")
+        res = dlg.exec_()
+        if res == "DISCONNECT":
+            self.manager.unbind_engine(engine.get_uid())
+        elif res == "RECREATE":
+            engine.reinit()
+            engine.start()
+
+    @QtCore.pyqtSlot(str)
+    def _root_moved(self, new_path):
+        engine = self.sender()
+        info = dict()
+        log.debug("Root has been moved for engine: %s to '%s'", engine.get_uid(), new_path)
+        info["folder"] = engine.get_local_folder()
+        info["new_folder"] = new_path
+        dlg = WebModal(self, Translator.get("DRIVE_ROOT_MOVED", info))
+        dlg.add_button("MOVE", Translator.get("DRIVE_ROOT_UPDATE"), style="primary")
+        dlg.add_button("RECREATE", Translator.get("DRIVE_ROOT_RECREATE"))
+        dlg.add_button("DISCONNECT", Translator.get("DRIVE_ROOT_DISCONNECT"), style="danger")
+        res = dlg.exec_()
+        if res == "DISCONNECT":
+            self.manager.unbind_engine(engine.get_uid())
+        elif res == "RECREATE":
+            engine.reinit()
+            engine.start()
+        elif res == "MOVE":
+            engine.set_local_folder(unicode(new_path))
+            engine.start()
 
     def get_cache_folder(self):
         return os.path.join(self.manager.get_configuration_folder(), "cache", "wui")
@@ -261,6 +299,8 @@ class Application(QApplication):
         engine.syncResumed.connect(self.change_systray_icon)
         engine.offline.connect(self.change_systray_icon)
         engine.online.connect(self.change_systray_icon)
+        engine.rootDeleted.connect(self._root_deleted)
+        engine.rootMoved.connect(self._root_moved)
 
     @QtCore.pyqtSlot()
     def _debug_toggle_invalid_credentials(self):

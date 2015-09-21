@@ -832,6 +832,12 @@ class Manager(QtCore.QObject):
                 return False
         return True
 
+    def update_engine_path(self, uid, local_folder):
+        # Dont update the engine by itself, should be only used by engine.update_engine_path
+        if uid in self._engine_definitions:
+            self._engine_definitions[uid].local_folder = local_folder
+        self._dao.update_engine_path(uid, local_folder)
+
     def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
         """Bind a local folder to a remote nuxeo server"""
         if name is None and hasattr(binder, 'url'):

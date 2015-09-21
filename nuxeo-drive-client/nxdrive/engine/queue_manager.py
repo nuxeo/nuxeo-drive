@@ -83,7 +83,11 @@ class QueueManager(QObject):
 
     def shutdown_processors(self):
         log.trace("Shutdown processors")
-        self.newItem.disconnect(self.launch_processors)
+        try:
+            self.newItem.disconnect(self.launch_processors)
+        except TypeError:
+            # TypeError: disconnect() failed between 'newItem' and 'launch_processors'
+            pass
 
     def init_queue(self, queue):
         # Dont need to change modify as State is compatible with QueueItem
