@@ -359,6 +359,7 @@ class Application(QApplication):
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)
         self.manager.get_notification_service().newNotification.connect(self._new_notification)
+        self.manager.get_updater().updateAvailable.connect(self._update_notification)
         if not self.manager.get_engines():
             self.show_settings()
         else:
@@ -368,6 +369,16 @@ class Application(QApplication):
                     self.show_settings('Accounts_' + engine._uid)
                     break
         self.manager.start()
+
+    @QtCore.pyqtSlot()
+    def _update_notification(self):
+        replacements = dict()
+        replacements["version"] = self.manager.get_updater().get_status()[1]
+        notification = Notification(uuid="AutoUpdate",
+                                    flags=Notification.FLAG_BUBBLE|Notification.FLAG_VOLATILE|Notification.FLAG_UNIQUE,
+                                    title=Translator.get("AUTOUPDATE_NOTIFICATION_TITLE", replacements),
+                                    description=Translator.get("AUTOUPDATE_NOTIFICATION_MESSAGE", replacements))
+        self.manager.get_notification_service().send_notification(notification)
 
     @QtCore.pyqtSlot()
     def _message_clicked(self):

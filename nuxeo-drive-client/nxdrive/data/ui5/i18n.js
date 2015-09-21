@@ -123,7 +123,9 @@ LABELS={
         "DRIVE_ROOT_MOVED": "The synchronization folder '{{ folder }}' of Nuxeo Drive has been moved to '{{ new_folder }}', would you like to update the synchronization location or recreate or disconnect.",
         "DRIVE_ROOT_RECREATE": "Recreate",
         "DRIVE_ROOT_DISCONNECT": "Disconnect",
-        "DRIVE_ROOT_MOVE": "Move"
+        "DRIVE_ROOT_MOVE": "Move",
+        "AUTOUPDATE_NOTIFICATION_TITLE": "New update available",
+        "AUTOUPDATE_NOTIFICATION_MESSAGE": "A new version {{ version }} is available"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -249,6 +251,8 @@ LABELS={
         "DRIVE_ROOT_MOVED": "Le dossier de synchronisation '{{ folder }}' de Nuxeo Drive a été déplacé à '{{ new_folder }}', voulez-vous le mettre à jour, vous déconnecter ou le recréer.",
         "DRIVE_ROOT_RECREATE": "Recréer",
         "DRIVE_ROOT_DISCONNECT": "Déconnecter",
-        "DRIVE_ROOT_UPDATE": "Déplacer"
+        "DRIVE_ROOT_UPDATE": "Déplacer",
+        "AUTOUPDATE_NOTIFICATION_TITLE": "Mise à jour disponible",
+        "AUTOUPDATE_NOTIFICATION_MESSAGE": "Une nouvelle version {{ version }} est disponible"
 	}
 }

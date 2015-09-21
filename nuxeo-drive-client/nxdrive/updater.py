@@ -108,6 +108,8 @@ class AppUpdater(PollWorker):
             self.last_status = (status, version, 40)
         else:
             self.last_status = (status, version)
+        if status == UPDATE_STATUS_UPDATE_AVAILABLE:
+            self.updateAvailable.emit()
 
     def refresh_status(self):
         if self._enable:
