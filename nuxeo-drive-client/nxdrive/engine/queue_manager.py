@@ -31,6 +31,7 @@ class QueueManager(QObject):
     # Always create thread from the main thread
     newItem = pyqtSignal(object)
     newError = pyqtSignal(object)
+    newErrorGiveUp = pyqtSignal(object)
     queueEmpty = pyqtSignal()
     queueProcessing = pyqtSignal()
     queueFinishedProcessing = pyqtSignal()
@@ -227,6 +228,7 @@ class QueueManager(QObject):
                       exception.strerror if hasattr(exception, 'strerror') else '')
             error_count = 1
         if error_count > self._error_threshold:
+            self.newErrorGiveUp.emit(doc_pair.id)
             log.debug("Giving up on pair : %r", doc_pair)
             return
         interval = self._error_interval * error_count

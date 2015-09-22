@@ -188,7 +188,7 @@ class Engine(QObject):
         self._queue_manager.newItem.connect(self._check_sync_start)
         # Connect components signals to engine signals
         self._queue_manager.newItem.connect(self.newQueueItem)
-        self._queue_manager.newError.connect(self.newError)
+        self._queue_manager.newErrorGiveUp.connect(self.newError)
         self._dao.newConflict.connect(self.conflict_resolver)
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
