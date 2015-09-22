@@ -8,20 +8,35 @@ import stat
 class BaseClient(object):
     @staticmethod
     def set_path_readonly(path):
+        current = os.stat(path).st_mode
         if os.path.isdir(path):
-            os.chmod(path, stat.S_IXUSR | stat.S_IRGRP |
-                    stat.S_IXGRP | stat.S_IRUSR)
+            # Need to add
+            right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IRUSR)
+            if current & ~right == 0:
+                return
+            os.chmod(path, right)
         else:
-            os.chmod(path, stat.S_IRGRP | stat.S_IRUSR)
+            # Already in read only
+            right = (stat.S_IRGRP | stat.S_IRUSR)
+            if current & ~right == 0:
+                return
+            os.chmod(path, right)
 
     @staticmethod
     def unset_path_readonly(path):
+        current = os.stat(path).st_mode
         if os.path.isdir(path):
-            os.chmod(path, stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
+            right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
                                 stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
+            if current & right == right:
+                return
+            os.chmod(path, right)
         else:
-            os.chmod(path, stat.S_IRGRP | stat.S_IRUSR |
+            right = (stat.S_IRGRP | stat.S_IRUSR |
                              stat.S_IWGRP | stat.S_IWUSR)
+            if current & right == right:
+                return
+            os.chmod(path, right)
 
     def unlock_path(self, path, unlock_parent=True):
         result = 0

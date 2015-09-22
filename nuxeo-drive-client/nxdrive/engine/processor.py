@@ -411,10 +411,11 @@ class Processor(EngineWorker):
                 local_client.set_remote_id(doc_pair.local_path, remote_ref)
             except (NotFound, IOError, OSError):
                 new_pair = self._dao.get_state_from_id(doc_pair.id)
-                local_client.set_remote_id(new_pair.local_path, remote_ref)
                 # File has been moved during creation
-                self._synchronize_locally_moved(new_pair, local_client, remote_client, update=False)
-                return
+                if new_pair.local_path != doc_pair.local_path:
+                    local_client.set_remote_id(new_pair.local_path, remote_ref)
+                    self._synchronize_locally_moved(new_pair, local_client, remote_client, update=False)
+                    return
             self._dao.synchronize_state(doc_pair)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
