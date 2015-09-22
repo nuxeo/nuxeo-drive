@@ -162,7 +162,7 @@ class Processor(EngineWorker):
                 doc_pair = self.acquire_state(self._current_item.id)
             except:
                 log.trace("Cannot acquire: %r", self._current_item)
-                self._engine.get_queue_manager().push_queue(self._current_item)
+                self._engine.get_queue_manager().push(self._current_item)
                 self._current_item = self._get_item()
                 continue
             try:
