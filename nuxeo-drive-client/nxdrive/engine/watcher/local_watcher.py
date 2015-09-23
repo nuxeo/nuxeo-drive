@@ -18,6 +18,9 @@ log = get_logger(__name__)
 # Windows 2s between resolution of delete event
 WIN_MOVE_RESOLUTION_PERIOD = 2000
 
+def is_office_file(name):
+    # Dont filter for now
+    return True
 
 class LocalWatcher(EngineWorker):
     localScanFinished = pyqtSignal()
@@ -388,10 +391,13 @@ class LocalWatcher(EngineWorker):
     def _handle_watchdog_event_on_known_pair(self, doc_pair, evt, rel_path):
         if (evt.event_type == 'moved'):
             # Ignore move to Office tmp file
+            src_filename = os.path.basename(evt.src_path)
             dest_filename = os.path.basename(evt.dest_path)
-            if dest_filename.startswith('~') and dest_filename.endswith('.tmp'):
-                log.debug('Ignoring Office tmp file: %r', evt.dest_path)
-                return
+            if dest_filename.endswith('.tmp'):
+                if dest_filename.startswith('~') or len(dest_filename) == 12:
+                    # 12 is for Office 813DEFA7.tmp
+                    log.debug('Ignoring Office tmp file: %r', evt.dest_path)
+                    return
             # Ignore normalization of the filename on the file system
             # See https://jira.nuxeo.com/browse/NXDRIVE-188
             if evt.dest_path == normalize_event_filename(evt.src_path):
@@ -399,6 +405,26 @@ class LocalWatcher(EngineWorker):
                 return
             src_path = normalize_event_filename(evt.dest_path)
             rel_path = self.client.get_path(src_path)
+            # Office weird replacement handling
+            if is_office_file(dest_filename):
+                pair = self._dao.get_state_from_local(rel_path)
+                remote_ref = self.client.get_remote_id(rel_path)
+                if pair is not None and pair.remote_ref == remote_ref:
+                    local_info = self.client.get_info(rel_path, raise_if_missing=False)
+                    if local_info is not None:
+                        digest = local_info.get_digest()
+                        # Drop event if digest hasn't changed, can be the case if only file permissions have been updated
+                        if not doc_pair.folderish and pair.local_digest == digest:
+                            log.trace('Dropping watchdog event [%s] as digest has not changed for %s',
+                              evt.event_type, rel_path)
+                            self._dao.remove_state(doc_pair)
+                            return
+                        pair.local_digest = digest
+                        pair.local_state = 'modified'
+                        self._dao.update_local_state(pair, local_info)
+                        self._dao.remove_state(doc_pair)
+                        log.debug("Office substitution file: remove pair(%r) mark(%r) as modified", doc_pair, pair)
+                        return
             local_info = self.client.get_info(rel_path, raise_if_missing=False)
             if local_info is not None:
                 rel_parent_path = self.client.get_path(os.path.dirname(src_path))

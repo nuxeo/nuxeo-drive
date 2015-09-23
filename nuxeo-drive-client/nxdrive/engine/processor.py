@@ -286,11 +286,11 @@ class Processor(EngineWorker):
             # Try to update
             info = local_client.get_info(doc_pair.local_path)
             log.trace("Modification of postponed local file: %r", doc_pair)
-            self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
             doc_pair.local_digest = info.get_digest()
             if doc_pair.local_digest == UNACCESSIBLE_HASH:
                 self._postpone_pair(doc_pair)
                 return
+            self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
         if not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path):
             if doc_pair.remote_can_update:
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
