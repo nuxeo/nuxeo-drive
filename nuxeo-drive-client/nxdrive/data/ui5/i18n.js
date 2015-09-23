@@ -176,7 +176,7 @@ LABELS={
 		"HELP": "Aide",
 		"SETTINGS": "Configuration",
 		"RESUME": "Reprendre",
-		"SUSPEND": "Susprendre",
+		"SUSPEND": "Suspendre",
 		"QUIT": "Quitter",
 		"CONFLICTS_SYSTRAY": "{{ conflicted_files }} conflits",
 		"ERRORS_SYSTRAY": "{{ error_files }} erreurs",
