@@ -268,6 +268,12 @@ class Processor(EngineWorker):
 
     def _handle_no_parent(self, doc_pair, local_client, remote_client):
         log.trace("Republish as parent doesn't exist : %r", doc_pair)
+        parent_pair = self._dao.get_normal_state_from_remote(doc_pair.remote_parent_ref)
+        if parent_pair is not None and not doc_pair.local_parent_path == parent_pair.local_path:
+            # Need to update the pair
+            self._dao.update_local_parent_path(doc_pair, doc_pair.local_name, parent_pair.local_path)
+            # Retry with updated path
+            raise PairInterrupt
         self.increase_error(doc_pair, error="NO_PARENT")
 
     def _update_speed_metrics(self):

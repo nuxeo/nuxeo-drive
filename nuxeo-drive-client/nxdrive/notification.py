@@ -235,7 +235,12 @@ class DebugNotification(Notification):
 class ErrorNotification(Notification):
     def __init__(self, engine_uid, doc_pair):
         values = dict()
-        values["name"] = doc_pair.local_name
+        if doc_pair.local_name is not None:
+            values["name"] = doc_pair.local_name
+        elif doc_pair.remote_name is not None:
+            values["name"] = doc_pair.remote_name
+        else:
+            values["name"] = ""
         title = Translator.get("ERROR", values)
         description = Translator.get("ERROR_ON_FILE", values)
         super(ErrorNotification, self).__init__("ERROR", title=title, description=description,
