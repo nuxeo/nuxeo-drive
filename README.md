@@ -85,7 +85,7 @@ Common install actions, not depending on package manager (warning : define the v
 DRIVE_VERSION=release-2.0.911
 sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
 sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/unix-requirements.txt
-sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git@tags/$DRIVE_VERSION
+sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
 ```
 
 Waiting for [NXDRIVE-62](https://jira.nuxeo.com/browse/NXDRIVE-62) to be resolved you need to run these commands for Nuxeo Drive to work fine:
