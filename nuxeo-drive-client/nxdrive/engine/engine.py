@@ -656,6 +656,8 @@ class Engine(QObject):
     def get_update_infos(self, client=None):
         if client is None:
             client = self.get_remote_doc_client()
+        if client is None:
+            return
         update_info = client.get_update_info()
         log.debug("Fetched update info for engine [%s] from server %s: %r", self._name, self._server_url, update_info)
         self._dao.update_config("server_version", update_info.get("serverVersion"))
@@ -678,6 +680,7 @@ class Engine(QObject):
             raise Exception
         self._dao.update_config("remote_token", self._remote_token)
         self.set_invalid_credentials(False)
+        self.invalidate_client_cache()
         # In case of a binding
         self._check_root()
         self.start()
