@@ -374,7 +374,7 @@ class CliHandler(object):
         # Merge any protocol info into the other parsed commandline
         # parameters
         if protocol_url is not None:
-            protocol_info = parse_protocol_url(protocol_url)
+            protocol_info = parse_protocol_url(str(protocol_url))
             for k, v in protocol_info.items():
                 setattr(options, k, v)
 
