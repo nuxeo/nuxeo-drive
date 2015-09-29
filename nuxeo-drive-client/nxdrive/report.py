@@ -43,12 +43,13 @@ class Report(object):
         return self._zipfile
 
     def _export_logs(self):
-        logs = ""
+        logs = u""
         logger = get_logger(None)
         handler = get_handler(logger, "memory")
         log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
         for record in log_buffer:
-            logs = logs + handler.format(record) + "\n"
+            log = handler.format(record).decode("utf-8", errors="replace")
+            logs = logs + log + u"\n"
         return logs
 
     def generate(self):
@@ -61,4 +62,4 @@ class Report(object):
                 log.debug("Engine metrics: '%s'", engine.get_metrics())
                 self.copy_db(myzip, engine.get_dao())
                 # Might want threads too here
-            myzip.writestr("debug.log", self._export_logs().encode('utf-8').strip())
+            myzip.writestr("debug.log", self._export_logs().encode('utf-8', errors="ignore").strip())
