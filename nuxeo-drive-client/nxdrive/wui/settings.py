@@ -320,7 +320,7 @@ class WebSettingsApi(WebDriveApi):
             settings.authenticated = "true" == authenticated
             settings.username = str(username)
             settings.password = str(password)
-            self._manager.set_proxy_settings(settings)
+            return self._manager.set_proxy_settings(settings)
         except Exception as e:
             log.exception(e)
         return ""
