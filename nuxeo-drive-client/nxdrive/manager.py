@@ -763,6 +763,7 @@ class Manager(QtCore.QObject):
         proxy_settings.save(self._dao)
         self.refresh_proxies(proxy_settings)
         log.info("Proxy settings successfully updated: %r", proxy_settings)
+        return ""
 
     def refresh_proxies(self, proxy_settings=None, device_config=None):
         """Refresh current proxies with the given settings"""
