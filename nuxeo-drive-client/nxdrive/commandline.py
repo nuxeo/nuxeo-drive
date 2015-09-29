@@ -17,7 +17,6 @@ from nxdrive.osi.daemon import daemonize
 from nxdrive.utils import default_nuxeo_drive_folder
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
-from nxdrive.osi import parse_protocol_url
 from nxdrive import __version__
 
 
@@ -373,16 +372,7 @@ class CliHandler(object):
 
         # Merge any protocol info into the other parsed commandline
         # parameters
-        if protocol_url is not None:
-            try:
-                protocol_info = parse_protocol_url(str(protocol_url))
-            except UnicodeEncodeError:
-                # Firefox seems to be different on the encoding part
-                protocol_info = parse_protocol_url(protocol_url)
-            setattr(options, 'protocol_url', protocol_url)
-            for k, v in protocol_info.items():
-                setattr(options, k, v)
-
+        setattr(options, 'protocol_url', protocol_url)
         return options
 
     def load_config(self, parser):
@@ -498,6 +488,8 @@ class CliHandler(object):
         lock = PidLockFile(self.manager.get_configuration_folder(), "qt")
         if lock.lock() is not None:
             self.log.warning("Qt application already running: exiting")
+            # Handle URL if needed
+            self.manager.get_drive_edit().handle_url()
             return
         app = self._get_application(options, console=console)
         exit_code = app.exec_()
@@ -531,8 +523,7 @@ class CliHandler(object):
         return 0
 
     def download_edit(self, options):
-        self.manager.get_drive_edit().edit(options.server_url, options.doc_id, options.filename, user=options.user,
-                                           download_url=options.download_url)
+        self.launch(options)
         return 0
 
     def bind_server(self, options):

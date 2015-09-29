@@ -257,7 +257,7 @@ class Manager(QtCore.QObject):
         # Force language
         if options.force_locale is not None:
             self.set_config("locale", options.force_locale)
-        self._create_drive_edit()
+        self._create_drive_edit(options.protocol_url)
         # Setup analytics tracker
         self._tracker = None
         if self.get_tracking():
@@ -488,9 +488,9 @@ class Manager(QtCore.QObject):
             for engine in engines.itervalues():
                 engine.get_update_infos()
 
-    def _create_drive_edit(self):
+    def _create_drive_edit(self, url):
         from nxdrive.engine.watcher.drive_edit import DriveEdit
-        self._drive_edit = DriveEdit(self, os.path.join(normalized_path(self.nxdrive_home), "edit"))
+        self._drive_edit = DriveEdit(self, os.path.join(normalized_path(self.nxdrive_home), "edit"), url)
         self.started.connect(self._drive_edit._thread.start)
         return self._drive_edit
 

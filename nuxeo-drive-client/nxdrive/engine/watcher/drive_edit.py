@@ -12,6 +12,7 @@ from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import safe_filename, NotFound
 from nxdrive.utils import force_decode
 from nxdrive.utils import guess_digest_algorithm
+from nxdrive.osi import parse_protocol_url
 import os
 import sys
 import urllib2
@@ -28,12 +29,13 @@ class DriveEdit(Worker):
     '''
     classdocs
     '''
-    def __init__(self, manager, folder):
+    def __init__(self, manager, folder, url):
         '''
         Constructor
         '''
         super(DriveEdit, self).__init__()
         self._manager = manager
+        self._url = url
         self._thread.started.connect(self.run)
         self._event_handler = None
         self._metrics = dict()
@@ -54,6 +56,19 @@ class DriveEdit(Worker):
     def stop_client(self, reason):
         if self._stop:
             raise ThreadInterrupt
+
+    def handle_url(self, url=None):
+        if url is None:
+            url = self._url
+        if url is None:
+            return
+        try:
+            info = parse_protocol_url(str(url))
+        except UnicodeEncodeError:
+            # Firefox seems to be different on the encoding part
+            info = parse_protocol_url(unicode(url))
+        self.edit(info['server_url'], info['doc_id'], info['filename'],
+                    user=info['user'], download_url=info['download_url'])
 
     def _cleanup(self):
         log.debug("Cleanup DriveEdit folder")
@@ -223,6 +238,8 @@ class DriveEdit(Worker):
             self._action = Action("Setup watchdog")
             self._setup_watchdog()
             self._end_action()
+            # Load the target url if Drive was not launched before
+            self.handle_url()
             while (1):
                 self._interact()
                 try:

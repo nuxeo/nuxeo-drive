@@ -173,9 +173,7 @@ class DebugDriveApi(WebDriveApi):
     @QtCore.pyqtSlot(str)
     def drive_edit(self, url):
         try:
-            info = parse_protocol_url(str(url))
-            self._manager.get_drive_edit().edit(info['server_url'], info['doc_id'], info['filename'],
-                                                user=info['user'], download_url=info['download_url'])
+            self._manager.get_drive_edit().handle_url(str(url))
         except Exception as e:
             log.exception(e)
 
