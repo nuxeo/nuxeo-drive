@@ -46,10 +46,11 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def get_zoom_factor(self):
         try:
-            if AbstractOSIntegration.os_version_below(6.0.6000):
+            if AbstractOSIntegration.os_version_below("6.0.6000"):
                 # API added on Vista
                 return 1.00
             from ctypes import windll
+            from win32con import LOGPIXELSX
             # Enable DPI detection
             windll.user32.SetProcessDPIAware()
             # Get Desktop DC
