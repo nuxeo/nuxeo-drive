@@ -93,6 +93,9 @@ class AbstractOSIntegration(object):
     def is_partition_supported(self, folder):
         return True
 
+    def get_zoom_factor(self):
+        return 1.00
+
     def uninstall(self):
         self.unregister_contextual_menu()
         self.unregister_desktop_link()

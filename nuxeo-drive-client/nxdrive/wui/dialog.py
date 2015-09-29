@@ -654,6 +654,7 @@ class WebDialog(QtGui.QDialog):
         Constructor
         '''
         super(WebDialog, self).__init__()
+        self._zoomFactor = application.get_osi().get_zoom_factor()
         self._view = QtWebKit.QWebView()
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
@@ -695,12 +696,14 @@ class WebDialog(QtGui.QDialog):
         self._attachJsApi()
         self._frame.javaScriptWindowObjectCleared.connect(self._attachJsApi)
         self.resize(550, 600)
-        self._view.resize(550, 600)
         self.setLayout(QtGui.QVBoxLayout())
         self.layout().addWidget(self._view)
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
         self.activateWindow()
+
+    def resize(self, width, height):
+        super(WebDialog, self).resize(width * self._zoomFactor, height * self._zoomFactor)
 
     def _sslErrorHandler(self, reply, errorList):
         log.warn('--- Bypassing SSL errors listed below ---')
@@ -744,3 +747,4 @@ class WebDialog(QtGui.QDialog):
     @QtCore.pyqtSlot()
     def _attachJsApi(self):
         self._frame.addToJavaScriptWindowObject("drive", self._api)
+        self._frame.setZoomFactor(self._zoomFactor)

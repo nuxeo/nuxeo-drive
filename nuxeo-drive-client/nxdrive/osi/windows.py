@@ -44,6 +44,32 @@ class WindowsIntegration(AbstractOSIntegration):
             _winreg.SetValueEx(key, attribute, 0, type_, value)
         _winreg.CloseKey(key)
 
+    def get_zoom_factor(self):
+        try:
+            if AbstractOSIntegration.os_version_below(6.0.6000):
+                # API added on Vista
+                return 1.00
+            from ctypes import windll
+            # Enable DPI detection
+            windll.user32.SetProcessDPIAware()
+            # Get Desktop DC
+            hDC = windll.user32.GetDC(None)
+            dpiX = windll.gdi32.GetDeviceCaps( hDC, LOGPIXELSX)
+            # Based on https://technet.microsoft.com/en-us/library/dn528846.aspx
+            if dpiX == 120:
+                return 1.25
+            elif dpiX == 144:
+                return 1.5
+            elif dpiX == 192:
+                return 2.0
+            elif dpiX == 168:
+                return 1.75
+            # Try to guess a zoom factor
+            return dpiX / 96.0
+        except Exception as e:
+            log.debug("Can't get zoom factor: %r", e)
+        return 1.00
+
     '''
     classdocs
     '''

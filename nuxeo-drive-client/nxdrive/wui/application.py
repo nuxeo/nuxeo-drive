@@ -458,6 +458,9 @@ class Application(QApplication):
         self._tray_icon.setIcon(QtGui.QIcon(icon))
         self.icon_spin_count = (self.icon_spin_count + 1) % 10
 
+    def get_osi(self):
+        return self.manager.get_osi()
+
     def update_tooltip(self):
         # Update also the file
         self._tray_icon.setToolTip(self.get_tooltip())
