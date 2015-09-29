@@ -273,7 +273,9 @@ def find_resource_dir(directory, default_path):
     return dir_path
 
 
-def force_decode(string, codecs=['utf8', 'cp1252']):
+def force_decode(string, codecs=['utf-8', 'cp1252']):
+    if isinstance(string, unicode):
+        string = string.encode('utf-8')
     for codec in codecs:
         try:
             return string.decode(codec)
