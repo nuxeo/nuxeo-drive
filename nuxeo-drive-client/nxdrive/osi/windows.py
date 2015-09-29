@@ -56,6 +56,7 @@ class WindowsIntegration(AbstractOSIntegration):
             # Get Desktop DC
             hDC = windll.user32.GetDC(None)
             dpiX = windll.gdi32.GetDeviceCaps( hDC, LOGPIXELSX)
+            windll.user32.ReleaseDC(None, hDC)
             # Based on https://technet.microsoft.com/en-us/library/dn528846.aspx
             if dpiX == 120:
                 return 1.25
