@@ -68,6 +68,8 @@ class DriveEdit(Worker):
         except UnicodeEncodeError:
             # Firefox seems to be different on the encoding part
             info = parse_protocol_url(unicode(url))
+        if info is None:
+            return
         self.edit(info['server_url'], info['doc_id'], info['filename'],
                     user=info['user'], download_url=info['download_url'])
 
