@@ -48,7 +48,10 @@ class Report(object):
         handler = get_handler(logger, "memory")
         log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
         for record in log_buffer:
-            log = handler.format(record).decode("utf-8", errors="replace")
+            try:
+                log = handler.format(record).decode("utf-8", errors="replace")
+            except UnicodeEncodeError:
+                log = handler.format(record)
             logs = logs + log + u"\n"
         return logs
 

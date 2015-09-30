@@ -46,4 +46,5 @@ class ReportTest(unittest.TestCase):
         # NXDRIVE-358
         report = Report(self.manager, os.path.join(self.folder, "report.zip"))
         log.debug("Strange encoding \xe9")
+        log.debug(u"Unicode encoding \xe8")
         report.generate()
