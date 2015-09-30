@@ -41,6 +41,8 @@ class ReportTest(unittest.TestCase):
     def tearDown(self):
         from shutil import rmtree
         rmtree(self.folder)
+        # Remove singleton
+        Manager._singleton = None
 
     def testLogs(self):
         # NXDRIVE-358
