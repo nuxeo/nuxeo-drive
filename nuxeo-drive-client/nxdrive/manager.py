@@ -759,11 +759,31 @@ class Manager(QtCore.QObject):
             self._tracker._thread.quit()
             self._tracker = None
 
-    def set_proxy_settings(self, proxy_settings):
-        proxy_settings.save(self._dao)
-        self.refresh_proxies(proxy_settings)
-        log.info("Proxy settings successfully updated: %r", proxy_settings)
-        return ""
+    def validate_proxy_settings(self, proxy_settings):
+        try:
+            import urllib2
+            proxies, _ = get_proxies_for_handler(proxy_settings)
+            # Try google website
+            url = "http://www.google.com"
+            opener = urllib2.build_opener(urllib2.ProxyHandler(proxies),
+                                      urllib2.HTTPBasicAuthHandler(),
+                                      urllib2.HTTPHandler)
+            urllib2.install_opener(opener)
+            conn = urllib2.urlopen(url)
+            conn.read()
+        except Exception as e:
+            log.error("Exception setting proxy : %s", e)
+            return False
+        return True
+
+    def set_proxy_settings(self, proxy_settings, force=False):
+        if force or self.validate_proxy_settings(proxy_settings):
+            proxy_settings.save(self._dao)
+            self.refresh_proxies(proxy_settings)
+            log.info("Proxy settings successfully updated: %r", proxy_settings)
+            return ""
+        else:
+            return "PROXY_INVALID"
 
     def refresh_proxies(self, proxy_settings=None, device_config=None):
         """Refresh current proxies with the given settings"""

@@ -54,6 +54,10 @@
 	      <input type="password" class="form-control" id="proxyPassword" placeholder="{{ 'PROXY_PASSWORD_PLACEHOLDER' | translate }}" ng-model="proxy.password">
 	    </div>
 	  </div>
-	  <button type="button" class="btn btn-default btn-primary" ng-click="saveProxy()" translate>APPLY</button>
+      <div class="alert alert-{{ message_type }}" role="alert" ng-show="message != ''">
+  	 	{{ message }}
+	  </div>
+	  <button type="button" class="btn btn-default btn-primary" ng-click="saveProxy()" ng-disabled="currentAction == 'PROXY_APPLYING'"><span ng-show="currentAction == 'PROXY_APPLYING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span><span translate>APPLY</span></button>
+
 	</form>
 </div>

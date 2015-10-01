@@ -128,7 +128,9 @@ LABELS={
         "AUTOUPDATE_NOTIFICATION_MESSAGE": "A new version {{ version }} is available",
         "CONNECTING": "Connecting ...",
         "DISCONNECTING": "Disconnecting ...",
-        "SELECT_SYNC_FOLDERS_DESCRIPTION": "Allow you to choose which folders to sync locally - requires the engine to be online"
+        "SELECT_SYNC_FOLDERS_DESCRIPTION": "Allow you to choose which folders to sync locally - requires the engine to be online",
+        "PROXY_INVALID": "Proxy settings are invalid",
+        "PROXY_APPLIED": "Proxy settings have been updated"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -259,6 +261,8 @@ LABELS={
         "AUTOUPDATE_NOTIFICATION_MESSAGE": "Une nouvelle version {{ version }} est disponible",
         "CONNECTING": "Connexion ...",
         "DISCONNECTING": "Déconnexion ...",
-        "SELECT_SYNC_FOLDERS_DESCRIPTION": "Selection des dossiers à synchroniser localement - requiert d'être connecté"
+        "SELECT_SYNC_FOLDERS_DESCRIPTION": "Selection des dossiers à synchroniser localement - requiert d'être connecté",
+        "PROXY_INVALID": "Le serveur proxy est invalide",
+        "PROXY_APPLIED": "Le serveur proxy a été mis à jour"
 	}
 }

@@ -68,8 +68,7 @@ var SettingsController = function($scope, $interval, $translate) {
 		return "";
 	}
 	$scope.saveProxy = function() {
-		$scope.reinitMsgs();
-		drive.set_proxy_settings($scope.proxy.config, $scope.proxy.url, $scope.proxy.authenticated, $scope.proxy.username, $scope.proxy.password)
+		self.saveProxy($scope, $translate);
 	}
 	$scope.setTracking = function() {
 		$scope.reinitMsgs();
@@ -98,6 +97,10 @@ var SettingsController = function($scope, $interval, $translate) {
 	}
 	$scope.setSuccessMessage = function(msg, type) {
 		$scope.setMessage(msg, 'success');
+		setTimeout(function () {
+			$scope.reinitMsgs();
+			$scope.$apply();
+		}, 5000);
 	}
 	$scope.setErrorMessage = function(msg, type) {
 		$scope.setMessage(msg, 'danger');
@@ -205,6 +208,19 @@ var SettingsController = function($scope, $interval, $translate) {
 SettingsController.prototype = Object.create(DriveController.prototype);
 SettingsController.prototype.constructor = SettingsController;
 
+SettingsController.prototype.saveProxy = function($scope, $translate) {
+	$scope.currentAction = "PROXY_APPLYING";
+	$scope.reinitMsgs();
+	when (drive.set_proxy_settings_async($scope.proxy.config, $scope.proxy.url, $scope.proxy.authenticated, $scope.proxy.username, $scope.proxy.password)).then( function (res) {
+		$scope.currentAction = "";
+		if (res != "") {
+			$scope.setErrorMessage($translate.instant(res));
+		} else {
+			$scope.setSuccessMessage($translate.instant("PROXY_APPLIED"));
+		}
+		$scope.$apply();
+	});
+}
 SettingsController.prototype.reinitNewAccount = function ($scope) {
 	$scope.newAccount = {initialized: false};
 	$scope.newAccount.local_folder = drive.get_default_nuxeo_drive_folder();

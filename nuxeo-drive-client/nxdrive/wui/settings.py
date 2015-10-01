@@ -325,6 +325,10 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
             return ""
 
+    @QtCore.pyqtSlot(str, str, str, str, str, result=QtCore.QObject)
+    def set_proxy_settings_async(self, config='System', server=None, authenticated=False, username=None, password=None):
+        return Promise(self.set_proxy_settings, config, server, authenticated, username, password)
+
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
     def set_proxy_settings(self, config='System', server=None, authenticated=False, username=None, password=None):
         try:
