@@ -263,7 +263,13 @@ class ConflictNotification(Notification):
 
 class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid):
-        super(InvalidCredentialNotification, self).__init__("INVALID_CREDENTIALS", engine_uid=engine_uid, level=Notification.LEVEL_ERROR, flags=Notification.FLAG_UNIQUE|Notification.FLAG_VOLATILE)
+        # show_settings('Accounts_' + engine.uid)
+        super(InvalidCredentialNotification, self).__init__("INVALID_CREDENTIALS",
+            title=Translator.get("INVALID_CREDENTIALS"),
+            description="",
+            engine_uid=engine_uid, level=Notification.LEVEL_ERROR,
+            flags=Notification.FLAG_UNIQUE|Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_ACTIONABLE|Notification.FLAG_SYSTRAY,
+            action="drive.showSettings('Accounts_" + engine_uid + "');")
 
 
 class DefaultNotificationService(NotificationService):
@@ -276,7 +282,8 @@ class DefaultNotificationService(NotificationService):
     def _connect_engine(self, engine):
         engine.newConflict.connect(self._newConflict)
         engine.newError.connect(self._newError)
-        #engine.invalidAuthentication.connect(self._invalidAuthentication)
+        engine.invalidAuthentication.connect(self._invalidAuthentication)
+        engine.online.connect(self._validAuthentication)
 
     def _newError(self, row_id):
         engine_uid = self.sender()._uid
@@ -292,6 +299,13 @@ class DefaultNotificationService(NotificationService):
             return
         self.send_notification(ConflictNotification(engine_uid, doc_pair))
 
+    def _validAuthentication(self):
+        engine_uid = self.sender()._uid
+        log.debug("discard_notification: " + "INVALID_CREDENTIALS_" + engine_uid)
+        self.discard_notification("INVALID_CREDENTIALS_" + engine_uid)
+
     def _invalidAuthentication(self):
         engine_uid = self.sender()._uid
-        self.send_notification(InvalidCredentialNotification(engine_uid))
+        notif = InvalidCredentialNotification(engine_uid)
+        log.debug("send_notification: " + notif.get_uid())
+        self.send_notification(notif)
