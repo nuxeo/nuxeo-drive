@@ -125,7 +125,8 @@ LABELS={
         "DRIVE_ROOT_DISCONNECT": "Disconnect",
         "DRIVE_ROOT_MOVE": "Move",
         "AUTOUPDATE_NOTIFICATION_TITLE": "New update available",
-        "AUTOUPDATE_NOTIFICATION_MESSAGE": "A new version {{ version }} is available"
+        "AUTOUPDATE_NOTIFICATION_MESSAGE": "A new version {{ version }} is available",
+        "CONNECTING": "..."
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -253,6 +254,7 @@ LABELS={
         "DRIVE_ROOT_DISCONNECT": "Déconnecter",
         "DRIVE_ROOT_UPDATE": "Déplacer",
         "AUTOUPDATE_NOTIFICATION_TITLE": "Mise à jour disponible",
-        "AUTOUPDATE_NOTIFICATION_MESSAGE": "Une nouvelle version {{ version }} est disponible"
+        "AUTOUPDATE_NOTIFICATION_MESSAGE": "Une nouvelle version {{ version }} est disponible",
+        "CONNECTING": "..."
 	}
 }
