@@ -8,7 +8,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.client.common import NotFound
 log = get_logger(__name__)
 
-from nxdrive.wui.dialog import WebDialog, WebDriveApi
+from nxdrive.wui.dialog import WebDialog, WebDriveApi, Promise
 from nxdrive.wui.authentication import WebAuthenticationApi
 from nxdrive.wui.authentication import WebAuthenticationDialog
 from nxdrive.manager import ProxySettings, FolderAlreadyUsed
@@ -34,9 +34,12 @@ class StartupPageConnectionError(Exception):
 
 class WebSettingsApi(WebDriveApi):
 
+    openAuthenticationDialog = QtCore.pyqtSignal(str, object)
+
     def __init__(self, application, dlg=None):
         super(WebSettingsApi, self).__init__(application, dlg)
         # Attributes for the web authentication feedback
+        self.openAuthenticationDialog.connect(self._open_authentication_dialog)
         self._new_local_folder = ""
         self._account_creation_error = ""
         self._token_update_error = ""
@@ -57,6 +60,10 @@ class WebSettingsApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
             return ""
+
+    @QtCore.pyqtSlot(str, result=QtCore.QObject)
+    def unbind_server_async(self, uid):
+        return Promise(self.unbind_server, uid)
 
     @QtCore.pyqtSlot(str, result=str)
     def unbind_server(self, uid):
@@ -99,6 +106,10 @@ class WebSettingsApi(WebDriveApi):
                                   starts=start_engine)
         return ""
 
+    @QtCore.pyqtSlot(str, str, str, str, str, result=QtCore.QObject)
+    def bind_server_async(self, local_folder, url, username, password, name, check_fs=True, token=None):
+        return Promise(self.bind_server, local_folder, url, username, password, name, check_fs, token)
+
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
     def bind_server(self, local_folder, url, username, password, name, check_fs=True, token=None):
         try:
@@ -138,6 +149,10 @@ class WebSettingsApi(WebDriveApi):
             # Map error here
             return "CONNECTION_UNKNOWN"
 
+    @QtCore.pyqtSlot(str, str, str, result=QtCore.QObject)
+    def web_authentication_async(self, local_folder, server_url, engine_name):
+        return Promise(self.web_authentication, local_folder, server_url, engine_name)
+
     @QtCore.pyqtSlot(str, str, str, result=str)
     def web_authentication(self, local_folder, server_url, engine_name):
         try:
@@ -166,7 +181,7 @@ class WebSettingsApi(WebDriveApi):
                 url = self._get_authentication_url(server_url)
                 log.debug('Web authentication is available on server %s, opening login window with URL %s',
                           server_url, url)
-                self._open_authentication_dialog(url, callback_params)
+                self.openAuthenticationDialog.emit(url, callback_params)
                 return "true"
             else:
                 # Startup page is not available
@@ -230,9 +245,10 @@ class WebSettingsApi(WebDriveApi):
             log.exception('Unexpected error while trying to open web authentication window for token update')
             return 'CONNECTION_UNKNOWN'
 
+    @QtCore.pyqtSlot(str, object)
     def _open_authentication_dialog(self, url, callback_params):
         api = WebAuthenticationApi(self, callback_params)
-        dialog = WebAuthenticationDialog(QtCore.QCoreApplication.instance(), url, api)
+        dialog = WebAuthenticationDialog(QtCore.QCoreApplication.instance(), str(url), api)
         dialog.setWindowModality(QtCore.Qt.NonModal)
         dialog.show()
 
