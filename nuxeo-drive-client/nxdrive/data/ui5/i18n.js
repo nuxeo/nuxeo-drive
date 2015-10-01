@@ -127,7 +127,8 @@ LABELS={
         "AUTOUPDATE_NOTIFICATION_TITLE": "New update available",
         "AUTOUPDATE_NOTIFICATION_MESSAGE": "A new version {{ version }} is available",
         "CONNECTING": "Connecting ...",
-        "DISCONNECTING": "Disconnecting ..."
+        "DISCONNECTING": "Disconnecting ...",
+        "SELECT_SYNC_FOLDERS_DESCRIPTION": "Allow you to choose which folders to sync locally - requires the engine to be online"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -257,6 +258,7 @@ LABELS={
         "AUTOUPDATE_NOTIFICATION_TITLE": "Mise à jour disponible",
         "AUTOUPDATE_NOTIFICATION_MESSAGE": "Une nouvelle version {{ version }} est disponible",
         "CONNECTING": "Connexion ...",
-        "DISCONNECTING": "Déconnexion ..."
+        "DISCONNECTING": "Déconnexion ...",
+        "SELECT_SYNC_FOLDERS_DESCRIPTION": "Selection des dossiers à synchroniser localement - requiert d'être connecté"
 	}
 }

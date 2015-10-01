@@ -92,6 +92,7 @@ class WebDriveApi(QtCore.QObject):
         result["uid"] = engine._uid
         result["type"] = engine._type
         result["name"] = engine._name
+        result["offline"] = engine.is_offline()
         result["metrics"] = engine.get_metrics()
         result["started"] = engine.is_started()
         result["syncing"] = engine.is_syncing()
