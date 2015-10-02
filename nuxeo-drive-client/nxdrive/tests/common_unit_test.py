@@ -7,6 +7,7 @@ import tempfile
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
+from nxdrive.client import RestAPIClient
 from nxdrive.manager import Manager
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
@@ -227,6 +228,17 @@ class UnitTestCase(unittest.TestCase):
             self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
             self.version,
             password=self.password_2, upload_tmp_dir=self.upload_tmp_dir)
+
+        self.remote_restapi_client_1 = RestAPIClient(
+            self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
+            self.version,
+            password=self.password_1
+        )
+        self.remote_restapi_client_2 = RestAPIClient(
+            self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
+            self.version,
+            password=self.password_2
+        )
 
         # Register root
         remote_document_client_1.register_as_root(self.workspace)
