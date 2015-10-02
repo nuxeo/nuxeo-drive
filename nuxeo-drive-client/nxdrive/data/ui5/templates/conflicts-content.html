@@ -45,6 +45,13 @@
 				  <button type="button" class="btn btn-danger" ng-click="retry_pair(pair.id)" translate>
 				    CONFLICT_RETRY
 				  </button>
+				  <button type="button" style="height: 34px;" class="btn btn-danger dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					  <span class="caret"></span>
+					  <span class="sr-only">Toggle dropdown</span>
+				  </button>
+				  <ul class="dropdown-menu" role="menu">
+				    <li><a href="#" ng-click="unsynchronize_pair(pair.id)"><span class="glyphicon glyphicon-eye-close">&nbsp;</span><span translate>IGNORE_PAIR</span></a></li>
+				  </ul>
   			</div>
   		</div>
 	</div>

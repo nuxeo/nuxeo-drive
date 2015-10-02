@@ -58,6 +58,13 @@ class WebConflictsApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
+    @QtCore.pyqtSlot(int)
+    def unsynchronize_pair(self, state_id):
+        try:
+            self._engine.unsynchronize_pair(int(state_id))
+        except Exception as e:
+            log.exception(e)
+
     @QtCore.pyqtSlot(str, result=str)
     def open_local(self, path):
         return super(WebConflictsApi, self).open_local(self._engine._uid, path)

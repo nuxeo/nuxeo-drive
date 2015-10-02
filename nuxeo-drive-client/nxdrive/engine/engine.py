@@ -507,6 +507,15 @@ class Engine(QObject):
 
     def retry_pair(self, row_id):
         state = self._dao.get_state_from_id(row_id)
+        if state is None:
+            return
+        self._dao.reset_error(state)
+
+    def unsynchronize_pair(self, row_id):
+        state = self._dao.get_state_from_id(row_id)
+        if state is None:
+            return
+        self._dao.synchronize_state(state, state='unsynchronized')
         self._dao.reset_error(state)
 
     def resolve_with_local(self, row_id):

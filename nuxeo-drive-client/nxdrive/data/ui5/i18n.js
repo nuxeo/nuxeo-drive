@@ -131,7 +131,8 @@ LABELS={
         "SELECT_SYNC_FOLDERS_DESCRIPTION": "Allow you to choose which folders to sync locally - requires the engine to be online",
         "PROXY_INVALID": "Proxy settings are invalid",
         "PROXY_APPLIED": "Proxy settings have been updated",
-        "DRIVE_EDIT_AUTO_LOCK": "Document Auto-locking for DriveEdit ( Office, OpenOffice )"
+        "DRIVE_EDIT_AUTO_LOCK": "Document Auto-locking for DriveEdit ( Office, OpenOffice )",
+        "IGNORE_PAIR": "Ignore this error"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -265,6 +266,7 @@ LABELS={
         "SELECT_SYNC_FOLDERS_DESCRIPTION": "Selection des dossiers à synchroniser localement - requiert d'être connecté",
         "PROXY_INVALID": "Le serveur proxy est invalide",
         "PROXY_APPLIED": "Le serveur proxy a été mis à jour",
-        "DRIVE_EDIT_AUTO_LOCK": "Auto-lock des documents lors du DriveEdit ( Office, OpenOffice )"
+        "DRIVE_EDIT_AUTO_LOCK": "Auto-lock des documents lors du DriveEdit ( Office, OpenOffice )",
+        "IGNORE_PAIR": "Ignorer cette erreur"
 	}
 }

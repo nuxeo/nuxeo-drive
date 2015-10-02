@@ -24,6 +24,10 @@ var ConflictsController = function($scope, $interval, $translate) {
 		self.resolveRemote(uid);
 		self.updateConflicts($scope);
 	}
+	$scope.unsynchronize_pair = function(uid) {
+		self.unsynchronizePair(uid);
+		self.updateErrors($scope);
+	}
 	$scope.retry_pair = function(uid) {
 		self.retryPair(uid);
 		self.updateErrors($scope);
@@ -57,6 +61,9 @@ ConflictsController.prototype.openLocal = function(path) {
 }
 ConflictsController.prototype.retryPair = function(uid) {
 	drive.retry_pair(uid);
+}
+ConflictsController.prototype.unsynchronizePair = function(uid) {
+	drive.unsynchronize_pair(uid);
 }
 ConflictsController.prototype.resolveLocal = function(uid) {
 	drive.resolve_with_local(uid);
