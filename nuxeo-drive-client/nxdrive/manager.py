@@ -234,6 +234,10 @@ class Manager(QtCore.QObject):
         else:
             # No log_level provide, use the one from db default is INFO
             self._update_logger(int(self._dao.get_config("log_level_file", "20")))
+        # Add auto lock on edit
+        res = self._dao.get_config("drive_edit_auto_lock")
+        if res is None:
+            self._dao.update_config("update_url", "1")
         # Persist update URL infos
         self._dao.update_config("update_url", options.update_site_url)
         self._dao.update_config("beta_update_url", options.beta_update_site_url)
@@ -682,6 +686,12 @@ class Manager(QtCore.QObject):
 
     def set_config(self, key, value):
         return self._dao.update_config(key, value)
+
+    def get_drive_edit_auto_lock(self):
+        return self._dao.get_config("drive_edit_auto_lock", "1") == "1"
+
+    def set_drive_edit_auto_lock(self, value):
+        self._dao.update_config("drive_edit_auto_lock", value)
 
     def get_auto_update(self):
         # By default auto update

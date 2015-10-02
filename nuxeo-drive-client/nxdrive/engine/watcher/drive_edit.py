@@ -26,6 +26,8 @@ log = get_logger(__name__)
 class DriveEdit(Worker):
     localScanFinished = pyqtSignal()
     driveEditUploadCompleted = pyqtSignal()
+    driveEditLockError = pyqtSignal(str, str)
+
     '''
     classdocs
     '''
@@ -46,6 +48,7 @@ class DriveEdit(Worker):
         self._folder = folder
         self._local_client = LocalClient(self._folder)
         self._upload_queue = Queue()
+        self._lock_queue = Queue()
         self._error_queue = BlacklistQueue()
         self._stop = False
 
@@ -188,8 +191,38 @@ class DriveEdit(Worker):
         if file_path is not None:
             self._manager.open_local_file(file_path)
 
-    def _handle_queue(self):
+    def _extract_edit_info(self, ref):
+        dir_path = os.path.dirname(ref)
+        uid = self._local_client.get_remote_id(dir_path)
+        server_url = self._local_client.get_remote_id(dir_path, "nxdriveedit")
+        user = self._local_client.get_remote_id(dir_path, "nxdriveedituser")
+        engine = self._get_engine(server_url, user=user)
+        remote_client = engine.get_remote_doc_client()
+        remote_client.check_suspended = self.stop_client
+        digest_algorithm = self._local_client.get_remote_id(dir_path, "nxdriveeditdigestalgorithm")
+        digest = self._local_client.get_remote_id(dir_path, "nxdriveeditdigest")
+        return uid, engine, remote_client, digest_algorithm, digest
+
+    def _handle_queues(self):
         uploaded = False
+        # Lock any documents
+        while (not self._lock_queue.empty()):
+            try:
+                item = self._lock_queue.get_nowait()
+                ref = item[0]
+                log.trace('Handling DriveEdit lock queue ref: %r', ref)
+            except Empty:
+                break
+            uid, engine, remote_client, _, _ = self._extract_edit_info(ref)
+            try:
+                if item[1] == 'lock':
+                    remote_client.lock(uid)
+                else:
+                    remote_client.unlock(uid)
+            except Exception as e:
+                # Try again in 30s
+                log.debug("Can't %s document '%s': %r", item[1], uid, e)
+                self.driveEditLockError.emit(item[1], uid)
         # Unqueue any errors
         item = self._error_queue.get()
         while (item is not None):
@@ -202,15 +235,7 @@ class DriveEdit(Worker):
                 log.trace('Handling DriveEdit queue ref: %r', ref)
             except Empty:
                 break
-            dir_path = os.path.dirname(ref)
-            uid = self._local_client.get_remote_id(dir_path)
-            server_url = self._local_client.get_remote_id(dir_path, "nxdriveedit")
-            user = self._local_client.get_remote_id(dir_path, "nxdriveedituser")
-            engine = self._get_engine(server_url, user=user)
-            remote_client = engine.get_remote_doc_client()
-            remote_client.check_suspended = self.stop_client
-            digest_algorithm = self._local_client.get_remote_id(dir_path, "nxdriveeditdigestalgorithm")
-            digest = self._local_client.get_remote_id(dir_path, "nxdriveeditdigest")
+            uid,  engine, remote_client, digest_algorithm, digest = self._extract_edit_info(ref)
             # Don't update if digest are the same
             info = self._local_client.get_info(ref)
             try:
@@ -218,8 +243,7 @@ class DriveEdit(Worker):
                     continue
                 # TO_REVIEW Should check if server-side blob has changed ?
                 # Update the document - should verify the remote hash - NXDRIVE-187
-                log.debug('Uploading file %s for user %s', self._local_client._abspath(ref),
-                          user)
+                log.debug('Uploading file %s', self._local_client._abspath(ref))
                 remote_client.stream_update(uid, self._local_client._abspath(ref), apply_versioning_policy=True)
             except ThreadInterrupt:
                 raise
@@ -246,7 +270,7 @@ class DriveEdit(Worker):
             while (1):
                 self._interact()
                 try:
-                    self._handle_queue()
+                    self._handle_queues()
                 except NotFound:
                     pass
                 while (not self._watchdog_queue.empty()):
@@ -288,6 +312,10 @@ class DriveEdit(Worker):
         # Delete all observers
         self._observer = None
 
+    def is_lock_file(self, name):
+        return (name.startswith("~$") # Office lock file
+                or name.startswith(".~lock.")) # Libre/OpenOffice lock file
+
     def handle_watchdog_event(self, evt):
         self._action = Action("Handle watchdog event")
         log.debug("Handling watchdog event [%s] on %r", evt.event_type, evt.src_path)
@@ -298,6 +326,12 @@ class DriveEdit(Worker):
                 return
             ref = self._local_client.get_path(src_path)
             file_name = os.path.basename(src_path)
+            if self.is_lock_file(file_name) and self._manager.get_drive_edit_auto_lock():
+                if evt.event_type == 'created':
+                    self._lock_queue.put((ref, 'lock'))
+                elif evt.event_type == 'deleted':
+                    self._lock_queue.put((ref, 'unlock'))
+                return
             if self._local_client.is_temp_file(file_name):
                 return
             queue = False
