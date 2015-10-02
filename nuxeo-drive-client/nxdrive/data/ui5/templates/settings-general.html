@@ -11,6 +11,12 @@
 		<span translate>AUTOUPDATE</span>
 	</label>
 	</div>
+	<div class="checkbox">
+	<label>
+    	<input type="checkbox" ng-model="drive_edit_auto_lock" ng-click="setDriveEditAutoLock()">
+    	<span translate>DRIVE_EDIT_AUTO_LOCK</span>
+	</label>
+	</div>
 	<div class="checkbox" ng-if="beta_channel_available">
 	<label>
 		<input type="checkbox" value="" ng-model="$parent.beta_channel" ng-click="setBetaChannel()">

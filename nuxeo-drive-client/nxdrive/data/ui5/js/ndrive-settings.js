@@ -7,6 +7,7 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.currentAccount = "";
 	$scope.webAuthenticationAvailable = true;
 	$scope.show_activities = drive.show_activities;
+	$scope.drive_edit_auto_lock = drive.get_drive_edit_auto_lock();
 	$scope.auto_start = drive.get_auto_start();
 	$scope.beta_channel_available = drive.is_beta_channel_available();
 	$scope.beta_channel = drive.get_beta_channel();
@@ -73,6 +74,10 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.setTracking = function() {
 		$scope.reinitMsgs();
 		drive.set_tracking($scope.tracking);
+	}
+	$scope.setDriveEditAutoLock = function() {
+		$scope.reinitMsgs();
+		drive.set_drive_edit_auto_lock($scope.drive_edit_auto_lock)
 	}
 	$scope.setAutoStart = function() {
 		$scope.reinitMsgs();
