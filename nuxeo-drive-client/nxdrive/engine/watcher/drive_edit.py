@@ -78,6 +78,7 @@ class DriveEdit(Worker):
 
     def _cleanup(self):
         log.debug("Cleanup DriveEdit folder")
+        # Should unlock any remaining doc that has not been unlocked or ask
         shutil.rmtree(self._folder, ignore_errors=True)
         if not os.path.exists(self._folder):
             os.mkdir(self._folder)
