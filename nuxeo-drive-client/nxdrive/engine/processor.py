@@ -542,7 +542,11 @@ class Processor(EngineWorker):
         if pair:
             import shutil
             file_out = self._get_temporary_file(file_path)
-            shutil.copy(local_client._abspath(pair.local_path), file_out)
+            locker = local_client.unlock_path(file_out)
+            try:
+                shutil.copy(local_client._abspath(pair.local_path), file_out)
+            finally:
+                local_client.lock_path(file_out, locker)
             return file_out
         tmp_file = remote_client.stream_content(
                                 doc_pair.remote_ref, file_path,
