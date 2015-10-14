@@ -707,7 +707,10 @@ class BaseAutomationClient(BaseClient):
             except:
                 # Error message should always be a JSON message,
                 # but sometimes it's not
-                log.debug(detail)
+                if '<html>' in detail:
+                    log.error(e)
+                else:
+                    log.debug(detail)
 
     def _generate_unique_id(self):
         """Generate a unique id based on a timestamp and a random integer"""

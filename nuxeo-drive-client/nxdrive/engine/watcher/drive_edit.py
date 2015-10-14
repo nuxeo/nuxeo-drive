@@ -194,7 +194,7 @@ class DriveEdit(Worker):
         if '#' in doc_id:
             engine = self._get_engine(server_url)
             if engine is None:
-                log.debug("No engine found for %s", server_url)
+                log.warn("No engine found for %s, cannot edit file with remote ref %s", server_url, doc_id)
                 return
             self._manager.edit(engine, doc_id)
         else:
