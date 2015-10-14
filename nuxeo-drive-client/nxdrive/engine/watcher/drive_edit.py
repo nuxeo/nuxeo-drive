@@ -73,8 +73,12 @@ class DriveEdit(Worker):
             info = parse_protocol_url(unicode(url))
         if info is None:
             return
-        self.edit(info['server_url'], info['doc_id'], info['filename'],
-                    user=info['user'], download_url=info['download_url'])
+        # Handle backward compatibility
+        if info.get('item_id') is not None:
+            self.edit(info['server_url'], info['item_id'])
+        else:
+            self.edit(info['server_url'], info['doc_id'], filename=info['filename'],
+                      user=info['user'], download_url=info['download_url'])
 
     def _cleanup(self):
         log.debug("Cleanup DriveEdit folder")
@@ -185,12 +189,20 @@ class DriveEdit(Worker):
 
         return file_path
 
-    def edit(self, server_url, doc_id, filename, user=None, download_url=None):
-        # Download file
-        file_path = self._prepare_edit(server_url, doc_id, filename, user=user, download_url=download_url)
-        # Launch it
-        if file_path is not None:
-            self._manager.open_local_file(file_path)
+    def edit(self, server_url, doc_id, filename=None, user=None, download_url=None):
+        # Handle backward compatibility
+        if '#' in doc_id:
+            engine = self._get_engine(server_url)
+            if engine is None:
+                log.debug("No engine found for %s", server_url)
+                return
+            self._manager.edit(engine, doc_id)
+        else:
+            # Download file
+            file_path = self._prepare_edit(server_url, doc_id, filename, user=user, download_url=download_url)
+            # Launch it
+            if file_path is not None:
+                self._manager.open_local_file(file_path)
 
     def _extract_edit_info(self, ref):
         dir_path = os.path.dirname(ref)

@@ -519,7 +519,8 @@ class CliHandler(object):
         return app.exec_()
 
     def edit(self, options):
-        self.manager.get_drive_edit().edit(options.server_url, options.item_id)
+        # Kept for backward compatibility
+        self.launch(options)
         return 0
 
     def download_edit(self, options):

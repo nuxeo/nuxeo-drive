@@ -76,7 +76,7 @@ class TestDriveEdit(UnitTestCase):
         self.manager_1.open_local_file = open_local_file
         self.manager_1.set_drive_edit_auto_lock(1)
         self.drive_edit._manager.open_local_file = open_local_file
-        self.drive_edit.edit(self.nuxeo_url, doc_id, filename, self.user_1)
+        self.drive_edit.edit(self.nuxeo_url, doc_id, filename=filename, user=self.user_1)
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.assertTrue(called_open, "Should have called open_local_file")
         # Should be able to test lock
