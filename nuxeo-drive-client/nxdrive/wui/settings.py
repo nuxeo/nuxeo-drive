@@ -168,7 +168,8 @@ class WebSettingsApi(WebDriveApi):
             # Connect to startup page
             status = self._connect_startup_page(server_url)
             # Server will send a 401 in case of anonymous user configuration
-            if status < 400 or status in (401, 500):
+            # Should maybe only check for 404
+            if status < 400 or status in (401, 500, 503):
                 # Page exists, let's open authentication dialog
                 engine_name = unicode(engine_name)
                 if engine_name == '':
