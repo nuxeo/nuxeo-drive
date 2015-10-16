@@ -58,15 +58,6 @@ class WindowsIntegration(AbstractOSIntegration):
             dpiX = windll.gdi32.GetDeviceCaps( hDC, LOGPIXELSX)
             windll.user32.ReleaseDC(None, hDC)
             # Based on https://technet.microsoft.com/en-us/library/dn528846.aspx
-            if dpiX == 120:
-                return 1.25
-            elif dpiX == 144:
-                return 1.5
-            elif dpiX == 192:
-                return 2.0
-            elif dpiX == 168:
-                return 1.75
-            # Try to guess a zoom factor
             return dpiX / 96.0
         except Exception as e:
             log.debug("Can't get zoom factor: %r", e)
