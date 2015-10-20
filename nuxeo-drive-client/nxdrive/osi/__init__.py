@@ -134,6 +134,16 @@ class AbstractOSIntegration(object):
         import os
         return os.stat(folder1).st_dev == os.stat(folder2).st_dev
 
+    def get_open_files(self):
+        # Default implementation using psutil
+        res = []
+        import psutil
+        for p in psutil.process_iter():
+            try:
+                res.append(p.open_files())
+            except psutil.AccessDenied:
+                pass
+
     @staticmethod
     def os_version_below(version):
         return version_compare(AbstractOSIntegration.get_os_version(), version) < 0
@@ -181,7 +191,7 @@ class AbstractOSIntegration(object):
             log.debug("Using Darwin OS integration")
             return DarwinIntegration(manager)
         elif sys.platform == "win32":
-            from nxdrive.osi.windows import WindowsIntegration
+            from nxdrive.osi.windows.windows import WindowsIntegration
             log.debug("Using Windows OS integration")
             return WindowsIntegration(manager)
         else:
