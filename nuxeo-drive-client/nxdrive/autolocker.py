@@ -63,9 +63,11 @@ class ProcessAutoLockerWorker(PollWorker):
             found = False
             for folder in self._watched_folders:
                 if file[1].startswith(folder):
+                    log.trace("found in watched_folder: %r", file)
                     found = True
                     break
             if file[1] in self._autolocked:
+                log.trace("found in autolocked: %r", file)
                 found = True
             if not found:
                 continue
