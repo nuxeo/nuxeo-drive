@@ -195,7 +195,8 @@ class DriveEdit(Worker):
             os.unlink(file_path)
         os.rename(tmp_file, file_path)
         log.debug("will set_autolock on: '%s'", file_path)
-        self._manager.get_autolock_service().set_autolock(file_path, self)
+        if self._manager.get_drive_edit_auto_lock():
+            self._manager.get_autolock_service().set_autolock(file_path, self)
         return file_path
 
     def edit(self, server_url, doc_id, filename=None, user=None, download_url=None):
