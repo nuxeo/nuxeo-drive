@@ -75,6 +75,8 @@ class ManagerDAOTest(unittest.TestCase):
         dao.lock_path('/test_1', 1, 'doc_id_1')
         dao.lock_path('/test_2', 2, 'doc_id_2')
         dao.lock_path('/test_3', 3, 'doc_id_3')
+        # Verify that it does fail
+        dao.lock_path('/test_3', 4, 'doc_id_4')
         locks = dao.get_locked_paths()
         self.assertEqual(len(locks), 3)
         dao.unlock_path('/test')
@@ -83,8 +85,13 @@ class ManagerDAOTest(unittest.TestCase):
         dao.unlock_path('/test_1')
         locks = dao.get_locked_paths()
         self.assertEqual(len(locks), 2)
-        self.assertEqual(locks[0][0], '/test_2')
-        self.assertEqual(locks[1][0], '/test_3')
+        self.assertEqual(locks[0].path, '/test_2')
+        self.assertEqual(locks[0].process, 2)
+        self.assertEqual(locks[0].remote_id, 'doc_id_2')
+        self.assertEqual(locks[1].path, '/test_3')
+        # Verify it has auto-update
+        self.assertEqual(locks[1].process, 4)
+        self.assertEqual(locks[1].remote_id, 'doc_id_4')
 
     def test_notifications(self):
         from nxdrive.notification import Notification

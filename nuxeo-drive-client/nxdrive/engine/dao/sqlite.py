@@ -357,6 +357,11 @@ class ManagerDAO(ConfigurationDAO):
             c.execute("INSERT INTO AutoLock(path,process,remote_id) VALUES(?,?,?)", (path, process, doc_id))
             if self.auto_commit:
                 con.commit()
+        except sqlite3.IntegrityError:
+            # Already there just update the process
+            c.execute("UPDATE AutoLock SET process=?, remote_id=? WHERE path=?", (process, doc_id, path))
+            if self.auto_commit:
+                con.commit()
         finally:
             self._lock.release()
 
