@@ -311,7 +311,7 @@ class BaseAutomationClient(BaseClient):
         self.is_event_log_id = 'lowerBound' in [
                         param['name'] for param in change_summary_op['params']]
 
-    def execute(self, command, op_input=None, timeout=-1,
+    def execute(self, command, url=None, op_input=None, timeout=-1,
                 check_params=True, void_op=False, extra_headers=None,
                 file_out=None, **params):
         """Execute an Automation operation"""
@@ -322,7 +322,8 @@ class BaseAutomationClient(BaseClient):
         if check_params:
             self._check_params(command, params)
 
-        url = self.automation_url + command
+        if url is None:
+            url = self.automation_url + command
         headers = {
             "Content-Type": "application/json+nxrequest",
             "Accept": "application/json+nxentity, */*",
@@ -468,7 +469,11 @@ class BaseAutomationClient(BaseClient):
         """
         FileAction("Upload", file_path, filename)
         # Request URL
-        url = self.automation_url.encode('ascii') + self.batch_upload_url
+        if self.is_chunking_upload_available():
+            url = self.rest_api_url + self.batch_chunking_upload_url + '/' + batch_id + '/' + str(file_index)
+        else:
+            # Backward compatibility with old batch upload API
+            url = self.automation_url.encode('ascii') + self.batch_upload_url
 
         # HTTP headers
         if filename is None:
@@ -481,14 +486,14 @@ class BaseAutomationClient(BaseClient):
         filename = safe_filename(filename)
         quoted_filename = urllib2.quote(filename.encode('utf-8'))
         headers = {
-            "X-Batch-Id": batch_id,
-            "X-File-Idx": file_index,
             "X-File-Name": quoted_filename,
             "X-File-Size": file_size,
             "X-File-Type": mime_type,
             "Content-Type": "application/octet-stream",
             "Content-Length": file_size,
         }
+        if not self.is_chunking_upload_available():
+            headers.update({"X-Batch-Id": batch_id, "X-File-Idx": file_index})
         headers.update(self._get_common_headers())
 
         # Request data
@@ -520,9 +525,15 @@ class BaseAutomationClient(BaseClient):
     def execute_batch(self, op_id, batch_id, file_idx, tx_timeout, **params):
         """Execute a file upload Automation batch"""
         extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout, }
-        return self.execute(self.batch_execute_url, timeout=tx_timeout,
-                     operationId=op_id, batchId=batch_id, fileIdx=file_idx,
-                     check_params=False, extra_headers=extra_headers, **params)
+        if self.is_chunking_upload_available():
+            url = (self.rest_api_url + self.batch_chunking_upload_url + '/' + batch_id + '/' + file_idx
+                   + '/execute/' + op_id)
+            return self.execute(None, url=url, timeout=tx_timeout,
+                                check_params=False, extra_headers=extra_headers, **params)
+        else:
+            return self.execute(self.batch_execute_url, timeout=tx_timeout,
+                                operationId=op_id, batchId=batch_id, fileIdx=file_idx,
+                                check_params=False, extra_headers=extra_headers, **params)
 
     def is_addon_installed(self):
         return 'NuxeoDrive.GetRoots' in self.operations
