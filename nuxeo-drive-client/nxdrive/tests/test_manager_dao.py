@@ -68,6 +68,24 @@ class ManagerDAOTest(unittest.TestCase):
         manager = Manager(options)
         return manager
 
+    def test_autolock(self):
+        # Create Manager
+        manager = self._create_manager()
+        dao = manager.get_dao()
+        dao.lock_path('/test_1', 1, 'doc_id_1')
+        dao.lock_path('/test_2', 2, 'doc_id_2')
+        dao.lock_path('/test_3', 3, 'doc_id_3')
+        locks = dao.get_locked_paths()
+        self.assertEqual(len(locks), 3)
+        dao.unlock_path('/test')
+        locks = dao.get_locked_paths()
+        self.assertEqual(len(locks), 3)
+        dao.unlock_path('/test_1')
+        locks = dao.get_locked_paths()
+        self.assertEqual(len(locks), 2)
+        self.assertEqual(locks[0][0], '/test_2')
+        self.assertEqual(locks[1][0], '/test_3')
+
     def test_notifications(self):
         from nxdrive.notification import Notification
         notif = Notification('warning', flags=Notification.FLAG_DISCARDABLE)
