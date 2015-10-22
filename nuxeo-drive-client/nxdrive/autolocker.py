@@ -39,12 +39,13 @@ class ProcessAutoLockerWorker(PollWorker):
             log.trace("Exception occured: %r", e)
 
     def _process(self):
-        log.trace("Autolocking poll")
-        to_unlock = deepcopy(self._autolocked)
         opened_files = []
         # Restrict to pid
         pids = None
         if len(self._watched_folders) == 0:
+            if len(self._autolocked) == 0:
+                # Nothing to watch
+                return
             pids = []
             # Can only restricted to pid if no watched folders
             for file in self._autolocked:
@@ -53,13 +54,12 @@ class ProcessAutoLockerWorker(PollWorker):
                     break
                 pids.append(self._autolocked[file])
         log.trace("get_open_files restricted to %r", pids)
+        to_unlock = deepcopy(self._autolocked)
         files = self._osi.get_open_files(pids=pids)
-        log.trace("open files are: %r", files)
         if files is None:
             log.debug("no opened files")
             return
         for file in files:
-            log.trace("open file: %r", file)
             found = False
             for folder in self._watched_folders:
                 if file[1].startswith(folder):
@@ -84,7 +84,6 @@ class ProcessAutoLockerWorker(PollWorker):
             self._lock_file(file)
 
     def _unlock_files(self, files):
-        log.trace("Unlocking: %r", files)
         for file in files:
             pid = self._autolocked[file]
             if pid == 0:
