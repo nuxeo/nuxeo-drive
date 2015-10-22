@@ -31,6 +31,10 @@ class WindowsIntegration(AbstractOSIntegration):
         _winreg.CloseKey(key)
         return True
 
+    def get_open_files(self):
+        from win32_handlers import get_open_files
+        return get_open_files()
+
     def _update_reg_key(self, reg, path, attributes=()):
         """Helper function to create / set a key with attribute values"""
         key = _winreg.CreateKey(reg, path)

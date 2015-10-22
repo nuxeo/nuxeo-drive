@@ -134,15 +134,21 @@ class AbstractOSIntegration(object):
         import os
         return os.stat(folder1).st_dev == os.stat(folder2).st_dev
 
-    def get_open_files(self):
+    def get_open_files(self, pids=None):
         # Default implementation using psutil
         res = []
         import psutil
         for p in psutil.process_iter():
             try:
-                res.append(p.open_files())
+                if pids is not None and p._pid not in pids:
+                    continue
+                for f in p.open_files():
+                    res.append((p._pid, f[0]))
             except psutil.AccessDenied:
                 pass
+            except psutil.ZombieProcess:
+                pass
+        return res
 
     @staticmethod
     def os_version_below(version):

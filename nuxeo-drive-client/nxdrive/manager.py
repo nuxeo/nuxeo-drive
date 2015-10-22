@@ -1,4 +1,15 @@
+from urllib2 import URLError
+import subprocess
+import os
+import uuid
+import platform
+import sys
+import logging
+from urlparse import urlparse
+
 from PyQt4 import QtCore
+from PyQt4.QtScript import QScriptEngine
+
 from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
 from nxdrive.logging_config import get_logger, FILE_HANDLER
@@ -8,16 +19,8 @@ from nxdrive.updater import AppUpdater
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive import __version__
-from urllib2 import URLError
-import subprocess
-from nxdrive.utils import ENCODING, OSX_SUFFIX, WIN32_SUFFIX
-import os
-import uuid
-import platform
-import sys
-import logging
-from urlparse import urlparse
-from PyQt4.QtScript import QScriptEngine
+from nxdrive.utils import ENCODING, OSX_SUFFIX
+
 log = get_logger(__name__)
 
 
@@ -201,6 +204,7 @@ class Manager(QtCore.QObject):
             raise Exception("Only one instance of Manager can be create")
         Manager._singleton = self
         super(Manager, self).__init__()
+        self._autolock_service = None
         self.client_version = __version__
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
         self.nxdrive_home = os.path.realpath(self.nxdrive_home)
@@ -252,6 +256,7 @@ class Manager(QtCore.QObject):
             self.generate_device_id()
 
         self._create_notification_service()
+        self._create_autolock_service()
 
         self.load()
 
@@ -339,6 +344,15 @@ class Manager(QtCore.QObject):
         from nxdrive.notification import DefaultNotificationService
         self._notification_service = DefaultNotificationService(self)
         return self._notification_service
+
+    def get_autolock_service(self):
+        return self._autolock_service
+
+    def _create_autolock_service(self):
+        from nxdrive.autolocker import ProcessAutoLockerWorker
+        self._autolock_service = ProcessAutoLockerWorker(30, self)
+        self.started.connect(self._autolock_service._thread.start)
+        return self._autolock_service
 
     def _create_tracker(self):
         from nxdrive.engine.tracker import Tracker
@@ -493,7 +507,7 @@ class Manager(QtCore.QObject):
                 engine.get_update_infos()
 
     def _create_drive_edit(self, url):
-        from nxdrive.engine.watcher.drive_edit import DriveEdit
+        from nxdrive.drive_edit import DriveEdit
         self._drive_edit = DriveEdit(self, os.path.join(normalized_path(self.nxdrive_home), "edit"), url)
         self.started.connect(self._drive_edit._thread.start)
         return self._drive_edit

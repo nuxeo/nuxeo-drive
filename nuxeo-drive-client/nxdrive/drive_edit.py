@@ -52,6 +52,14 @@ class DriveEdit(Worker):
         self._error_queue = BlacklistQueue()
         self._stop = False
 
+    def autolock_lock(self, src_path):
+        ref = self._local_client.get_path(src_path)
+        self._lock_queue.put((ref, 'lock'))
+
+    def autolock_unlock(self, src_path):
+        ref = self._local_client.get_path(src_path)
+        self._lock_queue.put((ref, 'unlock'))
+
     def stop(self):
         super(DriveEdit, self).stop()
         self._stop = True
@@ -186,7 +194,8 @@ class DriveEdit(Worker):
         if sys.platform == 'win32' and os.path.exists(file_path):
             os.unlink(file_path)
         os.rename(tmp_file, file_path)
-
+        log.debug("will set_autolock on: '%s'", file_path)
+        self._manager.get_autolock_service().set_autolock(file_path, self)
         return file_path
 
     def edit(self, server_url, doc_id, filename=None, user=None, download_url=None):
@@ -326,8 +335,8 @@ class DriveEdit(Worker):
         self._observer = None
 
     def is_lock_file(self, name):
-        return (name.startswith("~$") # Office lock file
-                or name.startswith(".~lock.")) # Libre/OpenOffice lock file
+        return False and ((name.startswith("~$") # Office lock file
+                or name.startswith(".~lock."))) # Libre/OpenOffice lock file
 
     def handle_watchdog_event(self, evt):
         self._action = Action("Handle watchdog event")
