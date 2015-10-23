@@ -493,7 +493,7 @@ class UnitTestCase(unittest.TestCase):
     def wait(self, retry=3):
         try:
             self.root_remote_client.wait()
-        except OSError.TimeoutError as e:
+        except Exception as e:
             log.debug("Exception while waiting for server : %r", e)
             # Not the nicest
             if retry > 0:
