@@ -255,7 +255,6 @@ class Manager(QtCore.QObject):
         if self.device_id is None:
             self.generate_device_id()
 
-        self._create_notification_service()
         self._create_autolock_service()
 
         self.load()
@@ -273,6 +272,7 @@ class Manager(QtCore.QObject):
             self._create_tracker()
         self._script_engine = None
         self._script_object = None
+        self._create_notification_service()
 
     def _get_file_log_handler(self):
         # Might store it in global static

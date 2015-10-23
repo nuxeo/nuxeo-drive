@@ -26,7 +26,7 @@ log = get_logger(__name__)
 class DriveEdit(Worker):
     localScanFinished = pyqtSignal()
     driveEditUploadCompleted = pyqtSignal()
-    driveEditLockError = pyqtSignal(str, str)
+    driveEditLockError = pyqtSignal(str, str, str)
 
     '''
     classdocs
@@ -245,7 +245,7 @@ class DriveEdit(Worker):
             except Exception as e:
                 # Try again in 30s
                 log.debug("Can't %s document '%s': %r", item[1], uid, e)
-                self.driveEditLockError.emit(item[1], uid)
+                self.driveEditLockError.emit(item[1], os.path.basename(ref), uid)
         # Unqueue any errors
         item = self._error_queue.get()
         while (item is not None):

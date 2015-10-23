@@ -249,6 +249,22 @@ class ErrorNotification(Notification):
             action="drive.showConflicts();")
 
 
+class DriveEditLockNotification(Notification):
+    def __init__(self, type, filename, ref):
+        values = dict()
+        values["name"] = filename
+        values["ref"] = ref
+        if type == 'lock':
+            title = Translator.get("DRIVE_EDIT_LOCK_ERROR", values)
+            description = Translator.get("DRIVE_EDIT_LOCK_ERROR_DESCRIPTION", values)
+        elif type == 'unlock':
+            title = Translator.get("DRIVE_EDIT_UNLOCK_ERROR", values)
+            description = Translator.get("DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION", values)
+        else:
+            raise Exception()
+        super(Notification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
 class ConflictNotification(Notification):
     def __init__(self, engine_uid, doc_pair):
         values = dict()
@@ -278,12 +294,19 @@ class DefaultNotificationService(NotificationService):
         self._manager = manager
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
+        self._manager.get_drive_edit().driveEditLockError.connect(self._driveEditLockError)
 
     def _connect_engine(self, engine):
         engine.newConflict.connect(self._newConflict)
         engine.newError.connect(self._newError)
         engine.invalidAuthentication.connect(self._invalidAuthentication)
         engine.online.connect(self._validAuthentication)
+
+    def _driveEditLockError(self, lock, filename, ref):
+        if lock != 'lock' and lock != 'unlock':
+            log.debug("DriveEdit LockError not handled: %s", lock)
+            return
+        self.send_notification(DriveEditLockNotification(lock, filename, ref))
 
     def _newError(self, row_id):
         engine_uid = self.sender()._uid
