@@ -54,12 +54,12 @@ class TestDriveEdit(UnitTestCase):
     def _openoffice_locker(self, path):
         return os.path.join(os.path.dirname(path), ".~lock." + os.path.basename(path)[2:])
 
-    def test_autolock_office(self):
-        self._autolock(self._office_locker)
+    #def test_autolock_office(self):
+    #    self._autolock(self._office_locker)
 
-    def test_autolock_openoffice(self):
-        # LibreOffice as well
-        self._autolock(self._openoffice_locker)
+    #def test_autolock_openoffice(self):
+    # LibreOffice as well
+    #    self._autolock(self._openoffice_locker)
 
     def _autolock(self, locker):
         global called_open, lock_file
