@@ -131,8 +131,12 @@ LABELS={
         "SELECT_SYNC_FOLDERS_DESCRIPTION": "Allow you to choose which folders to sync locally - requires the engine to be online",
         "PROXY_INVALID": "Proxy settings are invalid",
         "PROXY_APPLIED": "Proxy settings have been updated",
-        "DRIVE_EDIT_AUTO_LOCK": "Document Auto-locking for DriveEdit (doc, docx, xlsx, pptx and more generally any program using a lock file)",
-        "IGNORE_PAIR": "Ignore this error"
+        "DRIVE_EDIT_AUTO_LOCK": "Document Auto-locking for DriveEdit",
+        "IGNORE_PAIR": "Ignore this error",
+        "DRIVE_EDIT_LOCK_ERROR": "Locking issue",
+        "DRIVE_EDIT_LOCK_ERROR_DESCRIPTION": "The document '{{ name }}' was not locked",
+        "DRIVE_EDIT_UNLOCK_ERROR": "Unlocking issue",
+        "DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION": "The document '{{ name }}' was not unlocked"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -266,7 +270,11 @@ LABELS={
         "SELECT_SYNC_FOLDERS_DESCRIPTION": "Selection des dossiers à synchroniser localement - requiert d'être connecté",
         "PROXY_INVALID": "Le serveur proxy est invalide",
         "PROXY_APPLIED": "Le serveur proxy a été mis à jour",
-        "DRIVE_EDIT_AUTO_LOCK": "Auto-lock des documents lors du DriveEdit (doc, docx, xlsx, pptx et plus généralement tout programme utilisant un fichier de lock)",
-        "IGNORE_PAIR": "Ignorer cette erreur"
+        "DRIVE_EDIT_AUTO_LOCK": "Auto-lock des documents lors du DriveEdit",
+        "IGNORE_PAIR": "Ignorer cette erreur",
+        "DRIVE_EDIT_LOCK_ERROR": "Problème de verrouillage",
+        "DRIVE_EDIT_LOCK_ERROR_DESCRIPTION": "Le document '{{ name }}' n'a pu être verrouillé",
+        "DRIVE_EDIT_UNLOCK_ERROR": "Problème de déverrouillage",
+        "DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION": "Le document '{{ name }}' n'a pu être deverrouillé"
 	}
 }

@@ -319,6 +319,7 @@ class ManagerDAO(ConfigurationDAO):
         super(ManagerDAO, self)._init_db(cursor)
         cursor.execute("CREATE TABLE if not exists Engines(uid VARCHAR, engine VARCHAR NOT NULL, name VARCHAR, local_folder VARCHAR NOT NULL UNIQUE, PRIMARY KEY(uid))")
         cursor.execute("CREATE TABLE if not exists Notifications(uid VARCHAR UNIQUE, engine VARCHAR, level VARCHAR, title VARCHAR, description VARCHAR, action VARCHAR, flags INT, PRIMARY KEY(uid))")
+        cursor.execute("CREATE TABLE if not exists AutoLock(path VARCHAR, remote_id VARCHAR, process INT, PRIMARY KEY(path))")
 
     def insert_notification(self, notification):
         self._lock.acquire()
@@ -327,6 +328,38 @@ class ManagerDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute("INSERT INTO Notifications(uid,engine,level,title,description,action, flags) VALUES(?,?,?,?,?,?,?)",
                       (notification.get_uid(), notification.get_engine_uid(), notification.get_level(), notification.get_title(), notification.get_description(), notification.get_action(), notification.get_flags()))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def unlock_path(self, path):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("DELETE FROM AutoLock WHERE path = ?", (path,))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def get_locked_paths(self):
+        con = self._get_read_connection()
+        c = con.cursor()
+        return c.execute("SELECT * FROM AutoLock").fetchall()
+
+    def lock_path(self, path, process, doc_id):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("INSERT INTO AutoLock(path,process,remote_id) VALUES(?,?,?)", (path, process, doc_id))
+            if self.auto_commit:
+                con.commit()
+        except sqlite3.IntegrityError:
+            # Already there just update the process
+            c.execute("UPDATE AutoLock SET process=?, remote_id=? WHERE path=?", (process, doc_id, path))
             if self.auto_commit:
                 con.commit()
         finally:
@@ -379,6 +412,9 @@ class ManagerDAO(ConfigurationDAO):
         if (version < 2):
             cursor.execute("CREATE TABLE if not exists Notifications(uid VARCHAR, engine VARCHAR, level VARCHAR, title VARCHAR, description VARCHAR, action VARCHAR, flags INT, PRIMARY KEY(uid))")
             self.update_config(SCHEMA_VERSION, 2)
+        if (version < 3):
+            cursor.execute("CREATE TABLE if not exists AutoLock(path VARCHAR, remote_id VARCHAR, process INT, PRIMARY KEY(path))")
+            self.update_config(SCHEMA_VERSION, 3)
 
     def get_engines(self):
         c = self._get_read_connection(factory=StateRow).cursor()

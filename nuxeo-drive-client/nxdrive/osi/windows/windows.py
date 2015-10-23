@@ -13,6 +13,11 @@ log = get_logger(__name__)
 class WindowsIntegration(AbstractOSIntegration):
     RUN_KEY = 'Software\\Microsoft\\Windows\\CurrentVersion\\Run'
 
+    def __init__(self, manager):
+        super(WindowsIntegration, self).__init__(manager)
+        from nxdrive.osi.windows.win32_handlers import WindowsProcessFileHandlerSniffer
+        self._file_sniffer = WindowsProcessFileHandlerSniffer()
+
     def get_menu_parent_key(self):
         return 'Software\\Classes\\*\\shell\\' + self._manager.get_appname()
 
@@ -30,6 +35,9 @@ class WindowsIntegration(AbstractOSIntegration):
             return False
         _winreg.CloseKey(key)
         return True
+
+    def get_open_files(self, pids=None):
+        return self._file_sniffer.get_open_files(pids)
 
     def _update_reg_key(self, reg, path, attributes=()):
         """Helper function to create / set a key with attribute values"""
