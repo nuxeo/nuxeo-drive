@@ -286,8 +286,15 @@ class IntegrationTestCase(unittest.TestCase):
             remote = self.remote_document_client_2
         return syn, local, remote
 
-    def wait(self):
-        self.root_remote_client.wait()
+    def wait(self, retry=3):
+        try:
+            self.root_remote_client.wait()
+        except Exception as e:
+            log.debug("Exception while waiting for server : %r", e)
+            # Not the nicest
+            if retry > 0:
+                log.debug("Retry to wait")
+                self.wait(retry - 1)
 
     def setUpDrive_1(self, bind_root=True, root=None, firstSync=False):
         # Bind the server and root workspace
