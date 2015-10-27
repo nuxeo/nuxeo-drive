@@ -3,6 +3,7 @@ import hashlib
 import unittest
 from nxdrive.utils import guess_mime_type
 from nxdrive.utils import guess_digest_algorithm
+from nxdrive.utils import is_office_temp_file
 from nxdrive.manager import ProxySettings
 
 
@@ -55,6 +56,37 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(proxy.proxy_type, 'https')
         self.assertEqual(proxy.to_url(), 'https://user:password@localhost:3129')
         self.assertEqual(proxy.to_url(False), 'https://localhost:3129')
+
+    def test_office_temp_file(self):
+        # Normal
+        self.assertEqual(is_office_temp_file("plop"), False)
+
+        # Powerpoint temp file
+        self.assertEqual(is_office_temp_file("ppt.tmp"), False)
+        self.assertEqual(is_office_temp_file("pptED23.tmp"), True)
+        self.assertEqual(is_office_temp_file("pptzDER.tmp"), False)
+        self.assertEqual(is_office_temp_file("ppt1DER.tmp"), False)
+        self.assertEqual(is_office_temp_file("ppt21AD.tmp"), True)
+
+        # Office temp file 2007+
+        self.assertEqual(is_office_temp_file("A239FDCA"), True)
+        self.assertEqual(is_office_temp_file("A2Z9FDCA"), False)
+        self.assertEqual(is_office_temp_file("12345678"), True)
+        self.assertEqual(is_office_temp_file("9ABCDEF0"), True)
+        self.assertEqual(is_office_temp_file("A239FDZA"), False)
+        self.assertEqual(is_office_temp_file("A239FDCA.tmp"), True)
+        self.assertEqual(is_office_temp_file("A2Z9FDCA.tmp"), False)
+        self.assertEqual(is_office_temp_file("12345678.tmp"), True)
+        self.assertEqual(is_office_temp_file("9ABCDEF0.tmp"), True)
+        self.assertEqual(is_office_temp_file("A239FDZA.tmp"), False)
+        self.assertEqual(is_office_temp_file("A2D9FDCA1"), False)
+        self.assertEqual(is_office_temp_file("A2D9FDCA1.tmp"), False)
+
+        # Office 97
+        self.assertEqual(is_office_temp_file("~A2D9FDCA1.tmp"), True)
+        self.assertEqual(is_office_temp_file("~Whatever is here.tmp"), True)
+        self.assertEqual(is_office_temp_file("~A2D9FDCA1.tm"), False)
+        self.assertEqual(is_office_temp_file("Whatever is here.tmp"), False)
 
     def test_guess_mime_type(self):
 

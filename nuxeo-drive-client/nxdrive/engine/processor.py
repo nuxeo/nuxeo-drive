@@ -8,7 +8,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME, UNACCESSIBLE_HASH
 from nxdrive.client.common import NotFound
 from nxdrive.engine.activity import Action
-from nxdrive.utils import current_milli_time
+from nxdrive.utils import current_milli_time, is_office_temp_file
 from PyQt4.QtCore import pyqtSignal
 from threading import Lock
 import os
@@ -340,7 +340,7 @@ class Processor(EngineWorker):
 
     def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
         name = os.path.basename(doc_pair.local_path)
-        if len(name) == 8 and "." not in name and doc_pair.error_count == 0:
+        if is_office_temp_file(name) and doc_pair.error_count == 0:
             # Might be an Office temp file delay it by 60s
             self._postpone_pair(doc_pair, 'Can be Office Temp')
             return

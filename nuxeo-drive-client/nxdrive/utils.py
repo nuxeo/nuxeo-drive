@@ -47,6 +47,28 @@ def current_milli_time():
     return int(round(time.time() * 1000))
 
 
+def is_hexastring(value):
+    for c in value:
+        if c not in "0123456789ABCDEF":
+            return False
+    return True
+
+
+def is_office_temp_file(name):
+    if name.startswith('~') and name.endswith(".tmp"):
+        return True
+    if len(name) == 8 and "." not in name:
+        return is_hexastring(name)
+        # for each car in "0123456789ABCDEF"
+    elif name.endswith(".tmp") and name.startswith("ppt"):
+        # ppt98D2.tmp
+        return is_hexastring(name[3:7])
+    elif len(name) == 12:
+        # 813DEFA7.tmp file
+        return is_hexastring(name[0:7])
+    return False
+
+
 def version_compare(x, y):
     """Compare version numbers using the usual x.y.z pattern.
 
