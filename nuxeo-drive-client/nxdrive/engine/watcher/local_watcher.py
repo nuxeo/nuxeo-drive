@@ -565,7 +565,10 @@ class LocalWatcher(EngineWorker):
                                                                 rel_path))
                         continue
                 '''
-                local_info = self.client.get_info(rel_path)
+                local_info = self.client.get_info(rel_path, raise_if_missing=False)
+                if local_info is None:
+                    log.trace("Event on a disapeared file: %r %s %s", evt, rel_path, file_name)
+                    return
                 # This might be a move but Windows don't emit this event...
                 if local_info.remote_ref is not None:
                     from_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)

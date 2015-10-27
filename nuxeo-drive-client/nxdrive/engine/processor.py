@@ -294,13 +294,13 @@ class Processor(EngineWorker):
             log.trace("Modification of postponed local file: %r", doc_pair)
             doc_pair.local_digest = info.get_digest()
             if doc_pair.local_digest == UNACCESSIBLE_HASH:
-                self._postpone_pair(doc_pair)
+                self._postpone_pair(doc_pair, 'Unaccessible hash')
                 return
             self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
         if not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path):
             if doc_pair.remote_can_update:
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
-                    self._postpone_pair(doc_pair)
+                    self._postpone_pair(doc_pair, 'Unaccessible hash')
                     return
                 log.debug("Updating remote document '%s'.",
                           doc_pair.local_name)
@@ -332,14 +332,18 @@ class Processor(EngineWorker):
         # TODO Select the only states that is not a collection
         return self._dao.get_normal_state_from_remote(ref)
 
-    def _postpone_pair(self, doc_pair):
+    def _postpone_pair(self, doc_pair, reason=''):
         # Wait 60s for it
-        log.trace("Postpone creation of local file: %r", doc_pair)
+        log.trace("Postpone creation of local file(%s): %r", reason, doc_pair)
         doc_pair.error_count = 1
         self._engine.get_queue_manager().push_error(doc_pair, exception=None)
 
     def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
         name = os.path.basename(doc_pair.local_path)
+        if len(name) == 8 and "." not in name and doc_pair.error_count == 0:
+            # Might be an Office temp file delay it by 60s
+            self._postpone_pair(doc_pair, 'Can be Office Temp')
+            return
         remote_ref = local_client.get_remote_id(doc_pair.local_path)
         # Find the parent pair to find the ref of the remote folder to
         # create the document
@@ -396,14 +400,14 @@ class Processor(EngineWorker):
                     # Size has changed ( copy must still be running )
                     doc_pair.local_digest = UNACCESSIBLE_HASH
                     self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
-                    self._postpone_pair(doc_pair)
+                    self._postpone_pair(doc_pair, 'Unaccessible hash')
                     return
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
                     doc_pair.local_digest = info.get_digest()
                     log.trace("Creation of postponed local file: %r", doc_pair)
                     self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
                     if doc_pair.local_digest == UNACCESSIBLE_HASH:
-                        self._postpone_pair(doc_pair)
+                        self._postpone_pair(doc_pair, 'Unaccessible hash')
                         return
                 fs_item_info = remote_client.stream_file(
                     parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
