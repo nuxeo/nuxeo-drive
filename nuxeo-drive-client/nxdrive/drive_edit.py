@@ -18,7 +18,7 @@ import sys
 import urllib2
 from time import sleep
 import shutil
-from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from Queue import Queue, Empty
 log = get_logger(__name__)
 
@@ -52,6 +52,16 @@ class DriveEdit(Worker):
         self._lock_queue = Queue()
         self._error_queue = BlacklistQueue()
         self._stop = False
+        self._manager.get_autolock_service().orphanLocks.connect(self._autolock_orphans)
+
+    @pyqtSlot(object)
+    def _autolock_orphans(self, locks):
+        log.trace("Orphans lock: %r", locks)
+        for lock in locks:
+            if lock.path.startswith(self._folder):
+                log.debug("Should unlock: %s", lock.path)
+                ref = self._local_client.get_path(lock.path)
+                self._lock_queue.put((ref, 'unlock_orphan'))
 
     def autolock_lock(self, src_path):
         ref = self._local_client.get_path(src_path)
@@ -92,11 +102,17 @@ class DriveEdit(Worker):
     def _cleanup(self):
         log.debug("Cleanup DriveEdit folder")
         # Should unlock any remaining doc that has not been unlocked or ask
-        shutil.rmtree(self._folder, ignore_errors=True)
+        for child in self._local_client.get_children_info('/'):
+            if self._local_client.get_remote_id(child.path, "nxdriveeditlock") is not None:
+                continue
+            # Place for handle reopened of interrupted Edit
+            shutil.rmtree(self._local_client._abspath(child.path), ignore_errors=True)
         if not os.path.exists(self._folder):
             os.mkdir(self._folder)
 
     def _get_engine(self, url, user=None):
+        if url is None:
+            return None
         if url.endswith('/'):
             url = url[:-1]
         for engine in self._manager.get_engines().values():
@@ -221,6 +237,8 @@ class DriveEdit(Worker):
         server_url = self._local_client.get_remote_id(dir_path, "nxdriveedit")
         user = self._local_client.get_remote_id(dir_path, "nxdriveedituser")
         engine = self._get_engine(server_url, user=user)
+        if engine is None:
+            raise NotFound()
         remote_client = engine.get_remote_doc_client()
         remote_client.check_suspended = self.stop_client
         digest_algorithm = self._local_client.get_remote_id(dir_path, "nxdriveeditdigestalgorithm")
@@ -242,15 +260,23 @@ class DriveEdit(Worker):
                 log.trace('Handling DriveEdit lock queue ref: %r', ref)
             except Empty:
                 break
-            uid, engine, remote_client, _, _ = self._extract_edit_info(ref)
+            uid = ""
             try:
+                dir_path = os.path.dirname(ref)
+                uid, engine, remote_client, _, _ = self._extract_edit_info(ref)
                 if item[1] == 'lock':
                     remote_client.lock(uid)
+                    self._local_client.set_remote_id(dir_path, "1", "nxdriveeditlock")
                 else:
                     remote_client.unlock(uid)
+                    if item[1] == 'unlock_orphan':
+                        path = self._local_client._abspath(ref)
+                        log.trace("Remove orphan: %s", path)
+                        self._manager.get_autolock_service().orphan_unlocked(path)
+                    self._local_client.remove_remote_id(dir_path, "nxdriveeditlock")
             except Exception as e:
                 # Try again in 30s
-                log.debug("Can't %s document '%s': %r", item[1], uid, e)
+                log.debug("Can't %s document '%s': %r", item[1], ref, e, exc_info=True)
                 self.driveEditLockError.emit(item[1], os.path.basename(ref), uid)
         # Unqueue any errors
         item = self._error_queue.get()
@@ -284,7 +310,7 @@ class DriveEdit(Worker):
                 raise
             except Exception as e:
                 # Try again in 30s
-                log.trace("Exception on drive edit: %r", e)
+                log.trace("Exception on drive edit: %r", e, exc_info=True)
                 self._error_queue.push(ref, ref)
                 continue
             uploaded = True
@@ -390,7 +416,6 @@ class DriveEdit(Worker):
                 self._upload_queue.put(ref)
                 return
         except Exception as e:
-            log.warn("Watchdog exception : %r" % e)
-            log.exception(e)
+            log.warn("Watchdog exception : %r", e, exc_info=True)
         finally:
             self._end_action()

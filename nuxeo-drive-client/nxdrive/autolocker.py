@@ -7,9 +7,13 @@ from engine.workers import PollWorker
 from copy import deepcopy
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.workers import ThreadInterrupt
+from PyQt4 import QtCore
 log = get_logger(__name__)
 
+
 class ProcessAutoLockerWorker(PollWorker):
+
+    orphanLocks = QtCore.pyqtSignal(object)
 
     def __init__(self, check_interval, manager, watched_folders=[]):
         super(ProcessAutoLockerWorker, self).__init__(check_interval)
@@ -21,6 +25,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self._watched_folders = watched_folders
         self._opened_files = dict()
         self._to_lock = []
+        self._first = True
 
     def set_autolock(self, filepath, locker):
         self._autolocked[filepath] = 0
@@ -32,11 +37,19 @@ class ProcessAutoLockerWorker(PollWorker):
 
     def _poll(self):
         try:
+            if self._first:
+                # Cannot guess the locker of orphans so emit a signal
+                locks = self._dao.get_locked_paths()
+                self.orphanLocks.emit(locks)
+                self._first = False
             self._process()
         except ThreadInterrupt:
             raise
         except Exception as e:
             log.trace("Exception occured: %r", e)
+
+    def orphan_unlocked(self, path):
+        self._dao.unlock_path(path)
 
     def _process(self):
         opened_files = []
