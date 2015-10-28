@@ -262,7 +262,7 @@ class DriveEditLockNotification(Notification):
             description = Translator.get("DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION", values)
         else:
             raise Exception()
-        super(Notification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
+        super(DriveEditLockNotification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 class ConflictNotification(Notification):

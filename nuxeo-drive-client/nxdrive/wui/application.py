@@ -116,6 +116,9 @@ class Application(QApplication):
 
         self.setup_systray()
 
+        # Direct Edit conflict
+        self.manager.get_drive_edit().driveEditConflict.connect(self._direct_edit_conflict)
+
         # Check if actions is required, separate method so it can be override
         self.init_checks()
         self.engineWidget = None
@@ -124,6 +127,18 @@ class Application(QApplication):
         if AbstractOSIntegration.is_mac():
             if AbstractOSIntegration.os_version_above("10.8"):
                 self._setup_notification_center()
+
+    @QtCore.pyqtSlot(str, str, str)
+    def _direct_edit_conflict(self, filename, ref, digest):
+        info = dict()
+        info["name"] = unicode(filename)
+        dlg = WebModal(self, Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", info))
+        dlg.add_button("OVERWRITE", Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"))
+        dlg.add_button("CANCEL", Translator.get("DIRECT_EDIT_CONFLICT_CANCEL"))
+        res = dlg.exec_()
+        if res == "OVERWRITE":
+            self.manager.get_drive_edit().force_update(unicode(ref), unicode(digest))
+        # If cancel nothing to do
 
     @QtCore.pyqtSlot()
     def _root_deleted(self):

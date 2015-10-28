@@ -27,6 +27,7 @@ class DriveEdit(Worker):
     localScanFinished = pyqtSignal()
     driveEditUploadCompleted = pyqtSignal()
     driveEditLockError = pyqtSignal(str, str, str)
+    driveEditConflict = pyqtSignal(str, str, str)
 
     '''
     classdocs
@@ -226,6 +227,11 @@ class DriveEdit(Worker):
         digest = self._local_client.get_remote_id(dir_path, "nxdriveeditdigest")
         return uid, engine, remote_client, digest_algorithm, digest
 
+    def force_update(self, ref, digest):
+        dir_path = os.path.dirname(ref)
+        self._local_client.set_remote_id(dir_path, unicode(digest), "nxdriveeditdigest")
+        self._upload_queue.put(ref)
+
     def _handle_queues(self):
         uploaded = False
         # Lock any documents
@@ -266,6 +272,12 @@ class DriveEdit(Worker):
                     continue
                 # TO_REVIEW Should check if server-side blob has changed ?
                 # Update the document - should verify the remote hash - NXDRIVE-187
+                remote_info = remote_client.get_info(uid)
+                if remote_info.digest != digest:
+                    # Conflict detect
+                    log.trace("Remote digest: %s is different from the recorded one: %s - conflict detected", remote_info.digest, digest)
+                    self.driveEditConflict.emit(os.path.basename(ref), ref, remote_info.digest)
+                    continue
                 log.debug('Uploading file %s', self._local_client._abspath(ref))
                 remote_client.stream_update(uid, self._local_client._abspath(ref), apply_versioning_policy=True)
             except ThreadInterrupt:

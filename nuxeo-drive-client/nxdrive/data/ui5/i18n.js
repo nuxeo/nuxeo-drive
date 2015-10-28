@@ -136,7 +136,10 @@ LABELS={
         "DRIVE_EDIT_LOCK_ERROR": "Locking issue",
         "DRIVE_EDIT_LOCK_ERROR_DESCRIPTION": "The document '{{ name }}' was not locked",
         "DRIVE_EDIT_UNLOCK_ERROR": "Unlocking issue",
-        "DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION": "The document '{{ name }}' was not unlocked"
+        "DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION": "The document '{{ name }}' was not unlocked",
+        "DIRECT_EDIT_CONFLICT_MESSAGE": "THe document '{{ name }}' was modified remotely and is now in conflict. What action do you want to take ?",
+        "DIRECT_EDIT_CONFLICT_OVERWRITE": "Overwrite",
+        "DIRECT_EDIT_CONFLICT_CANCEL": "Cancel"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -275,6 +278,9 @@ LABELS={
         "DRIVE_EDIT_LOCK_ERROR": "Problème de verrouillage",
         "DRIVE_EDIT_LOCK_ERROR_DESCRIPTION": "Le document '{{ name }}' n'a pu être verrouillé",
         "DRIVE_EDIT_UNLOCK_ERROR": "Problème de déverrouillage",
-        "DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION": "Le document '{{ name }}' n'a pu être deverrouillé"
+        "DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION": "Le document '{{ name }}' n'a pu être deverrouillé",
+        "DIRECT_EDIT_CONFLICT_MESSAGE": "Le document '{{ name }}' a été modifié sur le serveur et est donc en conflit. Que voulez vous faire ?",
+        "DIRECT_EDIT_CONFLICT_OVERWRITE": "Ecraser",
+        "DIRECT_EDIT_CONFLICT_CANCEL": "Annuler"
 	}
 }
