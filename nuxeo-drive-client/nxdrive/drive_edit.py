@@ -102,11 +102,12 @@ class DriveEdit(Worker):
     def _cleanup(self):
         log.debug("Cleanup DriveEdit folder")
         # Should unlock any remaining doc that has not been unlocked or ask
-        for child in self._local_client.get_children_info('/'):
-            if self._local_client.get_remote_id(child.path, "nxdriveeditlock") is not None:
-                continue
-            # Place for handle reopened of interrupted Edit
-            shutil.rmtree(self._local_client._abspath(child.path), ignore_errors=True)
+        if self._local_client.exists('/'):
+            for child in self._local_client.get_children_info('/'):
+                if self._local_client.get_remote_id(child.path, "nxdriveeditlock") is not None:
+                    continue
+                # Place for handle reopened of interrupted Edit
+                shutil.rmtree(self._local_client._abspath(child.path), ignore_errors=True)
         if not os.path.exists(self._folder):
             os.mkdir(self._folder)
 
