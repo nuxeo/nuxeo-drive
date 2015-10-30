@@ -455,6 +455,15 @@ class LocalClient(BaseClient):
             if file_name.startswith(prefix):
                 ignore = True
                 break
+        if AbstractOSIntegration.is_windows():
+            # NXDRIVE-
+            import win32con
+            import win32api
+            attrs = win32api.GetFileAttributes(os.path.join(parent_ref, file_name))
+            if attrs & win32con.FILE_ATTRIBUTE_SYSTEM == win32con.FILE_ATTRIBUTE_SYSTEM:
+                return True
+            if attrs & win32con.FILE_ATTRIBUTE_SYSTEM == win32con.FILE_ATTRIBUTE_HIDDEN:
+                return True
         return ignore
 
     def get_children_ref(self, parent_ref, name):
