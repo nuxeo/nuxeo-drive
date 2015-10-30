@@ -36,6 +36,7 @@ class LocalWatcher(EngineWorker):
         super(LocalWatcher, self).__init__(engine, dao)
         self.unhandle_fs_event = False
         self._event_handler = None
+        self._windows_queue_threshold = 50
         self._windows = (sys.platform == 'win32')
         if self._windows:
             log.debug('Windows detected so delete event will be delayed by %dms', WIN_MOVE_RESOLUTION_PERIOD)
@@ -56,6 +57,12 @@ class LocalWatcher(EngineWorker):
         self._root_observer = None
         self._win_lock = Lock()
         self._delete_events = dict()
+
+    def set_windows_queue_threshold(self, size):
+        self._windows_queue_threshold = size
+
+    def get_windows_queue_threshold(self):
+        return self._windows_queue_threshold
 
     def _execute(self):
         try:
@@ -83,7 +90,7 @@ class LocalWatcher(EngineWorker):
                     self._end_action()
                 while (not self._watchdog_queue.empty()):
                     # Dont retest if already local scan
-                    if not trigger_local_scan and self._watchdog_queue.qsize() > 50:
+                    if not trigger_local_scan and self._watchdog_queue.qsize() > self._windows_queue_threshold:
                         trigger_local_scan = True
                     evt = self._watchdog_queue.get()
                     self.handle_watchdog_event(evt)
