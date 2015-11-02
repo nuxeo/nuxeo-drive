@@ -110,6 +110,7 @@ class QueueManager(QObject):
         self.enable_local_folder_queue(True)
         self.enable_remote_file_queue(True)
         self.enable_remote_folder_queue(True)
+        self.queueProcessing.emit()
 
     def is_paused(self):
         return (not self._local_file_enable or
