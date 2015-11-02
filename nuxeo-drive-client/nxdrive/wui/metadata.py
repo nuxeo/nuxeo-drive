@@ -88,6 +88,9 @@ class MetadataApplication(QtGui.QApplication):
         self.dialog = CreateMetadataWebDialog(manager, self.file_path, self)
         self.dialog.show()
 
+    def get_osi(self):
+        return self.manager.get_osi()
+
     def get_window_icon(self):
         return find_icon('nuxeo_drive_icon_64.png')
 
