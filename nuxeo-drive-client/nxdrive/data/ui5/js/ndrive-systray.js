@@ -46,10 +46,10 @@ var SystrayController = function($scope, $interval, $translate) {
 		}
 		$scope.engine.syncing = $scope.sync;
 		if ($scope.engine.syncing == 'syncing') {
-			$scope.syncing_items = drive.get_syncing_items($scope.engine.uid);
+			$scope.engine.syncing_count = drive.get_syncing_items($scope.engine.uid);
 			$scope.current_actions = angular.fromJson(drive.get_actions($scope.engine.uid));
 		} else {
-			$scope.syncing_items = 0;
+			$scope.engine.syncing_count = 0;
 			$scope.current_actions = [];
 		}
 		$scope.updateFiles();
