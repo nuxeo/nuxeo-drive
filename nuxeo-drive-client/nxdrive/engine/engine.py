@@ -603,6 +603,7 @@ class Engine(QObject):
         metrics = dict()
         metrics["sync_folders"] = self._dao.get_sync_count(filetype="folder")
         metrics["sync_files"] = self._dao.get_sync_count(filetype="file")
+        metrics["syncing"] = self._dao.get_syncing_count()
         metrics["error_files"] = self._dao.get_error_count()
         metrics["conflicted_files"] = self._dao.get_conflict_count()
         metrics["files_size"] = self._dao.get_global_size()

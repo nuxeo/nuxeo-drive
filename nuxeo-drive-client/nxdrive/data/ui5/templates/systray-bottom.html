@@ -9,6 +9,6 @@
     <span title="{{SYNCHRONIZATION_COMPLETED | translate }}" class="glyphicon glyphicon-ok"></span>
   </div>
   <div ng-show="!engine.paused && engine.syncing == 'syncing'">
-    <span title="{{SYNCHRONIZATION_IN_PROGRESS | translate }}" ng-show="engine.queue.total_queue > 0">({{engine.queue.total_queue}})</span>&nbsp;<img src="imgs/nuxeo_drive_icon_48.png" /></span>
+    <span title="{{SYNCHRONIZATION_IN_PROGRESS | translate }}" ng-show="engine.syncing > 0">({{engine.syncing}})</span>&nbsp;<img src="imgs/nuxeo_drive_icon_48.png" /></span>
   </div>
 </div>

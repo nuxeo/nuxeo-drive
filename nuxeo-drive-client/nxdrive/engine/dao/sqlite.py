@@ -470,6 +470,7 @@ class EngineDAO(ConfigurationDAO):
         self._queue_manager = None
         super(EngineDAO, self).__init__(db)
         self._filters = self.get_filters()
+        self._items_count = self.get_syncing_count()
         self.reinit_processors()
 
     def get_schema_version(self):
@@ -629,6 +630,7 @@ class EngineDAO(ConfigurationDAO):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
             if self.auto_commit:
                 con.commit()
+            self._items_count = self._items_count + 1
         finally:
             self._lock.release()
         return row_id
@@ -660,7 +662,7 @@ class EngineDAO(ConfigurationDAO):
                 # Add all the folders
                 if pair.folderish:
                     folders[pair.local_path] = True
-                if not  pair.local_parent_path in folders:
+                if not pair.local_parent_path in folders:
                     self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
         # Dont block everything if queue manager fail
         # TODO As the error should be fatal not sure we need this
@@ -731,9 +733,13 @@ class EngineDAO(ConfigurationDAO):
     def get_error_count(self, threshold=3):
         return self.get_count("error_count > " + str(threshold))
 
-    def get_syncing_count(self):
-        query = "pair_state!='synchronized' AND pair_state!='conflicted' AND pair_state!='unsynchronized'"
-        return self.get_count(query)
+    def get_syncing_count(self, threshold=3):
+        query = "pair_state!='synchronized' AND pair_state!='conflicted' AND pair_state!='unsynchronized' AND error_count < " + str(threshold)
+        count = self.get_count(query)
+        if self._items_count is not None and count != self._items_count:
+            log.trace("Cache Syncing count incorrect should be %d was %d", count, self._items_count)
+            self._items_count = count
+        return count
 
     def get_sync_count(self, filetype=None):
         query = "pair_state='synchronized'"
@@ -949,6 +955,7 @@ class EngineDAO(ConfigurationDAO):
             parent = c.execute("SELECT * FROM States WHERE local_path=?", (local_parent_path,)).fetchone()
             if (parent is None and local_parent_path == '') or (parent is not None and parent.pair_state != "remotely_created"):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
+            self._items_count = self._items_count + 1
         finally:
             self._lock.release()
         return row_id
@@ -992,6 +999,7 @@ class EngineDAO(ConfigurationDAO):
             if self.auto_commit:
                 con.commit()
             self._queue_pair_state(row.id, row.folderish, row.pair_state)
+            self._items_count = self._items_count + 1
         finally:
             self._lock.release()
         row.last_error = None
@@ -1010,7 +1018,10 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
-        return c.rowcount == 1
+        if c.rowcount == 1:
+            self._items_count = self._items_count + 1
+            return True
+        return False
 
     def force_local(self, row):
         self._lock.acquire()
@@ -1024,7 +1035,10 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
-        return c.rowcount == 1
+        if c.rowcount == 1:
+            self._items_count = self._items_count + 1
+            return True
+        return False
 
     def set_conflict_state(self, row):
         self._lock.acquire()
@@ -1038,7 +1052,10 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
-        return c.rowcount == 1
+        if c.rowcount == 1:
+            self._items_count = self._items_count - 1
+            return True
+        return False
 
     def synchronize_state(self, row, version=None, state='synchronized'):
         if version is None:
@@ -1097,6 +1114,8 @@ class EngineDAO(ConfigurationDAO):
             log.trace("The previous row was: %r (version=%r)", row, row.version)
         elif row.folderish and state == 'synchronized':
             self.queue_children(row)
+        if result:
+            self._items_count = self._items_count - 1
         return result
 
     def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True):
@@ -1268,6 +1287,7 @@ class EngineDAO(ConfigurationDAO):
             if self.auto_commit:
                 con.commit()
             self._filters = self.get_filters()
+            self._items_count = self.get_syncing_count()
         finally:
             self._lock.release()
 
@@ -1281,6 +1301,7 @@ class EngineDAO(ConfigurationDAO):
             if self.auto_commit:
                 con.commit()
             self._filters = self.get_filters()
+            self._items_count = self.get_syncing_count()
         finally:
             self._lock.release()
 
