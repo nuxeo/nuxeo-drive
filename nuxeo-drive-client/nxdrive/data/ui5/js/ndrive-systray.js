@@ -63,6 +63,7 @@ var SystrayController = function($scope, $interval, $translate) {
 	}
 	$scope.setEngine = function(engine) {
 		$scope.engine = engine;
+		$scope.engine.syncing_count = drive.get_syncing_items($scope.engine.uid);
 		$scope.sync = drive.is_syncing($scope.engine.uid);
 		notifications = [];
 		notifs = angular.fromJson(drive.get_notifications($scope.engine.uid));
