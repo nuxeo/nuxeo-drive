@@ -470,6 +470,7 @@ class EngineDAO(ConfigurationDAO):
         self._queue_manager = None
         super(EngineDAO, self).__init__(db)
         self._filters = self.get_filters()
+        self._items_count = None
         self._items_count = self.get_syncing_count()
         self.reinit_processors()
 
