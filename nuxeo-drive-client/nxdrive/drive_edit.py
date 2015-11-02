@@ -307,7 +307,8 @@ class DriveEdit(Worker):
                 log.debug('Uploading file %s', self._local_client._abspath(ref))
                 remote_client.stream_update(uid, self._local_client._abspath(ref), apply_versioning_policy=True)
                 # Update hash value
-                self._local_client.set_remote_id(ref, current_digest, 'nxdriveeditdigest')
+                dir_path = os.path.dirname(ref)
+                self._local_client.set_remote_id(dir_path, current_digest, 'nxdriveeditdigest')
             except ThreadInterrupt:
                 raise
             except Exception as e:
