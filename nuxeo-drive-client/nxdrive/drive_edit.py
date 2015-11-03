@@ -271,6 +271,8 @@ class DriveEdit(Worker):
                         path = self._local_client._abspath(ref)
                         log.trace("Remove orphan: %s", path)
                         self._manager.get_autolock_service().orphan_unlocked(path)
+                        # Clean the folder
+                        shutil.rmtree(self._local_client._abspath(path), ignore_errors=True)
                     self._local_client.remove_remote_id(dir_path, "nxdriveeditlock")
             except Exception as e:
                 # Try again in 30s
