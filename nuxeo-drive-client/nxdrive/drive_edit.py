@@ -212,9 +212,6 @@ class DriveEdit(Worker):
         if sys.platform == 'win32' and os.path.exists(file_path):
             os.unlink(file_path)
         os.rename(tmp_file, file_path)
-        log.debug("will set_autolock on: '%s'", file_path)
-        if self._manager.get_drive_edit_auto_lock():
-            self._manager.get_autolock_service().set_autolock(file_path, self)
         return file_path
 
     def edit(self, server_url, doc_id, filename=None, user=None, download_url=None):
@@ -412,6 +409,8 @@ class DriveEdit(Worker):
                 name = decoded_name
             if name != file_name:
                 return
+            if self._manager.get_drive_edit_auto_lock() and self._local_client.get_remote_id(dir_path, "nxdriveeditlock") != "1":
+                self._manager.get_autolock_service().set_autolock(src_path, self)
             if queue:
                 # ADD TO UPLOAD QUEUE
                 self._upload_queue.put(ref)
