@@ -292,8 +292,10 @@ class DriveEdit(Worker):
             # Don't update if digest are the same
             info = self._local_client.get_info(ref)
             try:
-                if info.get_digest(digest_func=digest_algorithm) == digest:
+                current_digest = info.get_digest(digest_func=digest_algorithm)
+                if current_digest == digest:
                     continue
+                log.trace("Local digest: %s is different from the recorded one: %s - modification detected", current_digest, digest)
                 # TO_REVIEW Should check if server-side blob has changed ?
                 # Update the document - should verify the remote hash - NXDRIVE-187
                 remote_info = remote_client.get_info(uid)
