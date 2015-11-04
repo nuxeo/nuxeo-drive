@@ -92,6 +92,9 @@ class LocalWatcher(EngineWorker):
                     # Dont retest if already local scan
                     if not trigger_local_scan and self._watchdog_queue.qsize() > self._windows_queue_threshold:
                         trigger_local_scan = True
+                        self._delete_events.clear()
+                        self._watchdog_queue = Queue()
+                        break
                     evt = self._watchdog_queue.get()
                     self.handle_watchdog_event(evt)
                     self._win_delete_check()
