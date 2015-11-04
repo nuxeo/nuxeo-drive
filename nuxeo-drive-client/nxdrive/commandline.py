@@ -626,6 +626,7 @@ class CliHandler(object):
             "nxdrive.tests.test_local_filter",
             "nxdrive.tests.test_local_move_and_rename",
             "nxdrive.tests.test_manager_dao",
+            "nxdrive.tests.test_multiple_files",
             "nxdrive.tests.test_model_filters",
             "nxdrive.tests.test_permission_hierarchy",
             "nxdrive.tests.test_readonly",
