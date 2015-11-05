@@ -247,6 +247,13 @@ class Manager(QtCore.QObject):
         self._dao.update_config("beta_update_url", options.beta_update_site_url)
         self.refresh_proxies()
         self._os = AbstractOSIntegration.get(self)
+        # Create DriveEdit
+        self._create_autolock_service()
+        self._create_drive_edit(options.protocol_url)
+        # Create notification service
+        self._script_engine = None
+        self._script_object = None
+        self._create_notification_service()
         self._started = False
         # Pause if in debug
         self._pause = self.is_debug()
@@ -254,8 +261,6 @@ class Manager(QtCore.QObject):
         self.updated = False  # self.update_version()
         if self.device_id is None:
             self.generate_device_id()
-
-        self._create_autolock_service()
 
         self.load()
 
@@ -265,14 +270,10 @@ class Manager(QtCore.QObject):
         # Force language
         if options.force_locale is not None:
             self.set_config("locale", options.force_locale)
-        self._create_drive_edit(options.protocol_url)
         # Setup analytics tracker
         self._tracker = None
         if self.get_tracking():
             self._create_tracker()
-        self._script_engine = None
-        self._script_object = None
-        self._create_notification_service()
 
     def _get_file_log_handler(self):
         # Might store it in global static
