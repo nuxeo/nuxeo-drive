@@ -475,7 +475,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self):
-        return 2
+        return 3
 
     def _migrate_db(self, cursor, version):
         if (version < 1):
@@ -486,6 +486,9 @@ class EngineDAO(ConfigurationDAO):
         if (version < 2):
             cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
             self.update_config(SCHEMA_VERSION, 2)
+        if (version < 3):
+            self._migrate_table(cursor, 'States')
+            self.update_config(SCHEMA_VERSION, 3)
 
     def _create_table(self, cursor, name, force=False):
         if name == "States":
@@ -499,11 +502,11 @@ class EngineDAO(ConfigurationDAO):
             statement = 'if not exists '
         cursor.execute("CREATE TABLE "+statement+"States(id INTEGER NOT NULL, last_local_updated TIMESTAMP,"
           + "last_remote_updated TIMESTAMP, local_digest VARCHAR, remote_digest VARCHAR, local_path VARCHAR,"
-          + "remote_ref VARCHAR UNIQUE, local_parent_path VARCHAR, remote_parent_ref VARCHAR, remote_parent_path VARCHAR,"
+          + "remote_ref VARCHAR, local_parent_path VARCHAR, remote_parent_ref VARCHAR, remote_parent_path VARCHAR,"
           + "local_name VARCHAR, remote_name VARCHAR, size INTEGER DEFAULT (0), folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
           + "pair_state VARCHAR DEFAULT('unknown'), remote_can_rename INTEGER, remote_can_delete INTEGER, remote_can_update INTEGER,"
           + "remote_can_create_child INTEGER, last_remote_modifier VARCHAR,"
-          + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, last_error_details TEXT, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), last_transfer VARCHAR, PRIMARY KEY (id));")
+          + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, last_error_details TEXT, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), last_transfer VARCHAR, PRIMARY KEY (id), UNIQUE(remote_ref, remote_parent_ref));")
 
     def _init_db(self, cursor):
         super(EngineDAO, self)._init_db(cursor)
