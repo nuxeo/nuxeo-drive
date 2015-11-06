@@ -364,12 +364,6 @@ class Processor(EngineWorker):
             raise ValueError(
                 "Parent folder of %s, %s is not bound to a remote folder"
                 % (doc_pair.local_path, doc_pair.local_parent_path))
-        if remote_ref is not None:
-            # Can be a moved that was ignore
-            original_pair = self._dao.get_normal_state_from_remote(remote_ref)
-            if original_pair.remote_parent_ref == parent_pair.remote_ref:
-                log.debug("Strange case")
-                pass
 
         if remote_ref is not None and '#' in remote_ref:
             # TODO Decide what to do
