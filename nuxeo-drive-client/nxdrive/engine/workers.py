@@ -44,6 +44,7 @@ class Worker(QObject):
         if name is None:
             name = type(self).__name__
         self._name = name
+        self._running = False
         self._thread.terminated.connect(self._terminated)
         self.stopWorker.connect(self.quit)
 
@@ -123,6 +124,9 @@ class Worker(QObject):
 
     @pyqtSlot()
     def run(self):
+        if self._running:
+            return
+        self._running = True
         self._continue = True
         self._pause = False
         reason = ''
@@ -148,6 +152,7 @@ class Worker(QObject):
             self._clean(reason, e)
         finally:
             self._thread.exit(0)
+            self._running = False
 
     def _clean(self, reason, e=None):
         pass
