@@ -83,18 +83,27 @@ class MultipleFilesTestCase(UnitTestCase):
         # move 'a1' under 'a2'
         src = self.local_client_1._abspath(self.folder_path_1)
         dst = self.local_client_1._abspath(self.folder_path_2)
+        log.debug("*** shutil move")
         shutil.move(src, dst)
         # check that 'My Docs/a1' does not exist anymore
         self.assertFalse(self.local_client_1.exists(self.folder_path_1))
         # check that 'My Docs/a2/a1' now exists
         self.assertTrue(self.local_client_1.exists(os.path.join(self.folder_path_2, 'a1')))
+        log.debug('*** shutil copy')
         # copy the 'My Docs/a2/a1' tree back under 'My Docs'
         shutil.copytree(self.local_client_1._abspath(os.path.join(self.folder_path_2, 'a1')),
                         self.local_client_1._abspath(self.folder_path_1))
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
         log.debug('*** engine 1 synced')
+        if self.queue_manager_1.get_errors_count() > 0:
+            self.queue_manager_1.requeue_errors()
+            # Sleep error timer
+            from time import sleep
+            log.debug("*** force blacklisted items")
+            sleep(2)
+            self.wait_sync(timeout=self.SYNC_TIMEOUT)
 
-        # expect 'My Docs/a2/a1' to contain the files
+        # expect '/a2/a1' to contain the files
         self.assertTrue(os.path.exists(self.local_client_1._abspath(os.path.join(self.folder_path_2, 'a1'))))
         children_1 = os.listdir(self.local_client_1._abspath(os.path.join(self.folder_path_2, 'a1')))
         self.assertEqual(len(children_1), self.NUMBER_OF_LOCAL_FILES,
@@ -110,6 +119,35 @@ class MultipleFilesTestCase(UnitTestCase):
                          'number of local files (%d)in "%s" is different from original (%d)' %
                          (len(children_2), self.folder_path_1, self.NUMBER_OF_LOCAL_FILES))
         self.assertEqual(set(children_2), set(['local%04d.txt' % file_num
+                                              for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1)]),
+                                                'file names are different')
+        # verify the remote one
+        a1copy_uid = self.local_client_1.get_remote_id('/a1')
+        a1_uid = self.local_client_1.get_remote_id('/a2/a1')
+        try:
+            log.debug("/a2/a1 and /a1: %s/%s", a1_uid, a1copy_uid)
+            children_1 = self.remote_file_system_client_1.get_children_info(a1_uid)
+            children_2 = self.remote_file_system_client_1.get_children_info(a1copy_uid)
+            log.debug("Children1: %r", children_1)
+            log.debug("Children2: %r", children_2)
+        except:
+            pass
+        self.assertEqual(len(children_1), self.NUMBER_OF_LOCAL_FILES,
+                         'number of remote files (%d) in "%s" is different from original (%d)' %
+                         (len(children_1), os.path.join(self.folder_path_2, 'a1'), self.NUMBER_OF_LOCAL_FILES))
+        children_1_name = set()
+        for child in children_1:
+            children_1_name.add(child.name)
+        self.assertEqual(set(children_1_name), set(['local%04d.txt' % file_num
+                                              for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1)]),
+                                                'file names are different')
+        self.assertEqual(len(children_2), self.NUMBER_OF_LOCAL_FILES,
+                         'number of remote files (%d) in "%s" is different from original (%d)' %
+                         (len(children_2), os.path.join(self.folder_path_2, 'a1'), self.NUMBER_OF_LOCAL_FILES))
+        children_2_name = set()
+        for child in children_2:
+            children_2_name.add(child.name)
+        self.assertEqual(set(children_2_name), set(['local%04d.txt' % file_num
                                               for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1)]),
                                                 'file names are different')
         log.debug('*** exit CSPII7977TestCase.test_move_and_copy_paste_folder()')

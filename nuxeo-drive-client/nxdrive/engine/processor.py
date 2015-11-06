@@ -362,8 +362,15 @@ class Processor(EngineWorker):
                 self._handle_unsynchronized(local_client, doc_pair)
                 return
             raise ValueError(
-                "Parent folder of %s is not bound to a remote folder"
-                % doc_pair.local_parent_path)
+                "Parent folder of %s, %s is not bound to a remote folder"
+                % (doc_pair.local_path, doc_pair.local_parent_path))
+        if remote_ref is not None:
+            # Can be a moved that was ignore
+            original_pair = self._dao.get_normal_state_from_remote(remote_ref)
+            if original_pair.remote_parent_ref == parent_pair.remote_ref:
+                log.debug("Strange case")
+                pass
+
         if remote_ref is not None and '#' in remote_ref:
             # TODO Decide what to do
             log.warn("This document %r has remote_ref %s", doc_pair, remote_ref)
@@ -515,7 +522,10 @@ class Processor(EngineWorker):
                 self._handle_failed_remote_move(doc_pair, doc_pair)
         # Handle modification at the same time if needed
         if update:
-            self._synchronize_locally_modified(doc_pair, local_client, remote_client)
+            if doc_pair.local_state == 'moved':
+                self._dao.synchronize_state(doc_pair)
+            else:
+                self._synchronize_locally_modified(doc_pair, local_client, remote_client)
 
     def _synchronize_deleted_unknown(self, doc_pair, local_client, remote_client):
         # Somehow a pair can get to an inconsistent state:

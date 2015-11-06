@@ -217,6 +217,9 @@ class QueueManager(QObject):
     def _on_new_error(self):
         self._error_timer.start(1000)
 
+    def get_errors_count(self):
+        return len(self._on_error_queue)
+
     def get_error_threshold(self):
         return self._error_threshold
 
@@ -238,7 +241,7 @@ class QueueManager(QObject):
         self._error_lock.acquire()
         try:
             emit_sig = False
-            if len(self._on_error_queue) == 0:
+            if doc_pair.id not in self._on_error_queue:
                 emit_sig = True
             self._on_error_queue[doc_pair.id] = doc_pair
             if emit_sig:
@@ -246,9 +249,13 @@ class QueueManager(QObject):
         finally:
             self._error_lock.release()
 
-    def cancel_queued_errors(self):
-        for doc_pair in self._on_error_queue.values():
-            doc_pair.error_next_try = 0
+    def requeue_errors(self):
+        self._error_lock.acquire()
+        try:
+            for doc_pair in self._on_error_queue.values():
+                doc_pair.error_next_try = 0
+        finally:
+            self._error_lock.release()
 
     def _get_local_folder(self):
         if self._local_folder_queue.empty():
@@ -349,7 +356,7 @@ class QueueManager(QObject):
         metrics["remote_folder_thread"] = self._remote_folder_thread is not None
         metrics["local_file_thread"] = self._local_file_thread is not None
         metrics["local_folder_thread"] = self._local_folder_thread is not None
-        metrics["error_queue"] = len(self._on_error_queue)
+        metrics["error_queue"] = self.get_errors_count()
         metrics["total_queue"] = (metrics["local_folder_queue"] + metrics["local_file_queue"]
                                 + metrics["remote_folder_queue"] + metrics["remote_file_queue"])
         metrics["additional_processors"] = len(self._processors_pool)

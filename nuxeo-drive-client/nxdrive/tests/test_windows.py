@@ -123,7 +123,7 @@ class TestWindows(UnitTestCase):
             file1_desc.close()
             file2_desc.close()
             # Cancel error delay to force retrying synchronization of pairs in error
-            self.queue_manager_1.cancel_queued_errors()
+            self.queue_manager_1.requeue_errors()
             self.wait_sync()
 
             # Previously blacklisted files should be updated / deleted locally,
