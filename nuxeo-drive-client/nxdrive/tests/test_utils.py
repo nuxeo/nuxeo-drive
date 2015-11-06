@@ -81,6 +81,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(is_office_temp_file("A239FDZA.tmp"), False)
         self.assertEqual(is_office_temp_file("A2D9FDCA1"), False)
         self.assertEqual(is_office_temp_file("A2D9FDCA1.tmp"), False)
+        self.assertEqual(is_office_temp_file("9ABCDEF0.tep"), False)
 
         # Office 97
         self.assertEqual(is_office_temp_file("~A2D9FDCA1.tmp"), True)

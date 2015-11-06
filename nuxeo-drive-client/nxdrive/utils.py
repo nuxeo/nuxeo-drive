@@ -63,7 +63,7 @@ def is_office_temp_file(name):
     elif name.endswith(".tmp") and name.startswith("ppt"):
         # ppt98D2.tmp
         return is_hexastring(name[3:7])
-    elif len(name) == 12:
+    elif len(name) == 12 and name.endswith(".tmp"):
         # 813DEFA7.tmp file
         return is_hexastring(name[0:7])
     return False
