@@ -85,6 +85,7 @@ class Application(QApplication):
         self.options = options
         self.mainEngine = None
         self.filters_dlg = None
+        self._conflicts_modals = dict()
         self.current_notification = None
         # Make dialog unique
         self.uniqueDialogs = dict()
@@ -130,15 +131,19 @@ class Application(QApplication):
 
     @QtCore.pyqtSlot(str, str, str)
     def _direct_edit_conflict(self, filename, ref, digest):
+        filename = unicode(filename)
+        if filename in self._conflicts_modals:
+            return
+        self._conflicts_modals[filename] = True
         info = dict()
-        info["name"] = unicode(filename)
+        info["name"] = filename
         dlg = WebModal(self, Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", info))
         dlg.add_button("OVERWRITE", Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"))
         dlg.add_button("CANCEL", Translator.get("DIRECT_EDIT_CONFLICT_CANCEL"))
         res = dlg.exec_()
         if res == "OVERWRITE":
             self.manager.get_drive_edit().force_update(unicode(ref), unicode(digest))
-        # If cancel nothing to do
+        del self._conflicts_modals
 
     @QtCore.pyqtSlot()
     def _root_deleted(self):
