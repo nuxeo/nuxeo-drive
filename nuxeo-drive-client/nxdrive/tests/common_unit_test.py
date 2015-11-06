@@ -143,6 +143,7 @@ class UnitTestCase(unittest.TestCase):
         options.log_level_file = None
         options.update_site_url = None
         options.beta_update_site_url = None
+        options.autolock_interval = 30
         options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager(options)
         import nxdrive
