@@ -468,7 +468,7 @@ class LocalClient(BaseClient):
             attrs = win32api.GetFileAttributes(path)
             if attrs & win32con.FILE_ATTRIBUTE_SYSTEM == win32con.FILE_ATTRIBUTE_SYSTEM:
                 return True
-            if attrs & win32con.FILE_ATTRIBUTE_SYSTEM == win32con.FILE_ATTRIBUTE_HIDDEN:
+            if attrs & win32con.FILE_ATTRIBUTE_HIDDEN == win32con.FILE_ATTRIBUTE_HIDDEN:
                 return True
         return False
 
@@ -729,6 +729,7 @@ class LocalClient(BaseClient):
                 return os_path, name + suffix
             #raise ValueError("SHOULD NOT DUPLICATE NOW")
             # the is a duplicated file, try to come with a new name
+            log.trace("dedup: %s exist try next", os_path)
             m = re.match(DEDUPED_BASENAME_PATTERN, name)
             if m:
                 short_name, increment = m.groups()
