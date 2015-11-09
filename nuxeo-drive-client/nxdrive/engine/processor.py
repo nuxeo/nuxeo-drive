@@ -340,9 +340,10 @@ class Processor(EngineWorker):
 
     def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
         name = os.path.basename(doc_pair.local_path)
-        if is_office_temp_file(name) and doc_pair.error_count == 0:
+        if not doc_pair.folderish and is_office_temp_file(name) and doc_pair.error_count == 0:
             # Might be an Office temp file delay it by 60s
-            self._postpone_pair(doc_pair, 'Can be Office Temp')
+            # Save the error_count to not ignore next time
+            self.increase_error(doc_pair, 'Can be Office Temp')
             return
         remote_ref = local_client.get_remote_id(doc_pair.local_path)
         # Find the parent pair to find the ref of the remote folder to
