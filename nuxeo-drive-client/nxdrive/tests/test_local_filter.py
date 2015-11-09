@@ -69,7 +69,7 @@ class TestLocalFilter(UnitTestCase):
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
-    def test_synchronize_local_office_temo(self):
+    def test_synchronize_local_office_temp(self):
         # Should synchronize directly local folder with hex name
         # Bind the server and root workspace
         hexaname = "1234ABCD"
