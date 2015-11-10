@@ -612,7 +612,7 @@ class Processor(EngineWorker):
                         moved_name = doc_pair.remote_name if is_renaming else doc_pair.local_name
                         # NXDRIVE-471: log
                         old_path = doc_pair.local_path
-                        new_path = local_client._abspath(new_parent_pair.local_path + '/' + moved_name)
+                        new_path = new_parent_pair.local_path + '/' + moved_name
                         log.debug("DOC_PAIR(%r): old_path[%d][%r]: %s, new_path[%d][%r]: %s",
                             doc_pair, local_client.exists(old_path), local_client.get_remote_id(old_path), old_path,
                             local_client.exists(new_path), local_client.get_remote_id(new_path), new_path)
