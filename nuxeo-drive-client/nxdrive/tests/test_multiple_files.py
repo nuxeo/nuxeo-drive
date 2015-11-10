@@ -48,14 +48,14 @@ class MultipleFilesTestCase(UnitTestCase):
     SYNC_TIMEOUT = 10000 # in seconds
 
     '''
-        1. create folder 'My Docs/a1' with 100 files in it
-        2. create folder 'My Docs/a2'
+        1. create folder 'Nuxeo Drive Test Workspace/a1' with 100 files in it
+        2. create folder 'Nuxeo Drive Test Workspace/a2'
         2. create folder 'Nuxeo Drive Test Workspace/a3'
     '''
     def setUp(self):
         super(MultipleFilesTestCase, self).setUp()
 
-        log.debug('*** enter CSPII7977TestCase.setUp()')
+        log.debug('*** enter MultipleFilesTestCase.setUp()')
         log.debug('*** engine1 starting')
         self.engine_1.start()
         self.wait_sync()
@@ -65,7 +65,7 @@ class MultipleFilesTestCase(UnitTestCase):
         # create  folder a1
         self.local_client_1.make_folder("/", ur'a1')
         self.folder_path_1 = os.path.join("/", 'a1')
-        # add 100 files in folder 'My Docs/a1'
+        # add 100 files in folder 'Nuxeo Drive Test Workspace/a1'
         for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1):
             self.local_client_1.make_file(self.folder_path_1, 'local%04d.txt' % file_num, self.FILE_CONTENT)
         log.debug('local test files created')
@@ -74,14 +74,14 @@ class MultipleFilesTestCase(UnitTestCase):
         self.folder_path_2 = os.path.join("/", 'a2')
         self.folder_path_3 = os.path.join("/", 'a3')
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
-        log.debug('*** exit CSPII7977TestCase.setUp()')
+        log.debug('*** exit MultipleFilesTestCase.setUp()')
 
     def test_move_and_copy_paste_folder_original_location(self):
         raise SkipTest("NXDRIVE-471: Temporarily skipped waiting for a fix")
         """
-        Move folder 'My Docs/a1' under 'My Docs/a2'.
-        Then copy 'My Docs/a2/a1' back under 'My Docs', so files are both in
-        'My Docs/a1' and 'My Docs/a2/a1'.
+        Move folder 'Nuxeo Drive Test Workspace/a1' under 'Nuxeo Drive Test Workspace/a2'.
+        Then copy 'Nuxeo Drive Test Workspace/a2/a1' back under 'Nuxeo Drive Test Workspace', so files are both in
+        'Nuxeo Drive Test Workspace/a1' and 'Nuxeo Drive Test Workspace/a2/a1'.
         """
         log.debug('*** enter MultipleFilesTestCase.test_move_and_copy_paste_folder_original_location')
         # move 'a1' under 'a2'
@@ -89,12 +89,12 @@ class MultipleFilesTestCase(UnitTestCase):
         dst = self.local_client_1._abspath(self.folder_path_2)
         log.debug("*** shutil move")
         shutil.move(src, dst)
-        # check that 'My Docs/a1' does not exist anymore
+        # check that 'Nuxeo Drive Test Workspace/a1' does not exist anymore
         self.assertFalse(self.local_client_1.exists(self.folder_path_1))
-        # check that 'My Docs/a2/a1' now exists
+        # check that 'Nuxeo Drive Test Workspace/a2/a1' now exists
         self.assertTrue(self.local_client_1.exists(os.path.join(self.folder_path_2, 'a1')))
         log.debug('*** shutil copy')
-        # copy the 'My Docs/a2/a1' tree back under 'My Docs'
+        # copy the 'Nuxeo Drive Test Workspace/a2/a1' tree back under 'Nuxeo Drive Test Workspace'
         shutil.copytree(self.local_client_1._abspath(os.path.join(self.folder_path_2, 'a1')),
                         self.local_client_1._abspath(self.folder_path_1))
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
@@ -116,7 +116,7 @@ class MultipleFilesTestCase(UnitTestCase):
         self.assertEqual(set(children_1), set(['local%04d.txt' % file_num
                                               for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1)]),
                                                 'file names are different')
-        # expect 'My Docs/a1' to contain also the files
+        # expect 'Nuxeo Drive Test Workspace/a1' to contain also the files
         self.assertTrue(os.path.exists(self.local_client_1._abspath(self.folder_path_1)))
         children_2 = os.listdir(self.local_client_1._abspath(self.folder_path_1))
         self.assertEqual(len(children_2), self.NUMBER_OF_LOCAL_FILES,
