@@ -45,7 +45,7 @@ class MultipleFilesTestCase(UnitTestCase):
         """
 
     NUMBER_OF_LOCAL_FILES = 100
-    SYNC_TIMEOUT = 10000 # in seconds
+    SYNC_TIMEOUT = 10000  # in seconds
 
     '''
         1. create folder 'Nuxeo Drive Test Workspace/a1' with 100 files in it
@@ -115,7 +115,7 @@ class MultipleFilesTestCase(UnitTestCase):
                          (len(children_1), os.path.join(self.folder_path_2, 'a1'), self.NUMBER_OF_LOCAL_FILES))
         self.assertEqual(set(children_1), set(['local%04d.txt' % file_num
                                               for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1)]),
-                                                'file names are different')
+                         'file names are different')
         # expect 'Nuxeo Drive Test Workspace/a1' to contain also the files
         self.assertTrue(os.path.exists(self.local_client_1._abspath(self.folder_path_1)))
         children_2 = os.listdir(self.local_client_1._abspath(self.folder_path_1))
@@ -124,7 +124,7 @@ class MultipleFilesTestCase(UnitTestCase):
                          (len(children_2), self.folder_path_1, self.NUMBER_OF_LOCAL_FILES))
         self.assertEqual(set(children_2), set(['local%04d.txt' % file_num
                                               for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1)]),
-                                                'file names are different')
+                         'file names are different')
         # verify the remote one
         a1copy_uid = self.local_client_1.get_remote_id('/a1')
         a1_uid = self.local_client_1.get_remote_id('/a2/a1')
@@ -143,8 +143,8 @@ class MultipleFilesTestCase(UnitTestCase):
         for child in children_1:
             children_1_name.add(child.name)
         self.assertEqual(set(children_1_name), set(['local%04d.txt' % file_num
-                                              for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1)]),
-                                                'file names are different')
+                                                    for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1)]),
+                         'file names are different')
         self.assertEqual(len(children_2), self.NUMBER_OF_LOCAL_FILES,
                          'number of remote files (%d) in "%s" is different from original (%d)' %
                          (len(children_2), os.path.join(self.folder_path_2, 'a1'), self.NUMBER_OF_LOCAL_FILES))
@@ -152,6 +152,8 @@ class MultipleFilesTestCase(UnitTestCase):
         for child in children_2:
             children_2_name.add(child.name)
         self.assertEqual(set(children_2_name), set(['local%04d.txt' % file_num
+                                                    for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1)]),
+                         'file names are different')
         log.debug('*** exit MultipleFilesTestCase.test_move_and_copy_paste_folder_original_location')
 
     def test_move_and_copy_paste_folder_new_location(self):
@@ -193,7 +195,7 @@ class MultipleFilesTestCase(UnitTestCase):
                          (len(children_1), os.path.join(self.folder_path_2, 'a1'), self.NUMBER_OF_LOCAL_FILES))
         self.assertEqual(set(children_1), set(['local%04d.txt' % file_num
                                               for file_num in range(1, self.NUMBER_OF_LOCAL_FILES+1)]),
-                                                'file names are different')
+                         'file names are different')
         # expect 'Nuxeo Drive Test Workspace/a3' to contain also the files
         self.assertTrue(os.path.exists(self.local_client_1._abspath(self.folder_path_3)))
         children_2 = os.listdir(self.local_client_1._abspath(self.folder_path_3))
