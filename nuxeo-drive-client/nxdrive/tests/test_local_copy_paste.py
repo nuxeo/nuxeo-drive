@@ -57,6 +57,7 @@ class TestLocalCopyPaste(UnitTestCase):
         log.debug('*** engine1 starting ***')
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
+        self.engine_1.stop()
         log.debug('*** engine1 synced ***')
         log.debug("full local root path %s", self.local_root_client_1.get_info("/"))
         self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace'),
@@ -65,6 +66,13 @@ class TestLocalCopyPaste(UnitTestCase):
         # create  folder A
         self.local_root_client_1.make_folder("/Nuxeo Drive Test Workspace", self.FOLDER_1)
         self.folder_path_1 = os.path.join("/Nuxeo Drive Test Workspace", self.FOLDER_1)
+
+        # create  folder B
+        # NXDRIVE-477 If created after files are created inside A, creation of B isn't detected wy Watchdog!
+        # Reproducible with watchdemo, need to investigate.
+        # That's why we are now using local scan for setUp.
+        self.local_root_client_1.make_folder("/Nuxeo Drive Test Workspace", self.FOLDER_2)
+        self.folder_path_2 = os.path.join("/Nuxeo Drive Test Workspace", self.FOLDER_2)
 
         # add text files in folder 'Nuxeo Drive Test Workspace/A'
         self.local_files_list = []
@@ -87,10 +95,9 @@ class TestLocalCopyPaste(UnitTestCase):
             self.local_files_list.append(filename)
         log.debug('local test files created in Nuxeo Drive Test Workspace/A')
 
-        # create  folder B
-        self.local_root_client_1.make_folder("/Nuxeo Drive Test Workspace", self.FOLDER_2)
-        self.folder_path_2 = os.path.join("/Nuxeo Drive Test Workspace", self.FOLDER_2)
-        self.wait_sync()
+        self.engine_1.start()
+        self.wait_sync(timeout=self.SYNC_TIMEOUT)
+        self.engine_1.stop()
 
         # get remote folders reference ids
         self.remote_ref_1 = self.local_root_client_1.get_remote_id(self.folder_path_1)
@@ -99,6 +106,10 @@ class TestLocalCopyPaste(UnitTestCase):
                         'remote folder for %s does not exist' % self.folder_path_1)
         self.assertTrue(self.remote_file_system_client_1.exists(self.remote_ref_2),
                         'remote folder for %s does not exist' % self.folder_path_2)
+
+        self.assertEquals(len(self.remote_file_system_client_1.get_children_info(self.remote_ref_1)),
+                          self.NUMBER_OF_LOCAL_FILES_TOTAL)
+
         log.debug('*** exit TestLocalCopyPaste.setUp() ***')
 
     def tearDown(self):
@@ -127,6 +138,7 @@ class TestLocalCopyPaste(UnitTestCase):
 
     def test_local_copy_paste_files(self):
         log.debug('*** enter TestLocalCopyPaste.test_local_copy_paste_files() ***')
+        self.engine_1.start()
         # copy all children (files) of A to B
         src = self.local_root_client_1._abspath(self.folder_path_1)
         dst = self.local_root_client_1._abspath(self.folder_path_2)
