@@ -36,8 +36,8 @@ class TestLocalCopyPaste(UnitTestCase):
         blandit et diam. Vivamus efficitur erat nec justo vestibulum fringilla. Mauris quis dictum elit, eget tempus ex.
         """
 
-    NUMBER_OF_LOCAL_TEXT_FILES = 10
-    NUMBER_OF_LOCAL_IMAGE_FILES = 10
+    NUMBER_OF_LOCAL_TEXT_FILES = 100
+    NUMBER_OF_LOCAL_IMAGE_FILES = 100
     NUMBER_OF_LOCAL_FILES_TOTAL = NUMBER_OF_LOCAL_TEXT_FILES + NUMBER_OF_LOCAL_IMAGE_FILES
     FILE_NAME_PATTERN = 'file%03d.%s'
     TEST_DOC_RESOURCE = 'cat.jpg'
