@@ -176,17 +176,18 @@ class TestLocalCopyPaste(UnitTestCase):
 
         # expect remote 'Nuxeo Drive Test Workspace/A' to contain all the files
         # just compare the names
+        remote_ref_1_name = self.remote_file_system_client_1.get_info(self.remote_ref_1).name
         remote_children_1 = [remote_info.name
                              for remote_info in self.remote_file_system_client_1.get_children_info(self.remote_ref_1)]
 
         postcondition5 = len(remote_children_1) == self.NUMBER_OF_LOCAL_FILES_TOTAL
         postcondition5_error = 'number of remote files (%d) in "%s" is different from original (%d)' % \
-                               (len(remote_children_1), self.remote_ref_1, self.NUMBER_OF_LOCAL_FILES_TOTAL)
+                               (len(remote_children_1), remote_ref_1_name, self.NUMBER_OF_LOCAL_FILES_TOTAL)
         remote_files_expected = set(self.local_files_list)
         remote_files_actual = set(remote_children_1)
         postcondition6 = remote_files_actual == remote_files_expected
         postcondition6_error = ('remote file names in "%s" are different, e.g. duplicate files (renamed)'
-                                % self.remote_ref_1)
+                                % remote_ref_1_name)
         if not postcondition6:
             unexpected_actual_files = '\n'.join(local_files_actual.difference(remote_files_expected))
             missing_expected_files = '\n'.join(local_files_expected.difference(remote_files_actual))
@@ -195,17 +196,18 @@ class TestLocalCopyPaste(UnitTestCase):
 
         # expect remote 'Nuxeo Drive Test Workspace/B' to contain all the files
         # just compare the names
+        remote_ref_2_name = self.remote_file_system_client_1.get_info(self.remote_ref_2).name
         remote_children_2 = [remote_info.name
                              for remote_info in self.remote_file_system_client_1.get_children_info(self.remote_ref_2)]
 
         postcondition7 = len(remote_children_2) == self.NUMBER_OF_LOCAL_FILES_TOTAL
         postcondition7_error = 'number of remote files (%d) in "%s" is different from original (%d)' % \
-                               (len(remote_children_2), self.remote_ref_2, self.NUMBER_OF_LOCAL_FILES_TOTAL)
+                               (len(remote_children_2), remote_ref_2_name, self.NUMBER_OF_LOCAL_FILES_TOTAL)
         remote_files_expected = set(self.local_files_list)
         remote_files_actual = set(remote_children_2)
         postcondition8 = remote_files_actual == remote_files_expected
         postcondition8_error = ('remote file names in "%s" are different, e.g. duplicate files (renamed)'
-                                % self.remote_ref_2)
+                                % remote_ref_2_name)
         if not postcondition8:
             unexpected_actual_files = '\n'.join(local_files_actual.difference(remote_files_expected))
             missing_expected_files = '\n'.join(local_files_expected.difference(remote_files_actual))
