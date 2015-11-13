@@ -178,6 +178,7 @@ class LocalWatcher(EngineWorker):
         return self._watchdog_queue.empty()
 
     def _scan_recursive(self, info, recursive=True):
+        log.debug('Starting recursive local scan of %r', info.path)
         self._interact()
         # Load all children from FS
         # detect recently deleted children
@@ -333,6 +334,8 @@ class LocalWatcher(EngineWorker):
 
         for child_info in to_scan:
             self._scan_recursive(child_info)
+
+        log.debug('Ended recursive local scan of %r', info.path)
 
     def _setup_watchdog(self):
         from watchdog.observers import Observer
