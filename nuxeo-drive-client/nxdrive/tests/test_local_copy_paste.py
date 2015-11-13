@@ -43,6 +43,7 @@ class TestLocalCopyPaste(UnitTestCase):
     TEST_DOC_RESOURCE = 'cat.jpg'
     FOLDER_1 = u'A'
     FOLDER_2 = u'B'
+    SYNC_TIMEOUT = 100  # in seconds
 
     '''
         1. create folder 'Nuxeo Drive Test Workspace/A' with 100 files in it
@@ -55,7 +56,7 @@ class TestLocalCopyPaste(UnitTestCase):
         log.debug('*** enter TestLocalCopyPaste.setUp() ***')
         log.debug('*** engine1 starting ***')
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         log.debug('*** engine1 synced ***')
         log.debug("full local root path %s", self.local_root_client_1.get_info("/"))
         self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace'),
@@ -131,7 +132,7 @@ class TestLocalCopyPaste(UnitTestCase):
         dst = self.local_root_client_1._abspath(self.folder_path_2)
         for f in os.listdir(src):
             shutil.copy(os.path.join(src, f), dst)
-        self.wait_sync()
+        self.wait_sync(timeout=self.SYNC_TIMEOUT)
         log.debug('*** engine1 synced ***')
 
         # expect local 'Nuxeo Drive Test Workspace/A' to contain all the files
