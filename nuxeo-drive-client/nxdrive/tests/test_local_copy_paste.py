@@ -126,13 +126,6 @@ class TestLocalCopyPaste(UnitTestCase):
         for f in os.listdir(abs_folder_path_2):
             log.debug(f)
 
-        # remove local folders
-        try:
-            self.local_root_client_1.delete_final(self.folder_path_1)
-            self.local_root_client_1.delete_final(self.folder_path_2)
-        except:
-            pass
-        self.wait_sync()
         super(TestLocalCopyPaste, self).tearDown()
         log.debug('*** exit TestLocalCopyPaste.tearDown() ***')
 
