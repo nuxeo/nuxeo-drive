@@ -22,6 +22,7 @@ class TestLocalCreateFolders(UnitTestCase):
 
         log.debug('*** enter TestLocalCreateFolders.setUp() ***')
         log.debug('*** engine1 starting ***')
+        self.engine_1.get_local_watcher().set_windows_queue_threshold(1000)
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         log.debug('*** engine1 synced ***')

@@ -481,6 +481,9 @@ class Engine(QObject):
     def get_queue_manager(self):
         return self._queue_manager
 
+    def get_local_watcher(self):
+        return self._local_watcher
+
     def get_remote_watcher(self):
         return self._remote_watcher
 
