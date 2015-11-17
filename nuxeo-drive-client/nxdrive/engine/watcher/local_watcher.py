@@ -191,8 +191,9 @@ class LocalWatcher(EngineWorker):
                               local_path)
                     continue
                 if not self.client.exists(local_path):
-                    log.debug("Win: dequeuing folder scan event as folder doesn't exist: %r", local_path)
-                    del self._folder_scan_events[local_path]
+                    if local_path in self._folder_scan_events:
+                        log.debug("Win: dequeuing folder scan event as folder doesn't exist: %r", local_path)
+                        del self._folder_scan_events[local_path]
                     continue
                 local_info = self.client.get_info(local_path, raise_if_missing=False)
                 if local_info is None:
@@ -520,6 +521,7 @@ class LocalWatcher(EngineWorker):
                         return
             local_info = self.client.get_info(rel_path, raise_if_missing=False)
             if local_info is not None:
+                old_local_path = None
                 rel_parent_path = self.client.get_path(os.path.dirname(src_path))
                 if rel_parent_path == '':
                     rel_parent_path = '/'
@@ -534,7 +536,18 @@ class LocalWatcher(EngineWorker):
                     log.debug("Detect move for %r (%r)", local_info.name, doc_pair)
                     if doc_pair.local_state != 'created':
                         doc_pair.local_state = 'moved'
+                        old_local_path = doc_pair.local_path
                 self._dao.update_local_state(doc_pair, local_info, versionned=False)
+                if self._windows and old_local_path is not None:
+                    self._win_lock.acquire()
+                    try:
+                        if old_local_path in self._folder_scan_events:
+                            log.debug('Update queue of folders to scan: move from %r to %r', old_local_path, rel_path)
+                            del self._folder_scan_events[old_local_path]
+                            self._folder_scan_events[rel_path] = (
+                                            mktime(local_info.last_modification_time.timetuple()), doc_pair)
+                    finally:
+                        self._win_lock.release()
             return
         if doc_pair.processor > 0:
             log.trace("Don't update as in process %r", doc_pair)
