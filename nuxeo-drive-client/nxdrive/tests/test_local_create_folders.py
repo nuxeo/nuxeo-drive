@@ -94,6 +94,7 @@ class TestLocalCreateFolders(UnitTestCase):
         self.assertIsNotNone(self.remote_ref_1)
         self.remote_ref_2 = self.local_root_client_1.get_remote_id(self.folder_path_2)
         self.assertIsNotNone(self.remote_ref_2)
+
         self.assertTrue(self.remote_file_system_client_1.exists(self.remote_ref_1),
                         'remote folder for %s does not exist' % self.folder_path_1)
         self.assertTrue(self.remote_file_system_client_1.exists(self.remote_ref_2),
