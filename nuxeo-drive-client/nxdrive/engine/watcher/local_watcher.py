@@ -707,8 +707,6 @@ class LocalWatcher(EngineWorker):
                 log.debug('Add pair to folder scan events: %r', doc_pair)
                 local_info = self.client.get_info(doc_pair.local_path, raise_if_missing=False)
                 if local_info is not None:
-                    log.debug('local_info.last_modification_time = %r', local_info.last_modification_time)
-                    log.debug('mktime(local_info.last_modification_time.timetuple()) = %r', mktime(local_info.last_modification_time.timetuple()))
                     self._folder_scan_events[doc_pair.local_path] = (
                         mktime(local_info.last_modification_time.timetuple()), doc_pair)
             finally:
