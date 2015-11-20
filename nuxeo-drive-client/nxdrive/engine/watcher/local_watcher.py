@@ -253,20 +253,28 @@ class LocalWatcher(EngineWorker):
     def _scan_recursive(self, info, recursive=True):
         log.debug('Starting recursive local scan of %r', info.path)
         self._interact()
-        # Load all children from FS
-        # detect recently deleted children
-        try:
-            fs_children_info = self.client.get_children_info(info.path)
-        except OSError:
-            # The folder has been deleted in the mean time
-            return
+
+        # Load all children from DB
+        log.trace('Starting to get DB local children for %r', info.path)
         db_children = self._dao.get_local_children(info.path)
+        log.trace('Fetched DB local children for %r', info.path)
+
         # Create a list of all children by their name
         children = dict()
         to_scan = []
         to_scan_new = []
         for child in db_children:
             children[child.local_name] = child
+
+        # Load all children from FS
+        # detect recently deleted children
+        log.trace('Starting to get FS children info for %r', info.path)
+        try:
+            fs_children_info = self.client.get_children_info(info.path)
+        except OSError:
+            # The folder has been deleted in the mean time
+            return
+        log.trace('Fetched FS children info for %r', info.path)
 
         # Get remote children to be able to check if a local child found during the scan is really a new item
         # or if it is just the result of a remote creation performed on the file system but not yet updated in the DB
