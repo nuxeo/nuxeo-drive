@@ -437,9 +437,10 @@ class LocalWatcher(EngineWorker):
         # Monkey-patch Watchdog to
         # - Set the Windows hack delay to 0 in WindowsApiEmitter, otherwise we might miss some events
         # - Increase the ReadDirectoryChangesW buffer size for Windows
-        import watchdog.observers
-        watchdog.observers.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
-        watchdog.observers.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
+        if self._windows:
+            import watchdog.observers
+            watchdog.observers.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
+            watchdog.observers.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
         from watchdog.observers import Observer
         log.debug("Watching FS modification on : %s", self.client.base_folder)
         self._event_handler = DriveFSEventHandler(self)
