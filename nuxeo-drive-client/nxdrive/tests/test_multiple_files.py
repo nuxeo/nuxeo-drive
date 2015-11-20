@@ -15,7 +15,7 @@ import shutil
 
 class MultipleFilesTestCase(UnitTestCase):
 
-    NUMBER_OF_LOCAL_FILES = 20
+    NUMBER_OF_LOCAL_FILES = 10
     SYNC_TIMEOUT = 100  # in seconds
 
     '''
