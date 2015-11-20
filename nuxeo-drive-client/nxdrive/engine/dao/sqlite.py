@@ -731,6 +731,10 @@ class EngineDAO(ConfigurationDAO):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_ref=?", (ref,)).fetchall()
 
+    def get_new_remote_children(self, ref):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_state='created' AND local_state='unknown'", (ref,)).fetchall()
+
     def get_conflict_count(self):
         return self.get_count("pair_state='conflicted'")
 

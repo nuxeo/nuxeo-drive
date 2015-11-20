@@ -268,6 +268,16 @@ class LocalWatcher(EngineWorker):
         for child in db_children:
             children[child.local_name] = child
 
+        # Get remote children to be able to check if a local child found during the scan is really a new item
+        # or if it is just the result of a remote creation performed on the file system but not yet updated in the DB
+        # as for its local information
+        remote_children = []
+        parent_remote_id = self.client.get_remote_id(info.path)
+        if parent_remote_id is not None:
+            remote_children_pairs = self._dao.get_new_remote_children(parent_remote_id)
+            for remote_child_pair in remote_children_pairs:
+                remote_children.append(remote_child_pair.remote_name)
+
         # recursively update children
         for child_info in fs_children_info:
             child_name = os.path.basename(child_info.path)
@@ -276,6 +286,11 @@ class LocalWatcher(EngineWorker):
                 try:
                     remote_id = self.client.get_remote_id(child_info.path)
                     if remote_id is None:
+                        # Avoid IntegrityError: do not insert a new pair state if item is already referenced in the DB
+                        if remote_children and child_name in remote_children:
+                            log.debug('Skip potential new %s as it is the result of a remote creation: %r',
+                                      child_type, child_info.path)
+                            continue
                         log.debug("Found new %s %s", child_type, child_info.path)
                         self._metrics['new_files'] = self._metrics['new_files'] + 1
                         self._dao.insert_local_state(child_info, info.path)
