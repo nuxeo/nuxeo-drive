@@ -165,6 +165,8 @@ class TestLocalMoveAndRename(UnitTestCase):
             u'Original Folder 1')
 
     def test_local_rename_file_uppercase(self):
+        if sys.platform == 'win32':
+            raise SkipTest("NXDRIVE-480: Temporarily skipped, need to investigate")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
