@@ -362,6 +362,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.wait()
 
     def test_concurrent_local_rename_folder(self):
+        if sys.platform == 'win32':
+            raise SkipTest("NXDRIVE-478: Temporarily skipped, need to investigate")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
