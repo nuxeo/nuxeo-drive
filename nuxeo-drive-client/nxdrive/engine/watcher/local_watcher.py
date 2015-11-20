@@ -498,6 +498,7 @@ class LocalWatcher(EngineWorker):
             self._dao.delete_local_state(doc_pair)
 
     def _handle_watchdog_event_on_known_pair(self, doc_pair, evt, rel_path):
+        log.trace("watchdog event %r on known pair: %r", evt, doc_pair)
         if (evt.event_type == 'moved'):
             # Ignore move to Office tmp file
             src_filename = os.path.basename(evt.src_path)
@@ -690,15 +691,17 @@ class LocalWatcher(EngineWorker):
                 '''
                 local_info = self.client.get_info(rel_path, raise_if_missing=False)
                 if local_info is None:
-                    log.trace("Event on a disapeared file: %r %s %s", evt, rel_path, file_name)
+                    log.trace("Event on a disappeared file: %r %s %s", evt, rel_path, file_name)
                     return
                 # This might be a move but Windows don't emit this event...
                 if local_info.remote_ref is not None:
                     from_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
+                    log.debug('Move or copy paste from %r to %r', from_pair.local_path, rel_path)
                     if from_pair is not None and (from_pair.processor > 0 or from_pair.local_path == rel_path):
                         # First condition is in process
                         # Second condition is a race condition
-                        log.trace("Ignore creation or modification as the coming pair is being processed")
+                        log.trace("Ignore creation or modification as the coming pair is being processed: %r",
+                                  rel_path)
                         return
                     if self._windows:
                         self._win_lock.acquire()
