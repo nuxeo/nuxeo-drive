@@ -623,6 +623,8 @@ class CliHandler(object):
             "nxdrive.tests.test_integration_local_storage_space_issue",
             "nxdrive.tests.test_integration_reinit_database",
             "nxdrive.tests.test_local_client",
+            "nxdrive.tests.test_local_copy_paste",
+            "nxdrive.tests.test_local_create_folders",
             "nxdrive.tests.test_local_filter",
             "nxdrive.tests.test_local_move_and_rename",
             "nxdrive.tests.test_manager_dao",
