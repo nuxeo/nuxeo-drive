@@ -26,8 +26,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
     def setUp(self):
         super(TestRemoteMoveAndRename, self).setUp()
-        self.local_root_client_1.make_folder('/', self.workspace_title)
         self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
         self.remote_client_1 = self.remote_file_system_client_1
 
         self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'

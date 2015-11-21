@@ -1068,8 +1068,9 @@ class EngineDAO(ConfigurationDAO):
     def synchronize_state(self, row, version=None, state='synchronized'):
         if version is None:
             version = row.version
-        log.trace('Try to synchronize state for [local_path=%s, remote_name=%s, version=%s] with version=%s',
-                  row.local_path, row.remote_name, row.version, version)
+        log.trace('Try to synchronize state for [local_path=%s, remote_name=%s, version=%s] with version=%s'
+                  ' and state=%s',
+                  row.local_path, row.remote_name, row.version, version, state)
         self._lock.acquire()
         try:
             con = self._get_write_connection()

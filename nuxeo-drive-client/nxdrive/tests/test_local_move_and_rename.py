@@ -27,8 +27,8 @@ class TestLocalMoveAndRename(UnitTestCase):
     #    |-- Original Folder 2
     #    |       |-- Original File 3.txt
     def setUp(self):
-        self.local_root_client_1.make_folder('/', self.workspace_title)
         self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
         self.local_client_1.make_file('/', u'Original File 1.txt',
             content=u'Some Content 1'.encode('utf-8'))
 
@@ -371,8 +371,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.wait()
 
     def test_concurrent_local_rename_folder(self):
-        if sys.platform == 'win32':
-            raise SkipTest("NXDRIVE-478: Temporarily skipped, need to investigate")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 

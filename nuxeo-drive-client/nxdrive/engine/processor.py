@@ -349,6 +349,7 @@ class Processor(EngineWorker):
         # Find the parent pair to find the ref of the remote folder to
         # create the document
         parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
+        log.trace('Entered _synchronize_locally_created, parent_pair = %r', parent_pair)
         if parent_pair is None:
             # Try to get it from xattr
             log.trace("Fallback to xattr")
