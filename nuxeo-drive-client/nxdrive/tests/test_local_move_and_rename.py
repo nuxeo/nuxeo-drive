@@ -99,8 +99,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEquals('Renamed File.txt', info.name)
 
     def test_local_rename_file(self):
-        if sys.platform == 'win32':
-            raise SkipTest("NXDRIVE-480: Temporarily skipped, need to investigate")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -165,8 +163,6 @@ class TestLocalMoveAndRename(UnitTestCase):
             u'Original Folder 1')
 
     def test_local_rename_file_uppercase(self):
-        if sys.platform == 'win32':
-            raise SkipTest("NXDRIVE-480: Temporarily skipped, need to investigate")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -325,8 +321,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertIsNotNone(local_client.get_remote_id('/Renamed File.txt'))
 
     def test_local_move_folder(self):
-        if sys.platform == 'win32':
-            raise SkipTest("NXDRIVE-480: Temporarily skipped, need to investigate")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
@@ -623,8 +617,6 @@ class TestLocalMoveAndRename(UnitTestCase):
                           u'Sub-Folder 1.1')
 
     def test_local_move_with_remote_error(self):
-        if sys.platform == 'win32':
-            raise SkipTest("NXDRIVE-480: Temporarily skipped, need to investigate")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
