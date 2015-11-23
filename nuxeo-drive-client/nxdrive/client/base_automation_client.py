@@ -432,7 +432,10 @@ class BaseAutomationClient(BaseClient):
                       upload_duration, command, file_path)
             if upload_duration > 0:
                 log.trace("Speed for %d o is %d s : %f o/s", os.stat(file_path).st_size, upload_duration, os.stat(file_path).st_size / upload_duration)
-            if upload_result['uploaded'] == 'true':
+            # NXDRIVE-433: Compat with 7.4 intermediate state
+            if upload_result.get('uploaded') is None:
+                self.chunking_upload_available = False
+            if upload_result.get('batchId') is not None:
                 result = self.execute_batch(command, batch_id, '0', tx_timeout,
                                           **params)
                 return result
