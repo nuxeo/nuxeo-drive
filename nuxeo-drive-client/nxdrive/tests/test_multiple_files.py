@@ -99,7 +99,9 @@ class MultipleFilesTestCase(UnitTestCase):
                          'file names are different')
         # verify the remote one
         a1copy_uid = self.local_client_1.get_remote_id('/a1')
+        self.assertIsNotNone(a1copy_uid)
         a1_uid = self.local_client_1.get_remote_id('/a2/a1')
+        self.assertIsNotNone(a1_uid)
         try:
             log.debug("/a2/a1 and /a1: %s/%s", a1_uid, a1copy_uid)
             children_1 = self.remote_file_system_client_1.get_children_info(a1_uid)
@@ -179,7 +181,9 @@ class MultipleFilesTestCase(UnitTestCase):
                          'file names are different')
         # verify the remote one
         a1copy_uid = self.local_client_1.get_remote_id('/a3')
+        self.assertIsNotNone(a1copy_uid)
         a1_uid = self.local_client_1.get_remote_id('/a2/a1')
+        self.assertIsNotNone(a1_uid)
         try:
             log.debug("/a2/a1 and /a3: %s/%s", a1_uid, a1copy_uid)
             children_1 = self.remote_file_system_client_1.get_children_info(a1_uid)
