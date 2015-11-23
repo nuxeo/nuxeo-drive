@@ -19,6 +19,8 @@ from nxdrive import __version__
 from PyQt4 import QtCore
 from threading import Thread
 from time import sleep
+import numpy
+from PIL import Image
 
 if 'DRIVE_YAPPI' in os.environ:
     import yappi
@@ -530,3 +532,8 @@ class UnitTestCase(unittest.TestCase):
             if retry > 0:
                 log.debug("Retry to wait")
                 self.wait(retry - 1)
+
+    def generate_random_jpg(self, filename, size):
+        a = numpy.random.rand(size, size, 3) * 255
+        im_out = Image.fromarray(a.astype('uint8')).convert('RGBA')
+        im_out.save(filename)
