@@ -201,7 +201,7 @@ class LocalWatcher(EngineWorker):
                     del self._folder_scan_events[local_path]
                     continue
                 log.debug("Win: handling folder to scan: %r", local_path)
-                self._scan_recursive(local_info)
+                self.scan_pair(local_path)
                 local_info = self.client.get_info(local_path, raise_if_missing=False)
                 if local_info is not None and mktime(local_info.last_modification_time.timetuple()) > evt_time:
                     # Re-schedule scan as the folder has been modified since last check
@@ -245,7 +245,9 @@ class LocalWatcher(EngineWorker):
     @pyqtSlot(str)
     def scan_pair(self, local_path):
         info = self.client.get_info(local_path)
+        self._engine.get_queue_manager().suspend()
         self._scan_recursive(info, recursive=False)
+        self._engine.get_queue_manager().resume()
 
     def empty_events(self):
         return self._watchdog_queue.empty()
@@ -678,7 +680,7 @@ class LocalWatcher(EngineWorker):
                     # An event can be missed inside a new created folder as
                     # watchdog will put listener after it
                     if local_info.folderish:
-                        self._scan_recursive(local_info)
+                        self.scan_pair(rel_path)
                         doc_pair = self._dao.get_state_from_local(rel_path)
                         self._schedule_win_folder_scan(doc_pair)
                 return
@@ -729,7 +731,7 @@ class LocalWatcher(EngineWorker):
                 # An event can be missed inside a new created folder as
                 # watchdog will put listener after it
                 if local_info.folderish:
-                    self._scan_recursive(local_info)
+                    self.scan_pair(rel_path)
                     doc_pair = self._dao.get_state_from_local(rel_path)
                     self._schedule_win_folder_scan(doc_pair)
                 return
