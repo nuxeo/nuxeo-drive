@@ -106,10 +106,10 @@ class QueueManager(QObject):
         self._max_processors = max_file_processors - 2
 
     def resume(self):
-        self.enable_local_file_queue(True)
-        self.enable_local_folder_queue(True)
-        self.enable_remote_file_queue(True)
-        self.enable_remote_folder_queue(True)
+        self.enable_local_file_queue(True, False)
+        self.enable_local_folder_queue(True, False)
+        self.enable_remote_file_queue(True, False)
+        self.enable_remote_folder_queue(True, False)
         self.queueProcessing.emit()
 
     def is_paused(self):
@@ -124,32 +124,32 @@ class QueueManager(QObject):
         self.enable_remote_file_queue(False)
         self.enable_remote_folder_queue(False)
 
-    def enable_local_file_queue(self, value=True):
+    def enable_local_file_queue(self, value=True, emit=True):
         self._local_file_enable = value
         if self._local_file_thread is not None and not value:
             self._local_file_thread.quit()
-        if value:
+        if value and emit:
             self.queueProcessing.emit()
 
-    def enable_local_folder_queue(self, value=True):
+    def enable_local_folder_queue(self, value=True, emit=True):
         self._local_folder_enable = value
         if self._local_folder_thread is not None and not value:
             self._local_folder_thread.quit()
-        if value:
+        if value and emit:
             self.queueProcessing.emit()
 
-    def enable_remote_file_queue(self, value=True):
+    def enable_remote_file_queue(self, value=True, emit=True):
         self._remote_file_enable = value
         if self._remote_file_thread is not None and not value:
             self._remote_file_thread.quit()
-        if value:
+        if value and emit:
             self.queueProcessing.emit()
 
-    def enable_remote_folder_queue(self, value=True):
+    def enable_remote_folder_queue(self, value=True, emit=True):
         self._remote_folder_enable = value
         if self._remote_folder_thread is not None and not value:
             self._remote_folder_thread.quit()
-        if value:
+        if value and emit:
             self.queueProcessing.emit()
 
     def get_local_file_queue(self):
