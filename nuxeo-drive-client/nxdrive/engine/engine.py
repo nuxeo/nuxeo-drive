@@ -560,7 +560,7 @@ class Engine(QObject):
                 and (
                     not AbstractOSIntegration.is_windows()
                     or
-                    self._local_watcher.win_queue_empty() and self._local_watcher.win_folder_scan_empty())):
+                    self._local_watcher.win_queue_empty())):
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
             if local_metrics['last_event'] == 0:
                 log.warn("No watchdog event detected but sync is completed")
