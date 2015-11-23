@@ -220,7 +220,7 @@ class LocalWatcher(EngineWorker):
     def _scan(self):
         log.debug("Full scan started")
         start_ms = current_milli_time()
-        self._engine.get_queue_manager().suspend()
+        self._suspend_queue()
         self._delete_files = dict()
         self._protected_files = dict()
 
@@ -242,10 +242,16 @@ class LocalWatcher(EngineWorker):
             metrics['fs_events'] = self._event_handler.counter
         return dict(metrics.items() + self._metrics.items())
 
+
+    def _suspend_queue(self):
+        self._engine.get_queue_manager().suspend()
+        while (self._engine.get_queue_manager().is_active()):
+            sleep(1)
+
     @pyqtSlot(str)
     def scan_pair(self, local_path):
         info = self.client.get_info(local_path)
-        self._engine.get_queue_manager().suspend()
+        self._suspend_queue()
         self._scan_recursive(info, recursive=False)
         self._engine.get_queue_manager().resume()
 
