@@ -872,8 +872,6 @@ class Engine(QObject):
         if isinstance(action, FileAction):
             client = self.get_local_client()
             current_file = client.get_path(action.filepath)
-        if self.get_queue_manager().is_paused():
-            raise PairInterrupt
         if (current_file is not None and self._folder_lock is not None
              and current_file.startswith(self._folder_lock)):
             log.debug("PairInterrupt '%s' because lock on '%s'",

@@ -245,8 +245,8 @@ class LocalWatcher(EngineWorker):
 
     def _suspend_queue(self):
         self._engine.get_queue_manager().suspend()
-        while (self._engine.get_queue_manager().is_active()):
-            sleep(1)
+        for processor in self._engine.get_queue_manager().get_processors_on('/', exact_match=False):
+            processor.stop()
 
     @pyqtSlot(str)
     def scan_pair(self, local_path):

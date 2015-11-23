@@ -106,6 +106,7 @@ class QueueManager(QObject):
         self._max_processors = max_file_processors - 2
 
     def resume(self):
+        log.debug("Resuming queue")
         self.enable_local_file_queue(True, False)
         self.enable_local_folder_queue(True, False)
         self.enable_remote_file_queue(True, False)
@@ -119,10 +120,12 @@ class QueueManager(QObject):
                     not self._remote_folder_enable)
 
     def suspend(self):
+        log.debug("Suspending queue")
         self.enable_local_file_queue(False)
         self.enable_local_folder_queue(False)
         self.enable_remote_file_queue(False)
         self.enable_remote_folder_queue(False)
+
 
     def enable_local_file_queue(self, value=True, emit=True):
         self._local_file_enable = value
