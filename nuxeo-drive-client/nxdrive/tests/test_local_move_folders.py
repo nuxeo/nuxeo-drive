@@ -43,7 +43,7 @@ class TestLocalMoveFolders(UnitTestCase):
         log.debug('Local test files created in a2')
 
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(fail_if_timeout=False, wait_win=True)
         if self.engine_1.get_queue_manager().get_errors_count():
             self.engine_1.get_queue_manager().requeue_errors()
             self.wait_sync()
