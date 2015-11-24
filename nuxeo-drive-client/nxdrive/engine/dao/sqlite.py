@@ -728,6 +728,7 @@ class EngineDAO(ConfigurationDAO):
         if versionned:
             version = ', version=version+1'
             log.trace('Increasing version to %d for pair %r', row.version + 1, info)
+        parent_path = os.path.dirname(info.path)
         self._lock.acquire()
         try:
             con = self._get_write_connection()
@@ -735,11 +736,14 @@ class EngineDAO(ConfigurationDAO):
             # Should not update this
             c.execute("UPDATE States SET last_local_updated=?, local_digest=?, local_path=?, local_parent_path=?, local_name=?,"
                       + "local_state=?, size=?, remote_state=?, pair_state=?" + version +
-                      " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, os.path.dirname(info.path),
+                      " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, parent_path,
                                         os.path.basename(info.path), row.local_state, info.size, row.remote_state,
                                         pair_state, row.id))
             if queue:
-                self._queue_pair_state(row.id, info.folderish, pair_state, row)
+                parent = c.execute("SELECT * FROM States WHERE local_path=?", (parent_path,)).fetchone()
+                # Dont queue if parent is not yet created
+                if (parent is None and parent_path == '') or (parent is not None and parent.pair_state != "locally_created"):
+                    self._queue_pair_state(row.id, info.folderish, pair_state, row)
             if self.auto_commit:
                 con.commit()
         finally:
