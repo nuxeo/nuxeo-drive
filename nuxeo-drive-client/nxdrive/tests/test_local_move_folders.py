@@ -44,9 +44,6 @@ class TestLocalMoveFolders(UnitTestCase):
 
         self.engine_1.start()
         self.wait_sync(fail_if_timeout=False, wait_win=True)
-        if self.engine_1.get_queue_manager().get_errors_count():
-            self.engine_1.get_queue_manager().requeue_errors()
-            self.wait_sync()
 
         # Check local files in a1
         self.assertTrue(self.local_client_1.exists('/a1'))
@@ -97,9 +94,6 @@ class TestLocalMoveFolders(UnitTestCase):
         dst = self.local_client_1._abspath(self.folder_path_2)
         shutil.move(src, dst)
         self.wait_sync()
-        if self.engine_1.get_queue_manager().get_errors_count():
-            self.engine_1.get_queue_manager().requeue_errors()
-            self.wait_sync()
 
         # Check that a1 doesn't exist anymore locally
         self.assertFalse(self.local_client_1.exists('/a1'))

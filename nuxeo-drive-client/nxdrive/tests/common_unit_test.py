@@ -287,7 +287,7 @@ class UnitTestCase(unittest.TestCase):
         self._no_remote_changes = {self.engine_1.get_uid(): False, self.engine_2.get_uid(): False}
 
     def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True,
-                  wait_for_engine_1=True, wait_for_engine_2=False, wait_win=False, enforce_errors=False):
+                  wait_for_engine_1=True, wait_for_engine_2=False, wait_win=False, enforce_errors=True):
         log.debug("Wait for sync")
         # First wait for server if needed
         if wait_for_async:
