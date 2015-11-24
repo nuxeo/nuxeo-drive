@@ -82,7 +82,7 @@ class TestLocalFilter(UnitTestCase):
         self.wait_sync()
         children = self.remote_document_client_1.get_children_info(self.workspace)
         self.assertEquals(len(children), 1)
-        # Note are renamed to .txt when comse back from the server
+        # Note are renamed to .txt when come back from the server
         # TODO Not sure it is a good behavior
         self.assertFalse(self.local_client_1.exists("/" + hexafile + ".txt"))
         # Force the postponed to ensure it synchronized now

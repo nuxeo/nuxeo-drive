@@ -216,6 +216,9 @@ class QueueManager(QObject):
         finally:
             self._error_lock.release()
 
+    def _is_on_error(self, row_id):
+        return row_id in self._on_error_queue
+
     @pyqtSlot()
     def _on_new_error(self):
         self._error_timer.start(1000)
@@ -267,6 +270,8 @@ class QueueManager(QObject):
             state = self._local_folder_queue.get(True, 3)
         except Empty:
             return None
+        if self._is_on_error(state.id):
+            return self._get_local_folder()
         return state
 
     def _get_local_file(self):
@@ -276,6 +281,8 @@ class QueueManager(QObject):
             state = self._local_file_queue.get(True, 3)
         except Empty:
             return None
+        if self._is_on_error(state.id):
+            return self._get_local_file()
         return state
 
     def _get_remote_folder(self):
@@ -285,6 +292,8 @@ class QueueManager(QObject):
             state = self._remote_folder_queue.get(True, 3)
         except Empty:
             return None
+        if self._is_on_error(state.id):
+            return self._get_remote_folder()
         return state
 
     def _get_remote_file(self):
@@ -294,6 +303,8 @@ class QueueManager(QObject):
             state = self._remote_file_queue.get(True, 3)
         except Empty:
             return None
+        if self._is_on_error(state.id):
+            return self._get_remote_file()
         return state
 
     def _get_file(self):
@@ -307,6 +318,8 @@ class QueueManager(QObject):
         else:
             state = self._get_local_file()
         self._get_file_lock.release()
+        if self._is_on_error(state.id):
+            return self._get_file()
         return state
 
     @pyqtSlot()
