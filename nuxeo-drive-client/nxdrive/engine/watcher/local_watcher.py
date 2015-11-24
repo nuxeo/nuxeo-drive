@@ -715,35 +715,40 @@ class LocalWatcher(EngineWorker):
                     return
                 # This might be a move but Windows don't emit this event...
                 if local_info.remote_ref is not None:
+                    moved = False
                     from_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
                     if from_pair is not None:
-                        log.debug('Move or copy paste from %r to %r', from_pair.local_path, rel_path)
                         if from_pair.processor > 0 or from_pair.local_path == rel_path:
                             # First condition is in process
                             # Second condition is a race condition
                             log.trace("Ignore creation or modification as the coming pair is being processed: %r",
                                       rel_path)
                             return
-                        # Get the parent pair
-                        parent_pair = self._dao.get_normal_state_from_remote(from_pair.remote_parent_ref)
-                        if not self.client.exists(from_pair.local_path) and 'locally_moved' in parent_pair.pair_state:
-                            log.debug("Mark pair(%r) as moved as its parent", from_pair)
-                            # The parent has been moved too
+                        # If it is not at the origin anymore, magic teleportation, only on Windows ?
+                        if not self.client.exists(from_pair.local_path):
+                            log.debug('Move from %r to %r', from_pair.local_path, rel_path)
                             from_pair.local_state = 'moved'
                             self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
-                            return
+                            moved = True
                     if self._windows:
                         self._win_lock.acquire()
                         try:
                             if local_info.remote_ref in self._delete_events:
                                 log.debug('Found creation in delete event, handle move instead')
-                                doc_pair = self._delete_events[local_info.remote_ref][1]
-                                doc_pair.local_state = 'moved'
-                                self._dao.update_local_state(doc_pair, self.client.get_info(rel_path))
+                                # Should be cleaned
+                                if not moved:
+                                    doc_pair = self._delete_events[local_info.remote_ref][1]
+                                    doc_pair.local_state = 'moved'
+                                    self._dao.update_local_state(doc_pair, self.client.get_info(rel_path))
                                 del self._delete_events[local_info.remote_ref]
                                 return
                         finally:
                             self._win_lock.release()
+                    if from_pair is not None:
+                        if moved:
+                            # Stop the process here
+                            return
+                        log.debug('Copy paste from %r to %r', from_pair.local_path, rel_path)
                 self._dao.insert_local_state(local_info, parent_rel_path)
                 # An event can be missed inside a new created folder as
                 # watchdog will put listener after it
