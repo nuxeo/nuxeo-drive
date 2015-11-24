@@ -106,10 +106,11 @@ class QueueManager(QObject):
         self._max_processors = max_file_processors - 2
 
     def resume(self):
-        self.enable_local_file_queue(True)
-        self.enable_local_folder_queue(True)
-        self.enable_remote_file_queue(True)
-        self.enable_remote_folder_queue(True)
+        log.debug("Resuming queue")
+        self.enable_local_file_queue(True, False)
+        self.enable_local_folder_queue(True, False)
+        self.enable_remote_file_queue(True, False)
+        self.enable_remote_folder_queue(True, False)
         self.queueProcessing.emit()
 
     def is_paused(self):
@@ -119,37 +120,39 @@ class QueueManager(QObject):
                     not self._remote_folder_enable)
 
     def suspend(self):
+        log.debug("Suspending queue")
         self.enable_local_file_queue(False)
         self.enable_local_folder_queue(False)
         self.enable_remote_file_queue(False)
         self.enable_remote_folder_queue(False)
 
-    def enable_local_file_queue(self, value=True):
+
+    def enable_local_file_queue(self, value=True, emit=True):
         self._local_file_enable = value
         if self._local_file_thread is not None and not value:
             self._local_file_thread.quit()
-        if value:
+        if value and emit:
             self.queueProcessing.emit()
 
-    def enable_local_folder_queue(self, value=True):
+    def enable_local_folder_queue(self, value=True, emit=True):
         self._local_folder_enable = value
         if self._local_folder_thread is not None and not value:
             self._local_folder_thread.quit()
-        if value:
+        if value and emit:
             self.queueProcessing.emit()
 
-    def enable_remote_file_queue(self, value=True):
+    def enable_remote_file_queue(self, value=True, emit=True):
         self._remote_file_enable = value
         if self._remote_file_thread is not None and not value:
             self._remote_file_thread.quit()
-        if value:
+        if value and emit:
             self.queueProcessing.emit()
 
-    def enable_remote_folder_queue(self, value=True):
+    def enable_remote_folder_queue(self, value=True, emit=True):
         self._remote_folder_enable = value
         if self._remote_folder_thread is not None and not value:
             self._remote_folder_thread.quit()
-        if value:
+        if value and emit:
             self.queueProcessing.emit()
 
     def get_local_file_queue(self):
@@ -213,6 +216,9 @@ class QueueManager(QObject):
         finally:
             self._error_lock.release()
 
+    def _is_on_error(self, row_id):
+        return row_id in self._on_error_queue
+
     @pyqtSlot()
     def _on_new_error(self):
         self._error_timer.start(1000)
@@ -264,6 +270,8 @@ class QueueManager(QObject):
             state = self._local_folder_queue.get(True, 3)
         except Empty:
             return None
+        if state is not None and self._is_on_error(state.id):
+            return self._get_local_folder()
         return state
 
     def _get_local_file(self):
@@ -273,6 +281,8 @@ class QueueManager(QObject):
             state = self._local_file_queue.get(True, 3)
         except Empty:
             return None
+        if state is not None and self._is_on_error(state.id):
+            return self._get_local_file()
         return state
 
     def _get_remote_folder(self):
@@ -282,6 +292,8 @@ class QueueManager(QObject):
             state = self._remote_folder_queue.get(True, 3)
         except Empty:
             return None
+        if state is not None and self._is_on_error(state.id):
+            return self._get_remote_folder()
         return state
 
     def _get_remote_file(self):
@@ -291,6 +303,8 @@ class QueueManager(QObject):
             state = self._remote_file_queue.get(True, 3)
         except Empty:
             return None
+        if state is not None and self._is_on_error(state.id):
+            return self._get_remote_file()
         return state
 
     def _get_file(self):
@@ -304,6 +318,8 @@ class QueueManager(QObject):
         else:
             state = self._get_local_file()
         self._get_file_lock.release()
+        if state is not None and self._is_on_error(state.id):
+            return self._get_file()
         return state
 
     @pyqtSlot()

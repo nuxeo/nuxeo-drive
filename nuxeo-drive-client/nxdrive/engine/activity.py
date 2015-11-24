@@ -97,6 +97,9 @@ class FileAction(Action):
             return self.progress * 100 / self.size
 
     def __repr__(self):
+        # Size can be None if the file disapeared right on creation
+        if self.size is None:
+            return "%s(%s)" % (self.type, self.filename)
         percent = self.get_percent()
         if percent is None:
             return "%s(%s[%d])" % (self.type, self.filename, self.size)

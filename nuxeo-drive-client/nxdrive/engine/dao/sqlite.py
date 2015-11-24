@@ -45,6 +45,28 @@ PAIR_STATES = {
     ('deleted', 'unknown'): 'deleted_unknown',
 }
 
+class AutoRetryCursor(sqlite3.Cursor):
+    def execute(self, *args, **kwargs):
+        count = 0
+        obj = None
+        while (1):
+            try:
+                count += 1
+                obj = super(AutoRetryCursor, self).execute(*args, **kwargs)
+                if count > 1:
+                    log.trace('Result returned from try #%d', count)
+                break
+            except sqlite3.OperationalError as e:
+                log.trace('Retry locked database #%d', count)
+                if count > 5:
+                    raise e
+        return obj
+
+
+class AutoRetryConnection(sqlite3.Connection):
+    def cursor(self):
+        return super(AutoRetryConnection, self).cursor(AutoRetryCursor)
+
 
 class CustomRow(sqlite3.Row):
 
@@ -205,7 +227,7 @@ class ConfigurationDAO(QObject):
     def _create_main_conn(self):
         log.debug("Create main connexion on %s (dir exists: %d / file exists: %d)",
                     self._db, os.path.exists(os.path.dirname(self._db)), os.path.exists(self._db))
-        self._conn = sqlite3.connect(self._db, check_same_thread=False)
+        self._conn = AutoRetryConnection(self._db, check_same_thread=False)
         self._connections.append(self._conn)
 
     def _log_trace(self, query):
@@ -246,7 +268,7 @@ class ConfigurationDAO(QObject):
                 return self._conn
         if not hasattr(self._conns, '_conn') or self._conns._conn is None:
             # Dont check same thread for closing purpose
-            self._conns._conn = sqlite3.connect(self._db, check_same_thread=False)
+            self._conns._conn = AutoRetryConnection(self._db, check_same_thread=False)
             self._connections.append(self._conns._conn)
         self._conns._conn.row_factory = factory
             # Python3.3 feature
@@ -706,6 +728,7 @@ class EngineDAO(ConfigurationDAO):
         if versionned:
             version = ', version=version+1'
             log.trace('Increasing version to %d for pair %r', row.version + 1, info)
+        parent_path = os.path.dirname(info.path)
         self._lock.acquire()
         try:
             con = self._get_write_connection()
@@ -713,11 +736,14 @@ class EngineDAO(ConfigurationDAO):
             # Should not update this
             c.execute("UPDATE States SET last_local_updated=?, local_digest=?, local_path=?, local_parent_path=?, local_name=?,"
                       + "local_state=?, size=?, remote_state=?, pair_state=?" + version +
-                      " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, os.path.dirname(info.path),
+                      " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, parent_path,
                                         os.path.basename(info.path), row.local_state, info.size, row.remote_state,
                                         pair_state, row.id))
             if queue:
-                self._queue_pair_state(row.id, info.folderish, pair_state, row)
+                parent = c.execute("SELECT * FROM States WHERE local_path=?", (parent_path,)).fetchone()
+                # Dont queue if parent is not yet created
+                if (parent is None and parent_path == '') or (parent is not None and parent.pair_state != "locally_created"):
+                    self._queue_pair_state(row.id, info.folderish, pair_state, row)
             if self.auto_commit:
                 con.commit()
         finally:

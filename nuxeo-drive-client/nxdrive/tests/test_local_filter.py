@@ -79,10 +79,10 @@ class TestLocalFilter(UnitTestCase):
         self.local_client_1.make_folder('/', hexaname)
         self.local_client_1.make_file('/', hexafile, 'test')
         # Make sure that a folder is synchronized directly no matter what and the file is postpone
-        self.wait_sync()
+        self.wait_sync(enforce_errors=False)
         children = self.remote_document_client_1.get_children_info(self.workspace)
         self.assertEquals(len(children), 1)
-        # Note are renamed to .txt when comse back from the server
+        # Note are renamed to .txt when come back from the server
         # TODO Not sure it is a good behavior
         self.assertFalse(self.local_client_1.exists("/" + hexafile + ".txt"))
         # Force the postponed to ensure it synchronized now

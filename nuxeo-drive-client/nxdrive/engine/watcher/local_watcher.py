@@ -171,7 +171,7 @@ class LocalWatcher(EngineWorker):
         return len(self._folder_scan_events) == 0
 
     def _win_folder_scan_check(self):
-        if (self._windows
+        if (self._windows and self._win_folder_scan_interval > 0
             and self._win_folder_scan_interval < int(round(time() * 1000)) - self._windows_folder_scan_delay):
             self._action = Action("Dequeue folder scan")
             self._win_dequeue_folder_scan()
@@ -201,7 +201,7 @@ class LocalWatcher(EngineWorker):
                     del self._folder_scan_events[local_path]
                     continue
                 log.debug("Win: handling folder to scan: %r", local_path)
-                self._scan_recursive(local_info)
+                self.scan_pair(local_path)
                 local_info = self.client.get_info(local_path, raise_if_missing=False)
                 if local_info is not None and mktime(local_info.last_modification_time.timetuple()) > evt_time:
                     # Re-schedule scan as the folder has been modified since last check
@@ -220,7 +220,7 @@ class LocalWatcher(EngineWorker):
     def _scan(self):
         log.debug("Full scan started")
         start_ms = current_milli_time()
-        self._engine.get_queue_manager().suspend()
+        self._suspend_queue()
         self._delete_files = dict()
         self._protected_files = dict()
 
@@ -242,17 +242,27 @@ class LocalWatcher(EngineWorker):
             metrics['fs_events'] = self._event_handler.counter
         return dict(metrics.items() + self._metrics.items())
 
+
+    def _suspend_queue(self):
+        self._engine.get_queue_manager().suspend()
+        for processor in self._engine.get_queue_manager().get_processors_on('/', exact_match=False):
+            processor.stop()
+
     @pyqtSlot(str)
     def scan_pair(self, local_path):
         info = self.client.get_info(local_path)
+        self._suspend_queue()
         self._scan_recursive(info, recursive=False)
+        self._engine.get_queue_manager().resume()
 
     def empty_events(self):
         return self._watchdog_queue.empty()
 
     def _scan_recursive(self, info, recursive=True):
         log.debug('Starting recursive local scan of %r', info.path)
-        self._interact()
+        if recursive:
+            # Don't interact if only one level
+            self._interact()
 
         # Load all children from DB
         log.trace('Starting to get DB local children for %r', info.path)
@@ -426,6 +436,7 @@ class LocalWatcher(EngineWorker):
             self._scan_recursive(child_info)
 
         if not recursive:
+            log.debug('Ended recursive local scan of %r', info.path)
             return
 
         for child_info in to_scan:
@@ -678,7 +689,7 @@ class LocalWatcher(EngineWorker):
                     # An event can be missed inside a new created folder as
                     # watchdog will put listener after it
                     if local_info.folderish:
-                        self._scan_recursive(local_info)
+                        self.scan_pair(rel_path)
                         doc_pair = self._dao.get_state_from_local(rel_path)
                         self._schedule_win_folder_scan(doc_pair)
                 return
@@ -704,32 +715,45 @@ class LocalWatcher(EngineWorker):
                     return
                 # This might be a move but Windows don't emit this event...
                 if local_info.remote_ref is not None:
+                    moved = False
                     from_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
                     if from_pair is not None:
-                        log.debug('Move or copy paste from %r to %r', from_pair.local_path, rel_path)
                         if from_pair.processor > 0 or from_pair.local_path == rel_path:
                             # First condition is in process
                             # Second condition is a race condition
                             log.trace("Ignore creation or modification as the coming pair is being processed: %r",
                                       rel_path)
                             return
+                        # If it is not at the origin anymore, magic teleportation, only on Windows ?
+                        if not self.client.exists(from_pair.local_path):
+                            log.debug('Move from %r to %r', from_pair.local_path, rel_path)
+                            from_pair.local_state = 'moved'
+                            self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
+                            moved = True
                     if self._windows:
                         self._win_lock.acquire()
                         try:
                             if local_info.remote_ref in self._delete_events:
                                 log.debug('Found creation in delete event, handle move instead')
-                                doc_pair = self._delete_events[local_info.remote_ref][1]
-                                doc_pair.local_state = 'moved'
-                                self._dao.update_local_state(doc_pair, self.client.get_info(rel_path))
+                                # Should be cleaned
+                                if not moved:
+                                    doc_pair = self._delete_events[local_info.remote_ref][1]
+                                    doc_pair.local_state = 'moved'
+                                    self._dao.update_local_state(doc_pair, self.client.get_info(rel_path))
                                 del self._delete_events[local_info.remote_ref]
                                 return
                         finally:
                             self._win_lock.release()
+                    if from_pair is not None:
+                        if moved:
+                            # Stop the process here
+                            return
+                        log.debug('Copy paste from %r to %r', from_pair.local_path, rel_path)
                 self._dao.insert_local_state(local_info, parent_rel_path)
                 # An event can be missed inside a new created folder as
                 # watchdog will put listener after it
                 if local_info.folderish:
-                    self._scan_recursive(local_info)
+                    self.scan_pair(rel_path)
                     doc_pair = self._dao.get_state_from_local(rel_path)
                     self._schedule_win_folder_scan(doc_pair)
                 return
@@ -742,7 +766,7 @@ class LocalWatcher(EngineWorker):
     def _schedule_win_folder_scan(self, doc_pair):
         # On Windows schedule another recursive scan to make sure I/O is completed,
         # ex: copy/paste, move
-        if self._windows:
+        if self._windows and self._win_folder_scan_interval > 0:
             self._win_lock.acquire()
             try:
                 log.debug('Add pair to folder scan events: %r', doc_pair)

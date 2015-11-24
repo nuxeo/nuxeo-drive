@@ -287,7 +287,7 @@ class UnitTestCase(unittest.TestCase):
         self._no_remote_changes = {self.engine_1.get_uid(): False, self.engine_2.get_uid(): False}
 
     def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True,
-                  wait_for_engine_1=True, wait_for_engine_2=False, wait_win=False):
+                  wait_for_engine_1=True, wait_for_engine_2=False, wait_win=False, enforce_errors=True):
         log.debug("Wait for sync")
         # First wait for server if needed
         if wait_for_async:
@@ -304,7 +304,20 @@ class UnitTestCase(unittest.TestCase):
                                    self.engine_2.get_uid(): not wait_for_engine_2}
         while timeout > 0:
             sleep(1)
+            timeout = timeout - 1
             if sum(self._wait_sync.values()) == 0:
+                if enforce_errors:
+                    finished = True
+                    if wait_for_engine_1 and self.engine_1.get_queue_manager().get_errors_count() > 0:
+                        self._wait_sync[self.engine_1.get_uid()] = True
+                        self.engine_1.get_queue_manager().requeue_errors()
+                        finished = False
+                    if wait_for_engine_2 and self.engine_2.get_queue_manager().get_errors_count() > 0:
+                        self._wait_sync[self.engine_2.get_uid()] = True
+                        self.engine_2.get_queue_manager().requeue_errors()
+                        finished = False
+                    if not finished:
+                        continue
                 if wait_for_async:
                     log.debug('Sync completed, _wait_remote_scan = %r, remote changes count = %r,'
                               ' no remote changes = %r',
@@ -335,7 +348,6 @@ class UnitTestCase(unittest.TestCase):
                 else:
                     log.debug("Sync completed, ended wait for sync")
                     return
-            timeout = timeout - 1
         if fail_if_timeout:
             log.warn("Wait for sync timeout has expired")
             self.fail("Wait for sync timeout expired")
@@ -530,3 +542,16 @@ class UnitTestCase(unittest.TestCase):
             if retry > 0:
                 log.debug("Retry to wait")
                 self.wait(retry - 1)
+
+    def generate_random_jpg(self, filename, size):
+        try:
+            import numpy
+            from PIL import Image
+        except:
+            # Create random file
+            with open(filename, 'wb') as f:
+                f.write(os.urandom(1024 * size))
+            return
+        a = numpy.random.rand(size, size, 3) * 255
+        im_out = Image.fromarray(a.astype('uint8')).convert('RGBA')
+        im_out.save(filename)
