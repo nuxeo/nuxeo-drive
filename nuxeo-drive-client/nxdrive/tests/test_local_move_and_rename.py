@@ -195,7 +195,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 
-        # Rename /Original File 1.txt to /Renamed File 1.txt
+        # Move /Original File 1.txt to /Original Folder 1/Original File 1.txt
         original_file_1_uid = remote_client.get_info(
             u'/Original File 1.txt').uid
         local_client.move(u'/Original File 1.txt', u'/Original Folder 1')
