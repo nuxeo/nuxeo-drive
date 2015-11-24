@@ -4,6 +4,7 @@ from nxdrive.tests.common_unit_test import FILE_CONTENT
 import os
 import shutil
 import tempfile
+TEST_TIMEOUT = 60
 
 
 class TestLocalPaste(UnitTestCase):
@@ -63,7 +64,7 @@ class TestLocalPaste(UnitTestCase):
         shutil.copytree(self.folder2, os.path.join(self.workspace_abspath, self.FOLDER_A2))
         # copy 'temp/a1' under 'Nuxeo Drive Test Workspace'
         shutil.copytree(self.folder1, os.path.join(self.workspace_abspath, self.FOLDER_A1))
-        self.wait_sync()
+        self.wait_sync(timeout=TEST_TIMEOUT)
 
         # check that '/Nuxeo Drive Test Workspace/a1' does exist
         self.assertTrue(self.local_client_1.exists(os.path.join('/', self.FOLDER_A1)))
@@ -99,7 +100,7 @@ class TestLocalPaste(UnitTestCase):
         shutil.copytree(self.folder1, os.path.join(workspace_abspath, self.FOLDER_A1))
         # copy 'temp/a2' under 'Nuxeo Drive Test Workspace'
         shutil.copytree(self.folder2, os.path.join(workspace_abspath, self.FOLDER_A2))
-        self.wait_sync()
+        self.wait_sync(timeout=TEST_TIMEOUT)
 
         # check that '/Nuxeo Drive Test Workspace/a1' does exist
         self.assertTrue(self.local_client_1.exists(os.path.join('/', self.FOLDER_A1)))
