@@ -45,7 +45,7 @@ class TestLocalDeletion(UnitTestCase):
         # See if it untrash or recreate
         self.local_client_1.make_folder('/', 'ToDelete')
         shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/ToDelete/'))
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync(wait_for_async=True, enforce_errors=True)
         self.assertTrue(self.remote_document_client_1.exists(old_info.uid))
         new_info = self.remote_document_client_1.get_info(old_info.uid, use_trash=True)
         self.assertTrue(self.remote_document_client_1.exists(new_info.parent_uid))
@@ -68,6 +68,6 @@ class TestLocalDeletion(UnitTestCase):
         # See if it untrash or recreate
         self.local_client_1.make_folder('/', 'ToDelete')
         shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/ToDelete/'))
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync(wait_for_async=True, enforce_errors=True)
         self.assertTrue(self.remote_document_client_1.exists(old_info.uid))
         self.assertTrue(self.local_client_1.exists(file_path))

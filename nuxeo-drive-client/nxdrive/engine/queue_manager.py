@@ -270,7 +270,7 @@ class QueueManager(QObject):
             state = self._local_folder_queue.get(True, 3)
         except Empty:
             return None
-        if self._is_on_error(state.id):
+        if state is not None and self._is_on_error(state.id):
             return self._get_local_folder()
         return state
 
@@ -281,7 +281,7 @@ class QueueManager(QObject):
             state = self._local_file_queue.get(True, 3)
         except Empty:
             return None
-        if self._is_on_error(state.id):
+        if state is not None and self._is_on_error(state.id):
             return self._get_local_file()
         return state
 
@@ -292,7 +292,7 @@ class QueueManager(QObject):
             state = self._remote_folder_queue.get(True, 3)
         except Empty:
             return None
-        if self._is_on_error(state.id):
+        if state is not None and self._is_on_error(state.id):
             return self._get_remote_folder()
         return state
 
@@ -303,7 +303,7 @@ class QueueManager(QObject):
             state = self._remote_file_queue.get(True, 3)
         except Empty:
             return None
-        if self._is_on_error(state.id):
+        if state is not None and self._is_on_error(state.id):
             return self._get_remote_file()
         return state
 
@@ -318,7 +318,7 @@ class QueueManager(QObject):
         else:
             state = self._get_local_file()
         self._get_file_lock.release()
-        if self._is_on_error(state.id):
+        if state is not None and self._is_on_error(state.id):
             return self._get_file()
         return state
 
