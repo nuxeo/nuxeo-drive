@@ -724,6 +724,13 @@ class LocalWatcher(EngineWorker):
                             log.trace("Ignore creation or modification as the coming pair is being processed: %r",
                                       rel_path)
                             return
+                        # Get the parent pair
+                        parent_pair = self._dao.get_normal_state_from_remote(from_pair.remote_parent_ref)
+                        if 'locally_moved' in parent_pair.local_state:
+                            # The parent has been moved too
+                            from_pair.local_state = 'moved'
+                            self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
+                            return
                     if self._windows:
                         self._win_lock.acquire()
                         try:
