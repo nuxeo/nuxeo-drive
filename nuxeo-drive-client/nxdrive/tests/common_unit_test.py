@@ -532,8 +532,14 @@ class UnitTestCase(unittest.TestCase):
                 self.wait(retry - 1)
 
     def generate_random_jpg(self, filename, size):
-        import numpy
-        from PIL import Image
+        try:
+            import numpy
+            from PIL import Image
+        except:
+            # Create random file
+            with open(filename, 'wb') as f:
+                f.write(os.urandom(1024 * size))
+            return
         a = numpy.random.rand(size, size, 3) * 255
         im_out = Image.fromarray(a.astype('uint8')).convert('RGBA')
         im_out.save(filename)
