@@ -260,7 +260,9 @@ class LocalWatcher(EngineWorker):
 
     def _scan_recursive(self, info, recursive=True):
         log.debug('Starting recursive local scan of %r', info.path)
-        self._interact()
+        if recursive:
+            # Don't interact if only one level
+            self._interact()
 
         # Load all children from DB
         log.trace('Starting to get DB local children for %r', info.path)
@@ -434,6 +436,7 @@ class LocalWatcher(EngineWorker):
             self._scan_recursive(child_info)
 
         if not recursive:
+            log.debug('Ended recursive local scan of %r', info.path)
             return
 
         for child_info in to_scan:
