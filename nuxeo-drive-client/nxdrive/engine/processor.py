@@ -494,7 +494,7 @@ class Processor(EngineWorker):
         if doc_pair.local_name != doc_pair.remote_name:
             try:
                 if doc_pair.remote_can_rename:
-                    log.debug('Renaming remote file according to local : %r',
+                    log.debug('Renaming remote document according to local : %r',
                                                         doc_pair)
                     remote_info = remote_client.rename(doc_pair.remote_ref,
                                                             doc_pair.local_name)
@@ -511,6 +511,7 @@ class Processor(EngineWorker):
         parent_ref = local_client.get_remote_id(doc_pair.local_parent_path)
         if parent_ref is None:
             parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
+            parent_ref = parent_pair.remote_ref
         else:
             parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
         if parent_pair is None:
