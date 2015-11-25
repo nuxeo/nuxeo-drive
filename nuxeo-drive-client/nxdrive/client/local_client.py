@@ -206,6 +206,10 @@ class LocalClient(BaseClient):
                     xattr.removexattr(path, name)
                 else:
                     xattr.removexattr(path, 'user.' + name)
+            except IOError as e:
+                # Ignore IOError: [Errno 93] Attribute not found
+                if e.errno != 93:
+                    raise
             finally:
                 self.lock_path(path, locker)
 

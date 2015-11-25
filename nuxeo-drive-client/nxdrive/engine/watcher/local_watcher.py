@@ -342,6 +342,10 @@ class LocalWatcher(EngineWorker):
                             doc_pair.local_state = 'moved'
                             self._dao.update_local_state(doc_pair, child_info)
                             self._protected_files[doc_pair.remote_ref] = True
+                            if self.client.exists(doc_pair.local_path) and child_creation_time < doc_creation_time:
+                                # Need to put back the new created - need to check maybe if already there
+                                self.client.remove_remote_id(doc_pair.local_path)
+                                self._dao.insert_local_state(self.client.get_info(doc_pair.local_path), os.path.dirname(doc_pair.local_path))
                         else:
                             # File still exists - must check the remote_id
                             old_remote_id = self.client.get_remote_id(doc_pair.local_path)
@@ -752,6 +756,8 @@ class LocalWatcher(EngineWorker):
                             if from_pair_creation_time > doc_pair_creation_time:
                                 from_pair.local_state = 'moved'
                                 self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
+                                self._dao.insert_local_state(self.client.get_info(from_pair.local_path), os.path.dirname(from_pair.local_path))
+                                self.client.remove_remote_id(from_pair.local_path)
                                 moved = True
                     if self._windows:
                         self._win_lock.acquire()
