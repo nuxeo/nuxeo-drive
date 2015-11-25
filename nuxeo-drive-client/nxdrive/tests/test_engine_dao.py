@@ -183,13 +183,17 @@ class EngineDAOTest(unittest.TestCase):
 
     def test_acquire_processors(self):
         self.assertTrue(self._dao.acquire_processor(666, 2))
-        self.assertFalse(self._dao.acquire_processor(666, 2))
-        self._dao.release_processor(666)
+        # Cannot acquire processor if different processor
+        self.assertFalse(self._dao.acquire_processor(777, 2))
+        # Can re-acquire processor if same processor
+        self.assertTrue(self._dao.acquire_processor(666, 2))
+        self.assertTrue(self._dao.release_processor(666))
+
+        # Check the auto-release
         self.assertTrue(self._dao.acquire_processor(666, 2))
         row = self._dao.get_state_from_id(2)
-        # Check the auto-release
         self._dao.synchronize_state(row)
-        self.assertTrue(self._dao.acquire_processor(666, 2))
+        self.assertFalse(self._dao.release_processor(666))
 
     def test_configuration(self):
         result = self._dao.get_config("empty", "DefaultValue")
