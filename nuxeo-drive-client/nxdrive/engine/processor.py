@@ -143,7 +143,11 @@ class Processor(EngineWorker):
     def acquire_state(self, row_id):
         if self._dao.acquire_processor(self._thread_id, row_id):
             # Avoid any lock for this call by using the write connection
-            return self._dao.get_state_from_id(row_id, from_write=True)
+            try:
+                return self._dao.get_state_from_id(row_id, from_write=True)
+            except:
+                self._dao.release_processor(self._thread_id)
+                raise
         return None
 
     def release_state(self):
@@ -161,7 +165,7 @@ class Processor(EngineWorker):
             try:
                 doc_pair = self.acquire_state(self._current_item.id)
             except:
-                log.trace("Cannot acquire: %r", self._current_item)
+                log.trace("Cannot acquire state for: %r", self._current_item)
                 self._engine.get_queue_manager().push(self._current_item)
                 self._current_item = self._get_item()
                 continue

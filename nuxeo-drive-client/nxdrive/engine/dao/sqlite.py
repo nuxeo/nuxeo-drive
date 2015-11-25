@@ -549,23 +549,32 @@ class EngineDAO(ConfigurationDAO):
             c.execute("UPDATE States SET processor=0 WHERE processor=?", (processor_id,))
             if self.auto_commit:
                 con.commit()
-            log.trace('Released processor %d', processor_id)
         finally:
             self._lock.release()
-        return c.rowcount == 1
+        res = c.rowcount > 0
+        if res:
+            log.trace('Released processor %d', processor_id)
+        else:
+            log.trace('No processor to release with id %d', processor_id)
+        return res
 
     def acquire_processor(self, thread_id, row_id):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET processor=? WHERE id=? AND processor=0", (thread_id, row_id))
+            c.execute("UPDATE States SET processor=? WHERE id=? AND (processor=0 OR processor=?)", (thread_id, row_id, thread_id))
             if self.auto_commit:
                 con.commit()
-            log.trace('Acquired processor %d for row %d', thread_id, row_id)
         finally:
             self._lock.release()
-        return c.rowcount == 1
+        res = c.rowcount == 1
+        if res:
+            log.trace('Acquired processor %d for row %d', thread_id, row_id)
+        else:
+            log.trace("Couldn't acquire processor %d for row %d: either row does't exist or it is being processed",
+                      thread_id, row_id)
+        return res
 
     def reinit_states(self):
         self._lock.acquire()
