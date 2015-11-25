@@ -49,7 +49,6 @@ class MultipleFilesTestCase(UnitTestCase):
         log.debug('*** exit MultipleFilesTestCase.setUp()')
 
     def test_move_and_copy_paste_folder_original_location(self):
-        raise SkipTest("NXDRIVE-471: Temporarily skipped, need to investigate")
         """
         Move folder 'Nuxeo Drive Test Workspace/a1' under 'Nuxeo Drive Test Workspace/a2'.
         Then copy 'Nuxeo Drive Test Workspace/a2/a1' back under 'Nuxeo Drive Test Workspace', so files are both in
