@@ -587,6 +587,7 @@ class LocalWatcher(EngineWorker):
                     if doc_pair.local_state != 'created':
                         doc_pair.local_state = 'moved'
                         old_local_path = doc_pair.local_path
+                        self._dao.update_local_state(doc_pair, local_info, versionned=True)
                 self._dao.update_local_state(doc_pair, local_info, versionned=False)
                 if self._windows and old_local_path is not None:
                     self._win_lock.acquire()
@@ -619,6 +620,10 @@ class LocalWatcher(EngineWorker):
                         # This happens on update don't do anything
                         return
                 self._handle_watchdog_delete(doc_pair)
+            return
+        if evt.event_type == 'created':
+            # NXDRIVE-471 case maybe
+            log.trace("This should only happen in case of a quick move and copy-paste")
             return
         local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if local_info is not None:
@@ -750,7 +755,7 @@ class LocalWatcher(EngineWorker):
                             doc_pair_creation_time = os.path.getctime(doc_pair_full_path)
                             from_pair_full_path = self.client._abspath(from_pair.local_path)
                             from_pair_creation_time = os.path.getctime(from_pair_full_path)
-                            log.trace('doc_pair_full_path=%s, doc_pair_creation_time=%s, from_pair_full_path=%s', doc_pair_full_path, doc_pair_creation_time, from_pair_full_path)
+                            log.trace('doc_pair_full_path=%s, doc_pair_creation_time=%s, from_pair_full_path=%s, version=%d', doc_pair_full_path, doc_pair_creation_time, from_pair_full_path, from_pair.version)
                             # If file at the original location is newer,
                             #   it is moved to the new location earlier then copied back (what else can it be?)
                             if from_pair_creation_time > doc_pair_creation_time:

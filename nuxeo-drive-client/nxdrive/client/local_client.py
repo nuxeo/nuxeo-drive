@@ -189,7 +189,8 @@ class LocalClient(BaseClient):
         if AbstractOSIntegration.is_windows():
             pathAlt = path + ":" + name
             try:
-                os.remove(pathAlt)
+                if os.path.exists(pathAlt):
+                    os.remove(pathAlt)
             except WindowsError as e:
                 if e.errno == os.errno.EACCES:
                     self.unset_path_readonly(path)

@@ -170,15 +170,17 @@ class Processor(EngineWorker):
                 self._current_item = self._get_item()
                 continue
             try:
-                log.debug('Executing processor on %r', doc_pair)
+                if doc_pair is None:
+                    self._current_item = self._get_item()
+                    continue
+                log.debug('Executing processor on %r(%d)', doc_pair, doc_pair.version)
                 self._current_doc_pair = doc_pair
                 self._current_temp_file = None
-                if (doc_pair is None or
-                    doc_pair.pair_state == 'synchronized'
+                if (doc_pair.pair_state == 'synchronized'
                     or doc_pair.pair_state == 'unsynchronized'
                     or doc_pair.pair_state is None
                     or doc_pair.pair_state.startswith('parent_')):
-                    log.trace("Skip as pair is None or in non-processable state: %r", doc_pair)
+                    log.trace("Skip as pair is in non-processable state: %r", doc_pair)
                     self._current_item = self._get_item()
                     continue
                 # TODO Update as the server dont take hash to avoid conflict yet

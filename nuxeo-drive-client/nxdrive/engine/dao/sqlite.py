@@ -1127,7 +1127,7 @@ class EngineDAO(ConfigurationDAO):
                 c = con.cursor()
                 c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
                           "pair_state=?, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
-                          "WHERE id=? and local_path=? and remote_name=? and remote_ref=? and remote_parent_ref=?",
+                          "WHERE id=? and local_path=? and remote_name=? and remote_ref=? and remote_parent_ref=? AND local_state='modified'",
                           (state, datetime.utcnow(), row.id, row.local_path, row.remote_name, row.remote_ref, row.remote_parent_ref))
                 if self.auto_commit:
                     con.commit()
