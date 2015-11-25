@@ -49,12 +49,20 @@ class MultipleFilesTestCase(UnitTestCase):
         log.debug('*** exit MultipleFilesTestCase.setUp()')
 
     def test_move_and_copy_paste_folder_original_location(self):
+        self._move_and_copy_paste_folder_original_location(stopped=False)
+
+    def test_move_and_copy_paste_folder_original_location_stopped(self):
+        self._move_and_copy_paste_folder_original_location()
+
+    def _move_and_copy_paste_folder_original_location(self, stopped=True):
         """
         Move folder 'Nuxeo Drive Test Workspace/a1' under 'Nuxeo Drive Test Workspace/a2'.
         Then copy 'Nuxeo Drive Test Workspace/a2/a1' back under 'Nuxeo Drive Test Workspace', so files are both in
         'Nuxeo Drive Test Workspace/a1' and 'Nuxeo Drive Test Workspace/a2/a1'.
         """
         log.debug('*** enter MultipleFilesTestCase.test_move_and_copy_paste_folder_original_location')
+        if stopped:
+            self.engine_1.stop()
         # move 'a1' under 'a2'
         src = self.local_client_1._abspath(self.folder_path_1)
         dst = self.local_client_1._abspath(self.folder_path_2)
@@ -68,15 +76,10 @@ class MultipleFilesTestCase(UnitTestCase):
         # copy the 'Nuxeo Drive Test Workspace/a2/a1' tree back under 'Nuxeo Drive Test Workspace'
         shutil.copytree(self.local_client_1._abspath(os.path.join(self.folder_path_2, 'a1')),
                         self.local_client_1._abspath(self.folder_path_1))
+        if stopped:
+            self.engine_1.start()
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
         log.debug('*** engine 1 synced')
-        if self.queue_manager_1.get_errors_count() > 0:
-            self.queue_manager_1.requeue_errors()
-            # Sleep error timer
-            from time import sleep
-            log.debug("*** force blacklisted items")
-            sleep(2)
-            self.wait_sync(timeout=self.SYNC_TIMEOUT)
 
         # expect '/a2/a1' to contain the files
         self.assertTrue(os.path.exists(self.local_client_1._abspath(os.path.join(self.folder_path_2, 'a1'))))
