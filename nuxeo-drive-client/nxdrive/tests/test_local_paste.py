@@ -55,10 +55,10 @@ class TestLocalPaste(UnitTestCase):
         super(TestLocalPaste, self).tearDown()
         log.debug('*** exit TestLocalPaste.tearDown()')
 
+    """
+    copy 'a2' to 'Nuxeo Drive Test Workspace', then 'a1' to 'Nuxeo Drive Test Workspace'
+    """
     def test_copy_paste_empty_folder_first(self):
-        """
-        copy 'a2' to 'Nuxeo Drive Test Workspace', then 'a1' to 'Nuxeo Drive Test Workspace'
-        """
         log.debug('*** enter TestLocalPaste.test_copy_paste_empty_folder_first()')
         # copy 'temp/a2' under 'Nuxeo Drive Test Workspace'
         shutil.copytree(self.folder2, os.path.join(self.workspace_abspath, self.FOLDER_A2))
@@ -90,10 +90,10 @@ class TestLocalPaste(UnitTestCase):
 
         log.debug('*** exit TestLocalPaste.test_copy_paste_empty_folder_first()')
 
+    """
+    copy 'a1' to 'Nuxeo Drive Test Workspace', then 'a2' to 'Nuxeo Drive Test Workspace'
+    """
     def test_copy_paste_empty_folder_last(self):
-        """
-        copy 'a1' to 'Nuxeo Drive Test Workspace', then 'a2' to 'Nuxeo Drive Test Workspace'
-        """
         log.debug('*** enter TestLocalPaste.test_copy_paste_empty_folder_last()')
         workspace_abspath = self.local_client_1._abspath('/')
         # copy 'temp/a1' under 'Nuxeo Drive Test Workspace'
