@@ -210,7 +210,7 @@ class LocalClient(BaseClient):
             except IOError as e:
                 # Ignore IOError: [Errno 93] Attribute not found ( Mac )
                 # IOError: [Errno 61] No data available ( Linux )
-                if e.errno == 93 and e.errno == 61:
+                if e.errno == 93 or e.errno == 61:
                     pass
                 else:
                     raise
