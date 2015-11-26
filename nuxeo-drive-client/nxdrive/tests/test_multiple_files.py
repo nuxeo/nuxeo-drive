@@ -8,7 +8,6 @@ Adapted to Drive
 from common_unit_test import UnitTestCase
 from nxdrive.tests.common_unit_test import log
 from nxdrive.tests.common_unit_test import FILE_CONTENT
-from nose.plugins.skip import SkipTest
 
 import os
 import shutil
