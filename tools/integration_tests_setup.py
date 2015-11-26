@@ -231,7 +231,16 @@ def clean_home_folder(dir_=None):
 
 def run_tests_from_source(base_folder):
     pflush("PATH detected by Python = " + os.environ.get('PATH'))
-    cmd = "cd " + base_folder + " && nosetests --with-coverage --cover-html --cover-html-dir=../coverage --cover-package=nxdrive -v -x --logging-format=" + NOSETESTS_LOGGING_FORMAT
+    cmd = "cd " + base_folder + " && nosetests"
+    options = " -v -x"
+    if 'TESTS' in os.environ:
+        tests = os.environ['TESTS'].strip()
+        if tests:
+            pflush("TESTS to run = " + tests)
+            options += ' ' + ' '.join(['nxdrive.tests.' + test for test in tests.split(",")])
+    options += " --with-coverage --cover-html --cover-html-dir=../coverage --cover-package=nxdrive"
+    options += " --logging-format=" + NOSETESTS_LOGGING_FORMAT
+    cmd += options
     execute(cmd)
 
 
