@@ -335,14 +335,14 @@ class LocalWatcher(EngineWorker):
                             log.debug('Skip pair as it is not a real move: %r', doc_pair)
                             continue
                         elif not self.client.exists(doc_pair.local_path) or \
-                                ( self.client.exists(doc_pair.local_path) and child_creation_time < doc_creation_time):
+                                ( self.client.exists(doc_pair.local_path) and child_creation_time <= doc_creation_time):
                                 # If file exists at old location, and the file at the original location is newer,
                                 #   it is moved to the new location earlier then copied back
                             log.debug("Found a moved file")
                             doc_pair.local_state = 'moved'
                             self._dao.update_local_state(doc_pair, child_info)
                             self._protected_files[doc_pair.remote_ref] = True
-                            if self.client.exists(doc_pair.local_path) and child_creation_time < doc_creation_time:
+                            if self.client.exists(doc_pair.local_path) and child_creation_time <= doc_creation_time:
                                 # Need to put back the new created - need to check maybe if already there
                                 self.client.remove_remote_id(doc_pair.local_path)
                                 self._dao.insert_local_state(self.client.get_info(doc_pair.local_path), os.path.dirname(doc_pair.local_path))
@@ -356,7 +356,7 @@ class LocalWatcher(EngineWorker):
                                 self._dao.insert_local_state(child_info, info.path)
                             else:
                                 # Moved and renamed
-                                log.debug("Moved and renamed")
+                                log.debug("Moved and renamed: %r", doc_pair)
                                 old_pair = self._dao.get_normal_state_from_remote(old_remote_id)
                                 if old_pair is not None:
                                     old_pair.local_state = 'moved'

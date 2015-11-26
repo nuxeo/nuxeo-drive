@@ -656,7 +656,7 @@ class CliHandler(object):
                 "nxdrive.tests.test_windows",
             ]
         else:
-            argv += os.environ["TESTS"].split(",")
+            argv.extend(['nxdrive.tests.' + test for test in os.environ["TESTS"].strip().split(",")])
         return 0 if nose.run(argv=argv) else 1
 
     def _install_faulthandler(self, options):

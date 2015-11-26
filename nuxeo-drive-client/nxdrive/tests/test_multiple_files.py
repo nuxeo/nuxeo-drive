@@ -8,7 +8,6 @@ Adapted to Drive
 from common_unit_test import UnitTestCase
 from nxdrive.tests.common_unit_test import log
 from nxdrive.tests.common_unit_test import FILE_CONTENT
-from nose.plugins.skip import SkipTest
 
 import os
 import shutil
@@ -141,7 +140,7 @@ class MultipleFilesTestCase(UnitTestCase):
         self.assertEqual(set(children_2_name), set(['local%04d.txt' % file_num
                                                     for file_num in range(1, self.NUMBER_OF_LOCAL_FILES + 1)]),
                          'file names are different')
-        log.debug('*** exit MultipleFilesTestCase.test_move_and_copy_paste_folder_original_location')
+        log.debug('*** exit MultipleFilesTestCase._move_and_copy_paste_folder')
 
     def test_move_and_copy_paste_folder_original_location(self):
         self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2, os.path.dirname(self.folder_path_1), stopped=False)
