@@ -315,6 +315,13 @@ class LocalWatcher(EngineWorker):
                     else:
                         log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
+                        if doc_pair is not None and self.client.exists(doc_pair.local_path):
+                            # possible move-then-copy case, nxdrive-471
+                            child_full_path = self.client._abspath(child_info.path)
+                            child_creation_time = os.path.getctime(child_full_path)
+                            doc_full_path = self.client._abspath(doc_pair.local_path)
+                            doc_creation_time = os.path.getctime(doc_full_path)
+                            log.trace('child_cre_time=%d, doc_cre_time=%d', child_creation_time, doc_creation_time)
                         if doc_pair is None:
                             log.debug("Can't find reference for %s in database, put it in locally_created state",
                                       child_info.path)
@@ -327,11 +334,18 @@ class LocalWatcher(EngineWorker):
                         elif doc_pair.local_path == child_info.path:
                             log.debug('Skip pair as it is not a real move: %r', doc_pair)
                             continue
-                        elif not self.client.exists(doc_pair.local_path):
+                        elif not self.client.exists(doc_pair.local_path) or \
+                                ( self.client.exists(doc_pair.local_path) and child_creation_time < doc_creation_time):
+                                # If file exists at old location, and the file at the original location is newer,
+                                #   it is moved to the new location earlier then copied back
                             log.debug("Found a moved file")
                             doc_pair.local_state = 'moved'
                             self._dao.update_local_state(doc_pair, child_info)
                             self._protected_files[doc_pair.remote_ref] = True
+                            if self.client.exists(doc_pair.local_path) and child_creation_time < doc_creation_time:
+                                # Need to put back the new created - need to check maybe if already there
+                                self.client.remove_remote_id(doc_pair.local_path)
+                                self._dao.insert_local_state(self.client.get_info(doc_pair.local_path), os.path.dirname(doc_pair.local_path))
                         else:
                             # File still exists - must check the remote_id
                             old_remote_id = self.client.get_remote_id(doc_pair.local_path)
@@ -573,6 +587,7 @@ class LocalWatcher(EngineWorker):
                     if doc_pair.local_state != 'created':
                         doc_pair.local_state = 'moved'
                         old_local_path = doc_pair.local_path
+                        self._dao.update_local_state(doc_pair, local_info, versionned=True)
                 self._dao.update_local_state(doc_pair, local_info, versionned=False)
                 if self._windows and old_local_path is not None:
                     self._win_lock.acquire()
@@ -605,6 +620,10 @@ class LocalWatcher(EngineWorker):
                         # This happens on update don't do anything
                         return
                 self._handle_watchdog_delete(doc_pair)
+            return
+        if evt.event_type == 'created':
+            # NXDRIVE-471 case maybe
+            log.trace("This should only happen in case of a quick move and copy-paste")
             return
         local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if local_info is not None:
@@ -730,6 +749,21 @@ class LocalWatcher(EngineWorker):
                             from_pair.local_state = 'moved'
                             self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
                             moved = True
+                        else:
+                            # possible move-then-copy case, nxdrive-471
+                            doc_pair_full_path = self.client._abspath(rel_path)
+                            doc_pair_creation_time = os.path.getctime(doc_pair_full_path)
+                            from_pair_full_path = self.client._abspath(from_pair.local_path)
+                            from_pair_creation_time = os.path.getctime(from_pair_full_path)
+                            log.trace('doc_pair_full_path=%s, doc_pair_creation_time=%s, from_pair_full_path=%s, version=%d', doc_pair_full_path, doc_pair_creation_time, from_pair_full_path, from_pair.version)
+                            # If file at the original location is newer,
+                            #   it is moved to the new location earlier then copied back (what else can it be?)
+                            if from_pair_creation_time > doc_pair_creation_time:
+                                from_pair.local_state = 'moved'
+                                self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
+                                self._dao.insert_local_state(self.client.get_info(from_pair.local_path), os.path.dirname(from_pair.local_path))
+                                self.client.remove_remote_id(from_pair.local_path)
+                                moved = True
                     if self._windows:
                         self._win_lock.acquire()
                         try:

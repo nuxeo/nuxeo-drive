@@ -14,7 +14,7 @@ except ImportError:
 
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.osi.daemon import daemonize
-from nxdrive.utils import default_nuxeo_drive_folder
+from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
 from nxdrive import __version__
@@ -431,6 +431,8 @@ class CliHandler(object):
     def handle(self, argv):
         """Parse options, setup logs and manager and dispatch execution."""
         options = self.parse_cli(argv)
+        if hasattr(options, 'local_folder'):
+            options.local_folder = normalized_path(options.local_folder)
         # 'launch' is the default command if None is provided
         command = options.command = getattr(options, 'command', 'launch')
 
@@ -552,6 +554,7 @@ class CliHandler(object):
 
     def bind_root(self, options):
         for engine in self.manager.get_engines().values():
+            self.log.trace("Comparing: %s to %s", engine.get_local_folder(), options.local_folder)
             if engine.get_local_folder() == options.local_folder:
                 engine.get_remote_doc_client(repository=options.remote_repo).register_as_root(options.remote_root)
                 return 0

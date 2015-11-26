@@ -207,9 +207,10 @@ class RemoteWatcher(EngineWorker):
             pass
 
         # Detect recently deleted children
+        db_children = self._dao.get_remote_children(doc_pair.remote_ref)
         children_info = self._client.get_children_info(remote_info.uid)
 
-        db_children = self._dao.get_remote_children(doc_pair.remote_ref)
+
         children = dict()
         to_scan = []
         for child in db_children:

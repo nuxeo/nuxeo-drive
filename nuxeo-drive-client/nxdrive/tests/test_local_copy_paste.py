@@ -104,13 +104,22 @@ class TestLocalCopyPaste(UnitTestCase):
         log.debug('*** exit TestLocalCopyPaste.tearDown() ***')
 
     def test_local_copy_paste_files(self):
+        self._local_copy_paste_files(stopped=True)
+
+    def test_local_copy_paste_files_stopped(self):
+        self._local_copy_paste_files(stopped=False)
+
+    def _local_copy_paste_files(self, stopped=False):
         log.debug('*** enter TestLocalCopyPaste.test_local_copy_paste_files() ***')
-        self.engine_1.start()
+        if not stopped:
+            self.engine_1.start()
         # copy all children (files) of A to B
         src = self.local_root_client_1._abspath(self.folder_path_1)
         dst = self.local_root_client_1._abspath(self.folder_path_2)
         for f in os.listdir(src):
             shutil.copy(os.path.join(src, f), dst)
+        if stopped:
+            self.engine_1.start()
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
         log.debug('*** engine1 synced ***')
 

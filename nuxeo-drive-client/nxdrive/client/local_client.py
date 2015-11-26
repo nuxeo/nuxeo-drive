@@ -189,7 +189,8 @@ class LocalClient(BaseClient):
         if AbstractOSIntegration.is_windows():
             pathAlt = path + ":" + name
             try:
-                os.remove(pathAlt)
+                if os.path.exists(pathAlt):
+                    os.remove(pathAlt)
             except WindowsError as e:
                 if e.errno == os.errno.EACCES:
                     self.unset_path_readonly(path)
@@ -206,6 +207,13 @@ class LocalClient(BaseClient):
                     xattr.removexattr(path, name)
                 else:
                     xattr.removexattr(path, 'user.' + name)
+            except IOError as e:
+                # Ignore IOError: [Errno 93] Attribute not found ( Mac )
+                # IOError: [Errno 61] No data available ( Linux )
+                if e.errno == 93 or e.errno == 61:
+                    pass
+                else:
+                    raise
             finally:
                 self.lock_path(path, locker)
 

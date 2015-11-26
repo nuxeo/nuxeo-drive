@@ -522,13 +522,16 @@ class EngineDAO(ConfigurationDAO):
             statement = ''
         else:
             statement = 'if not exists '
+        # Cannot force UNIQUE for local_path as duplicate can have virtual the same path until they are resolved by Processor
+        # Should improve that
         cursor.execute("CREATE TABLE "+statement+"States(id INTEGER NOT NULL, last_local_updated TIMESTAMP,"
           + "last_remote_updated TIMESTAMP, local_digest VARCHAR, remote_digest VARCHAR, local_path VARCHAR,"
           + "remote_ref VARCHAR, local_parent_path VARCHAR, remote_parent_ref VARCHAR, remote_parent_path VARCHAR,"
           + "local_name VARCHAR, remote_name VARCHAR, size INTEGER DEFAULT (0), folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
           + "pair_state VARCHAR DEFAULT('unknown'), remote_can_rename INTEGER, remote_can_delete INTEGER, remote_can_update INTEGER,"
           + "remote_can_create_child INTEGER, last_remote_modifier VARCHAR,"
-          + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, last_error_details TEXT, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), last_transfer VARCHAR, PRIMARY KEY (id), UNIQUE(remote_ref, remote_parent_ref));")
+          + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, last_error_details TEXT, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), last_transfer VARCHAR, PRIMARY KEY (id),"
+          +  "UNIQUE(remote_ref, remote_parent_ref), UNIQUE(remote_ref, local_path));")
 
     def _init_db(self, cursor):
         super(EngineDAO, self)._init_db(cursor)
@@ -1127,7 +1130,7 @@ class EngineDAO(ConfigurationDAO):
                 c = con.cursor()
                 c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
                           "pair_state=?, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
-                          "WHERE id=? and local_path=? and remote_name=? and remote_ref=? and remote_parent_ref=?",
+                          "WHERE id=? and local_path=? and remote_name=? and remote_ref=? and remote_parent_ref=? AND local_state='modified'",
                           (state, datetime.utcnow(), row.id, row.local_path, row.remote_name, row.remote_ref, row.remote_parent_ref))
                 if self.auto_commit:
                     con.commit()
