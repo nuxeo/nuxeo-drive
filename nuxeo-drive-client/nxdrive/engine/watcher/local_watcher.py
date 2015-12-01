@@ -171,7 +171,7 @@ class LocalWatcher(EngineWorker):
         return len(self._folder_scan_events) == 0
 
     def _win_folder_scan_check(self):
-        if (self._windows and self._win_folder_scan_interval > 0 and _windows_folder_scan_delay > 0
+        if (self._windows and self._win_folder_scan_interval > 0 and self._windows_folder_scan_delay > 0
             and self._win_folder_scan_interval < int(round(time() * 1000)) - self._windows_folder_scan_delay):
             self._action = Action("Dequeue folder scan")
             self._win_dequeue_folder_scan()
