@@ -329,7 +329,7 @@ class Processor(EngineWorker):
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
                     log.debug("Set pair unsynchronized: %r", doc_pair)
-                    self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                    self._dao.unsynchronize_state(doc_pair)
                     self._handle_unsynchronized(local_client, doc_pair)
                 return
         self._dao.synchronize_state(doc_pair)
@@ -366,7 +366,7 @@ class Processor(EngineWorker):
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             if parent_pair is not None and parent_pair.pair_state == 'unsynchronized':
-                self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                self._dao.unsynchronize_state(doc_pair)
                 self._handle_unsynchronized(local_client, doc_pair)
                 return
             raise ValueError(
@@ -460,7 +460,7 @@ class Processor(EngineWorker):
                 self._dao.remove_state(doc_pair)
             else:
                 log.debug("Set pair unsynchronized: %r", doc_pair)
-                self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                self._dao.unsynchronize_state(doc_pair)
                 self._handle_unsynchronized(local_client, doc_pair)
 
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):
@@ -669,7 +669,8 @@ class Processor(EngineWorker):
         finally:
             if tmp_file is not None:
                 try:
-                    os.remove(tmp_file)
+                    if os.path.exists(tmp_file):
+                        os.remove(tmp_file)
                 except (IOError, WindowsError):
                     pass
             if doc_pair.folderish:
@@ -689,7 +690,7 @@ class Processor(EngineWorker):
                 " folder" % (name, doc_pair.remote_ref))
         if parent_pair.local_path is None:
             if parent_pair.pair_state == 'unsynchronized':
-                self._dao.synchronize_state(doc_pair, state='unsynchronized')
+                self._dao.unsynchronize_state(doc_pair)
                 self._handle_unsynchronized(local_client, doc_pair)
                 return
             # Illegal state: report the error and let's wait for the
