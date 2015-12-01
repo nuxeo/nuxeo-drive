@@ -652,7 +652,7 @@ class CliHandler(object):
                 "nxdrive.tests.test_updater",
                 "nxdrive.tests.test_utils",
                 "nxdrive.tests.test_versioning",
-                "nxdrive.tests.test_volume",
+                # "nxdrive.tests.test_volume",
                 "nxdrive.tests.test_watchers",
                 "nxdrive.tests.test_windows",
             ]
