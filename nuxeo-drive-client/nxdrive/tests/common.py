@@ -80,6 +80,9 @@ def execute(cmd, exit_on_failure=True):
 def clean_dir(_dir):
     if os.path.exists(_dir):
         to_remove = safe_long_path(_dir)
+        if "TEST_SAVE_DATA" in os.environ:
+            shutil.move(to_remove, os.environ["TEST_SAVE_DATA"])
+            return
         try:
             for dirpath, dirnames, filenames in os.walk(to_remove):
                 for dirname in dirnames:
@@ -204,6 +207,7 @@ class IntegrationTestCase(unittest.TestCase):
         ndrive_path = os.path.dirname(nxdrive.__file__)
         self.ndrive_exec = os.path.join(ndrive_path, '..', 'scripts', 'ndrive.py')
         cmdline_options = '--log-level-console=%s' % DEFAULT_CONSOLE_LOG_LEVEL
+        cmdline_options += ' --log-level-file=TRACE'
         cmdline_options += ' --nxdrive-home="%s"'
         if os.environ.get('PYDEV_DEBUG') == 'True':
             cmdline_options += ' --debug-pydev'
