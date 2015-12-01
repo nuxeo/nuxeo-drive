@@ -1103,52 +1103,52 @@ class EngineDAO(ConfigurationDAO):
             return True
         return False
 
-    def synchronize_state(self, row, version=None, state='synchronized'):
+    def unsynchronize_state(self, row):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET pair_state='unsynchronized', last_sync_date=?, processor = 0," +
+                      "last_error=NULL, error_count=0, last_sync_error_date=NULL WHERE id=?",
+                      (datetime.utcnow(), row.id))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def synchronize_state(self, row, version=None):
         if version is None:
             version = row.version
-        log.trace('Try to synchronize state for [local_path=%s, remote_name=%s, version=%s] with version=%s'
-                  ' and state=%s',
-                  row.local_path, row.remote_name, row.version, version, state)
+        log.trace('Try to synchronize state for [local_path=%s, remote_name=%s, version=%s] with version=%s',
+                  row.local_path, row.remote_name, row.version, version)
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                      "pair_state=?, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
+                      "pair_state='synchronized', last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
                       "WHERE id=? and version=?",
-                      (state, datetime.utcnow(), row.id, version))
+                      (datetime.utcnow(), row.id, version))
             if self.auto_commit:
                 con.commit()
         finally:
             self._lock.release()
         result = c.rowcount == 1
         # Retry without version for folder
-        if not result and state == 'synchronized' and row.folderish:
+        if not result and row.folderish:
             self._lock.acquire()
             try:
                 con = self._get_write_connection()
                 c = con.cursor()
                 c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                          "pair_state=?, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
-                          "WHERE id=? and local_path=? and remote_name=? and remote_ref=? and remote_parent_ref=? AND local_state='modified'",
-                          (state, datetime.utcnow(), row.id, row.local_path, row.remote_name, row.remote_ref, row.remote_parent_ref))
+                          "pair_state='synchronized, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
+                          "WHERE id=? and local_path=? and remote_name=? and remote_ref=? and remote_parent_ref=?",
+                          (datetime.utcnow(), row.id, row.local_path, row.remote_name, row.remote_ref, row.remote_parent_ref))
                 if self.auto_commit:
                     con.commit()
             finally:
                 self._lock.release()
             result = c.rowcount == 1
-        if not result and state == 'unsynchronized':
-            self._lock.acquire()
-            try:
-                con = self._get_write_connection()
-                c = con.cursor()
-                c.execute("UPDATE States SET pair_state=?, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
-                          "WHERE id=?",
-                          (state, datetime.utcnow(), row.id))
-                if self.auto_commit:
-                    con.commit()
-            finally:
-                self._lock.release()
         if not result:
             log.trace("Was not able to synchronize state: %r", row)
             con = self._get_read_connection()
@@ -1159,10 +1159,8 @@ class EngineDAO(ConfigurationDAO):
             else:
                 log.trace("The current row was: %r (version=%r)", row2, row2.version)
             log.trace("The previous row was: %r (version=%r)", row, row.version)
-        elif row.folderish and state == 'synchronized':
+        elif row.folderish:
             self.queue_children(row)
-        if result:
-            self._items_count = self._items_count - 1
         return result
 
     def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True):
