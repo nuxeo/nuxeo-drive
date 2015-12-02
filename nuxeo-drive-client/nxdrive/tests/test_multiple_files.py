@@ -16,7 +16,7 @@ import shutil
 class MultipleFilesTestCase(UnitTestCase):
 
     NUMBER_OF_LOCAL_FILES = 10
-    SYNC_TIMEOUT = 100  # in seconds
+    SYNC_TIMEOUT = 200  # in seconds
 
     '''
         1. create folder 'Nuxeo Drive Test Workspace/a1' with 100 files in it
