@@ -760,7 +760,7 @@ class WebDialog(QtGui.QDialog):
                 url.setRawHeader("X-Authentication-Token", QtCore.QByteArray(token))
             self._set_proxy(application.manager)
         else:
-            log.debug("Load web file : %s", filename)
+            log.trace("Load web file : %s", filename)
             if filename[0] != '/':
                 filename = u"///" + filename
             url = QtCore.QUrl(filename)
