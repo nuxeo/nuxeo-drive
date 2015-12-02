@@ -959,9 +959,12 @@ class Engine(QObject):
                 rest_client = self.get_rest_api_client()
                 response = rest_client.get_user_full_name(userid)
                 if response and 'properties' in response:
-                    fullname = " ".join([response['properties']['firstName'],
-                                         response['properties']['lastName']]).strip()
-                    self._user_cache[userid] = fullname
+                    properties = response['properties']
+                    firstName = properties.get('firstName')
+                    lastName = properties.get('lastName')
+                    if firstName and lastName:
+                        fullname = " ".join([firstName, lastName]).strip()
+                        self._user_cache[userid] = fullname
         except urllib2.URLError as e:
             log.exception(e)
         return fullname
