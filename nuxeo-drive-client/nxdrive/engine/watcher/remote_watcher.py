@@ -571,7 +571,10 @@ class RemoteWatcher(EngineWorker):
             # Mark as deleted
             skip = False
             for processed in delete_processed:
-                if delete_pair.local_path.startswith(processed.local_path):
+                path = processed.local_path
+                if path[-1] != "/":
+                    path = path + "/"
+                if delete_pair.local_path.startswith(path):
                     skip = True
                     break
             if skip:

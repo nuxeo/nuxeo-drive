@@ -58,9 +58,11 @@ class VolumeTestCase(UnitTestCase):
         values = None
         if "TEST_VOLUME" in os.environ:
             values = os.environ["TEST_VOLUME"].split(",")
+        else:
+            raise SkipTest("Deactivate if not launch on purpose with TEST_VOLUME set")
         if values is None or len(values) < 3:
             # Low volume by default to stick to 1h
-            values = "3, 10, 2".split(",")
+            values = "3, 10, 3".split(",")
         self.fmt = ["", "", ""]
         for i in range(0,3):
             self.fmt[i] = "%0" + str(self.pow10floor(values[i])) + "d"

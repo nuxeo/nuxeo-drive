@@ -435,6 +435,25 @@ class TestRemoteDeletion(UnitTestCase):
         self._check_pair_state('/Test folder/jack.odt', 'synchronized')
         self._check_pair_state('/Test folder/jack renamed.odt', 'synchronized')
 
+    def test_synchronize_remote_deletion_with_close_name(self):
+        self.engine_1.start()
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+        remote.make_folder('/', "Folder 1")
+        remote.make_folder('/', "Folder 1b")
+        remote.make_folder('/', "Folder 1c")
+        self.wait_sync()
+        self.assertTrue(local.exists('/Folder 1'))
+        self.assertTrue(local.exists('/Folder 1b'))
+        self.assertTrue(local.exists('/Folder 1c'))
+        remote.delete('/Folder 1')
+        remote.delete('/Folder 1b')
+        remote.delete('/Folder 1c')
+        self.wait_sync()
+        self.assertFalse(local.exists('/Folder 1'))
+        self.assertFalse(local.exists('/Folder 1b'))
+        self.assertFalse(local.exists('/Folder 1c'))
+
     def test_synchronize_local_folder_rename_remote_deletion(self):
         """Test local folder rename followed by remote deletion"""
         # Bind the server and root workspace
