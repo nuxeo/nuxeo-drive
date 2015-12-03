@@ -641,6 +641,7 @@ class EngineDAO(ConfigurationDAO):
             if doc_pair.folderish:
                 # TO_REVIEW New state recursive_locally_deleted
                 c.execute(update + self._get_recursive_condition(doc_pair), ('parent_locally_deleted',))
+            self._queue_manager.interrupt_processors_on(doc_pair.local_path, exact_match=False)
             # Only queue parent
             if current_state == "locally_deleted":
                 self._queue_pair_state(doc_pair.id, doc_pair.folderish, current_state)
@@ -1141,7 +1142,7 @@ class EngineDAO(ConfigurationDAO):
                 con = self._get_write_connection()
                 c = con.cursor()
                 c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                          "pair_state='synchronized, last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
+                          "pair_state='synchronized', last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
                           "WHERE id=? and local_path=? and remote_name=? and remote_ref=? and remote_parent_ref=?",
                           (datetime.utcnow(), row.id, row.local_path, row.remote_name, row.remote_ref, row.remote_parent_ref))
                 if self.auto_commit:

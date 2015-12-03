@@ -62,9 +62,10 @@ class Worker(QObject):
         self._thread.start()
 
     def stop(self):
+        self._continue = False
         self.stopWorker.emit()
         if not self._thread.wait(5000):
-            log.warn("Thread is not responding - terminate it")
+            log.warn("Thread %d is not responding - terminate it", self._thread_id, exc_info=True)
             self._thread.terminate()
         if self._thread.isRunning():
             self._thread.wait(5000)
