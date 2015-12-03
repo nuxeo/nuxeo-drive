@@ -4,7 +4,7 @@
 
 from common_unit_test import UnitTestCase
 from nxdrive.tests.common_unit_test import log
-from nxdrive.tests.common_unit_test import FILE_CONTENT
+import random
 from nose.plugins.skip import SkipTest
 from math import floor, log10
 from copy import copy
@@ -32,6 +32,7 @@ class VolumeTestCase(UnitTestCase):
                 self.local_client_1.make_folder(parent["path"], foldername)
             folderobj["name"] = foldername
             folderobj["childs"] = dict()
+            abspath = self.local_client_1._abspath(folderobj["path"])
             parent["childs"][foldername] = folderobj
             self.items = self.items + 1
             self.create_tree(folders, files, depth-1, folderobj)
@@ -39,27 +40,27 @@ class VolumeTestCase(UnitTestCase):
                 filename = self.get_name(False, self.depth-depth+1, file)
                 folderobj["childs"][filename]=dict()
                 folderobj["childs"][filename]["name"]=filename
-                path = os.path.join(folderobj["path"], filename)
                 if not self.fake:
-                    self.local_client_1.make_file(folderobj["path"], filename, FILE_CONTENT)
+                    file_path = os.path.join(abspath, filename)
+                    self.generate_random_jpg(file_path, random.randint(1000, 3000))
                 self.items = self.items + 1
 
     '''
     '''
-    def setUp(self):
-        super(VolumeTestCase, self).setUp()
+    def create(self, stopped=True, wait_for_sync=True):
         self.fake = False
         if not self.fake:
             self.engine_1.start()
             self.wait_sync()
-            self.engine_1.stop()
+            if not stopped:
+                self.engine_1.stop()
         self.items = 0
         values = None
         if "TEST_VOLUME" in os.environ:
             values = os.environ["TEST_VOLUME"].split(",")
         if values is None or len(values) < 3:
             # Low volume by default to stick to 1h
-            values = "3, 10, 3".split(",")
+            values = "3, 10, 2".split(",")
         self.fmt = ["", "", ""]
         for i in range(0,3):
             self.fmt[i] = "%0" + str(self.pow10floor(values[i])) + "d"
@@ -73,16 +74,18 @@ class VolumeTestCase(UnitTestCase):
         self.create_tree(self.num_folders, self.num_files, self.depth, self.tree)
         log.debug("Generated done in: " + self.local_client_1._abspath('/'))
         if not self.fake:
-            log.debug('*** engine1 starting')
-            self.engine_1.start()
-            self.wait_sync(timeout=self.items)
-            log.debug('*** engine 1 synced')
+            if not stopped:
+                log.debug('*** engine1 starting')
+                self.engine_1.start()
+            if wait_for_sync:
+                self.wait_sync(timeout=self.items)
+                log.debug('*** engine 1 synced')
 
     def get_name(self, folder, depth, number):
         if folder:
             return unicode(("folder_"+self.fmt[2]+"_"+self.fmt[0]) % (depth, number))
         else:
-            return unicode(("file_"+self.fmt[2]+"_"+self.fmt[1] + ".txt") % (depth, number))
+            return unicode(("file_"+self.fmt[2]+"_"+self.fmt[1] + ".jpg") % (depth, number))
 
     def get_path(self, folder, depth, number):
         child = ""
@@ -138,10 +141,20 @@ class VolumeTestCase(UnitTestCase):
                 self.fail("Not expected remote child '" + child.name + "' in " + path)
             self.assertEquals(child.name, remote_refs[child.uid])
 
+    def test_moves_while_creating(self):
+        self.create(stopped=False, wait_for_sync=False)
+        self._moves()
+
     def test_moves(self):
+        self.create()
         self._moves()
 
     def test_moves_stopped(self):
+        self.create()
+        self._moves(stopped=True)
+
+    def test_moves_while_creating_stopped(self):
+        self.create(stopped=False, wait_for_sync=False)
         self._moves(stopped=True)
 
     def _moves(self, stopped=False):
@@ -154,12 +167,12 @@ class VolumeTestCase(UnitTestCase):
         # Move root 2 in, first subchild of 1
         root_2 = self.get_path(True, 1, 2)
         child = self.get_path(True, 3, 1)
-        log.debug("Will mode " + root_2 + " into " + child)
+        log.debug("Will move " + root_2 + " into " + child)
         if not self.fake:
             shutil.move(self.local_client_1._abspath(root_2), self.local_client_1._abspath(child))
         root_1 = self.get_path(True, 1, 1)
         root_3 = self.get_path(True, 1, 3)
-        log.debug("Will mode " + root_1 + " into " + root_3)
+        log.debug("Will move " + root_1 + " into " + root_3)
         if not self.fake:
             shutil.move(self.local_client_1._abspath(root_1), self.local_client_1._abspath(root_3))
         # Update paths
@@ -176,26 +189,43 @@ class VolumeTestCase(UnitTestCase):
         self._check_folder(root_2)
 
     def test_copies(self):
+        self.create()
         self._copies()
 
     def test_copies_stopped(self):
+        self.create()
+        self._copies(stopped=True)
+
+    def test_copies_while_creating(self):
+        self.create(stopped=False, wait_for_sync=False)
+        self._copies()
+
+    def test_copies_while_creating_stopped(self):
+        self.create(stopped=False, wait_for_sync=False)
         self._copies(stopped=True)
 
     def _copies(self, stopped=False):
         if stopped and not self.fake:
             self.engine_1.stop()
 
-        # Move root 2 in, first subchild of 1
+        # Copy root 2 in, first subchild of 1
         root_2 = self.get_path(True, 1, 2)
         child = self.get_path(True, 3, 1)
-        log.debug("Will mode " + root_2 + " into " + child)
+        log.debug("Will copy " + root_2 + " into " + child)
         if not self.fake:
             shutil.copytree(self.local_client_1._abspath(root_2), self.local_client_1._abspath(child + self.get_name(True, 1, 2)))
         root_1 = self.get_path(True, 1, 1)
         root_3 = self.get_path(True, 1, 3)
-        log.debug("Will mode " + root_1 + " into " + root_3)
+        # new copies
+        root_4 = self.get_path(True, 1, self.num_folders + 1)
+        root_5 = self.get_path(True, 1, self.num_folders + 2)
+        log.debug("Will copy " + root_1 + " into " + root_3)
         if not self.fake:
-            shutil.copytree(self.local_client_1._abspath(root_1), self.local_client_1._abspath(root_3+  self.get_name(True, 1, 1)))
+            shutil.copytree(self.local_client_1._abspath(root_1), self.local_client_1._abspath(root_3+self.get_name(True, 1, 1)))
+            log.debug("Will copy " + root_3 + " into " + root_4)
+            log.debug("Will copy " + root_3 + " into " + root_5)
+            shutil.copytree(self.local_client_1._abspath(root_3), self.local_client_1._abspath(root_4))
+            shutil.copytree(self.local_client_1._abspath(root_3), self.local_client_1._abspath(root_5))
         # Update paths
         child = "/" + self.get_name(True, 1, 3) + child
         root_2 = child + self.get_name(True, 1, 2)
@@ -221,3 +251,5 @@ class VolumeTestCase(UnitTestCase):
         # check original copied
         self._check_folder(self.get_path(True, 1, 1))
         self._check_folder(self.get_path(True, 1, 2))
+        self._check_folder(self.get_path(True, 1, self.num_folders+1), added=[self.get_name(True, 1, 1)])
+        self._check_folder(self.get_path(True, 1, self.num_folders+2), added=[self.get_name(True, 1, 1)])
