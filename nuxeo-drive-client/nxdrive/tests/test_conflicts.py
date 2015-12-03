@@ -79,19 +79,16 @@ class TestConflicts(UnitTestCase):
         self.assertEquals(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
 
     def test_conflict_on_lock(self):
-        print self.file_id
         doc_uid = self.file_id.split("#")[-1]
         local = self.local_client_1
         remote = self.remote_file_system_client_2
         self.remote_document_client_2.lock(doc_uid)
         local.update_content('/test.txt', 'Local update')
         self.wait_sync()
-        print self.engine_1.get_dao().get_normal_state_from_remote(self.file_id)
         self.assertEquals(local.get_content('/test.txt'), 'Local update')
         self.assertEquals(remote.get_content(self.file_id), 'Some content')
         remote.update_content(self.file_id, 'Remote update')
         self.wait_sync()
-        print self.engine_1.get_dao().get_normal_state_from_remote(self.file_id)
         self.assertEquals(local.get_content('/test.txt'), 'Local update')
         self.assertEquals(remote.get_content(self.file_id), 'Remote update')
         self.assertEquals(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")

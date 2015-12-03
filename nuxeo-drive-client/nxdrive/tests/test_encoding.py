@@ -29,7 +29,7 @@ class TestEncoding(UnitTestCase):
             u'/Nom avec accents \xe9 \xe8.doc'),
             u"Contenu sans accents.")
 
-    def test_filename_with_katakana_from_server(self):
+    def test_filename_with_katakana(self):
         self.remote_client.make_file(self.workspace,
             u'Nom sans \u30bc\u30ec accents.doc',
             u"Contenu")
@@ -42,7 +42,7 @@ class TestEncoding(UnitTestCase):
         self.assertEquals(self.local_client.get_content(
             u'/Nom sans \u30bc\u30ec accents.doc'),
             u"Contenu")
-        self.assertEquals(self.local_client.get_content(
+        self.assertEquals(self.remote_client.get_content(
             u'/Avec accents \u30d7 \u793e.doc'),
             u"Contenu")
 
