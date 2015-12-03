@@ -59,10 +59,12 @@ class VolumeTestCase(UnitTestCase):
         if "TEST_VOLUME" in os.environ:
             values = os.environ["TEST_VOLUME"].split(",")
         else:
-            raise SkipTest("Deactivate if not launch on purpose with TEST_VOLUME set")
+            # Deactivate if needed
+            #raise SkipTest("Deactivate if not launch on purpose with TEST_VOLUME set")
+            pass
         if values is None or len(values) < 3:
             # Low volume by default to stick to 1h
-            values = "3, 10, 3".split(",")
+            values = "3, 10, 2".split(",")
         self.fmt = ["", "", ""]
         for i in range(0,3):
             self.fmt[i] = "%0" + str(self.pow10floor(values[i])) + "d"
@@ -168,7 +170,7 @@ class VolumeTestCase(UnitTestCase):
             raise SkipTest("Can't execute this test on so few data")
         # Move root 2 in, first subchild of 1
         root_2 = self.get_path(True, 1, 2)
-        child = self.get_path(True, 3, 1)
+        child = self.get_path(True, self.depth, 1)
         log.debug("Will move " + root_2 + " into " + child)
         if not self.fake:
             shutil.move(self.local_client_1._abspath(root_2), self.local_client_1._abspath(child))
@@ -212,7 +214,7 @@ class VolumeTestCase(UnitTestCase):
 
         # Copy root 2 in, first subchild of 1
         root_2 = self.get_path(True, 1, 2)
-        child = self.get_path(True, 3, 1)
+        child = self.get_path(True, self.depth, 1)
         log.debug("Will copy " + root_2 + " into " + child)
         if not self.fake:
             shutil.copytree(self.local_client_1._abspath(root_2), self.local_client_1._abspath(child + self.get_name(True, 1, 2)))
