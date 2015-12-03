@@ -633,6 +633,10 @@ class Processor(EngineWorker):
                         # NXDRIVE-471: log
                         old_path = doc_pair.local_path
                         new_path = new_parent_pair.local_path + '/' + moved_name
+                        if old_path == new_path:
+                            log.debug("WRONG GUESS FOR MOVE: %r", doc_pair)
+                            self._is_remote_move(doc_pair, debug=True)
+                            self._dao.synchronize_state(doc_pair)
                         log.debug("DOC_PAIR(%r): old_path[%d][%r]: %s, new_path[%d][%r]: %s",
                             doc_pair, local_client.exists(old_path), local_client.get_remote_id(old_path), old_path,
                             local_client.exists(new_path), local_client.get_remote_id(new_path), new_path)
@@ -830,9 +834,11 @@ class Processor(EngineWorker):
         doc_pair.local_name = os.path.basename(local_info.path)
         doc_pair.last_local_updated = local_info.last_modification_time
 
-    def _is_remote_move(self, doc_pair):
+    def _is_remote_move(self, doc_pair, debug=False):
         local_parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
         remote_parent_pair = self._get_normal_state_from_remote_ref(doc_pair.remote_parent_ref)
+        if debug:
+            log.debug("is_remote_move: local:%r remote:%r", local_parent_pair, remote_parent_pair)
         return (local_parent_pair is not None
                 and remote_parent_pair is not None
                 and local_parent_pair.id != remote_parent_pair.id,
