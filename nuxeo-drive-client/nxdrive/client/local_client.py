@@ -50,7 +50,7 @@ class FileInfo(object):
 
         # Normalize name on the file system if not normalized
         # See https://jira.nuxeo.com/browse/NXDRIVE-188
-        if os.path.exists(filepath) and normalized_filepath != filepath:
+        if os.path.exists(filepath) and normalized_filepath != filepath and AbstractOSIntegration.is_windows():
             log.debug('Forcing normalization of %r to %r', filepath, normalized_filepath)
             os.rename(filepath, normalized_filepath)
 
@@ -443,6 +443,22 @@ class LocalClient(BaseClient):
 
     def get_content(self, ref):
         return open(self._abspath(ref), "rb").read()
+
+    def is_osxbundle(self, ref):
+        '''
+        This is not reliable yet
+        '''
+        if not AbstractOSIntegration.is_mac():
+            return False
+        if (os.path.isfile(self._abspath(ref))):
+            return False
+        # Dont want to synchornize app - when copy paste this file might not has been created yet
+        if os.path.isfile(os.path.join(ref, "Contents", "Info.plist")):
+            return True
+        attrs = self.get_remote_id(ref, "com.apple.FinderInfo")
+        if attrs is None:
+            return False
+        return bool(ord(attrs[8]) & 0x20)
 
     def is_ignored(self, parent_ref, file_name):
         # Add parent_ref to be able to filter on size if needed
