@@ -95,7 +95,7 @@ class RemoteWatcher(EngineWorker):
                 from_state = self._dao.get_state_from_local('/')
             self._client = self._engine.get_remote_client()
             remote_info = self._client.get_info(from_state.remote_ref)
-            self._dao.update_remote_state(from_state, remote_info, from_state.remote_parent_path)
+            self._dao.update_remote_state(from_state, remote_info, remote_parent_path=from_state.remote_parent_path)
         except NotFound:
             log.debug("Marking %r as remotely deleted.", from_state)
             # Should unbind ?
@@ -224,7 +224,7 @@ class RemoteWatcher(EngineWorker):
                 child_pair = children.pop(child_info.uid)
                 if self._check_modified(child_pair, child_info):
                     child_pair.remote_state = 'modified'
-                self._dao.update_remote_state(child_pair, child_info, remote_parent_path)
+                self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
             else:
                 child_pair, new_pair = self._find_remote_child_match_or_create(doc_pair, child_info)
             if ((new_pair or force_recursion) and remote_info.folderish):
@@ -251,7 +251,7 @@ class RemoteWatcher(EngineWorker):
             if child_pair.remote_ref is not None:
                 child_pair = None
             else:
-                self._dao.update_remote_state(child_pair, child_info, remote_parent_path)
+                self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
                 if (child_pair.folderish == child_info.folderish
                         and self._local_client.is_equal_digests(child_pair.local_digest, child_info.digest,
                                                                 child_pair.local_path,
@@ -532,7 +532,7 @@ class RemoteWatcher(EngineWorker):
                             else:
                                 remote_parent_path = os.path.dirname(new_info.path)
                                 # TODO Add modify local_path and local_parent_path if needed
-                            self._dao.update_remote_state(doc_pair, new_info, remote_parent_path)
+                            self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path)
                             self._force_scan_recursive(doc_pair, consistent_new_info, remote_path=new_info.path,
                                                        force_recursion=(eventId == "securityUpdated"))
 

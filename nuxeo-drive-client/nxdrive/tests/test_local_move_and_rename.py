@@ -57,13 +57,16 @@ class TestLocalMoveAndRename(UnitTestCase):
         root_local_client = self.local_root_client_1
         remote_client = self.remote_document_client_1
         marker = False
-        def update_remote_state(row, info, remote_parent_path=None, versionned=True):
+
+        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True):
             global marker
-            EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path, versionned)
+            EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path=remote_parent_path,
+                                          versionned=versionned)
             if row.local_name == 'New Folder' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed Folder')
                 sleep(5)
                 marker = True
+
         self.engine_1._dao.update_remote_state = update_remote_state
         local_client.make_folder('/', 'New Folder')
         self.wait_sync(fail_if_timeout=False)
@@ -80,13 +83,16 @@ class TestLocalMoveAndRename(UnitTestCase):
         root_local_client = self.local_root_client_1
         remote_client = self.remote_document_client_1
         marker = False
-        def update_remote_state(row, info, remote_parent_path=None, versionned=True):
+
+        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True):
             global marker
-            EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path, versionned)
+            EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path=remote_parent_path,
+                                          versionned=versionned)
             if row.local_name == 'File.txt' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed File.txt')
                 sleep(5)
                 marker = True
+
         self.engine_1._dao.update_remote_state = update_remote_state
         self.local_client_1.make_file('/', u'File.txt',
             content=u'Some Content 2'.encode('utf-8'))
