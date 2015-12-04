@@ -82,7 +82,7 @@ class VolumeTestCase(UnitTestCase):
                 log.debug('*** engine1 starting')
                 self.engine_1.start()
             if wait_for_sync:
-                self.wait_sync(timeout=self.items)
+                self.wait_sync(timeout=self.items*10)
                 log.debug('*** engine 1 synced')
 
     def get_name(self, folder, depth, number):
@@ -185,7 +185,7 @@ class VolumeTestCase(UnitTestCase):
         root_1 = root_3 + self.get_name(True, 1, 1)
         if stopped and not self.fake:
             self.engine_1.start()
-        self.wait_sync(wait_for_async=True, timeout=self.items)
+        self.wait_sync(wait_for_async=True, timeout=self.items*10)
         # Assert
         self._check_folder(root_3, added=[self.get_name(True, 1, 1)])
         self._check_folder(child, added=[self.get_name(True, 1, 2)])
@@ -246,7 +246,7 @@ class VolumeTestCase(UnitTestCase):
 
         if stopped and not self.fake:
             self.engine_1.start()
-        self.wait_sync(wait_for_async=True, timeout=self.items)
+        self.wait_sync(wait_for_async=True, timeout=self.items*10)
         # Assert
         self._check_folder(root_3, added=[self.get_name(True, 1, 1)])
         self._check_folder(child, added=[self.get_name(True, 1, 2)])

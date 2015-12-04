@@ -258,6 +258,12 @@ class LocalWatcher(EngineWorker):
     def empty_events(self):
         return self._watchdog_queue.empty()
 
+    def get_creation_time(self, child_full_path):
+        if self._windows:
+            return os.path.getctime(child_full_path)
+        else:
+            return os.stat(child_full_path).st_birthtime
+
     def _scan_recursive(self, info, recursive=True):
         log.debug('Starting recursive local scan of %r', info.path)
         if recursive:
@@ -318,9 +324,9 @@ class LocalWatcher(EngineWorker):
                         if doc_pair is not None and self.client.exists(doc_pair.local_path):
                             # possible move-then-copy case, nxdrive-471
                             child_full_path = self.client._abspath(child_info.path)
-                            child_creation_time = os.path.getctime(child_full_path)
+                            child_creation_time = self.get_creation_time(child_full_path)
                             doc_full_path = self.client._abspath(doc_pair.local_path)
-                            doc_creation_time = os.path.getctime(doc_full_path)
+                            doc_creation_time = self.get_creation_time(doc_full_path)
                             log.trace('child_cre_time=%d, doc_cre_time=%d', child_creation_time, doc_creation_time)
                         if doc_pair is None:
                             log.debug("Can't find reference for %s in database, put it in locally_created state",
@@ -752,9 +758,9 @@ class LocalWatcher(EngineWorker):
                         else:
                             # possible move-then-copy case, nxdrive-471
                             doc_pair_full_path = self.client._abspath(rel_path)
-                            doc_pair_creation_time = os.path.getctime(doc_pair_full_path)
+                            doc_pair_creation_time = self.get_creation_time(doc_pair_full_path)
                             from_pair_full_path = self.client._abspath(from_pair.local_path)
-                            from_pair_creation_time = os.path.getctime(from_pair_full_path)
+                            from_pair_creation_time = self.get_creation_time(from_pair_full_path)
                             log.trace('doc_pair_full_path=%s, doc_pair_creation_time=%s, from_pair_full_path=%s, version=%d', doc_pair_full_path, doc_pair_creation_time, from_pair_full_path, from_pair.version)
                             # If file at the original location is newer,
                             #   it is moved to the new location earlier then copied back (what else can it be?)
