@@ -6,6 +6,7 @@ from nxdrive.logging_config import get_logger
 from watchdog.events import FileSystemEventHandler
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.activity import Action
 from Queue import Queue
 import sys
@@ -41,7 +42,7 @@ class LocalWatcher(EngineWorker):
         # Delay for the scheduled recursive scans of a created / modified / moved folder under Windows
         self._windows_folder_scan_delay = 10000  # 10 seconds
         self._windows_watchdog_event_buffer = 8192
-        self._windows = (sys.platform == 'win32')
+        self._windows = AbstractOSIntegration.is_windows()
         if self._windows:
             log.debug('Windows detected so delete event will be delayed by %dms', WIN_MOVE_RESOLUTION_PERIOD)
         # TODO Review to delete
@@ -262,7 +263,10 @@ class LocalWatcher(EngineWorker):
         if self._windows:
             return os.path.getctime(child_full_path)
         else:
-            return os.stat(child_full_path).st_birthtime
+            stat = os.stat(child_full_path)
+            if hasattr(stat, "st_birthtime"):
+                return stat.st_birthtime
+            return 0
 
     def _scan_recursive(self, info, recursive=True):
         log.debug('Starting recursive local scan of %r', info.path)
