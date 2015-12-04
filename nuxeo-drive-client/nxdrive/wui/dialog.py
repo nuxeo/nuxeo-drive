@@ -755,12 +755,13 @@ class WebDialog(QtGui.QDialog):
         self._view.page().setNetworkAccessManager(self.networkManager)
         # If connect to a remote page add the X-Authentication-Token
         if filename.startswith("http"):
+            log.trace("Load web page: %s", filename)
             url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
             if token is not None:
                 url.setRawHeader("X-Authentication-Token", QtCore.QByteArray(token))
             self._set_proxy(application.manager)
         else:
-            log.trace("Load web file : %s", filename)
+            log.trace("Load web file: %s", filename)
             if filename[0] != '/':
                 filename = u"///" + filename
             url = QtCore.QUrl(filename)
