@@ -60,8 +60,8 @@ class VolumeTestCase(UnitTestCase):
             values = os.environ["TEST_VOLUME"].split(",")
         else:
             # Deactivate if needed
-            #raise SkipTest("Deactivate if not launch on purpose with TEST_VOLUME set")
-            pass
+            raise SkipTest("Deactivate if not launch on purpose with TEST_VOLUME set")
+            #pass
         if values is None or len(values) < 3:
             # Low volume by default to stick to 1h
             values = "3, 10, 2".split(",")
