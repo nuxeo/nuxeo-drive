@@ -92,7 +92,7 @@ class TestEncoding(UnitTestCase):
         from nxdrive.client.local_client import FileInfo
         from nose.plugins.skip import SkipTest
         from nxdrive.osi import AbstractOSIntegration
-        if not AbstractOSIntegration.is_windows():
+        if AbstractOSIntegration.is_mac():
             raise SkipTest("Normalization dont work on Mac")
         self.engine_1.stop()
         name = u'Teste\u0301'

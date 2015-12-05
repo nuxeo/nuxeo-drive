@@ -50,7 +50,7 @@ class FileInfo(object):
 
         # Normalize name on the file system if not normalized
         # See https://jira.nuxeo.com/browse/NXDRIVE-188
-        if os.path.exists(filepath) and normalized_filepath != filepath and AbstractOSIntegration.is_windows():
+        if os.path.exists(filepath) and normalized_filepath != filepath and not AbstractOSIntegration.is_mac():
             log.debug('Forcing normalization of %r to %r', filepath, normalized_filepath)
             os.rename(filepath, normalized_filepath)
 
