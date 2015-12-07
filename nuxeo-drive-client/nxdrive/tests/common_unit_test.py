@@ -136,7 +136,7 @@ class UnitTestCase(unittest.TestCase):
             self.root_remote_client.activate_profile(server_profile)
 
         # Call the Nuxeo operation to setup the integration test environment
-        credentials = sekf.root_remote_client.execute(
+        credentials = self.root_remote_client.execute(
             "NuxeoDrive.SetupIntegrationTests",
             userNames="user_1, user_2", permission='ReadWrite')
 
