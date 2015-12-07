@@ -393,7 +393,7 @@ class QueueManager(QObject):
         else:
             result = worker._current_doc_pair.local_path.startswith(path)
         if result:
-            log.trace("Worker(%r) is processing: %s", worker.get_metrics(), path)
+            log.trace("Worker(%r) is processing: %r", worker.get_metrics(), path)
         return result
 
     def interrupt_processors_on(self, path, exact_match=True):

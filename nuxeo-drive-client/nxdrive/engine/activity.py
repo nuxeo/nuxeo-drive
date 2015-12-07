@@ -99,12 +99,12 @@ class FileAction(Action):
     def __repr__(self):
         # Size can be None if the file disapeared right on creation
         if self.size is None:
-            return "%s(%s)" % (self.type, self.filename)
+            return "%s(%r)" % (self.type, self.filename)
         percent = self.get_percent()
         if percent is None:
-            return "%s(%s[%d])" % (self.type, self.filename, self.size)
+            return "%s(%r[%d])" % (self.type, self.filename, self.size)
         else:
-            return "%s(%s[%d]-%f%%)" % (self.type, self.filename, self.size, percent)
+            return "%s(%r[%d]-%f%%)" % (self.type, self.filename, self.size, percent)
 
 Action.actions = dict()
 Action.lastFileActions = dict()
