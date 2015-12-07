@@ -120,6 +120,42 @@ class TestQApplication(QtCore.QCoreApplication):
 
 class UnitTestCase(unittest.TestCase):
 
+    def setUpServer(self, server_profile=None):
+        # Long timeout for the root client that is responsible for the test
+        # environment set: this client is doing the first query on the Nuxeo
+        # server and might need to wait for a long time without failing for
+        # Nuxeo to finish initialize the repo on the first request after
+        # startup
+        self.root_remote_client = RemoteDocumentClient(
+            self.nuxeo_url, self.admin_user,
+            u'nxdrive-test-administrator-device', self.version,
+            password=self.password, base_folder=u'/', timeout=60)
+
+        # Activate given profile if needed, eg. permission hierarchy
+        if server_profile is not None:
+            self.root_remote_client.activate_profile(server_profile)
+
+        # Call the Nuxeo operation to setup the integration test environment
+        credentials = sekf.root_remote_client.execute(
+            "NuxeoDrive.SetupIntegrationTests",
+            userNames="user_1, user_2", permission='ReadWrite')
+
+        credentials = [c.strip().split(u":") for c in credentials.split(u",")]
+        self.user_1, self.password_1 = credentials[0]
+        self.user_2, self.password_2 = credentials[1]
+
+    def getServerWorkspace(self):
+        self.root_remote_client.fetch(TEST_WORKSPACE_PATH)
+
+    def tearDownServer(self, server_profile=None):
+        # Don't need to revoke tokens for the file system remote clients
+        # since they use the same users as the remote document clients
+        self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
+
+        # Deactivate given profile if needed, eg. permission hierarchy
+        if server_profile is not None:
+            self.root_remote_client.deactivate_profile(server_profile)
+
     def setUpApp(self, server_profile=None):
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
@@ -184,28 +220,8 @@ class UnitTestCase(unittest.TestCase):
         Manager._singleton = None
         self.manager_2 = Manager(options)
         self.version = __version__
-        # Long timeout for the root client that is responsible for the test
-        # environment set: this client is doing the first query on the Nuxeo
-        # server and might need to wait for a long time without failing for
-        # Nuxeo to finish initialize the repo on the first request after
-        # startup
-        root_remote_client = RemoteDocumentClient(
-            self.nuxeo_url, self.admin_user,
-            u'nxdrive-test-administrator-device', self.version,
-            password=self.password, base_folder=u'/', timeout=60)
+        self.setUpServer(server_profile)
 
-        # Activate given profile if needed, eg. permission hierarchy
-        if server_profile is not None:
-            root_remote_client.activate_profile(server_profile)
-
-        # Call the Nuxeo operation to setup the integration test environment
-        credentials = root_remote_client.execute(
-            "NuxeoDrive.SetupIntegrationTests",
-            userNames="user_1, user_2", permission='ReadWrite')
-
-        credentials = [c.strip().split(u":") for c in credentials.split(u",")]
-        self.user_1, self.password_1 = credentials[0]
-        self.user_2, self.password_2 = credentials[1]
         self.engine_1 = self.manager_1.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1,
                                                    self.password_1, start_engine=False)
         self.engine_2 = self.manager_2.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2,
@@ -221,7 +237,7 @@ class UnitTestCase(unittest.TestCase):
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
-        ws_info = root_remote_client.fetch(TEST_WORKSPACE_PATH)
+        ws_info = self.getServerWorkspace()
         self.workspace = ws_info[u'uid']
         self.workspace_title = ws_info[u'title']
 
@@ -275,7 +291,6 @@ class UnitTestCase(unittest.TestCase):
         remote_document_client_1.register_as_root(self.workspace)
         remote_document_client_2.register_as_root(self.workspace)
 
-        self.root_remote_client = root_remote_client
         self.remote_document_client_1 = remote_document_client_1
         self.remote_document_client_2 = remote_document_client_2
         self.remote_file_system_client_1 = remote_file_system_client_1
@@ -437,13 +452,7 @@ class UnitTestCase(unittest.TestCase):
         self.manager_2.unbind_all()
         self.manager_2.dispose_db()
         Manager._singleton = None
-        # Don't need to revoke tokens for the file system remote clients
-        # since they use the same users as the remote document clients
-        self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
-
-        # Deactivate given profile if needed, eg. permission hierarchy
-        if server_profile is not None:
-            self.root_remote_client.deactivate_profile(server_profile)
+        self.tearDownServer(server_profile)
 
         clean_dir(self.upload_tmp_dir)
         clean_dir(self.local_test_folder_1)
