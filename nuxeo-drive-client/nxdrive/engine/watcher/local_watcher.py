@@ -130,7 +130,10 @@ class LocalWatcher(EngineWorker):
             self._stop_watchdog()
 
     def win_queue_empty(self):
-        return len(self._delete_events) == 0
+        return not self._delete_events
+
+    def get_win_queue_size(self):
+        return len(self._delete_events)
 
     def _win_delete_check(self):
         if self._windows and self._win_delete_interval < int(round(time() * 1000)) - WIN_MOVE_RESOLUTION_PERIOD:
@@ -169,7 +172,10 @@ class LocalWatcher(EngineWorker):
             self._win_lock.release()
 
     def win_folder_scan_empty(self):
-        return len(self._folder_scan_events) == 0
+        return not self._folder_scan_events
+
+    def get_win_folder_scan_size(self):
+        return len(self._folder_scan_events)
 
     def _win_folder_scan_check(self):
         if (self._windows and self._win_folder_scan_interval > 0 and self._windows_folder_scan_delay > 0
@@ -258,6 +264,9 @@ class LocalWatcher(EngineWorker):
 
     def empty_events(self):
         return self._watchdog_queue.empty()
+
+    def get_watchdog_queue_size(self):
+        return self._watchdog_queue.qsize()
 
     def get_creation_time(self, child_full_path):
         if self._windows:
