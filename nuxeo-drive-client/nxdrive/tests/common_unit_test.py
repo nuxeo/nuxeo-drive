@@ -143,9 +143,13 @@ class UnitTestCase(unittest.TestCase):
         credentials = [c.strip().split(u":") for c in credentials.split(u",")]
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
-
-    def getServerWorkspace(self):
-        self.root_remote_client.fetch(TEST_WORKSPACE_PATH)
+        ws_info = self.root_remote_client.fetch(TEST_WORKSPACE_PATH)
+        self.workspace = ws_info[u'uid']
+        self.workspace_title = ws_info[u'title']
+        self.workspace_1 = self.workspace
+        self.workspace_2 = self.workspace
+        self.workspace_title_1 = self.workspace_title
+        self.workspace_title_2 = self.workspace_title
 
     def tearDownServer(self, server_profile=None):
         # Don't need to revoke tokens for the file system remote clients
@@ -237,17 +241,13 @@ class UnitTestCase(unittest.TestCase):
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
-        ws_info = self.getServerWorkspace()
-        self.workspace = ws_info[u'uid']
-        self.workspace_title = ws_info[u'title']
-
-        self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1, self.workspace_title)
-        self.sync_root_folder_2 = os.path.join(self.local_nxdrive_folder_2, self.workspace_title)
+        self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1, self.workspace_title_1)
+        self.sync_root_folder_2 = os.path.join(self.local_nxdrive_folder_2, self.workspace_title_2)
 
         self.local_root_client_1 = self.engine_1.get_local_client()
         self.local_root_client_2 = self.engine_2.get_local_client()
-        self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
-        self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2, self.workspace_title))
+        self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1, self.workspace_title_1))
+        self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2, self.workspace_title_2))
 
         # Document client to be used to create remote test documents
         # and folders
@@ -255,13 +255,13 @@ class UnitTestCase(unittest.TestCase):
         remote_document_client_1 = RemoteDocumentClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.version,
-            password=self.password_1, base_folder=self.workspace,
+            password=self.password_1, base_folder=self.workspace_1,
             upload_tmp_dir=self.upload_tmp_dir)
 
         remote_document_client_2 = RemoteDocumentClient(
             self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
             self.version,
-            password=self.password_2, base_folder=self.workspace,
+            password=self.password_2, base_folder=self.workspace_2,
             upload_tmp_dir=self.upload_tmp_dir)
 
         # File system client to be used to create remote test documents
@@ -288,8 +288,8 @@ class UnitTestCase(unittest.TestCase):
         )
 
         # Register root
-        remote_document_client_1.register_as_root(self.workspace)
-        remote_document_client_2.register_as_root(self.workspace)
+        remote_document_client_1.register_as_root(self.workspace_1)
+        remote_document_client_2.register_as_root(self.workspace_2)
 
         self.remote_document_client_1 = remote_document_client_1
         self.remote_document_client_2 = remote_document_client_2
