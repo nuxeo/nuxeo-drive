@@ -340,7 +340,7 @@ class LocalWatcher(EngineWorker):
                             child_creation_time = self.get_creation_time(child_full_path)
                             doc_full_path = self.client._abspath(doc_pair.local_path)
                             doc_creation_time = self.get_creation_time(doc_full_path)
-                            log.trace('child_cre_time=%d, doc_cre_time=%d', child_creation_time, doc_creation_time)
+                            log.trace('child_cre_time=%f, doc_cre_time=%f', child_creation_time, doc_creation_time)
                         if doc_pair is None:
                             log.debug("Can't find reference for %s in database, put it in locally_created state",
                                       child_info.path)
@@ -357,12 +357,13 @@ class LocalWatcher(EngineWorker):
                                 ( self.client.exists(doc_pair.local_path) and child_creation_time < doc_creation_time):
                                 # If file exists at old location, and the file at the original location is newer,
                                 #   it is moved to the new location earlier then copied back
-                            log.debug("Found a moved file")
+                            log.debug("Found moved file")
                             doc_pair.local_state = 'moved'
                             self._dao.update_local_state(doc_pair, child_info)
                             self._protected_files[doc_pair.remote_ref] = True
                             if self.client.exists(doc_pair.local_path) and child_creation_time < doc_creation_time:
                                 # Need to put back the new created - need to check maybe if already there
+                                log.trace("Found a moved file that has been copy/paste back: %s", doc_pair.local_path)
                                 self.client.remove_remote_id(doc_pair.local_path)
                                 self._dao.insert_local_state(self.client.get_info(doc_pair.local_path), os.path.dirname(doc_pair.local_path))
                         else:
@@ -777,7 +778,9 @@ class LocalWatcher(EngineWorker):
                             log.trace('doc_pair_full_path=%s, doc_pair_creation_time=%s, from_pair_full_path=%s, version=%d', doc_pair_full_path, doc_pair_creation_time, from_pair_full_path, from_pair.version)
                             # If file at the original location is newer,
                             #   it is moved to the new location earlier then copied back (what else can it be?)
-                            if not from_pair_creation_time < doc_pair_creation_time:
+                            if (not from_pair_creation_time <= doc_pair_creation_time) and evt.event_type == 'created':
+                                log.trace("Found moved file: from_pair: %f doc_pair:%f for %s", from_pair_creation_time, doc_pair_creation_time, doc_pair_full_path)
+                                log.trace("Creation time are: from: %f | new: %f : boolean: %d", from_pair_creation_time, doc_pair_creation_time,(not from_pair_creation_time < doc_pair_creation_time) )
                                 from_pair.local_state = 'moved'
                                 self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
                                 self._dao.insert_local_state(self.client.get_info(from_pair.local_path), os.path.dirname(from_pair.local_path))

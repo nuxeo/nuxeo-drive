@@ -181,6 +181,7 @@ class UnitTestCase(unittest.TestCase):
             self.tmpdir = os.path.join(self.build_workspace, "tmp")
             if not os.path.isdir(self.tmpdir):
                 os.makedirs(self.tmpdir)
+        self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads', dir=self.tmpdir)
 
         if None in (self.nuxeo_url, self.admin_user, self.password):
             raise unittest.SkipTest(
@@ -251,7 +252,6 @@ class UnitTestCase(unittest.TestCase):
 
         # Document client to be used to create remote test documents
         # and folders
-        self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads', dir=self.tmpdir)
         remote_document_client_1 = self.engine_1.get_remote_doc_client()
         remote_document_client_1.upload_tmp_dir = self.upload_tmp_dir
         remote_document_client_2 = self.engine_2.get_remote_doc_client()

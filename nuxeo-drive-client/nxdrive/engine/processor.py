@@ -394,17 +394,6 @@ class Processor(EngineWorker):
                 self._dao.synchronize_state(doc_pair)
                 return
 
-            # Extreme corner case that can happen when copying back a moved folder with 100 files inside it
-            # to its original location
-            grand_parent_path = local_client.get_parent_ref(doc_pair.local_parent_path)
-            log.trace('Grandparent path for %r: %r', doc_pair, grand_parent_path)
-            if grand_parent_path and local_client.exists(grand_parent_path):
-                grand_parent_ref = local_client.get_remote_id(grand_parent_path)
-                if grand_parent_ref != parent_pair.remote_parent_ref:
-                    log.debug("Don't handle local creation and remove doc pair %r", doc_pair)
-                    self._dao.remove_state(doc_pair)
-                    return
-
         parent_ref = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
             remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
