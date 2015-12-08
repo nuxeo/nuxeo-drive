@@ -80,14 +80,15 @@ class RemoteDocumentClient(BaseAutomationClient):
             check_suspended=check_suspended)
 
         # fetch the root folder ref
-        self.base_folder = base_folder
+        self.set_base_folder(base_folder)
+
+    def set_base_folder(self, base_folder):
         if base_folder is not None:
             base_folder_doc = self.fetch(base_folder)
             self._base_folder_ref = base_folder_doc['uid']
             self._base_folder_path = base_folder_doc['path']
         else:
             self._base_folder_ref, self._base_folder_path = None, None
-
     #
     # API common with the local client API
     #
