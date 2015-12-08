@@ -662,7 +662,9 @@ class LocalWatcher(EngineWorker):
             queue = not (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified')
             if AbstractOSIntegration.is_mac() and evt.event_type == 'modified' and doc_pair.remote_ref is not None and doc_pair.remote_ref != local_info.remote_ref:
                 original_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
-                original_info = self.client.get_info(original_pair.local_path, raise_if_missing=False)
+                original_info = None
+                if original_pair is not None:
+                    original_info = self.client.get_info(original_pair.local_path, raise_if_missing=False)
                 if original_info is not None and original_info.remote_ref == local_info.remote_ref:
                     log.debug("MacOSX has postponed overwriting of xattr, need to reset remote_ref for %r", doc_pair)
                     # We are in a copy/paste situation with OS overriding the xattribute
