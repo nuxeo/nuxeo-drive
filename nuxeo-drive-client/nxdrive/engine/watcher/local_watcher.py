@@ -273,6 +273,9 @@ class LocalWatcher(EngineWorker):
             return os.path.getctime(child_full_path)
         else:
             stat = os.stat(child_full_path)
+            # Try inode number as on HFS seems to be increasing
+            if AbstractOSIntegration.is_mac() and hasattr(stat, "st_ino"):
+                return stat.st_ino
             if hasattr(stat, "st_birthtime"):
                 return stat.st_birthtime
             return 0
@@ -657,6 +660,13 @@ class LocalWatcher(EngineWorker):
                 doc_pair.local_digest = digest
                 doc_pair.local_state = 'modified'
             queue = not (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified')
+            if AbstractOSIntegration.is_mac() and evt.event_type == 'modified' and doc_pair.remote_ref is not None and doc_pair.remote_ref != local_info.remote_ref:
+                original_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
+                original_info = self.client.get_info(original_pair.local_path, raise_if_missing=False)
+                if original_info is not None and original_info.remote_ref == local_info.remote_ref:
+                    log.debug("MacOSX has postponed overwriting of xattr, need to reset remote_ref for %r", doc_pair)
+                    # We are in a copy/paste situation with OS overriding the xattribute
+                    self.client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
             # No need to change anything on sync folder
             if (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified'):
                 doc_pair.local_state = 'synchronized'
