@@ -189,7 +189,11 @@ class Engine(QObject):
         # Connect components signals to engine signals
         self._queue_manager.newItem.connect(self.newQueueItem)
         self._queue_manager.newErrorGiveUp.connect(self.newError)
+        # Some conflict can be resolved automatically
         self._dao.newConflict.connect(self.conflict_resolver)
+        # Try to resolve conflict on startup
+        for conflict in self._dao.get_conflicts():
+            self._conflict_resolver(conflict.id, emit=False)
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
         # Set the root icon
@@ -624,15 +628,23 @@ class Engine(QObject):
         return self._dao.get_conflicts()
 
     def conflict_resolver(self, row_id):
+        self._conflict_resolver(row_id)
+
+    def _conflict_resolver(self, row_id, emit=True):
         try:
             pair = self._dao.get_state_from_id(row_id)
             local_client = self.get_local_client()
             parent_ref = local_client.get_remote_id(pair.local_parent_path)
+            log.warn("conflict_resolver: name: %d digest: %d(%s/%s) parents: %d(%s/%s)", pair.remote_name == pair.local_name,
+                      local_client.is_equal_digests(pair.local_digest, pair.remote_digest, pair.local_path),
+                      pair.local_digest, pair.remote_digest,
+                      pair.remote_parent_ref == parent_ref,
+                      pair.remote_parent_ref, parent_ref)
             if (pair.remote_name == pair.local_name
                 and local_client.is_equal_digests(pair.local_digest, pair.remote_digest, pair.local_path)
                     and pair.remote_parent_ref == parent_ref):
                 self._dao.synchronize_state(pair)
-            else:
+            elif emit:
                 # Raise conflict only if not resolvable
                 self.newConflict.emit(row_id)
         except Exception:
