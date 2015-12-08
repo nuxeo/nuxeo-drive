@@ -252,29 +252,14 @@ class UnitTestCase(unittest.TestCase):
         # Document client to be used to create remote test documents
         # and folders
         self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads', dir=self.tmpdir)
-        remote_document_client_1 = RemoteDocumentClient(
-            self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-            self.version,
-            password=self.password_1, base_folder=self.workspace_1,
-            upload_tmp_dir=self.upload_tmp_dir)
-
-        remote_document_client_2 = RemoteDocumentClient(
-            self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-            self.version,
-            password=self.password_2, base_folder=self.workspace_2,
-            upload_tmp_dir=self.upload_tmp_dir)
-
-        # File system client to be used to create remote test documents
-        # and folders
-        remote_file_system_client_1 = RemoteFileSystemClient(
-            self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-            self.version,
-            password=self.password_1, upload_tmp_dir=self.upload_tmp_dir)
-
-        remote_file_system_client_2 = RemoteFileSystemClient(
-            self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-            self.version,
-            password=self.password_2, upload_tmp_dir=self.upload_tmp_dir)
+        remote_document_client_1 = self.engine_1.get_remote_doc_client()
+        remote_document_client_1.upload_tmp_dir = self.upload_tmp_dir
+        remote_document_client_2 = self.engine_2.get_remote_doc_client()
+        remote_document_client_2.upload_tmp_dir = self.upload_tmp_dir
+        remote_file_system_client_1 = self.engine_1.get_remote_client(filtered=False)
+        remote_file_system_client_1.upload_tmp_dir = self.upload_tmp_dir
+        remote_file_system_client_2 = self.engine_1.get_remote_client(filtered=False)
+        remote_file_system_client_2.upload_tmp_dir = self.upload_tmp_dir
 
         self.remote_restapi_client_1 = RestAPIClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
