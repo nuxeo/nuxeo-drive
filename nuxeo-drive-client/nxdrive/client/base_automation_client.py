@@ -467,7 +467,8 @@ class BaseAutomationClient(BaseClient):
             log_details = self._log_details(e)
             if isinstance(log_details, tuple):
                 status, code, _ = log_details
-                if status == 500 and code == 'com.sun.jersey.api.NotFoundException':
+                if status == 500 and code in ('com.sun.jersey.api.NotFoundException',
+                                              'org.nuxeo.ecm.webengine.model.TypeNotFoundException'):
                     raise NewUploadAPINotAvailable()
             raise e
         return self._read_response(resp, url)
