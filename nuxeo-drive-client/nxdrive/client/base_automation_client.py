@@ -466,10 +466,15 @@ class BaseAutomationClient(BaseClient):
         except Exception as e:
             log_details = self._log_details(e)
             if isinstance(log_details, tuple):
-                status, code, _ = log_details
-                if status == 500 and code in ('com.sun.jersey.api.NotFoundException',
-                                              'org.nuxeo.ecm.webengine.model.TypeNotFoundException'):
+                status, code, message = log_details
+                if status == 404:
                     raise NewUploadAPINotAvailable()
+                if status == 500:
+                    not_found_exceptions = ['com.sun.jersey.api.NotFoundException',
+                                            'org.nuxeo.ecm.webengine.model.TypeNotFoundException']
+                    for exception in not_found_exceptions:
+                        if code == exception or exception in message:
+                            raise NewUploadAPINotAvailable()
             raise e
         return self._read_response(resp, url)
 
@@ -739,9 +744,12 @@ class BaseAutomationClient(BaseClient):
                 # Error message should always be a JSON message,
                 # but sometimes it's not
                 if '<html>' in detail:
-                    log.error(e)
+                    message = e
                 else:
-                    log.debug(detail)
+                    message = detail
+                log.error(message)
+                if isinstance(e, urllib2.HTTPError):
+                    return e.code, None, message
         return None
 
     def _generate_unique_id(self):
