@@ -2,41 +2,6 @@
 String.prototype.endsWith = function(suffix) {
     return this.indexOf(suffix, this.length - suffix.length) !== -1;
 };
-_promises = [];
-promise_success = function(uid, result) {
-	if (_promises[uid] == undefined || _promises[uid]._success_callback == undefined) {
-		return;
-	}
-	_promises[uid]._success_callback(result);
-	delete _promises[uid];
-}
-promise_error = function(uid, err) {
-	if (_promises[uid] == undefined || _promises[uid]._error_callback == undefined) {
-		return;
-	}
-	_promises[uid]._error_callback(err);
-	delete _promises[uid];
-}
-when = function(result) {
-	return {
-		then: function(callback, error_callback) {
-			if (result && result['_promise_success'] !== undefined && result['_promise_error'] !== undefined) {
-				uid = result['_promise_uid']();
-				if (_promises[uid] == undefined) {
-					console.log("set the promises for " + uid);
-					_promises[uid] = self
-				}
-				_promises[uid]._success_callback = callback;
-				_promises[uid]._error_callback = error_callback;
-				result._promise_success.connect(promise_success);
-				result._promise_error.connect(promise_error);
-				result.start();
-			} else {
-				callback(result);
-			}
-		}
-	};
-}
 function drive_module(name) {
 	app = angular.module(name, ['pascalprecht.translate']);
 	app.directive('driveInclude', function($http, $templateCache, $compile) {
@@ -132,20 +97,16 @@ DriveController.prototype.appUpdate = function(version) {
 	drive.app_update(version);
 }
 DriveController.prototype.updatePassword = function($scope, uid, password) {
-	$scope.update_password_error = 'CONNECTING';
-	when( drive.update_password_async(uid, password)).then(
-		function (res) {
-			if (res == "") {
-				$scope.update_password_error = null;
-				$scope.engines = this.getEngines();
-				// Waiting for better solution
-				top.location.reload();
-			} else {
-				$scope.update_password_error = res;
-				$scope.password = "";
-			}
-		}
-	);
+	res = drive.update_password(uid, password);
+	if (res == "") {
+		$scope.update_password_error = null;
+		$scope.engines = this.getEngines();
+		// Waiting for better solution
+		top.location.reload();
+	} else {
+		$scope.update_password_error = res;
+		$scope.password = "";
+	}
 }
 DriveController.prototype.getUpdateStatus = function() {
 	return angular.fromJson(drive.get_update_status());

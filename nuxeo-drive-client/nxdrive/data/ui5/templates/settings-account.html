@@ -41,10 +41,7 @@
       <div class="input-group">
 	      <input type="password" class="form-control" placeholder="{{ 'UPDATE_PASSWORD_PLACEHOLDER' | translate }}" ng-model="password">
 	      <span class="input-group-btn">
-	        <button class="btn btn-default" ng-click="update_password(currentAccount.uid, password)" type="button">
-              <span ng-show="update_password_error == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span>
-              <span ng-disabled="update_password_error == 'CONNECTING'" translate>UPDATE_PASSWORD_BUTTON</span>
-            </button>
+	        <button class="btn btn-default" ng-click="update_password(currentAccount.uid, password)" type="button" translate>UPDATE_PASSWORD_BUTTON</button>
 	      </span>
 	   </div>
     </div>

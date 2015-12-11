@@ -12,7 +12,6 @@ from nxdrive.engine.activity import FileAction, Action
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.wui.translator import Translator
 from nxdrive.manager import FolderAlreadyUsed
-import uuid
 import urllib2
 import json
 import sys
@@ -25,35 +24,6 @@ from nxdrive.engine.workers import Worker
 from nxdrive.engine.dao.sqlite import StateRow
 from dateutil.tz import tzlocal
 log = get_logger(__name__)
-
-
-class Promise(Worker):
-    _promise_success = QtCore.pyqtSignal(str, str)
-    _promise_error = QtCore.pyqtSignal(str, str)
-
-    def __init__(self, runner, *args, **kwargs):
-        self._uid = uuid.uuid1().hex
-        self._runner = runner
-        self._kwargs = kwargs
-        self._args = args
-        super(Promise, self).__init__(name="Promise_" + self._uid)
-        self._result = None
-
-    @QtCore.pyqtSlot(result=str)
-    def _promise_uid(self):
-        return self._uid
-
-    @QtCore.pyqtSlot()
-    def start(self):
-        self._thread.started.connect(self.run)
-        self._thread.start()
-
-    def _execute(self):
-        try:
-            result = self._runner(*self._args, **self._kwargs)
-            self._promise_success.emit(self._uid, result)
-        except Exception as e:
-            self._promise_error.emit(self._uid, repr(e))
 
 
 class WebDriveApi(QtCore.QObject):
@@ -216,25 +186,18 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
+    def _update_password(self, engine, password):
+        engine.update_password(password)
+        return ""
+
     @QtCore.pyqtSlot(str, str, result=str)
     def update_password(self, uid, password):
-        # Deprecated
-        return self._update_password(uid, password)
-
-    @QtCore.pyqtSlot(str, str, result=QtCore.QObject)
-    def update_password_async(self, uid, password):
-        return Promise(self._update_password, uid, password)
-
-    def _update_password(self, uid, password):
         password = str(password)
         try:
-            from time import sleep
-            sleep(5.0)
             engine = self._get_engine(uid)
             if engine is None:
                 return ""
-            engine.update_password(password)
-            return ""
+            return self._update_password(engine, password)
         except FolderAlreadyUsed:
             return "FOLDER_USED"
         except Unauthorized:
@@ -756,9 +719,6 @@ class WebDialog(QtGui.QDialog):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
         self.activateWindow()
-
-    def get_frame(self):
-        return self._frame
 
     def resize(self, width, height):
         super(WebDialog, self).resize(width * self._zoomFactor, height * self._zoomFactor)
