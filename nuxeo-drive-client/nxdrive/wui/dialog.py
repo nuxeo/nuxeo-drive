@@ -27,16 +27,6 @@ from dateutil.tz import tzlocal
 log = get_logger(__name__)
 
 
-class PromiseWrapper(QtCore.QObject):
-    def __init__(self, promise):
-        super(PromiseWrapper, self).__init__()
-        self._promise = promise
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        self._promise.run()
-
-
 class Promise(Worker):
     _promise_success = QtCore.pyqtSignal(str, str)
     _promise_error = QtCore.pyqtSignal(str, str)
@@ -48,12 +38,6 @@ class Promise(Worker):
         self._args = args
         super(Promise, self).__init__(name="Promise_" + self._uid)
         self._result = None
-        self._wrapper = PromiseWrapper(self)
-        self._wrapper.moveToThread(self._thread)
-
-    def moveToThread(self, QThread):
-        # Prevent this object to be move to other threads
-        pass
 
     @QtCore.pyqtSlot(result=str)
     def _promise_uid(self):
@@ -61,7 +45,7 @@ class Promise(Worker):
 
     @QtCore.pyqtSlot()
     def start(self):
-        self._thread.started.connect(self._wrapper.run)
+        self._thread.started.connect(self.run)
         self._thread.start()
 
     def _execute(self):
@@ -236,15 +220,6 @@ class WebDriveApi(QtCore.QObject):
     def update_password(self, uid, password):
         # Deprecated
         return self._update_password(uid, password)
-
-    def _test_promise(self):
-        from time import sleep
-        sleep(3)
-        return "OK"
-
-    @QtCore.pyqtSlot(result=QtCore.QObject)
-    def test_promise(self):
-        return Promise(self._test_promise)
 
     @QtCore.pyqtSlot(str, str, result=QtCore.QObject)
     def update_password_async(self, uid, password):
