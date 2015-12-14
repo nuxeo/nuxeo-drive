@@ -124,17 +124,20 @@ var SettingsController = function($scope, $interval, $translate) {
 		button = angular.element($event.currentTarget);
 		$scope.currentConfirm = button;
 		if (button.hasClass("btn-danger")) {
-			button.html($translate.instant("DISCONNECT"));
-			button.removeClass("btn-danger");
+			button.html('<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span>&nbsp;' + $translate.instant("DISCONNECTING"))
 			console.log($scope.currentAccount);
-			drive.unbind_server($scope.currentAccount.uid)
-			$scope.engines = angular.fromJson(drive.get_engines());
-			if ($scope.engines.length > 0) {
-				$scope.changeAccount($scope.engines[0]);	
-			} else {
-				$scope.changeAccount($scope.newAccount);
-			}
-			$scope.webAuthenticationAvailable = true;
+			when (drive.unbind_server_async($scope.currentAccount.uid)).then( function() {
+				button.html($translate.instant("DISCONNECT"));
+				button.removeClass("btn-danger");
+				$scope.engines = angular.fromJson(drive.get_engines());
+				if ($scope.engines.length > 0) {
+					$scope.changeAccount($scope.engines[0]);
+				} else {
+					$scope.changeAccount($scope.newAccount);
+				}
+				$scope.webAuthenticationAvailable = true;
+				$scope.$apply();
+			});
 		} else {
 			button.addClass("btn-danger");
 			button.html($translate.instant("CONFIRM_DISCONNECT"));
@@ -228,33 +231,41 @@ SettingsController.prototype.reinitNewAccount = function ($scope) {
 	$scope.newAccount.local_folder = drive.get_default_nuxeo_drive_folder();
 }
 SettingsController.prototype.bindServer = function($scope, $translate) {
+	$scope.currentAction = "CONNECTING";
 	$scope.reinitMsgs();
 	local_folder = $scope.currentAccount.local_folder;
-	res = drive.bind_server($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.username, $scope.password, $scope.currentAccount.name);
-	if (res == "") {
-		$scope.password = "";
-		$scope.engines = angular.fromJson(drive.get_engines());
-		$scope.reinitNewAccount();
-		for (i = 0; i < $scope.engines.length; i++) {
-			if ($scope.engines[i].local_folder == local_folder) {
-				$scope.changeAccount($scope.engines[i]);
-				break;
+	when (drive.bind_server_async($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.username, $scope.password, $scope.currentAccount.name)).then( function(res) {
+		if (res == "") {
+			$scope.password = "";
+			$scope.engines = angular.fromJson(drive.get_engines());
+			$scope.reinitNewAccount();
+			for (i = 0; i < $scope.engines.length; i++) {
+				if ($scope.engines[i].local_folder == local_folder) {
+					$scope.changeAccount($scope.engines[i]);
+					break;
+				}
 			}
+			$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
+			$scope.beta_channel_available = drive.is_beta_channel_available();
+		} else {
+			$scope.setErrorMessage($translate.instant(res));
 		}
-		$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
-		$scope.beta_channel_available = drive.is_beta_channel_available();
-	} else {
-		$scope.setErrorMessage($translate.instant(res));
-	}
+		$scope.currentAction = "";
+		$scope.$apply();
+	});
 }
 SettingsController.prototype.webAuthentication = function($scope, $translate) {
+	$scope.currentAction = "CONNECTING";
 	$scope.reinitMsgs();
-	res = drive.web_authentication($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.name);
-	if (res == "false") {
-		$scope.webAuthenticationAvailable = false;
-	} else if (res != "true") {
-		$scope.setErrorMessage($translate.instant(res));
-	}
+	when(drive.web_authentication_async($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.name)).then( function(res) {
+		if (res == "false") {
+			$scope.webAuthenticationAvailable = false;
+		} else if (res != "true") {
+			$scope.setErrorMessage($translate.instant(res));
+		}
+		$scope.currentAction = "";
+		$scope.$apply();
+	});
 }
 SettingsController.prototype.updateToken = function($scope, $translate) {
 	$scope.reinitMsgs();

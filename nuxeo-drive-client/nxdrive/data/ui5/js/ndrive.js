@@ -76,6 +76,7 @@ if (tracker != "") {
 DriveController = function($scope, $translate) {
 	// Map default drive API
 	self = this;
+	$scope.currentAction = "";
 	$scope.engines = this.getEngines();
 	$scope.open_remote = this.openRemote;
 	$scope.open_local = this.openLocal;
@@ -132,6 +133,7 @@ DriveController.prototype.appUpdate = function(version) {
 	drive.app_update(version);
 }
 DriveController.prototype.updatePassword = function($scope, uid, password) {
+	$scope.currentAction = "CONNECTING";
 	$scope.update_password_error = 'CONNECTING';
 	when( drive.update_password_async(uid, password)).then(
 		function (res) {
@@ -144,6 +146,8 @@ DriveController.prototype.updatePassword = function($scope, uid, password) {
 				$scope.update_password_error = res;
 				$scope.password = "";
 			}
+			$scope.currentAction = "";
+			$scope.$apply();
 		}
 	);
 }
