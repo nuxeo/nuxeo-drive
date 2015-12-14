@@ -234,7 +234,7 @@ SettingsController.prototype.bindServer = function($scope, $translate) {
 	$scope.currentAction = "CONNECTING";
 	$scope.reinitMsgs();
 	local_folder = $scope.currentAccount.local_folder;
-	when (drive.bind_server_async($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.username, $scope.password, $scope.currentAccount.name)).then( function(res) {
+	when (drive.bind_server($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.username, $scope.password, $scope.currentAccount.name)).then( function(res) {
 		if (res == "") {
 			$scope.password = "";
 			$scope.engines = angular.fromJson(drive.get_engines());
