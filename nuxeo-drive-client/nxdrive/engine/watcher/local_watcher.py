@@ -436,12 +436,18 @@ class LocalWatcher(EngineWorker):
                             if old_pair is None:
                                 self._dao.insert_local_state(child_info, info.path)
                             else:
-                                old_pair.local_state = 'moved'
-                                # Check digest also
-                                digest = child_info.get_digest()
-                                if old_pair.local_digest != digest:
-                                    old_pair.local_digest = digest
-                                self._dao.update_local_state(old_pair, child_info)
+                                if not self.client.exists(old_pair.local_path) and self.client.exists(child_info.path):
+                                    log.trace('%s moved to %s', old_pair.local_path, child_info.path)
+                                    old_pair.local_state = 'moved'
+                                    # Check digest also
+                                    digest = child_info.get_digest()
+                                    if old_pair.local_digest != digest:
+                                        old_pair.local_digest = digest
+                                    self._dao.update_local_state(old_pair, child_info)
+                                else:
+                                    # both file or folder exist: copy-and-paste
+                                    log.trace('copy and paste')
+                                    self._protected_files[child_pair.remote_ref] = True
                                 self._protected_files[old_pair.remote_ref] = True
                             self._delete_files[child_pair.remote_ref] = child_pair
                         if not child_info.folderish:
@@ -644,7 +650,8 @@ class LocalWatcher(EngineWorker):
                         return
                 self._handle_watchdog_delete(doc_pair)
             return
-        if evt.event_type == 'created':
+        if evt.event_type == 'created' and AbstractOSIntegration.is_windows():
+        # if evt.event_type == 'created':
             # NXDRIVE-471 case maybe
             log.trace("This should only happen in case of a quick move and copy-paste")
             return
