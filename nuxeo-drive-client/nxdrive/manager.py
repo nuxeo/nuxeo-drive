@@ -204,6 +204,24 @@ class Manager(QtCore.QObject):
             raise Exception("Only one instance of Manager can be create")
         Manager._singleton = self
         super(Manager, self).__init__()
+
+        # Let's bypass HTTPS verification unless --consider-ssl-errors is passed
+        # since many servers unfortunately have invalid certificates.
+        # See https://www.python.org/dev/peps/pep-0476/
+        # and https://jira.nuxeo.com/browse/NXDRIVE-506
+        if not options.consider_ssl_errors:
+            log.warn("--consider-ssl-errors option is False, won't verify HTTPS certificates")
+            import ssl
+            try:
+                _create_unverified_https_context = ssl._create_unverified_context
+            except AttributeError:
+                log.info("Legacy Python that doesn't verify HTTPS certificates by default")
+            else:
+                log.info("Handle target environment that doesn't support HTTPS verification:"
+                         " globally disable verification by monkeypatching the ssl module though highly discouraged")
+                ssl._create_default_https_context = _create_unverified_https_context
+        else:
+            log.info("--consider-ssl-errors option is True, will verify HTTPS certificates")
         self._autolock_service = None
         self.client_version = __version__
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
