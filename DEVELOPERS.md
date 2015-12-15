@@ -126,7 +126,7 @@ brew update && brew upgrade
 
 Since Python 2.7.9, SSL verification is enabled by default. Unsurprisingly, it broke some Python scripts that connected to servers with self-signed certificates. Surprisingly, it broke scripts - among which the Nuxeo Drive one - that connected to servers with valid SSL certificates.
 
-Why is that? Because the OpenSSL library as shipped with Mac OS X (which is still 0.9.8) has special hooks in it so that it falls back to OS X keyring if verification fails against the CAs given to OpenSSL itself. But the OpenSSL built with Homebrew does not have this fallback.
+Why is that? Because the OpenSSL library as shipped with Mac OS X (which is still 0.9.8) has special hooks in it so that it falls back to OS X keyring if verification fails against the CAs given to OpenSSL itself, whereas the OpenSSL built with Homebrew does not have this fallback.
 
 This means that if we use the built-in OpenSSL with python2 it will successfully verify the site if it finds a CA inside the OS X keyring. But if we compile python2 against our own OpenSSL it will look for the CAs in `/usr/local/etc/openssl/cert.pem` which is the location where Homebrew clones the system keyring when installing `openssl`. This would work on a dev environment with a Homebrew installation of `openssl` but not on a standard OS X machine!
 
@@ -276,7 +276,7 @@ To run the tests install and start a Nuxeo server locally, then:
 cd nuxeo-drive-client; nosetests nxdrive
 ```
 
-### Mac OS X
+#### Mac OS X
 
 Grab all the dev dependencies and tools at once using [pip](http://www.pip-installer.org/):
 
@@ -302,7 +302,7 @@ To run the tests, install and start a Nuxeo server locally, then:
 cd nuxeo-drive-client; nosetests nxdrive
 ```
 
-### Windows
+#### Windows
 
 To set up a build environment under Windows run the PowerShell script with the administration rights (right click on the PowerShell icon in the Programs menu to get the opportunity to "Run as administrator"):
 
@@ -392,13 +392,13 @@ C:\Python27\python.exe setup.py --freeze bdist_msi
 
 The generated .msi file can be found in the `dist/` subfolder.
 
-### Signing the Binary Packages
+## Signing the Binary Packages
 
 As OS X and Windows have some default security policies to only allow users to run software they have downloaded off the Internet if it has been signed, we need to sign the Nuxeo Drive binary packages. For an unsigned application, under Windows, users only need to click "Yes" in a various number of popups to get through the security check, but under OS X unless the Security & Privacy settings are changed or they right/Ctrl clik on the file, they simply won't be able to launch the application!
 
 For a full documentation on application signing see [https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/doc/digital_signature.md](https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/doc/digital_signature.md)
 
-#### Mac OS X
+### Mac OS X
 
 You need to make sure to have a code signing identity trusted by Apple in one of the machine's keychain. Let's say its name is "Developer ID Application: NUXEO CORP (WCLR6985BX)".
 
@@ -410,7 +410,7 @@ sh tools/osx/create-dmg.sh
 
 It will sign the DMG package and verify its signature. It uses the `codesign` and `spctl` commands included by default in Mac OS X.
 
-#### Windows
+### Windows
 
 You need to make sure to have a valid PFX certificate file on the build machine, let's say it is located in `C:\Users\Nuxeo\certificates\nuxeo.com.pfx`.
 
