@@ -11,6 +11,7 @@ from nxdrive.engine.activity import Action
 from Queue import Queue
 import sys
 import os
+import re
 from time import sleep, time, mktime
 from datetime import datetime
 from threading import Lock
@@ -20,9 +21,17 @@ log = get_logger(__name__)
 # Windows 2s between resolution of delete event
 WIN_MOVE_RESOLUTION_PERIOD = 2000
 
+TEXT_EDIT_TMP_FILE_PATTERN = ur'.*\.rtf\.sb\-(\w)+\-(\w)+$'
+
+
 def is_office_file(name):
     # Dont filter for now
     return True
+
+
+def is_text_edit_file(name):
+    return re.match(TEXT_EDIT_TMP_FILE_PATTERN, name)
+
 
 class LocalWatcher(EngineWorker):
     localScanFinished = pyqtSignal()
@@ -594,6 +603,9 @@ class LocalWatcher(EngineWorker):
                         return
             local_info = self.client.get_info(rel_path, raise_if_missing=False)
             if local_info is not None:
+                if is_text_edit_file(local_info.name):
+                    log.debug('Ignoring move to TextEdit tmp file %r for %r', local_info.name, doc_pair)
+                    return
                 old_local_path = None
                 rel_parent_path = self.client.get_path(os.path.dirname(src_path))
                 if rel_parent_path == '':
