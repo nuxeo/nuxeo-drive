@@ -603,6 +603,8 @@ class LocalWatcher(EngineWorker):
                 if (doc_pair.remote_name == local_info.name and
                         doc_pair.remote_parent_ref == remote_parent_ref):
                         # The pair was moved but it has been canceled manually
+                        log.debug("The pair was moved but it has been canceled manually,"
+                                  " setting state to 'synchronized': %r", doc_pair)
                         doc_pair.local_state = 'synchronized'
                 elif not (local_info.name == doc_pair.local_name and
                         doc_pair.remote_parent_ref == remote_parent_ref):
@@ -646,7 +648,7 @@ class LocalWatcher(EngineWorker):
             return
         if evt.event_type == 'created':
             # NXDRIVE-471 case maybe
-            log.trace("This should only happen in case of a quick move and copy-paste")
+            log.debug("This should only happen in case of a quick move and copy-paste")
             return
         local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if local_info is not None:
