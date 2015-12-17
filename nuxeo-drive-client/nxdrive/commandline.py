@@ -614,6 +614,7 @@ class CliHandler(object):
             # List the test modules explicitly as recursive discovery is broken
             # when the app is frozen.
             argv += [
+                "nxdrive.tests.test_bind_server",
                 "nxdrive.tests.test_blacklist_queue",
                 "nxdrive.tests.test_commandline",
                 "nxdrive.tests.test_conflicts",
@@ -628,13 +629,14 @@ class CliHandler(object):
                 "nxdrive.tests.test_local_client",
                 "nxdrive.tests.test_local_copy_paste",
                 "nxdrive.tests.test_local_create_folders",
+                "nxdrive.tests.test_local_deletion",
                 "nxdrive.tests.test_local_filter",
                 "nxdrive.tests.test_local_move_and_rename",
                 "nxdrive.tests.test_local_move_folders",
                 "nxdrive.tests.test_local_paste",
                 "nxdrive.tests.test_manager_dao",
-                "nxdrive.tests.test_multiple_files",
                 "nxdrive.tests.test_model_filters",
+                "nxdrive.tests.test_multiple_files",
                 "nxdrive.tests.test_permission_hierarchy",
                 "nxdrive.tests.test_readonly",
                 "nxdrive.tests.test_remote_changes",
@@ -642,6 +644,7 @@ class CliHandler(object):
                 "nxdrive.tests.test_remote_document_client",
                 "nxdrive.tests.test_remote_file_system_client",
                 "nxdrive.tests.test_remote_move_and_rename",
+                "nxdrive.tests.test_report",
                 "nxdrive.tests.test_security_updates",
                 "nxdrive.tests.test_shared_folders",
                 "nxdrive.tests.test_sync_roots",
