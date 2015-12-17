@@ -646,7 +646,7 @@ class LocalWatcher(EngineWorker):
                         return
                 self._handle_watchdog_delete(doc_pair)
             return
-        if evt.event_type == 'created':
+        if evt.event_type == 'created' and not AbstractOSIntegration.is_mac():
             # NXDRIVE-471 case maybe
             log.debug("This should only happen in case of a quick move and copy-paste")
             return
