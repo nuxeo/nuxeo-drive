@@ -658,10 +658,17 @@ class LocalWatcher(EngineWorker):
                         return
                 self._handle_watchdog_delete(doc_pair)
             return
-        if evt.event_type == 'created' and not AbstractOSIntegration.is_mac():
+        if evt.event_type == 'created':
             # NXDRIVE-471 case maybe
-            log.debug("This should only happen in case of a quick move and copy-paste")
-            return
+            remote_ref = self.client.get_remote_id(rel_path)
+            if remote_ref is None:
+                log.debug("Created event on a known pair with no remote_ref,"
+                          " this should only happen in case of a quick move and copy-paste: %r", doc_pair)
+                return
+            else:
+                # NXDRIVE-509
+                log.debug("Created event on a known pair with a remote_ref,"
+                          " this can happen with certain Mac applications as TextEdit: %r", doc_pair)
         local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if local_info is not None:
             if doc_pair.local_state == 'synchronized':
