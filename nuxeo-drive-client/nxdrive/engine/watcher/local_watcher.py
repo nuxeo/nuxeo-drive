@@ -29,7 +29,7 @@ def is_office_file(name):
     return True
 
 
-def is_text_edit_file(name):
+def is_text_edit_tmp_file(name):
     return re.match(TEXT_EDIT_TMP_FILE_PATTERN, name)
 
 
@@ -347,7 +347,7 @@ class LocalWatcher(EngineWorker):
                         log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
                         if doc_pair is not None and self.client.exists(doc_pair.local_path):
-                            # possible move-then-copy case, nxdrive-471
+                            # possible move-then-copy case, NXDRIVE-471
                             child_full_path = self.client._abspath(child_info.path)
                             child_creation_time = self.get_creation_time(child_full_path)
                             doc_full_path = self.client._abspath(doc_pair.local_path)
@@ -603,7 +603,7 @@ class LocalWatcher(EngineWorker):
                         return
             local_info = self.client.get_info(rel_path, raise_if_missing=False)
             if local_info is not None:
-                if is_text_edit_file(local_info.name):
+                if is_text_edit_tmp_file(local_info.name):
                     log.debug('Ignoring move to TextEdit tmp file %r for %r', local_info.name, doc_pair)
                     return
                 old_local_path = None
@@ -803,7 +803,7 @@ class LocalWatcher(EngineWorker):
                             self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
                             moved = True
                         else:
-                            # possible move-then-copy case, nxdrive-471
+                            # possible move-then-copy case, NXDRIVE-471
                             doc_pair_full_path = self.client._abspath(rel_path)
                             doc_pair_creation_time = self.get_creation_time(doc_pair_full_path)
                             from_pair_full_path = self.client._abspath(from_pair.local_path)
