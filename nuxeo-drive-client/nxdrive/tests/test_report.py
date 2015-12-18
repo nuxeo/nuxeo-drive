@@ -11,6 +11,7 @@ import tempfile
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
 from nxdrive.tests.common import clean_dir
+from nose.plugins.skip import SkipTest
 
 
 def configure_logger():
