@@ -10,6 +10,8 @@ import os
 import tempfile
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
+from nxdrive.tests.common import clean_dir
+
 
 def configure_logger():
     configure(
@@ -39,10 +41,10 @@ class ReportTest(unittest.TestCase):
         self.manager = Manager(options)
 
     def tearDown(self):
-        from shutil import rmtree
-        rmtree(self.folder)
         # Remove singleton
+        self.manager.dispose_db()
         Manager._singleton = None
+        clean_dir(self.folder)
 
     def testLogs(self):
         # NXDRIVE-358
