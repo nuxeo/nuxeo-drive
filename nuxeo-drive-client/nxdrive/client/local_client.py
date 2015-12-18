@@ -281,13 +281,11 @@ class LocalClient(BaseClient):
                 create_file.close()
                 win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
                 win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
-                win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_SYSTEM)
             except Exception as e:
                 log.error("Exception when setting folder icon : %r", e)
         else:
             win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
             win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
-            win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_SYSTEM)
 
     def _read_data(self, file_path):
         '''The data file contains the mac icons'''
