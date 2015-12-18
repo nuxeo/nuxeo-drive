@@ -47,6 +47,9 @@ class ReportTest(unittest.TestCase):
         clean_dir(self.folder)
 
     def testLogs(self):
+        from nxdrive.osi import AbstractOSIntegration
+        if AbstractOSIntegration.is_windows():
+            raise SkipTest("Temporarily skipped, need to investigate")
         # NXDRIVE-358
         report = Report(self.manager, os.path.join(self.folder, "report.zip"))
         log.debug("Strange encoding \xe9")
