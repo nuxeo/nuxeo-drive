@@ -11,6 +11,7 @@ from nxdrive.engine.activity import Action
 from Queue import Queue
 import sys
 import os
+import re
 from time import sleep, time, mktime
 from datetime import datetime
 from threading import Lock
@@ -20,9 +21,17 @@ log = get_logger(__name__)
 # Windows 2s between resolution of delete event
 WIN_MOVE_RESOLUTION_PERIOD = 2000
 
+TEXT_EDIT_TMP_FILE_PATTERN = ur'.*\.rtf\.sb\-(\w)+\-(\w)+$'
+
+
 def is_office_file(name):
     # Dont filter for now
     return True
+
+
+def is_text_edit_tmp_file(name):
+    return re.match(TEXT_EDIT_TMP_FILE_PATTERN, name)
+
 
 class LocalWatcher(EngineWorker):
     localScanFinished = pyqtSignal()
@@ -338,7 +347,7 @@ class LocalWatcher(EngineWorker):
                         log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
                         if doc_pair is not None and self.client.exists(doc_pair.local_path):
-                            # possible move-then-copy case, nxdrive-471
+                            # possible move-then-copy case, NXDRIVE-471
                             child_full_path = self.client._abspath(child_info.path)
                             child_creation_time = self.get_creation_time(child_full_path)
                             doc_full_path = self.client._abspath(doc_pair.local_path)
@@ -436,12 +445,18 @@ class LocalWatcher(EngineWorker):
                             if old_pair is None:
                                 self._dao.insert_local_state(child_info, info.path)
                             else:
-                                old_pair.local_state = 'moved'
-                                # Check digest also
-                                digest = child_info.get_digest()
-                                if old_pair.local_digest != digest:
-                                    old_pair.local_digest = digest
-                                self._dao.update_local_state(old_pair, child_info)
+                                if not self.client.exists(old_pair.local_path) and self.client.exists(child_info.path):
+                                    log.trace('%s moved to %s', old_pair.local_path, child_info.path)
+                                    old_pair.local_state = 'moved'
+                                    # Check digest also
+                                    digest = child_info.get_digest()
+                                    if old_pair.local_digest != digest:
+                                        old_pair.local_digest = digest
+                                    self._dao.update_local_state(old_pair, child_info)
+                                else:
+                                    # both file or folder exist: copy-and-paste
+                                    log.trace('copy and paste')
+                                    self._protected_files[child_pair.remote_ref] = True
                                 self._protected_files[old_pair.remote_ref] = True
                             self._delete_files[child_pair.remote_ref] = child_pair
                         if not child_info.folderish:
@@ -594,6 +609,9 @@ class LocalWatcher(EngineWorker):
                         return
             local_info = self.client.get_info(rel_path, raise_if_missing=False)
             if local_info is not None:
+                if is_text_edit_tmp_file(local_info.name):
+                    log.debug('Ignoring move to TextEdit tmp file %r for %r', local_info.name, doc_pair)
+                    return
                 old_local_path = None
                 rel_parent_path = self.client.get_path(os.path.dirname(src_path))
                 if rel_parent_path == '':
@@ -646,8 +664,15 @@ class LocalWatcher(EngineWorker):
             return
         if evt.event_type == 'created':
             # NXDRIVE-471 case maybe
-            log.trace("This should only happen in case of a quick move and copy-paste")
-            return
+            remote_ref = self.client.get_remote_id(rel_path)
+            if remote_ref is None:
+                log.debug("Created event on a known pair with no remote_ref,"
+                          " this should only happen in case of a quick move and copy-paste: %r", doc_pair)
+                return
+            else:
+                # NXDRIVE-509
+                log.debug("Created event on a known pair with a remote_ref,"
+                          " this can happen with certain Mac applications as TextEdit: %r", doc_pair)
         local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if local_info is not None:
             if doc_pair.local_state == 'synchronized':
@@ -782,7 +807,7 @@ class LocalWatcher(EngineWorker):
                             self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
                             moved = True
                         else:
-                            # possible move-then-copy case, nxdrive-471
+                            # possible move-then-copy case, NXDRIVE-471
                             doc_pair_full_path = self.client._abspath(rel_path)
                             doc_pair_creation_time = self.get_creation_time(doc_pair_full_path)
                             from_pair_full_path = self.client._abspath(from_pair.local_path)
