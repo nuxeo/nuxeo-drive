@@ -131,23 +131,26 @@ class Application(QApplication):
 
     @QtCore.pyqtSlot(str, str, str)
     def _direct_edit_conflict(self, filename, ref, digest):
-        log.trace('Entering _direct_edit_conflict for %r / %r', filename, ref)
-        filename = unicode(filename)
-        log.trace('Unicode filename: %r', filename)
-        if filename in self._conflicts_modals:
-            log.trace('Filename already in _conflicts_modals: %r', filename)
-            return
-        log.trace('Putting filename in _conflicts_modals: %r', filename)
-        self._conflicts_modals[filename] = True
-        info = dict()
-        info["name"] = filename
-        dlg = WebModal(self, Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", info))
-        dlg.add_button("OVERWRITE", Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"))
-        dlg.add_button("CANCEL", Translator.get("DIRECT_EDIT_CONFLICT_CANCEL"))
-        res = dlg.exec_()
-        if res == "OVERWRITE":
-            self.manager.get_drive_edit().force_update(unicode(ref), unicode(digest))
-        del self._conflicts_modals
+        try:
+            log.trace('Entering _direct_edit_conflict for %r / %r', filename, ref)
+            filename = unicode(filename)
+            log.trace('Unicode filename: %r', filename)
+            if filename in self._conflicts_modals:
+                log.trace('Filename already in _conflicts_modals: %r', filename)
+                return
+            log.trace('Putting filename in _conflicts_modals: %r', filename)
+            self._conflicts_modals[filename] = True
+            info = dict()
+            info["name"] = filename
+            dlg = WebModal(self, Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", info))
+            dlg.add_button("OVERWRITE", Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"))
+            dlg.add_button("CANCEL", Translator.get("DIRECT_EDIT_CONFLICT_CANCEL"))
+            res = dlg.exec_()
+            if res == "OVERWRITE":
+                self.manager.get_drive_edit().force_update(unicode(ref), unicode(digest))
+            del self._conflicts_modals
+        except Exception:
+            log.exception('Error while displaying Direct Edit conflict modal dialog for %r', filename)
 
     @QtCore.pyqtSlot()
     def _root_deleted(self):
