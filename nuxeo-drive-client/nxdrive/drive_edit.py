@@ -297,13 +297,15 @@ class DriveEdit(Worker):
                 current_digest = info.get_digest(digest_func=digest_algorithm)
                 if current_digest == digest:
                     continue
-                log.trace("Local digest: %s is different from the recorded one: %s - modification detected", current_digest, digest)
+                log.trace("Local digest: %s is different from the recorded one: %s - modification detected for %r",
+                          current_digest, digest, ref)
                 # TO_REVIEW Should check if server-side blob has changed ?
                 # Update the document - should verify the remote hash - NXDRIVE-187
                 remote_info = remote_client.get_info(uid)
                 if remote_info.digest != digest:
                     # Conflict detect
-                    log.trace("Remote digest: %s is different from the recorded one: %s - conflict detected", remote_info.digest, digest)
+                    log.trace("Remote digest: %s is different from the recorded one: %s - conflict detected for %r",
+                              remote_info.digest, digest, ref)
                     self.driveEditConflict.emit(os.path.basename(ref), ref, remote_info.digest)
                     continue
                 log.debug('Uploading file %s', self._local_client._abspath(ref))

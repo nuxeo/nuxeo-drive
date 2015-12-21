@@ -131,9 +131,13 @@ class Application(QApplication):
 
     @QtCore.pyqtSlot(str, str, str)
     def _direct_edit_conflict(self, filename, ref, digest):
+        log.trace('Entering _direct_edit_conflict for %r / %r', filename, ref)
         filename = unicode(filename)
+        log.trace('Unicode filename: %r', filename)
         if filename in self._conflicts_modals:
+            log.trace('Filename already in _conflicts_modals: %r', filename)
             return
+        log.trace('Putting filename in _conflicts_modals: %r', filename)
         self._conflicts_modals[filename] = True
         info = dict()
         info["name"] = filename
