@@ -1,4 +1,3 @@
-import os
 import time
 
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
@@ -12,14 +11,12 @@ class TestConflicts(UnitTestCase):
         self.workspace_id = ('defaultSyncRootFolderItemFactory#default#' + self.workspace)
         self.file_id = self.remote_file_system_client_1.make_file(self.workspace_id, 'test.txt', 'Some content').uid
         self.engine_1.start()
-        self.engine_2.start()
-        self.wait_sync(wait_for_engine_2=True)
+        self.wait_sync()
         self.assertTrue(self.local_client_1.exists('/test.txt'))
-        self.assertTrue(self.local_client_2.exists('/test.txt'))
 
     def test_self_conflict(self):
         remote = self.remote_file_system_client_1
-        local =  self.local_client_1
+        local = self.local_client_1
         # Update content on both sides by the same user, remote last
         remote.update_content(self.file_id, 'Remote update')
         local.update_content('/test.txt', 'Local update')
