@@ -6,6 +6,7 @@ from nxdrive.logging_config import get_logger
 from watchdog.events import FileSystemEventHandler
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
+from nxdrive.utils import is_office_temp_file
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.activity import Action
 from Queue import Queue
@@ -567,13 +568,10 @@ class LocalWatcher(EngineWorker):
         log.trace("watchdog event %r on known pair: %r", evt, doc_pair)
         if (evt.event_type == 'moved'):
             # Ignore move to Office tmp file
-            src_filename = os.path.basename(evt.src_path)
             dest_filename = os.path.basename(evt.dest_path)
-            if dest_filename.endswith('.tmp'):
-                if dest_filename.startswith('~') or len(dest_filename) == 12:
-                    # 12 is for Office 813DEFA7.tmp
-                    log.debug('Ignoring Office tmp file: %r', evt.dest_path)
-                    return
+            if is_office_temp_file(dest_filename):
+                log.debug('Ignoring Office tmp file: %r', evt.dest_path)
+                return
             # Ignore normalization of the filename on the file system
             # See https://jira.nuxeo.com/browse/NXDRIVE-188
             if evt.dest_path == normalize_event_filename(evt.src_path):
