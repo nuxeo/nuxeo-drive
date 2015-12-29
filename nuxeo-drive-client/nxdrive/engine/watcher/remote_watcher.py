@@ -526,7 +526,13 @@ class RemoteWatcher(EngineWorker):
                             # if (new_info.digest != doc_pair.local_digest or
                             #     safe_filename(new_info.name) != doc_pair.local_name
                             #     or new_info.parent_uid != doc_pair.remote_parent_ref):
-                            if doc_pair.remote_state != 'created':
+                            if (doc_pair.remote_state == 'synchronized' and doc_pair.remote_digest == new_info.digest and
+                                (eventId == 'documentCreated' or eventId == 'documentModified') and
+                                new_info.uid == doc_pair.remote_ref and new_info.name == doc_pair.remote_name):
+                                # Ignore the documentCreated / documentModified echos from server if,
+                                # remote_state is synchronized and the digest, remote_name, remote_ref matches with server
+                                remote_parent_path = os.path.dirname(new_info.path)
+                            elif doc_pair.remote_state != 'created':
                                 doc_pair.remote_state = 'modified'
                                 remote_parent_path = os.path.dirname(new_info.path)
                             else:
