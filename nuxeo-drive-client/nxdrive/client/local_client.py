@@ -286,6 +286,9 @@ class LocalClient(BaseClient):
         else:
             win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
             win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
+        # Windows folder use READ_ONLY flag as a customization flag ...
+        # https://support.microsoft.com/en-us/kb/326549
+        win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_READONLY)
 
     def _read_data(self, file_path):
         '''The data file contains the mac icons'''
