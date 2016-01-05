@@ -148,7 +148,7 @@ class Application(QApplication):
             res = dlg.exec_()
             if res == "OVERWRITE":
                 self.manager.get_drive_edit().force_update(unicode(ref), unicode(digest))
-            del self._conflicts_modals
+            del self._conflicts_modals[filename]
         except Exception:
             log.exception('Error while displaying Direct Edit conflict modal dialog for %r', filename)
 
