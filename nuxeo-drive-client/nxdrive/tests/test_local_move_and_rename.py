@@ -286,6 +286,47 @@ class TestLocalMoveAndRename(UnitTestCase):
         # The more things change, the more they remain the same.
         self.wait()
 
+    def test_local_rename_folder_while_suspended(self):
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+
+        # Save the uid of some files and folders prior to renaming
+        original_folder_1_uid = remote_client.get_info(
+            u'/Original Folder 1').uid
+        original_file_1_1_uid = remote_client.get_info(
+            u'/Original Folder 1/Original File 1.1.txt').uid
+        original_sub_folder_1_1_uid = remote_client.get_info(
+            u'/Original Folder 1/Sub-Folder 1.1').uid
+        children_count = len(local_client.get_children_info(u'/Original Folder 1'))
+        self.engine_1.suspend()
+        # Rename a non empty folder with some content
+        local_client.rename(u'/Original Folder 1', u'Renamed Folder 1 \xe9')
+        self.assertFalse(local_client.exists(u'/Original Folder 1'))
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
+
+        local_client.rename(u'/Renamed Folder 1 \xe9/Sub-Folder 1.1', u'Sub-Folder 2.1')
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9/Sub-Folder 2.1'))
+
+        self.engine_1.resume()
+        # Synchronize: only the folder renaming is detected: all
+        # the descendants are automatically realigned
+        self.wait_sync()
+
+        # The server folder has been renamed: the uid stays the same
+        new_remote_name = remote_client.get_info(original_folder_1_uid).name
+        self.assertEquals(new_remote_name, u"Renamed Folder 1 \xe9")
+
+        # The content of the renamed folder is left unchanged
+        file_1_1_info = remote_client.get_info(original_file_1_1_uid)
+        self.assertEquals(file_1_1_info.name, u"Original File 1.1.txt")
+        self.assertEquals(file_1_1_info.parent_uid, original_folder_1_uid)
+
+        sub_folder_1_1_info = remote_client.get_info(
+            original_sub_folder_1_1_uid)
+        self.assertEquals(sub_folder_1_1_info.name, u"Sub-Folder 2.1")
+        self.assertEquals(sub_folder_1_1_info.parent_uid, original_folder_1_uid)
+        self.assertEquals(len(local_client.get_children_info(u'/Renamed Folder 1 \xe9')), children_count)
+
     def test_local_rename_file_after_create(self):
         # Office 2010 and >, create a tmp file with 8 chars and move it right after
         global marker
