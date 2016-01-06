@@ -41,6 +41,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'doc_type',  # Nuxeo document type
     'version',  # Nuxeo version
     'state', # Nuxeo lifecycle state
+    'has_blob', # If this doc has blob
     # TODO: add filename?
 ])
 
@@ -252,6 +253,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         lastContributor = props['dc:lastContributor']
 
         # TODO: support other main files
+        has_blob = False
         if folderish:
             digestAlgorithm = None
             digest = None
@@ -269,6 +271,7 @@ class RemoteDocumentClient(BaseAutomationClient):
                     digest = m.hexdigest()
                     digestAlgorithm = 'md5'
             else:
+                has_blob = True
                 digestAlgorithm = blob.get('digestAlgorithm')
                 if digestAlgorithm is not None:
                     digestAlgorithm = digestAlgorithm.lower().replace('-', '')
@@ -289,7 +292,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
             doc['path'], folderish, last_update, lastContributor,
-            digestAlgorithm, digest, self.repository, doc['type'], version, doc['state'])
+            digestAlgorithm, digest, self.repository, doc['type'], version, doc['state'], has_blob)
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):
@@ -404,7 +407,17 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     # Blob category
     def get_blob(self, ref, file_out=None):
-        return self.execute("Blob.Get", op_input="doc:" + ref,
+        if isinstance(ref, NuxeoDocumentInfo):
+            doc_id = ref.uid
+            if not ref.has_blob and ref.doc_type == "Note":
+                doc = self.fetch(doc_id)
+                if file_out is not None:
+                    with open(file_out, 'w') as f:
+                        f.write(doc['properties'].get('note:note'))
+                return doc['properties'].get('note:note')
+        else:
+            doc_id = self._check_ref(ref)
+        return self.execute("Blob.Get", op_input="doc:" + doc_id,
                             timeout=self.blob_timeout, file_out=file_out)
 
     def attach_blob(self, ref, blob, filename):

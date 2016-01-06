@@ -150,7 +150,7 @@ class DriveEdit(Worker):
             if url is not None:
                 remote_client.do_get(url, file_out=file_out, digest=info.digest, digest_algorithm=info.digest_algorithm)
             else:
-                remote_client.get_blob(info.uid, file_out=file_out)
+                remote_client.get_blob(info, file_out=file_out)
         return file_out
 
     def _prepare_edit(self, server_url, doc_id, filename, user=None, download_url=None):

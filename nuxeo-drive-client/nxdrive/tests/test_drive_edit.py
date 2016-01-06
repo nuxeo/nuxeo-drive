@@ -28,6 +28,15 @@ class TestDriveEdit(UnitTestCase):
         self.drive_edit.stop()
         super(TestDriveEdit, self).tearDownApp()
 
+    def test_note_edit(self):
+        remote_fs_client = self.remote_file_system_client_1
+        toplevel_folder_info = remote_fs_client.get_filesystem_root_info()
+        workspace_id = remote_fs_client.get_children_info(
+            toplevel_folder_info.uid)[0].uid
+        file_1_id = remote_fs_client.make_file(workspace_id, 'File 1', "Content of file 1.").uid
+        doc_id = file_1_id.split('#')[-1]
+        self._drive_edit_update(doc_id, "File 1.txt", "File 1.txt", 'OS X + Chrome or FF')
+
     def test_filename_encoding(self):
         filename = u'Mode op\xe9ratoire.txt'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
@@ -102,4 +111,10 @@ class TestDriveEdit(UnitTestCase):
         # Update file content
         self.local.update_content(local_path, content)
         self.wait_sync()
-        self.assertEquals(self.remote.get_content('/' + filename), content)
+        self.assertEquals(self.remote.get_blob(self.remote.get_info(doc_id)), content)
+
+        # Update file content twice
+        update_content = content + ' updated'
+        self.local.update_content(local_path, update_content)
+        self.wait_sync()
+        self.assertEquals(self.remote.get_blob(self.remote.get_info(doc_id)), update_content)
