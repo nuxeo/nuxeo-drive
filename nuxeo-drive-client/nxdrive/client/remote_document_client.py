@@ -258,8 +258,16 @@ class RemoteDocumentClient(BaseAutomationClient):
         else:
             blob = props.get('file:content')
             if blob is None:
-                digestAlgorithm = None
-                digest = None
+                note = props.get('note:note')
+                if note is None:
+                    digestAlgorithm = None
+                    digest = None
+                else:
+                    import hashlib
+                    m = hashlib.md5()
+                    m.update(note)
+                    digest = m.hexdigest()
+                    digestAlgorithm = 'md5'
             else:
                 digestAlgorithm = blob.get('digestAlgorithm')
                 if digestAlgorithm is not None:
