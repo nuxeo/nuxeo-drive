@@ -265,6 +265,8 @@ class DriveEdit(Worker):
                 if item[1] == 'lock':
                     remote_client.lock(uid)
                     self._local_client.set_remote_id(dir_path, "1", "nxdriveeditlock")
+                    # Emit the lock signal only when the lock is really set
+                    self._manager.get_autolock_service().documentLocked.emit(dir_path)
                 else:
                     remote_client.unlock(uid)
                     if item[1] == 'unlock_orphan':
@@ -274,6 +276,8 @@ class DriveEdit(Worker):
                         # Clean the folder
                         shutil.rmtree(self._local_client._abspath(path), ignore_errors=True)
                     self._local_client.remove_remote_id(dir_path, "nxdriveeditlock")
+                    # Emit the signal only when the unlock is done - might want to avoid the call on orphan
+                    self._manager.get_autolock_service().documentUnlocked.emit(dir_path)
             except Exception as e:
                 # Try again in 30s
                 log.debug("Can't %s document '%s': %r", item[1], ref, e, exc_info=True)
