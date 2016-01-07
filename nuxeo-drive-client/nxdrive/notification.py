@@ -315,7 +315,7 @@ class DefaultNotificationService(NotificationService):
         engine.invalidAuthentication.connect(self._invalidAuthentication)
         engine.online.connect(self._validAuthentication)
 
-    def _driveEditLockError(self, filename):
+    def _lockDocument(self, filename):
         self.send_notification(LockNotification(filename))
 
     def _driveEditLockError(self, lock, filename, ref):
