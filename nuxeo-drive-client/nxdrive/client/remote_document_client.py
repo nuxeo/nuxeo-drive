@@ -416,7 +416,7 @@ class RemoteDocumentClient(BaseAutomationClient):
                         f.write(doc['properties'].get('note:note'))
                 return doc['properties'].get('note:note')
         else:
-            doc_id = self._check_ref(ref)
+            doc_id = ref
         return self.execute("Blob.Get", op_input="doc:" + doc_id,
                             timeout=self.blob_timeout, file_out=file_out)
 
