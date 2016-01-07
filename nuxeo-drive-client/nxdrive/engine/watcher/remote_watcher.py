@@ -526,11 +526,12 @@ class RemoteWatcher(EngineWorker):
                             # if (new_info.digest != doc_pair.local_digest or
                             #     safe_filename(new_info.name) != doc_pair.local_name
                             #     or new_info.parent_uid != doc_pair.remote_parent_ref):
-                            if doc_pair.remote_state != 'created':
+                            remote_parent_path = os.path.dirname(new_info.path)
+                            if (doc_pair.remote_state != 'created' and
+                                (eventId not in ['documentCreated', 'documentModified'] or
+                                 doc_pair.remote_state != 'synchronized' or doc_pair.remote_name != new_info.name or
+                                 doc_pair.remote_digest != new_info.digest or doc_pair.remote_ref != new_info.uid)):
                                 doc_pair.remote_state = 'modified'
-                                remote_parent_path = os.path.dirname(new_info.path)
-                            else:
-                                remote_parent_path = os.path.dirname(new_info.path)
                                 # TODO Add modify local_path and local_parent_path if needed
                             self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path)
                             self._force_scan_recursive(doc_pair, consistent_new_info, remote_path=new_info.path,
