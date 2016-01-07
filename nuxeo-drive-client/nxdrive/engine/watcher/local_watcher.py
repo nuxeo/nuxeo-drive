@@ -120,7 +120,7 @@ class LocalWatcher(EngineWorker):
                     self._end_action()
                 while (not self._watchdog_queue.empty()):
                     # Dont retest if already local scan
-                    if not trigger_local_scan and self._watchdog_queue.qsize() > self._windows_queue_threshold:
+                    if AbstractOSIntegration.is_windows() and not trigger_local_scan and self._watchdog_queue.qsize() > self._windows_queue_threshold:
                         log.debug('Windows queue threshold exceeded, will trigger local scan: %d events', self._watchdog_queue.qsize())
                         trigger_local_scan = True
                         self._delete_events.clear()
@@ -446,12 +446,18 @@ class LocalWatcher(EngineWorker):
                             if old_pair is None:
                                 self._dao.insert_local_state(child_info, info.path)
                             else:
-                                old_pair.local_state = 'moved'
-                                # Check digest also
-                                digest = child_info.get_digest()
-                                if old_pair.local_digest != digest:
-                                    old_pair.local_digest = digest
-                                self._dao.update_local_state(old_pair, child_info)
+                                if not self.client.exists(old_pair.local_path) and self.client.exists(child_info.path):
+                                    log.trace('%s moved to %s', old_pair.local_path, child_info.path)
+                                    old_pair.local_state = 'moved'
+                                    # Check digest also
+                                    digest = child_info.get_digest()
+                                    if old_pair.local_digest != digest:
+                                        old_pair.local_digest = digest
+                                    self._dao.update_local_state(old_pair, child_info)
+                                else:
+                                    # both file or folder exist: copy-and-paste
+                                    log.trace('copy and paste')
+                                    self._protected_files[child_pair.remote_ref] = True
                                 self._protected_files[old_pair.remote_ref] = True
                             self._delete_files[child_pair.remote_ref] = child_pair
                         if not child_info.folderish:
