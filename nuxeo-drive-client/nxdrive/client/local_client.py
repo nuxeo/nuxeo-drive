@@ -337,6 +337,8 @@ class LocalClient(BaseClient):
             log.error("Exception when setting folder icon : %s", e)
 
     def set_remote_id(self, ref, remote_id, name='ndrive'):
+        if type(remote_id).__name__ == "unicode":
+            remote_id = unicodedata.normalize('NFC', remote_id).encode('utf-8')
         # Can be move to another class
         path = self._abspath(ref)
         log.trace('Setting xattr %s with value %r on %r', name, remote_id, path)
@@ -366,8 +368,6 @@ class LocalClient(BaseClient):
             try:
                 import xattr
                 stat = os.stat(path)
-                if type(remote_id).__name__ == "unicode":
-                    remote_id = unicodedata.normalize('NFC', remote_id).encode('utf-8')
                 if AbstractOSIntegration.is_mac():
                     xattr.setxattr(path, name, remote_id)
                 else:
@@ -387,7 +387,7 @@ class LocalClient(BaseClient):
             path = path + ":" + name
             try:
                 with open(path, "r") as f:
-                    return f.read()
+                    return unicode(f.read(), 'utf-8')
             except:
                 return None
         else:
