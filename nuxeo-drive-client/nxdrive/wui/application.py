@@ -589,7 +589,7 @@ class Application(QApplication):
                     if info.get('command') == 'download_edit':
                         # This is a quick operation, no need to fork a QThread
                         self.manager.get_drive_edit().edit(
-                            info['server_url'], info['doc_id'], filename=info['filename'], user=info['user'], download_url=info['download_url'])
+                            info['server_url'], info['doc_id'], user=info['user'], download_url=info['download_url'])
                     elif info.get('command') == 'edit':
                         # Kept for backward compatibility
                         self.manager.get_drive_edit().edit(

@@ -153,7 +153,7 @@ class DriveEdit(Worker):
                 remote_client.get_blob(info, file_out=file_out)
         return file_out
 
-    def _prepare_edit(self, server_url, doc_id, filename, user=None, download_url=None):
+    def _prepare_edit(self, server_url, doc_id, user=None, download_url=None):
         engine = self._get_engine(server_url, user=user)
         if engine is None:
             # TO_REVIEW Display an error message
@@ -165,22 +165,14 @@ class DriveEdit(Worker):
         remote_client.check_suspended = self.stop_client
         info = remote_client.get_info(doc_id)
 
+        filename = info.name
         # Create local structure
         dir_path = os.path.join(self._folder, doc_id)
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
 
-        log.trace('Raw filename: %r', filename)
-        filename = safe_filename(urllib2.unquote(filename))
-        log.trace('Unquoted filename = %r', filename)
-        decoded_filename = force_decode(filename)
-        if decoded_filename is None:
-            decoded_filename = filename
-        else:
-            # Always use utf-8 encoding for xattr
-            filename = decoded_filename.encode('utf-8')
-        log.debug("Editing %r ('nxdriveeditname' xattr: %r)", decoded_filename, filename)
-        file_path = os.path.join(dir_path, decoded_filename)
+        log.debug("Editing %r", filename)
+        file_path = os.path.join(dir_path, filename)
 
         # Download the file
         url = None
@@ -224,7 +216,7 @@ class DriveEdit(Worker):
             self._manager.edit(engine, doc_id)
         else:
             # Download file
-            file_path = self._prepare_edit(server_url, doc_id, filename, user=user, download_url=download_url)
+            file_path = self._prepare_edit(server_url, doc_id, user=user, download_url=download_url)
             # Launch it
             if file_path is not None:
                 self._manager.open_local_file(file_path)
@@ -417,9 +409,6 @@ class DriveEdit(Worker):
             name = self._local_client.get_remote_id(dir_path, "nxdriveeditname")
             if name is None:
                 return
-            decoded_name = force_decode(name)
-            if decoded_name is not None:
-                name = decoded_name
             if name != file_name:
                 return
             if self._manager.get_drive_edit_auto_lock() and self._local_client.get_remote_id(dir_path, "nxdriveeditlock") != "1":

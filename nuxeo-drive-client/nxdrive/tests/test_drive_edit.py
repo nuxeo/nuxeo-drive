@@ -33,29 +33,14 @@ class TestDriveEdit(UnitTestCase):
         toplevel_folder_info = remote_fs_client.get_filesystem_root_info()
         workspace_id = remote_fs_client.get_children_info(
             toplevel_folder_info.uid)[0].uid
-        file_1_id = remote_fs_client.make_file(workspace_id, 'File 1', "Content of file 1.").uid
+        file_1_id = remote_fs_client.make_file(workspace_id, u'Mode op\xe9ratoire.txt', "Content of file 1.").uid
         doc_id = file_1_id.split('#')[-1]
-        self._drive_edit_update(doc_id, "File 1.txt", "File 1.txt", 'OS X + Chrome or FF')
+        self._drive_edit_update(doc_id, u'Mode op\xe9ratoire.txt', 'Atol de PomPom Gali')
 
     def test_filename_encoding(self):
         filename = u'Mode op\xe9ratoire.txt'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
-
-        # Linux / Win + Chrome: quoted utf-8 encoded
-        browser_filename = 'Mode%20op%C3%A9ratoire.txt'
-        self._drive_edit_update(doc_id, filename, browser_filename, 'Win + Chrome')
-
-        # Win + IE: unquoted utf-8 encoded
-        browser_filename = 'Mode op\xc3\xa9ratoire.txt'
-        self._drive_edit_update(doc_id, filename, browser_filename, 'Win + IE')
-
-        # Win + FF: quoted string containing unicode
-        browser_filename = 'Mode%20op\xe9ratoire.txt'
-        self._drive_edit_update(doc_id, filename, browser_filename, 'Win + FF')
-
-        # OSX + Chrome / OSX + FF: quoted utf-8 encoded, except for white spaces!
-        browser_filename = 'Mode op%C3%A9ratoire.txt'
-        self._drive_edit_update(doc_id, filename, browser_filename, 'OS X + Chrome or FF')
+        self._drive_edit_update(doc_id, filename, 'Test')
 
     def _office_locker(self, path):
         return os.path.join(os.path.dirname(path), "~$" + os.path.basename(path)[2:])
@@ -100,10 +85,16 @@ class TestDriveEdit(UnitTestCase):
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.assertFalse(self.remote_restapi_client_1.is_locked(doc_id))
 
-    def _drive_edit_update(self, doc_id, filename, browser_filename, content):
+    def _drive_edit_update(self, doc_id, filename, content, url=None):
         # Download file
-        local_path = '/%s/%s' % (doc_id, filename)
-        self.drive_edit._prepare_edit(self.nuxeo_url, doc_id, browser_filename)
+        local_path = u'/%s/%s' % (doc_id, filename)
+        def open_local_file(path):
+            pass
+        self.manager_1.open_local_file = open_local_file
+        if url is None:
+            self.drive_edit._prepare_edit(self.nuxeo_url, doc_id)
+        else:
+            self.drive_edit.handle_url(url)
         self.assertTrue(self.local.exists(local_path))
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.local.delete_final(local_path)

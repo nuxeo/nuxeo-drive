@@ -367,7 +367,7 @@ class LocalClient(BaseClient):
                 import xattr
                 stat = os.stat(path)
                 if type(remote_id).__name__ == "unicode":
-                    remote_id = unicodedata.normalize('NFC', remote_id).encode('ascii','ignore')
+                    remote_id = unicodedata.normalize('NFC', remote_id).encode('utf-8')
                 if AbstractOSIntegration.is_mac():
                     xattr.setxattr(path, name, remote_id)
                 else:
@@ -397,9 +397,7 @@ class LocalClient(BaseClient):
                     value = xattr.getxattr(path, name)
                 else:
                     value = xattr.getxattr(path, 'user.' + name)
-                if type(value).__name__ == "unicode":
-                    value = unicode(value)
-                return value
+                return unicode(value, 'utf-8')
             except:
                 return None
 

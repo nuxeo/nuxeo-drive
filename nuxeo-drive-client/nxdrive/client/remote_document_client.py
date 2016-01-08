@@ -42,7 +42,7 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'version',  # Nuxeo version
     'state', # Nuxeo lifecycle state
     'has_blob', # If this doc has blob
-    # TODO: add filename?
+    'filename' # Filename of document
 ])
 
 
@@ -242,6 +242,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     def _doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
         """Convert Automation document description to NuxeoDocumentInfo"""
         props = doc['properties']
+        filename = None
         folderish = 'Folderish' in doc['facets']
         try:
             last_update = datetime.strptime(doc['lastModified'],
@@ -276,6 +277,7 @@ class RemoteDocumentClient(BaseAutomationClient):
                 if digestAlgorithm is not None:
                     digestAlgorithm = digestAlgorithm.lower().replace('-', '')
                 digest = blob.get('digest')
+                filename = blob.get('name')
 
         # XXX: we need another roundtrip just to fetch the parent uid...
         if parent_uid is None and fetch_parent_uid:
@@ -292,7 +294,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
             doc['path'], folderish, last_update, lastContributor,
-            digestAlgorithm, digest, self.repository, doc['type'], version, doc['state'], has_blob)
+            digestAlgorithm, digest, self.repository, doc['type'], version, doc['state'], has_blob, filename)
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):
