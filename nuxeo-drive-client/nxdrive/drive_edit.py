@@ -153,6 +153,10 @@ class DriveEdit(Worker):
             existing_file_path = local_client._abspath(pair.local_path)
             log.debug('Local file matches remote digest %r, copying it from %r', info.digest, existing_file_path)
             shutil.copy(existing_file_path, file_out)
+            if pair.is_readonly():
+                log.debug('Unsetting readonly flag on copied file %r', file_out)
+                from nxdrive.client.common import BaseClient
+                BaseClient.unset_path_readonly(file_out)
         else:
             log.debug('Downloading file %r', info.filename)
             if url is not None:
