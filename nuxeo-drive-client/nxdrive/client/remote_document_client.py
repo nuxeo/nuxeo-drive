@@ -242,6 +242,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     def _doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
         """Convert Automation document description to NuxeoDocumentInfo"""
         props = doc['properties']
+        name = props['dc:title']
         filename = None
         folderish = 'Folderish' in doc['facets']
         try:
@@ -271,6 +272,18 @@ class RemoteDocumentClient(BaseAutomationClient):
                     m.update(note)
                     digest = m.hexdigest()
                     digestAlgorithm = 'md5'
+                    ext = '.txt'
+                    mime_type = props.get('note:mime_type')
+                    if mime_type == 'text/html':
+                        ext = '.html'
+                    elif mime_type == 'text/xml':
+                        ext = '.xml'
+                    elif mime_type == 'text/x-web-markdown':
+                        ext = '.md'
+                    if not name.endswith(ext):
+                        filename = name + ext
+                    else:
+                        filename = name
             else:
                 has_blob = True
                 digestAlgorithm = blob.get('digestAlgorithm')
@@ -284,7 +297,6 @@ class RemoteDocumentClient(BaseAutomationClient):
             parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
 
         # Normalize using NFC to make the tests more intuitive
-        name = props['dc:title']
         if 'uid:major_version' in props and 'uid:minor_version' in props:
             version = str(props['uid:major_version']) + "." + str(props['uid:minor_version'])
         else:
