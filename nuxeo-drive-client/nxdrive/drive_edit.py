@@ -164,8 +164,7 @@ class DriveEdit(Worker):
         # Avoid any link with the engine, remote_doc are not cached so we can do that
         remote_client.check_suspended = self.stop_client
         info = remote_client.get_info(doc_id)
-
-        filename = info.name
+        filename = info.filename
         # Create local structure
         dir_path = os.path.join(self._folder, doc_id)
         if not os.path.exists(dir_path):
