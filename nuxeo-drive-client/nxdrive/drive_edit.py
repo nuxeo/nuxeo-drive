@@ -84,7 +84,7 @@ class DriveEdit(Worker):
             url = self._url
         if url is None:
             return
-        log.debug("DriveEdit load: '%s'", url)
+        log.debug("DriveEdit load: '%r'", url)
         try:
             info = parse_protocol_url(str(url))
         except UnicodeEncodeError:
