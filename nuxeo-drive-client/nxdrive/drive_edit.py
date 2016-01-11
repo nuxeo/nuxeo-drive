@@ -150,8 +150,11 @@ class DriveEdit(Worker):
         pair = engine.get_dao().get_valid_duplicate_file(info.digest)
         if pair:
             local_client = engine.get_local_client()
-            shutil.copy(local_client._abspath(pair.local_path), file_out)
+            existing_file_path = local_client._abspath(pair.local_path)
+            log.debug('Local file matches remote digest %r, copying it from %r', info.digest, existing_file_path)
+            shutil.copy(existing_file_path, file_out)
         else:
+            log.debug('Downloading file %r', info.filename)
             if url is not None:
                 remote_client.do_get(url, file_out=file_out, digest=info.digest, digest_algorithm=info.digest_algorithm)
             else:
