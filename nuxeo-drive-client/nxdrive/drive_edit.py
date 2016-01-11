@@ -21,6 +21,11 @@ import shutil
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from Queue import Queue, Empty
 log = get_logger(__name__)
+WindowsError = None
+try:
+    from exceptions import WindowsError
+except ImportError:
+    pass  # this will never be raised under unix
 
 
 class DriveEdit(Worker):
@@ -206,19 +211,27 @@ class DriveEdit(Worker):
         return file_path
 
     def edit(self, server_url, doc_id, filename=None, user=None, download_url=None):
-        # Handle backward compatibility
-        if '#' in doc_id:
-            engine = self._get_engine(server_url)
-            if engine is None:
-                log.warn("No engine found for %s, cannot edit file with remote ref %s", server_url, doc_id)
-                return
-            self._manager.edit(engine, doc_id)
-        else:
-            # Download file
-            file_path = self._prepare_edit(server_url, doc_id, user=user, download_url=download_url)
-            # Launch it
-            if file_path is not None:
-                self._manager.open_local_file(file_path)
+        try:
+            # Handle backward compatibility
+            if '#' in doc_id:
+                engine = self._get_engine(server_url)
+                if engine is None:
+                    log.warn("No engine found for %s, cannot edit file with remote ref %s", server_url, doc_id)
+                    return
+                self._manager.edit(engine, doc_id)
+            else:
+                # Download file
+                file_path = self._prepare_edit(server_url, doc_id, user=user, download_url=download_url)
+                # Launch it
+                if file_path is not None:
+                    self._manager.open_local_file(file_path)
+        except WindowsError as e:
+            if e.errno == 13:
+                # open file anyway
+                if e.filename is not None:
+                    self._manager.open_local_file(e.filename)
+            else:
+                raise e
 
     def _extract_edit_info(self, ref):
         dir_path = os.path.dirname(ref)
