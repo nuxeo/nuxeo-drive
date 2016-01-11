@@ -33,7 +33,8 @@ class TestDriveEdit(UnitTestCase):
         toplevel_folder_info = remote_fs_client.get_filesystem_root_info()
         workspace_id = remote_fs_client.get_children_info(
             toplevel_folder_info.uid)[0].uid
-        file_1_id = remote_fs_client.make_file(workspace_id, u'Mode op\xe9ratoire.txt', "Content of file 1.").uid
+        file_1_id = remote_fs_client.make_file(workspace_id, u'Mode op\xe9ratoire.txt',
+                                               "Content of file 1 Avec des accents h\xe9h\xe9.").uid
         doc_id = file_1_id.split('#')[-1]
         self._drive_edit_update(doc_id, u'Mode op\xe9ratoire.txt', 'Atol de PomPom Gali')
 

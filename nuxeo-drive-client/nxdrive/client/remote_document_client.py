@@ -269,7 +269,7 @@ class RemoteDocumentClient(BaseAutomationClient):
                 else:
                     import hashlib
                     m = hashlib.md5()
-                    m.update(note)
+                    m.update(note.encode('utf-8'))
                     digest = m.hexdigest()
                     digestAlgorithm = 'md5'
                     ext = '.txt'
@@ -425,10 +425,13 @@ class RemoteDocumentClient(BaseAutomationClient):
             doc_id = ref.uid
             if not ref.has_blob and ref.doc_type == "Note":
                 doc = self.fetch(doc_id)
+                content = doc['properties'].get('note:note')
                 if file_out is not None:
-                    with open(file_out, 'w') as f:
-                        f.write(doc['properties'].get('note:note'))
-                return doc['properties'].get('note:note')
+                    if content is not None:
+                        encoded_content = content.encode('utf-8')
+                    with open(file_out, 'wb') as f:
+                        f.write(encoded_content)
+                return content
         else:
             doc_id = ref
         return self.execute("Blob.Get", op_input="doc:" + doc_id,
