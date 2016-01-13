@@ -16,7 +16,6 @@ class TestReadOnly(UnitTestCase):
         super(TestReadOnly, self).setUp()
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        self.engine_1.stop()
 
     def _set_readonly_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
@@ -40,7 +39,6 @@ class TestReadOnly(UnitTestCase):
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
                          'Content')
         self._set_readonly_permission("nuxeoDriveTestUser_user_1", TEST_WORKSPACE_PATH + '/Test folder', True)
-        self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
@@ -119,7 +117,6 @@ class TestReadOnly(UnitTestCase):
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
                          'Content')
         self._set_readonly_permission("nuxeoDriveTestUser_user_1", TEST_WORKSPACE_PATH + '/Test folder', True)
-        self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
@@ -152,3 +149,32 @@ class TestReadOnly(UnitTestCase):
         # Check it works
         self.assertFalse(self.touch(fname))
         self.assertFalse(self.touch(fname2))
+
+    def test_locked_document(self):
+        remote = self.remote_document_client_1
+        remote.make_folder('/', 'Test locking')
+        remote.make_file('/Test locking', 'myDoc.odt', 'Some content')
+        self.wait_sync(wait_for_async=True)
+
+        # Check readonly flag is not set for a document that isn't locked
+        user1_file_path = os.path.join(self.sync_root_folder_1, 'Test locking', 'myDoc.odt')
+        self.assertTrue(os.path.exists(user1_file_path))
+        self.assertTrue(self.touch(user1_file_path))
+        self.wait_sync()
+
+        # Check readonly flag is not set for a document locked by the current user
+        remote.lock('/Test locking/myDoc.odt')
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(self.touch(user1_file_path))
+        remote.unlock('/Test locking/myDoc.odt')
+        self.wait_sync(wait_for_async=True)
+
+        # Check readonly flag is set for a document locked by another user
+        self.remote_document_client_2.lock('/Test locking/myDoc.odt')
+        self.wait_sync(wait_for_async=True)
+        self.assertFalse(self.touch(user1_file_path))
+
+        # Check readonly flag is unset for a document unlocked by another user
+        self.remote_document_client_2.unlock('/Test locking/myDoc.odt')
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(self.touch(user1_file_path))
