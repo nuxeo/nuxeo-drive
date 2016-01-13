@@ -6,8 +6,11 @@ class TestRemoteChanges(IntegrationTestCase):
     def setUp(self):
         super(TestRemoteChanges, self).setUp()
         self.last_sync_date = None
-        self.last_event_log_id = 0
+        self.last_event_log_id = None
         self.last_root_definitions = None
+        # Initialize last event log id (lower bound)
+        self.wait()
+        self.get_changes()
 
     def get_changes(self):
         remote_client = self.remote_file_system_client_1
@@ -52,7 +55,7 @@ class TestRemoteChanges(IntegrationTestCase):
         folder_2 = remote_client.make_folder(self.workspace, 'Folder 2')
         remote_client.make_folder(folder_2, 'Folder 2.2')
 
-        # Fetch an initial time stamp without any registered roots
+        # Check no changes without any registered roots
         self.wait()
         summary = self.get_changes()
         self.assertEquals(summary['hasTooManyChanges'], False)
@@ -131,7 +134,7 @@ class TestRemoteChanges(IntegrationTestCase):
         self.assertEquals(len(summary['fileSystemChanges']), 0)
 
     def test_sync_root_parent_registration(self):
-        # Create a folder and initialize last event log id (lower bound)
+        # Create a folder
         remote_client = self.remote_document_client_1
         folder_1 = remote_client.make_folder(self.workspace, 'Folder 1')
         self.wait()
@@ -166,3 +169,28 @@ class TestRemoteChanges(IntegrationTestCase):
                 self.assertIsNone(change['fileSystemItem'])
             else:
                 self.fail('Unexpected event %s' % change['eventId'])
+
+    def test_lock_unlock_events(self):
+        remote = self.remote_document_client_1
+        doc_id = remote.make_file(self.workspace, 'TestLocking.txt', 'File content')
+        self.setUpDrive_1()
+        self.wait()
+        self.get_changes()
+
+        remote.lock(doc_id)
+        self.wait()
+        summary = self.get_changes()
+        self.assertEquals(len(summary['fileSystemChanges']), 1)
+        change = summary['fileSystemChanges'][0]
+        self.assertEquals(change['eventId'], u"documentLocked")
+        self.assertEquals(change['docUuid'], doc_id)
+        self.assertEquals(change['fileSystemItemName'], u"TestLocking.txt")
+
+        remote.unlock(doc_id)
+        self.wait()
+        summary = self.get_changes()
+        self.assertEquals(len(summary['fileSystemChanges']), 1)
+        change = summary['fileSystemChanges'][0]
+        self.assertEquals(change['eventId'], u"documentUnlocked")
+        self.assertEquals(change['docUuid'], doc_id)
+        self.assertEquals(change['fileSystemItemName'], u"TestLocking.txt")
