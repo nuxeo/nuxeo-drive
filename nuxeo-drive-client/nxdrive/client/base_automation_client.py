@@ -225,7 +225,7 @@ class BaseAutomationClient(BaseClient):
         # Set Proxy flag
         self.is_proxy = False
         opener_proxies = get_opener_proxies(self.opener)
-        log.debug('Proxy configuration: %s, effective proxy list: %r', get_proxy_config(proxies), opener_proxies)
+        log.trace('Proxy configuration: %s, effective proxy list: %r', get_proxy_config(proxies), opener_proxies)
         if opener_proxies:
             self.is_proxy = True
 
