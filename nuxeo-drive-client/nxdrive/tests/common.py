@@ -126,6 +126,9 @@ class IntegrationTestCase(unittest.TestCase):
             raise unittest.SkipTest(
                 "No integration server configuration found in environment.")
 
+        self.full_nuxeo_url = self.nuxeo_url
+        if '#' in self.nuxeo_url:
+            self.nuxeo_url = self.nuxeo_url.split('#')[0]
         # Check the local filesystem test environment
         self.local_test_folder_1 = tempfile.mkdtemp(u'-nxdrive-tests-user-1', dir=self.tmpdir)
         self.local_test_folder_2 = tempfile.mkdtemp(u'-nxdrive-tests-user-2', dir=self.tmpdir)

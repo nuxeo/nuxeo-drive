@@ -233,8 +233,10 @@ class Manager(QtCore.QObject):
         self._debug = options.debug
         self._engine_definitions = None
         self._engine_types = dict()
+        from nxdrive.engine.next.engine_next import EngineNext
         from nxdrive.engine.engine import Engine
         self._engine_types["NXDRIVE"] = Engine
+        self._engine_types["NXDRIVENEXT"] = EngineNext
         self._engines = None
         self.proxies = None
         self.proxy_exceptions = None
@@ -906,6 +908,12 @@ class Manager(QtCore.QObject):
         """Bind a local folder to a remote nuxeo server"""
         if name is None and hasattr(binder, 'url'):
             name = self._get_engine_name(binder.url)
+        if hasattr(binder, 'url'):
+            url = binder.url
+            if '#' in url:
+                # Last part of the url is the engine type
+                engine_type = url.split('#')[1]
+                binder.url = url.split('#')[0]
         if not self.check_local_folder_available(local_folder):
             raise FolderAlreadyUsed()
         if not engine_type in self._engine_types:

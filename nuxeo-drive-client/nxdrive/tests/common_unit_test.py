@@ -225,11 +225,15 @@ class UnitTestCase(unittest.TestCase):
         Manager._singleton = None
         self.manager_2 = Manager(options)
         self.version = __version__
+        url = self.nuxeo_url
+        if '#' in url:
+            # Remove the engine type for the rest of the test
+            self.nuxeo_url = url.split('#')[0]
         self.setUpServer(server_profile)
 
-        self.engine_1 = self.manager_1.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1,
+        self.engine_1 = self.manager_1.bind_server(self.local_nxdrive_folder_1, url, self.user_1,
                                                    self.password_1, start_engine=False)
-        self.engine_2 = self.manager_2.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2,
+        self.engine_2 = self.manager_2.bind_server(self.local_nxdrive_folder_2, url, self.user_2,
                                                    self.password_2, start_engine=False)
         self.engine_1.syncCompleted.connect(self.app.sync_completed)
         self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
