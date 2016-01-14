@@ -710,6 +710,9 @@ class LocalClient(BaseClient):
             self.lock_ref(ref, locker & 2)
             self.lock_ref(new_parent_ref, locker & 1 | new_locker)
 
+    def is_inside(self, abspath):
+        return abspath.startswith(self.base_folder)
+
     def get_path(self, abspath):
         """Relative path to the local client from an absolute OS path"""
         path = abspath.split(self.base_folder, 1)[1]

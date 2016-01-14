@@ -165,11 +165,23 @@ class DriveEdit(Worker):
                 remote_client.get_blob(info, file_out=file_out)
         return file_out
 
+    def _display_modal(self, message, values=None):
+        from nxdrive.wui.application import SimpleApplication
+        from nxdrive.wui.modal import WebModal
+        app = SimpleApplication(self._manager, None, {})
+        dialog = WebModal(app, app.translate(message, values))
+        dialog.add_button("OK", app.translate("OK"))
+        dialog.show()
+        app.exec_()
+
     def _prepare_edit(self, server_url, doc_id, user=None, download_url=None):
         engine = self._get_engine(server_url, user=user)
         if engine is None:
-            # TO_REVIEW Display an error message
-            log.debug("No engine found for %s(%s)", server_url, doc_id)
+            values = dict()
+            values['user'] = user
+            values['server'] = server_url
+            log.warn("No engine found for %s(%s)", server_url, doc_id)
+            self._display_modal("DIRECT_EDIT_CANT_FIND_ENGINE", values)
             return
         # Get document info
         remote_client = engine.get_remote_doc_client()
@@ -177,6 +189,7 @@ class DriveEdit(Worker):
         remote_client.check_suspended = self.stop_client
         info = remote_client.get_info(doc_id)
         filename = info.filename
+
         # Create local structure
         dir_path = os.path.join(self._folder, doc_id)
         if not os.path.exists(dir_path):

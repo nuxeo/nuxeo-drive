@@ -140,6 +140,7 @@ LABELS={
         "DIRECT_EDIT_CONFLICT_MESSAGE": "THe document '{{ name }}' was modified remotely and is now in conflict. What action do you want to take ?",
         "DIRECT_EDIT_CONFLICT_OVERWRITE": "Overwrite",
         "DIRECT_EDIT_CONFLICT_CANCEL": "Cancel",
+        "DIRECT_EDIT_CANT_FIND_ENGINE": "Cannot find the binding for the server {{ server }} with user {{ user }}",
         "LOCK_NOTIFICATION_TITLE": "Autolock",
         "LOCK_NOTIFICATION_DESCRIPTION": "The document '{{ name }}' has been locked"
 	},
@@ -284,6 +285,7 @@ LABELS={
         "DIRECT_EDIT_CONFLICT_MESSAGE": "Le document '{{ name }}' a été modifié sur le serveur et est donc en conflit. Que voulez vous faire ?",
         "DIRECT_EDIT_CONFLICT_OVERWRITE": "Ecraser",
         "DIRECT_EDIT_CONFLICT_CANCEL": "Annuler",
+        "DIRECT_EDIT_CANT_FIND_ENGINE": "Nous ne pouvons trouver dans Nuxeo Drive le serveur {{ server }} connecté avec l'utilisateur {{ user }}",
         "LOCK_NOTIFICATION_TITLE": "Autovérrou",
         "LOCK_NOTIFICATION_DESCRIPTION": "Le document '{{ name }}' a été verrouillé"
 	}

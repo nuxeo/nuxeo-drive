@@ -8,7 +8,7 @@ from nxdrive.osi import parse_protocol_url
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
-from nxdrive.utils import find_resource_dir, current_milli_time
+from nxdrive.utils import find_resource_dir
 from nxdrive.wui.translator import Translator
 from nxdrive.wui.systray import DriveSystrayIcon
 from nxdrive.osi import AbstractOSIntegration
@@ -71,26 +71,63 @@ class BindingInfo(object):
         return "%s: %s" % (self.short_name, self.get_status_message())
 
 
-class Application(QApplication):
+class SimpleApplication(QApplication):
+    """ Simple application with html and translator
+    """
+    def __init__(self, manager, options, argv=()):
+        super(SimpleApplication, self).__init__(list(argv))
+        self.options = options
+        self.manager = manager
+        self.setApplicationName(manager.get_appname())
+        # Init translator
+        self._init_translator()
+
+    def translate(self, message, values=None):
+        return Translator.get(message, values)
+
+    def _get_skin(self):
+        return 'ui5'
+
+    def get_osi(self):
+        return self.manager.get_osi()
+
+    def _init_translator(self):
+        if (self.options is not None):
+            default_locale = self.options.locale
+        else:
+            default_locale = 'en'
+        from nxdrive.wui.translator import Translator
+        Translator(self.manager, self.get_htmlpage('i18n.js'),
+                        self.manager.get_config("locale", default_locale))
+
+    def get_htmlpage(self, page):
+        import nxdrive
+        nxdrive_path = os.path.dirname(nxdrive.__file__)
+        ui_path = os.path.join(nxdrive_path, 'data', self._get_skin())
+        return os.path.join(find_resource_dir(self._get_skin(), ui_path), page).replace("\\","/")
+
+    def get_window_icon(self):
+        return find_icon('nuxeo_drive_icon_64.png')
+
+    def get_cache_folder(self):
+        return os.path.join(self.manager.get_configuration_folder(), "cache", "wui")
+
+
+class Application(SimpleApplication):
     """Main Nuxeo drive application controlled by a system tray icon + menu"""
 
     def __init__(self, manager, options, argv=()):
-        super(Application, self).__init__(list(argv))
-        self.setApplicationName(manager.get_appname())
+        super(Application, self).__init__(manager, options, list(argv))
         self.setQuitOnLastWindowClosed(False)
         self._delegator = None
-        self.manager = manager
         from nxdrive.scripting import DriveUiScript
         self.manager.set_script_object(DriveUiScript(manager, self))
-        self.options = options
         self.mainEngine = None
         self.filters_dlg = None
         self._conflicts_modals = dict()
         self.current_notification = None
         # Make dialog unique
         self.uniqueDialogs = dict()
-        # Init translator
-        self._init_translator()
 
         for _, engine in self.manager.get_engines().iteritems():
             self.mainEngine = engine
