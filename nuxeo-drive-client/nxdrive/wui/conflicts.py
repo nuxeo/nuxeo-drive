@@ -90,6 +90,7 @@ class WebConflictsApi(WebDriveApi):
         result["last_remote_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
         date_time = self.get_date_from_sqlite(state.last_local_updated)
         result["last_local_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
+        result["remote_can_update"] = state.remote_can_update
         return result
 
 
