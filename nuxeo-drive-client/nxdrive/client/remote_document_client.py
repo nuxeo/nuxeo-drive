@@ -359,10 +359,10 @@ class RemoteDocumentClient(BaseAutomationClient):
         return self.execute("Document.GetParent", op_input="doc:" + ref)
 
     def lock(self, ref):
-        return self.execute("Document.Lock", op_input="doc:" + ref)
+        return self.execute("Document.Lock", op_input="doc:" + self._check_ref(ref))
 
     def unlock(self, ref):
-        return self.execute("Document.Unlock", op_input="doc:" + ref)
+        return self.execute("Document.Unlock", op_input="doc:" + self._check_ref(ref))
 
     def move(self, ref, target, name=None):
         return self.execute("Document.Move",

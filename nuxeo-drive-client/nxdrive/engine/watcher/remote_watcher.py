@@ -518,9 +518,8 @@ class RemoteWatcher(EngineWorker):
                                                                      new_info.can_update, new_info.can_create_child)
                             # Perform a regular document update on a document
                             # that has been updated, renamed or moved
-                            eventId = change.get('eventId')
                             log.debug("Refreshing remote state info"
-                                      " for doc_pair '%s' (force_recursion:%d)", doc_pair_repr,
+                                      " for doc_pair '%s', eventId = %s (force_recursion:%d)", doc_pair_repr, eventId,
                                       (eventId == "securityUpdated"))
                             remote_parent_path = doc_pair.remote_parent_path
                             # if (new_info.digest != doc_pair.local_digest or

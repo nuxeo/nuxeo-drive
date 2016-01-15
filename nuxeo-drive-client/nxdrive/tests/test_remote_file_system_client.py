@@ -427,6 +427,39 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         doc_type = self.remote_document_client_1.get_info(doc_uid).doc_type
         self.assertEquals(doc_type, 'Picture')
 
+    def test_modification_flags_locked_document(self):
+        remote = self.remote_file_system_client_1
+        fs_item_id = remote.make_file(self.workspace_id, 'Document 1.txt', "Content of doc 1.").uid
+
+        # Check flags for a document that isn't locked
+        info = remote.get_info(fs_item_id)
+        self.assertTrue(info.can_rename)
+        self.assertTrue(info.can_update)
+        self.assertTrue(info.can_delete)
+
+        # Check flags for a document locked by the current user
+        doc_uid = fs_item_id.rsplit('#', 1)[1]
+        self.remote_document_client_1.lock(doc_uid)
+        info = remote.get_info(fs_item_id)
+        self.assertTrue(info.can_rename)
+        self.assertTrue(info.can_update)
+        self.assertTrue(info.can_delete)
+        self.remote_document_client_1.unlock(doc_uid)
+
+        # Check flags for a document locked by another user
+        self.remote_document_client_2.lock(doc_uid)
+        info = remote.get_info(fs_item_id)
+        self.assertFalse(info.can_rename)
+        self.assertFalse(info.can_update)
+        self.assertFalse(info.can_delete)
+
+        # Check flags for a document unlocked by another user
+        self.remote_document_client_2.unlock(doc_uid)
+        info = remote.get_info(fs_item_id)
+        self.assertTrue(info.can_rename)
+        self.assertTrue(info.can_update)
+        self.assertTrue(info.can_delete)
+
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)
         if hasher is None:

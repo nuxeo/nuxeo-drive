@@ -882,6 +882,8 @@ class Processor(EngineWorker):
             or self._is_locally_edited_folder(doc_pair)):
             return
         if doc_pair.is_readonly():
+            log.debug('Setting %r as readonly', doc_pair.local_path)
             local_client.set_readonly(doc_pair.local_path)
         else:
+            log.debug('Unsetting %r as readonly', doc_pair.local_path)
             local_client.unset_readonly(doc_pair.local_path)

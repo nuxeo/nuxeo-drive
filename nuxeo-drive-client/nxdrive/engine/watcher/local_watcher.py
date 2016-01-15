@@ -670,8 +670,7 @@ class LocalWatcher(EngineWorker):
                 return
             else:
                 # NXDRIVE-509
-                log.debug("Created event on a known pair with a remote_ref,"
-                          " this can happen with certain Mac applications as TextEdit: %r", doc_pair)
+                log.debug("Created event on a known pair with a remote_ref: %r", doc_pair)
         local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if local_info is not None:
             if doc_pair.local_state == 'synchronized':

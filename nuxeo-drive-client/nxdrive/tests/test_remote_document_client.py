@@ -407,3 +407,12 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         update_info = remote_client.get_update_info()
         self.assertIsNotNone(update_info.get('serverVersion'))
         self.assertIsNotNone(update_info.get('updateSiteURL'))
+
+    def test_lock_unlock(self):
+        remote = self.remote_document_client_1
+        doc_id = remote.make_file(self.workspace, 'TestLocking.txt', 'File content')
+        self.assertFalse(self.remote_restapi_client_1.is_locked(doc_id))
+        remote.lock(doc_id)
+        self.assertTrue(self.remote_restapi_client_1.is_locked(doc_id))
+        remote.unlock(doc_id)
+        self.assertFalse(self.remote_restapi_client_1.is_locked(doc_id))

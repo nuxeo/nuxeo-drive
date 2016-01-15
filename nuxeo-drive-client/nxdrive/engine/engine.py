@@ -597,7 +597,7 @@ class Engine(QObject):
             raise FsMarkerException()
         self._stopped = False
         Processor.soft_locks = dict()
-        log.debug("Engine start")
+        log.debug("Engine %s starting", self.get_uid())
         for thread in self._threads:
             thread.start()
         self.syncStarted.emit(0)
