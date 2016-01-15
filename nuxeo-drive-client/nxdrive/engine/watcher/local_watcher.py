@@ -496,9 +496,14 @@ class LocalWatcher(EngineWorker):
         # - Set the Windows hack delay to 0 in WindowsApiEmitter, otherwise we might miss some events
         # - Increase the ReadDirectoryChangesW buffer size for Windows
         if self._windows:
-            import watchdog.observers
-            watchdog.observers.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
-            watchdog.observers.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
+            try:
+                import watchdog.observers
+                watchdog.observers.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
+                watchdog.observers.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
+            except:
+                log.trace('read_directory_changes import error', exc_info=True)
+                log.warn('Cannot import read_directory_changes, probably under Windows XP'
+                         ', watchdog will fall back on polling')
         from watchdog.observers import Observer
         log.debug("Watching FS modification on : %s", self.client.base_folder)
         self._event_handler = DriveFSEventHandler(self)
