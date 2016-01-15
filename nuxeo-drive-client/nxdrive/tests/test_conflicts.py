@@ -125,17 +125,19 @@ class TestConflicts(UnitTestCase):
 
         # user1: simulate opening XLS file with MS Office ~= update its content
         local.update_content('/Excel 97 file.xls', b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x01')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=locked_from_start)
         pair_state = self.engine_1.get_dao().get_normal_state_from_remote(fs_item_id)
         self.assertIsNotNone(pair_state)
         if locked_from_start:
-            # remote content hasn't changed and pair state is unsynchronized
+            # remote content hasn't changed, pair state is conflicted and remote_can_update flag is False
             self.assertEquals(remote.get_content(fs_item_id), b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00')
-            self.assertEquals(pair_state.pair_state, 'unsynchronized')
+            self.assertEquals(pair_state.pair_state, 'conflicted')
+            self.assertFalse(pair_state.remote_can_update)
         else:
-            # remote content has changed and pair state is synchronized
+            # remote content has changed, pair state is synchronized and remote_can_update flag is True
             self.assertEquals(remote.get_content(fs_item_id), b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x01')
             self.assertEquals(pair_state.pair_state, 'synchronized')
+            self.assertTrue(pair_state.remote_can_update)
 
         if not locked_from_start:
             # user2: lock document after user1 opening it
@@ -165,16 +167,17 @@ class TestConflicts(UnitTestCase):
         self.wait_sync()
         self.assertEquals(len(local.get_children_info('/')), 2)
         self.assertEquals(local.get_content('/Excel 97 file.xls'), b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03')
-        # remote content hasn't changed and pair state is unsynchronized
+        # remote content hasn't changed, pair state is conflicted and remote_can_update flag is False
         if locked_from_start:
             self.assertEquals(remote.get_content(fs_item_id), b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00')
         else:
             self.assertEquals(remote.get_content(fs_item_id), b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x01')
         pair_state = self.engine_1.get_dao().get_normal_state_from_remote(fs_item_id)
         self.assertIsNotNone(pair_state)
-        self.assertEquals(pair_state.pair_state, 'unsynchronized')
+        self.assertEquals(pair_state.pair_state, 'conflicted')
+        self.assertFalse(pair_state.remote_can_update)
 
-        # user2: remote update, conflict should be detected
+        # user2: remote update, conflict is detected once again and remote_can_update flag is still False
         remote.update_content(fs_item_id, b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x02', 'New Excel 97 file.xls')
         self.wait_sync(wait_for_async=True)
 
@@ -189,3 +192,12 @@ class TestConflicts(UnitTestCase):
         pair_state = self.engine_1.get_dao().get_normal_state_from_remote(fs_item_id)
         self.assertIsNotNone(pair_state)
         self.assertEquals(pair_state.pair_state, 'conflicted')
+        self.assertFalse(pair_state.remote_can_update)
+
+        # user2: unlock document, conflict is detected once again and remote_can_update flag is now True
+        self.remote_document_client_2.unlock(doc_uid)
+        self.wait_sync(wait_for_async=True)
+        pair_state = self.engine_1.get_dao().get_normal_state_from_remote(fs_item_id)
+        self.assertIsNotNone(pair_state)
+        self.assertEquals(pair_state.pair_state, 'conflicted')
+        self.assertTrue(pair_state.remote_can_update)
