@@ -11,7 +11,7 @@ class TestLocalCopyPaste(UnitTestCase):
     NUMBER_OF_LOCAL_TEXT_FILES = 10
     NUMBER_OF_LOCAL_IMAGE_FILES = 10
     NUMBER_OF_LOCAL_FILES_TOTAL = NUMBER_OF_LOCAL_TEXT_FILES + NUMBER_OF_LOCAL_IMAGE_FILES
-    FILE_NAME_PATTERN = 'file%03d.%s'
+    FILE_NAME_PATTERN = 'file%03d%s'
     TEST_DOC_RESOURCE = 'cat.jpg'
     FOLDER_1 = u'A'
     FOLDER_2 = u'B'
@@ -49,7 +49,7 @@ class TestLocalCopyPaste(UnitTestCase):
         # add text files in folder 'Nuxeo Drive Test Workspace/A'
         self.local_files_list = []
         for file_num in range(1, self.NUMBER_OF_LOCAL_TEXT_FILES + 1):
-            filename = self.FILE_NAME_PATTERN % (file_num, 'txt')
+            filename = self.FILE_NAME_PATTERN % (file_num, '.txt')
             self.local_root_client_1.make_file(self.folder_path_1, filename, FILE_CONTENT)
             self.local_files_list.append(filename)
 
@@ -104,10 +104,10 @@ class TestLocalCopyPaste(UnitTestCase):
         log.debug('*** exit TestLocalCopyPaste.tearDown() ***')
 
     def test_local_copy_paste_files(self):
-        self._local_copy_paste_files(stopped=True)
+        self._local_copy_paste_files(stopped=False)
 
     def test_local_copy_paste_files_stopped(self):
-        self._local_copy_paste_files(stopped=False)
+        self._local_copy_paste_files(stopped=True)
 
     def _local_copy_paste_files(self, stopped=False):
         log.debug('*** enter TestLocalCopyPaste.test_local_copy_paste_files() ***')

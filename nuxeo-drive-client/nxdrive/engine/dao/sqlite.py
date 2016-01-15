@@ -1200,7 +1200,11 @@ class EngineDAO(ConfigurationDAO):
             if self.auto_commit:
                 con.commit()
             if queue:
-                self._queue_pair_state(row.id, info.folderish, pair_state)
+                # Check if parent is not in creation
+                parent = c.execute("SELECT * FROM States WHERE remote_ref=?", (info.parent_uid,)).fetchone()
+                # Parent can be None if the parent is filtered
+                if (parent is not None and parent.pair_state != "remotely_created") or parent is None:
+                    self._queue_pair_state(row.id, info.folderish, pair_state)
         finally:
             self._lock.release()
 

@@ -570,11 +570,7 @@ class Engine(QObject):
                   self._local_watcher.get_watchdog_queue_size(), win_info)
         local_metrics = self._local_watcher.get_metrics()
         if (qm_size == 0 and not qm_active and empty_polls > 0
-                and self._local_watcher.empty_events()
-                and (
-                    not AbstractOSIntegration.is_windows()
-                    or
-                    self._local_watcher.win_queue_empty() and self._local_watcher.win_folder_scan_empty())):
+                and self._local_watcher.empty_events()):
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
             if local_metrics['last_event'] == 0:
                 log.warn("No watchdog event detected but sync is completed")

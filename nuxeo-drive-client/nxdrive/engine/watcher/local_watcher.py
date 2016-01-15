@@ -243,15 +243,19 @@ class LocalWatcher(EngineWorker):
 
         info = self.client.get_info(u'/')
         self._scan_recursive(info)
-        for deleted in self._delete_files:
-            if deleted in self._protected_files:
-                continue
-            self._dao.delete_local_state(self._delete_files[deleted])
+        self._scan_handle_deleted_files()
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
         log.debug("Full scan finished in %dms", self._metrics['last_local_scan_time'])
         self._local_scan_finished = True
         self._engine.get_queue_manager().resume()
         self.localScanFinished.emit()
+
+    def _scan_handle_deleted_files(self):
+        for deleted in self._delete_files:
+            if deleted in self._protected_files:
+                continue
+            self._dao.delete_local_state(self._delete_files[deleted])
+        self._delete_files = dict()
 
     def get_metrics(self):
         metrics = super(LocalWatcher, self).get_metrics()
@@ -270,10 +274,12 @@ class LocalWatcher(EngineWorker):
         info = self.client.get_info(local_path)
         self._suspend_queue()
         self._scan_recursive(info, recursive=False)
+        self._scan_handle_deleted_files()
         self._engine.get_queue_manager().resume()
 
     def empty_events(self):
-        return self._watchdog_queue.empty()
+        return self._watchdog_queue.empty() and ( not AbstractOSIntegration.is_windows() or
+                    self._local_watcher.win_queue_empty() and self._local_watcher.win_folder_scan_empty())
 
     def get_watchdog_queue_size(self):
         return self._watchdog_queue.qsize()
@@ -913,7 +919,7 @@ class DriveFSRootEventHandler(FileSystemEventHandler):
 def normalize_event_filename(filename):
     import unicodedata
     if sys.platform == 'darwin':
-        normalized_filename = unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
+        return unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
     else:
         normalized_filename = unicodedata.normalize('NFC', unicode(filename))
     # Normalize name on the file system if not normalized
