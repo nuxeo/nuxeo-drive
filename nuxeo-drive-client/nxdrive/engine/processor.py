@@ -594,35 +594,32 @@ class Processor(EngineWorker):
         self._update_speed_metrics()
         return tmp_file
 
+    def _update_remotely(self, doc_pair, local_client, remote_client, is_renaming):
+        os_path = local_client._abspath(doc_pair.local_path)
+        if is_renaming:
+            new_os_path = os.path.join(os.path.dirname(os_path), doc_pair.remote_name)
+            log.debug("Replacing local file '%s' by '%s'.", os_path, new_os_path)
+        else:
+            new_os_path = os_path
+        log.debug("Updating content of local file '%s'.", os_path)
+        tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
+        # Delete original file and rename tmp file
+        remote_id = local_client.get_remote_id(doc_pair.local_path)
+        local_client.delete_final(doc_pair.local_path)
+        updated_info = local_client.rename(local_client.get_path(tmp_file), doc_pair.remote_name)
+        if remote_id is not None:
+            local_client.set_remote_id(doc_pair.local_parent_path + '/' + doc_pair.remote_name, doc_pair.remote_ref)
+        doc_pair.local_digest = updated_info.get_digest()
+        self._dao.update_last_transfer(doc_pair.id, "download")
+        self._refresh_local_state(doc_pair, updated_info)
+
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
         tmp_file = None
         try:
             is_renaming = doc_pair.remote_name != doc_pair.local_name
             if (not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path)
                     and doc_pair.local_digest is not None):
-                os_path = local_client._abspath(doc_pair.local_path)
-                if is_renaming:
-                    new_os_path = os.path.join(os.path.dirname(os_path),
-                                               doc_pair.remote_name)
-                    log.debug("Replacing local file '%s' by '%s'.",
-                              os_path, new_os_path)
-                else:
-                    new_os_path = os_path
-                    log.debug("Updating content of local file '%s'.",
-                              os_path)
-                tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
-                # Delete original file and rename tmp file
-                remote_id = local_client.get_remote_id(doc_pair.local_path)
-                local_client.delete_final(doc_pair.local_path)
-                updated_info = local_client.rename(
-                                            local_client.get_path(tmp_file),
-                                            doc_pair.remote_name)
-                if remote_id is not None:
-                    local_client.set_remote_id(doc_pair.local_parent_path + '/' + doc_pair.remote_name,
-                                               doc_pair.remote_ref)
-                doc_pair.local_digest = updated_info.get_digest()
-                self._dao.update_last_transfer(doc_pair.id, "download")
-                self._refresh_local_state(doc_pair, updated_info)
+                self._update_remotely(doc_pair, local_client, remote_client, is_renaming)
             else:
                 # digest agree so this might be a renaming and/or a move,
                 # and no need to transfer additional bytes over the network

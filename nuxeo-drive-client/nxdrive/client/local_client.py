@@ -108,8 +108,9 @@ class LocalClient(BaseClient):
     # Automation operations fetched at manager init time.
 
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
-                 ignored_suffixes=None, check_suspended=None, case_sensitive=None):
+                    ignored_suffixes=None, check_suspended=None, case_sensitive=None, disable_duplication=False):
         self._case_sensitive = case_sensitive
+        self._disable_duplication = disable_duplication
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
@@ -753,7 +754,8 @@ class LocalClient(BaseClient):
                 return os_path, name + suffix
             if not os.path.exists(os_path):
                 return os_path, name + suffix
-            #raise ValueError("SHOULD NOT DUPLICATE NOW")
+            if self._disable_duplication:
+                raise ValueError("De-duplication is disabled")
             # the is a duplicated file, try to come with a new name
             log.trace("dedup: %s exist try next", os_path)
             m = re.match(DEDUPED_BASENAME_PATTERN, name)

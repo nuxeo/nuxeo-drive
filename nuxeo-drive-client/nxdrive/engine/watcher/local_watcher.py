@@ -486,16 +486,19 @@ class LocalWatcher(EngineWorker):
                 self._delete_files[deleted.remote_ref] = deleted
 
         for child_info in to_scan_new:
-            self._scan_recursive(child_info)
+            self._push_to_scan(child_info)
 
         if not recursive:
             log.debug('Ended recursive local scan of %r', info.path)
             return
 
         for child_info in to_scan:
-            self._scan_recursive(child_info)
+            self._push_to_scan(child_info)
 
         log.debug('Ended recursive local scan of %r', info.path)
+
+    def _push_to_scan(self, info):
+        self._scan_recursive(info)
 
     def _setup_watchdog(self):
         # Monkey-patch Watchdog to
@@ -517,6 +520,13 @@ class LocalWatcher(EngineWorker):
         self._observer = Observer()
         self._observer.schedule(self._event_handler, self.client.base_folder, recursive=True)
         self._observer.start()
+        self._check_watchdog()
+
+        self._root_observer = Observer()
+        self._root_observer.schedule(self._root_event_handler, os.path.dirname(self.client.base_folder), recursive=False)
+        self._root_observer.start()
+
+    def _check_watchdog(self):
         # Be sure to have at least one watchdog event
         timeout = 30
         lock = self.client.unlock_ref('/', False)
@@ -526,7 +536,7 @@ class LocalWatcher(EngineWorker):
                 with open(fname, 'a'):
                     os.utime(fname, None)
                 sleep(1)
-                timeout = timeout - 1
+                timeout -= 1
                 if timeout < 0:
                     log.debug("Can't have watchdog setup. Fallback to full scan mode ?")
                     os.remove(fname)
@@ -536,9 +546,6 @@ class LocalWatcher(EngineWorker):
                 os.remove(fname)
         finally:
             self.client.lock_ref('/', lock)
-        self._root_observer = Observer()
-        self._root_observer.schedule(self._root_event_handler, os.path.dirname(self.client.base_folder), recursive=False)
-        self._root_observer.start()
 
     def _stop_watchdog(self, raise_on_error=True):
         if self._observer is not None:
