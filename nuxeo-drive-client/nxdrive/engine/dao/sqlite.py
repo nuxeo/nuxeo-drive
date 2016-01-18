@@ -993,12 +993,12 @@ class EngineDAO(ConfigurationDAO):
                       "remote_parent_path, remote_name, last_remote_updated, remote_can_rename," +
                       "remote_can_delete, remote_can_update, " +
                       "remote_can_create_child, last_remote_modifier, remote_digest," +
-                      "folderish, last_remote_modifier, local_path, local_parent_path, remote_state, local_state, pair_state)" +
-                      " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'created','unknown',?)",
+                      "folderish, last_remote_modifier, local_path, local_parent_path, remote_state, local_state, pair_state, local_name)" +
+                      " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'created','unknown',?, ?)",
                       (info.uid, info.parent_uid, remote_parent_path, info.name,
                        info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                        info.can_create_child, info.last_contributor, info.digest, info.folderish, info.last_contributor,
-                       local_path, local_parent_path, pair_state))
+                       local_path, local_parent_path, pair_state, info.name))
             row_id = c.lastrowid
             if self.auto_commit:
                 con.commit()
