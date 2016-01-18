@@ -288,6 +288,34 @@ class ConflictNotification(Notification):
             action="drive.showConflicts();")
 
 
+class ReadOnlyNotification(Notification):
+    def __init__(self, engine_uid, filename, parent=None):
+        values = dict()
+        values["name"] = filename
+        values["folder"] = parent
+        title = Translator.get("READONLY", values)
+        if parent is None:
+            description = Translator.get("READONLY_FILE", values)
+        else:
+            description = Translator.get("READONLY_FOLDER", values)
+        super(ReadOnlyNotification, self).__init__("READONLY", title=title, description=description,
+            engine_uid=engine_uid, level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
+
+class LockedNotification(Notification):
+    def __init__(self, engine_uid, filename, lock_owner, lock_created):
+        values = dict()
+        values["name"] = filename
+        values["lock_owner"] = lock_owner
+        values["lock_created"] = lock_created.strftime("%m/%d/%Y %H:%M:%S")
+        title = Translator.get("LOCKED", values)
+        description = Translator.get("LOCKED_FILE", values)
+        super(LockedNotification, self).__init__("LOCKED", title=title, description=description,
+            engine_uid=engine_uid, level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
+
 class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid):
         # show_settings('Accounts_' + engine.uid)
@@ -312,6 +340,8 @@ class DefaultNotificationService(NotificationService):
     def _connect_engine(self, engine):
         engine.newConflict.connect(self._newConflict)
         engine.newError.connect(self._newError)
+        engine.newReadonly.connect(self._newReadonly)
+        engine.newLocked.connect(self._newLocked)
         engine.invalidAuthentication.connect(self._invalidAuthentication)
         engine.online.connect(self._validAuthentication)
 
@@ -337,6 +367,14 @@ class DefaultNotificationService(NotificationService):
         if doc_pair is None:
             return
         self.send_notification(ConflictNotification(engine_uid, doc_pair))
+
+    def _newReadonly(self, filename, parent):
+        engine_uid = self.sender()._uid
+        self.send_notification(ReadOnlyNotification(engine_uid, filename, parent))
+
+    def _newLocked(self, filename, lock_owner, lock_created):
+        engine_uid = self.sender()._uid
+        self.send_notification(LockedNotification(engine_uid, filename, lock_owner, lock_created))
 
     def _validAuthentication(self):
         engine_uid = self.sender()._uid

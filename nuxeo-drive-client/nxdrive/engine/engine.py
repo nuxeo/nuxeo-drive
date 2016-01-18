@@ -118,6 +118,8 @@ class Engine(QObject):
     invalidAuthentication = pyqtSignal()
     invalidClientsCache = pyqtSignal()
     newConflict = pyqtSignal(object)
+    newReadonly = pyqtSignal(object, object)
+    newLocked = pyqtSignal(object, object, object)
     newSync = pyqtSignal(object, object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
