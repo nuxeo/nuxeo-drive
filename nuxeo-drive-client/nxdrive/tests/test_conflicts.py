@@ -14,7 +14,7 @@ class TestConflicts(UnitTestCase):
         self.workspace_id = ('defaultSyncRootFolderItemFactory#default#' + self.workspace)
         self.file_id = self.remote_file_system_client_1.make_file(self.workspace_id, 'test.txt', 'Some content').uid
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(self.local_client_1.exists('/test.txt'))
 
     def test_self_conflict(self):
@@ -23,7 +23,7 @@ class TestConflicts(UnitTestCase):
         # Update content on both sides by the same user, remote last
         remote.update_content(self.file_id, 'Remote update')
         local.update_content('/test.txt', 'Local update')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         self.assertEquals(len(local.get_children_info('/')), 1)
         self.assertTrue(local.exists('/test.txt'))
@@ -40,7 +40,7 @@ class TestConflicts(UnitTestCase):
         remote.update_content(self.file_id, 'Remote update 2')
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/test.txt', 'Local update 2')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         self.assertEquals(len(local.get_children_info('/')), 1)
         self.assertTrue(local.exists('/test.txt'))
@@ -62,7 +62,7 @@ class TestConflicts(UnitTestCase):
         # Race condition is still possible
         remote.update_content(self.file_id, 'Remote update')
         local.update_content('/test.txt', 'Local update')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         self.assertEquals(remote.get_content(self.file_id), 'Remote update')
         self.assertEquals(local.get_content('/test.txt'), 'Local update')
@@ -72,7 +72,7 @@ class TestConflicts(UnitTestCase):
         remote.update_content(self.file_id, 'Remote update 2')
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/test.txt', 'Local update 2')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         self.assertEquals(remote.get_content(self.file_id), 'Remote update 2')
         self.assertEquals(local.get_content('/test.txt'), 'Local update 2')
@@ -84,16 +84,16 @@ class TestConflicts(UnitTestCase):
         remote = self.remote_file_system_client_2
         self.remote_document_client_2.lock(doc_uid)
         local.update_content('/test.txt', 'Local update')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertEquals(local.get_content('/test.txt'), 'Local update')
         self.assertEquals(remote.get_content(self.file_id), 'Some content')
         remote.update_content(self.file_id, 'Remote update')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertEquals(local.get_content('/test.txt'), 'Local update')
         self.assertEquals(remote.get_content(self.file_id), 'Remote update')
         self.assertEquals(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
         self.remote_document_client_2.unlock(doc_uid)
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertEquals(local.get_content('/test.txt'), 'Local update')
         self.assertEquals(remote.get_content(self.file_id), 'Remote update')
         self.assertEquals(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
