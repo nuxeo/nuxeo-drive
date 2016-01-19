@@ -32,6 +32,8 @@ BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
     'can_delete',  # True is can delete
     'can_update',  # True is can update content
     'can_create_child',  # True is can create child
+    'lock_owner',  # lock owner
+    'lock_created',  # lock creation time
 ])
 
 
@@ -219,6 +221,17 @@ class RemoteFileSystemClient(BaseAutomationClient):
             can_update = fs_item['canUpdate']
             can_create_child = False
 
+        # Lock info
+        lock_info = fs_item.get('lockInfo')
+        if lock_info is None:
+            lock_owner = None
+            lock_created = None
+        else:
+            lock_owner = lock_info.get('owner')
+            lock_created_millis = lock_info.get('created')
+            if lock_created_millis is not None:
+                lock_created = datetime.fromtimestamp(lock_created_millis // 1000)
+
         # Normalize using NFC to make the tests more intuitive
         name = fs_item['name']
         if name is not None:
@@ -227,7 +240,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
             name, fs_item['id'], fs_item['parentId'],
             fs_item['path'], folderish, last_update, last_contributor, digest, digest_algorithm,
             download_url, fs_item['canRename'], fs_item['canDelete'],
-            can_update, can_create_child)
+            can_update, can_create_child, lock_owner, lock_created)
 
     #
     # API specific to the remote file system client

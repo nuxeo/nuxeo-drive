@@ -330,6 +330,11 @@ class Processor(EngineWorker):
                 else:
                     log.debug("Set pair unsynchronized: %r", doc_pair)
                     self._dao.unsynchronize_state(doc_pair)
+                    info = remote_client.get_info(doc_pair.remote_ref)
+                    if info.lock_owner is None:
+                        self._engine.newReadonly.emit(doc_pair.local_name, None)
+                    else:
+                        self._engine.newLocked.emit(doc_pair.local_name, info.lock_owner, info.lock_created)
                     self._handle_unsynchronized(local_client, doc_pair)
                 return
         self._dao.synchronize_state(doc_pair)
@@ -451,6 +456,7 @@ class Processor(EngineWorker):
             else:
                 log.debug("Set pair unsynchronized: %r", doc_pair)
                 self._dao.unsynchronize_state(doc_pair)
+                self._engine.newReadonly.emit(doc_pair.local_name, parent_pair.remote_name)
                 self._handle_unsynchronized(local_client, doc_pair)
 
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):

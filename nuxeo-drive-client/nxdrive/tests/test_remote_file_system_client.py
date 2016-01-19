@@ -436,6 +436,8 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(info.can_rename)
         self.assertTrue(info.can_update)
         self.assertTrue(info.can_delete)
+        self.assertIsNone(info.lock_owner)
+        self.assertIsNone(info.lock_created)
 
         # Check flags for a document locked by the current user
         doc_uid = fs_item_id.rsplit('#', 1)[1]
@@ -444,6 +446,8 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(info.can_rename)
         self.assertTrue(info.can_update)
         self.assertTrue(info.can_delete)
+        self.assertEquals(info.lock_owner, self.user_1)
+        self.assertIsNotNone(info.lock_created)
         self.remote_document_client_1.unlock(doc_uid)
 
         # Check flags for a document locked by another user
@@ -452,6 +456,8 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertFalse(info.can_rename)
         self.assertFalse(info.can_update)
         self.assertFalse(info.can_delete)
+        self.assertEquals(info.lock_owner, self.user_2)
+        self.assertIsNotNone(info.lock_created)
 
         # Check flags for a document unlocked by another user
         self.remote_document_client_2.unlock(doc_uid)
@@ -459,6 +465,8 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(info.can_rename)
         self.assertTrue(info.can_update)
         self.assertTrue(info.can_delete)
+        self.assertIsNone(info.lock_owner)
+        self.assertIsNone(info.lock_created)
 
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)
