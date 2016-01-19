@@ -41,6 +41,10 @@ class ManagerDAOTest(unittest.TestCase):
         self.admin_password = os.environ.get('NXDRIVE_TEST_PASSWORD')
         if self.nuxeo_url is None:
             self.nuxeo_url = "http://localhost:8080/nuxeo/"
+        # Handle the # in url
+        if '#' in self.nuxeo_url:
+            # Remove the engine type for the rest of the test
+            self.nuxeo_url = self.nuxeo_url.split('#')[0]
         if not self.nuxeo_url.endswith('/'):
             self.nuxeo_url += '/'
         if self.admin_user is None:

@@ -320,22 +320,16 @@ class UnitTestCase(unittest.TestCase):
         }
         self._no_remote_changes = {self.engine_1.get_uid(): not wait_for_engine_1,
                                    self.engine_2.get_uid(): not wait_for_engine_2}
+        if enforce_errors:
+            self.engine_1.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
+            self.engine_2.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
+        else:
+            self.engine_1.syncPartialCompleted.disconnect(self.engine_1.get_queue_manager().requeue_errors)
+            self.engine_2.syncPartialCompleted.disconnect(self.engine_1.get_queue_manager().requeue_errors)
         while timeout > 0:
             sleep(1)
             timeout = timeout - 1
             if sum(self._wait_sync.values()) == 0:
-                if enforce_errors:
-                    finished = True
-                    if wait_for_engine_1 and self.engine_1.get_queue_manager().get_errors_count() > 0:
-                        self._wait_sync[self.engine_1.get_uid()] = True
-                        self.engine_1.get_queue_manager().requeue_errors()
-                        finished = False
-                    if wait_for_engine_2 and self.engine_2.get_queue_manager().get_errors_count() > 0:
-                        self._wait_sync[self.engine_2.get_uid()] = True
-                        self.engine_2.get_queue_manager().requeue_errors()
-                        finished = False
-                    if not finished:
-                        continue
                 if wait_for_async:
                     log.debug('Sync completed, _wait_remote_scan = %r, remote changes count = %r,'
                               ' no remote changes = %r',

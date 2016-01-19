@@ -421,7 +421,8 @@ class LocalWatcher(EngineWorker):
             else:
                 child_pair = children.pop(child_name)
                 try:
-                    if (unicode(child_info.last_modification_time.strftime("%Y-%m-%d %H:%M:%S"))
+                    if (child_pair.last_local_updated is not None and
+                                unicode(child_info.last_modification_time.strftime("%Y-%m-%d %H:%M:%S"))
                             != child_pair.last_local_updated.split(".")[0] and child_pair.processor == 0):
                         log.trace("Update file %s", child_info.path)
                         remote_ref = self.client.get_remote_id(child_pair.local_path)

@@ -86,7 +86,7 @@ class TestWindows(UnitTestCase):
         remote.make_file('/', 'other.docx', 'Other content.')
 
         # Synchronize
-        self.wait_sync(wait_for_async=True, enforce_errors=False)
+        self.wait_sync(wait_for_async=True, enforce_errors=False, fail_if_timeout=False)
         if sys.platform == 'win32':
             # As local file are locked, a WindowsError should occur during the
             # local update process, therefore:
@@ -108,7 +108,7 @@ class TestWindows(UnitTestCase):
                               'Other content.')
 
             # Synchronize again
-            self.wait_sync(enforce_errors=False)
+            self.wait_sync(enforce_errors=False, fail_if_timeout=False)
             # Blacklisted files should be ignored as delay (60 seconds by
             # default) is not expired, nothing should have changed
             self.assertNxPart('/', 'test_update.docx', False)

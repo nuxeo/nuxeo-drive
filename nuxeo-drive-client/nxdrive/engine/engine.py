@@ -111,6 +111,8 @@ class Engine(QObject):
     _scanPair = pyqtSignal(str)
     syncStarted = pyqtSignal(object)
     syncCompleted = pyqtSignal()
+    # Sent when files are in blacklist but the rest is ok
+    syncPartialCompleted = pyqtSignal()
     syncSuspended = pyqtSignal()
     syncResumed = pyqtSignal()
     rootDeleted = pyqtSignal()
@@ -572,7 +574,10 @@ class Engine(QObject):
                     empty_events, blacklist_size, win_info)
         local_metrics = self._local_watcher.get_metrics()
         if (qm_size == 0 and not qm_active and empty_polls > 0
-                and empty_events and blacklist_size == 0):
+                and empty_events):
+            if blacklist_size != 0:
+                self.syncPartialCompleted.emit()
+                return
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
             if local_metrics['last_event'] == 0:
                 log.warn("No watchdog event detected but sync is completed")
