@@ -19,7 +19,7 @@ log = get_logger(__name__)
 
 FILE_TYPE = 'File'
 FOLDER_TYPE = 'Folder'
-DEFAULT_TYPES = ('File', 'Workspace', 'Folder')
+DEFAULT_TYPES = ('File', 'Note', 'Workspace', 'Folder')
 
 
 MAX_CHILDREN = 1000

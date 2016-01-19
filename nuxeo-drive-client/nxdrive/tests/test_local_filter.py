@@ -89,10 +89,7 @@ class TestLocalFilter(UnitTestCase):
         self.engine_1.get_queue_manager().requeue_errors()
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.local_client_1.exists("/" + hexafile + ".txt"))
-        # TODO Understand why the next call is not returning the 2 children as expected
-        #children = self.remote_document_client_1.get_children_info(self.workspace)
-        #self.assertEquals(len(children), 2)
-        children = self.remote_file_system_client_1.get_children_info(self.local_client_1.get_remote_id('/'))
+        children = self.remote_document_client_1.get_children_info(self.workspace)
         self.assertEquals(len(children), 2)
 
     def test_synchronize_local_filter_with_move(self):
