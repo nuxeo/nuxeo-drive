@@ -182,6 +182,8 @@ class Processor(EngineWorker):
                     or doc_pair.pair_state.startswith('parent_')):
                     log.trace("Skip as pair is in non-processable state: %r", doc_pair)
                     self._current_item = self._get_item()
+                    if doc_pair.pair_state == 'synchronized':
+                        self._handle_readonly(local_client, doc_pair)
                     continue
                 # TODO Update as the server dont take hash to avoid conflict yet
                 if (doc_pair.pair_state.startswith("locally")
