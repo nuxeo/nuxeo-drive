@@ -758,6 +758,14 @@ class LocalWatcher(EngineWorker):
                 doc_pair = self._dao.get_state_from_local(rel_path)
                 # If the file exists but not the pair
                 if local_info is not None and doc_pair is None:
+                    # Check if it is a pair that we loose track of
+                    if local_info.remote_ref is not None:
+                        doc_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
+                        if doc_pair is not None and not self.client.exists(doc_pair.local_path):
+                            log.debug("Pair re-moved detected for %r", doc_pair)
+                            # Can be a move inside a folder that has also moved
+                            self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
+                            return
                     rel_parent_path = self.client.get_path(os.path.dirname(src_path))
                     if rel_parent_path == '':
                         rel_parent_path = '/'
