@@ -310,7 +310,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.engine_1.resume()
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # The server folder has been renamed: the uid stays the same
         new_remote_name = remote_client.get_info(original_folder_1_uid).name
