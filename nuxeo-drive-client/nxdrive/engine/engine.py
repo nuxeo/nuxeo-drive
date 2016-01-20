@@ -372,7 +372,7 @@ class Engine(QObject):
         log.debug("Remove DB file %s", self._get_db_file())
         try:
             os.remove(self._get_db_file())
-        except (IOError, WindowsError) as ioe:
+        except (IOError, OSError, WindowsError) as ioe:
             log.exception(ioe)
         return
 
