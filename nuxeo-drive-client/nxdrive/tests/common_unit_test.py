@@ -362,7 +362,10 @@ class UnitTestCase(unittest.TestCase):
                     return
         if fail_if_timeout:
             log.warn("Wait for sync timeout has expired")
-            self.fail("Wait for sync timeout expired")
+            if wait_for_engine_1 and self.engine_1.get_dao().get_syncing_count() != 0:
+                self.fail("Wait for sync timeout expired")
+            if wait_for_engine_2 and self.engine_2.get_dao().get_syncing_count() != 0:
+                self.fail("Wait for sync timeout expired")
         else:
             log.debug("Wait for sync timeout")
 
