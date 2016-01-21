@@ -252,12 +252,6 @@ class UnitTestCase(unittest.TestCase):
 
         # Document client to be used to create remote test documents
         # and folders
-        remote_document_client_1 = self.engine_1.get_remote_doc_client()
-        remote_document_client_1.upload_tmp_dir = self.upload_tmp_dir
-        remote_document_client_2 = self.engine_2.get_remote_doc_client()
-        remote_document_client_2.upload_tmp_dir = self.upload_tmp_dir
-        remote_document_client_1.set_base_folder(self.workspace_1)
-        remote_document_client_2.set_base_folder(self.workspace_2)
         remote_document_client_1 = RemoteDocumentClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.version,
