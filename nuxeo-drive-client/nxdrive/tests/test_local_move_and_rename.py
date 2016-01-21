@@ -1,9 +1,11 @@
 import os
-import sys
+import urllib2
 
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
+from nxdrive.tests import RemoteTestClient
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.client.common import NotFound
 from nose.plugins.skip import SkipTest
@@ -666,14 +668,25 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         # Check local folder
         self.assertTrue(local_client.exists(u'/Original Folder 1'))
-        remote_client._remote_error = IOError
+
+        # Simulate server error
+        self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
+        self.engine_1.invalidate_client_cache()
+        error = urllib2.HTTPError(None, 500, 'Mock server error', None, None)
+        self.engine_1.get_remote_client().make_execute_raise(error)
+
         local_client.rename(u'/Original Folder 1', u'IOErrorTest')
-        self.wait_sync()
-        remote_client._remote_error = None
-        folder_1 = remote_client.get_info(
-            u'/Original Folder 1')
-        self.assertTrue(folder_1 is not None, 'Move has happen')
+        self.wait_sync(timeout=5, fail_if_timeout=False)
+        folder_1 = remote_client.get_info(u'/Original Folder 1')
+        self.assertEquals(folder_1.name, u'Original Folder 1', 'Move has happen')
         self.assertTrue(local_client.exists(u'/IOErrorTest'))
+
+        # Remove faulty client and set engine online
+        self.engine_1.get_remote_client().make_execute_raise(None)
+        self.engine_1.remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
+        self.engine_1.invalidate_client_cache()
+        self.engine_1.set_offline(value=False)
+
         self.wait_sync()
         folder_1 = remote_client.get_info(folder_1.uid)
         self.assertEquals(folder_1.name, u'IOErrorTest', 'Move has not happen')

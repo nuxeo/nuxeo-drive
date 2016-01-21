@@ -505,26 +505,35 @@ class UnitTestCase(unittest.TestCase):
         local_client.make_file(root, u'File 5.txt', content=b"eee")
         return (6, 5)
 
-    def make_server_tree(self):
+    def make_server_tree(self, deep=True):
         remote_client = self.remote_document_client_1
         # create some folders on the server
         folder_1 = remote_client.make_folder(self.workspace, u'Folder 1')
-        folder_1_1 = remote_client.make_folder(folder_1, u'Folder 1.1')
-        folder_1_2 = remote_client.make_folder(folder_1, u'Folder 1.2')
         folder_2 = remote_client.make_folder(self.workspace, u'Folder 2')
+        if deep:
+            folder_1_1 = remote_client.make_folder(folder_1, u'Folder 1.1')
+            folder_1_2 = remote_client.make_folder(folder_1, u'Folder 1.2')
 
         # create some files on the server
-        remote_client.make_file(folder_2, u'Duplicated File.txt',
-                                content=b"Some content.")
-        remote_client.make_file(folder_2, u'Duplicated File.txt',
-                                content=b"Other content.")
+        if deep:
+            self._duplicate_file_1 = remote_client.make_file(folder_2, u'Duplicated File.txt', content=b"Some content.")
+            self._duplicate_file_2 = remote_client.make_file(folder_2, u'Duplicated File.txt', content=b"Other content.")
 
-        remote_client.make_file(folder_1, u'File 1.txt', content=b"aaa")
-        remote_client.make_file(folder_1_1, u'File 2.txt', content=b"bbb")
-        remote_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
-        remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
+        if deep:
+            remote_client.make_file(folder_1, u'File 1.txt', content=b"aaa")
+            remote_client.make_file(folder_1_1, u'File 2.txt', content=b"bbb")
+            remote_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
+            remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
-        return (7, 4)
+        return (7, 4) if deep else (1, 2)
+
+    def get_local_child_count(self, path):
+        dir_count = 0
+        file_count = 0
+        for _, dirnames, filenames in os.walk(path):
+            dir_count += len(dirnames)
+            file_count += len(filenames)
+        return (dir_count, file_count)
 
     def get_full_queue(self, queue, dao=None):
         if dao is None:

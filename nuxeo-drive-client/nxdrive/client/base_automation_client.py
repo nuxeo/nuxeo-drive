@@ -156,9 +156,6 @@ class BaseAutomationClient(BaseClient):
     # TODO: handle system proxy detection under Linux,
     # see https://jira.nuxeo.com/browse/NXP-12068
 
-    # Used for testing network errors
-    _remote_error = None
-
     # Used for testing local device errors when downloading a file
     _local_error = None
 
@@ -240,10 +237,6 @@ class BaseAutomationClient(BaseClient):
 
         self.fetch_api()
 
-    def make_remote_raise(self, error):
-        """Make next calls to server raise the provided exception"""
-        self._remote_error = error
-
     def make_local_raise(self, error):
         """Make do_get raise the provided exception"""
         self._local_error = error
@@ -320,10 +313,6 @@ class BaseAutomationClient(BaseClient):
                 check_params=True, void_op=False, extra_headers=None,
                 file_out=None, **params):
         """Execute an Automation operation"""
-        if self._remote_error is not None:
-            # Simulate a configurable (e.g. network or server) error for the
-            # tests
-            raise self._remote_error
         if check_params:
             self._check_params(command, params)
 
@@ -390,10 +379,6 @@ class BaseAutomationClient(BaseClient):
                             current_action.progress += (
                                                 self.get_download_buffer())
                         f.write(buffer_)
-                    if self._remote_error is not None:
-                        # Simulate a configurable remote (e.g. network or
-                        # server) error for the tests
-                        raise self._remote_error
                     if self._local_error is not None:
                         # Simulate a configurable local error (e.g. "No
                         # space left on device") for the tests
@@ -816,10 +801,6 @@ class BaseAutomationClient(BaseClient):
                             f.write(buffer_)
                             if h is not None:
                                 h.update(buffer_)
-                        if self._remote_error is not None:
-                            # Simulate a configurable remote (e.g. network or
-                            # server) error for the tests
-                            raise self._remote_error
                         if self._local_error is not None:
                             # Simulate a configurable local error (e.g. "No
                             # space left on device") for the tests

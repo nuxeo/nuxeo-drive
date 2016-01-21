@@ -235,49 +235,6 @@ class IntegrationTestCase(unittest.TestCase):
         clean_dir(self.local_test_folder_1)
         clean_dir(self.local_test_folder_2)
 
-    def get_all_states(self, session=None, get_pair_state=False):
-        """Utility to quickly introspect the current known states"""
-        if session is None:
-            session = self.controller_1.get_session()
-        # TODO NXDRIVE-170: refactor
-#         pairs = session.query(LastKnownState).order_by(
-#             LastKnownState.local_path,
-#             LastKnownState.remote_parent_path,
-#             LastKnownState.remote_name).all()
-        pairs = []
-        if not get_pair_state:
-            return [(p.local_path, p.local_state, p.remote_state)
-                    for p in pairs]
-        else:
-            return [(p.local_path, p.local_state, p.remote_state, p.pair_state)
-                    for p in pairs]
-
-    def make_server_tree(self):
-        remote_client = self.remote_document_client_1
-        # create some folders on the server
-        folder_1 = remote_client.make_folder(self.workspace, u'Folder 1')
-        folder_1_1 = remote_client.make_folder(folder_1, u'Folder 1.1')
-        folder_1_2 = remote_client.make_folder(folder_1, u'Folder 1.2')
-        folder_2 = remote_client.make_folder(self.workspace, u'Folder 2')
-
-        # create some files on the server
-        self._duplicate_file_1 = remote_client.make_file(folder_2, u'Duplicated File.txt', content=b"Some content.")
-        self._duplicate_file_2 = remote_client.make_file(folder_2, u'Duplicated File.txt', content=b"Other content.")
-
-        remote_client.make_file(folder_1, u'File 1.txt', content=b"aaa")
-        remote_client.make_file(folder_1_1, u'File 2.txt', content=b"bbb")
-        remote_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
-        remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
-        remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
-
-    def get_local_child_count(self, path):
-        dir_count = 0
-        file_count = 0
-        for _, dirnames, filenames in os.walk(path):
-            dir_count += len(dirnames)
-            file_count += len(filenames)
-        return (dir_count, file_count)
-
     # TODO NXDRIVE-170: refactor
     def init_default_drive(self, local_user=1, remote_user=1):
         # Bind the server and root workspace

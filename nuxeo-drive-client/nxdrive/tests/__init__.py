@@ -27,14 +27,16 @@ class RemoteTestClient(RemoteFileSystemClient):
             password, token, repository, ignored_prefixes,
             ignored_suffixes, timeout, blob_timeout, cookie_jar,
             upload_tmp_dir, check_suspended)
+        self._download_remote_error = None
         self._upload_remote_error = None
+        self._execute_remote_error = None
 
     def do_get(self, url, file_out=None, digest=None, digest_algorithm=None):
-        if self._upload_remote_error is None:
+        if self._download_remote_error is None:
             return super(RemoteTestClient, self).do_get(url, file_out=file_out, digest=digest,
                                                         digest_algorithm=digest_algorithm)
         else:
-            raise self._upload_remote_error
+            raise self._download_remote_error
 
     def upload(self, batch_id, file_path, filename=None, file_index=0,
                mime_type=None):
@@ -44,6 +46,24 @@ class RemoteTestClient(RemoteFileSystemClient):
         else:
             raise self._upload_remote_error
 
-    def make_remote_raise(self, error):
-        """Make next calls to server raise the provided exception"""
+    def execute(self, command, url=None, op_input=None, timeout=-1,
+                check_params=True, void_op=False, extra_headers=None,
+                file_out=None, **params):
+        if self._execute_remote_error is None:
+            return super(RemoteTestClient, self).execute(command, url=url, op_input=op_input, timeout=timeout,
+                                                         check_params=check_params, void_op=void_op,
+                                                         extra_headers=extra_headers, file_out=file_out, **params)
+        else:
+            raise self._execute_remote_error
+
+    def make_download_raise(self, error):
+        """Make next calls to do_get raise the provided exception"""
+        self._download_remote_error = error
+
+    def make_upload_raise(self, error):
+        """Make next calls to upload raise the provided exception"""
         self._upload_remote_error = error
+
+    def make_execute_raise(self, error):
+        """Make next calls to execute raise the provided exception"""
+        self._execute_remote_error = error

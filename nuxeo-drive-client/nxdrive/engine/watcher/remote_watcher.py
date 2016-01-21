@@ -18,6 +18,7 @@ from nxdrive.utils import path_join
 from httplib import BadStatusLine
 from urllib2 import HTTPError, URLError
 import os
+import socket
 log = get_logger(__name__)
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from nxdrive.engine.workers import ThreadInterrupt
@@ -364,8 +365,9 @@ class RemoteWatcher(EngineWorker):
             else:
                 log.exception(e)
             self._engine.set_offline()
-        except (BadStatusLine, URLError) as e:
+        except (BadStatusLine, URLError, socket.error) as e:
             # Pause the rest of the engine
+            log.exception(e)
             self._engine.set_offline()
         except ThreadInterrupt as e:
             raise e
