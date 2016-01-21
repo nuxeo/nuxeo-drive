@@ -29,17 +29,18 @@ class RemoteTestClient(RemoteFileSystemClient):
             upload_tmp_dir, check_suspended)
         self._upload_remote_error = None
 
-    def do_get(self, url, file_out=None):
+    def do_get(self, url, file_out=None, digest=None, digest_algorithm=None):
         if self._upload_remote_error is None:
-            super(RemoteTestClient, self).do_get(url, file_out)
+            return super(RemoteTestClient, self).do_get(url, file_out=file_out, digest=digest,
+                                                        digest_algorithm=digest_algorithm)
         else:
             raise self._upload_remote_error
 
     def upload(self, batch_id, file_path, filename=None, file_index=0,
                mime_type=None):
         if self._upload_remote_error is None:
-            super(RemoteTestClient, self).upload(batch_id,
-                            file_path, filename, file_index, mime_type)
+            return super(RemoteTestClient, self).upload(batch_id, file_path, filename=filename, file_index=file_index,
+                                                        mime_type=mime_type)
         else:
             raise self._upload_remote_error
 

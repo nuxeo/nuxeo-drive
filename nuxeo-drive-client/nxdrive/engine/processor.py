@@ -280,7 +280,7 @@ class Processor(EngineWorker):
             self._dao.update_local_parent_path(doc_pair, doc_pair.local_name, parent_pair.local_path)
             # Retry with updated path
             raise PairInterrupt
-        self.increase_error(doc_pair, error="NO_PARENT")
+        self.increase_error(doc_pair, "NO_PARENT")
 
     def _update_speed_metrics(self):
         action = Action.get_last_file_action()
