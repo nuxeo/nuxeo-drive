@@ -110,7 +110,7 @@ class TestSynchronization(UnitTestCase):
 
     def test_single_quote_escaping(self):
         remote = self.remote_document_client_1
-        local = self.local_client_1
+        local = LocalClient(self.local_nxdrive_folder_1)
 
         remote.unregister_as_root(self.workspace)
         self.engine_1.start()
