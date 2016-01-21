@@ -443,7 +443,7 @@ class TestSynchronization(UnitTestCase):
 
         remote.make_file(folder, "File.odt", content="Fake non-zero content.")
 
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync(wait_for_async=True, timeout=60)
 
         local = self.local_client_1
         expected_folder_path = ('/' + folder_name) * folder_depth
@@ -458,7 +458,7 @@ class TestSynchronization(UnitTestCase):
         # and synchronize again
         remote.delete('/' + folder_name)
 
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync(wait_for_async=True, timeout=60)
 
         self.assertFalse(local.exists(expected_folder_path))
         self.assertFalse(local.exists(expected_file_path))
