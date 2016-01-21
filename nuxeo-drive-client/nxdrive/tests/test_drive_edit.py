@@ -1,6 +1,4 @@
 import os
-import time
-from nose.plugins.skip import SkipTest
 
 from nxdrive.client import LocalClient
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
@@ -49,25 +47,27 @@ class TestDriveEdit(UnitTestCase):
     def _openoffice_locker(self, path):
         return os.path.join(os.path.dirname(path), ".~lock." + os.path.basename(path)[2:])
 
-    #def test_autolock_office(self):
-    #    self._autolock(self._office_locker)
+#     def test_autolock_office(self):
+#         self._autolock(self._office_locker)
 
-    #def test_autolock_openoffice(self):
-    # LibreOffice as well
-    #    self._autolock(self._openoffice_locker)
+#     def test_autolock_openoffice(self):
+#      LibreOffice as well
+#         self._autolock(self._openoffice_locker)
 
     def _autolock(self, locker):
         global called_open, lock_file
         called_open = False
         filename = u'Document.docx'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
-        def open_local_file (path):
+
+        def open_local_file(path):
             global called_open, lock_file
             called_open = True
             # Lock file
             lock_file = locker(path)
             with open(lock_file, 'w') as f:
                 f.write("plop")
+
         self.manager_1.open_local_file = open_local_file
         self.manager_1.set_drive_edit_auto_lock(1)
         self.drive_edit._manager.open_local_file = open_local_file
@@ -89,8 +89,10 @@ class TestDriveEdit(UnitTestCase):
     def _drive_edit_update(self, doc_id, filename, content, url=None):
         # Download file
         local_path = u'/%s/%s' % (doc_id, filename)
+
         def open_local_file(path):
             pass
+
         self.manager_1.open_local_file = open_local_file
         if url is None:
             self.drive_edit._prepare_edit(self.nuxeo_url, doc_id)

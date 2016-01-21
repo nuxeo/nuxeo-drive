@@ -314,7 +314,8 @@ class IntegrationTestCase(unittest.TestCase):
 
     def setUpDrive_1(self, bind_root=True, root=None, firstSync=False):
         # Bind the server and root workspace
-        self.bind_server(self.ndrive_1_options, self.user_1, self.nuxeo_url, self.local_nxdrive_folder_1, self.password_1)
+        self.bind_server(self.ndrive_1_options, self.user_1, self.nuxeo_url, self.local_nxdrive_folder_1,
+                         self.password_1)
         if bind_root:
             root_to_bind = root if root is not None else self.workspace
             self.bind_root(self.ndrive_1_options, root_to_bind, self.local_nxdrive_folder_1)
@@ -322,11 +323,13 @@ class IntegrationTestCase(unittest.TestCase):
             self.ndrive(self.ndrive_1_options)
 
     def bind_root(self, ndrive_options, workspace, local_folder):
-        cmdline = '%s bind-root "%s" --local-folder="%s" %s' % (self.ndrive_exec, workspace, local_folder, ndrive_options)
+        cmdline = '%s bind-root "%s" --local-folder="%s" %s' % (self.ndrive_exec, workspace, local_folder,
+                                                                ndrive_options)
         execute(cmdline)
 
     def unbind_root(self, ndrive_options, workspace, local_folder):
-        cmdline = '%s unbind-root "%s" --local-folder="%s" %s' % (self.ndrive_exec, workspace, local_folder, ndrive_options)
+        cmdline = '%s unbind-root "%s" --local-folder="%s" %s' % (self.ndrive_exec, workspace, local_folder,
+                                                                  ndrive_options)
         execute(cmdline)
 
     def bind_server(self, ndrive_options, user, server_url, local_folder, password):

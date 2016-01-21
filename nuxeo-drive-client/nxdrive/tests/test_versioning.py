@@ -3,7 +3,6 @@ import time
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common_unit_test import UnitTestCase
-from nose.plugins.skip import SkipTest
 
 
 class TestVersioning(UnitTestCase):
@@ -23,8 +22,7 @@ class TestVersioning(UnitTestCase):
 
     def test_versioning(self):
         # Create a file as user 1
-        self.local_client_1.make_file('/', 'Test versioning.txt',
-            "This is version 0")
+        self.local_client_1.make_file('/', 'Test versioning.txt', "This is version 0")
         self.wait_sync(wait_for_async=True, wait_for_engine_1=True, wait_for_engine_2=True)
         doc = self.root_remote_client.fetch(
             TEST_WORKSPACE_PATH + '/Test versioning.txt')
@@ -36,8 +34,7 @@ class TestVersioning(UnitTestCase):
 
         # Update it as user 2 => should be versioned
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        self.local_client_2.update_content('/Test versioning.txt',
-            "Modified content")
+        self.local_client_2.update_content('/Test versioning.txt', "Modified content")
         self.wait_sync(wait_for_engine_1=False, wait_for_engine_2=True)
         doc = self.root_remote_client.fetch(
             TEST_WORKSPACE_PATH + '/Test versioning.txt')
@@ -46,8 +43,7 @@ class TestVersioning(UnitTestCase):
         # Update it as user 2 => should NOT be versioned
         # since the versioning delay is not passed by
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        self.local_client_2.update_content('/Test versioning.txt',
-            "Content twice modified")
+        self.local_client_2.update_content('/Test versioning.txt', "Content twice modified")
         self.wait_sync(wait_for_engine_1=False, wait_for_engine_2=True)
         doc = self.root_remote_client.fetch(
             TEST_WORKSPACE_PATH + '/Test versioning.txt')
@@ -56,8 +52,7 @@ class TestVersioning(UnitTestCase):
         # Wait for versioning delay expiration then update it as user 2 after
         # => should be versioned since the versioning delay is passed by
         time.sleep(self.versioning_delay + 2.0)
-        self.local_client_2.update_content('/Test versioning.txt',
-            "Updated again!!")
+        self.local_client_2.update_content('/Test versioning.txt', "Updated again!!")
         self.wait_sync(wait_for_engine_1=False, wait_for_engine_2=True)
         doc = self.root_remote_client.fetch(
             TEST_WORKSPACE_PATH + '/Test versioning.txt')
@@ -68,9 +63,7 @@ class TestVersioning(UnitTestCase):
         local_client = self.local_client_1
 
         # Create a remote doc
-        doc = remote_client.make_file(self.workspace,
-                                    'Document to restore.txt',
-                                    content="Initial content.")
+        doc = remote_client.make_file(self.workspace, 'Document to restore.txt', content="Initial content.")
         self.wait_sync(wait_for_engine_1=True, wait_for_engine_2=True)
         self.assertTrue(local_client.exists('/Document to restore.txt'))
         self.assertEquals(local_client.get_content('/Document to restore.txt'),
