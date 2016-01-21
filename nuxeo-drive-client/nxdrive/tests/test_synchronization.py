@@ -375,11 +375,13 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync()
 
         # Let's modify it concurrently but with the same content (digest)
+        self.engine_1.suspend()
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content(local_path, 'Same new content.')
 
         remote_2 = self.remote_document_client_2
         remote_2.update_content('/Some File.doc', 'Same new content.')
+        self.engine_1.resume()
 
         # Let's synchronize and check the conflict handling: automatic
         # resolution will work for this case
@@ -401,10 +403,12 @@ class TestSynchronization(UnitTestCase):
 
         # Let's trigger another conflict that cannot be resolved
         # automatically:
+        self.engine_1.suspend()
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content(local_path, 'Local new content.')
 
         remote_2.update_content('/Some File.doc', 'Remote new content.')
+        self.engine_1.resume()
 
         # Let's synchronize and check the conflict handling
         self.wait_sync(wait_for_async=True)
