@@ -279,7 +279,7 @@ class LocalWatcher(EngineWorker):
 
     def empty_events(self):
         return self._watchdog_queue.empty() and ( not AbstractOSIntegration.is_windows() or
-                    self._local_watcher.win_queue_empty() and self._local_watcher.win_folder_scan_empty())
+                    self.win_queue_empty() and self.win_folder_scan_empty())
 
     def get_watchdog_queue_size(self):
         return self._watchdog_queue.qsize()
