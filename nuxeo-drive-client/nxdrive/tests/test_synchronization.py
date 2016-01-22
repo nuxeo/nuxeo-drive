@@ -240,7 +240,8 @@ class TestSynchronization(UnitTestCase):
         # Run synchronization
         self.queue_manager_1._disable = False
         self.queue_manager_1.resume()
-        self.wait_sync(enforce_errors=False)
+        # By default engine will not consider being syncCompleted because of the blacklist
+        self.wait_sync(enforce_errors=False, fail_if_timeout=False)
 
         # All errors have been skipped, while the remaining docs have
         # been synchronized

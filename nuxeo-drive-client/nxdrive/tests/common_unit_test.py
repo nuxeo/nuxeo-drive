@@ -217,6 +217,7 @@ class UnitTestCase(unittest.TestCase):
         options.autolock_interval = 30
         options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager(options)
+        self.connected = False
         import nxdrive
         nxdrive_path = os.path.dirname(nxdrive.__file__)
         i18n_path = os.path.join(nxdrive_path, 'tests', 'resources', "i18n.js")
@@ -321,11 +322,14 @@ class UnitTestCase(unittest.TestCase):
         self._no_remote_changes = {self.engine_1.get_uid(): not wait_for_engine_1,
                                    self.engine_2.get_uid(): not wait_for_engine_2}
         if enforce_errors:
-            self.engine_1.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
-            self.engine_2.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
-        else:
+            if not self.connected:
+                self.engine_1.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
+                self.engine_2.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
+                self.connected = True
+        elif self.connected:
             self.engine_1.syncPartialCompleted.disconnect(self.engine_1.get_queue_manager().requeue_errors)
             self.engine_2.syncPartialCompleted.disconnect(self.engine_1.get_queue_manager().requeue_errors)
+            self.connected = False
         while timeout > 0:
             sleep(1)
             timeout = timeout - 1
