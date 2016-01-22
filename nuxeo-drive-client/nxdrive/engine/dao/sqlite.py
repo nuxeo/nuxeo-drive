@@ -616,7 +616,6 @@ class EngineDAO(ConfigurationDAO):
             update = "UPDATE States SET remote_state='deleted', pair_state=?"
             c.execute(update + " WHERE id=?", ('remotely_deleted',doc_pair.id))
             if doc_pair.folderish:
-                # TO_REVIEW New state recursive_remotely_deleted
                 c.execute(update + self._get_recursive_condition(doc_pair), ('parent_remotely_deleted',))
             # Only queue parent
             self._queue_pair_state(doc_pair.id, doc_pair.folderish, 'remotely_deleted')
@@ -639,7 +638,6 @@ class EngineDAO(ConfigurationDAO):
             update = "UPDATE States SET local_state='deleted', pair_state=?"
             c.execute(update + " WHERE id=?", (current_state, doc_pair.id))
             if doc_pair.folderish:
-                # TO_REVIEW New state recursive_locally_deleted
                 c.execute(update + self._get_recursive_condition(doc_pair), ('parent_locally_deleted',))
             self._queue_manager.interrupt_processors_on(doc_pair.local_path, exact_match=False)
             # Only queue parent
