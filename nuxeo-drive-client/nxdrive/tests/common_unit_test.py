@@ -538,6 +538,8 @@ class UnitTestCase(unittest.TestCase):
         for _, dirnames, filenames in os.walk(path):
             dir_count += len(dirnames)
             file_count += len(filenames)
+        if os.path.exists(os.path.join(path, '.partials')):
+            dir_count -= 1
         return (dir_count, file_count)
 
     def get_full_queue(self, queue, dao=None):
