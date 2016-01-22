@@ -475,6 +475,7 @@ class TestSynchronization(UnitTestCase):
 
     def test_create_content_in_readonly_area(self):
         self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
 
         # Let's create a subfolder of the main readonly folder
         local = LocalClient(self.local_nxdrive_folder_1)
@@ -482,7 +483,7 @@ class TestSynchronization(UnitTestCase):
         local.make_file('/Folder 3', 'File 1.txt', content='Some content.')
         local.make_folder('/Folder 3', 'Sub Folder 1')
         local.make_file('/Folder 3/Sub Folder 1', 'File 2.txt', content='Some other content.')
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
 
         # States have been created for the subfolder and its content,
         # subfolder is marked as unsynchronized
