@@ -73,16 +73,16 @@ Then install the required system and Python packages and the Nuxeo Drive code it
 
 Debian package manager:
 ```
-sudo apt-get install python-pip python-dev python-qt4 libffi-dev
+sudo apt-get install python-pip python-dev python-qt4 libffi-dev git
 ```
 Redhat package manager (RPM):
 ```
-sudo yum install python-pip python-devel PyQt4 libffi-devel
+sudo yum install python-pip python-devel PyQt4 libffi-devel git
 ```
 
-Common install actions, not depending on package manager (warning : define the version you want in the DRIVE_VERSION variable, ex: 2.0.911) : 
+Common install actions, not depending on package manager (warning : define the version you want in the DRIVE_VERSION variable, ex: 2.1.113) :
 ```
-DRIVE_VERSION=release-2.0.911
+DRIVE_VERSION=release-2.1.113
 sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
 sudo pip install -U -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/unix-requirements.txt
 sudo pip install -U git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
