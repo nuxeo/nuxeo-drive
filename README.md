@@ -49,9 +49,11 @@ $NUXEO_HOME/bin/nuxeoctl start
 
 ### Ubuntu/Debian (and Other Linux Variants) Client
 
-The .deb (or .rpm) package of the client is not yet available. In the mean time you can install it from source code.
+The .deb (or .rpm) package of the client is not yet available. In the meantime you can install it from source code.
 
-*Has been reported to work on: …*
+*Has been reported to work on: … (please insert your feedback here!)*
+
+#### xattr 
 
 First note that Nuxeo Drive uses [Extended file attributes](http://en.wikipedia.org/wiki/Extended_file_attributes) through the [xattr](https://pypi.python.org/pypi/xattr/) Python wrapper.
 
@@ -63,11 +65,22 @@ On Linux, depending on the distribution, you may need a special mount option (`u
 sudo mount -oremount,user_xattr /dev/sda3
 ```
 
+#### python 2.7 or higher
+
+Nuxeo Drive uses some packages, which are only compatible from **python version 2.7 on**. 
+If this excludes using the standard python installation of certain OS distributions, you may still install python 2.7 (or higher) [manually from the download pages](https://www.python.org/downloads/) on your system. 
+However, this may break other tools in your environment, who need to be consistent with the default python packages.
+Using [Anaconda](http://continuum.io/downloads) to switch between different python installs/environments may help in this case.
+
 Make sure that the latest version of [pip](http://www.pip-installer.org/) is installed:
+
+#### pip
 
 ```
 sudo easy_install -U pip
 ```
+
+#### install nuxeo drive
 
 Then install the required system and Python packages and the Nuxeo Drive code itself:
 
