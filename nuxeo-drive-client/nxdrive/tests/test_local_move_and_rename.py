@@ -673,7 +673,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
         self.engine_1.invalidate_client_cache()
         error = urllib2.HTTPError(None, 500, 'Mock server error', None, None)
-        self.engine_1.get_remote_client().make_execute_raise(error)
+        self.engine_1.get_remote_client().make_server_call_raise(error)
 
         local_client.rename(u'/Original Folder 1', u'IOErrorTest')
         self.wait_sync(timeout=5, fail_if_timeout=False)
@@ -682,7 +682,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertTrue(local_client.exists(u'/IOErrorTest'))
 
         # Remove faulty client and set engine online
-        self.engine_1.get_remote_client().make_execute_raise(None)
+        self.engine_1.get_remote_client().make_server_call_raise(None)
         self.engine_1.remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
         self.engine_1.invalidate_client_cache()
         self.engine_1.set_offline(value=False)

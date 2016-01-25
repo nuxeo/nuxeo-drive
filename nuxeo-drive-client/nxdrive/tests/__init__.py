@@ -18,6 +18,9 @@ class RemoteTestClient(RemoteFileSystemClient):
                  ignored_prefixes=None, ignored_suffixes=None,
                  timeout=20, blob_timeout=None, cookie_jar=None,
                  upload_tmp_dir=None, check_suspended=None):
+        self._download_remote_error = None
+        self._upload_remote_error = None
+        self._server_error = None
         '''
         Constructor
         '''
@@ -27,9 +30,6 @@ class RemoteTestClient(RemoteFileSystemClient):
             password, token, repository, ignored_prefixes,
             ignored_suffixes, timeout, blob_timeout, cookie_jar,
             upload_tmp_dir, check_suspended)
-        self._download_remote_error = None
-        self._upload_remote_error = None
-        self._execute_remote_error = None
 
     def do_get(self, url, file_out=None, digest=None, digest_algorithm=None):
         if self._download_remote_error is None:
@@ -46,15 +46,21 @@ class RemoteTestClient(RemoteFileSystemClient):
         else:
             raise self._upload_remote_error
 
+    def fetch_api(self):
+        if self._server_error is None:
+            return super(RemoteTestClient, self).fetch_api()
+        else:
+            raise self._server_error
+
     def execute(self, command, url=None, op_input=None, timeout=-1,
                 check_params=True, void_op=False, extra_headers=None,
                 file_out=None, **params):
-        if self._execute_remote_error is None:
+        if self._server_error is None:
             return super(RemoteTestClient, self).execute(command, url=url, op_input=op_input, timeout=timeout,
                                                          check_params=check_params, void_op=void_op,
                                                          extra_headers=extra_headers, file_out=file_out, **params)
         else:
-            raise self._execute_remote_error
+            raise self._server_error
 
     def make_download_raise(self, error):
         """Make next calls to do_get raise the provided exception"""
@@ -64,6 +70,6 @@ class RemoteTestClient(RemoteFileSystemClient):
         """Make next calls to upload raise the provided exception"""
         self._upload_remote_error = error
 
-    def make_execute_raise(self, error):
-        """Make next calls to execute raise the provided exception"""
-        self._execute_remote_error = error
+    def make_server_call_raise(self, error):
+        """Make next calls to the server raise the provided exception"""
+        self._server_error = error

@@ -340,7 +340,7 @@ class TestSynchronization(UnitTestCase):
         ]
         engine_started = False
         for error in errors:
-            self.engine_1.get_remote_client().make_execute_raise(error)
+            self.engine_1.get_remote_client().make_server_call_raise(error)
             if not engine_started:
                 self.engine_1.start()
                 engine_started = True
@@ -359,7 +359,7 @@ class TestSynchronization(UnitTestCase):
             self.engine_1.set_offline(value=False)
 
         # Re-enable network
-        self.engine_1.get_remote_client().make_execute_raise(None)
+        self.engine_1.get_remote_client().make_server_call_raise(None)
         self.engine_1.remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
         self.engine_1.invalidate_client_cache()
 
