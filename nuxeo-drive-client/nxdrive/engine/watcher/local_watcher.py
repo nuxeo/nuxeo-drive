@@ -354,6 +354,12 @@ class LocalWatcher(EngineWorker):
                         log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
                         if doc_pair is not None and self.client.exists(doc_pair.local_path):
+                            if (not self.client.is_case_sensitive() and\
+                                            doc_pair.local_path.lower() == child_info.path.lower()):
+                                log.debug("Case renaming on a case insensitive filesystem, update info and ignore: %r",
+                                                doc_pair)
+                                self._dao.update_local_state(doc_pair, child_info)
+                                continue
                             # possible move-then-copy case, NXDRIVE-471
                             child_full_path = self.client._abspath(child_info.path)
                             child_creation_time = self.get_creation_time(child_full_path)
