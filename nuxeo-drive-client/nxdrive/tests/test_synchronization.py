@@ -144,7 +144,7 @@ class TestSynchronization(UnitTestCase):
         self.assertTrue(local.exists('/'))
         self.engine_1.stop()
 
-        # Let's create some documents on the client and the server
+        # Let's create some documents on the client
         local.make_folder('/', 'Folder')
         local.make_file('/Folder', 'File.txt', content='Some content.')
 
@@ -175,7 +175,7 @@ class TestSynchronization(UnitTestCase):
         # as if the document was just created and not trigger an update
         self.queue_manager_1._disable = False
         self.queue_manager_1.resume()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         folder_state = self.engine_1.get_dao().get_state_from_local('/' + self.workspace_title + '/Folder')
         self.assertEquals(folder_state.pair_state, 'synchronized')
         file_state = self.engine_1.get_dao().get_state_from_local('/' + self.workspace_title + '/Folder/File.txt')
