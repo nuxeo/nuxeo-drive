@@ -288,7 +288,7 @@ class TestSynchronization(UnitTestCase):
         # File is not synchronized but synchronization does not fail either,
         # errors are handled and queue manager has given up on them
         self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync(wait_for_async=True, timeout=60)
         states_in_error = self.engine_1.get_dao().get_errors(limit=test_error_threshold)
         self.assertEquals(len(states_in_error), 1)
         workspace_children = self.engine_1.get_dao().get_states_from_partial_local('/' + self.workspace_title + '/')
