@@ -211,7 +211,6 @@ class RemoteWatcher(EngineWorker):
         db_children = self._dao.get_remote_children(doc_pair.remote_ref)
         children_info = self._client.get_children_info(remote_info.uid)
 
-
         children = dict()
         to_scan = []
         for child in db_children:
@@ -304,7 +303,8 @@ class RemoteWatcher(EngineWorker):
         except Unauthorized as e:
             if not self._engine.has_invalid_credentials():
                 self._engine.set_invalid_credentials(reason='got Unauthorized with code %s while checking if offline'
-                                                     % e.code if hasattr(e, 'code') and e.code else 'None', exception=e)
+                                                     % e.code if hasattr(e, 'code') and e.code else 'None',
+                                                     exception=e)
         except:
             pass
         if self._client is None:
