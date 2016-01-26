@@ -164,7 +164,7 @@ class TestConflicts(UnitTestCase):
         local.update_content('/1743B25F.tmp', b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00')
         local.update_content('/Excel 97 file.xls', b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03')
         local.delete_final('/1743B25F.tmp')
-        self.wait_sync()
+        self.wait_sync(wait_for_async=not locked_from_start)
         self.assertEquals(len(local.get_children_info('/')), 2)
         self.assertEquals(local.get_content('/Excel 97 file.xls'), b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03')
         # remote content hasn't changed, pair state is conflicted and remote_can_update flag is False
