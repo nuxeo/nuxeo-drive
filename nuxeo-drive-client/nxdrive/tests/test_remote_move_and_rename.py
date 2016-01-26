@@ -439,12 +439,26 @@ class TestRemoteMoveAndRename(UnitTestCase):
     def test_remote_rename_case_folder(self):
         remote_client = self.remote_client_1
         local_client = self.local_client_1
-
         self.assertTrue(local_client.exists('/Original Folder 1'))
         remote_client.rename(self.folder_1_id, 'Original folder 1')
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local_client.exists('/Original folder 1'))
         remote_client.rename(self.folder_1_id, 'Original Folder 1')
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(local_client.exists('/Original Folder 1'))
+
+    def test_remote_rename_case_folder_stopped(self):
+        remote_client = self.remote_client_1
+        local_client = self.local_client_1
+        self.engine_1.stop()
+        self.assertTrue(local_client.exists('/Original Folder 1'))
+        remote_client.rename(self.folder_1_id, 'Original folder 1')
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(local_client.exists('/Original folder 1'))
+        self.engine_1.stop()
+        remote_client.rename(self.folder_1_id, 'Original Folder 1')
+        self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local_client.exists('/Original Folder 1'))
 
