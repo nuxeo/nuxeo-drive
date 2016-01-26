@@ -409,7 +409,7 @@ class Processor(EngineWorker):
                     fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
                 self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
                                               versionned=False)
-                self._dao.synchronize_state(doc_pair)
+                self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=fs_item_info)
                 return
 
         parent_ref = parent_pair.remote_ref
