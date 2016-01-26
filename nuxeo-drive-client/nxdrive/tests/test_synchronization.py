@@ -348,7 +348,7 @@ class TestSynchronization(UnitTestCase):
             # - one '_synchronize_locally_created' error is registered for Folder 3
             # - engine goes offline because of RemoteWatcher._handle_changes
             # - no states are inserted for the remote documents
-            self.wait_sync(wait_for_async=True, timeout=5, fail_if_timeout=False)
+            self.wait_sync(wait_for_async=True, fail_if_timeout=False)
             states_in_error = self.engine_1.get_dao().get_errors(limit=0)
             self.assertEquals(len(states_in_error), 1)
             self.assertEquals(states_in_error[0].local_name, 'Folder 3')
