@@ -347,6 +347,9 @@ class Processor(EngineWorker):
                         self._engine.newLocked.emit(doc_pair.local_name, info.lock_owner, info.lock_created)
                     self._handle_unsynchronized(local_client, doc_pair)
                 return
+        if fs_item_info is None:
+            fs_item_info = remote_client.get_info(doc_pair.remote_ref)
+            self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False)
         self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=fs_item_info)
 
     def _get_normal_state_from_remote_ref(self, ref):
