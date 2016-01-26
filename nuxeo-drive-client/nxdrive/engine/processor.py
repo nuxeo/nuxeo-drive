@@ -293,7 +293,17 @@ class Processor(EngineWorker):
             log.trace("Transfer speed %d ko/s", speed / 1024)
             self._current_metrics["speed"] = speed
 
+    def _synchronize_if_not_remotely_dirty(self, doc_pair, local_client, remote_client, remote_info=None):
+            if remote_info is not None and (remote_info.name != doc_pair.local_name
+                                            or remote_info.digest != doc_pair.local_digest):
+                doc_pair = self._dao.get_state_from_local(doc_pair.local_path)
+                log.debug('Forcing _synchronize_remotely_modified for pair = %r with info = %r', doc_pair, remote_info)
+                self._synchronize_remotely_modified(doc_pair, local_client, remote_client)
+            else:
+                self._dao.synchronize_state(doc_pair)
+
     def _synchronize_locally_modified(self, doc_pair, local_client, remote_client):
+        fs_item_info = None
         if doc_pair.local_digest == UNACCESSIBLE_HASH:
             # Try to update
             info = local_client.get_info(doc_pair.local_path)
@@ -337,7 +347,7 @@ class Processor(EngineWorker):
                         self._engine.newLocked.emit(doc_pair.local_name, info.lock_owner, info.lock_created)
                     self._handle_unsynchronized(local_client, doc_pair)
                 return
-        self._dao.synchronize_state(doc_pair)
+        self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=fs_item_info)
 
     def _get_normal_state_from_remote_ref(self, ref):
         # TODO Select the only states that is not a collection
@@ -401,6 +411,7 @@ class Processor(EngineWorker):
 
         parent_ref = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
+            fs_item_info = None
             remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
             if doc_pair.folderish:
                 log.debug("Creating remote folder '%s' in folder '%s'",
@@ -442,7 +453,7 @@ class Processor(EngineWorker):
                     local_client.set_remote_id(new_pair.local_path, remote_ref)
                     self._synchronize_locally_moved(new_pair, local_client, remote_client, update=False)
                     return
-            self._dao.synchronize_state(doc_pair)
+            self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=fs_item_info)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
             log.warning("Won't synchronize %s '%s' created in"
@@ -491,6 +502,7 @@ class Processor(EngineWorker):
     def _synchronize_locally_moved(self, doc_pair, local_client, remote_client, update=True):
         # A file has been moved locally, and an error occurs when tried to
         # move on the server
+        remote_info = None
         renamed = False
         moved = False
         if doc_pair.local_name != doc_pair.remote_name:
@@ -534,7 +546,7 @@ class Processor(EngineWorker):
         # Handle modification at the same time if needed
         if update:
             if doc_pair.local_state == 'moved':
-                self._dao.synchronize_state(doc_pair)
+                self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=remote_info)
             else:
                 self._synchronize_locally_modified(doc_pair, local_client, remote_client)
 
