@@ -612,6 +612,7 @@ class Processor(EngineWorker):
         doc_pair.local_digest = updated_info.get_digest()
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
+        return tmp_file
 
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
         tmp_file = None
@@ -619,7 +620,7 @@ class Processor(EngineWorker):
             is_renaming = doc_pair.remote_name != doc_pair.local_name
             if (not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path)
                     and doc_pair.local_digest is not None):
-                self._update_remotely(doc_pair, local_client, remote_client, is_renaming)
+                tmp_file = self._update_remotely(doc_pair, local_client, remote_client, is_renaming)
             else:
                 # digest agree so this might be a renaming and/or a move,
                 # and no need to transfer additional bytes over the network
