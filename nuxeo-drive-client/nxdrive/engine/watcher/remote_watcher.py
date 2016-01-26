@@ -533,7 +533,11 @@ class RemoteWatcher(EngineWorker):
                             else:
                                 remote_parent_path = os.path.dirname(new_info.path)
                                 # TODO Add modify local_path and local_parent_path if needed
-                            self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path)
+                            # Force remote state update in case of a locked / unlocked event since lock info is not
+                            # persisted, so not part of the dirty check
+                            force_update = eventId == 'documentLocked' or eventId == 'documentUnlocked'
+                            self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path,
+                                                          force_update=force_update)
                             self._force_scan_recursive(doc_pair, consistent_new_info, remote_path=new_info.path,
                                                        force_recursion=(eventId == "securityUpdated"))
 
