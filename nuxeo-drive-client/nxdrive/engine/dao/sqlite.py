@@ -736,11 +736,12 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
 
     def update_local_state(self, row, info, versionned=True, queue=True):
+        log.trace('Updating local state for row = %r with info = %r', row, info)
         pair_state = self._get_pair_state(row)
         version = ''
         if versionned:
             version = ', version=version+1'
-            log.trace('Increasing version to %d for pair %r', row.version + 1, info)
+            log.trace('Increasing version to %d for pair %r', row.version + 1, row)
         parent_path = os.path.dirname(info.path)
         self._lock.acquire()
         try:
@@ -1174,10 +1175,12 @@ class EngineDAO(ConfigurationDAO):
             and info.name == row.remote_name and unicode(info.last_modification_time) == row.last_remote_updated and info.can_rename == row.remote_can_rename
             and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child
             and info.last_contributor == row.last_remote_modifier and info.digest == row.remote_digest):
+            log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
             return
+        log.trace('Updating remote state for row = %r with info = %r', row, info)
         if versionned:
             version = ', version=version+1'
-            log.trace('Increasing version to %d for pair %r', row.version + 1, info)
+            log.trace('Increasing version to %d for pair %r', row.version + 1, row)
         self._lock.acquire()
         try:
             con = self._get_write_connection()
