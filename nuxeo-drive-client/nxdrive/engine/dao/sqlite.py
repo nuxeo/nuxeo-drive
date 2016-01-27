@@ -757,7 +757,7 @@ class EngineDAO(ConfigurationDAO):
                 parent = c.execute("SELECT * FROM States WHERE local_path=?", (parent_path,)).fetchone()
                 # Dont queue if parent is not yet created
                 if (parent is None and parent_path == '') or (parent is not None and parent.pair_state != "locally_created"):
-                    self._queue_pair_state(row.id, info.folderish, pair_state, row)
+                    self._queue_pair_state(row.id, info.folderish, pair_state, pair=row)
             if self.auto_commit:
                 con.commit()
         finally:
