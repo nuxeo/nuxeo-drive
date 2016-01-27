@@ -602,7 +602,7 @@ class Processor(EngineWorker):
         else:
             new_os_path = os_path
         log.debug("Updating content of local file '%s'.", os_path)
-        tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
+        self.tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
         # Delete original file and rename tmp file
         remote_id = local_client.get_remote_id(doc_pair.local_path)
         local_client.delete_final(doc_pair.local_path)
@@ -612,15 +612,14 @@ class Processor(EngineWorker):
         doc_pair.local_digest = updated_info.get_digest()
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
-        return tmp_file
 
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
-        tmp_file = None
+        self.tmp_file = None
         try:
             is_renaming = doc_pair.remote_name != doc_pair.local_name
             if (not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path)
                     and doc_pair.local_digest is not None):
-                tmp_file = self._update_remotely(doc_pair, local_client, remote_client, is_renaming)
+                self._update_remotely(doc_pair, local_client, remote_client, is_renaming)
             else:
                 # digest agree so this might be a renaming and/or a move,
                 # and no need to transfer additional bytes over the network
@@ -680,10 +679,10 @@ class Processor(EngineWorker):
                 doc_pair)
             raise e
         finally:
-            if tmp_file is not None:
+            if self.tmp_file is not None:
                 try:
-                    if os.path.exists(tmp_file):
-                        os.remove(tmp_file)
+                    if os.path.exists(self.tmp_file):
+                        os.remove(self.tmp_file)
                 except (IOError, WindowsError):
                     pass
             if doc_pair.folderish:
