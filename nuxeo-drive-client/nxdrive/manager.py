@@ -914,6 +914,7 @@ class Manager(QtCore.QObject):
                 # Last part of the url is the engine type
                 engine_type = url.split('#')[1]
                 binder.url = url.split('#')[0]
+                log.debug("Engine type has been specified in the url: %s will be used", engine_type)
         if not self.check_local_folder_available(local_folder):
             raise FolderAlreadyUsed()
         if not engine_type in self._engine_types:

@@ -227,6 +227,7 @@ class UnitTestCase(unittest.TestCase):
         self.manager_2 = Manager(options)
         self.version = __version__
         url = self.nuxeo_url
+        log.debug("Will use %s as url", url)
         if '#' in url:
             # Remove the engine type for the rest of the test
             self.nuxeo_url = url.split('#')[0]
