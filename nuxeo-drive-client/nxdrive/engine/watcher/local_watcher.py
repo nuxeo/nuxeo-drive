@@ -673,16 +673,23 @@ class LocalWatcher(EngineWorker):
                 log.debug("Created event on a known pair with a remote_ref: %r", doc_pair)
         local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if local_info is not None:
+            # Unchanged folder
+            if doc_pair.folderish:
+                log.debug('Unchanged folder %s (watchdog event [%s]), only update last_local_updated',
+                          rel_path, evt.event_type)
+                self._dao.update_local_modification_time(doc_pair, local_info)
+                return
             if doc_pair.local_state == 'synchronized':
                 digest = local_info.get_digest()
-                # Drop event if digest hasn't changed, can be the case if only file permissions have been updated
-                if not doc_pair.folderish and doc_pair.local_digest == digest:
-                    log.debug('Dropping watchdog event [%s] as digest has not changed for %s',
-                              evt.event_type, rel_path)
+                # Unchanged digest, can be the case if only the last modification time or file permissions
+                # have been updated
+                if doc_pair.local_digest == digest:
+                    log.debug('Digest has not changed for %s (watchdog event [%s]), only update last_local_updated',
+                              rel_path, evt.event_type)
+                    self._dao.update_local_modification_time(doc_pair, local_info)
                     return
                 doc_pair.local_digest = digest
                 doc_pair.local_state = 'modified'
-            queue = not (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified')
             if AbstractOSIntegration.is_mac() and evt.event_type == 'modified' and doc_pair.remote_ref is not None and doc_pair.remote_ref != local_info.remote_ref:
                 original_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
                 original_info = None
@@ -692,10 +699,7 @@ class LocalWatcher(EngineWorker):
                     log.debug("MacOSX has postponed overwriting of xattr, need to reset remote_ref for %r", doc_pair)
                     # We are in a copy/paste situation with OS overriding the xattribute
                     self.client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
-            # No need to change anything on sync folder
-            if (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified'):
-                doc_pair.local_state = 'synchronized'
-            self._dao.update_local_state(doc_pair, local_info, queue=queue)
+            self._dao.update_local_state(doc_pair, local_info)
 
     def handle_watchdog_root_event(self, evt):
         if evt.event_type == 'modified' or evt.event_type == 'created':

@@ -763,6 +763,9 @@ class EngineDAO(ConfigurationDAO):
         finally:
             self._lock.release()
 
+    def update_local_modification_time(self, row, info):
+        self.update_local_state(row, info, versionned=False, queue=False)
+
     def get_valid_duplicate_file(self, digest):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_digest=? AND pair_state='synchronized'", (digest,)).fetchone()
