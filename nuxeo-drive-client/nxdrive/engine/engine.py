@@ -247,6 +247,7 @@ class Engine(QObject):
         log.debug("Local Folder lock setup completed on '%s'", path)
 
     def release_folder_lock(self):
+        log.debug("Local Folder unlocking")
         self._folder_lock = None
 
     def get_last_files(self, number, direction=None):
