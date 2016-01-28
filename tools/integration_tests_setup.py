@@ -276,9 +276,9 @@ def clean_download_dir(dir_, pattern):
 if __name__ == "__main__":
     options = parse_args()
     # Handle empty options set by ant empty arguments
-    if not options.server_url:
+    if hasattr(options, 'server_url') and not options.server_url:
         options.server_url = DEFAULT_SERVER_URL
-    if not options.engine:
+    if hasattr(options, 'engine') and not options.engine:
         options.engine = DEFAULT_ENGINE
     pflush("'test' command options: %r" % options)
 
