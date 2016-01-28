@@ -13,6 +13,7 @@ from Queue import Queue
 import sys
 import os
 import re
+import sqlite3
 from time import sleep, time, mktime
 from datetime import datetime
 from threading import Lock
@@ -660,9 +661,24 @@ class LocalWatcher(EngineWorker):
                     finally:
                         self._win_lock.release()
             return
-        if doc_pair.processor > 0:
-            log.trace("Don't update as in process %r", doc_pair)
-            return
+        acquired_pair = None
+        try:
+            acquired_pair = self._dao.acquire_state(self._thread_id, doc_pair.id)
+            if acquired_pair is not None:
+                self._handle_watchdog_event_on_known_acquired_pair(acquired_pair, evt, rel_path)
+            else:
+                log.trace("Don't update as in process %r", doc_pair)
+        except sqlite3.OperationalError:
+            log.exception("Don't update as cannot acquire %r", doc_pair)
+        finally:
+            self._dao.release_state(self._thread_id)
+            if acquired_pair is not None:
+                log.trace("Re-queuing acquired and released state %r", doc_pair)
+                refreshed_pair = self._dao.get_state_from_id(acquired_pair.id)
+                self._dao._queue_pair_state(refreshed_pair.id, refreshed_pair.folderish, refreshed_pair.pair_state,
+                                            pair=refreshed_pair)
+
+    def _handle_watchdog_event_on_known_acquired_pair(self, doc_pair, evt, rel_path):
         if evt.event_type == 'deleted':
             # Delay on Windows the delete event
             if self._windows:

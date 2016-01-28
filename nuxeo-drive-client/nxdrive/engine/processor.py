@@ -140,19 +140,6 @@ class Processor(EngineWorker):
             if self._current_doc_pair is not None:
                 self.increase_error(self._current_doc_pair, "EXCEPTION", exception=e)
 
-    def acquire_state(self, row_id):
-        if self._dao.acquire_processor(self._thread_id, row_id):
-            # Avoid any lock for this call by using the write connection
-            try:
-                return self._dao.get_state_from_id(row_id, from_write=True)
-            except:
-                self._dao.release_processor(self._thread_id)
-                raise
-        return None
-
-    def release_state(self):
-        self._dao.release_processor(self._thread_id)
-
     def _execute(self):
         self._current_metrics = dict()
         self._current_item = self._get_item()
@@ -163,7 +150,7 @@ class Processor(EngineWorker):
             remote_client = self._engine.get_remote_client()
             doc_pair = None
             try:
-                doc_pair = self.acquire_state(self._current_item.id)
+                doc_pair = self._dao.acquire_state(self._thread_id, self._current_item.id)
             except:
                 log.trace("Cannot acquire state for: %r", self._current_item)
                 self._engine.get_queue_manager().push(self._current_item)
@@ -171,6 +158,7 @@ class Processor(EngineWorker):
                 continue
             try:
                 if doc_pair is None:
+                    log.trace("Didn't acquire state, dropping %r", self._current_item)
                     self._current_item = self._get_item()
                     continue
                 log.debug('Executing processor on %r(%d)', doc_pair, doc_pair.version)
@@ -258,7 +246,7 @@ class Processor(EngineWorker):
             finally:
                 if soft_lock is not None:
                     self._unlock_soft_path(soft_lock)
-                self.release_state()
+                self._dao.release_state(self._thread_id)
             self._interact()
             self._current_item = self._get_item()
 

@@ -557,6 +557,19 @@ class EngineDAO(ConfigurationDAO):
     def _get_read_connection(self, factory=StateRow):
         return super(EngineDAO, self)._get_read_connection(factory)
 
+    def acquire_state(self, thread_id, row_id):
+        if self.acquire_processor(thread_id, row_id):
+            # Avoid any lock for this call by using the write connection
+            try:
+                return self.get_state_from_id(row_id, from_write=True)
+            except:
+                self.release_processor(thread_id)
+                raise
+        return None
+
+    def release_state(self, thread_id):
+        self.release_processor(thread_id)
+
     def release_processor(self, processor_id):
         self._lock.acquire()
         try:
