@@ -606,7 +606,7 @@ class Processor(EngineWorker):
         # Delete original file and rename tmp file
         remote_id = local_client.get_remote_id(doc_pair.local_path)
         local_client.delete_final(doc_pair.local_path)
-        updated_info = local_client.rename(local_client.get_path(tmp_file), doc_pair.remote_name)
+        updated_info = local_client.rename(local_client.get_path(self.tmp_file), doc_pair.remote_name)
         if remote_id is not None:
             local_client.set_remote_id(doc_pair.local_parent_path + '/' + doc_pair.remote_name, doc_pair.remote_ref)
         doc_pair.local_digest = updated_info.get_digest()
