@@ -62,6 +62,21 @@ class EngineDAOTest(unittest.TestCase):
         self.assertFalse(dao.is_path_scanned("/"))
         self._clean_dao(dao)
 
+    def test_migration_db_v1_with_duplicates(self):
+        # Test a non empty db
+        migrate_db = self.get_db_temp_file()
+        db = open(self._get_default_db('test_engine_migration_duplicate.db'), 'rb')
+        with open(migrate_db.name, 'wb') as f:
+            f.write(db.read())
+        self._dao = EngineDAO(migrate_db.name)
+        c = self._dao._get_read_connection().cursor()
+        rows = c.execute("SELECT * FROM States").fetchall()
+        self.assertEquals(len(rows), 0)
+        cols = c.execute("PRAGMA table_info('States')").fetchall()
+        self.assertEquals(len(cols), 30)
+        self.assertIsNone(self._dao.get_config("remote_last_event_log_id"))
+        self.assertIsNone(self._dao.get_config("remote_last_full_scan"))
+
     def test_migration_db_v1(self):
         init_db = self.get_db_temp_file()
         # Test empty db
@@ -76,6 +91,8 @@ class EngineDAOTest(unittest.TestCase):
         c = self._dao._get_read_connection().cursor()
         cols = c.execute("PRAGMA table_info('States')").fetchall()
         self.assertEquals(len(cols), 30)
+        cols = c.execute("SELECT * FROM States").fetchall()
+        self.assertEquals(len(cols), 63)
         self.test_batch_folder_files()
         self.test_batch_upload_files()
         self.test_conflicts()

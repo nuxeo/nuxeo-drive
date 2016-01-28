@@ -298,12 +298,15 @@ class ConfigurationDAO(QObject):
         finally:
             self._lock.release()
 
+    def _delete_config(self, cursor, name):
+        cursor.execute("DELETE FROM Configuration WHERE name=?", (name,))
+
     def delete_config(self, name):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM Configuration WHERE name=?", (name,))
+            self._delete_config(c, name)
             if self.auto_commit:
                 con.commit()
         finally:
@@ -499,9 +502,17 @@ class EngineDAO(ConfigurationDAO):
     def get_schema_version(self):
         return 3
 
+    def _migrate_state(self, cursor):
+        try:
+            self._migrate_table(cursor, 'States')
+        except sqlite3.IntegrityError:
+            # If we cannot smoothly migrate harder migration
+            cursor.execute("DROP TABLE if exists StatesMigration")
+            self._reinit_states(cursor)
+
     def _migrate_db(self, cursor, version):
         if (version < 1):
-            self._migrate_table(cursor, 'States')
+            self._migrate_state(cursor)
             cursor.execute(u"UPDATE States SET last_transfer = 'upload' WHERE last_local_updated < last_remote_updated AND folderish=0;")
             cursor.execute(u"UPDATE States SET last_transfer = 'download' WHERE last_local_updated > last_remote_updated AND folderish=0;")
             self.update_config(SCHEMA_VERSION, 1)
@@ -509,8 +520,11 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
             self.update_config(SCHEMA_VERSION, 2)
         if (version < 3):
-            self._migrate_table(cursor, 'States')
+            self._migrate_state(cursor)
             self.update_config(SCHEMA_VERSION, 3)
+
+    def _reinit_database(self):
+        self.reinit_states()
 
     def _create_table(self, cursor, name, force=False):
         if name == "States":
@@ -579,13 +593,21 @@ class EngineDAO(ConfigurationDAO):
                       thread_id, row_id)
         return res
 
+    def _reinit_states(self, cursor):
+        cursor.execute("DROP TABLE States")
+        self._create_state_table(cursor, force=True)
+        self._delete_config(cursor, "remote_last_sync_date")
+        self._delete_config(cursor, "remote_last_event_log_id")
+        self._delete_config(cursor, "remote_last_event_last_root_definitions")
+        self._delete_config(cursor, "remote_last_full_scan")
+        self._delete_config(cursor, "last_sync_date")
+
     def reinit_states(self):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DROP TABLE States")
-            self._create_state_table(c, force=True)
+            self._reinit_states(c)
             con.commit()
             log.trace("Vacuum sqlite")
             con.execute("VACUUM")

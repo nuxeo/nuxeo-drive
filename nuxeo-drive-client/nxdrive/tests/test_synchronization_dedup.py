@@ -164,6 +164,8 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.assertFalse(local.exists('/' + Test_dedup))
 
     def test_uppercase_lowercase_duplicate(self):
+        # Duplication should be disable later
+        raise SkipTest
         remote = self.remote_document_client_1
         # Test without delay might cause issue on Windows
         self.doc1 = remote.make_folder('/', 'A')
