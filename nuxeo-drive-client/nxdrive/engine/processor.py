@@ -594,6 +594,8 @@ class Processor(EngineWorker):
         # Delete original file and rename tmp file
         remote_id = local_client.get_remote_id(doc_pair.local_path)
         local_client.delete_final(doc_pair.local_path)
+        if remote_id is not None:
+            local_client.set_remote_id(local_client.get_path(self.tmp_file), doc_pair.remote_ref)
         updated_info = local_client.rename(local_client.get_path(self.tmp_file), doc_pair.remote_name)
         if remote_id is not None:
             local_client.set_remote_id(doc_pair.local_parent_path + '/' + doc_pair.remote_name, doc_pair.remote_ref)
@@ -754,8 +756,11 @@ class Processor(EngineWorker):
                 log.debug("Creating local file '%s' in '%s'", name,
                           local_client._abspath(parent_pair.local_path))
                 tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
+                tmp_file_path = local_client.get_path(tmp_file)
+                # Set remote id on tmp file already
+                local_client.set_remote_id(tmp_file_path, doc_pair.remote_ref)
                 # Rename tmp file
-                local_client.rename(local_client.get_path(tmp_file), name)
+                local_client.rename(tmp_file_path, name)
                 self._dao.update_last_transfer(doc_pair.id, "download")
         finally:
             self._lock_readonly(local_client, local_parent_path)
