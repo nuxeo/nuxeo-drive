@@ -217,7 +217,7 @@ class TestSynchronization(UnitTestCase):
         self.queue_manager_1.suspend()
         self.queue_manager_1._disable = True
         self.engine_1.start()
-        self.wait_sync(wait_for_async=True, timeout=5, fail_if_timeout=False)
+        self.wait_sync(wait_for_async=True, timeout=10, fail_if_timeout=False)
 
         workspace_children = self.engine_1.get_dao().get_local_children('/' + self.workspace_title)
         self.assertEquals(len(workspace_children), 4)
