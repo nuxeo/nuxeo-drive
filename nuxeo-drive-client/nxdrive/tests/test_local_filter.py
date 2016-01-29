@@ -1,5 +1,6 @@
 from nxdrive.tests.common_unit_test import UnitTestCase
-
+from nxdrive.logging_config import get_logger
+log = get_logger(__name__)
 
 class TestLocalFilter(UnitTestCase):
 
@@ -90,6 +91,7 @@ class TestLocalFilter(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.local_client_1.exists("/" + hexafile + ".txt"))
         children = self.remote_document_client_1.get_children_info(self.workspace)
+        log.debug("Children retrieved: %r", children)
         self.assertEquals(len(children), 2)
 
     def test_synchronize_local_filter_with_move(self):
