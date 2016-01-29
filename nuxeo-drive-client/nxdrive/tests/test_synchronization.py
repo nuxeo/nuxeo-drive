@@ -440,7 +440,7 @@ class TestSynchronization(UnitTestCase):
     def test_synchronize_deep_folders(self):
         # Increase Automation execution timeout for NuxeoDrive.GetChangeSummary
         # because of the recursive parent FileSystemItem adaptation
-        self.engine_1.timeout = 60
+        self.engine_1.timeout = 90
         self.engine_1.start()
 
         # Create a file deep down in the hierarchy
@@ -454,7 +454,7 @@ class TestSynchronization(UnitTestCase):
 
         remote.make_file(folder, "File.odt", content="Fake non-zero content.")
 
-        self.wait_sync(wait_for_async=True, timeout=60)
+        self.wait_sync(wait_for_async=True, timeout=90)
 
         local = self.local_client_1
         expected_folder_path = ('/' + folder_name) * folder_depth
@@ -469,7 +469,7 @@ class TestSynchronization(UnitTestCase):
         # and synchronize again
         remote.delete('/' + folder_name)
 
-        self.wait_sync(wait_for_async=True, timeout=60)
+        self.wait_sync(wait_for_async=True, timeout=90)
 
         self.assertFalse(local.exists(expected_folder_path))
         self.assertFalse(local.exists(expected_file_path))
