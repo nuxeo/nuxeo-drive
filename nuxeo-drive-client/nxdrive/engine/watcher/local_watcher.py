@@ -675,8 +675,9 @@ class LocalWatcher(EngineWorker):
             if acquired_pair is not None:
                 log.trace("Re-queuing acquired and released state %r", doc_pair)
                 refreshed_pair = self._dao.get_state_from_id(acquired_pair.id)
-                self._dao._queue_pair_state(refreshed_pair.id, refreshed_pair.folderish, refreshed_pair.pair_state,
-                                            pair=refreshed_pair)
+                if refreshed_pair is not None:
+                    self._dao._queue_pair_state(refreshed_pair.id, refreshed_pair.folderish,
+                                                refreshed_pair.pair_state, pair=refreshed_pair)
 
     def _handle_watchdog_event_on_known_acquired_pair(self, doc_pair, evt, rel_path):
         if evt.event_type == 'deleted':
