@@ -11,9 +11,7 @@ from nxdrive.tests import RemoteTestClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 from nxdrive.osi import AbstractOSIntegration
 
-
 class TestSynchronization(UnitTestCase):
-
     def test_binding_initialization_and_first_sync(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
@@ -603,11 +601,29 @@ class TestSynchronization(UnitTestCase):
         self.assertEquals(folder_names, [u'Folder with forbidden chars- - - - - - - -'])
 
         # Create a remote file with a weird name
-        remote.make_file(folder, u'File with forbidden chars: / \\ * < > ? ".doc', content="some content")
+        file = remote.make_file(folder, u'File with forbidden chars: / \\ * < > ? "', content="some content",
+                                doc_type='Note')
 
         self.wait_sync(wait_for_async=True)
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
-        self.assertEquals(file_names, [u'File with forbidden chars- - - - - - - -.doc'])
+        self.assertEquals(file_names, [u'File with forbidden chars- - - - - - - -.txt'])
+
+        # Update a remote file with a weird name (NXDRIVE-286)
+        remote.update(file, properties={'note:note': 'new content'})
+        self.wait_sync(wait_for_async=True, enforce_errors=False)
+        self.assertEquals(local.get_content(
+            u'/Folder with forbidden chars- - - - - - - -/File with forbidden chars- - - - - - - -.txt'), "new content")
+        file_state = self.engine_1.get_dao().get_state_from_local('/' + self.workspace_title +
+                                                                  u'/Folder with forbidden chars- - - - - - - -' +
+                                                                  u'/File with forbidden chars- - - - - - - -.txt')
+        self.assertEquals(file_state.pair_state, 'synchronized')
+        self.assertEqual(file_state.local_digest, file_state.remote_digest)
+
+        # Update note title with a weird name
+        remote.update(file, properties={'dc:title': u'File with forbidden chars: / \\ * < > ? " - 2'})
+        self.wait_sync(wait_for_async=True, enforce_errors=False)
+        file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
+        self.assertEquals(file_names, [u'File with forbidden chars- - - - - - - - - 2.txt'])
 
     def test_synchronize_deleted_blob(self):
         local = self.local_client_1
@@ -633,7 +649,7 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.start()
 
         # Create a remote folder with 2 children then synchronize
-        remote.make_folder('/', 'Remote folder',)
+        remote.make_folder('/', 'Remote folder')
         remote.make_file('/Remote folder', 'Remote file 1.odt', 'Some content.')
         remote.make_file('/Remote folder', 'Remote file 2.odt', 'Other content.')
 

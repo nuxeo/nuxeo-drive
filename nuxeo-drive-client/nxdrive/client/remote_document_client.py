@@ -152,10 +152,12 @@ class RemoteDocumentClient(BaseAutomationClient):
         Creates a temporary file from the content then streams it.
         """
         parent = self._check_ref(parent)
-        doc = self.create(parent, doc_type, name=name,
-                          properties={'dc:title': name})
+        properties = {'dc:title': name}
+        if doc_type is 'Note' and content is not None:
+            properties['note:note'] = content
+        doc = self.create(parent, doc_type, name=name, properties=properties)
         ref = doc[u'uid']
-        if content is not None:
+        if doc_type is not 'Note' and content is not None:
             self.attach_blob(ref, content, name)
         return ref
 
