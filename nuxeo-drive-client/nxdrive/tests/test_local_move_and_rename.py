@@ -60,10 +60,10 @@ class TestLocalMoveAndRename(UnitTestCase):
         remote_client = self.remote_document_client_1
         marker = False
 
-        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True):
+        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False):
             global marker
             EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path=remote_parent_path,
-                                          versionned=versionned)
+                                          versionned=versionned, queue=queue, force_update=force_update)
             if row.local_name == 'New Folder' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed Folder')
                 sleep(5)
@@ -86,10 +86,10 @@ class TestLocalMoveAndRename(UnitTestCase):
         remote_client = self.remote_document_client_1
         marker = False
 
-        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True):
+        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False):
             global marker
             EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path=remote_parent_path,
-                                          versionned=versionned)
+                                          versionned=versionned, queue=queue, force_update=force_update)
             if row.local_name == 'File.txt' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed File.txt')
                 sleep(5)
