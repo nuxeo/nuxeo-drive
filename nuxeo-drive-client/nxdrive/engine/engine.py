@@ -24,6 +24,7 @@ except ImportError:
 import os
 import datetime
 from cookielib import CookieJar
+from nxdrive.client.common import safe_filename
 from nxdrive.gui.resources import find_icon
 import urllib2
 
@@ -641,7 +642,7 @@ class Engine(QObject):
                       pair.local_digest, pair.remote_digest,
                       pair.remote_parent_ref == parent_ref,
                       pair.remote_parent_ref, parent_ref)
-            if (pair.remote_name == pair.local_name
+            if (safe_filename(pair.remote_name) == pair.local_name
                 and local_client.is_equal_digests(pair.local_digest, pair.remote_digest, pair.local_path)
                     and pair.remote_parent_ref == parent_ref):
                 self._dao.synchronize_state(pair)

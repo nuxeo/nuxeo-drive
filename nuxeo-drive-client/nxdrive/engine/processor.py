@@ -7,6 +7,7 @@ from nxdrive.engine.workers import EngineWorker, ThreadInterrupt, PairInterrupt
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME, UNACCESSIBLE_HASH
 from nxdrive.client.common import NotFound
+from nxdrive.client.common import safe_filename
 from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time, is_office_temp_file
 from PyQt4.QtCore import pyqtSignal
@@ -585,7 +586,7 @@ class Processor(EngineWorker):
     def _update_remotely(self, doc_pair, local_client, remote_client, is_renaming):
         os_path = local_client._abspath(doc_pair.local_path)
         if is_renaming:
-            new_os_path = os.path.join(os.path.dirname(os_path), doc_pair.remote_name)
+            new_os_path = os.path.join(os.path.dirname(os_path), safe_filename(doc_pair.remote_name))
             log.debug("Replacing local file '%s' by '%s'.", os_path, new_os_path)
         else:
             new_os_path = os_path
@@ -597,8 +598,6 @@ class Processor(EngineWorker):
         if remote_id is not None:
             local_client.set_remote_id(local_client.get_path(self.tmp_file), doc_pair.remote_ref)
         updated_info = local_client.rename(local_client.get_path(self.tmp_file), doc_pair.remote_name)
-        if remote_id is not None:
-            local_client.set_remote_id(doc_pair.local_parent_path + '/' + doc_pair.remote_name, doc_pair.remote_ref)
         doc_pair.local_digest = updated_info.get_digest()
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
@@ -606,7 +605,7 @@ class Processor(EngineWorker):
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
         self.tmp_file = None
         try:
-            is_renaming = doc_pair.remote_name != doc_pair.local_name
+            is_renaming = safe_filename(doc_pair.remote_name) != doc_pair.local_name
             if (not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path)
                     and doc_pair.local_digest is not None):
                 self._update_remotely(doc_pair, local_client, remote_client, is_renaming)
