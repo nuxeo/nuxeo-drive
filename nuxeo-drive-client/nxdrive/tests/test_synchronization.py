@@ -625,6 +625,12 @@ class TestSynchronization(UnitTestCase):
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
         self.assertEquals(file_names, [u'File with forbidden chars- - - - - - - - - 2.txt'])
 
+        # Update note title changing the case (NXRIVE-532)
+        remote.update(file, properties={'dc:title': u'file with forbidden chars: / \\ * < > ? " - 2'})
+        self.wait_sync(wait_for_async=True, enforce_errors=False)
+        file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
+        self.assertEquals(file_names, [u'file with forbidden chars- - - - - - - - - 2.txt'])
+
     def test_synchronize_deleted_blob(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
