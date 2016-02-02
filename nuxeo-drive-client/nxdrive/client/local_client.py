@@ -649,12 +649,13 @@ class LocalClient(BaseClient):
         os_path = self._abspath(ref)
         return os.access(os_path, os.W_OK)
 
-    def rename(self, ref, new_name):
+    def rename(self, ref, to_name):
         """Rename a local file or folder
 
         Return the actualized info object.
 
         """
+        new_name = safe_filename(to_name)
         source_os_path = self._abspath(ref)
         parent = ref.rsplit(u'/', 1)[0]
         old_name = ref.rsplit(u'/', 1)[1]
