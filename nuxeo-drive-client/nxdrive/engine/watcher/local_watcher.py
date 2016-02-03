@@ -617,7 +617,10 @@ class LocalWatcher(EngineWorker):
                         if not doc_pair.folderish and pair.local_digest == digest:
                             log.trace('Dropping watchdog event [%s] as digest has not changed for %s',
                               evt.event_type, rel_path)
-                            self._dao.remove_state(doc_pair)
+                            # If pair are the same dont drop it
+                            # It can happen in case of server rename on a document
+                            if doc_pair.id != pair.id:
+                                self._dao.remove_state(doc_pair)
                             return
                         pair.local_digest = digest
                         pair.local_state = 'modified'

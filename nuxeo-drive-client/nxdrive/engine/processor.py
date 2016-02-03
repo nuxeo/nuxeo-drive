@@ -389,17 +389,23 @@ class Processor(EngineWorker):
             remote_doc_client = self._engine.get_remote_doc_client()
             uid = remote_ref.split('#')[-1]
             info = remote_doc_client.get_info(uid, raise_if_missing=False, use_trash=False)
-            if info and info.state == 'deleted':
-                log.debug("Untrash from the client: %r", doc_pair)
-                remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
-                remote_doc_client.undelete(uid)
-                fs_item_info = remote_client.get_info(remote_ref)
-                if not fs_item_info.path.startswith(remote_parent_path):
-                    fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
-                self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
-                                              versionned=False)
-                self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=fs_item_info)
-                return
+            if info:
+                if info.state == 'deleted':
+                    log.debug("Untrash from the client: %r", doc_pair)
+                    remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
+                    remote_doc_client.undelete(uid)
+                    fs_item_info = remote_client.get_info(remote_ref)
+                    if not fs_item_info.path.startswith(remote_parent_path):
+                        fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
+                    self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
+                                                  versionned=False)
+                    self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=fs_item_info)
+                    return
+                # Document exists on the server
+                if info.parent_uid == parent_pair.remote_ref:
+                    log.warning("Document is already on the server should not create: %r | %r", doc_pair, info)
+                    self._dao.synchronize_state(doc_pair)
+                    return
 
         parent_ref = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
