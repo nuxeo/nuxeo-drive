@@ -10,8 +10,7 @@ from nxdrive.client.local_client import LocalClient
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import safe_filename, NotFound
-from nxdrive.utils import force_decode
-from nxdrive.utils import guess_digest_algorithm
+from nxdrive.utils import guess_digest_algorithm, current_milli_time
 from nxdrive.osi import parse_protocol_url
 import os
 import sys
@@ -31,6 +30,8 @@ except ImportError:
 class DriveEdit(Worker):
     localScanFinished = pyqtSignal()
     driveEditUploadCompleted = pyqtSignal()
+    openDocument = pyqtSignal(object)
+    editDocument = pyqtSignal(object)
     driveEditLockError = pyqtSignal(str, str, str)
     driveEditConflict = pyqtSignal(str, str, str)
 
@@ -58,6 +59,7 @@ class DriveEdit(Worker):
         self._error_queue = BlacklistQueue()
         self._stop = False
         self._manager.get_autolock_service().orphanLocks.connect(self._autolock_orphans)
+        self._last_action_timing = -1
 
     @pyqtSlot(object)
     def _autolock_orphans(self, locks):
@@ -175,6 +177,7 @@ class DriveEdit(Worker):
         app.exec_()
 
     def _prepare_edit(self, server_url, doc_id, user=None, download_url=None):
+        start_time = current_milli_time()
         engine = self._get_engine(server_url, user=user)
         if engine is None:
             values = dict()
@@ -228,6 +231,8 @@ class DriveEdit(Worker):
         if sys.platform == 'win32' and os.path.exists(file_path):
             os.unlink(file_path)
         os.rename(tmp_file, file_path)
+        self._last_action_timing = current_milli_time() - start_time
+        self.openDocument.emit(info)
         return file_path
 
     def edit(self, server_url, doc_id, filename=None, user=None, download_url=None):
@@ -325,6 +330,7 @@ class DriveEdit(Worker):
                 current_digest = info.get_digest(digest_func=digest_algorithm)
                 if current_digest == digest:
                     continue
+                start_time = current_milli_time()
                 log.trace("Local digest: %s is different from the recorded one: %s - modification detected for %r",
                           current_digest, digest, ref)
                 # TO_REVIEW Should check if server-side blob has changed ?
@@ -341,6 +347,8 @@ class DriveEdit(Worker):
                 # Update hash value
                 dir_path = os.path.dirname(ref)
                 self._local_client.set_remote_id(dir_path, current_digest, 'nxdriveeditdigest')
+                self._last_action_timing = current_milli_time() - start_time
+                self.editDocument.emit(remote_info)
             except ThreadInterrupt:
                 raise
             except Exception as e:
@@ -382,6 +390,7 @@ class DriveEdit(Worker):
         metrics = super(DriveEdit, self).get_metrics()
         if self._event_handler is not None:
             metrics['fs_events'] = self._event_handler.counter
+        metrics['last_action_timing'] = self._last_action_timing
         return dict(metrics.items() + self._metrics.items())
 
     def _setup_watchdog(self):
