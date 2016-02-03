@@ -278,6 +278,8 @@ cd nuxeo-drive-client; nosetests nxdrive
 
 #### Mac OS X
 
+In case of problem about libffi while retrieving xattr (for exampe) during pip requirements installation, you might need to run this command and retry: `brew reinstall libffi`
+
 Grab all the dev dependencies and tools at once using [pip](http://www.pip-installer.org/):
 
 ```
