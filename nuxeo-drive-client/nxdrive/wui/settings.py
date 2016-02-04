@@ -162,6 +162,11 @@ class WebSettingsApi(WebDriveApi):
 
             # Handle server URL
             server_url = str(server_url)
+            engine_type = 'NXDRIVE'
+            if '#' in server_url:
+                info = server_url.split('#')
+                server_url = info[0]
+                engine_type = info[1]
             if not server_url.endswith('/'):
                 server_url += '/'
 
@@ -178,6 +183,7 @@ class WebSettingsApi(WebDriveApi):
                     'local_folder': local_folder,
                     'server_url': server_url,
                     'engine_name': engine_name,
+                    'engine_type': engine_type
                 }
                 url = self._get_authentication_url(server_url)
                 log.debug('Web authentication is available on server %s, opening login window with URL %s',
