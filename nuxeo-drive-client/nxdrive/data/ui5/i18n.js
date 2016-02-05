@@ -148,7 +148,7 @@ LABELS={
         "DIRECT_EDIT_CANT_FIND_ENGINE": "Cannot find the binding for the server {{ server }} with user {{ user }}",
         "LOCK_NOTIFICATION_TITLE": "Autolock",
         "LOCK_NOTIFICATION_DESCRIPTION": "The document '{{ name }}' has been locked",
-        "ENGINE_BETA": "You have configured a beta engine. You can experience some issues and we will be thankfull for any report."
+        "ENGINE_BETA": "You have configured a beta engine. You can experience some issues and would appreciate your feedback"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
