@@ -1036,7 +1036,7 @@ class EngineDAO(ConfigurationDAO):
             if self.auto_commit:
                 con.commit()
             # Check if parent is not in creation
-            parent = c.execute("SELECT * FROM States WHERE local_path=?", (local_parent_path,)).fetchone()
+            parent = c.execute("SELECT * FROM States WHERE remote_ref=?", (info.parent_uid,)).fetchone()
             if (parent is None and local_parent_path == '') or (parent is not None and parent.pair_state != "remotely_created"):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
             self._items_count = self._items_count + 1
