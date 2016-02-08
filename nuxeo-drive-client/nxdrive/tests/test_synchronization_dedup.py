@@ -84,6 +84,8 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.assertEquals(remote.get_content(Joe_uid), 'Update content Joe')
         # Verify the name are the same
         self.engine_1.stop()
+        self.assertEquals(len(local.get_children_info('/')), 2)
+        self.assertEquals(len(remote.get_children_info(self.workspace_1)), 2)
         # Simulate the uninstall
         self.engine_1.reinit()
         self.engine_1.start()
@@ -112,6 +114,9 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
             Test_path = '/Test'
         self.assertTrue(local.exists(test_path))
         self.assertTrue(local.exists(Test_path))
+        self.assertEquals(len(local.get_children_info('/')), 2)
+        self.assertEquals(len(local.get_children_info(test_path)), 1)
+        self.assertEquals(len(local.get_children_info(Test_path)), 1)
         self.engine_1.stop()
         # Simulate the uninstall
         self.engine_1.reinit()
@@ -127,6 +132,8 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         # then synchronize
         test_uid = remote.make_folder('/', 'test')
         Test_uid = remote.make_folder('/', 'Test')
+        remote.make_file('/test', 'test.txt', 'plop')
+        remote.make_file('/Test', 'test_2.txt', 'plop')
         self.wait_sync(wait_for_async=True)
         childs = local.get_children_info('/')
         if childs[0].name == 'test' or childs[1].name == 'test':
@@ -140,6 +147,8 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.assertEquals(len(local.get_children_info('/')), 2)
         self.assertEquals(remote.get_info(test_uid).name, 'test')
         self.assertEquals(remote.get_info(Test_uid).name, 'Test')
+        self.assertEquals(len(local.get_children_info(test_path)), 1)
+        self.assertEquals(len(local.get_children_info(Test_path)), 1)
 
     def test_dedup_move_files(self):
         local = self.local_client_1
