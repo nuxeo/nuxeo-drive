@@ -580,3 +580,20 @@ class UnitTestCase(unittest.TestCase):
         a = numpy.random.rand(size, size, 3) * 255
         im_out = Image.fromarray(a.astype('uint8')).convert('RGBA')
         im_out.save(filename)
+
+    def assertNxPart(self, path, name=None, present=True):
+        os_path = self.local_client_1._abspath(path)
+        children = os.listdir(os_path)
+        for child in children:
+            if len(child) < 8:
+                continue
+            if name is not None and len(child) < len(name) + 8:
+                continue
+            if child[0] == "." and child[-7:] == ".nxpart":
+                if name is None or child[1:len(name)+1] == name:
+                    if present:
+                        return
+                    else:
+                        self.fail("nxpart found in : '%s'" % (path))
+        if present:
+            self.fail("nxpart not found in : '%s'" % (path))
