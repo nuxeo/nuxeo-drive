@@ -98,10 +98,6 @@ def clean_dir(_dir):
 
 class IntegrationTestCase(unittest.TestCase):
 
-    def _synchronize(self, syn, delay=0.1, loops=1):
-        self.wait()
-        syn.loop(delay=delay, max_loops=loops)
-
     def setUp(self):
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
@@ -237,30 +233,6 @@ class IntegrationTestCase(unittest.TestCase):
         clean_dir(self.upload_tmp_dir)
         clean_dir(self.local_test_folder_1)
         clean_dir(self.local_test_folder_2)
-
-    # TODO NXDRIVE-170: refactor
-    def init_default_drive(self, local_user=1, remote_user=1):
-        # Bind the server and root workspace
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
-
-        # Launch first synchronization
-        self.wait()
-        syn = ctl.synchronizer
-        syn.loop(delay=0.1, max_loops=1)
-
-        # Get local and remote clients
-        if local_user == 1:
-            local = LocalClient(os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
-        else:
-            local = LocalClient(os.path.join(self.local_nxdrive_folder_2, self.workspace_title))
-        if remote_user == 1:
-            remote = self.remote_document_client_1
-        else:
-            remote = self.remote_document_client_2
-        return syn, local, remote
 
     def wait(self, retry=3):
         try:

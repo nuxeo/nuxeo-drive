@@ -259,15 +259,15 @@ class RemoteWatcher(EngineWorker):
             if child_pair.remote_ref is not None:
                 child_pair = None
             else:
-                self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
                 if (child_pair.folderish == child_info.folderish
                         and self._local_client.is_equal_digests(child_pair.local_digest, child_info.digest,
                                                                 child_pair.local_path,
                                                                 remote_digest_algorithm=child_info.digest_algorithm)):
+                    self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
                     # Use version+1 as we just update the remote info
                     synced = self._dao.synchronize_state(child_pair, version=child_pair.version + 1)
                     if not synced:
-                        # Try again, might happens that it has been modified locally and remotely
+                        # Try again, might happen that it has been modified locally and remotely
                         child_pair = self._dao.get_state_from_id(child_pair.id)
                         if (child_pair.folderish == child_info.folderish
                                 and self._local_client.is_equal_digests(
@@ -284,6 +284,9 @@ class RemoteWatcher(EngineWorker):
                     self._local_client.set_remote_id(local_path, child_info.uid)
                     if child_pair.folderish:
                         self._dao.queue_children(child_pair)
+                else:
+                    child_pair.remote_state = 'modified'
+                    self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
                 child_pair = self._dao.get_state_from_id(child_pair.id, from_write=True)
                 return child_pair, False
         row_id = self._dao.insert_remote_state(child_info, remote_parent_path, local_path, parent_pair.local_path)
