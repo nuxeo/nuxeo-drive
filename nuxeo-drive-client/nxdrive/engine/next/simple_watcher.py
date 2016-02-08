@@ -109,7 +109,7 @@ class SimpleWatcher(LocalWatcher):
             self._push_to_scan(rel_path)
         else:
             local_info = self.client.get_info(rel_path, raise_if_missing=False)
-            if local_info is None:
+            if local_info is None or doc_pair is None:
                 # Suspicious
                 return
             digest = local_info.get_digest()
