@@ -210,7 +210,6 @@ class RemoteWatcher(EngineWorker):
         # Detect recently deleted children
         db_children = self._dao.get_remote_children(doc_pair.remote_ref)
         children_info = self._client.get_children_info(remote_info.uid)
-
         children = dict()
         to_scan = []
         for child in db_children:
@@ -249,7 +248,11 @@ class RemoteWatcher(EngineWorker):
         # Case of duplication: the file can exists in with a __x
         if child_pair is None and parent_pair is not None and self._local_client.exists(parent_pair.local_path):
             for child in self._local_client.get_children_info(parent_pair.local_path):
+                # Skip any file without __ as it cannot be a deduplicate
+                if '__' not in child.name:
+                    continue
                 if self._local_client.get_remote_id(child.path) == child_info.uid:
+                    log.debug("Found a deduplication case: %r on %s", child_info, child.path)
                     child_pair = self._dao.get_state_from_local(child.path)
                     break
         if child_pair is not None:
