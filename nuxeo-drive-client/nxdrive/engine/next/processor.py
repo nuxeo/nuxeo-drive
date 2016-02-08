@@ -57,11 +57,11 @@ class Processor(OldProcessor):
         # Delete original file and rename tmp file
         remote_id = local_client.get_remote_id(doc_pair.local_path)
         local_client.delete_final(doc_pair.local_path)
+        rel_path = local_client.get_path(tmp_file)
+        local_client.set_remote_id(rel_path, doc_pair.remote_ref)
         # Move rename
-        updated_info = local_client.move(local_client.get_path(tmp_file),
+        updated_info = local_client.move(rel_path,
                                         doc_pair.local_parent_path, doc_pair.remote_name)
-        if remote_id is not None:
-            local_client.set_remote_id(doc_pair.local_parent_path + '/' + doc_pair.remote_name, doc_pair.remote_ref)
         doc_pair.local_digest = updated_info.get_digest()
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
