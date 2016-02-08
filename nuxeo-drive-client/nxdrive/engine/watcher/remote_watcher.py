@@ -246,13 +246,8 @@ class RemoteWatcher(EngineWorker):
         remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
         # Try to get the local definition if not linked
         child_pair = self._dao.get_state_from_local(local_path)
-        # Case of duplication: the file can exists in with a __x
-        if child_pair is None and parent_pair is not None and self._local_client.exists(parent_pair.local_path):
-            for child in self._local_client.get_children_info(parent_pair.local_path):
-                if self._local_client.get_remote_id(child.path) == child_info.uid:
-                    child_pair = self._dao.get_state_from_local(child.path)
-                    break
         if child_pair is not None:
+            # Should compare to xattr remote uid
             if child_pair.remote_ref is not None:
                 child_pair = None
             else:
@@ -264,7 +259,7 @@ class RemoteWatcher(EngineWorker):
                     # Use version+1 as we just update the remote info
                     synced = self._dao.synchronize_state(child_pair, version=child_pair.version + 1)
                     if not synced:
-                        # Try again, might happens that it has been modified locally and remotely
+                        # Try again, might happens that it has been modified locally and remotelly
                         child_pair = self._dao.get_state_from_id(child_pair.id)
                         if (child_pair.folderish == child_info.folderish
                                 and self._local_client.is_equal_digests(
