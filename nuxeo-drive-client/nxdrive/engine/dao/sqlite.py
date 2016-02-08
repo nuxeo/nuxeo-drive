@@ -745,13 +745,13 @@ class EngineDAO(ConfigurationDAO):
         if (self._queue_manager is not None
              and pair_state != 'synchronized' and pair_state != 'unsynchronized'):
             if pair_state == 'conflicted':
-                log.trace("Emit newConflict with: %r: %r", row_id, pair)
+                log.trace("Emit newConflict with: %r, pair=%r", row_id, pair)
                 self.newConflict.emit(row_id)
             else:
-                log.trace("Push to queue: %s: %r", pair_state, pair)
+                log.trace("Push to queue: %s, pair=%r", pair_state, pair)
                 self._queue_manager.push_ref(row_id, folderish, pair_state)
         else:
-            log.trace("Will not push pair: %s: %r", pair_state, pair)
+            log.trace("Will not push pair: %s, pair=%r", pair_state, pair)
         return
 
     def _get_pair_state(self, row):

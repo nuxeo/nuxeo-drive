@@ -36,8 +36,7 @@ class RemoteFilteredFileSystemClient(RemoteFileSystemClient):
         return self._dao.is_filter(path)
 
     def get_children_info(self, fs_item_id):
-        result = super(RemoteFilteredFileSystemClient, self).get_children_info(
-                                                                    fs_item_id)
+        result = super(RemoteFilteredFileSystemClient, self).get_children_info(fs_item_id)
         # Need to filter the children result
         filtered = []
         for item in result:

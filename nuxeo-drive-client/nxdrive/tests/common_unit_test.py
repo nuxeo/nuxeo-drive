@@ -444,7 +444,6 @@ class UnitTestCase(unittest.TestCase):
     def tearDownApp(self, server_profile=None):
         if self.tearedDown:
             return
-        import sys
         if sys.exc_info() != (None, None, None):
             self.generate_report()
         elif self.result is not None:
@@ -522,8 +521,10 @@ class UnitTestCase(unittest.TestCase):
 
         # create some files on the server
         if deep:
-            self._duplicate_file_1 = remote_client.make_file(folder_2, u'Duplicated File.txt', content=b"Some content.")
-            self._duplicate_file_2 = remote_client.make_file(folder_2, u'Duplicated File.txt', content=b"Other content.")
+            self._duplicate_file_1 = remote_client.make_file(folder_2, u'Duplicated File.txt',
+                                                             content=b"Some content.")
+            self._duplicate_file_2 = remote_client.make_file(folder_2, u'Duplicated File.txt',
+                                                             content=b"Other content.")
 
         if deep:
             remote_client.make_file(folder_1, u'File 1.txt', content=b"aaa")
