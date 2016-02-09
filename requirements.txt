@@ -11,3 +11,4 @@ watchdog==0.8.3
 universal-analytics-python==0.2.4
 mock==1.0.1
 yappi==0.94
+setuptools==19.2
