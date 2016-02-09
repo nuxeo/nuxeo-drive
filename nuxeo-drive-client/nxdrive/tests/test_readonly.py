@@ -69,6 +69,7 @@ class TestReadOnly(UnitTestCase):
         self.assertFalse(remote.exists('/Test folder/Local sub folder 2'))
         self.assertFalse(remote.exists('/Test folder/Local sub folder 2/local sub file 2.txt'))
         self.assertTrue(local.exists('/Test folder/local.odt'))
+        self.assertEquals(remote.get_content('/Test folder/joe.odt'), 'Some content')
 
         delete_folder = '/Test folder/Sub folder 1'
         # Force to remove readonly
@@ -76,7 +77,7 @@ class TestReadOnly(UnitTestCase):
         local.unset_readonly('/Test folder')
         local.delete(delete_folder)
         local.set_readonly('/Test folder')
-        # Should recreate ?
+        # Deleted readonly folder should be recreated
         self.wait_sync(wait_win=True)
         self.assertTrue(remote.exists(delete_folder))
         self.assertTrue(local.exists(delete_folder))
