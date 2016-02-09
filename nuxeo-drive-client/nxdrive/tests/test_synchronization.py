@@ -11,6 +11,7 @@ from nxdrive.tests import RemoteTestClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 from nxdrive.osi import AbstractOSIntegration
 
+
 class TestSynchronization(UnitTestCase):
     def test_binding_initialization_and_first_sync(self):
         local = self.local_client_1
@@ -601,15 +602,15 @@ class TestSynchronization(UnitTestCase):
         self.assertEquals(folder_names, [u'Folder with forbidden chars- - - - - - - -'])
 
         # Create a remote file with a weird name
-        file = remote.make_file(folder, u'File with forbidden chars: / \\ * < > ? "', content="some content",
-                                doc_type='Note')
+        file_ = remote.make_file(folder, u'File with forbidden chars: / \\ * < > ? "', content="some content",
+                                 doc_type='Note')
 
         self.wait_sync(wait_for_async=True)
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
         self.assertEquals(file_names, [u'File with forbidden chars- - - - - - - -.txt'])
 
         # Update a remote file with a weird name (NXDRIVE-286)
-        remote.update(file, properties={'note:note': 'new content'})
+        remote.update(file_, properties={'note:note': 'new content'})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         self.assertEquals(local.get_content(
             u'/Folder with forbidden chars- - - - - - - -/File with forbidden chars- - - - - - - -.txt'), "new content")
@@ -620,13 +621,13 @@ class TestSynchronization(UnitTestCase):
         self.assertEqual(file_state.local_digest, file_state.remote_digest)
 
         # Update note title with a weird name
-        remote.update(file, properties={'dc:title': u'File with forbidden chars: / \\ * < > ? " - 2'})
+        remote.update(file_, properties={'dc:title': u'File with forbidden chars: / \\ * < > ? " - 2'})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
         self.assertEquals(file_names, [u'File with forbidden chars- - - - - - - - - 2.txt'])
 
         # Update note title changing the case (NXRIVE-532)
-        remote.update(file, properties={'dc:title': u'file with forbidden chars: / \\ * < > ? " - 2'})
+        remote.update(file_, properties={'dc:title': u'file with forbidden chars: / \\ * < > ? " - 2'})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
         self.assertEquals(file_names, [u'file with forbidden chars- - - - - - - - - 2.txt'])
