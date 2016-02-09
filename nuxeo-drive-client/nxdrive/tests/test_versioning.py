@@ -64,25 +64,20 @@ class TestVersioning(UnitTestCase):
 
         # Create a remote doc
         doc = remote_client.make_file(self.workspace, 'Document to restore.txt', content="Initial content.")
-        self.wait_sync(wait_for_engine_1=True, wait_for_engine_2=True)
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(local_client.exists('/Document to restore.txt'))
         self.assertEquals(local_client.get_content('/Document to restore.txt'),
                           "Initial content.")
 
         # Create version 1.0, update content, then restore version 1.0
         remote_client.create_version(doc, 'Major')
-        # Ensure that modification time is different between the version
-        # and the updated live document, otherwise the synchronizer won't
-        # consider the restored document (with the modification date of
-        # the version) as to be updated
-        time.sleep(1.0)
         remote_client.update_content(doc, "Updated content.")
-        self.wait_sync(wait_for_engine_1=True, wait_for_engine_2=True)
+        self.wait_sync(wait_for_async=True)
         self.assertEquals(local_client.get_content('/Document to restore.txt'),
                           "Updated content.")
         version_uid = remote_client.get_versions(doc)[0][0]
         remote_client.restore_version(version_uid)
-        self.wait_sync(wait_for_engine_1=True, wait_for_engine_2=True)
+        self.wait_sync(wait_for_async=True)
         self.assertEquals(local_client.get_content('/Document to restore.txt'),
                           "Initial content.")
 
