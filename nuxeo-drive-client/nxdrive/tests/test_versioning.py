@@ -23,13 +23,13 @@ class TestVersioning(UnitTestCase):
     def test_versioning(self):
         # Create a file as user 1
         self.local_client_1.make_file('/', 'Test versioning.txt', "This is version 0")
-        self.wait_sync(wait_for_async=True, wait_for_engine_1=True, wait_for_engine_2=True)
-        doc = self.root_remote_client.fetch(
-            TEST_WORKSPACE_PATH + '/Test versioning.txt')
+        self.wait_sync()
+        self.assertTrue(self.remote_client_1.exists('/Test versioning.txt'))
+        doc = self.root_remote_client.fetch(TEST_WORKSPACE_PATH + '/Test versioning.txt')
         self._assert_version(doc, 0, 0)
 
         # Synchronize it for user 2
-        self.assertTrue(self.remote_client_2.exists('/Test versioning.txt'))
+        self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
         self.assertTrue(self.local_client_2.exists('/Test versioning.txt'))
 
         # Update it as user 2 => should be versioned
