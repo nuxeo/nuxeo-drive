@@ -660,6 +660,7 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
 
     def delete_local_state(self, doc_pair):
+        current_state = None
         self._lock.acquire()
         try:
             con = self._get_write_connection()
@@ -674,14 +675,14 @@ class EngineDAO(ConfigurationDAO):
             c.execute(update + " WHERE id=?", (current_state, doc_pair.id))
             if doc_pair.folderish:
                 c.execute(update + self._get_recursive_condition(doc_pair), ('parent_locally_deleted',))
-            self._queue_manager.interrupt_processors_on(doc_pair.local_path, exact_match=False)
-            # Only queue parent
-            if current_state == "locally_deleted":
-                self._queue_pair_state(doc_pair.id, doc_pair.folderish, current_state)
             if self.auto_commit:
                 con.commit()
         finally:
             self._lock.release()
+            self._queue_manager.interrupt_processors_on(doc_pair.local_path, exact_match=False)
+            # Only queue parent
+            if current_state is not None and current_state == "locally_deleted":
+                self._queue_pair_state(doc_pair.id, doc_pair.folderish, current_state)
 
     def insert_local_state(self, info, parent_path):
         pair_state = PAIR_STATES.get(('created', 'unknown'))
