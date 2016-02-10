@@ -148,7 +148,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         folder = local.make_folder('/', 'Test folder')
         local.make_file(folder, 'test.odt', 'Some content.')
 
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
 
         # Test folder should be created remotely in the test workspace
         self.assertTrue(remote.exists('/Test folder'))
@@ -156,6 +156,7 @@ class TestConcurrentSynchronization(UnitTestCase):
 
         # Delete Test folder locally and remotely update one of its properties
         # concurrently, then synchronize
+        self.engine_1.suspend()
         local.delete('/Test folder')
         self.assertFalse(local.exists('/Test folder'))
         test_folder_ref = remote._check_ref('/Test folder')
@@ -165,17 +166,11 @@ class TestConcurrentSynchronization(UnitTestCase):
         remote.update(test_folder_ref, properties={'dc:description': 'Some description.'})
         test_folder = remote.fetch(test_folder_ref)
         self.assertEqual(test_folder['properties']['dc:description'], 'Some description.')
+        self.engine_1.resume()
 
         self.wait_sync(wait_for_async=True)
 
         # Test folder should be deleted remotely in the test workspace.
-        # Even though fetching the remote changes will send a
-        # 'documentModified' event for Test folder as a result of its
-        # dc:description property update, since the folder will not have been
-        # renamed nor moved since last synchronization, its remote pair state
-        # will not be marked as 'modified', see Model.update_remote().
-        # Thus the pair state will be ('deleted', 'synchronized'), resolved as
-        # 'locally_deleted'.
         self.assertFalse(remote.exists('/Test folder'))
 
         # Check Test folder has not been re-created locally
