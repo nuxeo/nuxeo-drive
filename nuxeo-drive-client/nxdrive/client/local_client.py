@@ -152,7 +152,8 @@ class LocalClient(BaseClient):
 
     def unset_readonly(self, ref):
         path = self._abspath(ref)
-        self.unset_path_readonly(path)
+        if os.path.exists(path):
+            self.unset_path_readonly(path)
 
     def clean_xattr_root(self):
         self.unlock_ref(u'/', unlock_parent=False)
