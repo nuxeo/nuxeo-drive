@@ -411,10 +411,10 @@ class RemoteWatcher(EngineWorker):
     def _force_scan_recursive(self, doc_pair, remote_info, remote_path=None, force_recursion=True):
         if remote_path is None:
             remote_path = remote_info.path
-        self._dao.update_config('remote_need_full_scan', remote_path)
-        self._scan_remote_recursive(doc_pair, remote_info, force_recursion)
-        self._dao.delete_config('remote_need_full_scan')
-        self._dao.clean_scanned()
+        if force_recursion:
+            self._dao.add_path_to_scan(remote_path)
+        else:
+            self._scan_remote_recursive(doc_pair, remote_info, force_recursion)
 
     def _update_remote_states(self):
         """Incrementally update the state of documents from a change summary"""
@@ -549,7 +549,9 @@ class RemoteWatcher(EngineWorker):
                             force_update = eventId == 'documentLocked' or eventId == 'documentUnlocked'
                             self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path,
                                                           force_update=force_update)
-                            self._force_scan_recursive(doc_pair, consistent_new_info, remote_path=new_info.path,
+                            if doc_pair.folderish:
+                                log.trace("Force scan recursive on %r : %d", doc_pair, (eventId == "securityUpdated"))
+                                self._force_scan_recursive(doc_pair, consistent_new_info, remote_path=new_info.path,
                                                        force_recursion=(eventId == "securityUpdated"))
 
                     updated = True
