@@ -17,7 +17,6 @@ LastKnownState = None
 
 
 class TestLocalMoveAndRename(UnitTestCase):
-
     # Sets up the following local hierarchy:
     # Nuxeo Drive Test Workspace
     #    |-- Original File 1.txt
@@ -32,10 +31,10 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.local_client_1.make_file('/', u'Original File 1.txt',
-            content=u'Some Content 1'.encode('utf-8'))
+                                      content=u'Some Content 1'.encode('utf-8'))
 
         self.local_client_1.make_file('/', u'Original File 2.txt',
-            content=u'Some Content 2'.encode('utf-8'))
+                                      content=u'Some Content 2'.encode('utf-8'))
 
         self.local_client_1.make_folder(u'/', u'Original Folder 1')
         self.local_client_1.make_folder(
@@ -43,13 +42,13 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.local_client_1.make_folder(
             u'/Original Folder 1', u'Sub-Folder 1.2')
         self.local_client_1.make_file(u'/Original Folder 1',
-            u'Original File 1.1.txt',
-            content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
+                                      u'Original File 1.1.txt',
+                                      content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
 
         self.local_client_1.make_folder('/', 'Original Folder 2')
         self.local_client_1.make_file('/Original Folder 2',
-            u'Original File 3.txt',
-            content=u'Some Content 3'.encode('utf-8'))
+                                      u'Original File 3.txt',
+                                      content=u'Some Content 3'.encode('utf-8'))
         # Increase timeout as noticed it was sometimes insufficient in Jenkins build
         self.wait_sync(timeout=30)
 
@@ -99,9 +98,9 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         self.engine_1._dao.update_remote_state = update_remote_state
         self.local_client_1.make_file('/', u'File.txt',
-            content=u'Some Content 2'.encode('utf-8'))
+                                      content=u'Some Content 2'.encode('utf-8'))
         self.wait_sync(fail_if_timeout=False)
-        
+
         self.assertTrue(local_client.exists(u'/Renamed File.txt'))
         self.assertFalse(local_client.exists(u'/File.txt'))
         # Path dont change on Nuxeo
@@ -127,7 +126,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         original_file_1_remote_info = remote_client.get_info(
             original_file_1_uid)
         self.assertEquals(original_file_1_remote_info.name,
-            u'Renamed File 1.txt')
+                          u'Renamed File 1.txt')
 
         # Rename 'Renamed File 1.txt' to 'Renamed Again File 1.txt'
         # and 'Original File 1.1.txt' to
@@ -139,7 +138,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             u'/Original Folder 1/Original File 1.1.txt',
             u'Renamed File 1.1 \xe9.txt')
         self.assertFalse(local_client.exists(
-             '/Original Folder 1/Original File 1.1.txt'))
+            '/Original Folder 1/Original File 1.1.txt'))
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Renamed File 1.1 \xe9.txt'))
         local_client.rename('/Renamed File 1.txt', 'Renamed Again File 1.txt')
@@ -150,29 +149,29 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertFalse(local_client.exists(u'/Renamed File 1.txt'))
         self.assertTrue(local_client.exists(u'/Renamed Again File 1.txt'))
         self.assertFalse(local_client.exists(
-             u'/Original Folder 1/Original File 1.1.txt'))
+            u'/Original Folder 1/Original File 1.1.txt'))
         self.assertTrue(local_client.exists(
             u'/Original Folder 1/Renamed File 1.1 \xe9.txt'))
 
         file_1_remote_info = remote_client.get_info(original_file_1_uid)
         self.assertEquals(file_1_remote_info.name,
-            u'Renamed Again File 1.txt')
+                          u'Renamed Again File 1.txt')
 
         # User 1 does not have the rights to see the parent container
         # of the test workspace, hence set fetch_parent_uid=False
         parent_of_file_1_remote_info = remote_client.get_info(
             file_1_remote_info.parent_uid, fetch_parent_uid=False)
         self.assertEquals(parent_of_file_1_remote_info.name,
-            self.workspace_title)
+                          self.workspace_title)
 
         file_1_1_remote_info = remote_client.get_info(original_1_1_uid)
         self.assertEquals(file_1_1_remote_info.name,
-            u'Renamed File 1.1 \xe9.txt')
+                          u'Renamed File 1.1 \xe9.txt')
 
         parent_of_file_1_1_remote_info = remote_client.get_info(
             file_1_1_remote_info.parent_uid)
         self.assertEquals(parent_of_file_1_1_remote_info.name,
-            u'Original Folder 1')
+                          u'Original Folder 1')
         self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 3)
         self.assertEqual(len(remote_client.get_children_info(file_1_1_remote_info.parent_uid)), 3)
         self.assertEqual(len(local_client.get_children_info(u'/')), 4)
@@ -198,15 +197,14 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.engine_1.start()
         self.wait_sync()
 
-
         file_1_1_remote_info = remote_client.get_info(original_1_1_uid)
         self.assertEquals(file_1_1_remote_info.name,
-            u'original File 1.1.txt')
+                          u'original File 1.1.txt')
 
         parent_of_file_1_1_remote_info = remote_client.get_info(
             file_1_1_remote_info.parent_uid)
         self.assertEquals(parent_of_file_1_1_remote_info.name,
-            u'Original Folder 1')
+                          u'Original Folder 1')
         self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 3)
         self.assertEqual(len(remote_client.get_children_info(file_1_1_remote_info.parent_uid)), 3)
 
@@ -230,12 +228,12 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         file_1_1_remote_info = remote_client.get_info(original_1_1_uid)
         self.assertEquals(file_1_1_remote_info.name,
-            u'original File 1.1.txt')
+                          u'original File 1.1.txt')
 
         parent_of_file_1_1_remote_info = remote_client.get_info(
             file_1_1_remote_info.parent_uid)
         self.assertEquals(parent_of_file_1_1_remote_info.name,
-            u'Original Folder 1')
+                          u'Original Folder 1')
         self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 3)
         self.assertEqual(len(remote_client.get_children_info(file_1_1_remote_info.parent_uid)), 3)
 
@@ -261,7 +259,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         parent_of_file_1_remote_info = remote_client.get_info(
             file_1_remote_info.parent_uid)
         self.assertEquals(parent_of_file_1_remote_info.name,
-            u'Original Folder 1')
+                          u'Original Folder 1')
         self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 4)
         self.assertEqual(len(remote_client.get_children_info(file_1_remote_info.parent_uid)), 4)
         self.assertEqual(len(local_client.get_children_info(u'/')), 3)
@@ -290,7 +288,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         parent_of_file_1_remote_info = remote_client.get_info(
             file_1_remote_info.parent_uid)
         self.assertEquals(parent_of_file_1_remote_info.name,
-            u'Original Folder 1')
+                          u'Original Folder 1')
         self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 4)
         self.assertEqual(len(remote_client.get_children_info(file_1_remote_info.parent_uid)), 4)
         self.assertEqual(len(local_client.get_children_info(u'/')), 3)
@@ -330,7 +328,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             original_sub_folder_1_1_uid)
         self.assertEquals(sub_folder_1_1_info.name, u"Sub-Folder 1.1")
         self.assertEquals(sub_folder_1_1_info.parent_uid,
-            original_folder_1_uid)
+                          original_folder_1_uid)
 
         self.assertEqual(len(local_client.get_children_info(u'/Renamed Folder 1 \xe9')), 3)
         self.assertEqual(len(remote_client.get_children_info(file_1_1_info.parent_uid)), 3)
@@ -386,7 +384,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         global marker
         local_client = self.local_client_1
         self.local_client_1.make_file('/', u'File.txt',
-            content=u'Some Content 2'.encode('utf-8'))
+                                      content=u'Some Content 2'.encode('utf-8'))
         self.local_client_1.rename('/File.txt', 'Renamed File.txt')
         self.wait_sync(fail_if_timeout=False)
         self.assertTrue(local_client.exists(u'/Renamed File.txt'))
@@ -401,6 +399,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         global marker
         local_client = self.local_client_1
         marker = False
+
         def insert_local_state(info, parent_path):
             global marker
             if info.name == 'File.txt' and not marker:
@@ -408,11 +407,12 @@ class TestLocalMoveAndRename(UnitTestCase):
                 sleep(2)
                 marker = True
             EngineDAO.insert_local_state(self.engine_1._dao, info, parent_path)
+
         self.engine_1._dao.insert_local_state = insert_local_state
         # Might be blacklisted once
         self.engine_1.get_queue_manager()._error_interval = 3
         self.local_client_1.make_file('/', u'File.txt',
-            content=u'Some Content 2'.encode('utf-8'))
+                                      content=u'Some Content 2'.encode('utf-8'))
         sleep(10)
         self.wait_sync(fail_if_timeout=False)
         self.assertTrue(local_client.exists(u'/Renamed File.txt'))
@@ -450,7 +450,7 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         # The parent folder is now folder 2
         self.assertEquals(remote_folder_info.parent_uid,
-            original_folder_2_uid)
+                          original_folder_2_uid)
 
         # The content of the renamed folder is left unchanged
         file_1_1_info = remote_client.get_info(original_file_1_1_uid)
@@ -461,7 +461,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             original_sub_folder_1_1_uid)
         self.assertEquals(sub_folder_1_1_info.name, u"Sub-Folder 1.1")
         self.assertEquals(sub_folder_1_1_info.parent_uid,
-            original_folder_1_uid)
+                          original_folder_1_uid)
 
         self.assertEqual(len(local_client.get_children_info(u'/Original Folder 2/Original Folder 1')), 3)
         self.assertEqual(len(remote_client.get_children_info(original_folder_1_uid)), 3)
@@ -529,12 +529,12 @@ class TestLocalMoveAndRename(UnitTestCase):
         toplevel_local_client = LocalClient(self.local_nxdrive_folder_1)
 
         toplevel_local_client.rename('/' + self.workspace_title,
-            'Renamed Nuxeo Drive Test Workspace')
+                                     'Renamed Nuxeo Drive Test Workspace')
         self.wait_sync()
 
         workspace_info = remote_client.get_info(self.workspace)
         self.assertEquals(workspace_info.name,
-            u"Renamed Nuxeo Drive Test Workspace")
+                          u"Renamed Nuxeo Drive Test Workspace")
 
         folder_1_info = remote_client.get_info(folder_1_uid)
         self.assertEquals(folder_1_info.name, u"Original Folder 1")
@@ -555,9 +555,9 @@ class TestLocalMoveAndRename(UnitTestCase):
         folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
-            op_input=op_input,
-            user="nuxeoDriveTestUser_user_1",
-            permission="Read")
+                                        op_input=op_input,
+                                        user="nuxeoDriveTestUser_user_1",
+                                        permission="Read")
         self.root_remote_client.block_inheritance(folder_1_path,
                                                   overwrite=False)
         self.wait_sync(wait_for_async=True)
@@ -577,7 +577,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         folder_1_remote_info = remote_client.get_info(
             u'/Original Folder 1')
         self.assertEquals(folder_1_remote_info.name,
-            u'Original Folder 1')
+                          u'Original Folder 1')
 
         # Check state of local folder and its children
         folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(uid)
@@ -606,6 +606,7 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         def rollback():
             return True
+
         ctl.use_watchdog = watchdog
         ctl.synchronizer.local_full_scan = []
         ctl.local_rollback = rollback
@@ -623,9 +624,9 @@ class TestLocalMoveAndRename(UnitTestCase):
         folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
-            op_input=op_input,
-            user="nuxeoDriveTestUser_user_1",
-            permission="Read")
+                                        op_input=op_input,
+                                        user="nuxeoDriveTestUser_user_1",
+                                        permission="Read")
         self.root_remote_client.block_inheritance(folder_1_path,
                                                   overwrite=False)
 
@@ -646,7 +647,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         folder_1_remote_info = remote_client.get_info(
             u'/Original Folder 1')
         self.assertEquals(folder_1_remote_info.name,
-            u'Original Folder 1')
+                          u'Original Folder 1')
 
         # Check state of local folder and its children
         folder_1_state = session.query(LastKnownState).filter_by(
@@ -707,96 +708,55 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
 
     def test_local_delete_readonly_folder(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
-        session = ctl.get_session()
 
         # Check local folder
         self.assertTrue(local_client.exists(u'/Original Folder 1'))
-        folder_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Original Folder 1').one()
+        folder_1_state = self.get_dao_state_from_engine_1(u'/Original Folder 1')
         self.assertTrue(folder_1_state.remote_can_delete)
 
         # Set remote folder as readonly for test user
         folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
-            op_input=op_input,
-            user="nuxeoDriveTestUser_user_1",
-            permission="Read")
-        self.root_remote_client.block_inheritance(folder_1_path,
-                                                  overwrite=False)
+                                        op_input=op_input,
+                                        user=self.user_1,
+                                        permission="Read")
+        self.root_remote_client.block_inheritance(folder_1_path, overwrite=False)
+
+        self.wait_sync(wait_for_async=True)
 
         # Check can_delete flag in pair state
-        folder_1_state.refresh_remote(
-            self.remote_file_system_client_1)
+        folder_1_state = self.get_dao_state_from_engine_1(u'/Original Folder 1')
         self.assertFalse(folder_1_state.remote_can_delete)
 
         # Delete local folder
         local_client.delete(u'/Original Folder 1')
-        self.assertRaises(NotFound,
-                          local_client.get_info, u'/Original Folder 1')
+        self.assertFalse(local_client.exists(u'/Original Folder 1'))
 
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 4)
+        self.wait_sync(wait_for_async=True)
+        self.assertEquals(self.engine_1.get_dao().get_sync_count(), 6)
 
         # Check remote folder and its children have not been deleted
-        folder_1_remote_info = remote_client.get_info(
-            u'/Original Folder 1')
-        self.assertEquals(folder_1_remote_info.name,
-            u'Original Folder 1')
+        folder_1_remote_info = remote_client.get_info(u'/Original Folder 1')
+        self.assertEquals(folder_1_remote_info.name, u'Original Folder 1')
 
-        file_1_1_remote_info = remote_client.get_info(
-            u'/Original Folder 1/Original File 1.1.txt')
-        self.assertEquals(file_1_1_remote_info.name,
-            u'Original File 1.1.txt')
+        file_1_1_remote_info = remote_client.get_info(u'/Original Folder 1/Original File 1.1.txt')
+        self.assertEquals(file_1_1_remote_info.name, u'Original File 1.1.txt')
 
-        folder_1_1_remote_info = remote_client.get_info(
-            u'/Original Folder 1/Sub-Folder 1.1')
-        self.assertEquals(folder_1_1_remote_info.name,
-            u'Sub-Folder 1.1')
+        folder_1_1_remote_info = remote_client.get_info(u'/Original Folder 1/Sub-Folder 1.1')
+        self.assertEquals(folder_1_1_remote_info.name, u'Sub-Folder 1.1')
 
-        folder_1_2_remote_info = remote_client.get_info(
-            u'/Original Folder 1/Sub-Folder 1.2')
-        self.assertEquals(folder_1_2_remote_info.name,
-            u'Sub-Folder 1.2')
+        folder_1_2_remote_info = remote_client.get_info(u'/Original Folder 1/Sub-Folder 1.2')
+        self.assertEquals(folder_1_2_remote_info.name, u'Sub-Folder 1.2')
 
-        # Check local folder and its children have been re-created
-        self.assertTrue(local_client.exists(u'/Original Folder 1'))
-        folder_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Original Folder 1').one()
-        self.assertEquals(folder_1_state.local_name,
-                          u'Original Folder 1')
-        self.assertEquals(folder_1_state.remote_name,
-                          u'Original Folder 1')
+        # Check filter has been created
+        self.assertTrue(
+            self.engine_1.get_dao().is_filter(folder_1_state.remote_parent_path + '/' + folder_1_state.remote_ref))
 
-        self.assertTrue(local_client.exists(
-            u'/Original Folder 1/Original File 1.1.txt'))
-        file_1_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Original File 1.1.txt').one()
-        self.assertEquals(file_1_1_state.local_name,
-                          u'Original File 1.1.txt')
-        self.assertEquals(file_1_1_state.remote_name,
-                          u'Original File 1.1.txt')
-
-        self.assertTrue(local_client.exists(
-            u'/Original Folder 1/Sub-Folder 1.1'))
-        folder_1_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Sub-Folder 1.1').one()
-        self.assertEquals(folder_1_1_state.local_name,
-                          u'Sub-Folder 1.1')
-        self.assertEquals(folder_1_1_state.remote_name,
-                          u'Sub-Folder 1.1')
-
-        self.assertTrue(local_client.exists(
-            u'/Original Folder 1/Sub-Folder 1.2'))
-        folder_1_2_state = session.query(LastKnownState).filter_by(
-            local_name=u'Sub-Folder 1.2').one()
-        self.assertEquals(folder_1_2_state.local_name,
-                          u'Sub-Folder 1.2')
-        self.assertEquals(folder_1_2_state.remote_name,
-                          u'Sub-Folder 1.2')
+        # Check local folder haven't been re-created
+        self.assertFalse(local_client.exists(u'/Original Folder 1'))
 
     # TODO: implement me once canDelete is checked in the synchronizer
     # def test_local_move_sync_root_folder(self):

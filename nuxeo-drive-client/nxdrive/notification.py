@@ -303,6 +303,18 @@ class ReadOnlyNotification(Notification):
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
+class DeleteReadOnlyNotification(Notification):
+    def __init__(self, engine_uid, filename):
+        values = dict()
+        values["name"] = filename
+        title = Translator.get("DELETE_READONLY", values)
+        description = Translator.get("DELETE_READONLY_DOCUMENT", values)
+        super(DeleteReadOnlyNotification, self).__init__("DELETE_READONLY", title=title, description=description,
+                                                         engine_uid=engine_uid, level=Notification.LEVEL_INFO,
+                                                         flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
+
+
 class LockedNotification(Notification):
     def __init__(self, engine_uid, filename, lock_owner, lock_created):
         values = dict()
@@ -341,6 +353,7 @@ class DefaultNotificationService(NotificationService):
         engine.newConflict.connect(self._newConflict)
         engine.newError.connect(self._newError)
         engine.newReadonly.connect(self._newReadonly)
+        engine.deleteReadonly.connect(self._deleteReadonly)
         engine.newLocked.connect(self._newLocked)
         engine.invalidAuthentication.connect(self._invalidAuthentication)
         engine.online.connect(self._validAuthentication)
@@ -371,6 +384,10 @@ class DefaultNotificationService(NotificationService):
     def _newReadonly(self, filename, parent):
         engine_uid = self.sender()._uid
         self.send_notification(ReadOnlyNotification(engine_uid, filename, parent))
+
+    def _deleteReadonly(self, filename):
+        engine_uid = self.sender()._uid
+        self.send_notification(DeleteReadOnlyNotification(engine_uid, filename))
 
     def _newLocked(self, filename, lock_owner, lock_created):
         engine_uid = self.sender()._uid

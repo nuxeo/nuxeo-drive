@@ -1244,7 +1244,7 @@ class EngineDAO(ConfigurationDAO):
 
     def _clean_filter_path(self, path):
         if not path.endswith("/"):
-            path = path + "/"
+            path += "/"
         return path
 
     def add_path_to_scan(self, path):

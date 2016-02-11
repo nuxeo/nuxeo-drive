@@ -614,9 +614,8 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         self.assertEquals(local.get_content(
             u'/Folder with forbidden chars- - - - - - - -/File with forbidden chars- - - - - - - -.txt'), "new content")
-        file_state = self.engine_1.get_dao().get_state_from_local('/' + self.workspace_title +
-                                                                  u'/Folder with forbidden chars- - - - - - - -' +
-                                                                  u'/File with forbidden chars- - - - - - - -.txt')
+        file_state = self.get_dao_state_from_engine_1(u'/Folder with forbidden chars- - - - - - - -' +
+                                                      u'/File with forbidden chars- - - - - - - -.txt')
         self.assertEquals(file_state.pair_state, 'synchronized')
         self.assertEqual(file_state.local_digest, file_state.remote_digest)
 

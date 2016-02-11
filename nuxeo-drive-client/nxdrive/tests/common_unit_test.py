@@ -598,3 +598,13 @@ class UnitTestCase(unittest.TestCase):
                         self.fail("nxpart found in : '%s'" % (path))
         if present:
             self.fail("nxpart not found in : '%s'" % (path))
+
+    def get_dao_state_from_engine_1(self, path):
+        """
+        Returns the pair from dao of engine 1 according to the path.
+
+        :param path: The path to document (from workspace, ex: /Folder is converted to /{{workspace_title_1}}/Folder).
+        :return: The pair from dao of engine 1 according to the path.
+        """
+        abs_path = '/' + self.workspace_title_1 + path
+        return self.engine_1.get_dao().get_state_from_local(abs_path)

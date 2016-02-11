@@ -313,16 +313,14 @@ class Processor(EngineWorker):
                     doc_pair.remote_ref,
                     local_client._abspath(doc_pair.local_path),
                     parent_fs_item_id=doc_pair.remote_parent_ref,
-                    filename=doc_pair.remote_name,# Use remote name to avoid rename in case of duplicate
+                    filename=doc_pair.remote_name,  # Use remote name to avoid rename in case of duplicate
                 )
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
                 self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False)
                 # TODO refresh_client
             else:
-                log.debug("Skip update of remote document '%s'"\
-                             " as it is readonly.",
-                          doc_pair.local_name)
+                log.debug("Skip update of remote document '%s' as it is readonly.", doc_pair.local_name)
                 if self._engine.local_rollback():
                     local_client.delete(doc_pair.local_path)
                     self._dao.mark_descendants_remotely_created(doc_pair)
@@ -471,21 +469,20 @@ class Processor(EngineWorker):
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):
         if doc_pair.remote_ref is not None:
             if doc_pair.remote_can_delete:
-                log.debug("Deleting or unregistering remote document"
-                          " '%s' (%s)",
-                          doc_pair.remote_name, doc_pair.remote_ref)
+                log.debug("Deleting or unregistering remote document '%s' (%s)", doc_pair.remote_name,
+                          doc_pair.remote_ref)
                 if doc_pair.remote_state != 'deleted':
-                    remote_client.delete(doc_pair.remote_ref,
-                                parent_fs_item_id=doc_pair.remote_parent_ref)
+                    remote_client.delete(doc_pair.remote_ref, parent_fs_item_id=doc_pair.remote_parent_ref)
                 self._dao.remove_state(doc_pair)
             else:
-                log.debug("Marking %s as remotely created since remote"
-                          " document '%s' (%s) can not be deleted: either"
-                          " it is readonly or it is a virtual folder that"
-                          " doesn't exist in the server hierarchy",
-                          doc_pair, doc_pair.remote_name, doc_pair.remote_ref)
+                log.debug("%s can not be remotely deleted:  either it is readonly or it is a virtual folder that "
+                          "doesn't exist in the server hierarchy")
                 if doc_pair.remote_state != 'deleted':
-                    self._dao.mark_descendants_remotely_created(doc_pair)
+                    log.debug("Marking %s as filter since remote document '%s' (%s) can not be deleted:", doc_pair,
+                              doc_pair.remote_name, doc_pair.remote_ref)
+                    self._dao.remove_state(doc_pair)
+                    self._dao.add_filter(doc_pair.remote_parent_path + '/' + doc_pair.remote_ref)
+                    self._engine.deleteReadonly.emit(doc_pair.local_name)
         else:
             self._dao.remove_state(doc_pair)
 
