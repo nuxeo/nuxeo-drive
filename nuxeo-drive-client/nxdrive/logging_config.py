@@ -54,7 +54,7 @@ class CustomMemoryHandler(BufferingHandler):
 
 
 def configure(use_file_handler=False, log_filename=None, file_level='INFO',
-              console_level='INFO', filter_inotify=True, command_name=None, log_rotate_keep=3,
+              console_level='INFO', filter_inotify=True, command_name=None, log_rotate_keep=30,
               log_rotate_max_bytes=None, log_rotate_when=None, force_configure=False):
 
     global is_logging_configured

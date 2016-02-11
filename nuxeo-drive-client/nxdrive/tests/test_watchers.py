@@ -70,13 +70,20 @@ class TestWatchers(UnitTestCase):
         self.assertEquals(len(res), folders + files + 1)
 
     def _delete_folder_1(self):
+        from time import sleep
         path = '/Folder 1'
         self.local_client_1.delete_final(path)
         if sys.platform == 'win32':
-            from time import sleep
             from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
             sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000 + 1)
         self.wait_sync(timeout=1, fail_if_timeout=False)
+
+        timeout = 5
+        while (not self.engine_1.get_local_watcher().empty_events()):
+            sleep(1)
+            timeout -= 1
+            if timeout < 0:
+                break
         return '/' + self.workspace_title + path + '/'
 
     def test_local_watchdog_delete_non_synced(self):

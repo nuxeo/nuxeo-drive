@@ -1,6 +1,4 @@
 import os
-import time
-from nose.plugins.skip import SkipTest
 
 from nxdrive.client import LocalClient
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
@@ -28,25 +26,20 @@ class TestDriveEdit(UnitTestCase):
         self.drive_edit.stop()
         super(TestDriveEdit, self).tearDownApp()
 
+    def test_note_edit(self):
+        remote_fs_client = self.remote_file_system_client_1
+        toplevel_folder_info = remote_fs_client.get_filesystem_root_info()
+        workspace_id = remote_fs_client.get_children_info(
+            toplevel_folder_info.uid)[0].uid
+        file_1_id = remote_fs_client.make_file(workspace_id, u'Mode op\xe9ratoire.txt',
+                                               "Content of file 1 Avec des accents h\xe9h\xe9.").uid
+        doc_id = file_1_id.split('#')[-1]
+        self._drive_edit_update(doc_id, u'Mode op\xe9ratoire.txt', 'Atol de PomPom Gali')
+
     def test_filename_encoding(self):
         filename = u'Mode op\xe9ratoire.txt'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
-
-        # Linux / Win + Chrome: quoted utf-8 encoded
-        browser_filename = 'Mode%20op%C3%A9ratoire.txt'
-        self._drive_edit_update(doc_id, filename, browser_filename, 'Win + Chrome')
-
-        # Win + IE: unquoted utf-8 encoded
-        browser_filename = 'Mode op\xc3\xa9ratoire.txt'
-        self._drive_edit_update(doc_id, filename, browser_filename, 'Win + IE')
-
-        # Win + FF: quoted string containing unicode
-        browser_filename = 'Mode%20op\xe9ratoire.txt'
-        self._drive_edit_update(doc_id, filename, browser_filename, 'Win + FF')
-
-        # OSX + Chrome / OSX + FF: quoted utf-8 encoded, except for white spaces!
-        browser_filename = 'Mode op%C3%A9ratoire.txt'
-        self._drive_edit_update(doc_id, filename, browser_filename, 'OS X + Chrome or FF')
+        self._drive_edit_update(doc_id, filename, 'Test')
 
     def _office_locker(self, path):
         return os.path.join(os.path.dirname(path), "~$" + os.path.basename(path)[2:])
@@ -54,25 +47,27 @@ class TestDriveEdit(UnitTestCase):
     def _openoffice_locker(self, path):
         return os.path.join(os.path.dirname(path), ".~lock." + os.path.basename(path)[2:])
 
-    #def test_autolock_office(self):
-    #    self._autolock(self._office_locker)
+#     def test_autolock_office(self):
+#         self._autolock(self._office_locker)
 
-    #def test_autolock_openoffice(self):
-    # LibreOffice as well
-    #    self._autolock(self._openoffice_locker)
+#     def test_autolock_openoffice(self):
+#      LibreOffice as well
+#         self._autolock(self._openoffice_locker)
 
     def _autolock(self, locker):
         global called_open, lock_file
         called_open = False
         filename = u'Document.docx'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
-        def open_local_file (path):
+
+        def open_local_file(path):
             global called_open, lock_file
             called_open = True
             # Lock file
             lock_file = locker(path)
             with open(lock_file, 'w') as f:
                 f.write("plop")
+
         self.manager_1.open_local_file = open_local_file
         self.manager_1.set_drive_edit_auto_lock(1)
         self.drive_edit._manager.open_local_file = open_local_file
@@ -91,10 +86,18 @@ class TestDriveEdit(UnitTestCase):
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.assertFalse(self.remote_restapi_client_1.is_locked(doc_id))
 
-    def _drive_edit_update(self, doc_id, filename, browser_filename, content):
+    def _drive_edit_update(self, doc_id, filename, content, url=None):
         # Download file
-        local_path = '/%s/%s' % (doc_id, filename)
-        self.drive_edit._prepare_edit(self.nuxeo_url, doc_id, browser_filename)
+        local_path = u'/%s/%s' % (doc_id, filename)
+
+        def open_local_file(path):
+            pass
+
+        self.manager_1.open_local_file = open_local_file
+        if url is None:
+            self.drive_edit._prepare_edit(self.nuxeo_url, doc_id)
+        else:
+            self.drive_edit.handle_url(url)
         self.assertTrue(self.local.exists(local_path))
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.local.delete_final(local_path)
@@ -102,4 +105,10 @@ class TestDriveEdit(UnitTestCase):
         # Update file content
         self.local.update_content(local_path, content)
         self.wait_sync()
-        self.assertEquals(self.remote.get_content('/' + filename), content)
+        self.assertEquals(self.remote.get_blob(self.remote.get_info(doc_id)), content)
+
+        # Update file content twice
+        update_content = content + ' updated'
+        self.local.update_content(local_path, update_content)
+        self.wait_sync()
+        self.assertEquals(self.remote.get_blob(self.remote.get_info(doc_id)), update_content)

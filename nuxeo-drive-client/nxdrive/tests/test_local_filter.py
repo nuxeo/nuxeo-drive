@@ -1,5 +1,6 @@
 from nxdrive.tests.common_unit_test import UnitTestCase
-
+from nxdrive.logging_config import get_logger
+log = get_logger(__name__)
 
 class TestLocalFilter(UnitTestCase):
 
@@ -78,21 +79,19 @@ class TestLocalFilter(UnitTestCase):
         self.wait_sync()
         self.local_client_1.make_folder('/', hexaname)
         self.local_client_1.make_file('/', hexafile, 'test')
-        # Make sure that a folder is synchronized directly no matter what and the file is postpone
-        self.wait_sync(enforce_errors=False)
+        # Make sure that a folder is synchronized directly no matter what and the file is postponed
+        self.wait_sync(enforce_errors=False,fail_if_timeout=False)
         children = self.remote_document_client_1.get_children_info(self.workspace)
         self.assertEquals(len(children), 1)
         # Note are renamed to .txt when come back from the server
         # TODO Not sure it is a good behavior
         self.assertFalse(self.local_client_1.exists("/" + hexafile + ".txt"))
-        # Force the postponed to ensure it synchronized now
+        # Force the postponed to ensure it's synchronized now
         self.engine_1.get_queue_manager().requeue_errors()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertTrue(self.local_client_1.exists("/" + hexafile + ".txt"))
-        # TODO Understand why the next call is not returning the 2 children as expected
-        #children = self.remote_document_client_1.get_children_info(self.workspace)
-        #self.assertEquals(len(children), 2)
-        children = self.remote_file_system_client_1.get_children_info(self.local_client_1.get_remote_id('/'))
+        children = self.remote_document_client_1.get_children_info(self.workspace)
+        log.debug("Children retrieved: %r", children)
         self.assertEquals(len(children), 2)
 
     def test_synchronize_local_filter_with_move(self):

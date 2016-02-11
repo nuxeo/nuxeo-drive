@@ -217,6 +217,7 @@ class UnitTestCase(unittest.TestCase):
         options.autolock_interval = 30
         options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager(options)
+        self.connected = False
         import nxdrive
         nxdrive_path = os.path.dirname(nxdrive.__file__)
         i18n_path = os.path.join(nxdrive_path, 'tests', 'resources', "i18n.js")
@@ -225,11 +226,16 @@ class UnitTestCase(unittest.TestCase):
         Manager._singleton = None
         self.manager_2 = Manager(options)
         self.version = __version__
+        url = self.nuxeo_url
+        log.debug("Will use %s as url", url)
+        if '#' in url:
+            # Remove the engine type for the rest of the test
+            self.nuxeo_url = url.split('#')[0]
         self.setUpServer(server_profile)
 
-        self.engine_1 = self.manager_1.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1,
+        self.engine_1 = self.manager_1.bind_server(self.local_nxdrive_folder_1, url, self.user_1,
                                                    self.password_1, start_engine=False)
-        self.engine_2 = self.manager_2.bind_server(self.local_nxdrive_folder_2, self.nuxeo_url, self.user_2,
+        self.engine_2 = self.manager_2.bind_server(self.local_nxdrive_folder_2, url, self.user_2,
                                                    self.password_2, start_engine=False)
         self.engine_1.syncCompleted.connect(self.app.sync_completed)
         self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
@@ -252,12 +258,6 @@ class UnitTestCase(unittest.TestCase):
 
         # Document client to be used to create remote test documents
         # and folders
-        remote_document_client_1 = self.engine_1.get_remote_doc_client()
-        remote_document_client_1.upload_tmp_dir = self.upload_tmp_dir
-        remote_document_client_2 = self.engine_2.get_remote_doc_client()
-        remote_document_client_2.upload_tmp_dir = self.upload_tmp_dir
-        remote_document_client_1.set_base_folder(self.workspace_1)
-        remote_document_client_2.set_base_folder(self.workspace_2)
         remote_document_client_1 = RemoteDocumentClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.version,
@@ -322,22 +322,19 @@ class UnitTestCase(unittest.TestCase):
         }
         self._no_remote_changes = {self.engine_1.get_uid(): not wait_for_engine_1,
                                    self.engine_2.get_uid(): not wait_for_engine_2}
+        if enforce_errors:
+            if not self.connected:
+                self.engine_1.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
+                self.engine_2.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
+                self.connected = True
+        elif self.connected:
+            self.engine_1.syncPartialCompleted.disconnect(self.engine_1.get_queue_manager().requeue_errors)
+            self.engine_2.syncPartialCompleted.disconnect(self.engine_1.get_queue_manager().requeue_errors)
+            self.connected = False
         while timeout > 0:
             sleep(1)
             timeout = timeout - 1
             if sum(self._wait_sync.values()) == 0:
-                if enforce_errors:
-                    finished = True
-                    if wait_for_engine_1 and self.engine_1.get_queue_manager().get_errors_count() > 0:
-                        self._wait_sync[self.engine_1.get_uid()] = True
-                        self.engine_1.get_queue_manager().requeue_errors()
-                        finished = False
-                    if wait_for_engine_2 and self.engine_2.get_queue_manager().get_errors_count() > 0:
-                        self._wait_sync[self.engine_2.get_uid()] = True
-                        self.engine_2.get_queue_manager().requeue_errors()
-                        finished = False
-                    if not finished:
-                        continue
                 if wait_for_async:
                     log.debug('Sync completed, _wait_remote_scan = %r, remote changes count = %r,'
                               ' no remote changes = %r',
@@ -370,7 +367,10 @@ class UnitTestCase(unittest.TestCase):
                     return
         if fail_if_timeout:
             log.warn("Wait for sync timeout has expired")
-            self.fail("Wait for sync timeout expired")
+            if wait_for_engine_1 and self.engine_1.get_dao().get_syncing_count() != 0:
+                self.fail("Wait for sync timeout expired")
+            if wait_for_engine_2 and self.engine_2.get_dao().get_syncing_count() != 0:
+                self.fail("Wait for sync timeout expired")
         else:
             log.debug("Wait for sync timeout")
 
@@ -444,7 +444,6 @@ class UnitTestCase(unittest.TestCase):
     def tearDownApp(self, server_profile=None):
         if self.tearedDown:
             return
-        import sys
         if sys.exc_info() != (None, None, None):
             self.generate_report()
         elif self.result is not None:
@@ -511,26 +510,39 @@ class UnitTestCase(unittest.TestCase):
         local_client.make_file(root, u'File 5.txt', content=b"eee")
         return (6, 5)
 
-    def make_server_tree(self):
+    def make_server_tree(self, deep=True):
         remote_client = self.remote_document_client_1
         # create some folders on the server
         folder_1 = remote_client.make_folder(self.workspace, u'Folder 1')
-        folder_1_1 = remote_client.make_folder(folder_1, u'Folder 1.1')
-        folder_1_2 = remote_client.make_folder(folder_1, u'Folder 1.2')
         folder_2 = remote_client.make_folder(self.workspace, u'Folder 2')
+        if deep:
+            folder_1_1 = remote_client.make_folder(folder_1, u'Folder 1.1')
+            folder_1_2 = remote_client.make_folder(folder_1, u'Folder 1.2')
 
         # create some files on the server
-        remote_client.make_file(folder_2, u'Duplicated File.txt',
-                                content=b"Some content.")
-        remote_client.make_file(folder_2, u'Duplicated File.txt',
-                                content=b"Other content.")
+        if deep:
+            self._duplicate_file_1 = remote_client.make_file(folder_2, u'Duplicated File.txt',
+                                                             content=b"Some content.")
+            self._duplicate_file_2 = remote_client.make_file(folder_2, u'Duplicated File.txt',
+                                                             content=b"Other content.")
 
-        remote_client.make_file(folder_1, u'File 1.txt', content=b"aaa")
-        remote_client.make_file(folder_1_1, u'File 2.txt', content=b"bbb")
-        remote_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
-        remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
+        if deep:
+            remote_client.make_file(folder_1, u'File 1.txt', content=b"aaa")
+            remote_client.make_file(folder_1_1, u'File 2.txt', content=b"bbb")
+            remote_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
+            remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
-        return (7, 4)
+        return (7, 4) if deep else (1, 2)
+
+    def get_local_child_count(self, path):
+        dir_count = 0
+        file_count = 0
+        for _, dirnames, filenames in os.walk(path):
+            dir_count += len(dirnames)
+            file_count += len(filenames)
+        if os.path.exists(os.path.join(path, '.partials')):
+            dir_count -= 1
+        return (dir_count, file_count)
 
     def get_full_queue(self, queue, dao=None):
         if dao is None:
@@ -569,3 +581,20 @@ class UnitTestCase(unittest.TestCase):
         a = numpy.random.rand(size, size, 3) * 255
         im_out = Image.fromarray(a.astype('uint8')).convert('RGBA')
         im_out.save(filename)
+
+    def assertNxPart(self, path, name=None, present=True):
+        os_path = self.local_client_1._abspath(path)
+        children = os.listdir(os_path)
+        for child in children:
+            if len(child) < 8:
+                continue
+            if name is not None and len(child) < len(name) + 8:
+                continue
+            if child[0] == "." and child[-7:] == ".nxpart":
+                if name is None or child[1:len(name)+1] == name:
+                    if present:
+                        return
+                    else:
+                        self.fail("nxpart found in : '%s'" % (path))
+        if present:
+            self.fail("nxpart not found in : '%s'" % (path))

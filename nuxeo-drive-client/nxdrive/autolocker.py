@@ -14,6 +14,8 @@ log = get_logger(__name__)
 class ProcessAutoLockerWorker(PollWorker):
 
     orphanLocks = QtCore.pyqtSignal(object)
+    documentLocked = QtCore.pyqtSignal(str)
+    documentUnlocked = QtCore.pyqtSignal(str)
 
     def __init__(self, check_interval, manager, watched_folders=[]):
         super(ProcessAutoLockerWorker, self).__init__(check_interval)

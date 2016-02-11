@@ -103,6 +103,11 @@ LABELS={
 		"CONFLICT_USE_REMOTE": "Use remote",
 		"CONFLICT_USE_DUPLICATE": "Duplicate files",
 		"CONFLICT_RETRY": "Retry",
+		"READONLY": "Readonly document",
+		"READONLY_FOLDER": "Cannot upload {{ name }} to {{ folder }} as folder is readonly",
+		"READONLY_FILE": "Cannot update {{ name }} as it is readonly",
+		"LOCKED": "Locked document",
+		"LOCKED_FILE": "Cannot update {{ name }} as it was locked by {{ lock_owner }} on {{ lock_created }}",
 		"OPEN_LOCAL": "Open local",
 		"OPEN_REMOTE": "Open remote",
 		"RESOLVE": "Resolve",
@@ -139,7 +144,11 @@ LABELS={
         "DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION": "The document '{{ name }}' was not unlocked",
         "DIRECT_EDIT_CONFLICT_MESSAGE": "THe document '{{ name }}' was modified remotely and is now in conflict. What action do you want to take ?",
         "DIRECT_EDIT_CONFLICT_OVERWRITE": "Overwrite",
-        "DIRECT_EDIT_CONFLICT_CANCEL": "Cancel"
+        "DIRECT_EDIT_CONFLICT_CANCEL": "Cancel",
+        "DIRECT_EDIT_CANT_FIND_ENGINE": "Cannot find the binding for the server {{ server }} with user {{ user }}",
+        "LOCK_NOTIFICATION_TITLE": "Autolock",
+        "LOCK_NOTIFICATION_DESCRIPTION": "The document '{{ name }}' has been locked",
+        "ENGINE_BETA": "You have configured a beta engine. You can experience some issues and would appreciate your feedback"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -245,6 +254,11 @@ LABELS={
 		"CONFLICT_USE_REMOTE": "Choisir le fichier distant",
 		"CONFLICT_USE_DUPLICATE": "Dupliquer les fichiers",
 		"CONFLICT_RETRY": "Réessayer",
+		"READONLY": "Document en lecture seule",
+		"READONLY_FOLDER": "{{ name }} ne peut pas être créé dans le dossier {{ folder }} en lecture seule",
+		"READONLY_FILE": "{{ name }} ne peut pas être mis à jour car il est en lecture seule",
+		"LOCKED": "Document verrouillé",
+		"LOCKED_FILE": "{{ name }} ne peut pas être mis à jour, verrouillé par {{ lock_owner }} le {{ lock_created }}",
 		"OPEN_LOCAL": "Ouvrir le fichier local",
 		"OPEN_REMOTE": "Ouvrir le fichier distant",
 		"RESOLVE": "Résolution",
@@ -281,6 +295,10 @@ LABELS={
         "DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION": "Le document '{{ name }}' n'a pu être deverrouillé",
         "DIRECT_EDIT_CONFLICT_MESSAGE": "Le document '{{ name }}' a été modifié sur le serveur et est donc en conflit. Que voulez vous faire ?",
         "DIRECT_EDIT_CONFLICT_OVERWRITE": "Ecraser",
-        "DIRECT_EDIT_CONFLICT_CANCEL": "Annuler"
+        "DIRECT_EDIT_CONFLICT_CANCEL": "Annuler",
+        "DIRECT_EDIT_CANT_FIND_ENGINE": "Nous ne pouvons trouver dans Nuxeo Drive le serveur {{ server }} connecté avec l'utilisateur {{ user }}",
+        "LOCK_NOTIFICATION_TITLE": "Autovérrou",
+        "LOCK_NOTIFICATION_DESCRIPTION": "Le document '{{ name }}' a été verrouillé",
+        "ENGINE_BETA": "Vous avez configure un moteur en phase beta. Il est possible de rencontrer des problemes et nous serons reconnaissant de vos retours"
 	}
 }

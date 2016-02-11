@@ -43,7 +43,7 @@ class TestLocalMoveFolders(UnitTestCase):
         log.debug('Local test files created in a2')
 
         self.engine_1.start()
-        self.wait_sync(fail_if_timeout=False, wait_win=True)
+        self.wait_sync(timeout=60, wait_win=True)
 
         # Check local files in a1
         self.assertTrue(self.local_client_1.exists('/a1'))

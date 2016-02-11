@@ -262,6 +262,11 @@ class NuxeoDriveAttributes(object):
 
     def customize_msi(self, db):
         import msilib
+        # Make the appdata folder writable to enable Windows Auto update
+        msilib.add_data(db, "CustomAction", [("AllowAutoUpdate", 3234,
+                        "TARGETDIR", "Icacls . /grant Users:(OI)(CI)(M,DC) /t /c /q")])
+        msilib.add_data(db, "InstallExecuteSequence",
+                        [("AllowAutoUpdate", 'NOT Installed', 6401)])
         # Add the possibility to bind an engine with MSI
         msilib.add_data(db, "CustomAction", [("NuxeoDriveBinder", 82,
                         self.get_win_targetName(),

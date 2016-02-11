@@ -245,5 +245,5 @@ class EngineDialog(WebDialog):
         '''
         Constructor
         '''
-        super(EngineDialog, self).__init__(application, "engines.html",
+        super(EngineDialog, self).__init__(application, "debug.html",
                                                  api=DebugDriveApi(application, self), title="Nuxeo Drive - Engines")

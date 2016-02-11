@@ -50,7 +50,7 @@ class WebModal(WebDialog):
     def __init__(self, application, message, page="modal.html", title="Nuxeo Drive", api=None, buttons=None):
         if api is None:
             api = WebModalApi(application)
-        super(WebModal, self).__init__(application, page, title, api)
+        super(WebModal, self).__init__(application, page=page, title=title, api=api)
         self.setSizeGripEnabled(False)
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self._buttons = dict()

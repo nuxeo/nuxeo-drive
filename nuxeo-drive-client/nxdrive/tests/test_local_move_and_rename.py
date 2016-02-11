@@ -1,9 +1,11 @@
 import os
-import sys
+import urllib2
 
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
+from nxdrive.tests import RemoteTestClient
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.client.common import NotFound
 from nose.plugins.skip import SkipTest
@@ -58,10 +60,10 @@ class TestLocalMoveAndRename(UnitTestCase):
         remote_client = self.remote_document_client_1
         marker = False
 
-        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True):
+        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False):
             global marker
             EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path=remote_parent_path,
-                                          versionned=versionned)
+                                          versionned=versionned, queue=queue, force_update=force_update)
             if row.local_name == 'New Folder' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed Folder')
                 sleep(5)
@@ -76,6 +78,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         # Path dont change on Nuxeo
         info = remote_client.get_info(u'/New Folder')
         self.assertEquals('Renamed Folder', info.name)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 5)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
 
     def test_local_rename_file_while_creating(self):
         global marker
@@ -84,10 +88,10 @@ class TestLocalMoveAndRename(UnitTestCase):
         remote_client = self.remote_document_client_1
         marker = False
 
-        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True):
+        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False):
             global marker
             EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path=remote_parent_path,
-                                          versionned=versionned)
+                                          versionned=versionned, queue=queue, force_update=force_update)
             if row.local_name == 'File.txt' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed File.txt')
                 sleep(5)
@@ -103,6 +107,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         # Path dont change on Nuxeo
         info = remote_client.get_info(u'/File.txt')
         self.assertEquals('Renamed File.txt', info.name)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 5)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
 
     def test_local_rename_file(self):
         local_client = self.local_client_1
@@ -167,6 +173,10 @@ class TestLocalMoveAndRename(UnitTestCase):
             file_1_1_remote_info.parent_uid)
         self.assertEquals(parent_of_file_1_1_remote_info.name,
             u'Original Folder 1')
+        self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 3)
+        self.assertEqual(len(remote_client.get_children_info(file_1_1_remote_info.parent_uid)), 3)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 4)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
 
     def test_local_rename_file_uppercase(self):
         local_client = self.local_client_1
@@ -194,6 +204,8 @@ class TestLocalMoveAndRename(UnitTestCase):
             file_1_1_remote_info.parent_uid)
         self.assertEquals(parent_of_file_1_1_remote_info.name,
             u'Original Folder 1')
+        self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 3)
+        self.assertEqual(len(remote_client.get_children_info(file_1_1_remote_info.parent_uid)), 3)
 
     def test_local_move_file(self):
         local_client = self.local_client_1
@@ -218,6 +230,10 @@ class TestLocalMoveAndRename(UnitTestCase):
             file_1_remote_info.parent_uid)
         self.assertEquals(parent_of_file_1_remote_info.name,
             u'Original Folder 1')
+        self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 4)
+        self.assertEqual(len(remote_client.get_children_info(file_1_remote_info.parent_uid)), 4)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 3)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 3)
 
     def test_local_move_and_rename_file(self):
         local_client = self.local_client_1
@@ -243,9 +259,10 @@ class TestLocalMoveAndRename(UnitTestCase):
             file_1_remote_info.parent_uid)
         self.assertEquals(parent_of_file_1_remote_info.name,
             u'Original Folder 1')
-
-        # Nothing left to do
-        self.wait()
+        self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 4)
+        self.assertEqual(len(remote_client.get_children_info(file_1_remote_info.parent_uid)), 4)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 3)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 3)
 
     def test_local_rename_folder(self):
         local_client = self.local_client_1
@@ -283,8 +300,54 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEquals(sub_folder_1_1_info.parent_uid,
             original_folder_1_uid)
 
-        # The more things change, the more they remain the same.
-        self.wait()
+        self.assertEqual(len(local_client.get_children_info(u'/Renamed Folder 1 \xe9')), 3)
+        self.assertEqual(len(remote_client.get_children_info(file_1_1_info.parent_uid)), 3)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 4)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
+
+    def test_local_rename_folder_while_suspended(self):
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+
+        # Save the uid of some files and folders prior to renaming
+        original_folder_1_uid = remote_client.get_info(
+            u'/Original Folder 1').uid
+        original_file_1_1_uid = remote_client.get_info(
+            u'/Original Folder 1/Original File 1.1.txt').uid
+        original_sub_folder_1_1_uid = remote_client.get_info(
+            u'/Original Folder 1/Sub-Folder 1.1').uid
+        children_count = len(local_client.get_children_info(u'/Original Folder 1'))
+        self.engine_1.suspend()
+        # Rename a non empty folder with some content
+        local_client.rename(u'/Original Folder 1', u'Renamed Folder 1 \xe9')
+        self.assertFalse(local_client.exists(u'/Original Folder 1'))
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
+
+        local_client.rename(u'/Renamed Folder 1 \xe9/Sub-Folder 1.1', u'Sub-Folder 2.1')
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9/Sub-Folder 2.1'))
+
+        self.engine_1.resume()
+        # Synchronize: only the folder renaming is detected: all
+        # the descendants are automatically realigned
+        self.wait_sync(wait_for_async=True)
+
+        # The server folder has been renamed: the uid stays the same
+        new_remote_name = remote_client.get_info(original_folder_1_uid).name
+        self.assertEquals(new_remote_name, u"Renamed Folder 1 \xe9")
+
+        # The content of the renamed folder is left unchanged
+        file_1_1_info = remote_client.get_info(original_file_1_1_uid)
+        self.assertEquals(file_1_1_info.name, u"Original File 1.1.txt")
+        self.assertEquals(file_1_1_info.parent_uid, original_folder_1_uid)
+
+        sub_folder_1_1_info = remote_client.get_info(
+            original_sub_folder_1_1_uid)
+        self.assertEquals(sub_folder_1_1_info.name, u"Sub-Folder 2.1")
+        self.assertEquals(sub_folder_1_1_info.parent_uid, original_folder_1_uid)
+        self.assertEquals(len(local_client.get_children_info(u'/Renamed Folder 1 \xe9')), children_count)
+        self.assertEqual(len(remote_client.get_children_info(original_folder_1_uid)), children_count)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 4)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
 
     def test_local_rename_file_after_create(self):
         # Office 2010 and >, create a tmp file with 8 chars and move it right after
@@ -298,6 +361,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertFalse(local_client.exists(u'/File.txt'))
         # Path dont change on Nuxeo
         self.assertIsNotNone(local_client.get_remote_id('/Renamed File.txt'))
+        self.assertEqual(len(local_client.get_children_info(u'/')), 5)
+        self.assertEqual(len(self.remote_document_client_1.get_children_info(self.workspace_1)), 5)
 
     def test_local_rename_file_after_create_detected(self):
         # Office 2010 and >, create a tmp file with 8 chars and move it right after
@@ -322,6 +387,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertFalse(local_client.exists(u'/File.txt'))
         # Path dont change on Nuxeo
         self.assertIsNotNone(local_client.get_remote_id('/Renamed File.txt'))
+        self.assertEqual(len(local_client.get_children_info(u'/')), 5)
+        self.assertEqual(len(self.remote_document_client_1.get_children_info(self.workspace_1)), 5)
 
     def test_local_move_folder(self):
         local_client = self.local_client_1
@@ -364,8 +431,10 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEquals(sub_folder_1_1_info.parent_uid,
             original_folder_1_uid)
 
-        # The more things change, the more they remain the same.
-        self.wait()
+        self.assertEqual(len(local_client.get_children_info(u'/Original Folder 2/Original Folder 1')), 3)
+        self.assertEqual(len(remote_client.get_children_info(original_folder_1_uid)), 3)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 3)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 3)
 
     def test_concurrent_local_rename_folder(self):
         local_client = self.local_client_1
@@ -407,8 +476,12 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEquals(file_3_info.name, u"Original File 3.txt")
         self.assertEquals(file_3_info.parent_uid, folder_2_uid)
 
-        # The more things change, the more they remain the same.
-        self.wait()
+        self.assertEqual(len(local_client.get_children_info(u'/Renamed Folder 1')), 3)
+        self.assertEqual(len(remote_client.get_children_info(folder_1_uid)), 3)
+        self.assertEqual(len(local_client.get_children_info(u'/Renamed Folder 2')), 1)
+        self.assertEqual(len(remote_client.get_children_info(folder_2_uid)), 1)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 4)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
 
     def test_local_rename_sync_root_folder(self):
         # Use the Administrator to be able to introspect the container of the
@@ -434,63 +507,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         folder_1_info = remote_client.get_info(folder_1_uid)
         self.assertEquals(folder_1_info.name, u"Original Folder 1")
         self.assertEquals(folder_1_info.parent_uid, self.workspace)
-
-    def test_local_rename_top_level_folder(self):
-        raise SkipTest("SHOULD UPDATE THE BINDING AND NOT DESTROY IF WATCHDOG OR SEARCH FOR BINDING")
-        sb, ctl = self.sb_1, self.controller_1
-        local_client = LocalClient(self.local_test_folder_1)
-        session = ctl.get_session()
-
-        # Check top level folder
-        self.assertTrue(local_client.exists(u'/Nuxeo Drive'))
-        top_level_folder_info = local_client.get_info(u'/Nuxeo Drive')
-        self.assertEquals(top_level_folder_info.name, u'Nuxeo Drive')
-        self.assertEquals(top_level_folder_info.filepath,
-            os.path.join(self.local_test_folder_1, u'Nuxeo Drive'))
-        # Check top level folder state
-        top_level_folder_state = session.query(LastKnownState).filter_by(
-            local_name=u'Nuxeo Drive').one()
-        self.assertEquals(top_level_folder_state.local_path, '/')
-        self.assertEquals(top_level_folder_state.local_name, u'Nuxeo Drive')
-
-        # Rename top level folder
-        local_client.rename(u'/Nuxeo Drive', u'Nuxeo Drive renamed')
-        top_level_folder_info = local_client.get_info(u'/Nuxeo Drive renamed')
-        self.assertEquals(top_level_folder_info.name, u'Nuxeo Drive renamed')
-        self.assertEquals(top_level_folder_info.filepath,
-            os.path.join(self.local_test_folder_1, u'Nuxeo Drive renamed'))
-
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
-
-        # Check deleted server binding
-        self.assertRaises(RuntimeError,
-                          ctl.get_server_binding, self.local_nxdrive_folder_1,
-                          raise_if_missing=True)
-        # Check deleted pair state
-        self.assertEquals(len(session.query(LastKnownState).all()), 0)
-
-    def test_local_delete_top_level_folder(self):
-        raise SkipTest("SHOULD UPDATE THE BINDING AND NOT DESTROY IF WATCHDOG OR SEARCH FOR BINDING")
-        sb, ctl = self.sb_1, self.controller_1
-        local_client = LocalClient(self.local_test_folder_1)
-        session = ctl.get_session()
-
-        # Check top level folder
-        self.assertTrue(local_client.exists(u'/Nuxeo Drive'))
-
-        # Delete top level folder
-        local_client.delete(u'/Nuxeo Drive')
-        self.assertRaises(NotFound,
-                          local_client.get_info, u'/Nuxeo Drive')
-
-        self.assertEquals(ctl.synchronizer.update_synchronize_server(sb), 1)
-
-        # Check deleted server binding
-        self.assertRaises(RuntimeError,
-                          ctl.get_server_binding, self.local_nxdrive_folder_1,
-                          raise_if_missing=True)
-        # Check deleted pair state
-        self.assertEquals(len(session.query(LastKnownState).all()), 0)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
 
     def test_local_rename_readonly_folder(self):
         local_client = self.local_client_1
@@ -543,6 +560,10 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         self.assertTrue(local_client.exists(
             u'/Renamed Folder 1 \xe9/Sub-Folder 1.2'))
+        self.assertEqual(len(local_client.get_children_info(u'/Renamed Folder 1 \xe9')), 3)
+        self.assertEqual(len(remote_client.get_children_info(folder_1_remote_info.uid)), 3)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 4)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
 
     def test_local_rename_readonly_folder_with_rollback(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
@@ -625,18 +646,33 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         # Check local folder
         self.assertTrue(local_client.exists(u'/Original Folder 1'))
-        remote_client._remote_error = IOError
+
+        # Simulate server error
+        self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
+        self.engine_1.invalidate_client_cache()
+        error = urllib2.HTTPError(None, 500, 'Mock server error', None, None)
+        self.engine_1.get_remote_client().make_server_call_raise(error)
+
         local_client.rename(u'/Original Folder 1', u'IOErrorTest')
-        self.wait_sync()
-        remote_client._remote_error = None
-        folder_1 = remote_client.get_info(
-            u'/Original Folder 1')
-        self.assertTrue(folder_1 is not None, 'Move has happen')
+        self.wait_sync(timeout=5, fail_if_timeout=False)
+        folder_1 = remote_client.get_info(u'/Original Folder 1')
+        self.assertEquals(folder_1.name, u'Original Folder 1', 'Move has happen')
         self.assertTrue(local_client.exists(u'/IOErrorTest'))
+
+        # Remove faulty client and set engine online
+        self.engine_1.get_remote_client().make_server_call_raise(None)
+        self.engine_1.remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
+        self.engine_1.invalidate_client_cache()
+        self.engine_1.set_offline(value=False)
+
         self.wait_sync()
         folder_1 = remote_client.get_info(folder_1.uid)
         self.assertEquals(folder_1.name, u'IOErrorTest', 'Move has not happen')
         self.assertTrue(local_client.exists(u'/IOErrorTest'))
+        self.assertEqual(len(local_client.get_children_info(u'/IOErrorTest')), 3)
+        self.assertEqual(len(remote_client.get_children_info(folder_1.uid)), 3)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 4)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
 
     def test_local_delete_readonly_folder(self):
         raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")

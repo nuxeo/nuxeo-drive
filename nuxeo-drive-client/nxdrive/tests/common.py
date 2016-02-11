@@ -10,6 +10,7 @@ import nxdrive
 from nxdrive.utils import safe_long_path
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
+from nxdrive.client import RestAPIClient
 from nxdrive.client import LocalClient
 from nxdrive.client.common import BaseClient
 from nxdrive.logging_config import configure
@@ -97,10 +98,6 @@ def clean_dir(_dir):
 
 class IntegrationTestCase(unittest.TestCase):
 
-    def _synchronize(self, syn, delay=0.1, loops=1):
-        self.wait()
-        syn.loop(delay=delay, max_loops=loops)
-
     def setUp(self):
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
@@ -125,6 +122,9 @@ class IntegrationTestCase(unittest.TestCase):
             raise unittest.SkipTest(
                 "No integration server configuration found in environment.")
 
+        self.full_nuxeo_url = self.nuxeo_url
+        if '#' in self.nuxeo_url:
+            self.nuxeo_url = self.nuxeo_url.split('#')[0]
         # Check the local filesystem test environment
         self.local_test_folder_1 = tempfile.mkdtemp(u'-nxdrive-tests-user-1', dir=self.tmpdir)
         self.local_test_folder_2 = tempfile.mkdtemp(u'-nxdrive-tests-user-2', dir=self.tmpdir)
@@ -184,6 +184,17 @@ class IntegrationTestCase(unittest.TestCase):
             password=self.password_2, base_folder=self.workspace,
             upload_tmp_dir=self.upload_tmp_dir)
 
+        self.remote_restapi_client_1 = RestAPIClient(
+            self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
+            self.version,
+            password=self.password_1
+        )
+        self.remote_restapi_client_2 = RestAPIClient(
+            self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
+            self.version,
+            password=self.password_2
+        )
+
         # File system client to be used to create remote test documents
         # and folders
         remote_file_system_client_1 = RemoteFileSystemClient(
@@ -223,73 +234,6 @@ class IntegrationTestCase(unittest.TestCase):
         clean_dir(self.local_test_folder_1)
         clean_dir(self.local_test_folder_2)
 
-    def get_all_states(self, session=None, get_pair_state=False):
-        """Utility to quickly introspect the current known states"""
-        if session is None:
-            session = self.controller_1.get_session()
-        # TODO NXDRIVE-170: refactor
-#         pairs = session.query(LastKnownState).order_by(
-#             LastKnownState.local_path,
-#             LastKnownState.remote_parent_path,
-#             LastKnownState.remote_name).all()
-        pairs = []
-        if not get_pair_state:
-            return [(p.local_path, p.local_state, p.remote_state)
-                    for p in pairs]
-        else:
-            return [(p.local_path, p.local_state, p.remote_state, p.pair_state)
-                    for p in pairs]
-
-    def make_server_tree(self):
-        remote_client = self.remote_document_client_1
-        # create some folders on the server
-        folder_1 = remote_client.make_folder(self.workspace, u'Folder 1')
-        folder_1_1 = remote_client.make_folder(folder_1, u'Folder 1.1')
-        folder_1_2 = remote_client.make_folder(folder_1, u'Folder 1.2')
-        folder_2 = remote_client.make_folder(self.workspace, u'Folder 2')
-
-        # create some files on the server
-        self._duplicate_file_1 = remote_client.make_file(folder_2, u'Duplicated File.txt', content=b"Some content.")
-        self._duplicate_file_2 = remote_client.make_file(folder_2, u'Duplicated File.txt', content=b"Other content.")
-
-        remote_client.make_file(folder_1, u'File 1.txt', content=b"aaa")
-        remote_client.make_file(folder_1_1, u'File 2.txt', content=b"bbb")
-        remote_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
-        remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
-        remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
-
-    def get_local_child_count(self, path):
-        dir_count = 0
-        file_count = 0
-        for _, dirnames, filenames in os.walk(path):
-            dir_count += len(dirnames)
-            file_count += len(filenames)
-        return (dir_count, file_count)
-
-    # TODO NXDRIVE-170: refactor
-    def init_default_drive(self, local_user=1, remote_user=1):
-        # Bind the server and root workspace
-        ctl = self.controller_1
-        ctl.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url,
-                        self.user_1, self.password_1)
-        ctl.bind_root(self.local_nxdrive_folder_1, self.workspace)
-
-        # Launch first synchronization
-        self.wait()
-        syn = ctl.synchronizer
-        syn.loop(delay=0.1, max_loops=1)
-
-        # Get local and remote clients
-        if local_user == 1:
-            local = LocalClient(os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
-        else:
-            local = LocalClient(os.path.join(self.local_nxdrive_folder_2, self.workspace_title))
-        if remote_user == 1:
-            remote = self.remote_document_client_1
-        else:
-            remote = self.remote_document_client_2
-        return syn, local, remote
-
     def wait(self, retry=3):
         try:
             self.root_remote_client.wait()
@@ -302,7 +246,8 @@ class IntegrationTestCase(unittest.TestCase):
 
     def setUpDrive_1(self, bind_root=True, root=None, firstSync=False):
         # Bind the server and root workspace
-        self.bind_server(self.ndrive_1_options, self.user_1, self.nuxeo_url, self.local_nxdrive_folder_1, self.password_1)
+        self.bind_server(self.ndrive_1_options, self.user_1, self.nuxeo_url, self.local_nxdrive_folder_1,
+                         self.password_1)
         if bind_root:
             root_to_bind = root if root is not None else self.workspace
             self.bind_root(self.ndrive_1_options, root_to_bind, self.local_nxdrive_folder_1)
@@ -310,11 +255,13 @@ class IntegrationTestCase(unittest.TestCase):
             self.ndrive(self.ndrive_1_options)
 
     def bind_root(self, ndrive_options, workspace, local_folder):
-        cmdline = '%s bind-root "%s" --local-folder="%s" %s' % (self.ndrive_exec, workspace, local_folder, ndrive_options)
+        cmdline = '%s bind-root "%s" --local-folder="%s" %s' % (self.ndrive_exec, workspace, local_folder,
+                                                                ndrive_options)
         execute(cmdline)
 
     def unbind_root(self, ndrive_options, workspace, local_folder):
-        cmdline = '%s unbind-root "%s" --local-folder="%s" %s' % (self.ndrive_exec, workspace, local_folder, ndrive_options)
+        cmdline = '%s unbind-root "%s" --local-folder="%s" %s' % (self.ndrive_exec, workspace, local_folder,
+                                                                  ndrive_options)
         execute(cmdline)
 
     def bind_server(self, ndrive_options, user, server_url, local_folder, password):

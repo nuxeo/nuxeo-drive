@@ -19,7 +19,7 @@ log = get_logger(__name__)
 
 FILE_TYPE = 'File'
 FOLDER_TYPE = 'Folder'
-DEFAULT_TYPES = ('File', 'Workspace', 'Folder')
+DEFAULT_TYPES = ('File', 'Note', 'Workspace', 'Folder')
 
 
 MAX_CHILDREN = 1000
@@ -41,7 +41,8 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'doc_type',  # Nuxeo document type
     'version',  # Nuxeo version
     'state', # Nuxeo lifecycle state
-    # TODO: add filename?
+    'has_blob', # If this doc has blob
+    'filename' # Filename of document
 ])
 
 
@@ -151,10 +152,12 @@ class RemoteDocumentClient(BaseAutomationClient):
         Creates a temporary file from the content then streams it.
         """
         parent = self._check_ref(parent)
-        doc = self.create(parent, doc_type, name=name,
-                          properties={'dc:title': name})
+        properties = {'dc:title': name}
+        if doc_type is 'Note' and content is not None:
+            properties['note:note'] = content
+        doc = self.create(parent, doc_type, name=name, properties=properties)
         ref = doc[u'uid']
-        if content is not None:
+        if doc_type is not 'Note' and content is not None:
             self.attach_blob(ref, content, name)
         return ref
 
@@ -241,6 +244,8 @@ class RemoteDocumentClient(BaseAutomationClient):
     def _doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
         """Convert Automation document description to NuxeoDocumentInfo"""
         props = doc['properties']
+        name = props['dc:title']
+        filename = None
         folderish = 'Folderish' in doc['facets']
         try:
             last_update = datetime.strptime(doc['lastModified'],
@@ -252,26 +257,48 @@ class RemoteDocumentClient(BaseAutomationClient):
         lastContributor = props['dc:lastContributor']
 
         # TODO: support other main files
+        has_blob = False
         if folderish:
             digestAlgorithm = None
             digest = None
         else:
             blob = props.get('file:content')
             if blob is None:
-                digestAlgorithm = None
-                digest = None
+                note = props.get('note:note')
+                if note is None:
+                    digestAlgorithm = None
+                    digest = None
+                else:
+                    import hashlib
+                    m = hashlib.md5()
+                    m.update(note.encode('utf-8'))
+                    digest = m.hexdigest()
+                    digestAlgorithm = 'md5'
+                    ext = '.txt'
+                    mime_type = props.get('note:mime_type')
+                    if mime_type == 'text/html':
+                        ext = '.html'
+                    elif mime_type == 'text/xml':
+                        ext = '.xml'
+                    elif mime_type == 'text/x-web-markdown':
+                        ext = '.md'
+                    if not name.endswith(ext):
+                        filename = name + ext
+                    else:
+                        filename = name
             else:
+                has_blob = True
                 digestAlgorithm = blob.get('digestAlgorithm')
                 if digestAlgorithm is not None:
                     digestAlgorithm = digestAlgorithm.lower().replace('-', '')
                 digest = blob.get('digest')
+                filename = blob.get('name')
 
         # XXX: we need another roundtrip just to fetch the parent uid...
         if parent_uid is None and fetch_parent_uid:
             parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
 
         # Normalize using NFC to make the tests more intuitive
-        name = props['dc:title']
         if 'uid:major_version' in props and 'uid:minor_version' in props:
             version = str(props['uid:major_version']) + "." + str(props['uid:minor_version'])
         else:
@@ -281,7 +308,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
             doc['path'], folderish, last_update, lastContributor,
-            digestAlgorithm, digest, self.repository, doc['type'], version, doc['state'])
+            digestAlgorithm, digest, self.repository, doc['type'], version, doc['state'], has_blob, filename)
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):
@@ -334,10 +361,10 @@ class RemoteDocumentClient(BaseAutomationClient):
         return self.execute("Document.GetParent", op_input="doc:" + ref)
 
     def lock(self, ref):
-        return self.execute("Document.Lock", op_input="doc:" + ref)
+        return self.execute("Document.Lock", op_input="doc:" + self._check_ref(ref))
 
     def unlock(self, ref):
-        return self.execute("Document.Unlock", op_input="doc:" + ref)
+        return self.execute("Document.Unlock", op_input="doc:" + self._check_ref(ref))
 
     def move(self, ref, target, name=None):
         return self.execute("Document.Move",
@@ -396,7 +423,20 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     # Blob category
     def get_blob(self, ref, file_out=None):
-        return self.execute("Blob.Get", op_input="doc:" + ref,
+        if isinstance(ref, NuxeoDocumentInfo):
+            doc_id = ref.uid
+            if not ref.has_blob and ref.doc_type == "Note":
+                doc = self.fetch(doc_id)
+                content = doc['properties'].get('note:note')
+                if file_out is not None:
+                    if content is not None:
+                        encoded_content = content.encode('utf-8')
+                    with open(file_out, 'wb') as f:
+                        f.write(encoded_content)
+                return content
+        else:
+            doc_id = ref
+        return self.execute("Blob.Get", op_input="doc:" + doc_id,
                             timeout=self.blob_timeout, file_out=file_out)
 
     def attach_blob(self, ref, blob, filename):

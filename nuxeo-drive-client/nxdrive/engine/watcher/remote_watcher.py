@@ -18,6 +18,7 @@ from nxdrive.utils import path_join
 from httplib import BadStatusLine
 from urllib2 import HTTPError, URLError
 import os
+import socket
 log = get_logger(__name__)
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from nxdrive.engine.workers import ThreadInterrupt
@@ -209,8 +210,6 @@ class RemoteWatcher(EngineWorker):
         # Detect recently deleted children
         db_children = self._dao.get_remote_children(doc_pair.remote_ref)
         children_info = self._client.get_children_info(remote_info.uid)
-
-
         children = dict()
         to_scan = []
         for child in db_children:
@@ -246,20 +245,29 @@ class RemoteWatcher(EngineWorker):
         remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
         # Try to get the local definition if not linked
         child_pair = self._dao.get_state_from_local(local_path)
+        # Case of duplication: the file can exists in with a __x
+        if child_pair is None and parent_pair is not None and self._local_client.exists(parent_pair.local_path):
+            for child in self._local_client.get_children_info(parent_pair.local_path):
+                # Skip any file without __ as it cannot be a deduplicate
+                if '__' not in child.name:
+                    continue
+                if self._local_client.get_remote_id(child.path) == child_info.uid:
+                    log.debug("Found a deduplication case: %r on %s", child_info, child.path)
+                    child_pair = self._dao.get_state_from_local(child.path)
+                    break
         if child_pair is not None:
-            # Should compare to xattr remote uid
             if child_pair.remote_ref is not None:
                 child_pair = None
             else:
-                self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
                 if (child_pair.folderish == child_info.folderish
                         and self._local_client.is_equal_digests(child_pair.local_digest, child_info.digest,
                                                                 child_pair.local_path,
                                                                 remote_digest_algorithm=child_info.digest_algorithm)):
+                    self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
                     # Use version+1 as we just update the remote info
                     synced = self._dao.synchronize_state(child_pair, version=child_pair.version + 1)
                     if not synced:
-                        # Try again, might happens that it has been modified locally and remotelly
+                        # Try again, might happen that it has been modified locally and remotely
                         child_pair = self._dao.get_state_from_id(child_pair.id)
                         if (child_pair.folderish == child_info.folderish
                                 and self._local_client.is_equal_digests(
@@ -276,6 +284,9 @@ class RemoteWatcher(EngineWorker):
                     self._local_client.set_remote_id(local_path, child_info.uid)
                     if child_pair.folderish:
                         self._dao.queue_children(child_pair)
+                else:
+                    child_pair.remote_state = 'modified'
+                    self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
                 child_pair = self._dao.get_state_from_id(child_pair.id, from_write=True)
                 return child_pair, False
         row_id = self._dao.insert_remote_state(child_info, remote_parent_path, local_path, parent_pair.local_path)
@@ -303,7 +314,8 @@ class RemoteWatcher(EngineWorker):
         except Unauthorized as e:
             if not self._engine.has_invalid_credentials():
                 self._engine.set_invalid_credentials(reason='got Unauthorized with code %s while checking if offline'
-                                                     % e.code if hasattr(e, 'code') and e.code else 'None', exception=e)
+                                                     % e.code if hasattr(e, 'code') and e.code else 'None',
+                                                     exception=e)
         except:
             pass
         if self._client is None:
@@ -364,8 +376,9 @@ class RemoteWatcher(EngineWorker):
             else:
                 log.exception(e)
             self._engine.set_offline()
-        except (BadStatusLine, URLError) as e:
+        except (BadStatusLine, URLError, socket.error) as e:
             # Pause the rest of the engine
+            log.exception(e)
             self._engine.set_offline()
         except ThreadInterrupt as e:
             raise e
@@ -518,9 +531,8 @@ class RemoteWatcher(EngineWorker):
                                                                      new_info.can_update, new_info.can_create_child)
                             # Perform a regular document update on a document
                             # that has been updated, renamed or moved
-                            eventId = change.get('eventId')
                             log.debug("Refreshing remote state info"
-                                      " for doc_pair '%s' (force_recursion:%d)", doc_pair_repr,
+                                      " for doc_pair '%s', eventId = %s (force_recursion:%d)", doc_pair_repr, eventId,
                                       (eventId == "securityUpdated"))
                             remote_parent_path = doc_pair.remote_parent_path
                             # if (new_info.digest != doc_pair.local_digest or
@@ -532,7 +544,11 @@ class RemoteWatcher(EngineWorker):
                             else:
                                 remote_parent_path = os.path.dirname(new_info.path)
                                 # TODO Add modify local_path and local_parent_path if needed
-                            self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path)
+                            # Force remote state update in case of a locked / unlocked event since lock info is not
+                            # persisted, so not part of the dirty check
+                            force_update = eventId == 'documentLocked' or eventId == 'documentUnlocked'
+                            self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path,
+                                                          force_update=force_update)
                             self._force_scan_recursive(doc_pair, consistent_new_info, remote_path=new_info.path,
                                                        force_recursion=(eventId == "securityUpdated"))
 

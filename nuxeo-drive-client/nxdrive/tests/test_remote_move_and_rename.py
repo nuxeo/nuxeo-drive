@@ -64,8 +64,6 @@ class TestRemoteMoveAndRename(UnitTestCase):
         return self.engine_1.get_dao().get_normal_state_from_remote(remote)
 
     def _remote_rename_while_upload(self):
-        # Bind the server and root workspace
-        self.engine_1.start()
         # Get local and remote clients
         local = self.local_client_1
         remote = self.remote_file_system_client_1
@@ -133,7 +131,6 @@ class TestRemoteMoveAndRename(UnitTestCase):
             Engine.suspend_client(self.engine_1, reason)
 
         self.engine_1.suspend_client = suspend_check
-        self.engine_1.start()
         self.engine_1.invalidate_client_cache()
 
         # Create documents in the remote root workspace
@@ -171,7 +168,6 @@ class TestRemoteMoveAndRename(UnitTestCase):
         local = self.local_client_1
         remote = self.remote_document_client_1
 
-        self.engine_1.start()
         # Create documents in the remote root workspace
         # then synchronize
         self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
@@ -443,12 +439,26 @@ class TestRemoteMoveAndRename(UnitTestCase):
     def test_remote_rename_case_folder(self):
         remote_client = self.remote_client_1
         local_client = self.local_client_1
-
         self.assertTrue(local_client.exists('/Original Folder 1'))
         remote_client.rename(self.folder_1_id, 'Original folder 1')
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local_client.exists('/Original folder 1'))
         remote_client.rename(self.folder_1_id, 'Original Folder 1')
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(local_client.exists('/Original Folder 1'))
+
+    def test_remote_rename_case_folder_stopped(self):
+        remote_client = self.remote_client_1
+        local_client = self.local_client_1
+        self.engine_1.stop()
+        self.assertTrue(local_client.exists('/Original Folder 1'))
+        remote_client.rename(self.folder_1_id, 'Original folder 1')
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(local_client.exists('/Original folder 1'))
+        self.engine_1.stop()
+        remote_client.rename(self.folder_1_id, 'Original Folder 1')
+        self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local_client.exists('/Original Folder 1'))
 

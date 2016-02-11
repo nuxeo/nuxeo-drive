@@ -108,8 +108,9 @@ class LocalClient(BaseClient):
     # Automation operations fetched at manager init time.
 
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
-                 ignored_suffixes=None, check_suspended=None, case_sensitive=None):
+                    ignored_suffixes=None, check_suspended=None, case_sensitive=None, disable_duplication=False):
         self._case_sensitive = case_sensitive
+        self._disable_duplication = disable_duplication
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
@@ -281,13 +282,14 @@ class LocalClient(BaseClient):
                 create_file.close()
                 win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
                 win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
-                win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_SYSTEM)
             except Exception as e:
                 log.error("Exception when setting folder icon : %r", e)
         else:
             win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
             win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
-            win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_SYSTEM)
+        # Windows folder use READ_ONLY flag as a customization flag ...
+        # https://support.microsoft.com/en-us/kb/326549
+        win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_READONLY)
 
     def _read_data(self, file_path):
         '''The data file contains the mac icons'''
@@ -336,6 +338,8 @@ class LocalClient(BaseClient):
             log.error("Exception when setting folder icon : %s", e)
 
     def set_remote_id(self, ref, remote_id, name='ndrive'):
+        if type(remote_id).__name__ == "unicode":
+            remote_id = unicodedata.normalize('NFC', remote_id).encode('utf-8')
         # Can be move to another class
         path = self._abspath(ref)
         log.trace('Setting xattr %s with value %r on %r', name, remote_id, path)
@@ -365,8 +369,6 @@ class LocalClient(BaseClient):
             try:
                 import xattr
                 stat = os.stat(path)
-                if type(remote_id).__name__ == "unicode":
-                    remote_id = unicodedata.normalize('NFC', remote_id).encode('ascii','ignore')
                 if AbstractOSIntegration.is_mac():
                     xattr.setxattr(path, name, remote_id)
                 else:
@@ -386,7 +388,7 @@ class LocalClient(BaseClient):
             path = path + ":" + name
             try:
                 with open(path, "r") as f:
-                    return f.read()
+                    return unicode(f.read(), 'utf-8')
             except:
                 return None
         else:
@@ -396,9 +398,7 @@ class LocalClient(BaseClient):
                     value = xattr.getxattr(path, name)
                 else:
                     value = xattr.getxattr(path, 'user.' + name)
-                if type(value).__name__ == "unicode":
-                    value = unicode(value)
-                return value
+                return unicode(value, 'utf-8')
             except:
                 return None
 
@@ -649,12 +649,13 @@ class LocalClient(BaseClient):
         os_path = self._abspath(ref)
         return os.access(os_path, os.W_OK)
 
-    def rename(self, ref, new_name):
+    def rename(self, ref, to_name):
         """Rename a local file or folder
 
         Return the actualized info object.
 
         """
+        new_name = safe_filename(to_name)
         source_os_path = self._abspath(ref)
         parent = ref.rsplit(u'/', 1)[0]
         old_name = ref.rsplit(u'/', 1)[1]
@@ -711,6 +712,9 @@ class LocalClient(BaseClient):
             self.lock_ref(ref, locker & 2)
             self.lock_ref(new_parent_ref, locker & 1 | new_locker)
 
+    def is_inside(self, abspath):
+        return abspath.startswith(self.base_folder)
+
     def get_path(self, abspath):
         """Relative path to the local client from an absolute OS path"""
         path = abspath.split(self.base_folder, 1)[1]
@@ -751,7 +755,8 @@ class LocalClient(BaseClient):
                 return os_path, name + suffix
             if not os.path.exists(os_path):
                 return os_path, name + suffix
-            #raise ValueError("SHOULD NOT DUPLICATE NOW")
+            if self._disable_duplication:
+                raise ValueError("De-duplication is disabled")
             # the is a duplicated file, try to come with a new name
             log.trace("dedup: %s exist try next", os_path)
             m = re.match(DEDUPED_BASENAME_PATTERN, name)

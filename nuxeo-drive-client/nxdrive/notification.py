@@ -249,7 +249,17 @@ class ErrorNotification(Notification):
             action="drive.showConflicts();")
 
 
-class DriveEditLockNotification(Notification):
+class LockNotification(Notification):
+    def __init__(self, filename):
+        values = dict()
+        values["name"] = filename
+        super(LockNotification, self).__init__("LOCK",
+            title=Translator.get("LOCK_NOTIFICATION_TITLE", values),
+            description=Translator.get("LOCK_NOTIFICATION_DESCRIPTION", values), level=Notification.LEVEL_INFO,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
+
+class DriveEditErrorLockNotification(Notification):
     def __init__(self, type, filename, ref):
         values = dict()
         values["name"] = filename
@@ -262,8 +272,9 @@ class DriveEditLockNotification(Notification):
             description = Translator.get("DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION", values)
         else:
             raise Exception()
-        super(DriveEditLockNotification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
+        super(DriveEditErrorLockNotification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
 
 class ConflictNotification(Notification):
     def __init__(self, engine_uid, doc_pair):
@@ -275,6 +286,34 @@ class ConflictNotification(Notification):
             engine_uid=engine_uid, level=Notification.LEVEL_WARNING,
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_ACTIONABLE|Notification.FLAG_BUBBLE|Notification.FLAG_PERSISTENT|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD,
             action="drive.showConflicts();")
+
+
+class ReadOnlyNotification(Notification):
+    def __init__(self, engine_uid, filename, parent=None):
+        values = dict()
+        values["name"] = filename
+        values["folder"] = parent
+        title = Translator.get("READONLY", values)
+        if parent is None:
+            description = Translator.get("READONLY_FILE", values)
+        else:
+            description = Translator.get("READONLY_FOLDER", values)
+        super(ReadOnlyNotification, self).__init__("READONLY", title=title, description=description,
+            engine_uid=engine_uid, level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
+
+class LockedNotification(Notification):
+    def __init__(self, engine_uid, filename, lock_owner, lock_created):
+        values = dict()
+        values["name"] = filename
+        values["lock_owner"] = lock_owner
+        values["lock_created"] = lock_created.strftime("%m/%d/%Y %H:%M:%S")
+        title = Translator.get("LOCKED", values)
+        description = Translator.get("LOCKED_FILE", values)
+        super(LockedNotification, self).__init__("LOCKED", title=title, description=description,
+            engine_uid=engine_uid, level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
 class InvalidCredentialNotification(Notification):
@@ -295,18 +334,25 @@ class DefaultNotificationService(NotificationService):
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
         self._manager.get_drive_edit().driveEditLockError.connect(self._driveEditLockError)
+        self._manager.get_autolock_service().documentLocked.connect(self._lockDocument)
+
 
     def _connect_engine(self, engine):
         engine.newConflict.connect(self._newConflict)
         engine.newError.connect(self._newError)
+        engine.newReadonly.connect(self._newReadonly)
+        engine.newLocked.connect(self._newLocked)
         engine.invalidAuthentication.connect(self._invalidAuthentication)
         engine.online.connect(self._validAuthentication)
+
+    def _lockDocument(self, filename):
+        self.send_notification(LockNotification(filename))
 
     def _driveEditLockError(self, lock, filename, ref):
         if lock != 'lock' and lock != 'unlock':
             log.debug("DriveEdit LockError not handled: %s", lock)
             return
-        self.send_notification(DriveEditLockNotification(lock, filename, ref))
+        self.send_notification(DriveEditErrorLockNotification(lock, filename, ref))
 
     def _newError(self, row_id):
         engine_uid = self.sender()._uid
@@ -321,6 +367,14 @@ class DefaultNotificationService(NotificationService):
         if doc_pair is None:
             return
         self.send_notification(ConflictNotification(engine_uid, doc_pair))
+
+    def _newReadonly(self, filename, parent):
+        engine_uid = self.sender()._uid
+        self.send_notification(ReadOnlyNotification(engine_uid, filename, parent))
+
+    def _newLocked(self, filename, lock_owner, lock_created):
+        engine_uid = self.sender()._uid
+        self.send_notification(LockedNotification(engine_uid, filename, lock_owner, lock_created))
 
     def _validAuthentication(self):
         engine_uid = self.sender()._uid

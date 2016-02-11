@@ -10,8 +10,7 @@ from nxdrive.client.local_client import LocalClient
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import safe_filename, NotFound
-from nxdrive.utils import force_decode
-from nxdrive.utils import guess_digest_algorithm
+from nxdrive.utils import guess_digest_algorithm, current_milli_time
 from nxdrive.osi import parse_protocol_url
 import os
 import sys
@@ -21,11 +20,18 @@ import shutil
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from Queue import Queue, Empty
 log = get_logger(__name__)
+WindowsError = None
+try:
+    from exceptions import WindowsError
+except ImportError:
+    pass  # this will never be raised under unix
 
 
 class DriveEdit(Worker):
     localScanFinished = pyqtSignal()
     driveEditUploadCompleted = pyqtSignal()
+    openDocument = pyqtSignal(object)
+    editDocument = pyqtSignal(object)
     driveEditLockError = pyqtSignal(str, str, str)
     driveEditConflict = pyqtSignal(str, str, str)
 
@@ -53,6 +59,7 @@ class DriveEdit(Worker):
         self._error_queue = BlacklistQueue()
         self._stop = False
         self._manager.get_autolock_service().orphanLocks.connect(self._autolock_orphans)
+        self._last_action_timing = -1
 
     @pyqtSlot(object)
     def _autolock_orphans(self, locks):
@@ -84,7 +91,7 @@ class DriveEdit(Worker):
             url = self._url
         if url is None:
             return
-        log.debug("DriveEdit load: '%s'", url)
+        log.debug("DriveEdit load: '%r'", url)
         try:
             info = parse_protocol_url(str(url))
         except UnicodeEncodeError:
@@ -145,42 +152,54 @@ class DriveEdit(Worker):
         pair = engine.get_dao().get_valid_duplicate_file(info.digest)
         if pair:
             local_client = engine.get_local_client()
-            shutil.copy(local_client._abspath(pair.local_path), file_out)
+            existing_file_path = local_client._abspath(pair.local_path)
+            log.debug('Local file matches remote digest %r, copying it from %r', info.digest, existing_file_path)
+            shutil.copy(existing_file_path, file_out)
+            if pair.is_readonly():
+                log.debug('Unsetting readonly flag on copied file %r', file_out)
+                from nxdrive.client.common import BaseClient
+                BaseClient.unset_path_readonly(file_out)
         else:
+            log.debug('Downloading file %r', info.filename)
             if url is not None:
                 remote_client.do_get(url, file_out=file_out, digest=info.digest, digest_algorithm=info.digest_algorithm)
             else:
-                remote_client.get_blob(info.uid, file_out=file_out)
+                remote_client.get_blob(info, file_out=file_out)
         return file_out
 
-    def _prepare_edit(self, server_url, doc_id, filename, user=None, download_url=None):
+    def _display_modal(self, message, values=None):
+        from nxdrive.wui.application import SimpleApplication
+        from nxdrive.wui.modal import WebModal
+        app = SimpleApplication(self._manager, None, {})
+        dialog = WebModal(app, app.translate(message, values))
+        dialog.add_button("OK", app.translate("OK"))
+        dialog.show()
+        app.exec_()
+
+    def _prepare_edit(self, server_url, doc_id, user=None, download_url=None):
+        start_time = current_milli_time()
         engine = self._get_engine(server_url, user=user)
         if engine is None:
-            # TO_REVIEW Display an error message
-            log.debug("No engine found for %s(%s)", server_url, doc_id)
+            values = dict()
+            values['user'] = user
+            values['server'] = server_url
+            log.warn("No engine found for %s(%s)", server_url, doc_id)
+            self._display_modal("DIRECT_EDIT_CANT_FIND_ENGINE", values)
             return
         # Get document info
         remote_client = engine.get_remote_doc_client()
         # Avoid any link with the engine, remote_doc are not cached so we can do that
         remote_client.check_suspended = self.stop_client
         info = remote_client.get_info(doc_id)
+        filename = info.filename
 
         # Create local structure
         dir_path = os.path.join(self._folder, doc_id)
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
 
-        log.trace('Raw filename: %r', filename)
-        filename = safe_filename(urllib2.unquote(filename))
-        log.trace('Unquoted filename = %r', filename)
-        decoded_filename = force_decode(filename)
-        if decoded_filename is None:
-            decoded_filename = filename
-        else:
-            # Always use utf-8 encoding for xattr
-            filename = decoded_filename.encode('utf-8')
-        log.debug("Editing %r ('nxdriveeditname' xattr: %r)", decoded_filename, filename)
-        file_path = os.path.join(dir_path, decoded_filename)
+        log.debug("Editing %r", filename)
+        file_path = os.path.join(dir_path, filename)
 
         # Download the file
         url = None
@@ -212,22 +231,32 @@ class DriveEdit(Worker):
         if sys.platform == 'win32' and os.path.exists(file_path):
             os.unlink(file_path)
         os.rename(tmp_file, file_path)
+        self._last_action_timing = current_milli_time() - start_time
+        self.openDocument.emit(info)
         return file_path
 
     def edit(self, server_url, doc_id, filename=None, user=None, download_url=None):
-        # Handle backward compatibility
-        if '#' in doc_id:
-            engine = self._get_engine(server_url)
-            if engine is None:
-                log.warn("No engine found for %s, cannot edit file with remote ref %s", server_url, doc_id)
-                return
-            self._manager.edit(engine, doc_id)
-        else:
-            # Download file
-            file_path = self._prepare_edit(server_url, doc_id, filename, user=user, download_url=download_url)
-            # Launch it
-            if file_path is not None:
-                self._manager.open_local_file(file_path)
+        try:
+            # Handle backward compatibility
+            if '#' in doc_id:
+                engine = self._get_engine(server_url)
+                if engine is None:
+                    log.warn("No engine found for %s, cannot edit file with remote ref %s", server_url, doc_id)
+                    return
+                self._manager.edit(engine, doc_id)
+            else:
+                # Download file
+                file_path = self._prepare_edit(server_url, doc_id, user=user, download_url=download_url)
+                # Launch it
+                if file_path is not None:
+                    self._manager.open_local_file(file_path)
+        except WindowsError as e:
+            if e.errno == 13:
+                # open file anyway
+                if e.filename is not None:
+                    self._manager.open_local_file(e.filename)
+            else:
+                raise e
 
     def _extract_edit_info(self, ref):
         dir_path = os.path.dirname(ref)
@@ -265,6 +294,8 @@ class DriveEdit(Worker):
                 if item[1] == 'lock':
                     remote_client.lock(uid)
                     self._local_client.set_remote_id(dir_path, "1", "nxdriveeditlock")
+                    # Emit the lock signal only when the lock is really set
+                    self._manager.get_autolock_service().documentLocked.emit(os.path.basename(ref))
                 else:
                     remote_client.unlock(uid)
                     if item[1] == 'unlock_orphan':
@@ -274,6 +305,8 @@ class DriveEdit(Worker):
                         # Clean the folder
                         shutil.rmtree(self._local_client._abspath(path), ignore_errors=True)
                     self._local_client.remove_remote_id(dir_path, "nxdriveeditlock")
+                    # Emit the signal only when the unlock is done - might want to avoid the call on orphan
+                    self._manager.get_autolock_service().documentUnlocked.emit(os.path.basename(ref))
             except Exception as e:
                 # Try again in 30s
                 log.debug("Can't %s document '%s': %r", item[1], ref, e, exc_info=True)
@@ -297,13 +330,16 @@ class DriveEdit(Worker):
                 current_digest = info.get_digest(digest_func=digest_algorithm)
                 if current_digest == digest:
                     continue
-                log.trace("Local digest: %s is different from the recorded one: %s - modification detected", current_digest, digest)
+                start_time = current_milli_time()
+                log.trace("Local digest: %s is different from the recorded one: %s - modification detected for %r",
+                          current_digest, digest, ref)
                 # TO_REVIEW Should check if server-side blob has changed ?
                 # Update the document - should verify the remote hash - NXDRIVE-187
                 remote_info = remote_client.get_info(uid)
                 if remote_info.digest != digest:
                     # Conflict detect
-                    log.trace("Remote digest: %s is different from the recorded one: %s - conflict detected", remote_info.digest, digest)
+                    log.trace("Remote digest: %s is different from the recorded one: %s - conflict detected for %r",
+                              remote_info.digest, digest, ref)
                     self.driveEditConflict.emit(os.path.basename(ref), ref, remote_info.digest)
                     continue
                 log.debug('Uploading file %s', self._local_client._abspath(ref))
@@ -311,6 +347,8 @@ class DriveEdit(Worker):
                 # Update hash value
                 dir_path = os.path.dirname(ref)
                 self._local_client.set_remote_id(dir_path, current_digest, 'nxdriveeditdigest')
+                self._last_action_timing = current_milli_time() - start_time
+                self.editDocument.emit(remote_info)
             except ThreadInterrupt:
                 raise
             except Exception as e:
@@ -352,6 +390,7 @@ class DriveEdit(Worker):
         metrics = super(DriveEdit, self).get_metrics()
         if self._event_handler is not None:
             metrics['fs_events'] = self._event_handler.counter
+        metrics['last_action_timing'] = self._last_action_timing
         return dict(metrics.items() + self._metrics.items())
 
     def _setup_watchdog(self):
@@ -411,9 +450,6 @@ class DriveEdit(Worker):
             name = self._local_client.get_remote_id(dir_path, "nxdriveeditname")
             if name is None:
                 return
-            decoded_name = force_decode(name)
-            if decoded_name is not None:
-                name = decoded_name
             if name != file_name:
                 return
             if self._manager.get_drive_edit_auto_lock() and self._local_client.get_remote_id(dir_path, "nxdriveeditlock") != "1":

@@ -6,12 +6,14 @@ from nxdrive.logging_config import get_logger
 from watchdog.events import FileSystemEventHandler
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
+from nxdrive.utils import is_office_temp_file
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.activity import Action
 from Queue import Queue
 import sys
 import os
 import re
+import sqlite3
 from time import sleep, time, mktime
 from datetime import datetime
 from threading import Lock
@@ -242,15 +244,19 @@ class LocalWatcher(EngineWorker):
 
         info = self.client.get_info(u'/')
         self._scan_recursive(info)
-        for deleted in self._delete_files:
-            if deleted in self._protected_files:
-                continue
-            self._dao.delete_local_state(self._delete_files[deleted])
+        self._scan_handle_deleted_files()
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
         log.debug("Full scan finished in %dms", self._metrics['last_local_scan_time'])
         self._local_scan_finished = True
         self._engine.get_queue_manager().resume()
         self.localScanFinished.emit()
+
+    def _scan_handle_deleted_files(self):
+        for deleted in self._delete_files:
+            if deleted in self._protected_files:
+                continue
+            self._dao.delete_local_state(self._delete_files[deleted])
+        self._delete_files = dict()
 
     def get_metrics(self):
         metrics = super(LocalWatcher, self).get_metrics()
@@ -269,10 +275,12 @@ class LocalWatcher(EngineWorker):
         info = self.client.get_info(local_path)
         self._suspend_queue()
         self._scan_recursive(info, recursive=False)
+        self._scan_handle_deleted_files()
         self._engine.get_queue_manager().resume()
 
     def empty_events(self):
-        return self._watchdog_queue.empty()
+        return self._watchdog_queue.empty() and ( not AbstractOSIntegration.is_windows() or
+                    self.win_queue_empty() and self.win_folder_scan_empty())
 
     def get_watchdog_queue_size(self):
         return self._watchdog_queue.qsize()
@@ -347,6 +355,12 @@ class LocalWatcher(EngineWorker):
                         log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
                         if doc_pair is not None and self.client.exists(doc_pair.local_path):
+                            if (not self.client.is_case_sensitive() and\
+                                            doc_pair.local_path.lower() == child_info.path.lower()):
+                                log.debug("Case renaming on a case insensitive filesystem, update info and ignore: %r",
+                                                doc_pair)
+                                self._dao.update_local_state(doc_pair, child_info)
+                                continue
                             # possible move-then-copy case, NXDRIVE-471
                             child_full_path = self.client._abspath(child_info.path)
                             child_creation_time = self.get_creation_time(child_full_path)
@@ -414,7 +428,8 @@ class LocalWatcher(EngineWorker):
             else:
                 child_pair = children.pop(child_name)
                 try:
-                    if (unicode(child_info.last_modification_time.strftime("%Y-%m-%d %H:%M:%S"))
+                    if (child_pair.last_local_updated is not None and
+                                unicode(child_info.last_modification_time.strftime("%Y-%m-%d %H:%M:%S"))
                             != child_pair.last_local_updated.split(".")[0] and child_pair.processor == 0):
                         log.trace("Update file %s", child_info.path)
                         remote_ref = self.client.get_remote_id(child_pair.local_path)
@@ -485,25 +500,33 @@ class LocalWatcher(EngineWorker):
                 self._delete_files[deleted.remote_ref] = deleted
 
         for child_info in to_scan_new:
-            self._scan_recursive(child_info)
+            self._push_to_scan(child_info)
 
         if not recursive:
             log.debug('Ended recursive local scan of %r', info.path)
             return
 
         for child_info in to_scan:
-            self._scan_recursive(child_info)
+            self._push_to_scan(child_info)
 
         log.debug('Ended recursive local scan of %r', info.path)
+
+    def _push_to_scan(self, info):
+        self._scan_recursive(info)
 
     def _setup_watchdog(self):
         # Monkey-patch Watchdog to
         # - Set the Windows hack delay to 0 in WindowsApiEmitter, otherwise we might miss some events
         # - Increase the ReadDirectoryChangesW buffer size for Windows
         if self._windows:
-            import watchdog.observers
-            watchdog.observers.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
-            watchdog.observers.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
+            try:
+                import watchdog.observers
+                watchdog.observers.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
+                watchdog.observers.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
+            except:
+                log.trace('read_directory_changes import error', exc_info=True)
+                log.warn('Cannot import read_directory_changes, probably under Windows XP'
+                         ', watchdog will fall back on polling')
         from watchdog.observers import Observer
         log.debug("Watching FS modification on : %s", self.client.base_folder)
         self._event_handler = DriveFSEventHandler(self)
@@ -511,6 +534,13 @@ class LocalWatcher(EngineWorker):
         self._observer = Observer()
         self._observer.schedule(self._event_handler, self.client.base_folder, recursive=True)
         self._observer.start()
+        self._check_watchdog()
+
+        self._root_observer = Observer()
+        self._root_observer.schedule(self._root_event_handler, os.path.dirname(self.client.base_folder), recursive=False)
+        self._root_observer.start()
+
+    def _check_watchdog(self):
         # Be sure to have at least one watchdog event
         timeout = 30
         lock = self.client.unlock_ref('/', False)
@@ -520,7 +550,7 @@ class LocalWatcher(EngineWorker):
                 with open(fname, 'a'):
                     os.utime(fname, None)
                 sleep(1)
-                timeout = timeout - 1
+                timeout -= 1
                 if timeout < 0:
                     log.debug("Can't have watchdog setup. Fallback to full scan mode ?")
                     os.remove(fname)
@@ -530,9 +560,6 @@ class LocalWatcher(EngineWorker):
                 os.remove(fname)
         finally:
             self.client.lock_ref('/', lock)
-        self._root_observer = Observer()
-        self._root_observer.schedule(self._root_event_handler, os.path.dirname(self.client.base_folder), recursive=False)
-        self._root_observer.start()
 
     def _stop_watchdog(self, raise_on_error=True):
         if self._observer is not None:
@@ -573,13 +600,10 @@ class LocalWatcher(EngineWorker):
         log.trace("watchdog event %r on known pair: %r", evt, doc_pair)
         if (evt.event_type == 'moved'):
             # Ignore move to Office tmp file
-            src_filename = os.path.basename(evt.src_path)
             dest_filename = os.path.basename(evt.dest_path)
-            if dest_filename.endswith('.tmp'):
-                if dest_filename.startswith('~') or len(dest_filename) == 12:
-                    # 12 is for Office 813DEFA7.tmp
-                    log.debug('Ignoring Office tmp file: %r', evt.dest_path)
-                    return
+            if is_office_temp_file(dest_filename):
+                log.debug('Ignoring Office tmp file: %r', evt.dest_path)
+                return
             # Ignore normalization of the filename on the file system
             # See https://jira.nuxeo.com/browse/NXDRIVE-188
             if evt.dest_path == normalize_event_filename(evt.src_path):
@@ -599,7 +623,10 @@ class LocalWatcher(EngineWorker):
                         if not doc_pair.folderish and pair.local_digest == digest:
                             log.trace('Dropping watchdog event [%s] as digest has not changed for %s',
                               evt.event_type, rel_path)
-                            self._dao.remove_state(doc_pair)
+                            # If pair are the same dont drop it
+                            # It can happen in case of server rename on a document
+                            if doc_pair.id != pair.id:
+                                self._dao.remove_state(doc_pair)
                             return
                         pair.local_digest = digest
                         pair.local_state = 'modified'
@@ -621,6 +648,8 @@ class LocalWatcher(EngineWorker):
                 if (doc_pair.remote_name == local_info.name and
                         doc_pair.remote_parent_ref == remote_parent_ref):
                         # The pair was moved but it has been canceled manually
+                        log.debug("The pair was moved but it has been canceled manually,"
+                                  " setting state to 'synchronized': %r", doc_pair)
                         doc_pair.local_state = 'synchronized'
                 elif not (local_info.name == doc_pair.local_name and
                         doc_pair.remote_parent_ref == remote_parent_ref):
@@ -641,9 +670,25 @@ class LocalWatcher(EngineWorker):
                     finally:
                         self._win_lock.release()
             return
-        if doc_pair.processor > 0:
-            log.trace("Don't update as in process %r", doc_pair)
-            return
+        acquired_pair = None
+        try:
+            acquired_pair = self._dao.acquire_state(self._thread_id, doc_pair.id)
+            if acquired_pair is not None:
+                self._handle_watchdog_event_on_known_acquired_pair(acquired_pair, evt, rel_path)
+            else:
+                log.trace("Don't update as in process %r", doc_pair)
+        except sqlite3.OperationalError:
+            log.exception("Don't update as cannot acquire %r", doc_pair)
+        finally:
+            self._dao.release_state(self._thread_id)
+            if acquired_pair is not None:
+                log.trace("Re-queuing acquired and released state %r", doc_pair)
+                refreshed_pair = self._dao.get_state_from_id(acquired_pair.id)
+                if refreshed_pair is not None:
+                    self._dao._queue_pair_state(refreshed_pair.id, refreshed_pair.folderish,
+                                                refreshed_pair.pair_state, pair=refreshed_pair)
+
+    def _handle_watchdog_event_on_known_acquired_pair(self, doc_pair, evt, rel_path):
         if evt.event_type == 'deleted':
             # Delay on Windows the delete event
             if self._windows:
@@ -671,20 +716,26 @@ class LocalWatcher(EngineWorker):
                 return
             else:
                 # NXDRIVE-509
-                log.debug("Created event on a known pair with a remote_ref,"
-                          " this can happen with certain Mac applications as TextEdit: %r", doc_pair)
+                log.debug("Created event on a known pair with a remote_ref: %r", doc_pair)
         local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if local_info is not None:
+            # Unchanged folder
+            if doc_pair.folderish:
+                log.debug('Unchanged folder %s (watchdog event [%s]), only update last_local_updated',
+                          rel_path, evt.event_type)
+                self._dao.update_local_modification_time(doc_pair, local_info)
+                return
             if doc_pair.local_state == 'synchronized':
                 digest = local_info.get_digest()
-                # Drop event if digest hasn't changed, can be the case if only file permissions have been updated
-                if not doc_pair.folderish and doc_pair.local_digest == digest:
-                    log.debug('Dropping watchdog event [%s] as digest has not changed for %s',
-                              evt.event_type, rel_path)
+                # Unchanged digest, can be the case if only the last modification time or file permissions
+                # have been updated
+                if doc_pair.local_digest == digest:
+                    log.debug('Digest has not changed for %s (watchdog event [%s]), only update last_local_updated',
+                              rel_path, evt.event_type)
+                    self._dao.update_local_modification_time(doc_pair, local_info)
                     return
                 doc_pair.local_digest = digest
                 doc_pair.local_state = 'modified'
-            queue = not (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified')
             if AbstractOSIntegration.is_mac() and evt.event_type == 'modified' and doc_pair.remote_ref is not None and doc_pair.remote_ref != local_info.remote_ref:
                 original_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
                 original_info = None
@@ -694,10 +745,7 @@ class LocalWatcher(EngineWorker):
                     log.debug("MacOSX has postponed overwriting of xattr, need to reset remote_ref for %r", doc_pair)
                     # We are in a copy/paste situation with OS overriding the xattribute
                     self.client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
-            # No need to change anything on sync folder
-            if (evt.event_type == 'modified' and doc_pair.folderish and doc_pair.local_state == 'modified'):
-                doc_pair.local_state = 'synchronized'
-            self._dao.update_local_state(doc_pair, local_info, queue=queue)
+            self._dao.update_local_state(doc_pair, local_info)
 
     def handle_watchdog_root_event(self, evt):
         if evt.event_type == 'modified' or evt.event_type == 'created':
@@ -735,7 +783,9 @@ class LocalWatcher(EngineWorker):
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
                     log.debug("Ignoring %s as marked unsynchronized", doc_pair.local_path)
-                    if evt.event_type == 'deleted' or evt.event_type == 'moved':
+                    if (evt.event_type == 'deleted'
+                        or evt.event_type == 'moved' and not is_office_temp_file(os.path.basename(evt.dest_path))):
+                        log.debug('Removing pair state for deleted or moved event: %r', doc_pair)
                         self._dao.remove_state(doc_pair)
                     return
                 self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
@@ -758,6 +808,14 @@ class LocalWatcher(EngineWorker):
                 doc_pair = self._dao.get_state_from_local(rel_path)
                 # If the file exists but not the pair
                 if local_info is not None and doc_pair is None:
+                    # Check if it is a pair that we loose track of
+                    if local_info.remote_ref is not None:
+                        doc_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
+                        if doc_pair is not None and not self.client.exists(doc_pair.local_path):
+                            log.debug("Pair re-moved detected for %r", doc_pair)
+                            # Can be a move inside a folder that has also moved
+                            self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
+                            return
                     rel_parent_path = self.client.get_path(os.path.dirname(src_path))
                     if rel_parent_path == '':
                         rel_parent_path = '/'
@@ -901,7 +959,7 @@ class DriveFSRootEventHandler(FileSystemEventHandler):
 def normalize_event_filename(filename):
     import unicodedata
     if sys.platform == 'darwin':
-        normalized_filename = unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
+        return unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
     else:
         normalized_filename = unicodedata.normalize('NFC', unicode(filename))
     # Normalize name on the file system if not normalized

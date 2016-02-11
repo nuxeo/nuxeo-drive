@@ -26,6 +26,8 @@ class WebAuthenticationApi(QtCore.QObject):
             local_folder = self._callback_params['local_folder']
             server_url = self._callback_params['server_url']
             engine_name = self._callback_params['engine_name']
+            engine_type = self._callback_params['engine_type']
+            server_url = server_url + '#' + engine_type
             log.debug('Creating new account [%s, %s, %s]', local_folder, server_url, username)
             error = self._settings_api.bind_server(local_folder, server_url, username, password=None, token=token, name=engine_name)
             log.debug("RETURN FROM BIND_SERVER IS: '%s'", error)

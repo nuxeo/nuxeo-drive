@@ -110,6 +110,8 @@ LocalWatcher logic schemas: [https://www.lucidchart.com/documents/view/21ec315b-
 
 ### Mac OS X Requirements
 
+#### Compilation Tools
+
 To be able to build the Nuxeo Drive client on Mac OS X, you must install your own non-system version of Python 2.7 using [Homebrew](https://github.com/Homebrew/homebrew).
 
 First you need to install Xcode and its Command Line Tools as they are required for compilation with Homebrew.
@@ -120,29 +122,65 @@ Then make sure to update the formulae and Homebrew itself and to upgrade everyth
 brew update && brew upgrade
 ```
 
-Finally install Python:
+#### OpenSSL Hack
 
-```
-brew install python
-```
+Since Python 2.7.9, SSL verification is enabled by default. Unsurprisingly, it broke some Python scripts that connected to servers with self-signed certificates. Surprisingly, it broke scripts - among which the Nuxeo Drive one - that connected to servers with valid SSL certificates.
 
-This will install a new Python interpreter along with pip under /usr/local/Cellar and add publish it using symlinks in `/usr/local/bin` and `/usr/local/lib/python2.7`.
+Why is that? Because the OpenSSL library as shipped with Mac OS X (which is still 0.9.8) has special hooks in it so that it falls back to OS X keyring if verification fails against the CAs given to OpenSSL itself, whereas the OpenSSL built with Homebrew does not have this fallback.
+
+This means that if we use the built-in OpenSSL with python2 it will successfully verify the site if it finds a CA inside the OS X keyring. But if we compile python2 against our own OpenSSL it will look for the CAs in `/usr/local/etc/openssl/cert.pem` which is the location where Homebrew clones the system keyring when installing `openssl`. This would work on a dev environment with a Homebrew installation of `openssl` but not on a standard OS X machine!
+
+Therefore we need to compile python with the OpenSSL library shipped with OS X, thus the following procedure. It is hackish but we haven't found a better way.
+
+1. Make sure the system OpenSSL provided by Apple is installed.
+
+        $ openssl version
+        OpenSSL 0.9.8zf 19 Mar 2015
+
+2. Install `openssl` with Homebrew.
+
+        brew install openssl
+
+3. Link the `openssl` installed with Homebrew to the system one.
+
+        mv /usr/local/opt/openssl /usr/local/opt/openssl.brew
+        ln -s /usr /usr/local/opt/openssl
+
+For details about this "feature" of Mac OS X and the problems it introduces see this [great article](https://hynek.me/articles/apple-openssl-verification-surprises/).
+
+Also see the related [JIRA issue](https://jira.nuxeo.com/browse/NXDRIVE-506).
+
+#### Python Installation
+
+Let's install Python with Homebrew.
+
+Thanks to the previous step the system OpenSSL will be used as a dependency instead of the one installed with Homebrew.
+
+    brew install python
+
+This will install a new Python interpreter along with `pip` under `/usr/local/Cellar` and add publish it using symlinks in `/usr/local/bin` and `/usr/local/lib/python2.7`.
 
 If you already have another version of [pip](http://www.pip-installer.org/) installed in `/usr/local/bin` you can force the overwrite the `/usr/local/bin/pip` with:
 
-```
-brew link --overwrite python
-```
+    brew link --overwrite python
 
 Make sure that you are know using your newly installed version of Python / pip:
 
-```
-$ export PATH=/usr/local/bin:$PATH
-$ which pip
-/usr/local/bin/pip
-$ which python
-/usr/local/bin/python
-```
+    $ export PATH=/usr/local/bin:$PATH
+    $ which pip
+    /usr/local/bin/pip
+    $ which python
+    /usr/local/bin/python
+
+You can check the version of Python and OpenSSL with:
+
+    $ python
+    Python 2.7.11 (default, Dec 14 2015, 16:44:00) 
+    [GCC 4.2.1 Compatible Apple LLVM 5.1 (clang-503.0.40)] on darwin
+    Type "help", "copyright", "credits" or "license" for more information.
+    >>> import ssl
+    >>> ssl.OPENSSL_VERSION
+    'OpenSSL 0.9.8y 5 Feb 2013'
 
 ### Installing Qt and PyQt
 
@@ -168,19 +206,24 @@ Under OS X you can install Qt and PyQt using [Homebrew](https://github.com/Homeb
 
 First you need to make sure that the brew installed Python will be used when installing PyQt:
 
-```
-#Override default tools with Cellar ones if available
-#This makes sure homebrew stuff is used
-export PATH=/usr/local/bin:$PATH
-#Point OSX to Cellar python
-export PYTHONPATH=/usr/local/lib/python2.7:$PYTHONPATH
-```
+    export PATH=/usr/local/bin:$PATH
 
-Then install PyQt with Homebrew:
+Then install PyQt following these steps:
 
-```
-brew install pyqt
-```
+1. Install qt
+
+    Thanks to the previous step the system OpenSSL will be used as a dependency instead of the one installed with Homebrew.
+
+        brew install qt
+
+2. Install pyqt
+
+    You need to remove the symlink used for the OpenSSL hack since it makes the installation of `pyqt` with Homebrew fail.
+
+        rm /usr/local/opt/openssl
+        mv /usr/local/opt/openssl.brew /usr/local/opt/openssl
+
+        brew install pyqt
 
 **Alternative methods**
 
@@ -233,7 +276,9 @@ To run the tests install and start a Nuxeo server locally, then:
 cd nuxeo-drive-client; nosetests nxdrive
 ```
 
-### Mac OS X
+#### Mac OS X
+
+In case of problem about libffi while retrieving xattr (for exampe) during pip requirements installation, you might need to run this command and retry: `brew reinstall libffi`
 
 Grab all the dev dependencies and tools at once using [pip](http://www.pip-installer.org/):
 
@@ -259,7 +304,7 @@ To run the tests, install and start a Nuxeo server locally, then:
 cd nuxeo-drive-client; nosetests nxdrive
 ```
 
-### Windows
+#### Windows
 
 To set up a build environment under Windows run the PowerShell script with the administration rights (right click on the PowerShell icon in the Programs menu to get the opportunity to "Run as administrator"):
 
@@ -349,13 +394,13 @@ C:\Python27\python.exe setup.py --freeze bdist_msi
 
 The generated .msi file can be found in the `dist/` subfolder.
 
-### Signing the Binary Packages
+## Signing the Binary Packages
 
 As OS X and Windows have some default security policies to only allow users to run software they have downloaded off the Internet if it has been signed, we need to sign the Nuxeo Drive binary packages. For an unsigned application, under Windows, users only need to click "Yes" in a various number of popups to get through the security check, but under OS X unless the Security & Privacy settings are changed or they right/Ctrl clik on the file, they simply won't be able to launch the application!
 
 For a full documentation on application signing see [https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/doc/digital_signature.md](https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/doc/digital_signature.md)
 
-#### Mac OS X
+### Mac OS X
 
 You need to make sure to have a code signing identity trusted by Apple in one of the machine's keychain. Let's say its name is "Developer ID Application: NUXEO CORP (WCLR6985BX)".
 
@@ -367,7 +412,7 @@ sh tools/osx/create-dmg.sh
 
 It will sign the DMG package and verify its signature. It uses the `codesign` and `spctl` commands included by default in Mac OS X.
 
-#### Windows
+### Windows
 
 You need to make sure to have a valid PFX certificate file on the build machine, let's say it is located in `C:\Users\Nuxeo\certificates\nuxeo.com.pfx`.
 
