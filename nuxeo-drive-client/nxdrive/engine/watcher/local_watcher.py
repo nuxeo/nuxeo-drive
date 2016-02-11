@@ -359,6 +359,9 @@ class LocalWatcher(EngineWorker):
                                             doc_pair.local_path.lower() == child_info.path.lower()):
                                 log.debug("Case renaming on a case insensitive filesystem, update info and ignore: %r",
                                                 doc_pair)
+                                if doc_pair.local_name in children:
+                                    del children[doc_pair.local_name]
+                                doc_pair.local_state = 'moved'
                                 self._dao.update_local_state(doc_pair, child_info)
                                 continue
                             # possible move-then-copy case, NXDRIVE-471
