@@ -566,112 +566,29 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertFalse(folder_1_state.remote_can_rename)
 
         # Rename local folder
-        local_client.rename(u'/Original Folder 1',
-                            u'Renamed Folder 1 \xe9')
+        local_client.rename(u'/Original Folder 1', u'Renamed Folder 1 \xe9')
         self.assertFalse(local_client.exists(u'/Original Folder 1'))
         self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
 
         self.wait_sync()
 
         # Check remote folder has not been renamed
-        folder_1_remote_info = remote_client.get_info(
-            u'/Original Folder 1')
-        self.assertEquals(folder_1_remote_info.name,
-                          u'Original Folder 1')
+        folder_1_remote_info = remote_client.get_info(u'/Original Folder 1')
+        self.assertEquals(folder_1_remote_info.name, u'Original Folder 1')
 
         # Check state of local folder and its children
         folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(uid)
-        self.assertEquals(folder_1_state.remote_name,
-                          u'Original Folder 1')
+        self.assertEquals(folder_1_state.remote_name, u'Original Folder 1')
 
-        self.assertTrue(local_client.exists(
-            u'/Renamed Folder 1 \xe9/Original File 1.1.txt'))
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9/Original File 1.1.txt'))
 
-        self.assertTrue(local_client.exists(
-            u'/Renamed Folder 1 \xe9/Sub-Folder 1.1'))
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9/Sub-Folder 1.1'))
 
-        self.assertTrue(local_client.exists(
-            u'/Renamed Folder 1 \xe9/Sub-Folder 1.2'))
+        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9/Sub-Folder 1.2'))
         self.assertEqual(len(local_client.get_children_info(u'/Renamed Folder 1 \xe9')), 3)
         self.assertEqual(len(remote_client.get_children_info(folder_1_remote_info.uid)), 3)
         self.assertEqual(len(local_client.get_children_info(u'/')), 4)
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
-
-    def test_local_rename_readonly_folder_with_rollback(self):
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
-        sb, ctl = self.sb_1, self.controller_1
-
-        def watchdog():
-            return False
-
-        def rollback():
-            return True
-
-        ctl.use_watchdog = watchdog
-        ctl.synchronizer.local_full_scan = []
-        ctl.local_rollback = rollback
-        local_client = self.local_client_1
-        remote_client = self.remote_document_client_1
-        session = ctl.get_session()
-
-        # Check local folder
-        self.assertTrue(local_client.exists(u'/Original Folder 1'))
-        folder_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Original Folder 1').one()
-        self.assertTrue(folder_1_state.remote_can_rename)
-
-        # Set remote folder as readonly for test user
-        folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
-        op_input = "doc:" + folder_1_path
-        self.root_remote_client.execute("Document.SetACE",
-                                        op_input=op_input,
-                                        user="nuxeoDriveTestUser_user_1",
-                                        permission="Read")
-        self.root_remote_client.block_inheritance(folder_1_path,
-                                                  overwrite=False)
-
-        # Check can_rename flag in pair state
-        folder_1_state.refresh_remote(
-            self.remote_file_system_client_1)
-        self.assertFalse(folder_1_state.remote_can_rename)
-
-        # Rename local folder
-        local_client.rename(u'/Original Folder 1',
-                            u'Renamed Folder 1 \xe9')
-        self.assertFalse(local_client.exists(u'/Original Folder 1'))
-        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
-
-        ctl.synchronizer.update_synchronize_server(sb)
-
-        # Check remote folder has not been renamed
-        folder_1_remote_info = remote_client.get_info(
-            u'/Original Folder 1')
-        self.assertEquals(folder_1_remote_info.name,
-                          u'Original Folder 1')
-
-        # Check state of local folder and its children
-        folder_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Original Folder 1').one()
-        self.assertEquals(folder_1_state.remote_name,
-                          u'Original Folder 1')
-
-        self.assertTrue(local_client.exists(
-            u'/Original Folder 1/Original File 1.1.txt'))
-        file_1_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Original File 1.1.txt').one()
-        self.assertEquals(file_1_1_state.local_name,
-                          u'Original File 1.1.txt')
-        self.assertEquals(file_1_1_state.remote_name,
-                          u'Original File 1.1.txt')
-
-        self.assertTrue(local_client.exists(
-            u'/Original Folder 1/Sub-Folder 1.1'))
-        folder_1_1_state = session.query(LastKnownState).filter_by(
-            local_name=u'Sub-Folder 1.1').one()
-        self.assertEquals(folder_1_1_state.local_name,
-                          u'Sub-Folder 1.1')
-        self.assertEquals(folder_1_1_state.remote_name,
-                          u'Sub-Folder 1.1')
 
     def test_local_move_with_remote_error(self):
         local_client = self.local_client_1
