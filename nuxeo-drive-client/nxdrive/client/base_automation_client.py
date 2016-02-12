@@ -339,7 +339,6 @@ class BaseAutomationClient(BaseClient):
                 json_struct['params'][k] = v
         if op_input:
             json_struct['input'] = op_input
-        log.trace("Dumping JSON structure: %s", json_struct)
         data = json.dumps(json_struct)
 
         cookies = self._get_cookies()
@@ -492,8 +491,6 @@ class BaseAutomationClient(BaseClient):
         input_file = open(file_path, 'rb')
         # Use file system block size if available for streaming buffer
         fs_block_size = self.get_upload_buffer(input_file)
-        log.trace("Using file system block size"
-                  " for the streaming upload buffer: %u bytes", fs_block_size)
         data = self._read_data(input_file, fs_block_size)
 
         # Execute request

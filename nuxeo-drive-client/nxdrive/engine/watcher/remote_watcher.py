@@ -445,9 +445,7 @@ class RemoteWatcher(EngineWorker):
 
             # Check if synchronization thread was suspended
             # TODO In case of pause or stop: save the last event id
-            log.trace("Interacting...")
             self._interact()
-            log.trace("Interacting finished...")
 
             eventId = change.get('eventId')
             remote_ref = change['fileSystemItemId']
