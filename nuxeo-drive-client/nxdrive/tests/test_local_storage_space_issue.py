@@ -25,7 +25,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.engine_1.get_remote_client().make_download_raise(error)
         self.engine_1.start()
         # By default engine will not consider being syncCompleted because of the blacklist
-        self.wait_sync(wait_for_async=True, timeout=5, fail_if_timeout=False, enforce_errors=False)
+        self.wait_sync(wait_for_async=True, timeout=10, fail_if_timeout=False, enforce_errors=False)
         # Temporary download file (.nxpart) should be created locally but not renamed then removed
         # Synchronization should not fail: doc pair should be blacklisted and there should be 1 error
         self.assertNxPart('/', name='test_KO.odt', present=False)
@@ -41,7 +41,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.engine_1.get_remote_client().make_download_raise(None)
         self.engine_1.remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
         self.engine_1.invalidate_client_cache()
-        self.wait_sync(wait_for_async=True, timeout=5, fail_if_timeout=False, enforce_errors=False)
+        self.wait_sync(wait_for_async=True, timeout=10, fail_if_timeout=False, enforce_errors=False)
         # Remote file should be created locally
         self.assertTrue(local.exists('/test_OK.odt'))
         # Blacklisted file should be ignored as delay (60 seconds by default)
@@ -57,7 +57,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.engine_1.get_remote_client().make_download_raise(error)
         # Re-queue pairs in error
         self.queue_manager_1.requeue_errors()
-        self.wait_sync(timeout=5, fail_if_timeout=False, enforce_errors=False)
+        self.wait_sync(timeout=10, fail_if_timeout=False, enforce_errors=False)
         # Doc pair should be blacklisted again and there should still be 1 error
         self.assertNxPart('/', name='test_KO.odt', present=False)
         self.assertFalse(local.exists('/test_KO.odt'))
