@@ -359,6 +359,9 @@ class LocalWatcher(EngineWorker):
                                             doc_pair.local_path.lower() == child_info.path.lower()):
                                 log.debug("Case renaming on a case insensitive filesystem, update info and ignore: %r",
                                                 doc_pair)
+                                if doc_pair.local_name in children:
+                                    del children[doc_pair.local_name]
+                                doc_pair.local_state = 'moved'
                                 self._dao.update_local_state(doc_pair, child_info)
                                 continue
                             # possible move-then-copy case, NXDRIVE-471
@@ -682,9 +685,9 @@ class LocalWatcher(EngineWorker):
         finally:
             self._dao.release_state(self._thread_id)
             if acquired_pair is not None:
-                log.trace("Re-queuing acquired and released state %r", doc_pair)
                 refreshed_pair = self._dao.get_state_from_id(acquired_pair.id)
                 if refreshed_pair is not None:
+                    log.trace("Re-queuing acquired, released and refreshed state %r", refreshed_pair)
                     self._dao._queue_pair_state(refreshed_pair.id, refreshed_pair.folderish,
                                                 refreshed_pair.pair_state, pair=refreshed_pair)
 

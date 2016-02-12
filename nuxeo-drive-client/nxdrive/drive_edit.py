@@ -181,9 +181,12 @@ class DriveEdit(Worker):
         engine = self._get_engine(server_url, user=user)
         if engine is None:
             values = dict()
-            values['user'] = user
+            if user is None:
+                values['user'] = 'None'
+            else:
+                values['user'] = user
             values['server'] = server_url
-            log.warn("No engine found for %s(%s)", server_url, doc_id)
+            log.warn("No engine found for server_url=%s, user=%s, doc_id=%s", server_url, user, doc_id)
             self._display_modal("DIRECT_EDIT_CANT_FIND_ENGINE", values)
             return
         # Get document info

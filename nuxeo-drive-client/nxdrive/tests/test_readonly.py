@@ -54,12 +54,10 @@ class TestReadOnly(UnitTestCase):
         local.make_file('/Test folder', 'local.odt', 'New local content')
         # Create new folder with files
         local.make_folder('/Test folder', 'Local sub folder 2')
-        local.make_file('/Test folder/Local sub folder 2',
-                        'local sub file 2.txt', 'Other local content')
+        local.make_file('/Test folder/Local sub folder 2', 'local sub file 2.txt', 'Other local content')
         # Update file
         local.unset_readonly('/Test folder/joe.odt')
-        local.update_content('/Test folder/joe.odt',
-                             'Some locally updated content')
+        local.update_content('/Test folder/joe.odt', 'Some locally updated content')
         local.set_readonly('/Test folder/joe.odt')
         local.set_readonly('/Test folder')
 
@@ -69,17 +67,7 @@ class TestReadOnly(UnitTestCase):
         self.assertFalse(remote.exists('/Test folder/Local sub folder 2'))
         self.assertFalse(remote.exists('/Test folder/Local sub folder 2/local sub file 2.txt'))
         self.assertTrue(local.exists('/Test folder/local.odt'))
-
-        delete_folder = '/Test folder/Sub folder 1'
-        # Force to remove readonly
-        local.unset_readonly(delete_folder)
-        local.unset_readonly('/Test folder')
-        local.delete(delete_folder)
-        local.set_readonly('/Test folder')
-        # Should recreate ?
-        self.wait_sync(wait_win=True)
-        self.assertTrue(remote.exists(delete_folder))
-        self.assertTrue(local.exists(delete_folder))
+        self.assertEquals(remote.get_content('/Test folder/joe.odt'), 'Some content')
 
     def touch(self, fname):
         try:
