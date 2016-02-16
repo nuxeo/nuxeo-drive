@@ -58,7 +58,7 @@ FILE_CONTENT = """
     """
 
 
-class RepeatTest(object):
+class RandomBug(object):
     def __init__(self, repeat=10):
         self._repeat = repeat
         self._iteration = 0
@@ -436,7 +436,6 @@ class UnitTestCase(unittest.TestCase):
         repeat = 1
         testMethod = getattr(self, self._testMethodName)
         if hasattr(testMethod, '_repeat'):
-            #testMethod.set_parent(self)
             repeat = testMethod._repeat
         while repeat > 0:
             self.app = TestQApplication([], self)
