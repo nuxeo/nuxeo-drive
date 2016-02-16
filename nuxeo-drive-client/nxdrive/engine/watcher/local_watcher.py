@@ -946,7 +946,6 @@ class DriveFSRootEventHandler(FileSystemEventHandler):
         self.watcher = watcher
 
     def on_any_event(self, event):
-        log.trace("DriveFSROOT: %s : need: %s",os.path.basename(event.src_path), self.name)
         if os.path.basename(event.src_path) != self.name:
             return
         self.counter = self.counter + 1
