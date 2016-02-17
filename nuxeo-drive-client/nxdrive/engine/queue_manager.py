@@ -1,5 +1,6 @@
 from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
 from Queue import Queue, Empty
+from blacklist_queue import BlacklistItem, BlacklistQueue
 from nxdrive.logging_config import get_logger
 from threading import Lock, local
 from copy import deepcopy
@@ -84,7 +85,7 @@ class QueueManager(QObject):
 
         # ERROR HANDLING
         self._error_lock = Lock()
-        self._on_error_queue = dict()
+        self._on_error_queue = BlacklistQueue()
         self._error_timer = QTimer()
         self._error_timer.timeout.connect(self._on_error_timer)
         self.newError.connect(self._on_new_error)
@@ -217,29 +218,25 @@ class QueueManager(QObject):
 
     @pyqtSlot()
     def _on_error_timer(self):
-        cur_time = int(time.time())
-        self._error_lock.acquire()
-        try:
-            for doc_pair in self._on_error_queue.values():
-                if doc_pair.error_next_try < cur_time:
-                    queueItem = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
-                    del self._on_error_queue[doc_pair.id]
-                    log.debug('End of blacklist period, pushing doc_pair: %r', doc_pair)
-                    self.push(queueItem)
-            if len(self._on_error_queue) == 0:
-                self._error_timer.stop()
-        finally:
-            self._error_lock.release()
+        doc_pair = self._on_error_queue.get()
+        while doc_pair:
+            queueItem = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
+            log.debug('End of blacklist period, pushing doc_pair: %r', doc_pair)
+            self.push(queueItem)
+            doc_pair = self._on_error_queue.get()
+
+        if self._on_error_queue.is_empty():
+            self._error_timer.stop()
 
     def _is_on_error(self, row_id):
-        return row_id in self._on_error_queue
+        return self._on_error_queue.exists(row_id)
 
     @pyqtSlot()
     def _on_new_error(self):
         self._error_timer.start(1000)
 
     def get_errors_count(self):
-        return len(self._on_error_queue)
+        return self._on_error_queue.size()
 
     def get_error_threshold(self):
         return self._error_threshold
@@ -256,27 +253,14 @@ class QueueManager(QObject):
             self.newErrorGiveUp.emit(doc_pair.id)
             log.debug("Giving up on pair : %r", doc_pair)
             return
-        interval = self._error_interval * error_count
-        doc_pair.error_next_try = interval + int(time.time())
+        interval = self._on_error_queue.push(doc_pair.id, doc_pair)
         log.debug("Blacklisting pair for %ds: %r", interval, doc_pair)
-        self._error_lock.acquire()
-        try:
-            emit_sig = False
-            if doc_pair.id not in self._on_error_queue:
-                emit_sig = True
-            self._on_error_queue[doc_pair.id] = doc_pair
-            if emit_sig:
-                self.newError.emit(doc_pair.id)
-        finally:
-            self._error_lock.release()
+        if not self._error_timer.isActive():
+            self.newError.emit(doc_pair.id)
 
     def requeue_errors(self):
-        self._error_lock.acquire()
-        try:
-            for doc_pair in self._on_error_queue.values():
-                doc_pair.error_next_try = 0
-        finally:
-            self._error_lock.release()
+        for doc_pair in self._on_error_queue.items():
+            doc_pair.error_next_try = 0
 
     def _get_local_folder(self):
         if self._local_folder_queue.empty():
