@@ -137,10 +137,5 @@ class BlacklistQueueTest(unittest.TestCase):
                 log.debug('item: %s', item.get_id())
                 count += 1
 
-        self.assertEqual(queue.size(), 7, "queue size has changed")
-        self.assertEqual(count, 7, "all items should have been ready for processing after repush")
-
-        for item in queue.process_items(remove=True):
-            log.debug('item: %s', item.get_id())
-
         self.assertTrue(queue.is_empty(), 'queue is not empty')
+        self.assertEqual(count, 7, "all items should have been ready for processing after repush")
