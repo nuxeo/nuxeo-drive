@@ -17,6 +17,7 @@ from nxdrive.tests.common import clean_dir
 from nxdrive.wui.translator import Translator
 from nxdrive import __version__
 from PyQt4 import QtCore
+from functools import wraps
 from threading import Thread
 from time import sleep
 
@@ -55,6 +56,24 @@ FILE_CONTENT = """
     Donec orci odio, luctus ut sagittis nec, congue sit amet ex. Donec arcu diam, fermentum ac porttitor consectetur,
     blandit et diam. Vivamus efficitur erat nec justo vestibulum fringilla. Mauris quis dictum elit, eget tempus ex.
     """
+
+
+class RandomBug(object):
+    def __init__(self, repeat=10):
+        self._repeat = repeat
+        self._iteration = 0
+
+    def get_repeat(self):
+        return self._repeat
+
+    def __call__(self, func):
+        @wraps(func)
+        def callable(*args, **kwargs):
+            self._iteration += 1
+            log.debug('Repeating test %s %d/%d', func.func_name, self._iteration, self._repeat)
+            return func(*args, **kwargs)
+        callable._repeat = self._repeat
+        return callable
 
 
 def configure_logger():
@@ -414,26 +433,33 @@ class UnitTestCase(unittest.TestCase):
         log.debug("Profiler Report generated in '%s'", report_path)
 
     def run(self, result=None):
-        self.app = TestQApplication([], self)
-        self.setUpApp()
-        self.result = result
+        repeat = 1
+        testMethod = getattr(self, self._testMethodName)
+        if hasattr(testMethod, '_repeat'):
+            repeat = testMethod._repeat
+        while repeat > 0:
+            self.app = TestQApplication([], self)
+            self.setUpApp()
+            self.result = result
 
-        # TODO Should use a specific application
-        def launch_test():
-            log.debug("UnitTest thread started")
-            sleep(1)
-            self.setup_profiler()
-            super(UnitTestCase, self).run(result)
-            self.teardown_profiler()
-            self.app.quit()
-            log.debug("UnitTest thread finished")
 
-        sync_thread = Thread(target=launch_test)
-        sync_thread.start()
-        self.app.exec_()
-        sync_thread.join(30)
-        self.tearDownApp()
-        del self.app
+            # TODO Should use a specific application
+            def launch_test():
+                log.debug("UnitTest thread started")
+                sleep(1)
+                self.setup_profiler()
+                super(UnitTestCase, self).run(result)
+                self.teardown_profiler()
+                self.app.quit()
+                log.debug("UnitTest thread finished")
+
+            sync_thread = Thread(target=launch_test)
+            sync_thread.start()
+            self.app.exec_()
+            sync_thread.join(30)
+            self.tearDownApp()
+            del self.app
+            repeat -= 1
         log.debug("UnitTest run finished")
 
     def tearDown(self):
@@ -568,6 +594,17 @@ class UnitTestCase(unittest.TestCase):
             if retry > 0:
                 log.debug("Retry to wait")
                 self.wait(retry - 1)
+
+    def _set_read_permission(self, user, doc_path, grant):
+        op_input = "doc:" + doc_path
+        if grant:
+            self.root_remote_client.execute("Document.SetACE",
+                op_input=op_input,
+                user=user,
+                permission="Read",
+                grant="true")
+        else:
+            self.root_remote_client.block_inheritance(doc_path)
 
     def generate_random_jpg(self, filename, size):
         try:
