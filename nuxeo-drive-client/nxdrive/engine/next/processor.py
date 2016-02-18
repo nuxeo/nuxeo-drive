@@ -30,9 +30,9 @@ class Processor(OldProcessor):
 
     def _download_content(self, local_client, remote_client, doc_pair, file_path):
 
-        # Should share between threads
+        # TODO Should share between threads
         file_out = os.path.join(self._get_partial_folders(), DOWNLOAD_TMP_FILE_PREFIX +
-                            doc_pair.remote_digest + DOWNLOAD_TMP_FILE_SUFFIX)
+                            doc_pair.remote_digest + str(self._thread_id) + DOWNLOAD_TMP_FILE_SUFFIX)
         # Check if the file is already on the HD
         pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
         if pair:

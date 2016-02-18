@@ -3,8 +3,23 @@ import os
 from nxdrive.client import LocalClient
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.tests.common_unit_test import UnitTestCase
+from nxdrive.engine.engine import Engine
 
 DRIVE_EDIT_XATTR_NAMES = ['ndrive', 'nxdriveedit', 'nxdriveeditdigest', 'nxdriveeditname']
+
+class MockUrlTestEngine(Engine):
+    def __init__(self, url):
+        self._url = url
+
+    def get_binder(self):
+        from nxdrive.manager import ServerBindingSettings
+        return ServerBindingSettings(server_url=self._url,
+                        web_authentication=None,
+                        server_version=None,
+                        username='Administrator',
+                        local_folder='/',
+                        initialized=True,
+                        pwd_update_required=False)
 
 
 class TestDriveEdit(UnitTestCase):
@@ -25,6 +40,31 @@ class TestDriveEdit(UnitTestCase):
     def tearDownApp(self):
         self.drive_edit.stop()
         super(TestDriveEdit, self).tearDownApp()
+
+    def test_url_resolver(self):
+        self.assertIsNotNone(self.drive_edit._get_engine("http://localhost:8080/nuxeo", u'nuxeoDriveTestUser_user_1'))
+        self.assertIsNone(self.drive_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
+        self.manager_1._engine_types['NXDRIVETESTURL'] = MockUrlTestEngine
+        # HTTP EXPLICIT
+        self.manager_1._engines['0'] = MockUrlTestEngine('http://localhost:80/nuxeo')
+        self.assertIsNone(self.drive_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
+        self.assertIsNotNone(self.drive_edit._get_engine("http://localhost:80/nuxeo", u'Administrator'))
+        self.assertIsNotNone(self.drive_edit._get_engine("http://localhost/nuxeo/", u'Administrator'))
+        # HTTP IMPLICIT
+        self.manager_1._engines['0'] = MockUrlTestEngine('http://localhost/nuxeo')
+        self.assertIsNone(self.drive_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
+        self.assertIsNotNone(self.drive_edit._get_engine("http://localhost:80/nuxeo/", u'Administrator'))
+        self.assertIsNotNone(self.drive_edit._get_engine("http://localhost/nuxeo", u'Administrator'))
+        # HTTPS EXPLICIT
+        self.manager_1._engines['0'] = MockUrlTestEngine('https://localhost:443/nuxeo')
+        self.assertIsNone(self.drive_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
+        self.assertIsNotNone(self.drive_edit._get_engine("https://localhost:443/nuxeo", u'Administrator'))
+        self.assertIsNotNone(self.drive_edit._get_engine("https://localhost/nuxeo/", u'Administrator'))
+        # HTTPS IMPLICIT
+        self.manager_1._engines['0'] = MockUrlTestEngine('https://localhost/nuxeo')
+        self.assertIsNone(self.drive_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
+        self.assertIsNotNone(self.drive_edit._get_engine("https://localhost:443/nuxeo/", u'Administrator'))
+        self.assertIsNotNone(self.drive_edit._get_engine("https://localhost/nuxeo", u'Administrator'))
 
     def test_note_edit(self):
         remote_fs_client = self.remote_file_system_client_1

@@ -123,6 +123,11 @@ class DriveEdit(Worker):
             return None
         if url.endswith('/'):
             url = url[:-1]
+        # Simplify port if possible
+        if url.startswith('http:') and ':80/' in url:
+            url = url.replace(':80/', '/')
+        if url.startswith('https:') and ':443/' in url:
+            url = url.replace(':443/', '/')
         for engine in self._manager.get_engines().values():
             bind = engine.get_binder()
             server_url = bind.server_url
@@ -137,6 +142,11 @@ class DriveEdit(Worker):
         for engine in self._manager.get_engines().values():
             bind = engine.get_binder()
             server_url = bind.server_url
+            # Simplify port if possible
+            if server_url.startswith('http:') and ':80/' in server_url:
+                server_url = server_url.replace(':80/', '/')
+            if server_url.startswith('https:') and ':443/' in server_url:
+                server_url = server_url.replace(':443/', '/')
             if server_url.endswith('/'):
                 server_url = server_url[:-1]
             if server_url == url and user == bind.username.lower():

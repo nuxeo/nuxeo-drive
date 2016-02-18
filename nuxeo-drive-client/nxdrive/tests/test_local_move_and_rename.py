@@ -355,7 +355,9 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         local_client.rename(u'/Renamed Folder 1 \xe9/Sub-Folder 1.1', u'Sub-Folder 2.1')
         self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9/Sub-Folder 2.1'))
-
+        local_client.make_file(u'/Renamed Folder 1 \xe9', u'Test.txt',
+                                      content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
+        children_count += 1
         self.engine_1.resume()
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned

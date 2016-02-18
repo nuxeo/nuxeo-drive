@@ -131,6 +131,27 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Check Test folder has not been re-created locally
         self.assertFalse(local.exists('/Test folder'))
 
+    def test_rename_local_folder(self):
+        # Get local and remote clients
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+
+        # Launch first synchronization
+        self.engine_2.start()
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Test workspace should be created locally
+        self.assertTrue(local.exists('/'))
+
+        # Create a local folder in the test workspace and a file inside
+        # this folder, then synchronize
+        folder = local.make_folder('/', 'Test folder')
+        self.local_client_1.rename('/Test folder', 'Renamed folder')
+        self.wait_sync(wait_for_engine_2=True)
+        self.assertTrue(local.exists('/Renamed folder'))
+        self.assertTrue(self.local_client_2.exists('/Renamed folder'))
+
     def test_delete_local_folder_update_remote_folder_property(self):
         # Get local and remote clients
         local = self.local_client_1
