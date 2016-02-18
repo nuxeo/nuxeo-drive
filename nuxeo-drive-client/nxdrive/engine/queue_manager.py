@@ -61,7 +61,7 @@ class QueueManager(QObject):
         self._local_file_thread = None
         self._remote_folder_thread = None
         self._remote_file_thread = None
-        self._error_threshold = 3
+        self._error_threshold = 15
         self._error_interval = 60
         self.set_max_processors(max_file_processors)
         self._threads_pool = list()
@@ -85,7 +85,7 @@ class QueueManager(QObject):
 
         # ERROR HANDLING
         self._error_lock = Lock()
-        self._on_error_queue = BlacklistQueue()
+        self._on_error_queue = BlacklistQueue(delay=5)
         self._error_timer = QTimer()
         self._error_timer.timeout.connect(self._on_error_timer)
         self.newError.connect(self._on_new_error)
@@ -218,25 +218,35 @@ class QueueManager(QObject):
 
     @pyqtSlot()
     def _on_error_timer(self):
-        doc_pair = self._on_error_queue.get()
-        while doc_pair:
+        log.debug('blacklist queue timer fired')
+        for item in self._on_error_queue.process_items():
+            doc_pair = item.get()
+            if doc_pair.pair_state == 'synchronized':
+                self._on_error_queue.remove(item.get_id())
+                continue
             queueItem = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
-            log.debug('End of blacklist period, pushing doc_pair: %r', doc_pair)
+            log.debug('Retrying blacklisted doc_pair: %r', doc_pair)
             self.push(queueItem)
-            doc_pair = self._on_error_queue.get()
+            self._on_error_queue.repush(item)
 
         if self._on_error_queue.is_empty():
             self._error_timer.stop()
+            log.debug('blacklist queue timer stopped')
 
     def _is_on_error(self, row_id):
-        return self._on_error_queue.exists(row_id)
+        is_error = self._on_error_queue.exists(row_id)
+        log.debug('doc pair %s is%s blacklisted', row_id, '' if is_error else ' not')
+        return is_error
 
     @pyqtSlot()
     def _on_new_error(self):
         self._error_timer.start(1000)
+        log.debug('blacklist queue timer started')
 
     def get_errors_count(self):
-        return self._on_error_queue.size()
+        count = self._on_error_queue.size()
+        log.debug('blacklist queue size: %d', count)
+        return count
 
     def get_error_threshold(self):
         return self._error_threshold
@@ -253,8 +263,12 @@ class QueueManager(QObject):
             self.newErrorGiveUp.emit(doc_pair.id)
             log.debug("Giving up on pair : %r", doc_pair)
             return
-        interval = self._on_error_queue.push(doc_pair.id, doc_pair)
-        log.debug("Blacklisting pair for %ds: %r", interval, doc_pair)
+        if self._on_error_queue.exists(doc_pair.id):
+            interval = self._on_error_queue.repush_by_id(doc_pair.id)
+            log.debug("Blacklisting again pair for %ds: %r", interval, doc_pair)
+        else:
+            interval = self._on_error_queue.push(doc_pair.id, doc_pair)
+            log.debug("Blacklisting initially pair for %ds: %r", interval, doc_pair)
         if not self._error_timer.isActive():
             self.newError.emit(doc_pair.id)
 
