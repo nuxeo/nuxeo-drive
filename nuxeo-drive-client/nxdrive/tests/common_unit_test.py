@@ -7,7 +7,9 @@ import tempfile
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
+from nxdrive.tests.win_local_client import WindowsLocalClient
 from nxdrive.client import RestAPIClient
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.manager import Manager
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
@@ -179,6 +181,11 @@ class UnitTestCase(unittest.TestCase):
         if server_profile is not None:
             self.root_remote_client.deactivate_profile(server_profile)
 
+    def get_local_client(self, path):
+        if AbstractOSIntegration.is_windows():
+            return WindowsLocalClient(path)
+        return LocalClient(path)
+
     def setUpApp(self, server_profile=None):
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
@@ -272,8 +279,9 @@ class UnitTestCase(unittest.TestCase):
 
         self.local_root_client_1 = self.engine_1.get_local_client()
         self.local_root_client_2 = self.engine_2.get_local_client()
-        self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1, self.workspace_title_1))
-        self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2, self.workspace_title_2))
+
+        self.local_client_1 = self.get_local_client(os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
+        self.local_client_2 = self.get_local_client(os.path.join(self.local_nxdrive_folder_2, self.workspace_title))
 
         # Document client to be used to create remote test documents
         # and folders
