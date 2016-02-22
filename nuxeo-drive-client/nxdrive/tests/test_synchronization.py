@@ -13,6 +13,12 @@ from nxdrive.osi import AbstractOSIntegration
 
 
 class TestSynchronization(UnitTestCase):
+
+    def get_local_client(self, path):
+        if self._testMethodName == 'test_synchronize_deep_folders':
+            return LocalClient(path)
+        return super(TestSynchronization, self).get_local_client(path)
+
     def test_binding_initialization_and_first_sync(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

@@ -10,6 +10,12 @@ log = get_logger(__name__)
 
 class TestWatchers(UnitTestCase):
 
+    def get_local_client(self, path):
+        if (self._testMethodName == 'test_local_scan_encoding' or
+            self._testMethodName == 'test_watchdog_encoding'):
+            return LocalClient(path)
+        return super(TestWatchers, self).get_local_client(path)
+
     def test_local_scan(self):
         files, folders = self.make_local_tree()
         self.queue_manager_1.suspend()
