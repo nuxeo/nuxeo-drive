@@ -7,7 +7,6 @@ import tempfile
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client import RemoteFileSystemClient
 from nxdrive.client import LocalClient
-from nxdrive.tests.win_local_client import WindowsLocalClient
 from nxdrive.client import RestAPIClient
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.manager import Manager
@@ -183,6 +182,7 @@ class UnitTestCase(unittest.TestCase):
 
     def get_local_client(self, path):
         if AbstractOSIntegration.is_windows():
+            from nxdrive.tests.win_local_client import WindowsLocalClient
             return WindowsLocalClient(path)
         return LocalClient(path)
 
