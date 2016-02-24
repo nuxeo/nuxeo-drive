@@ -511,13 +511,16 @@ class BaseAutomationClient(BaseClient):
         try:
             resp = self.streaming_opener.open(req, timeout=self.blob_timeout)
         except Exception as e:
-            _, _, _, error = self._log_details(e)
-            if error.startswith("Unable to find batch"):
-                raise InvalidBatchException()
-            else:
-                raise
+            log_details = self._log_details(e)
+            if isinstance(log_details, tuple):
+                _, _, _, error = log_details
+                if error.startswith("Unable to find batch"):
+                    raise InvalidBatchException()
+            raise e
         finally:
             input_file.close()
+        # CSPII-9144: help diagnose upload problem
+        log.trace('Upload completed. File closed.')
         self.end_action()
         return self._read_response(resp, url)
 
@@ -735,6 +738,8 @@ class BaseAutomationClient(BaseClient):
                 log.error(message)
                 if isinstance(e, urllib2.HTTPError):
                     return e.code, None, message, None
+        # CSPII-9144: help diagnose upload problem
+        log.trace('Non-urllib2 exception: %s', e.message)
         return None
 
     def _generate_unique_id(self):
