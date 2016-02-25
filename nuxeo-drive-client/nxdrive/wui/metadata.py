@@ -6,6 +6,8 @@ from PyQt4.QtCore import Qt
 from nxdrive.gui.resources import find_icon
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.utils import normalized_path
+from nxdrive.wui.modal import WebModal
+from nxdrive.wui.application import SimpleApplication
 
 log = get_logger(__name__)
 
@@ -70,7 +72,14 @@ class WebMetadataApi(WebDriveApi):
 def CreateMetadataWebDialog(manager, file_path, application=None):
     if application is None:
         application = QtCore.QCoreApplication.instance()
-    infos = manager.get_metadata_infos(file_path)
+    try:
+        infos = manager.get_metadata_infos(file_path)
+    except ValueError:
+        values = dict()
+        values['file'] = file_path
+        dialog = WebModal(application, application.translate("METADATA_FILE_NOT_HANDLE", values))
+        dialog.add_button("OK", application.translate("OK"))
+        return dialog
     api = WebMetadataApi(application, infos[2], infos[3])
     dialog = WebDialog(application, infos[0],
                     title=manager.get_appname(), token=infos[1], api=api)
@@ -79,20 +88,12 @@ def CreateMetadataWebDialog(manager, file_path, application=None):
     return dialog
 
 
-class MetadataApplication(QtGui.QApplication):
+class MetadataApplication(SimpleApplication):
     def __init__(self, manager, options):
-        super(MetadataApplication, self).__init__([])
+        super(MetadataApplication, self).__init__(manager, options, [])
         self.manager = manager
         self.options = options
         self.file_path = normalized_path(options.file)
         self.dialog = CreateMetadataWebDialog(manager, self.file_path, self)
         self.dialog.show()
 
-    def get_osi(self):
-        return self.manager.get_osi()
-
-    def get_window_icon(self):
-        return find_icon('nuxeo_drive_icon_64.png')
-
-    def get_cache_folder(self):
-        return os.path.join(self.manager.get_configuration_folder(), "cache", "wui")
