@@ -46,7 +46,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         local2 = self.local_client_2
         remote = self.remote_document_client_1
 
-        # Check synchronization roots for nuxeoDriveTestUser_user_1,
+        # Check synchronization roots for drive1,
         # there should be 1, the test workspace
         sync_roots = remote.get_roots()
         self.assertEquals(len(sync_roots), 1)
@@ -61,7 +61,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         self.assertTrue(local1.exists('/'))
         self.assertTrue(local2.exists('/'))
 
-        # Make nuxeoDriveTestUser_user_1 create a remote folder in the
+        # Make drive1 create a remote folder in the
         # test workspace and a file inside this folder,
         # then synchronize both devices
         test_folder = remote.make_folder(self.workspace, 'Test folder')

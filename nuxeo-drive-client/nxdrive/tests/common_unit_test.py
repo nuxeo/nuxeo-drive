@@ -214,8 +214,8 @@ class UnitTestCase(unittest.TestCase):
                 "No integration server configuration found in environment.")
 
         # Check the local filesystem test environment
-        self.local_test_folder_1 = tempfile.mkdtemp(u'-nxdrive-tests-user-1', dir=self.tmpdir)
-        self.local_test_folder_2 = tempfile.mkdtemp(u'-nxdrive-tests-user-2', dir=self.tmpdir)
+        self.local_test_folder_1 = tempfile.mkdtemp(u'drive-1', dir=self.tmpdir)
+        self.local_test_folder_2 = tempfile.mkdtemp(u'drive-2', dir=self.tmpdir)
 
         self.local_nxdrive_folder_1 = os.path.join(
             self.local_test_folder_1, u'Nuxeo Drive')

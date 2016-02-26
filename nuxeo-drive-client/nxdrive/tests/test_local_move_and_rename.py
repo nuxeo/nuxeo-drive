@@ -558,7 +558,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
                                         op_input=op_input,
-                                        user="nuxeoDriveTestUser_user_1",
+                                        user="drive1",
                                         permission="Read")
         self.root_remote_client.block_inheritance(folder_1_path,
                                                   overwrite=False)

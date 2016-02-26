@@ -101,7 +101,7 @@ class TestPermissionHierarchy(UnitTestCase):
 
             # Grant ReadWrite permission to user2 on test folder
             op_input = "doc:" + test_folder_uid
-            admin_remote_client.execute("Document.SetACE", op_input=op_input, user="nuxeoDriveTestUser_user_2",
+            admin_remote_client.execute("Document.SetACE", op_input=op_input, user="drive2",
                                         permission="ReadWrite", grant="true")
             # Wait for synchronization
             self.wait_sync(wait_for_async=True)

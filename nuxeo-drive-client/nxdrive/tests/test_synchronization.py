@@ -566,7 +566,7 @@ class TestSynchronization(UnitTestCase):
         # Set remote folder as readonly for test user
         readonly_folder_path = TEST_WORKSPACE_PATH + u'/Readonly folder'
         op_input = "doc:" + readonly_folder_path
-        self.root_remote_client.execute("Document.SetACE", op_input=op_input, user="nuxeoDriveTestUser_user_1",
+        self.root_remote_client.execute("Document.SetACE", op_input=op_input, user="drive1",
                                         permission="Read")
         self.root_remote_client.block_inheritance(readonly_folder_path, overwrite=False)
 
