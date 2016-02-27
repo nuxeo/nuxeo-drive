@@ -669,7 +669,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         op_input = "doc:" + workspaces_path
         self.root_remote_client.execute("Document.SetACE",
             op_input=op_input,
-            user="drive1",
+            user=self.user_1,
             permission="ReadWrite",
             grant="true")
 

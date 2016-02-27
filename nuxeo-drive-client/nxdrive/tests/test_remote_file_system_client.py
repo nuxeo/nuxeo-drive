@@ -41,7 +41,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
             self.workspace_id)
         self.assertFalse(info.folderish)
         if info.last_contributor:
-            self.assertEquals(info.last_contributor, 'drive1')
+            self.assertEquals(info.last_contributor, self.user_1)
         digest_algorithm = info.digest_algorithm
         self.assertEquals(digest_algorithm, 'md5')
         digest = self._get_digest(digest_algorithm, "Content of doc 1.")
@@ -63,7 +63,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
             self.workspace_id)
         self.assertTrue(info.folderish)
         if info.last_contributor:
-            self.assertEquals(info.last_contributor, 'drive1')
+            self.assertEquals(info.last_contributor, self.user_1)
         self.assertTrue(info.digest_algorithm is None)
         self.assertTrue(info.digest is None)
         self.assertTrue(info.download_url is None)
@@ -353,7 +353,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         remote_file_system_client = self.remote_file_system_client_1
         new_name = remote_file_system_client.conflicted_name("My File.doc")
         self.assertTrue(new_name.startswith(
-            "My File (drive1 - "))
+            "My File (" + self.user_1 + " - "))
         self.assertTrue(new_name.endswith(").doc"))
 
     def test_streaming_upload(self):

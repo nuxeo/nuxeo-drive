@@ -38,7 +38,7 @@ class TestReadOnly(UnitTestCase):
         remote.make_folder('/Test folder', 'Sub folder 1')
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
                          'Content')
-        self._set_readonly_permission("drive1", TEST_WORKSPACE_PATH + '/Test folder', True)
+        self._set_readonly_permission(self.user_1, TEST_WORKSPACE_PATH + '/Test folder', True)
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
@@ -104,7 +104,7 @@ class TestReadOnly(UnitTestCase):
         remote.make_folder('/Test folder', 'Sub folder 1')
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
                          'Content')
-        self._set_readonly_permission("drive1", TEST_WORKSPACE_PATH + '/Test folder', True)
+        self._set_readonly_permission(self.user_1, TEST_WORKSPACE_PATH + '/Test folder', True)
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
@@ -119,7 +119,7 @@ class TestReadOnly(UnitTestCase):
         self.assertTrue(local.get_content('/Test folder/joe.odt'), 'Some remotely updated content')
 
         # Remove the readonly
-        self._set_readonly_permission("drive1", TEST_WORKSPACE_PATH + '/Test folder', False)
+        self._set_readonly_permission(self.user_1, TEST_WORKSPACE_PATH + '/Test folder', False)
         self.wait_sync(wait_for_async=True)
         fname = os.path.join(self.sync_root_folder_1, 'Test folder', 'test.txt')
         fname2 = os.path.join(self.sync_root_folder_1, 'Test folder', 'Sub folder 1', 'test.txt')
@@ -131,7 +131,7 @@ class TestReadOnly(UnitTestCase):
         os.remove(fname)
         os.remove(fname2)
         # Put it back readonly
-        self._set_readonly_permission("drive1", TEST_WORKSPACE_PATH + '/Test folder', True)
+        self._set_readonly_permission(self.user_1, TEST_WORKSPACE_PATH + '/Test folder', True)
         self.wait_sync(wait_for_async=True)
 
         # Check it works

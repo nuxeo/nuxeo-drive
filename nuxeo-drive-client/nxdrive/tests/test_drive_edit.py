@@ -42,7 +42,7 @@ class TestDriveEdit(UnitTestCase):
         super(TestDriveEdit, self).tearDownApp()
 
     def test_url_resolver(self):
-        self.assertIsNotNone(self.drive_edit._get_engine("http://localhost:8080/nuxeo", u'drive1'))
+        self.assertIsNotNone(self.drive_edit._get_engine("http://localhost:8080/nuxeo", self.user_1))
         self.assertIsNone(self.drive_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
         self.manager_1._engine_types['NXDRIVETESTURL'] = MockUrlTestEngine
         # HTTP EXPLICIT

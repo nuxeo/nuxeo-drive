@@ -558,7 +558,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
                                         op_input=op_input,
-                                        user="drive1",
+                                        user=self.user_1,
                                         permission="Read")
         self.root_remote_client.block_inheritance(folder_1_path,
                                                   overwrite=False)
