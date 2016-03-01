@@ -9,6 +9,7 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.engine.engine import Engine
 from shutil import copyfile
 from mock import patch
+from unittest import skipIf
 
 
 class TestRemoteMoveAndRename(UnitTestCase):
@@ -98,6 +99,37 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertTrue(local.exists('/Test folder renamed'))
         self.assertTrue(local.exists('/Test folder renamed/testFile.pdf'))
         self.assertTrue(local.exists('/Test folder renamed/testFile2.pdf'))
+
+    # Make sense only on Windows as on *nix you can rename while reading or writing
+    @skipIf(sys.platform != 'win32', 'Only make sense on Win32')
+    def test_synchronize_remote_rename_file_while_accessing(self):
+        # Get local and remote clients
+        local = self.local_client_1
+        remote = self.remote_file_system_client_1
+
+        # Create documents in the remote root workspace
+        # then synchronize
+        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
+                            + self.workspace)
+        self.workspace_pair_local_path = u'/' + self.workspace_title
+
+        local.make_folder(u'/', u'Test folder')
+        file_path = os.path.join(local._abspath('/Test folder'), 'testFile.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        self.wait_sync(wait_for_async=True)
+        file_id = local.get_remote_id('/Test folder/testFile.pdf')
+        self.assertIsNotNone(file_id)
+
+        # Create a document by streaming a binary file
+        with open(file_path, 'w') as f:
+            # Rename remote folder then synchronize
+            self.remote_file_system_client_1.rename(file_id, u'testFile2.pdf')
+            self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+            self.assertTrue(local.exists('/Test folder/testFile.pdf'))
+            self.assertFalse(local.exists('/Test folder/testFile2.pdf'))
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+        self.assertTrue(local.exists('/Test folder/testFile2.pdf'))
+        self.assertFalse(local.exists('/Test folder/testFile.pdf'))
 
     def test_synchronize_remote_rename_while_upload(self):
         if sys.platform != 'win32':
