@@ -11,7 +11,7 @@ from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common import IntegrationTestCase
 from nxdrive.client import LocalClient
-from nxdrive.tests import RemoteTestClient
+from nxdrive.tests.remote_test_client import RemoteTestClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 
 # TODO NXDRIVE-170: refactor

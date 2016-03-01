@@ -196,6 +196,10 @@ class Manager(QtCore.QObject):
     def get():
         return Manager._singleton
 
+    @staticmethod
+    def reset_singleton():
+        Manager._singleton = None
+
     def __init__(self, options):
         '''
         Constructor

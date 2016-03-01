@@ -460,7 +460,7 @@ class LocalClient(BaseClient):
             return False
         return bool(ord(attrs[8]) & 0x20)
 
-    def is_ignored(self, parent_ref, file_name):
+    def is_ignored(self, parent_ref, file_name, ignore_guest=False):
         # Add parent_ref to be able to filter on size if needed
         ignore = False
         # Office temp file
@@ -481,6 +481,9 @@ class LocalClient(BaseClient):
                 break
         if ignore:
             return True
+        if file_name == u'Guest Folder' and not ignore_guest:
+            return True
+
         if AbstractOSIntegration.is_windows():
             # NXDRIVE-465
             ref = self.get_children_ref(parent_ref, file_name)

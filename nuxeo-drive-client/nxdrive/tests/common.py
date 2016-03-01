@@ -8,9 +8,9 @@ import shutil
 
 import nxdrive
 from nxdrive.utils import safe_long_path
-from nxdrive.client import RemoteDocumentClient
-from nxdrive.client import RemoteFileSystemClient
-from nxdrive.client import LocalClient
+from . import RemoteDocumentClient
+from . import RemoteFileSystemClient
+from . import LocalClient
 from nxdrive.client.common import BaseClient
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger

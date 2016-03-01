@@ -4,18 +4,23 @@ import unittest
 import sys
 import tempfile
 
-from nxdrive.client import RemoteDocumentClient
-from nxdrive.client import RemoteFileSystemClient
-from nxdrive.client import LocalClient
-from nxdrive.client import RestAPIClient
-from nxdrive.manager import Manager
+from . import RemoteDocumentClient
+from . import RemoteFileSystemClient
+from . import LocalClient
+from . import RestAPIClient
+from . import Manager
+
+from . import TEST_DEFAULT_DELAY
+from . import DEFAULT_WAIT_SYNC_TIMEOUT
+from . import DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT
+from . import __version__
+
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
-from nxdrive.tests.common import TEST_WORKSPACE_PATH
-from nxdrive.tests.common import TEST_DEFAULT_DELAY
+from common import TEST_WORKSPACE_PATH
+
 from nxdrive.tests.common import clean_dir
 from nxdrive.wui.translator import Translator
-from nxdrive import __version__
 from PyQt4 import QtCore
 from threading import Thread
 from time import sleep
@@ -23,8 +28,6 @@ from time import sleep
 if 'DRIVE_YAPPI' in os.environ:
     import yappi
 
-DEFAULT_WAIT_SYNC_TIMEOUT = 20
-DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 
 FILE_CONTENT = """
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut egestas condimentum egestas.

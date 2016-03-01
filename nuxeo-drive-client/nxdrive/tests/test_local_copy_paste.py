@@ -104,10 +104,10 @@ class TestLocalCopyPaste(UnitTestCase):
         log.debug('*** exit TestLocalCopyPaste.tearDown() ***')
 
     def test_local_copy_paste_files(self):
-        self._local_copy_paste_files(stopped=True)
+        self._local_copy_paste_files(stopped=False)
 
     def test_local_copy_paste_files_stopped(self):
-        self._local_copy_paste_files(stopped=False)
+        self._local_copy_paste_files(stopped=True)
 
     def _local_copy_paste_files(self, stopped=False):
         log.debug('*** enter TestLocalCopyPaste.test_local_copy_paste_files() ***')
