@@ -12,9 +12,9 @@ from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time, is_office_temp_file
 from PyQt4.QtCore import pyqtSignal
 from threading import Lock
+import time
 import os
 log = get_logger(__name__)
-
 WindowsError = None
 try:
     from exceptions import WindowsError
@@ -171,6 +171,8 @@ class Processor(EngineWorker):
                     or doc_pair.pair_state.startswith('parent_')):
                     log.trace("Skip as pair is in non-processable state: %r", doc_pair)
                     self._current_item = self._get_item()
+                    if doc_pair.pair_state == 'synchronized':
+                        self._handle_readonly(local_client, doc_pair)
                     continue
                 # TODO Update as the server dont take hash to avoid conflict yet
                 if (doc_pair.pair_state.startswith("locally")
@@ -432,6 +434,8 @@ class Processor(EngineWorker):
                     if doc_pair.local_digest == UNACCESSIBLE_HASH:
                         self._postpone_pair(doc_pair, 'Unaccessible hash')
                         return
+                # CSPII-9040: Add delay to let Office finish temp file juggling
+                time.sleep(2)
                 fs_item_info = remote_client.stream_file(
                     parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
                 remote_ref = fs_item_info.uid

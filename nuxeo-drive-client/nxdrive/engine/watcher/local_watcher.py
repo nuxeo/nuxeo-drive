@@ -19,6 +19,7 @@ from datetime import datetime
 from threading import Lock
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 log = get_logger(__name__)
+from nxdrive.engine.queue_manager import QueueItem
 
 # Windows 2s between resolution of delete event
 WIN_MOVE_RESOLUTION_PERIOD = 2000
@@ -104,6 +105,19 @@ class LocalWatcher(EngineWorker):
             self._watchdog_queue = Queue()
             self._setup_watchdog()
             log.debug("Watchdog setup finished")
+
+            # resync error items CSPII-9080
+            log.trace('Revisiting error list as engine is restarted')
+            error_list = self._dao.get_errors(limit=0)
+            for doc_pair in error_list:
+                log.trace('Putting error item %s back into queue', doc_pair)
+                queueItem = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
+                self._dao.reset_error(doc_pair)
+                # move it out of error queue otherwise processor won't process it
+                if self._engine.get_queue_manager()._is_on_error(doc_pair.id):
+                    self._engine.get_queue_manager()._on_error_queue.remove(doc_pair.id)
+                self._engine.get_queue_manager().push(queueItem)
+
             self._action = Action("Full local scan")
             self._scan()
             self._end_action()
@@ -463,12 +477,18 @@ class LocalWatcher(EngineWorker):
                             if old_pair is None:
                                 self._dao.insert_local_state(child_info, info.path)
                             else:
-                                old_pair.local_state = 'moved'
-                                # Check digest also
-                                digest = child_info.get_digest()
-                                if old_pair.local_digest != digest:
-                                    old_pair.local_digest = digest
-                                self._dao.update_local_state(old_pair, child_info)
+                                if not self.client.exists(old_pair.local_path) and self.client.exists(child_info.path):
+                                    log.trace('%s moved to %s', old_pair.local_path, child_info.path)
+                                    old_pair.local_state = 'moved'
+                                    # Check digest also
+                                    digest = child_info.get_digest()
+                                    if old_pair.local_digest != digest:
+                                        old_pair.local_digest = digest
+                                    self._dao.update_local_state(old_pair, child_info)
+                                else:
+                                    # both file or folder exist: copy-and-paste
+                                    log.trace('copy and paste')
+                                    self._protected_files[child_pair.remote_ref] = True
                                 self._protected_files[old_pair.remote_ref] = True
                             self._delete_files[child_pair.remote_ref] = child_pair
                         if not child_info.folderish:
