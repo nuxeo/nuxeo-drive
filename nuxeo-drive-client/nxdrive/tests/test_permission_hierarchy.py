@@ -124,3 +124,76 @@ class TestPermissionHierarchy(UnitTestCase):
             if user_workspace_uid is not None and admin_remote_client.exists(user_workspace_uid):
                 admin_remote_client.delete(user_workspace_uid,
                                            use_trash=False)
+
+    def test_sync_unshared_folder(self):
+        user_workspace_uid = None
+        try:
+            # Get remote and local clients
+            admin_remote_client = self.root_remote_client
+            user1_remote_client = RemoteDocumentClient(
+                self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
+                self.version, password=self.password_1,
+                upload_tmp_dir=self.upload_tmp_dir)
+            user2_remote_client = RemoteDocumentClient(
+                self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
+                self.version, password=self.password_2,
+                upload_tmp_dir=self.upload_tmp_dir)
+            local_client_1 = LocalClient(self.local_nxdrive_folder_1)
+            local_client_2 = LocalClient(self.local_nxdrive_folder_2)
+
+            # Make sure user1 workspace is created and fetch its uid
+            user_workspace_uid = user1_remote_client.make_file_in_user_workspace('File in user workspace',
+                                                                                 filename='USFile.txt')['parentRef']
+
+            # Register user workspace as a sync root for user1
+            user1_remote_client.register_as_root(user_workspace_uid)
+
+            # Start engine
+            self.engine_2.start()
+
+            # Wait for synchronization
+            self.wait_sync(wait_for_async=True, wait_for_engine_2=True, wait_for_engine_1=False)
+            # Check locally synchronized content
+            self.assertTrue(local_client_2.exists('/My Docs'))
+            self.assertTrue(local_client_2.exists('/Other Docs'))
+
+            # Create test folder in user workspace as user1
+            test_folder_uid = user1_remote_client.make_folder(user_workspace_uid, 'Folder A')
+            folder_b = user1_remote_client.make_folder(test_folder_uid, 'Folder B')
+            folder_c = user1_remote_client.make_folder(folder_b, 'Folder C')
+            folder_d = user1_remote_client.make_folder(folder_c, 'Folder D')
+            folder_e = user1_remote_client.make_folder(folder_d, 'Folder E')
+
+            # Grant ReadWrite permission to user2 on test folder
+            op_input = "doc:" + test_folder_uid
+            admin_remote_client.execute("Document.SetACE", op_input=op_input, user=self.user_2,
+                                        permission="ReadWrite", grant="true")
+
+            # Register test folder as a sync root for user2
+            user2_remote_client.register_as_root(test_folder_uid)
+            # Wait for synchronization
+            self.wait_sync(wait_for_async=True, wait_for_engine_2=True, wait_for_engine_1=False)
+            self.assertTrue(local_client_2.exists('/Other Docs/Folder A'))
+            self.assertTrue(local_client_2.exists('/Other Docs/Folder A/Folder B/Folder C/Folder D/Folder E'))
+            # Use for later get_fs_item checks
+            folder_b_fs = local_client_2.get_remote_id('/Other Docs/Folder A/Folder B')
+            folder_a_fs = local_client_2.get_remote_id('/Other Docs/Folder A')
+            # Unshare Folder A and share Folder C
+            admin_remote_client.execute("Document.RemoveACL", op_input=op_input, acl='local')
+            op_input = "doc:" + folder_c
+            admin_remote_client.execute("Document.SetACE", op_input=op_input, user=self.user_2,
+                                        permission="Read", grant="true")
+            user2_remote_client.register_as_root(folder_c)
+            self.wait_sync(wait_for_async=True, wait_for_engine_2=True, wait_for_engine_1=False)
+            self.assertFalse(local_client_2.exists('/Other Docs/Folder A'))
+            self.assertTrue(local_client_2.exists('/Other Docs/Folder C'))
+            self.assertTrue(local_client_2.exists('/Other Docs/Folder C/Folder D/Folder E'))
+
+            # Verify that we dont have any 403 errors
+            self.assertIsNone(self.remote_file_system_client_2.get_fs_item(folder_a_fs))
+            self.assertIsNone(self.remote_file_system_client_2.get_fs_item(folder_b_fs))
+        finally:
+            # Cleanup user workspace
+            if user_workspace_uid is not None and admin_remote_client.exists(user_workspace_uid):
+                admin_remote_client.delete(user_workspace_uid,
+                                           use_trash=False)
