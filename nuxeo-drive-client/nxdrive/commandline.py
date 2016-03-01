@@ -474,6 +474,7 @@ class CliHandler(object):
 
     def get_manager(self, options):
         from nxdrive.manager import Manager
+        setattr(options, 'version', __version__)
         return Manager(options)
 
     def _get_application(self, options, console=False):
