@@ -5,6 +5,7 @@ import sys
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.client import LocalClient
 from nxdrive.logging_config import get_logger
+from shutil import copyfile
 log = get_logger(__name__)
 
 
@@ -262,3 +263,37 @@ class TestWatchers(UnitTestCase):
         self.wait_sync()
         self.assertFalse(remote.exists(u'/Accentue\u0301.odt'))
         self.assertFalse(remote.exists(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt'))
+
+    def test_watcher_remote_id_setter(self):
+        local = self.local_client_1
+        # As some user can rewrite same file for no reason
+        # Start engine
+        self.engine_1.start()
+        # Wait for test workspace synchronization
+        self.wait_sync()
+        # Create files with Unicode combining accents, Unicode latin characters and no special characters
+        file_path = local._abspath('/Test.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        # Wait for test workspace synchronization
+        self.wait_sync()
+        remote_id = local.get_remote_id('/Test.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        self.wait_sync()
+        self.assertEqual(remote_id, local.get_remote_id('/Test.pdf'), "Should have the remote id")
+
+    def test_watcher_remote_id_setter_stopped(self):
+        local = self.local_client_1
+        # As some user can rewrite same file for no reason
+        # Start engine
+        self.engine_1.start()
+        # Wait for test workspace synchronization
+        self.wait_sync()
+        # Create files with Unicode combining accents, Unicode latin characters and no special characters
+        file_path = local._abspath('/Test.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        # Wait for test workspace synchronization
+        self.engine_1.stop()
+        remote_id = local.get_remote_id('/Test.pdf')
+        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        self.engine_1.start()
+        self.assertEqual(remote_id, local.get_remote_id('/Test.pdf'), "Should have the remote id")

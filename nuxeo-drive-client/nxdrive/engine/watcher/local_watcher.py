@@ -729,6 +729,8 @@ class LocalWatcher(EngineWorker):
                 if doc_pair.local_digest == digest:
                     log.debug('Digest has not changed for %s (watchdog event [%s]), only update last_local_updated',
                               rel_path, evt.event_type)
+                    if local_info.remote_ref is None:
+                        self.client.set_remote_id(rel_path, doc_pair.remote_ref)
                     self._dao.update_local_modification_time(doc_pair, local_info)
                     return
                 doc_pair.local_digest = digest
