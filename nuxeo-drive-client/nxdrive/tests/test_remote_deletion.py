@@ -473,7 +473,7 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         op_input = "doc:" + self.workspace
         self.root_remote_client.execute("Document.RemoveACL", op_input=op_input, acl="local")
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test folder'))
 
     def test_synchronize_local_folder_rename_remote_deletion(self):
