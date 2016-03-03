@@ -156,12 +156,6 @@ class BaseAutomationClient(BaseClient):
     # TODO: handle system proxy detection under Linux,
     # see https://jira.nuxeo.com/browse/NXP-12068
 
-    # Used for testing network errors
-    _remote_error = None
-
-    # Used for testing local device errors when downloading a file
-    _local_error = None
-
     # Parameters used when negotiating authentication token:
     application_name = 'Nuxeo Drive'
 
@@ -225,7 +219,7 @@ class BaseAutomationClient(BaseClient):
         # Set Proxy flag
         self.is_proxy = False
         opener_proxies = get_opener_proxies(self.opener)
-        log.debug('Proxy configuration: %s, effective proxy list: %r', get_proxy_config(proxies), opener_proxies)
+        log.trace('Proxy configuration: %s, effective proxy list: %r', get_proxy_config(proxies), opener_proxies)
         if opener_proxies:
             self.is_proxy = True
 
@@ -239,14 +233,6 @@ class BaseAutomationClient(BaseClient):
         self.batch_upload_path = 'upload'
 
         self.fetch_api()
-
-    def make_remote_raise(self, error):
-        """Make next calls to server raise the provided exception"""
-        self._remote_error = error
-
-    def make_local_raise(self, error):
-        """Make do_get raise the provided exception"""
-        self._local_error = error
 
     def fetch_api(self):
         base_error_message = (
@@ -320,10 +306,6 @@ class BaseAutomationClient(BaseClient):
                 check_params=True, void_op=False, extra_headers=None,
                 file_out=None, **params):
         """Execute an Automation operation"""
-        if self._remote_error is not None:
-            # Simulate a configurable (e.g. network or server) error for the
-            # tests
-            raise self._remote_error
         if check_params:
             self._check_params(command, params)
 
@@ -357,7 +339,6 @@ class BaseAutomationClient(BaseClient):
                 json_struct['params'][k] = v
         if op_input:
             json_struct['input'] = op_input
-        log.trace("Dumping JSON structure: %s", json_struct)
         data = json.dumps(json_struct)
 
         cookies = self._get_cookies()
@@ -390,14 +371,6 @@ class BaseAutomationClient(BaseClient):
                             current_action.progress += (
                                                 self.get_download_buffer())
                         f.write(buffer_)
-                    if self._remote_error is not None:
-                        # Simulate a configurable remote (e.g. network or
-                        # server) error for the tests
-                        raise self._remote_error
-                    if self._local_error is not None:
-                        # Simulate a configurable local error (e.g. "No
-                        # space left on device") for the tests
-                        raise self._local_error
                 return None, file_out
             finally:
                 self.lock_path(file_out, locker)
@@ -466,9 +439,15 @@ class BaseAutomationClient(BaseClient):
         except Exception as e:
             log_details = self._log_details(e)
             if isinstance(log_details, tuple):
-                status, code, _ = log_details
-                if status == 500 and code == 'com.sun.jersey.api.NotFoundException':
+                status, code, message = log_details
+                if status == 404:
                     raise NewUploadAPINotAvailable()
+                if status == 500:
+                    not_found_exceptions = ['com.sun.jersey.api.NotFoundException',
+                                            'org.nuxeo.ecm.webengine.model.TypeNotFoundException']
+                    for exception in not_found_exceptions:
+                        if code == exception or exception in message:
+                            raise NewUploadAPINotAvailable()
             raise e
         return self._read_response(resp, url)
 
@@ -512,8 +491,6 @@ class BaseAutomationClient(BaseClient):
         input_file = open(file_path, 'rb')
         # Use file system block size if available for streaming buffer
         fs_block_size = self.get_upload_buffer(input_file)
-        log.trace("Using file system block size"
-                  " for the streaming upload buffer: %u bytes", fs_block_size)
         data = self._read_data(input_file, fs_block_size)
 
         # Execute request
@@ -738,9 +715,12 @@ class BaseAutomationClient(BaseClient):
                 # Error message should always be a JSON message,
                 # but sometimes it's not
                 if '<html>' in detail:
-                    log.error(e)
+                    message = e
                 else:
-                    log.debug(detail)
+                    message = detail
+                log.error(message)
+                if isinstance(e, urllib2.HTTPError):
+                    return e.code, None, message
         return None
 
     def _generate_unique_id(self):
@@ -764,10 +744,13 @@ class BaseAutomationClient(BaseClient):
             yield r
 
     def do_get(self, url, file_out=None, digest=None, digest_algorithm=None):
+        log.trace('Downloading file from %r to %r with digest=%s, digest_algorithm=%s', url, file_out, digest,
+                  digest_algorithm)
         h = None
         if digest is not None:
             if digest_algorithm is None:
                 digest_algorithm = guess_digest_algorithm(digest)
+                log.trace('Guessed digest algorithm from digest: %s', digest_algorithm)
             digester = getattr(hashlib, digest_algorithm, None)
             if digester is None:
                 raise ValueError('Unknow digest method: ' + digest_algorithm)
@@ -804,18 +787,13 @@ class BaseAutomationClient(BaseClient):
                             f.write(buffer_)
                             if h is not None:
                                 h.update(buffer_)
-                        if self._remote_error is not None:
-                            # Simulate a configurable remote (e.g. network or
-                            # server) error for the tests
-                            raise self._remote_error
-                        if self._local_error is not None:
-                            # Simulate a configurable local error (e.g. "No
-                            # space left on device") for the tests
-                            raise self._local_error
-                    if digest is not None and digest != h.hexdigest():
-                        if os.path.exists(file_out):
-                            os.remove(file_out)
-                        raise CorruptedFile("Corrupted file")
+                    if digest is not None:
+                        actual_digest = h.hexdigest()
+                        if digest != actual_digest:
+                            if os.path.exists(file_out):
+                                os.remove(file_out)
+                            raise CorruptedFile("Corrupted file %r: expected digest = %s, actual digest = %s"
+                                                % (file_out, digest, actual_digest))
                     return None, file_out
                 finally:
                     self.lock_path(file_out, locker)
@@ -823,8 +801,11 @@ class BaseAutomationClient(BaseClient):
                 result = response.read()
                 if h is not None:
                     h.update(result)
-                    if digest is not None and digest != h.hexdigest():
-                        raise CorruptedFile("Corrupted file")
+                    if digest is not None:
+                        actual_digest = h.hexdigest()
+                        if digest != actual_digest:
+                            raise CorruptedFile("Corrupted file: expected digest = %s, actual digest = %s"
+                                                % (digest, actual_digest))
                 return result, None
         except urllib2.HTTPError as e:
             if e.code == 401 or e.code == 403:

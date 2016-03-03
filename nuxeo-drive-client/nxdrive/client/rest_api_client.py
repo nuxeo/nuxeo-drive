@@ -33,6 +33,9 @@ class RestAPIClient(object):
             cookiejar=cookie_jar)
         self.opener = urllib2.build_opener(cookie_processor)
 
+    def get_acls(self, ref):
+        return self.execute('id/' + ref, adapter='acl')
+
     def execute(self, relative_url, adapter=None, timeout=-1):
         """Execute a REST API call"""
 

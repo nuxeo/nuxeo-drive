@@ -86,17 +86,17 @@ class TestWindows(UnitTestCase):
         remote.make_file('/', 'other.docx', 'Other content.')
 
         # Synchronize
-        self.wait_sync(wait_for_async=True, enforce_errors=False)
+        self.wait_sync(wait_for_async=True, enforce_errors=False, fail_if_timeout=False)
         if sys.platform == 'win32':
             # As local file are locked, a WindowsError should occur during the
             # local update process, therefore:
             # - Temporary download file (.part) should be created locally but
-            #   not renamed
+            #   not renamed then removed
             # - Opened local files should still exist and not have been
             #   modified
             # - Synchronization should not fail: doc pairs should be
             #   blacklisted and other remote modifications should be locally synchronized
-            self.assertNxPart('/', 'test_update.docx', False)
+            self.assertNxPart('/', name='test_update.docx', present=False)
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEquals(local.get_content('/test_update.docx'),
                               'Some content to update.')
@@ -108,10 +108,10 @@ class TestWindows(UnitTestCase):
                               'Other content.')
 
             # Synchronize again
-            self.wait_sync(enforce_errors=False)
+            self.wait_sync(enforce_errors=False, fail_if_timeout=False)
             # Blacklisted files should be ignored as delay (60 seconds by
             # default) is not expired, nothing should have changed
-            self.assertNxPart('/', 'test_update.docx', False)
+            self.assertNxPart('/', name='test_update.docx', present=False)
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEquals(local.get_content('/test_update.docx'),
                               'Some content to update.')
@@ -132,30 +132,11 @@ class TestWindows(UnitTestCase):
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEquals(local.get_content('/test_update.docx'),
                               'Updated content.')
-            # TODO Autoclean
-            #self.assertNxPart('/', 'test_update.docx', False)
-            self.assertFalse(local.exists('/.test_update.docx.part'))
+            self.assertNxPart('/', name='test_update.docx', present=False)
             self.assertFalse(local.exists('/test_delete.docx'))
         else:
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEquals(local.get_content('/test_update.docx'),
                               'Updated content.')
-            self.assertFalse(local.exists('/.test_update.docx.nxpart'))
+            self.assertNxPart('/', name='test_update.docx', present=False)
             self.assertFalse(local.exists('/test_delete.docx'))
-
-    def assertNxPart(self, path, name=None, present=True):
-        os_path = self.local_client_1._abspath(path)
-        children = os.listdir(os_path)
-        for child in children:
-            if len(child) < 8:
-                continue
-            if name is not None and len(child) < len(name) + 8:
-                continue
-            if child[0] == "." and child[-7:] == ".nxpart":
-                if name is None or child[1:len(name)+1] == name:
-                    if present:
-                        return
-                    else:
-                        self.fail("nxpart found in : '%s'" % (path))
-        if present:
-            self.fail("nxpart not found in : '%s'" % (path))

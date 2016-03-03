@@ -1,5 +1,5 @@
 from nxdrive.tests.common_unit_test import UnitTestCase
-from nxdrive.tests.remote_test_client import RemoteTestClient
+from nxdrive.tests import RemoteTestClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 
 

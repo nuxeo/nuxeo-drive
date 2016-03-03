@@ -30,13 +30,19 @@
   <target name="run-drive-tests">
     <echo level="info">################### Starting Nuxeo Drive functional tests ###################</echo>
     <property environment="env" />
+    <property name="env.SERVER_URL" value="" />
+    <property name="env.ENGINE" value="" />
     <echo level="info">PATH detected by Ant = ${env.PATH}</echo>
+    <echo level="info">SERVER_URL environment variable = ${env.SERVER_URL}</echo>
+    <echo level="info">ENGINE environment variable = ${env.ENGINE}</echo>
     <exec executable="python" failonerror="true">
       <arg value="../tools/integration_tests_setup.py" />
       <arg value="--base-folder=../nuxeo-drive-client" />
       <arg value="--work-folder=${out.dir}" />
       <arg value="test" />
       <arg value="--msi-folder=../dist" />
+      <arg value="--server-url=${env.SERVER_URL}" />
+      <arg value="--engine=${env.ENGINE}" />
     </exec>
     <echo level="info">################### Ended Nuxeo Drive functional tests ###################</echo>
   </target>

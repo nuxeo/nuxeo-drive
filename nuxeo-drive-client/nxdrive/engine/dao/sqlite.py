@@ -298,12 +298,15 @@ class ConfigurationDAO(QObject):
         finally:
             self._lock.release()
 
+    def _delete_config(self, cursor, name):
+        cursor.execute("DELETE FROM Configuration WHERE name=?", (name,))
+
     def delete_config(self, name):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM Configuration WHERE name=?", (name,))
+            self._delete_config(c, name)
             if self.auto_commit:
                 con.commit()
         finally:
@@ -499,9 +502,17 @@ class EngineDAO(ConfigurationDAO):
     def get_schema_version(self):
         return 3
 
+    def _migrate_state(self, cursor):
+        try:
+            self._migrate_table(cursor, 'States')
+        except sqlite3.IntegrityError:
+            # If we cannot smoothly migrate harder migration
+            cursor.execute("DROP TABLE if exists StatesMigration")
+            self._reinit_states(cursor)
+
     def _migrate_db(self, cursor, version):
         if (version < 1):
-            self._migrate_table(cursor, 'States')
+            self._migrate_state(cursor)
             cursor.execute(u"UPDATE States SET last_transfer = 'upload' WHERE last_local_updated < last_remote_updated AND folderish=0;")
             cursor.execute(u"UPDATE States SET last_transfer = 'download' WHERE last_local_updated > last_remote_updated AND folderish=0;")
             self.update_config(SCHEMA_VERSION, 1)
@@ -509,8 +520,11 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
             self.update_config(SCHEMA_VERSION, 2)
         if (version < 3):
-            self._migrate_table(cursor, 'States')
+            self._migrate_state(cursor)
             self.update_config(SCHEMA_VERSION, 3)
+
+    def _reinit_database(self):
+        self.reinit_states()
 
     def _create_table(self, cursor, name, force=False):
         if name == "States":
@@ -542,6 +556,19 @@ class EngineDAO(ConfigurationDAO):
 
     def _get_read_connection(self, factory=StateRow):
         return super(EngineDAO, self)._get_read_connection(factory)
+
+    def acquire_state(self, thread_id, row_id):
+        if self.acquire_processor(thread_id, row_id):
+            # Avoid any lock for this call by using the write connection
+            try:
+                return self.get_state_from_id(row_id, from_write=True)
+            except:
+                self.release_processor(thread_id)
+                raise
+        return None
+
+    def release_state(self, thread_id):
+        self.release_processor(thread_id)
 
     def release_processor(self, processor_id):
         self._lock.acquire()
@@ -579,13 +606,21 @@ class EngineDAO(ConfigurationDAO):
                       thread_id, row_id)
         return res
 
+    def _reinit_states(self, cursor):
+        cursor.execute("DROP TABLE States")
+        self._create_state_table(cursor, force=True)
+        self._delete_config(cursor, "remote_last_sync_date")
+        self._delete_config(cursor, "remote_last_event_log_id")
+        self._delete_config(cursor, "remote_last_event_last_root_definitions")
+        self._delete_config(cursor, "remote_last_full_scan")
+        self._delete_config(cursor, "last_sync_date")
+
     def reinit_states(self):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DROP TABLE States")
-            self._create_state_table(c, force=True)
+            self._reinit_states(c)
             con.commit()
             log.trace("Vacuum sqlite")
             con.execute("VACUUM")
@@ -616,7 +651,6 @@ class EngineDAO(ConfigurationDAO):
             update = "UPDATE States SET remote_state='deleted', pair_state=?"
             c.execute(update + " WHERE id=?", ('remotely_deleted',doc_pair.id))
             if doc_pair.folderish:
-                # TO_REVIEW New state recursive_remotely_deleted
                 c.execute(update + self._get_recursive_condition(doc_pair), ('parent_remotely_deleted',))
             # Only queue parent
             self._queue_pair_state(doc_pair.id, doc_pair.folderish, 'remotely_deleted')
@@ -626,6 +660,7 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
 
     def delete_local_state(self, doc_pair):
+        current_state = None
         self._lock.acquire()
         try:
             con = self._get_write_connection()
@@ -639,16 +674,15 @@ class EngineDAO(ConfigurationDAO):
             update = "UPDATE States SET local_state='deleted', pair_state=?"
             c.execute(update + " WHERE id=?", (current_state, doc_pair.id))
             if doc_pair.folderish:
-                # TO_REVIEW New state recursive_locally_deleted
                 c.execute(update + self._get_recursive_condition(doc_pair), ('parent_locally_deleted',))
-            self._queue_manager.interrupt_processors_on(doc_pair.local_path, exact_match=False)
-            # Only queue parent
-            if current_state == "locally_deleted":
-                self._queue_pair_state(doc_pair.id, doc_pair.folderish, current_state)
             if self.auto_commit:
                 con.commit()
         finally:
             self._lock.release()
+            self._queue_manager.interrupt_processors_on(doc_pair.local_path, exact_match=False)
+            # Only queue parent
+            if current_state is not None and current_state == "locally_deleted":
+                self._queue_pair_state(doc_pair.id, doc_pair.folderish, current_state)
 
     def insert_local_state(self, info, parent_path):
         pair_state = PAIR_STATES.get(('created', 'unknown'))
@@ -712,13 +746,13 @@ class EngineDAO(ConfigurationDAO):
         if (self._queue_manager is not None
              and pair_state != 'synchronized' and pair_state != 'unsynchronized'):
             if pair_state == 'conflicted':
-                log.trace("Emit newConflict with: %r: %r", row_id, pair)
+                log.trace("Emit newConflict with: %r, pair=%r", row_id, pair)
                 self.newConflict.emit(row_id)
             else:
-                log.trace("Push to queue: %s: %r", pair_state, pair)
+                log.trace("Push to queue: %s, pair=%r", pair_state, pair)
                 self._queue_manager.push_ref(row_id, folderish, pair_state)
         else:
-            log.trace("Will not push pair: %s: %r", pair_state, pair)
+            log.trace("Will not push pair: %s, pair=%r", pair_state, pair)
         return
 
     def _get_pair_state(self, row):
@@ -736,11 +770,12 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
 
     def update_local_state(self, row, info, versionned=True, queue=True):
+        log.trace('Updating local state for row = %r with info = %r', row, info)
         pair_state = self._get_pair_state(row)
         version = ''
         if versionned:
             version = ', version=version+1'
-            log.trace('Increasing version to %d for pair %r', row.version + 1, info)
+            log.trace('Increasing version to %d for pair %r', row.version + 1, row)
         parent_path = os.path.dirname(info.path)
         self._lock.acquire()
         try:
@@ -756,11 +791,14 @@ class EngineDAO(ConfigurationDAO):
                 parent = c.execute("SELECT * FROM States WHERE local_path=?", (parent_path,)).fetchone()
                 # Dont queue if parent is not yet created
                 if (parent is None and parent_path == '') or (parent is not None and parent.pair_state != "locally_created"):
-                    self._queue_pair_state(row.id, info.folderish, pair_state, row)
+                    self._queue_pair_state(row.id, info.folderish, pair_state, pair=row)
             if self.auto_commit:
                 con.commit()
         finally:
             self._lock.release()
+
+    def update_local_modification_time(self, row, info):
+        self.update_local_state(row, info, versionned=False, queue=False)
 
     def get_valid_duplicate_file(self, digest):
         c = self._get_read_connection(factory=StateRow).cursor()
@@ -989,17 +1027,17 @@ class EngineDAO(ConfigurationDAO):
                       "remote_parent_path, remote_name, last_remote_updated, remote_can_rename," +
                       "remote_can_delete, remote_can_update, " +
                       "remote_can_create_child, last_remote_modifier, remote_digest," +
-                      "folderish, last_remote_modifier, local_path, local_parent_path, remote_state, local_state, pair_state)" +
-                      " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'created','unknown',?)",
+                      "folderish, last_remote_modifier, local_path, local_parent_path, remote_state, local_state, pair_state, local_name)" +
+                      " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'created','unknown',?, ?)",
                       (info.uid, info.parent_uid, remote_parent_path, info.name,
                        info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                        info.can_create_child, info.last_contributor, info.digest, info.folderish, info.last_contributor,
-                       local_path, local_parent_path, pair_state))
+                       local_path, local_parent_path, pair_state, info.name))
             row_id = c.lastrowid
             if self.auto_commit:
                 con.commit()
             # Check if parent is not in creation
-            parent = c.execute("SELECT * FROM States WHERE local_path=?", (local_parent_path,)).fetchone()
+            parent = c.execute("SELECT * FROM States WHERE remote_ref=?", (info.parent_uid,)).fetchone()
             if (parent is None and local_parent_path == '') or (parent is not None and parent.pair_state != "remotely_created"):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
             self._items_count = self._items_count + 1
@@ -1164,20 +1202,22 @@ class EngineDAO(ConfigurationDAO):
             self.queue_children(row)
         return result
 
-    def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True):
+    def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False):
         pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
         version = ''
         # Check if it really needs an update
-        if (row.remote_ref == info.uid and info.parent_uid == row.remote_parent_ref and remote_parent_path == row.remote_parent_path
-            and info.name == row.remote_name and info.last_modification_time == row.last_remote_updated and info.can_rename == row.remote_can_rename
+        if ((not force_update) and row.remote_ref == info.uid and info.parent_uid == row.remote_parent_ref and remote_parent_path == row.remote_parent_path
+            and info.name == row.remote_name and unicode(info.last_modification_time) == row.last_remote_updated and info.can_rename == row.remote_can_rename
             and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child
             and info.last_contributor == row.last_remote_modifier and info.digest == row.remote_digest):
+            log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
             return
+        log.trace('Updating remote state for row = %r with info = %r', row, info)
         if versionned:
             version = ', version=version+1'
-            log.trace('Increasing version to %d for pair %r', row.version + 1, info)
+            log.trace('Increasing version to %d for pair %r', row.version + 1, row)
         self._lock.acquire()
         try:
             con = self._get_write_connection()
@@ -1194,13 +1234,17 @@ class EngineDAO(ConfigurationDAO):
             if self.auto_commit:
                 con.commit()
             if queue:
-                self._queue_pair_state(row.id, info.folderish, pair_state)
+                # Check if parent is not in creation
+                parent = c.execute("SELECT * FROM States WHERE remote_ref=?", (info.parent_uid,)).fetchone()
+                # Parent can be None if the parent is filtered
+                if (parent is not None and parent.pair_state != "remotely_created") or parent is None:
+                    self._queue_pair_state(row.id, info.folderish, pair_state)
         finally:
             self._lock.release()
 
     def _clean_filter_path(self, path):
         if not path.endswith("/"):
-            path = path + "/"
+            path += "/"
         return path
 
     def add_path_to_scan(self, path):

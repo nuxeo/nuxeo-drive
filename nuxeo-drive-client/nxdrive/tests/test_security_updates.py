@@ -42,14 +42,14 @@ class TestSecurityUpdates(UnitTestCase):
 
         # Remove Read permission for test user on a regular folder
         # then synchronize
-        self._set_read_permission("nuxeoDriveTestUser_user_1",
+        self._set_read_permission(self.user_1,
                                   TEST_WORKSPACE_PATH + '/Test folder',
                                   False)
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test folder'))
 
         # Add Read permission back for test user then synchronize
-        self._set_read_permission("nuxeoDriveTestUser_user_1",
+        self._set_read_permission(self.user_1,
                                   TEST_WORKSPACE_PATH + '/Test folder',
                                   True)
         self.wait_sync(wait_for_async=True)
@@ -58,14 +58,14 @@ class TestSecurityUpdates(UnitTestCase):
 
         # Remove Read permission for test user on a sync root
         # then synchronize
-        self._set_read_permission("nuxeoDriveTestUser_user_1",
+        self._set_read_permission(self.user_1,
                                   TEST_WORKSPACE_PATH,
                                   False)
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/'))
 
         # Add Read permission back for test user then synchronize
-        self._set_read_permission("nuxeoDriveTestUser_user_1",
+        self._set_read_permission(self.user_1,
                                   TEST_WORKSPACE_PATH,
                                   True)
         self.wait_sync(wait_for_async=True)
@@ -127,7 +127,7 @@ class TestSecurityUpdates(UnitTestCase):
         # Remove Read permission for test user on a regular folder
         # and make some local and remote changes concurrently then synchronize
         test_folder_path = TEST_WORKSPACE_PATH + '/Test folder'
-        self._set_read_permission("nuxeoDriveTestUser_user_1",
+        self._set_read_permission(self.user_1,
                                   test_folder_path, False)
         # Local changes
         time.sleep(OS_STAT_MTIME_RESOLUTION)
@@ -212,7 +212,7 @@ class TestSecurityUpdates(UnitTestCase):
             test_folder_path + '/Local sub folder 1/local sub file 2.txt'))
 
         # Add Read permission back for test user then synchronize
-        self._set_read_permission("nuxeoDriveTestUser_user_1",
+        self._set_read_permission(self.user_1,
                                   TEST_WORKSPACE_PATH + '/Test folder',
                                   True)
         self.wait_sync(wait_for_async=True)

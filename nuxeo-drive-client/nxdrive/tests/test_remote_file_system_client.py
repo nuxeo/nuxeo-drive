@@ -41,7 +41,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
             self.workspace_id)
         self.assertFalse(info.folderish)
         if info.last_contributor:
-            self.assertEquals(info.last_contributor, 'nuxeoDriveTestUser_user_1')
+            self.assertEquals(info.last_contributor, self.user_1)
         digest_algorithm = info.digest_algorithm
         self.assertEquals(digest_algorithm, 'md5')
         digest = self._get_digest(digest_algorithm, "Content of doc 1.")
@@ -63,7 +63,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
             self.workspace_id)
         self.assertTrue(info.folderish)
         if info.last_contributor:
-            self.assertEquals(info.last_contributor, 'nuxeoDriveTestUser_user_1')
+            self.assertEquals(info.last_contributor, self.user_1)
         self.assertTrue(info.digest_algorithm is None)
         self.assertTrue(info.digest is None)
         self.assertTrue(info.download_url is None)
@@ -353,7 +353,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         remote_file_system_client = self.remote_file_system_client_1
         new_name = remote_file_system_client.conflicted_name("My File.doc")
         self.assertTrue(new_name.startswith(
-            "My File (nuxeoDriveTestUser_user_1 - "))
+            "My File (" + self.user_1 + " - "))
         self.assertTrue(new_name.endswith(").doc"))
 
     def test_streaming_upload(self):
@@ -426,6 +426,50 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         doc_uid = fs_item_id.rsplit('#', 1)[1]
         doc_type = self.remote_document_client_1.get_info(doc_uid).doc_type
         self.assertEquals(doc_type, 'Picture')
+
+    def test_modification_flags_locked_document(self):
+        remote = self.remote_file_system_client_1
+        fs_item_id = remote.make_file(self.workspace_id, 'Document 1.txt', "Content of doc 1.").uid
+
+        # Check flags for a document that isn't locked
+        info = remote.get_info(fs_item_id)
+        self.assertTrue(info.can_rename)
+        self.assertTrue(info.can_update)
+        self.assertTrue(info.can_delete)
+        self.assertIsNone(info.lock_owner)
+        self.assertIsNone(info.lock_created)
+
+        # Check flags for a document locked by the current user
+        doc_uid = fs_item_id.rsplit('#', 1)[1]
+        self.remote_document_client_1.lock(doc_uid)
+        info = remote.get_info(fs_item_id)
+        self.assertTrue(info.can_rename)
+        self.assertTrue(info.can_update)
+        self.assertTrue(info.can_delete)
+        lock_info_available = remote.get_fs_item(fs_item_id).get('lockInfo') is not None
+        if lock_info_available:
+            self.assertEquals(info.lock_owner, self.user_1)
+            self.assertIsNotNone(info.lock_created)
+        self.remote_document_client_1.unlock(doc_uid)
+
+        # Check flags for a document locked by another user
+        self.remote_document_client_2.lock(doc_uid)
+        info = remote.get_info(fs_item_id)
+        self.assertFalse(info.can_rename)
+        self.assertFalse(info.can_update)
+        self.assertFalse(info.can_delete)
+        if lock_info_available:
+            self.assertEquals(info.lock_owner, self.user_2)
+            self.assertIsNotNone(info.lock_created)
+
+        # Check flags for a document unlocked by another user
+        self.remote_document_client_2.unlock(doc_uid)
+        info = remote.get_info(fs_item_id)
+        self.assertTrue(info.can_rename)
+        self.assertTrue(info.can_update)
+        self.assertTrue(info.can_delete)
+        self.assertIsNone(info.lock_owner)
+        self.assertIsNone(info.lock_created)
 
     def _get_digest(self, digest_algorithm, content):
         hasher = getattr(hashlib, digest_algorithm)

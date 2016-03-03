@@ -33,7 +33,7 @@ class TestSharedFolders(UnitTestCase):
 
             # As user1 grant Everything permission to user2 on parent folder
             op_input = "doc:" + parent_folder_uid
-            admin_remote_client.execute("Document.SetACE", op_input=op_input, user="nuxeoDriveTestUser_user_2",
+            admin_remote_client.execute("Document.SetACE", op_input=op_input, user=self.user_2,
                                         permission="Everything", grant="true")
 
             # As user1 create a child folder in parent folder

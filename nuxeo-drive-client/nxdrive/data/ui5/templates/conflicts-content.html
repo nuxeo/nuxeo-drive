@@ -24,8 +24,8 @@
 				    <span ng-show="pair.last_error != 'DUPLICATING'" translate>RESOLVE</span><span ng-show="pair.last_error == 'DUPLICATING'" translate>DUPLICATING</span> <span class="caret"></span>
 				  </button>
 				  <ul class="dropdown-menu" role="menu">
-				    <li><a href="#" ng-click="resolve_with_local(pair.id)"><span class="glyphicon glyphicon-file">&nbsp;</span><span translate>CONFLICT_USE_LOCAL</span></a></li>
-				    <li class="divider"></li>
+				    <li ng-show="pair.remote_can_update"><a href="#" ng-click="resolve_with_local(pair.id)"><span class="glyphicon glyphicon-file">&nbsp;</span><span translate>CONFLICT_USE_LOCAL</span></a></li>
+				    <li ng-show="pair.remote_can_update" class="divider"></li>
 				    <li><a href="#" ng-click="resolve_with_remote(pair.id)"><span class="glyphicon glyphicon-globe">&nbsp;</span><span translate>CONFLICT_USE_REMOTE</span></a></li>
 				    <li class="divider"></li>
 				    <li><a href="#" ng-click="resolve_with_duplicate(pair.id)"><span class="glyphicon glyphicon-duplicate">&nbsp;</span><span translate>CONFLICT_USE_DUPLICATE</span></a></li>

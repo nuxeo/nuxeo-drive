@@ -11,6 +11,7 @@ from time import sleep
 class BlacklistQueueTest(unittest.TestCase):
 
     def testDelay(self):
+        sleep_time = 3
         # Push two items with a delay of 1s
         queue = BlacklistQueue(delay=1)
         queue.push(1, "Item1")
@@ -18,7 +19,7 @@ class BlacklistQueueTest(unittest.TestCase):
         # Verify no item is returned back before 1s
         item = queue.get()
         self.assertIsNone(item)
-        sleep(2)
+        sleep(sleep_time)
         # Verfiy we get the two items now
         item = queue.get()
         self.assertIsNotNone(item)
@@ -33,7 +34,7 @@ class BlacklistQueueTest(unittest.TestCase):
         queue.repush(item, increase_wait=False)
         item = queue.get()
         self.assertIsNone(item)
-        sleep(2)
+        sleep(sleep_time)
         # We should get the repushed item after 1s wait
         item = queue.get()
         self.assertIsNotNone(item)
@@ -42,10 +43,10 @@ class BlacklistQueueTest(unittest.TestCase):
         self.assertEquals(item._count, 2)
         # Repush item with increase
         queue.repush(item, increase_wait=True)
-        sleep(2)
+        sleep(sleep_time)
         item = queue.get()
         self.assertIsNone(item)
-        sleep(2)
+        sleep(sleep_time)
         item = queue.get()
         self.assertIsNotNone(item)
         self.assertEquals(item.get(), "Item2")

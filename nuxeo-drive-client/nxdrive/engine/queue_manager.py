@@ -66,6 +66,21 @@ class QueueManager(QObject):
         self._threads_pool = list()
         self._processors_pool = list()
         self._get_file_lock = Lock()
+        # Should not operate on thread while we are inspecting them
+        '''
+        This error required to add a lock for inspecting threads, as the below Traceback shows the processor thread was ended while the method was running
+        Traceback (most recent call last):
+           File "/Users/hudson/tmp/workspace/FT-nuxeo-drive-master-osx/nuxeo-drive-client/nxdrive/engine/watcher/local_watcher.py", line 845, in handle_watchdog_event
+             self.scan_pair(rel_path)
+           File "/Users/hudson/tmp/workspace/FT-nuxeo-drive-master-osx/nuxeo-drive-client/nxdrive/engine/watcher/local_watcher.py", line 271, in scan_pair
+             self._suspend_queue()
+           File "/Users/hudson/tmp/workspace/FT-nuxeo-drive-master-osx/nuxeo-drive-client/nxdrive/engine/watcher/local_watcher.py", line 265, in _suspend_queue
+             for processor in self._engine.get_queue_manager().get_processors_on('/', exact_match=False):
+           File "/Users/hudson/tmp/workspace/FT-nuxeo-drive-master-osx/nuxeo-drive-client/nxdrive/engine/queue_manager.py", line 413, in get_processors_on
+             res.append(self._local_file_thread.worker)
+         AttributeError: 'NoneType' object has no attribute 'worker'
+        '''
+        self._thread_inspection = Lock()
 
         # ERROR HANDLING
         self._error_lock = Lock()
@@ -324,23 +339,27 @@ class QueueManager(QObject):
 
     @pyqtSlot()
     def _thread_finished(self):
-        for thread in self._processors_pool:
-            if thread.isFinished():
-                self._processors_pool.remove(thread)
-        if (self._local_folder_thread is not None and
-                self._local_folder_thread.isFinished()):
-            self._local_folder_thread = None
-        if (self._local_file_thread is not None and
-                self._local_file_thread.isFinished()):
-            self._local_file_thread = None
-        if (self._remote_folder_thread is not None and
-                self._remote_folder_thread.isFinished()):
-            self._remote_folder_thread = None
-        if (self._remote_file_thread is not None and
-                self._remote_file_thread.isFinished()):
-            self._remote_file_thread = None
-        if not self._engine.is_paused() and not self._engine.is_stopped():
-            self.newItem.emit(None)
+        self._thread_inspection.acquire()
+        try:
+            for thread in self._processors_pool:
+                if thread.isFinished():
+                    self._processors_pool.remove(thread)
+            if (self._local_folder_thread is not None and
+                    self._local_folder_thread.isFinished()):
+                self._local_folder_thread = None
+            if (self._local_file_thread is not None and
+                    self._local_file_thread.isFinished()):
+                self._local_file_thread = None
+            if (self._remote_folder_thread is not None and
+                    self._remote_folder_thread.isFinished()):
+                self._remote_folder_thread = None
+            if (self._remote_file_thread is not None and
+                    self._remote_file_thread.isFinished()):
+                self._remote_file_thread = None
+            if not self._engine.is_paused() and not self._engine.is_stopped():
+                self.newItem.emit(None)
+        finally:
+            self._thread_inspection.release()
 
     def active(self):
         # Recheck threads
@@ -385,13 +404,13 @@ class QueueManager(QObject):
     def is_processing_file(self, worker, path, exact_match=False):
         if not hasattr(worker, "_current_doc_pair"):
             return False
-        if (worker._current_doc_pair is None or
-            worker._current_doc_pair.local_path is None):
+        doc_pair = worker._current_doc_pair
+        if (doc_pair is None or doc_pair.local_path is None):
             return False
         if exact_match:
-            result = worker._current_doc_pair.local_path == path
+            result = doc_pair.local_path == path
         else:
-            result = worker._current_doc_pair.local_path.startswith(path)
+            result = doc_pair.local_path.startswith(path)
         if result:
             log.trace("Worker(%r) is processing: %r", worker.get_metrics(), path)
         return result
@@ -401,40 +420,48 @@ class QueueManager(QObject):
             proc.stop()
 
     def get_processors_on(self, path, exact_match=True):
-        res = []
-        if self._local_folder_thread is not None:
-            if self.is_processing_file(self._local_folder_thread.worker, path, exact_match):
-                res.append(self._local_folder_thread.worker)
-        if self._remote_folder_thread is not None:
-            if self.is_processing_file(self._remote_folder_thread.worker, path, exact_match):
-                res.append(self._remote_folder_thread.worker)
-        if self._local_file_thread is not None:
-            if self.is_processing_file(self._local_file_thread.worker, path, exact_match):
-                res.append(self._local_file_thread.worker)
-        if self._remote_file_thread is not None:
-            if self.is_processing_file(self._remote_file_thread.worker, path, exact_match):
-                res.append(self._remote_file_thread.worker)
-        for thread in self._processors_pool:
-            if self.is_processing_file(thread.worker, path, exact_match):
-                res.append(thread.worker)
-        return res
+        self._thread_inspection.acquire()
+        try:
+            res = []
+            if self._local_folder_thread is not None:
+                if self.is_processing_file(self._local_folder_thread.worker, path, exact_match):
+                    res.append(self._local_folder_thread.worker)
+            if self._remote_folder_thread is not None:
+                if self.is_processing_file(self._remote_folder_thread.worker, path, exact_match):
+                    res.append(self._remote_folder_thread.worker)
+            if self._local_file_thread is not None:
+                if self.is_processing_file(self._local_file_thread.worker, path, exact_match):
+                    res.append(self._local_file_thread.worker)
+            if self._remote_file_thread is not None:
+                if self.is_processing_file(self._remote_file_thread.worker, path, exact_match):
+                    res.append(self._remote_file_thread.worker)
+            for thread in self._processors_pool:
+                if self.is_processing_file(thread.worker, path, exact_match):
+                    res.append(thread.worker)
+            return res
+        finally:
+            self._thread_inspection.release()
 
     def has_file_processors_on(self, path):
-        # First check local and remote file
-        if self._local_file_thread is not None:
-            if self.is_processing_file(self._local_file_thread.worker, path):
-                return True
-        if self._remote_file_thread is not None:
-            if self.is_processing_file(self._remote_file_thread.worker, path):
-                return True
-        for thread in self._processors_pool:
-            if self.is_processing_file(thread.worker, path):
-                return True
-        return False
+        self._thread_inspection.acquire()
+        try:
+            # First check local and remote file
+            if self._local_file_thread is not None:
+                if self.is_processing_file(self._local_file_thread.worker, path):
+                    return True
+            if self._remote_file_thread is not None:
+                if self.is_processing_file(self._remote_file_thread.worker, path):
+                    return True
+            for thread in self._processors_pool:
+                if self.is_processing_file(thread.worker, path):
+                    return True
+            return False
+        finally:
+            self._thread_inspection.release()
 
     @pyqtSlot()
     def launch_processors(self):
-        if (self._disable or (self._local_folder_queue.empty() and self._local_file_queue.empty()
+        if (self._disable or self.is_paused() or (self._local_folder_queue.empty() and self._local_file_queue.empty()
                 and self._remote_folder_queue.empty() and self._remote_file_queue.empty())):
             self.queueEmpty.emit()
             if not self.is_active():

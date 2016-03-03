@@ -24,6 +24,7 @@ except ImportError:
 import os
 import datetime
 from cookielib import CookieJar
+from nxdrive.client.common import safe_filename
 from nxdrive.gui.resources import find_icon
 import urllib2
 
@@ -111,6 +112,8 @@ class Engine(QObject):
     _scanPair = pyqtSignal(str)
     syncStarted = pyqtSignal(object)
     syncCompleted = pyqtSignal()
+    # Sent when files are in blacklist but the rest is ok
+    syncPartialCompleted = pyqtSignal()
     syncSuspended = pyqtSignal()
     syncResumed = pyqtSignal()
     rootDeleted = pyqtSignal()
@@ -118,6 +121,9 @@ class Engine(QObject):
     invalidAuthentication = pyqtSignal()
     invalidClientsCache = pyqtSignal()
     newConflict = pyqtSignal(object)
+    newReadonly = pyqtSignal(object, object)
+    deleteReadonly = pyqtSignal(object)
+    newLocked = pyqtSignal(object, object, object)
     newSync = pyqtSignal(object, object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
@@ -214,11 +220,6 @@ class Engine(QObject):
         if started:
             self.stop()
         self._dao.reinit_states()
-        self._dao.delete_config("remote_last_sync_date")
-        self._dao.delete_config("remote_last_event_log_id")
-        self._dao.delete_config("remote_last_event_last_root_definitions")
-        self._dao.delete_config("remote_last_full_scan")
-        self._dao.delete_config("last_sync_date")
         self._check_root()
         if started:
             self.start()
@@ -245,6 +246,7 @@ class Engine(QObject):
         log.debug("Local Folder lock setup completed on '%s'", path)
 
     def release_folder_lock(self):
+        log.debug("Local Folder unlocking")
         self._folder_lock = None
 
     def get_last_files(self, number, direction=None):
@@ -522,7 +524,7 @@ class Engine(QObject):
         state = self._dao.get_state_from_id(row_id)
         if state is None:
             return
-        self._dao.synchronize_state(state, state='unsynchronized')
+        self._dao.unsynchronize_state(state)
         self._dao.reset_error(state)
 
     def resolve_with_local(self, row_id):
@@ -553,8 +555,10 @@ class Engine(QObject):
     @pyqtSlot()
     def _check_last_sync(self):
         from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
-        qm_active = self._queue_manager.active()
+        empty_events = self._local_watcher.empty_events()
+        blacklist_size = self._queue_manager.get_errors_count()
         qm_size = self._queue_manager.get_overall_size()
+        qm_active = self._queue_manager.active()
         empty_polls = self._remote_watcher.get_metrics()["empty_polls"]
         if not AbstractOSIntegration.is_windows():
             win_info = 'not Windows'
@@ -562,16 +566,15 @@ class Engine(QObject):
             win_info = 'Windows with win queue size = %d and win folder scan size = %d' % (
                 self._local_watcher.get_win_queue_size(), self._local_watcher.get_win_folder_scan_size())
         log.debug('Checking sync completed: queue manager is %s, overall size = %d, empty polls count = %d'
-                  ', watchdog queue size = %d, %s',
+                  ', local watcher empty events = %d, blacklist = %d, %s',
                   'active' if qm_active else 'inactive', qm_size, empty_polls,
-                  self._local_watcher.get_watchdog_queue_size(), win_info)
+                    empty_events, blacklist_size, win_info)
         local_metrics = self._local_watcher.get_metrics()
         if (qm_size == 0 and not qm_active and empty_polls > 0
-                and self._local_watcher.empty_events()
-                and (
-                    not AbstractOSIntegration.is_windows()
-                    or
-                    self._local_watcher.win_queue_empty() and self._local_watcher.win_folder_scan_empty())):
+                and empty_events):
+            if blacklist_size != 0:
+                self.syncPartialCompleted.emit()
+                return
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
             if local_metrics['last_event'] == 0:
                 log.warn("No watchdog event detected but sync is completed")
@@ -597,7 +600,7 @@ class Engine(QObject):
             raise FsMarkerException()
         self._stopped = False
         Processor.soft_locks = dict()
-        log.debug("Engine start")
+        log.debug("Engine %s starting", self.get_uid())
         for thread in self._threads:
             thread.start()
         self.syncStarted.emit(0)
@@ -640,7 +643,7 @@ class Engine(QObject):
                       pair.local_digest, pair.remote_digest,
                       pair.remote_parent_ref == parent_ref,
                       pair.remote_parent_ref, parent_ref)
-            if (pair.remote_name == pair.local_name
+            if (safe_filename(pair.remote_name) == pair.local_name
                 and local_client.is_equal_digests(pair.local_digest, pair.remote_digest, pair.local_path)
                     and pair.remote_parent_ref == parent_ref):
                 self._dao.synchronize_state(pair)
@@ -872,6 +875,7 @@ class Engine(QObject):
         self._dao.update_remote_state(row, remote_info, remote_parent_path='', versionned=False)
         local_client.set_root_id(self._server_url + "|" + self._remote_user +
                             "|" + self._manager.device_id + "|" + self._uid)
+        local_client.set_remote_id('/', remote_info.uid)
         self._dao.synchronize_state(row)
         # The root should also be sync
 

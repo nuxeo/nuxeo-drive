@@ -257,6 +257,8 @@ class FolderTreeview(QtGui.QTreeView):
     classdocs
     '''
 
+    showHideLoadingOverlay = QtCore.pyqtSignal(bool)
+
     def __init__(self, parent, client):
         '''
         Constructor
@@ -267,6 +269,7 @@ class FolderTreeview(QtGui.QTreeView):
         #self.childrenLoaded = QtCore.pyqtSignal()
         self.root_item = QtGui.QStandardItemModel()
         self.root_item.itemChanged.connect(self.itemChanged)
+        self.showHideLoadingOverlay.connect(self.setLoad)
         self.setModel(self.root_item)
         self.setHeaderHidden(True)
 
@@ -379,7 +382,7 @@ class FolderTreeview(QtGui.QTreeView):
 
         if parentItem:
             if parentItem.get_id() in self.cache:
-                self.setLoad(False)
+                self.showHideLoadingOverlay.emit(False)
                 return
             self.cache.append(parentItem.get_id())
         # Clear previous items
@@ -405,11 +408,12 @@ class FolderTreeview(QtGui.QTreeView):
                 subitem.appendRow(loaditem)
             parent.appendRow(subitem)
 
-        self.setLoad(False)
+        self.showHideLoadingOverlay.emit(False)
 
     def loadFinished(self):
         self.setLoad(False)
 
+    @QtCore.pyqtSlot(bool)
     def setLoad(self, value):
         if (value):
             self.overlay.show()

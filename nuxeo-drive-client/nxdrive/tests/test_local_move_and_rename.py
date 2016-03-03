@@ -1,21 +1,17 @@
+import os
 import urllib2
 
-# from common_unit_test import UnitTestCase
-# from . import CPOLocalClient as LocalClient
-# from . import CPORemoteDocumentClient as RemoteDocumentClient
-# from . import CPORemoteFilteredFileSystemClient as RemoteFilteredFileSystemClient
-# from . import RemoteTestClient
-# from . import EngineDAO
-
-from common_unit_test import UnitTestCase
-from clouddesktop.tests.integration import CPOLocalClient as LocalClient
-from clouddesktop.tests.integration import CPORemoteDocumentClient as RemoteDocumentClient
-from clouddesktop.tests.integration import CPORemoteFilteredFileSystemClient as RemoteFilteredFileSystemClient
-from clouddesktop.tests.integration import RemoteTestClient
-from clouddesktop.tests.integration import EngineDAO
-
+from nxdrive.tests.common_unit_test import UnitTestCase
+from nxdrive.client import LocalClient
+from nxdrive.client import RemoteDocumentClient
+from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
+from nxdrive.tests import RemoteTestClient
+from nxdrive.tests.common import TEST_WORKSPACE_PATH
+from nxdrive.client.common import NotFound
+from nose.plugins.skip import SkipTest
 from unittest import skipIf
 from time import sleep
+from nxdrive.engine.dao.sqlite import EngineDAO
 
 # TODO NXDRIVE-170: refactor
 LastKnownState = None
@@ -564,7 +560,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         op_input = "doc:" + folder_1_path
         self.root_remote_client.execute("Document.SetACE",
                                         op_input=op_input,
-                                        user="nuxeoDriveTestUser_user_1",
+                                        user=self.user_1,
                                         permission="Read")
         self.root_remote_client.block_inheritance(folder_1_path,
                                                   overwrite=False)

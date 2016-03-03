@@ -31,6 +31,18 @@ class Report(object):
             os.mkdir(folder)
         self._zipfile = os.path.join(folder, self._report_name + '.zip')
 
+    def copy_logs(self, myzip):
+        try:
+            folder = os.path.join(self._manager.get_configuration_folder(), 'logs')
+            for filename in os.listdir(folder):
+                path = os.path.join(folder, filename)
+                if not os.path.isfile(path):
+                    continue
+                myzip.write(path, os.path.join('logs/', filename))
+        except:
+            # Do not prevent report to work on copy errors
+            pass
+
     def copy_db(self, myzip, dao):
         # Lock to avoid inconsistence
         dao._lock.acquire()
@@ -65,4 +77,5 @@ class Report(object):
                 log.debug("Engine metrics: '%s'", engine.get_metrics())
                 self.copy_db(myzip, engine.get_dao())
                 # Might want threads too here
+            self.copy_logs(myzip)
             myzip.writestr("debug.log", self._export_logs().encode('utf-8', errors="ignore").strip())

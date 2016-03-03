@@ -454,6 +454,28 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertFalse(local.exists('/Folder 1b'))
         self.assertFalse(local.exists('/Folder 1c'))
 
+    def test_synchronize_local_folder_lost_permission(self):
+        """Test local folder rename followed by remote deletion"""
+        # Bind the server and root workspace
+
+        # Get local and remote clients
+        self.engine_1.start()
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+
+        # Create a folder with a child file in the remote root workspace
+        # then synchronize
+        test_folder_uid = remote.make_folder('/', 'Test folder')
+        remote.make_file(test_folder_uid, 'joe.odt', 'Some content')
+
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(local.exists('/Test folder'))
+        self.assertTrue(local.exists('/Test folder/joe.odt'))
+        op_input = "doc:" + self.workspace
+        self.root_remote_client.execute("Document.RemoveACL", op_input=op_input, acl="local")
+        self.wait_sync(wait_for_async=True)
+        self.assertFalse(local.exists('/Test folder'))
+
     def test_synchronize_local_folder_rename_remote_deletion(self):
         """Test local folder rename followed by remote deletion"""
         # Bind the server and root workspace
