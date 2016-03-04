@@ -514,7 +514,7 @@ class BaseAutomationClient(BaseClient):
             log_details = self._log_details(e)
             if isinstance(log_details, tuple):
                 _, _, _, error = log_details
-                if error.startswith("Unable to find batch"):
+                if error and error.startswith("Unable to find batch"):
                     raise InvalidBatchException()
             raise e
         finally:
