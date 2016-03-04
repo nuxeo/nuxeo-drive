@@ -318,6 +318,11 @@ class UnitTestCase(unittest.TestCase):
             self.version,
             password=self.password_2
         )
+        self.remote_restapi_client_admin = RestAPIClient(
+            self.nuxeo_url, self.admin_user, u'nxdrive-test-device-2',
+            self.version,
+            password=self.password
+        )
 
         # Register root
         remote_document_client_1.register_as_root(self.workspace_1)
@@ -441,6 +446,7 @@ class UnitTestCase(unittest.TestCase):
         log.debug("Profiler Report generated in '%s'", report_path)
 
     def run(self, result=None):
+        self.logger = log
         repeat = 1
         testMethod = getattr(self, self._testMethodName)
         if hasattr(testMethod, '_repeat'):

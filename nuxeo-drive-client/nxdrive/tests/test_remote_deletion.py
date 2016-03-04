@@ -4,7 +4,7 @@ import os
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common import DOC_NAME_MAX_LENGTH
-from nxdrive.tests.common_unit_test import UnitTestCase
+from nxdrive.tests.common_unit_test import UnitTestCase, RandomBug
 from nose.plugins.skip import SkipTest
 from nxdrive.engine.engine import Engine
 from shutil import copyfile
@@ -473,6 +473,7 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         op_input = "doc:" + self.workspace
         self.root_remote_client.execute("Document.RemoveACL", op_input=op_input, acl="local")
+        self.logger.debug("Workspace ACL are %r", self.remote_restapi_client_admin.get_acls(self.workspace))
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/Test folder'))
 
