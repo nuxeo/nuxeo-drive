@@ -18,7 +18,6 @@ from nxdrive.utils import normalized_path
 from nxdrive.updater import AppUpdater
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
-from nxdrive import __version__
 from nxdrive.utils import ENCODING, OSX_SUFFIX
 
 log = get_logger(__name__)
@@ -227,7 +226,7 @@ class Manager(QtCore.QObject):
         else:
             log.info("--consider-ssl-errors option is True, will verify HTTPS certificates")
         self._autolock_service = None
-        self.client_version = __version__
+        self.client_version = options.version
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
         self.nxdrive_home = os.path.realpath(self.nxdrive_home)
         if not os.path.exists(self.nxdrive_home):
