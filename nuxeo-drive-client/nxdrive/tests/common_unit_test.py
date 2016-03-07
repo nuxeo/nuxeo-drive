@@ -163,7 +163,12 @@ class UnitTestCase(unittest.TestCase):
         credentials = [c.strip().split(u":") for c in credentials.split(u",")]
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
+        ws_info = self.root_remote_client.fetch(u'/default-domain/workspaces/')
+        children = self.root_remote_client.get_children(ws_info['uid'])
+        log.debug("SuperWorkspace info: %r", ws_info)
+        log.debug("SuperWorkspace children: %r", children)
         ws_info = self.root_remote_client.fetch(TEST_WORKSPACE_PATH)
+        log.debug("Workspace info: %r", ws_info)
         self.workspace = ws_info[u'uid']
         self.workspace_title = ws_info[u'title']
         self.workspace_1 = self.workspace
