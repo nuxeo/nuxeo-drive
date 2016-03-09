@@ -247,8 +247,10 @@ class UnitTestCase(unittest.TestCase):
         options.beta_update_site_url = None
         options.autolock_interval = 30
         options.nxdrive_home = self.nxdrive_conf_folder_1
+        options.version == __version__
         self.manager_1 = Manager(options)
         self.connected = False
+        self.version = self.manager_1.get_version()
         import nxdrive
         nxdrive_path = os.path.dirname(nxdrive.__file__)
         i18n_path = os.path.join(nxdrive_path, 'tests', 'resources', "i18n.js")
@@ -256,7 +258,6 @@ class UnitTestCase(unittest.TestCase):
         options.nxdrive_home = self.nxdrive_conf_folder_2
         Manager._singleton = None
         self.manager_2 = Manager(options)
-        self.version = __version__
         url = self.nuxeo_url
         log.debug("Will use %s as url", url)
         if '#' in url:
