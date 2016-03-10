@@ -511,11 +511,12 @@ class BaseAutomationClient(BaseClient):
         try:
             resp = self.streaming_opener.open(req, timeout=self.blob_timeout)
         except Exception as e:
-            _, _, _, error = self._log_details(e)
-            if error.startswith("Unable to find batch"):
-                raise InvalidBatchException()
-            else:
-                raise
+            log_details = self._log_details(e)
+            if isinstance(log_details, tuple):
+                _, _, _, error = log_details
+                if error.startswith("Unable to find batch"):
+                    raise InvalidBatchException()
+            raise e
         finally:
             input_file.close()
         self.end_action()
