@@ -707,7 +707,7 @@ class Engine(QObject):
         self._load_configuration()
         nxclient = self.remote_doc_client_factory(
             self._server_url, self._remote_user, self._manager.device_id,
-            self._manager.client_version, proxies=self._manager.proxies,
+            self._manager.get_version(), proxies=self._manager.proxies,
             proxy_exceptions=self._manager.proxy_exceptions,
             password=str(password), timeout=self._handshake_timeout)
         self._remote_token = nxclient.request_token()
@@ -759,7 +759,7 @@ class Engine(QObject):
         if check_credential:
             nxclient = self.remote_doc_client_factory(
                 self._server_url, self._remote_user, self._manager.device_id,
-                self._manager.client_version, proxies=self._manager.proxies,
+                self._manager.get_version(), proxies=self._manager.proxies,
                 proxy_exceptions=self._manager.proxy_exceptions,
                 password=self._remote_password, token=self._remote_token,
                 timeout=self._handshake_timeout)
@@ -966,7 +966,7 @@ class Engine(QObject):
     def get_rest_api_client(self):
         from nxdrive.client.rest_api_client import RestAPIClient
         rest_client = RestAPIClient(self.get_server_url(), self.get_remote_user(),
-                                        self._manager.get_device_id(), self._manager.client_version, None,
+                                        self._manager.get_device_id(), self._manager.get_version(), None,
                                         self.get_remote_token(), timeout=self.timeout, cookie_jar=self.cookie_jar)
         return rest_client
 
