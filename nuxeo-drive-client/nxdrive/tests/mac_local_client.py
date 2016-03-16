@@ -1,12 +1,7 @@
-'''
-Intent of this file is ...
-
-https://msdn.microsoft.com/en-us/library/windows/desktop/bb775771(v=vs.85).aspx
-Using SHFileOperation as the MSDN advise to use it for multithread
-
-IFileOperation can only be applied in a single-threaded apartment (STA) situation. It cannot be used for a multithreaded apartment (MTA) situation. For MTA, you still must use SHFileOperation.
-'''
 from nxdrive.client.local_client import LocalClient
+'''
+Intent of this file is to use OSX File Manager to make FS operation
+'''
 
 import os
 import sys
@@ -15,21 +10,14 @@ if sys.platform == 'darwin':
 
 
 class MacLocalClient(LocalClient):
+
        def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
                         ignored_suffixes=None, check_suspended=None, case_sensitive=None, disable_duplication=False):
             super(MacLocalClient, self).__init__(base_folder, digest_func, ignored_prefixes, ignored_suffixes,
                                                  check_suspended, case_sensitive, disable_duplication)
             self.fm = Cocoa.NSFileManager.defaultManager()
 
-        '''
-        Copy either a file, or an entire directory at relative (to the local client's base_folder) path 'srcref'
-        to the relative path 'dstref'.
-        If the 'srcref' is a file and 'dstref' is a file, it means it rename the source file or the new name (in the 'dstref').
-        If the 'srcref' is a directory and 'dstref' is a directory, it copies the directory and its content with the same name,
-        under the 'dstref'.
-        If the 'srcref' is a file and 'dstref' is a directory, it copies the file with the same name under the 'dstref'.
-        '''
-        def copy(self, srcref, dstref):
+       def copy(self, srcref, dstref):
             if os.path.exists(srcref):
                 src = srcref
             else:
@@ -50,7 +38,7 @@ class MacLocalClient(LocalClient):
             result = self.fm.copyItemAtPath_toPath_error_(src, dst, error)
             self._process_result(result)
 
-        def move(self, srcref, parentref, name=None):
+       def move(self, srcref, parentref, name=None):
             if os.path.exists(srcref):
                 src = srcref
             else:
@@ -71,7 +59,7 @@ class MacLocalClient(LocalClient):
             result = self.fm.moveItemAtPath_toPath_error_(src, dst, error)
             self._process_result(result)
 
-        def duplicate_file(self, srcref):
+       def duplicate_file(self, srcref):
             parent = os.path.dirname(srcref)
             name = os.path.basename(srcref)
             os_path, name = self._abspath_deduped(parent, name)
@@ -79,19 +67,17 @@ class MacLocalClient(LocalClient):
             self.copy(srcref, dstref)
             return dstref
 
-        def rename(self, srcref, to_name):
+       def rename(self, srcref, to_name):
             parent = os.path.dirname(srcref)
-            dstref = os.path.join(parent, name)
+            dstref = os.path.join(parent, to_name)
             self.move(srcref, dstref)
 
-        def delete(self, ref):
+       def delete(self, ref):
             path = self._abspath(ref)
             error = None
             result = self.fm.removeItemAtPath_error_(path, error)
             self._process_result(result)
 
-        def _process_result(self, result):
-            log.debug('result: %s%s', 'ok' if result[0] else 'error (', '' if result[0] else result[1] + ')')
+       def _process_result(self, result):
             if not result[0]:
                 raise IOError(result[1])
-
