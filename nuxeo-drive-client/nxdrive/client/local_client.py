@@ -717,7 +717,13 @@ class LocalClient(BaseClient):
             self.lock_ref(new_parent_ref, locker & 1 | new_locker)
 
     def is_inside(self, abspath):
-        return abspath.startswith(self.base_folder)
+        if abspath.startswith(self.base_folder):
+            return True
+        else:
+            # Computing path for temp file in windows
+            # during remote sync.
+            abspath = abspath.lstrip("\\?")
+            return abspath.startswith(self.base_folder)
 
     def get_path(self, abspath):
         """Relative path to the local client from an absolute OS path"""
