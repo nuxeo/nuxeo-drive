@@ -586,7 +586,7 @@ class Application(SimpleApplication):
         args = [updated_executable]
         args.extend(sys.argv[1:])
         log.info("Opening subprocess with args: %r", args)
-        subprocess.Popen(args)
+        subprocess.Popen(args, close_fds=True)
 
     def get_mac_app(self):
         return 'ndrive'
