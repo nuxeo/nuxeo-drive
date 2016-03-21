@@ -45,6 +45,37 @@ PAIR_STATES = {
     ('deleted', 'unknown'): 'deleted_unknown',
 }
 
+
+def _get_states_values():
+    local_states = set()
+    remote_states = set()
+    pair_states = set()
+    for key, value in PAIR_STATES.items():
+        local_states.add(key[0])
+        remote_states.add(key[1])
+        pair_states.add(value)
+    return local_states, remote_states, pair_states
+
+
+def _get_local_state_from_pair_state(pair_state):
+    local_states = set([key[0] for key, value in PAIR_STATES.items() if value == pair_state])
+    if not local_states or len(local_states) > 1:
+        return 'unknown'
+    else:
+        return local_states.pop()
+
+
+def _get_remote_state_from_pair_state(pair_state):
+    remote_states = set([key[1] for key, value in PAIR_STATES.items() if value == pair_state])
+    if not remote_states or len(remote_states) > 1:
+        return 'unknown'
+    else:
+        return remote_states.pop()
+
+
+LOCAL_STATES_VALUES, REMOTE_STATES_VALUES, PAIR_STATES_VALUES = _get_states_values()
+
+
 class AutoRetryCursor(sqlite3.Cursor):
     def execute(self, *args, **kwargs):
         count = 0
@@ -726,12 +757,14 @@ class EngineDAO(ConfigurationDAO):
         con = None
         try:
             self._queue_manager = manager
-            con = self._get_write_connection(factory=StateRow)
+            con = self._get_read_connection(factory=StateRow)
+            con.text_factory = str
             c = con.cursor()
             # Order by path to be sure to process parents before childs
             pairs = c.execute("SELECT * FROM States WHERE " + self._get_to_sync_condition() + " ORDER BY local_path ASC").fetchall()
             folders = dict()
             for pair in pairs:
+                self._validate_states(pair)
                 # Add all the folders
                 if pair.folderish:
                     folders[pair.local_path] = True
@@ -740,7 +773,24 @@ class EngineDAO(ConfigurationDAO):
         # Dont block everything if queue manager fail
         # TODO As the error should be fatal not sure we need this
         finally:
+            con.text_factory = unicode
             self._lock.release()
+
+    def _validate_states(self, state):
+        if state.pair_state not in PAIR_STATES_VALUES:
+            log.error('pair state \'%s\' is not valid', state.pair_state)
+            state.pair_state = 'unknown'
+
+        state_row = self.get_state_from_id(state.id)
+        if state_row.local_state not in LOCAL_STATES_VALUES:
+            log.error('local state \'%s\' is not valid', state_row.local_state)
+            state_row.local_state = _get_local_state_from_pair_state(state.pair_state)
+            self._fix_local_state(state_row, state_row.local_state)
+
+        if state_row.remote_state not in REMOTE_STATES_VALUES:
+            log.error('remote state \'%s\' is not valid', state_row.remote_state)
+            state_row.remote_state = _get_remote_state_from_pair_state(state.pair_state)
+            self._fix_remote_state(state_row, state_row.remote_state)
 
     def _queue_pair_state(self, row_id, folderish, pair_state, pair=None):
         if (self._queue_manager is not None
@@ -796,6 +846,35 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
+
+    def _fix_local_state(self, row, local_state, lock=False):
+        log.trace('Updating local state for row = %r with state = %r', row, local_state)
+        if lock:
+            self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET local_state=? WHERE id=?", (local_state, row.id))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            if lock:
+                self._lock.release()
+
+    def _fix_remote_state(self, row, remote_state, lock=False):
+        log.trace('Updating local state for row = %r with state = %r', row, remote_state)
+        if lock:
+            self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            # Should not update this
+            c.execute("UPDATE States SET remote_state=? WHERE id=?", (remote_state, row.id))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            if lock:
+                self._lock.release()
 
     def update_local_modification_time(self, row, info):
         self.update_local_state(row, info, versionned=False, queue=False)
