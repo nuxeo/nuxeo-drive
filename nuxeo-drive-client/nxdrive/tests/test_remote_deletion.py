@@ -4,7 +4,7 @@ import os
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common import DOC_NAME_MAX_LENGTH
-from nxdrive.tests.common_unit_test import UnitTestCase
+from nxdrive.tests.common_unit_test import UnitTestCase, RandomBug
 from nose.plugins.skip import SkipTest
 from nxdrive.engine.engine import Engine
 from shutil import copyfile
@@ -459,21 +459,22 @@ class TestRemoteDeletion(UnitTestCase):
         # Bind the server and root workspace
 
         # Get local and remote clients
-        self.engine_1.start()
-        local = self.local_client_1
-        remote = self.remote_document_client_1
+        self.engine_2.start()
+        local = self.local_client_2
+        remote = self.remote_document_client_2
 
         # Create a folder with a child file in the remote root workspace
         # then synchronize
         test_folder_uid = remote.make_folder('/', 'Test folder')
         remote.make_file(test_folder_uid, 'joe.odt', 'Some content')
 
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync(wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True)
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         op_input = "doc:" + self.workspace
         self.root_remote_client.execute("Document.RemoveACL", op_input=op_input, acl="local")
-        self.wait_sync(wait_for_async=True)
+        self.logger.debug("Workspace ACL are %r", self.remote_restapi_client_admin.get_acls(self.workspace))
+        self.wait_sync(wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True)
         self.assertFalse(local.exists('/Test folder'))
 
     def test_synchronize_local_folder_rename_remote_deletion(self):

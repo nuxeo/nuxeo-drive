@@ -628,7 +628,14 @@ class BaseAutomationClient(BaseClient):
         return path
 
     def _update_auth(self, password=None, token=None):
-        """Select the most appropriate auth headers based on credentials"""
+        """
+        When username retrieved from database, check for unicode and convert to string.
+        Scenario: Unlink from DM and provide credentials from DS Client
+        Note: base64Encoding for unicode type will fail, hence converting to string
+        """
+        if self.user_id and isinstance(self.user_id, unicode):
+            self.user_id = unicode(self.user_id).encode('utf-8')
+        # Select the most appropriate auth headers based on credentials
         if token is not None:
             self.auth = ('X-Authentication-Token', token)
         elif password is not None:
