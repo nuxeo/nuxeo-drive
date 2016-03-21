@@ -149,7 +149,7 @@ class UnitTestCase(unittest.TestCase):
         self.root_remote_client = RemoteDocumentClient(
             self.nuxeo_url, self.admin_user,
             u'nxdrive-test-administrator-device', self.version,
-            password=self.password, base_folder=u'/', timeout=60)
+            password=self.admin_password, base_folder=u'/', timeout=60)
 
         # Activate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
@@ -189,13 +189,17 @@ class UnitTestCase(unittest.TestCase):
         if AbstractOSIntegration.is_windows():
             from nxdrive.tests.win_local_client import WindowsLocalClient
             return WindowsLocalClient(path)
-        return LocalClient(path)
+        elif AbstractOSIntegration.is_mac():
+            from nxdrive.tests.mac_local_client import MacLocalClient
+            return MacLocalClient(path)
+        else:
+            return LocalClient(path)
 
     def setUpApp(self, server_profile=None):
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
-        self.password = os.environ.get('NXDRIVE_TEST_PASSWORD')
+        self.admin_password = os.environ.get('NXDRIVE_TEST_PASSWORD')
         self.build_workspace = os.environ.get('WORKSPACE')
         self.result = None
         self.tearedDown = False
@@ -205,8 +209,8 @@ class UnitTestCase(unittest.TestCase):
             self.nuxeo_url = "http://localhost:8080/nuxeo"
         if self.admin_user is None:
             self.admin_user = "Administrator"
-        if self.password is None:
-            self.password = "Administrator"
+        if self.admin_password is None:
+            self.admin_password = "Administrator"
         self.tmpdir = None
         if self.build_workspace is not None:
             self.tmpdir = os.path.join(self.build_workspace, "tmp")
@@ -214,7 +218,7 @@ class UnitTestCase(unittest.TestCase):
                 os.makedirs(self.tmpdir)
         self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads', dir=self.tmpdir)
 
-        if None in (self.nuxeo_url, self.admin_user, self.password):
+        if None in (self.nuxeo_url, self.admin_user, self.admin_password):
             raise unittest.SkipTest(
                 "No integration server configuration found in environment.")
 
