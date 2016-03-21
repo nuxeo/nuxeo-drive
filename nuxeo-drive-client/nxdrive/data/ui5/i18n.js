@@ -147,7 +147,7 @@ LABELS={
         "DIRECT_EDIT_CONFLICT_MESSAGE": "The document '{{ name }}' was modified remotely and is now in conflict. What do you want to do?",
         "DIRECT_EDIT_CONFLICT_OVERWRITE": "Overwrite",
         "DIRECT_EDIT_CONFLICT_CANCEL": "Cancel",
-        "DIRECT_EDIT_CANT_FIND_ENGINE": "Cannot find bind the server {{ server }} with user {{ user }}",
+        "DIRECT_EDIT_CANT_FIND_ENGINE": "Cannot find the binding for the server {{ server }} with user {{ user }}",
         "LOCK_NOTIFICATION_TITLE": "Autolock",
         "LOCK_NOTIFICATION_DESCRIPTION": "The document '{{ name }}' has been locked",
         "ENGINE_BETA": "You have configured a beta engine. You can experience some issues and we would appreciate your feedback.",
