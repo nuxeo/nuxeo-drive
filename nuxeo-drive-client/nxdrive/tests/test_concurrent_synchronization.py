@@ -80,7 +80,8 @@ class TestConcurrentSynchronization(UnitTestCase):
         self.assertFalse(local1.exists('/Test folder'))
 
         # Wait for synchronization engines to complete
-        self.wait_sync(wait_for_engine_2=True)
+        # Wait for Windows delete and also async
+        self.wait_sync(wait_win=True, wait_for_async=True, wait_for_engine_2=True)
 
         # Test folder should be deleted on the server and on both devices
         self.assertFalse(remote.exists(test_folder))

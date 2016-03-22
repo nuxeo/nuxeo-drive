@@ -251,7 +251,11 @@ class WebDriveApi(QtCore.QObject):
         return Promise(self._update_password, uid, password)
 
     def _update_password(self, uid, password):
-        password = str(password)
+        """
+        Convert password from unicode to string to support utf-8 character
+        """
+        if password and isinstance(password, QtCore.QString):
+            password = unicode(password).encode('utf-8')
         try:
             from time import sleep
             sleep(5.0)
