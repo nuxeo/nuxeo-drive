@@ -104,7 +104,7 @@ class WebSettingsApi(WebDriveApi):
         binder.no_check = False
         binder.no_fscheck = not check_fs
         binder.url = url
-        log.debug("Binder is : %s/%s/%s", binder.url, binder.username, binder.password)
+        log.debug("Binder is : %s/%s", binder.url, binder.username)
         self._manager.bind_engine(self._manager._get_default_server_type(), local_folder, name, binder,
                                   starts=start_engine)
         return ""
