@@ -194,7 +194,7 @@ class Processor(EngineWorker):
                 if (parent_path == ''):
                     parent_path = "/"
                 if not local_client.exists(parent_path):
-                    if doc_pair.pair_state == "remotely_deleted":
+                    if doc_pair.remote_state == "deleted":
                         self._dao.remove_state(doc_pair)
                         continue
                     self._handle_no_parent(doc_pair, local_client, remote_client)
