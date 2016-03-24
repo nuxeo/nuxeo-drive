@@ -56,6 +56,11 @@ class TestLocalMoveAndRename(UnitTestCase):
                     self._testMethodName == 'test_local_delete_readonly_folder' or
                     self._testMethodName == 'test_local_rename_readonly_folder'):
             return LocalClient(path)
+        # Old mac dont handle case rename
+        if AbstractOSIntegration.is_mac() and AbstractOSIntegration.os_version_below("10.10") and (
+                    self._testMethodName == 'test_local_rename_file_uppercase_stopped' or
+                    self._testMethodName == 'test_local_rename_file_uppercase'):
+            return LocalClient(path)
         return super(TestLocalMoveAndRename, self).get_local_client(path)
 
     def test_local_rename_folder_while_creating(self):
