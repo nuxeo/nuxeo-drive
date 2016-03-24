@@ -7,8 +7,7 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 from nxdrive.tests import RemoteTestClient
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
-from nxdrive.client.common import NotFound
-from nose.plugins.skip import SkipTest
+from nxdrive.osi import AbstractOSIntegration
 from time import sleep
 from nxdrive.engine.dao.sqlite import EngineDAO
 
@@ -51,6 +50,13 @@ class TestLocalMoveAndRename(UnitTestCase):
                                       content=u'Some Content 3'.encode('utf-8'))
         # Increase timeout as noticed it was sometimes insufficient in Jenkins build
         self.wait_sync(timeout=30)
+
+    def get_local_client(self, path):
+        if AbstractOSIntegration.is_mac() and (
+                    self._testMethodName == 'test_local_delete_readonly_folder' or
+                    self._testMethodName == 'test_local_rename_readonly_folder'):
+            return LocalClient(path)
+        return super(TestLocalMoveAndRename, self).get_local_client(path)
 
     def test_local_rename_folder_while_creating(self):
         global marker

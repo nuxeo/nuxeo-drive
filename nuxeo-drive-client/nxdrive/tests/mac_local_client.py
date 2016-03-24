@@ -39,17 +39,9 @@ class MacLocalClient(LocalClient):
             self._process_result(result)
 
        def move(self, srcref, parentref, name=None):
-            if os.path.exists(srcref):
-                src = srcref
-            else:
-                src = self._abspath(srcref)
-            if os.path.exists(parentref):
-                parent = parentref
-            else:
-                parent = self._abspath(parentref)
+            src = self._abspath(srcref)
+            parent = self._abspath(parentref)
             path, srcname = os.path.split(src)
-            if not os.path.exists(parent):
-                raise ValueError('parent destination directory %s does not exist', parent)
 
             if name:
                 srcname = name
@@ -69,8 +61,8 @@ class MacLocalClient(LocalClient):
 
        def rename(self, srcref, to_name):
             parent = os.path.dirname(srcref)
-            dstref = os.path.join(parent, to_name)
-            self.move(srcref, dstref)
+            dstref = os.path.join(parent)
+            self.move(srcref, dstref, name=to_name)
 
        def delete(self, ref):
             path = self._abspath(ref)
