@@ -27,7 +27,6 @@ class CommandLineTestCase(unittest.TestCase):
             self.tmpdir = os.path.join(self.build_workspace, "tmp")
             if not os.path.isdir(self.tmpdir):
                 os.makedirs(self.tmpdir)
-        AbstractOSIntegration.get = staticmethod(getOSIntegration)
 
     def create_ini(self, filename='config.ini', env='PROD'):
         with open(filename, 'w+') as inifile:
@@ -54,6 +53,7 @@ class CommandLineTestCase(unittest.TestCase):
                             "Should be debug test")
 
     def test_system_default(self):
+        AbstractOSIntegration.get = staticmethod(getOSIntegration)
         self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
         try:
             self.clean_ini()
