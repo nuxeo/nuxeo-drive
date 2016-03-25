@@ -134,6 +134,9 @@ class AbstractOSIntegration(object):
         import os
         return os.stat(folder1).st_dev == os.stat(folder2).st_dev
 
+    def get_system_configuration(self):
+        return dict()
+
     def get_open_files(self, pids=None):
         # Default implementation using psutil
         res = []

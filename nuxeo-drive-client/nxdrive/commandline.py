@@ -17,6 +17,7 @@ from nxdrive.osi.daemon import daemonize
 from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive import __version__
 
 
@@ -392,13 +393,16 @@ class CliHandler(object):
             config.read(configs)
         if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
             env = config.get(ConfigParser.DEFAULTSECT, 'env')
-            args = {}
+            args = AbstractOSIntegration.get(None).get_system_configuration()
             for item in config.items(env):
                 if item[0] == 'env':
                     continue
                 args[item[0].replace('-', '_')] = item[1]
             if len(args):
                 parser.set_defaults(**args)
+        else:
+            parser.set_defaults(**AbstractOSIntegration.get(None).get_system_configuration())
+
 
     def _configure_logger(self, options):
         """Configure the logging framework from the provided options"""
