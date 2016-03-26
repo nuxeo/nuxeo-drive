@@ -69,7 +69,7 @@ class CommandLineTestCase(unittest.TestCase):
                                 "Should be debug test")
         finally:
             clean_dir(self.cmd.default_home)
-            AbstractOSIntegration.get = original
+            AbstractOSIntegration.get = staticmethod(original)
 
     def test_default_override(self):
         self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
