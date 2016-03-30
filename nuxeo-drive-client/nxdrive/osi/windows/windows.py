@@ -203,7 +203,7 @@ class WindowsIntegration(AbstractOSIntegration):
             key = _winreg.OpenKey(reg, "Software\\Nuxeo\\Drive", 0, _winreg.KEY_READ)
             for i in xrange(0, _winreg.QueryInfoKey(key)[1]):
                 subkey = _winreg.EnumValue(key, i)
-                result[subkey[0]] = subkey[1]
+                result[subkey[0].replace('-', '_')] = subkey[1]
             _winreg.CloseKey(key)
         except WindowsError:
             pass
