@@ -623,6 +623,7 @@ class Engine(QObject):
         metrics["syncing"] = self._dao.get_syncing_count()
         metrics["error_files"] = self._dao.get_error_count()
         metrics["conflicted_files"] = self._dao.get_conflict_count()
+        metrics["unsynchronized_files"] = self._dao.get_unsynchronized_count()
         metrics["files_size"] = self._dao.get_global_size()
         metrics["invalid_credentials"] = self._invalid_credentials
         return metrics

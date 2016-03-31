@@ -812,6 +812,9 @@ class EngineDAO(ConfigurationDAO):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_state='created' AND local_state='unknown'", (ref,)).fetchall()
 
+    def get_unsynchronized_count(self):
+        return self.get_count("pair_state='unsynchronized'")
+
     def get_conflict_count(self):
         return self.get_count("pair_state='conflicted'")
 
@@ -844,6 +847,10 @@ class EngineDAO(ConfigurationDAO):
     def get_global_size(self):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT SUM(size) as sum FROM States WHERE pair_state='synchronized'").fetchone().sum
+
+    def get_unsynchronizeds(self):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM States WHERE pair_state='unsynchronized'").fetchall()
 
     def get_conflicts(self):
         c = self._get_read_connection(factory=StateRow).cursor()
