@@ -18,14 +18,8 @@ class MacLocalClient(LocalClient):
             self.fm = Cocoa.NSFileManager.defaultManager()
 
        def copy(self, srcref, dstref):
-            if os.path.exists(srcref):
-                src = srcref
-            else:
-                src = self._abspath(srcref)
-            if os.path.exists(dstref):
-                dst = dstref
-            else:
-                dst = self._abspath(dstref)
+            src = self._abspath(srcref)
+            dst = self._abspath(dstref)
             path, name = os.path.split(src)
             if not os.path.exists(dst) and not os.path.exists(os.path.dirname(dst)):
                 raise ValueError('parent destination directory %s does not exist', os.path.dirname(dst))
