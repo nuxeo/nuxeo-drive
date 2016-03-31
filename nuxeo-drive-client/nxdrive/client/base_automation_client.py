@@ -27,7 +27,8 @@ from nxdrive.utils import force_decode
 from urllib2 import ProxyHandler
 from urlparse import urlparse
 import socket
-
+import threading
+import math
 
 log = get_logger(__name__)
 
@@ -41,6 +42,12 @@ DOWNLOAD_TMP_FILE_SUFFIX = '.nxpart'
 AUDIT_CHANGE_FINDER_TIME_RESOLUTION = 1.0
 
 socket.setdefaulttimeout(DEFAULT_NUXEO_TX_TIMEOUT)
+
+# bandwidth limits
+# DOWNLOAD_BANDWIDTH_LIMIT = 100  # KB/S
+# UPLOAD_BANDWIDTH_LIMIT = 10  # KB/S
+# DOWNLOAD_BURST_LIMIT = 1.1 * FILE_BUFFER_SIZE / 1000
+# UPLOAD_BURST_LIMIT = 1.1 * FILE_BUFFER_SIZE / 1000
 
 
 class InvalidBatchException(Exception):
@@ -60,14 +67,14 @@ def get_proxies_for_handler(proxy_settings):
         # Manual proxy settings, build proxy string and exceptions list
         if proxy_settings.authenticated:
             proxy_string = ("%s:%s@%s:%s") % (
-                                proxy_settings.username,
-                                proxy_settings.password,
-                                proxy_settings.server,
-                                proxy_settings.port)
+                proxy_settings.username,
+                proxy_settings.password,
+                proxy_settings.server,
+                proxy_settings.port)
         else:
             proxy_string = ("%s:%s") % (
-                                proxy_settings.server,
-                                proxy_settings.port)
+                proxy_settings.server,
+                proxy_settings.port)
         if proxy_settings.proxy_type is None:
             proxies = {'http': proxy_string, 'https': proxy_string}
         else:
@@ -126,7 +133,6 @@ class CorruptedFile(Exception):
 
 
 class Unauthorized(Exception):
-
     def __init__(self, server_url, user_id, code=403):
         self.server_url = server_url
         self.user_id = user_id
@@ -135,6 +141,55 @@ class Unauthorized(Exception):
     def __str__(self):
         return ("'%s' is not authorized to access '%s' with"
                 " the provided credentials" % (self.user_id, self.server_url))
+
+
+class TokenBucket(object):
+    """An implementation of the token bucket algorithm.
+
+    >>> bucket = TokenBucket(80, 0.5)
+    >>> print bucket.consume(10)
+    True
+    >>> print bucket.consume(90)
+    False
+    """
+
+    def __init__(self, tokens, fill_rate):
+        """tokens is the total tokens in the bucket. fill_rate is the
+        rate in tokens/second that the bucket will be refilled."""
+        self.capacity = float(tokens)
+        self._tokens = float(tokens)
+        self.fill_rate = float(fill_rate)
+        self.timestamp = time.time()
+        self.lock = threading.RLock()
+
+    def consume(self, tokens):
+        """Consume tokens from the bucket.
+        Returns 0 if there were sufficient tokens otherwise
+        the expected time until enough tokens become available."""
+        self.lock.acquire()
+        existing_tokens = self._tokens
+        available_tokens = min(tokens, self.tokens)
+        expected_time = (tokens - available_tokens) / self.fill_rate
+        if expected_time <= 0:
+            self._tokens -= available_tokens
+        self.lock.release()
+        log.debug('tokens requested: %d, existing: %d, available: %d, %swait%s', tokens, existing_tokens, available_tokens,
+                  'no ' if expected_time <= 0 else '', ': ' + str(expected_time) + 's' if expected_time > 0 else '')
+        return max(0, expected_time)
+
+    @property
+    def tokens(self):
+        self.lock.acquire()
+        if self._tokens < self.capacity:
+            now = time.time()
+            delta = self.fill_rate * (now - self.timestamp)
+            self._tokens = min(self.capacity, self._tokens + delta)
+            self.timestamp = now
+            log.debug('added %d tokens', delta)
+        value = self._tokens
+        self.lock.release()
+        log.debug('current tokens: %d', value)
+        return value
 
 
 class BaseAutomationClient(BaseClient):
@@ -162,6 +217,37 @@ class BaseAutomationClient(BaseClient):
 
     # Parameters used when negotiating authentication token:
     application_name = 'Nuxeo Drive'
+    upload_token_bucket = None
+    download_token_bucket = None
+    # download_token_bucket = TokenBucket(DOWNLOAD_BURST_LIMIT, DOWNLOAD_BANDWIDTH_LIMIT)
+    # upload_token_bucket = TokenBucket(UPLOAD_BURST_LIMIT, UPLOAD_BANDWIDTH_LIMIT)
+
+    @classmethod
+    def set_upload_rate_limit(cls, bandwidth_limit):
+        cls.avg_upload_rate = None
+        if bandwidth_limit is None:
+            cls.upload_token_bucket = None
+        else:
+            burst_limit = 1.1 * FILE_BUFFER_SIZE / 1000
+            cls.upload_token_bucket = TokenBucket(burst_limit, bandwidth_limit)
+
+    @classmethod
+    def set_download_rate_limit(cls, bandwidth_limit):
+        cls.avg_download_rate = None
+        if bandwidth_limit is None:
+            cls.download_token_bucket = None
+        else:
+            burst_limit = 1.1 * FILE_BUFFER_SIZE / 1000
+            cls.download_token_bucket = TokenBucket(burst_limit, bandwidth_limit)
+
+
+    @classmethod
+    def use_upload_rate_limit(cls):
+        return cls.upload_token_bucket is not None
+
+    @classmethod
+    def use_download_rate_limit(cls):
+        return cls.download_token_bucket is not None
 
     def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
@@ -236,17 +322,27 @@ class BaseAutomationClient(BaseClient):
         self.rest_api_url = server_url + 'api/v1/'
         self.batch_upload_path = 'upload'
 
+        # download transfer stats
+        self.last_download_rate_update = 0
+        self.downloaded_size = 0
+        self.last_download_rate_update = 0
+
+        # upload transfer stats
+        self.last_upload_rate_update = 0
+        self.uploaded_size = 0
+        self.last_upload_rate_update = 0
+
         self.fetch_api()
 
     def fetch_api(self):
         base_error_message = (
-            "Failed to connect to Nuxeo server %s"
-        ) % (self.server_url)
+                                 "Failed to connect to Nuxeo server %s"
+                             ) % (self.server_url)
         url = self.automation_url
         headers = self._get_common_headers()
         cookies = self._get_cookies()
         log.trace("Calling %s with headers %r and cookies %r",
-            url, headers, cookies)
+                  url, headers, cookies)
         req = urllib2.Request(url, headers=headers)
         try:
             response = json.loads(self.opener.open(
@@ -273,7 +369,7 @@ class BaseAutomationClient(BaseClient):
                     if e_msg is not None:
                         msg = msg + e_msg
                 elif (hasattr(e.reason, 'strerror')
-                    and e.reason.strerror):
+                      and e.reason.strerror):
                     e_msg = force_decode(": " + e.reason.strerror)
                     if e_msg is not None:
                         msg = msg + e_msg
@@ -304,7 +400,7 @@ class BaseAutomationClient(BaseClient):
         # See https://jira.nuxeo.com/browse/NXP-14826
         change_summary_op = self._check_operation(CHANGE_SUMMARY_OPERATION)
         self.is_event_log_id = 'lowerBound' in [
-                        param['name'] for param in change_summary_op['params']]
+            param['name'] for param in change_summary_op['params']]
 
     def execute(self, command, url=None, op_input=None, timeout=-1,
                 check_params=True, void_op=False, extra_headers=None,
@@ -348,7 +444,7 @@ class BaseAutomationClient(BaseClient):
         cookies = self._get_cookies()
         log.trace("Calling %s with headers %r, cookies %r"
                   " and JSON payload %r",
-            url, headers, cookies,  data)
+                  url, headers, cookies, data)
         req = urllib2.Request(url, data, headers)
         timeout = self.timeout if timeout == -1 else timeout
         try:
@@ -373,7 +469,7 @@ class BaseAutomationClient(BaseClient):
                             break
                         if current_action:
                             current_action.progress += (
-                                                self.get_download_buffer())
+                                self.get_download_buffer())
                         f.write(buffer_)
                 return None, file_out
             finally:
@@ -416,13 +512,14 @@ class BaseAutomationClient(BaseClient):
                           ' with file %s', tx_timeout, DEFAULT_NUXEO_TX_TIMEOUT,
                           upload_duration, command, file_path)
                 if upload_duration > 0:
-                    log.trace("Speed for %d o is %d s : %f o/s", os.stat(file_path).st_size, upload_duration, os.stat(file_path).st_size / upload_duration)
+                    log.trace("Speed for %d o is %d s : %f o/s", os.stat(file_path).st_size, upload_duration,
+                              os.stat(file_path).st_size / upload_duration)
                 # NXDRIVE-433: Compat with 7.4 intermediate state
                 if upload_result.get('uploaded') is None:
                     self.new_upload_api_available = False
                 if upload_result.get('batchId') is not None:
                     result = self.execute_batch(command, batch_id, '0', tx_timeout,
-                                              **params)
+                                                **params)
                     return result
                 else:
                     raise ValueError("Bad response from batch upload with id '%s'"
@@ -506,7 +603,7 @@ class BaseAutomationClient(BaseClient):
         # Execute request
         cookies = self._get_cookies()
         log.trace("Calling %s with headers %r and cookies %r for file %s",
-            url, headers, cookies, file_path)
+                  url, headers, cookies, file_path)
         req = urllib2.Request(url, data, headers)
         try:
             resp = self.streaming_opener.open(req, timeout=self.blob_timeout)
@@ -529,7 +626,7 @@ class BaseAutomationClient(BaseClient):
 
     def execute_batch(self, op_id, batch_id, file_idx, tx_timeout, **params):
         """Execute a file upload Automation batch"""
-        extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout, }
+        extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout,}
         if self.is_new_upload_api_available():
             url = (self.rest_api_url + self.batch_upload_path + '/' + batch_id + '/' + file_idx
                    + '/execute/' + op_id)
@@ -558,9 +655,9 @@ class BaseAutomationClient(BaseClient):
     def request_token(self, revoke=False):
         """Request and return a new token for the user"""
         base_error_message = (
-            "Failed to connect to Nuxeo server %s with user %s"
-            " to acquire a token"
-        ) % (self.server_url, self.user_id)
+                                 "Failed to connect to Nuxeo server %s with user %s"
+                                 " to acquire a token"
+                             ) % (self.server_url, self.user_id)
 
         parameters = {
             'deviceId': self.device_id,
@@ -577,7 +674,7 @@ class BaseAutomationClient(BaseClient):
         headers = self._get_common_headers()
         cookies = self._get_cookies()
         log.trace("Calling %s with headers %r and cookies %r",
-                url, headers, cookies)
+                  url, headers, cookies)
         req = urllib2.Request(url, headers=headers)
         try:
             token = self.opener.open(req, timeout=self.timeout).read()
@@ -621,7 +718,7 @@ class BaseAutomationClient(BaseClient):
         Make sure that you remove the temporary file with os.remove() when done with it.
         """
         fd, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
-                                   dir=self.upload_tmp_dir)
+                                    dir=self.upload_tmp_dir)
         with open(path, "wb") as f:
             f.write(content)
         os.close(fd)
@@ -640,7 +737,7 @@ class BaseAutomationClient(BaseClient):
             self.auth = ('X-Authentication-Token', token)
         elif password is not None:
             basic_auth = 'Basic %s' % base64.b64encode(
-                    self.user_id + ":" + password).strip()
+                self.user_id + ":" + password).strip()
             self.auth = ("Authorization", basic_auth)
         else:
             raise ValueError("Either password or token must be provided")
@@ -697,14 +794,14 @@ class BaseAutomationClient(BaseClient):
             if (not param in required_params
                 and not param in other_params):
                 log.trace("Unexpected param '%s' for operation '%s'", param,
-                            command)
+                          command)
         for param in required_params:
             if not param in params:
                 raise ValueError(
                     "Missing required param '%s' for operation '%s'" % (
                         param, command))
 
-        # TODO: add typechecking
+                # TODO: add typechecking
 
     def _read_response(self, response, url):
         info = response.info()
@@ -713,11 +810,11 @@ class BaseAutomationClient(BaseClient):
         cookies = self._get_cookies()
         if content_type.startswith("application/json"):
             log.trace("Response for '%s' with cookies %r: %r",
-                url, cookies, s)
+                      url, cookies, s)
             return json.loads(s) if s else None
         else:
             log.trace("Response for '%s' with cookies %r has content-type %r",
-                url, cookies, content_type)
+                      url, cookies, content_type)
             return s
 
     def _log_details(self, e):
@@ -779,24 +876,29 @@ class BaseAutomationClient(BaseClient):
                 log.trace('Guessed digest algorithm from digest: %s', digest_algorithm)
             digester = getattr(hashlib, digest_algorithm, None)
             if digester is None:
-                raise ValueError('Unknow digest method: ' + digest_algorithm)
+                raise ValueError('Unknown digest method: ' + digest_algorithm)
             h = digester()
         headers = self._get_common_headers()
         base_error_message = (
-            "Failed to connect to Nuxeo server %r with user %r"
-        ) % (self.server_url, self.user_id)
+                                 "Failed to connect to Nuxeo server %r with user %r"
+                             ) % (self.server_url, self.user_id)
         try:
             log.trace("Calling '%s' with headers: %r", url, headers)
             req = urllib2.Request(url, headers=headers)
             response = self.opener.open(req, timeout=self.blob_timeout)
             current_action = Action.get_current_action()
             # Get the size file
-            if (current_action and response is not None
-                and response.info() is not None):
-                current_action.size = int(response.info().getheader(
-                                                    'Content-Length', 0))
+            if response is not None and response.info() is not None:
+                total_size = int(response.info().getheader('Content-Length', 0))
+            else:
+                total_size = 0
+
+            if current_action:
+                current_action.size = total_size
+
             if file_out is not None:
                 locker = self.unlock_path(file_out)
+                self.last_download_rate_update = time.time()
                 try:
                     with open(file_out, "wb") as f:
                         while True:
@@ -804,15 +906,25 @@ class BaseAutomationClient(BaseClient):
                             if self.check_suspended is not None:
                                 self.check_suspended('File download: %s'
                                                      % file_out)
+
+                            if BaseAutomationClient.use_download_rate_limit():
+                                predicted_size = int(math.ceil(self.get_download_buffer() / 1000.0))
+                                wait_time = BaseAutomationClient.download_token_bucket.consume(predicted_size)
+                                while wait_time > 0:
+                                    log.debug('waiting to download: %s sec', wait_time)
+                                    time.sleep(wait_time)
+                                    wait_time = BaseAutomationClient.download_token_bucket.consume(predicted_size)
+
                             buffer_ = response.read(self.get_download_buffer())
                             if buffer_ == '':
                                 break
                             if current_action:
-                                current_action.progress += (
-                                                    self.get_download_buffer())
+                                current_action.progress += len(buffer)
                             f.write(buffer_)
                             if h is not None:
                                 h.update(buffer_)
+
+                            self.update_download_transfer_rate(len(buffer_), total_size)
                     if digest is not None:
                         actual_digest = h.hexdigest()
                         if digest != actual_digest:
@@ -823,6 +935,8 @@ class BaseAutomationClient(BaseClient):
                     return None, file_out
                 finally:
                     self.lock_path(file_out, locker)
+                    self.update_download_transfer_rate(0, total_size)
+                    self.reset_download_transfer()
             else:
                 result = response.read()
                 if h is not None:
@@ -846,3 +960,48 @@ class BaseAutomationClient(BaseClient):
 
     def get_download_buffer(self):
         return FILE_BUFFER_SIZE
+
+    def update_download_transfer_rate(self, size, total):
+        now = time.time()
+        # end of file download
+        if size == 0:
+            log.trace('download complete (%d)', self.downloaded_size)
+            return
+        # files smaller than file buffer size (~1MB) are downloaded at burst rate
+        # first (file) buffer download is at burst rate, ignore for rate calculation purposes
+        if self.downloaded_size == 0:
+            self.downloaded_size = 1
+            self.last_download_rate_update = now
+            log.trace('download started')
+            return
+
+        self.downloaded_size += size
+        delta = now - self.last_download_rate_update
+        if self.last_download_rate_update != 0:
+            if delta > 0:
+                rate = size / (delta * 1000)
+                if BaseAutomationClient.avg_download_rate is not None:
+                    rate = 0.9 * BaseAutomationClient.avg_download_rate + 0.1 * rate
+                else:
+                    BaseAutomationClient.avg_download_rate = rate
+            else:
+                rate = BaseAutomationClient.avg_download_rate or 0.
+
+            if total > 0:
+                log.trace("average download rate: %4.1f%%, %5.1f KB/s, %.1f/%.1f KB",
+                          100. * self.downloaded_size / total,
+                          rate, self.downloaded_size / 1000, total / 1000
+                          )
+            else:
+                log.trace("average download rate: %5.1f KB/s, %.1f/%.1f KB",
+                          rate, self.downloaded_size / 1000
+                          )
+        self.last_download_rate_update = now
+
+    def reset_download_transfer(self):
+        self.last_download_rate_update = 0
+        self.downloaded_size = 0
+
+    def reset_upload_transfer(self):
+        self.last_upload_rate_update = 0
+        self.uploaded_size = 0
