@@ -1149,14 +1149,14 @@ class EngineDAO(ConfigurationDAO):
             return True
         return False
 
-    def unsynchronize_state(self, row):
+    def unsynchronize_state(self, row, last_error=None):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("UPDATE States SET pair_state='unsynchronized', last_sync_date=?, processor = 0," +
-                      "last_error=NULL, error_count=0, last_sync_error_date=NULL WHERE id=?",
-                      (datetime.utcnow(), row.id))
+                      "last_error=?, error_count=0, last_sync_error_date=NULL WHERE id=?",
+                      (datetime.utcnow(), last_error, row.id))
             if self.auto_commit:
                 con.commit()
         finally:
