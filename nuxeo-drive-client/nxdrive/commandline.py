@@ -57,6 +57,14 @@ GET_CTL_MAX_NB_TRIES = 5
 GET_CTL_SLEEP_DURATION = 1
 
 
+def rate_limit_type(val):
+    if val is not None:
+        val = int(val)
+        if val < 1 and val != -1 or val > 99999:
+            raise argparse.ArgumentTypeError("rate limit[KB/s] must be between 1 and 99,999 or -1 for no limit")
+        return val
+
+
 class CliHandler(object):
     """ Set the default argument """
     def __init__(self):
@@ -175,6 +183,14 @@ class CliHandler(object):
         common_parser.add_argument(
             "-v", "--version", action="version", version=self.get_version(),
             help="Print the current version of the Nuxeo Drive client."
+        )
+        common_parser.add_argument(
+            "-ur", "--upload-rate", type=rate_limit_type,
+            help="Bandwidth limit for file uploads . Must be between 1-99,999 KB/s or -1 for no limit."
+        )
+        common_parser.add_argument(
+            "-dr", "--download-rate", type=rate_limit_type,
+            help="Bandwidth limit for file downloads. Must be between 1-99,999 KB/s or -1 for no limit."
         )
         parser = argparse.ArgumentParser(
             parents=[common_parser],

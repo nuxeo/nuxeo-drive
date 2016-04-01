@@ -41,13 +41,8 @@ DOWNLOAD_TMP_FILE_SUFFIX = '.nxpart'
 # 1s audit time resolution because of the datetime resolution of MYSQL
 AUDIT_CHANGE_FINDER_TIME_RESOLUTION = 1.0
 
-socket.setdefaulttimeout(DEFAULT_NUXEO_TX_TIMEOUT)
 
-# bandwidth limits
-# DOWNLOAD_BANDWIDTH_LIMIT = 100  # KB/S
-# UPLOAD_BANDWIDTH_LIMIT = 10  # KB/S
-# DOWNLOAD_BURST_LIMIT = 1.1 * FILE_BUFFER_SIZE / 1000
-# UPLOAD_BURST_LIMIT = 1.1 * FILE_BUFFER_SIZE / 1000
+socket.setdefaulttimeout(DEFAULT_NUXEO_TX_TIMEOUT)
 
 
 class InvalidBatchException(Exception):
@@ -219,13 +214,11 @@ class BaseAutomationClient(BaseClient):
     application_name = 'Nuxeo Drive'
     upload_token_bucket = None
     download_token_bucket = None
-    # download_token_bucket = TokenBucket(DOWNLOAD_BURST_LIMIT, DOWNLOAD_BANDWIDTH_LIMIT)
-    # upload_token_bucket = TokenBucket(UPLOAD_BURST_LIMIT, UPLOAD_BANDWIDTH_LIMIT)
 
     @classmethod
     def set_upload_rate_limit(cls, bandwidth_limit):
         cls.avg_upload_rate = None
-        if bandwidth_limit is None:
+        if bandwidth_limit == -1:
             cls.upload_token_bucket = None
         else:
             burst_limit = 1.1 * FILE_BUFFER_SIZE / 1000
@@ -234,12 +227,11 @@ class BaseAutomationClient(BaseClient):
     @classmethod
     def set_download_rate_limit(cls, bandwidth_limit):
         cls.avg_download_rate = None
-        if bandwidth_limit is None:
+        if bandwidth_limit == -1:
             cls.download_token_bucket = None
         else:
             burst_limit = 1.1 * FILE_BUFFER_SIZE / 1000
             cls.download_token_bucket = TokenBucket(burst_limit, bandwidth_limit)
-
 
     @classmethod
     def use_upload_rate_limit(cls):
@@ -809,12 +801,12 @@ class BaseAutomationClient(BaseClient):
         content_type = info.get('content-type', '')
         cookies = self._get_cookies()
         if content_type.startswith("application/json"):
-            log.trace("Response for '%s' with cookies %r: %r",
-                      url, cookies, s)
+            log.trace("Response %d %s for '%s' with cookies %r: %r",
+                      response.code, response.msg, url, cookies, s)
             return json.loads(s) if s else None
         else:
-            log.trace("Response for '%s' with cookies %r has content-type %r",
-                      url, cookies, content_type)
+            log.trace("Response %d %s for '%s' with cookies %r has content-type %r",
+                      response.code, response.msg, url, cookies, content_type)
             return s
 
     def _log_details(self, e):
@@ -852,6 +844,8 @@ class BaseAutomationClient(BaseClient):
         return str(time.time()) + '_' + str(random.randint(0, 1000000000))
 
     def _read_data(self, file_object, buffer_size):
+        total_size = os.fstat(file_object.fileno()).st_size
+        self.last_upload_rate_update = time.time()
         while True:
             current_action = Action.get_current_action()
             if current_action is not None and current_action.suspend:
@@ -861,9 +855,21 @@ class BaseAutomationClient(BaseClient):
                 self.check_suspended('File upload: %s' % file_object.name)
             r = file_object.read(buffer_size)
             if not r:
+                self.update_upload_transfer_rate(0, total_size)
+                self.reset_upload_transfer()
                 break
+
+            if BaseAutomationClient.use_upload_rate_limit():
+                size = int(math.ceil(len(r) / 1000.0))
+                wait_time = BaseAutomationClient.upload_token_bucket.consume(size)
+                while wait_time > 0:
+                    log.trace('waiting to upload: %s sec', wait_time)
+                    time.sleep(wait_time)
+                    wait_time = BaseAutomationClient.upload_token_bucket.consume(size)
+
             if current_action is not None:
                 current_action.progress += buffer_size
+            self.update_upload_transfer_rate(len(r), total_size)
             yield r
 
     def do_get(self, url, file_out=None, digest=None, digest_algorithm=None):
@@ -898,28 +904,29 @@ class BaseAutomationClient(BaseClient):
 
             if file_out is not None:
                 locker = self.unlock_path(file_out)
-                self.last_download_rate_update = time.time()
                 try:
                     with open(file_out, "wb") as f:
+                        self.last_download_rate_update = time.time()
                         while True:
                             # Check if synchronization thread was suspended
                             if self.check_suspended is not None:
                                 self.check_suspended('File download: %s'
                                                      % file_out)
 
-                            if BaseAutomationClient.use_download_rate_limit():
-                                predicted_size = int(math.ceil(self.get_download_buffer() / 1000.0))
-                                wait_time = BaseAutomationClient.download_token_bucket.consume(predicted_size)
-                                while wait_time > 0:
-                                    log.debug('waiting to download: %s sec', wait_time)
-                                    time.sleep(wait_time)
-                                    wait_time = BaseAutomationClient.download_token_bucket.consume(predicted_size)
-
                             buffer_ = response.read(self.get_download_buffer())
                             if buffer_ == '':
                                 break
+
+                            if BaseAutomationClient.use_download_rate_limit():
+                                size = int(math.ceil(len(buffer_) / 1000.0))
+                                wait_time = BaseAutomationClient.download_token_bucket.consume(size)
+                                while wait_time > 0:
+                                    log.trace('waiting to download: %s sec', wait_time)
+                                    time.sleep(wait_time)
+                                    wait_time = BaseAutomationClient.download_token_bucket.consume(size)
+
                             if current_action:
-                                current_action.progress += len(buffer)
+                                current_action.progress += len(buffer_)
                             f.write(buffer_)
                             if h is not None:
                                 h.update(buffer_)
@@ -968,39 +975,68 @@ class BaseAutomationClient(BaseClient):
             log.trace('download complete (%d)', self.downloaded_size)
             return
         # files smaller than file buffer size (~1MB) are downloaded at burst rate
-        # first (file) buffer download is at burst rate, ignore for rate calculation purposes
         if self.downloaded_size == 0:
-            self.downloaded_size = 1
-            self.last_download_rate_update = now
             log.trace('download started')
-            return
 
         self.downloaded_size += size
         delta = now - self.last_download_rate_update
         if self.last_download_rate_update != 0:
             if delta > 0:
                 rate = size / (delta * 1000)
-                if BaseAutomationClient.avg_download_rate is not None:
-                    rate = 0.9 * BaseAutomationClient.avg_download_rate + 0.1 * rate
-                else:
+                if BaseAutomationClient.avg_download_rate is None:
                     BaseAutomationClient.avg_download_rate = rate
+
+                BaseAutomationClient.avg_download_rate = 0.9 * BaseAutomationClient.avg_download_rate + 0.1 * rate
             else:
                 rate = BaseAutomationClient.avg_download_rate or 0.
 
             if total > 0:
-                log.trace("average download rate: %4.1f%%, %5.1f KB/s, %.1f/%.1f KB",
+                log.trace("download stats: %4.1f%%, avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
                           100. * self.downloaded_size / total,
-                          rate, self.downloaded_size / 1000, total / 1000
+                          BaseAutomationClient.avg_download_rate, rate, self.downloaded_size / 1000, total / 1000
                           )
             else:
-                log.trace("average download rate: %5.1f KB/s, %.1f/%.1f KB",
-                          rate, self.downloaded_size / 1000
+                log.trace("download stats: avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
+                          BaseAutomationClient.avg_download_rate, rate, self.downloaded_size / 1000
                           )
         self.last_download_rate_update = now
 
     def reset_download_transfer(self):
         self.last_download_rate_update = 0
         self.downloaded_size = 0
+
+    def update_upload_transfer_rate(self, size, total):
+        now = time.time()
+        # end of file upload
+        if size == 0:
+            log.trace('upload complete (%d)', self.uploaded_size)
+            return
+        # files smaller than file buffer size (~1MB) are uploaded at burst rate
+        if self.uploaded_size == 0:
+            log.trace('upload started')
+
+        self.uploaded_size += size
+        delta = now - self.last_upload_rate_update
+        if self.last_upload_rate_update != 0:
+            if delta > 0:
+                rate = size / (delta * 1000)
+                if BaseAutomationClient.avg_upload_rate is None:
+                    BaseAutomationClient.avg_upload_rate = rate
+
+                BaseAutomationClient.avg_upload_rate = 0.9 * BaseAutomationClient.avg_upload_rate + 0.1 * rate
+            else:
+                rate = BaseAutomationClient.avg_upload_rate or 0.
+
+            if total > 0:
+                log.trace("upload stats: %4.1f%%, avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
+                          100. * self.uploaded_size / total,
+                          BaseAutomationClient.avg_upload_rate, rate, self.uploaded_size / 1000, total / 1000
+                          )
+            else:
+                log.trace("upload stats: avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
+                          BaseAutomationClient.avg_upload_rate, rate, self.uploaded_size / 1000
+                          )
+        self.last_upload_rate_update = now
 
     def reset_upload_transfer(self):
         self.last_upload_rate_update = 0

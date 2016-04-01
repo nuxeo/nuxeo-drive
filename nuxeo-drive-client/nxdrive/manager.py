@@ -13,7 +13,7 @@ from PyQt4.QtScript import QScriptEngine
 from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
 from nxdrive.logging_config import get_logger, FILE_HANDLER
-from nxdrive.client.base_automation_client import get_proxies_for_handler
+from nxdrive.client.base_automation_client import get_proxies_for_handler, BaseAutomationClient
 from nxdrive.utils import normalized_path
 from nxdrive.updater import AppUpdater
 from nxdrive.osi import AbstractOSIntegration
@@ -297,6 +297,21 @@ class Manager(QtCore.QObject):
         self._tracker = None
         if self.get_tracking():
             self._create_tracker()
+
+        # setup the bandwidth rate limits
+        upload_rate = options.upload_rate
+        if upload_rate is None:
+            upload_rate = self._dao.get_config('upload_rate', -1)
+        elif upload_rate != -1:
+            self._dao.update_config('upload_rate', upload_rate)
+        BaseAutomationClient.set_upload_rate_limit(upload_rate)
+
+        download_rate = options.download_rate
+        if download_rate is None:
+            download_rate = self._dao.get_config('download_rate', -1)
+        elif download_rate != -1:
+            self._dao.update_config('download_rate', download_rate)
+        BaseAutomationClient.set_download_rate_limit(download_rate)
 
     def _get_file_log_handler(self):
         # Might store it in global static
