@@ -598,6 +598,8 @@ class Engine(QObject):
     def start(self):
         if not self.check_fs_marker():
             raise FsMarkerException()
+        # Checking root in case of failed migration
+        self._check_root()
         self._stopped = False
         Processor.soft_locks = dict()
         log.debug("Engine %s starting", self.get_uid())
