@@ -304,14 +304,16 @@ class Manager(QtCore.QObject):
             upload_rate = self._dao.get_config('upload_rate', -1)
         elif upload_rate != -1:
             self._dao.update_config('upload_rate', upload_rate)
-        BaseAutomationClient.set_upload_rate_limit(upload_rate)
+        with open(self._get_db()) as fd:
+            size = BaseAutomationClient.get_upload_buffer(fd)
+            BaseAutomationClient.set_upload_rate_limit(upload_rate, size)
 
         download_rate = options.download_rate
         if download_rate is None:
             download_rate = self._dao.get_config('download_rate', -1)
         elif download_rate != -1:
             self._dao.update_config('download_rate', download_rate)
-        BaseAutomationClient.set_download_rate_limit(download_rate)
+        BaseAutomationClient.set_download_rate_limit(download_rate, BaseAutomationClient.get_download_buffer())
 
     def _get_file_log_handler(self):
         # Might store it in global static
