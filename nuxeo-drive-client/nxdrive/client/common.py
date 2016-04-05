@@ -83,7 +83,7 @@ DEFAULT_IGNORED_SUFFIXES = [
 ]
 
 # Default buffer size for file upload / download and digest computation
-FILE_BUFFER_SIZE = 1024 ** 2
+FILE_BUFFER_SIZE = 1024 * 128
 
 # Name of the folder holding the files locally edited from Nuxeo
 LOCALLY_EDITED_FOLDER_NAME = 'Locally Edited'
