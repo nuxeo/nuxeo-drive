@@ -598,6 +598,8 @@ class Engine(QObject):
     def start(self):
         if not self.check_fs_marker():
             raise FsMarkerException()
+        # Checking root in case of failed migration
+        self._check_root()
         self._stopped = False
         Processor.soft_locks = dict()
         log.debug("Engine %s starting", self.get_uid())
@@ -623,6 +625,7 @@ class Engine(QObject):
         metrics["syncing"] = self._dao.get_syncing_count()
         metrics["error_files"] = self._dao.get_error_count()
         metrics["conflicted_files"] = self._dao.get_conflict_count()
+        metrics["unsynchronized_files"] = self._dao.get_unsynchronized_count()
         metrics["files_size"] = self._dao.get_global_size()
         metrics["invalid_credentials"] = self._invalid_credentials
         return metrics

@@ -89,7 +89,6 @@ class WebSettingsApi(WebDriveApi):
         if isinstance(local_folder, QtCore.QString):
             local_folder = str(local_folder.toUtf8()).decode('utf-8')
         url = str(url)
-
         # On first time login convert QString(having special characters) to str
         if username and isinstance(username, QtCore.QString):
             username = unicode(username).encode('utf-8')
@@ -105,7 +104,7 @@ class WebSettingsApi(WebDriveApi):
         binder.no_check = False
         binder.no_fscheck = not check_fs
         binder.url = url
-        log.debug("Binder is : %s/%s/%s", binder.url, binder.username, binder.password)
+        log.debug("Binder is : %s/%s", binder.url, binder.username)
         self._manager.bind_engine(self._manager._get_default_server_type(), local_folder, name, binder,
                                   starts=start_engine)
         return ""

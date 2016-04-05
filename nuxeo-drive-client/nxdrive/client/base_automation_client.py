@@ -43,6 +43,11 @@ AUDIT_CHANGE_FINDER_TIME_RESOLUTION = 1.0
 socket.setdefaulttimeout(DEFAULT_NUXEO_TX_TIMEOUT)
 
 
+class InvalidBatchException(Exception):
+    log.warning("Invalid batch exception")
+    pass
+
+
 def get_proxies_for_handler(proxy_settings):
     """Return a pair containing proxy string and exceptions list"""
     if proxy_settings.config == 'None':
@@ -420,6 +425,8 @@ class BaseAutomationClient(BaseClient):
             else:
                 raise ValueError("Bad response from batch upload with id '%s'"
                                  " and file path '%s'" % (batch_id, file_path))
+        except InvalidBatchException:
+            self.cookie_jar.clear_session_cookies()
         finally:
             self.end_action()
 
@@ -439,7 +446,7 @@ class BaseAutomationClient(BaseClient):
         except Exception as e:
             log_details = self._log_details(e)
             if isinstance(log_details, tuple):
-                status, code, message = log_details
+                status, code, message, _ = log_details
                 if status == 404:
                     raise NewUploadAPINotAvailable()
                 if status == 500:
@@ -501,8 +508,12 @@ class BaseAutomationClient(BaseClient):
         try:
             resp = self.streaming_opener.open(req, timeout=self.blob_timeout)
         except Exception as e:
-            self._log_details(e)
-            raise
+            log_details = self._log_details(e)
+            if isinstance(log_details, tuple):
+                _, _, _, error = log_details
+                if error.startswith("Unable to find batch"):
+                    raise InvalidBatchException()
+            raise e
         finally:
             input_file.close()
         # CSPII-9144: help diagnose upload problem
@@ -616,11 +627,11 @@ class BaseAutomationClient(BaseClient):
     def _update_auth(self, password=None, token=None):
         """
         When username retrieved from database, check for unicode and convert to string.
-        Scenario: Unlink from DM and provide credentials from DS Client
         Note: base64Encoding for unicode type will fail, hence converting to string
         """
         if self.user_id and isinstance(self.user_id, unicode):
             self.user_id = unicode(self.user_id).encode('utf-8')
+
         # Select the most appropriate auth headers based on credentials
         if token is not None:
             self.auth = ('X-Authentication-Token', token)
@@ -713,13 +724,14 @@ class BaseAutomationClient(BaseClient):
                 exc = json.loads(detail)
                 message = exc.get('message')
                 stack = exc.get('stack')
+                error = exc.get('error')
                 if message:
                     log.debug('Remote exception message: %s', message)
                 if stack:
                     log.debug('Remote exception stack: %r', exc['stack'], exc_info=True)
                 else:
                     log.debug('Remote exception details: %r', detail)
-                return exc.get('status'), exc.get('code'), message
+                return exc.get('status'), exc.get('code'), message, error
             except:
                 # Error message should always be a JSON message,
                 # but sometimes it's not
@@ -729,7 +741,7 @@ class BaseAutomationClient(BaseClient):
                     message = detail
                 log.error(message)
                 if isinstance(e, urllib2.HTTPError):
-                    return e.code, None, message
+                    return e.code, None, message, None
         # CSPII-9144: help diagnose upload problem
         log.trace('Non-urllib2 exception: %s', e.message)
         return None

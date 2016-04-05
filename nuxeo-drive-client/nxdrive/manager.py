@@ -461,6 +461,9 @@ class Manager(QtCore.QObject):
         self._dao = ManagerDAO(self._get_db())
 
     def _create_updater(self, update_check_delay):
+        if (update_check_delay == 0):
+            log.info("Update check delay is 0, disabling autoupdate")
+            return
         # Enable the capacity to extend the AppUpdater
         self._app_updater = AppUpdater(self, version_finder=self.get_version_finder(),
                                        check_interval=update_check_delay)
