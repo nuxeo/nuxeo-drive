@@ -382,6 +382,23 @@ def deprecated(func):
     return new_func
 
 
+def get_default_home():
+    if sys.platform == 'darwin':
+        default_home = "~/.cpo-drive"
+    else:
+        appdata = os.getenv('LOCALAPPDATA')
+        if appdata is None:
+            # Windows XP
+            appdata = os.path.expanduser("~")
+            default_home = \
+                os.path.join(appdata, ".cpo-drive")
+        else:
+            # > Windows XP
+            default_home = \
+                os.path.join(appdata, 'Sharp', ".cpo-drive")
+    return default_home
+
+
 class ServerLoader(object):
     def __init__(self, remote_client, local_client):
         self._remote_client = remote_client

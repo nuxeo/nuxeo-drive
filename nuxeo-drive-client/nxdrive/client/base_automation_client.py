@@ -12,7 +12,6 @@ import tempfile
 from urllib import urlencode
 from PyQt4.QtCore import QCoreApplication
 from poster.streaminghttp import get_handlers
-from watchdog.events import FileSystemEventHandler
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import BaseClient
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME

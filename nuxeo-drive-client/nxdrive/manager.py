@@ -10,11 +10,16 @@ from urlparse import urlparse
 from PyQt4 import QtCore
 from PyQt4.QtScript import QScriptEngine
 
+from watchdog.events import FileSystemEventHandler, FileModifiedEvent
+from watchdog.observers import Observer
+
 from nxdrive.utils import encrypt
 from nxdrive.utils import decrypt
 from nxdrive.logging_config import get_logger, FILE_HANDLER
-from nxdrive.client.base_automation_client import get_proxies_for_handler, BaseAutomationClient
+from nxdrive.client.base_automation_client import get_proxies_for_handler
+from nxdrive.client.base_automation_client import BaseAutomationClient
 from nxdrive.utils import normalized_path
+from nxdrive.utils import get_default_home
 from nxdrive.updater import AppUpdater
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
@@ -175,6 +180,71 @@ class ProxySettings(object):
                     self.authenticated, self.username, self.exceptions)
 
 
+class ConfigWatcher(object):
+
+    @staticmethod
+    def get_config():
+        config_name = 'config.ini'
+        default_home = get_default_home()
+        path = os.path.join(os.path.dirname(sys.executable), config_name)
+        if os.path.exists(path):
+            return path
+        if os.path.exists(config_name):
+            return config_name
+        user_ini = os.path.expanduser(os.path.join(default_home, config_name))
+        if os.path.exists(user_ini):
+            return user_ini
+        return None
+
+    config_ini = get_config.__func__()
+
+    class ConfigModifiedEventHandler(FileSystemEventHandler):
+        def on_modified(self, event):
+            if isinstance(event, FileModifiedEvent) and not event.is_directory and \
+                            event.src_path == ConfigWatcher.config_ini:
+
+                import ConfigParser
+                config = ConfigParser.RawConfigParser()
+                config.read(ConfigWatcher.config_ini)
+                try:
+                    new_upload_rate = config.getfloat(ConfigParser.DEFAULTSECT, 'upload-rate')
+                except ConfigParser.NoOptionError as e:
+                    new_upload_rate = -1
+                current_upload_rate = Manager.get()._dao.get_config('upload_rate', -1)
+                if new_upload_rate != current_upload_rate:
+                    with open(ConfigWatcher.config_ini, 'r') as fd:
+                        size = BaseAutomationClient.get_upload_buffer(fd)
+                        BaseAutomationClient.set_upload_rate_limit(new_upload_rate, size)
+                    Manager.get()._dao.update_config('upload_rate', new_upload_rate)
+
+                try:
+                    new_download_rate = config.getfloat(ConfigParser.DEFAULTSECT, 'download-rate')
+                except ConfigParser.NoOptionError as e:
+                    new_download_rate = -1
+                current_download_rate = Manager.get()._dao.get_config('download_rate', -1)
+                if new_download_rate != current_download_rate:
+                    size = BaseAutomationClient.get_download_buffer()
+                    BaseAutomationClient.set_download_rate_limit(new_download_rate, size)
+                    Manager.get()._dao.update_config('download_rate', new_download_rate)
+
+    def __init__(self):
+        self.watch = None
+        self.observer = Observer()
+
+    def setup_watchdog(self):
+        if not ConfigWatcher.config_ini:
+            return
+
+        print("Watching modification on : %s", ConfigWatcher.config_ini)
+
+        event_handler = ConfigWatcher.ConfigModifiedEventHandler()
+        self.watch = self.observer.schedule(event_handler, os.path.dirname(ConfigWatcher.config_ini), recursive=False)
+        self.observer.start()
+
+    def unset_watcher(self):
+        self.observer.unschedule(self.watch)
+
+
 class Manager(QtCore.QObject):
     '''
     classdocs
@@ -314,6 +384,7 @@ class Manager(QtCore.QObject):
         elif download_rate != -1:
             self._dao.update_config('download_rate', download_rate)
         BaseAutomationClient.set_download_rate_limit(download_rate, BaseAutomationClient.get_download_buffer())
+        self.config_watcher = ConfigWatcher()
 
     def _get_file_log_handler(self):
         # Might store it in global static
@@ -588,6 +659,8 @@ class Manager(QtCore.QObject):
             if engine.is_started():
                 log.debug("Stop engine %s", uid)
                 engine.stop()
+        # stop watching config.ini
+        self.config_watcher.unsetup_watchdog()
         self.stopped.emit()
 
     def start(self, euid=None):
@@ -605,6 +678,8 @@ class Manager(QtCore.QObject):
         log.debug("Emitting started")
         # Check only if manager is started
         self._handle_os()
+        # start watching config.ini
+        self.config_watcher.setup_watchdog()
         self.started.emit()
 
     def load(self):
