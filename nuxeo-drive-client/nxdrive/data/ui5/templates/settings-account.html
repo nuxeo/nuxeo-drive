@@ -69,6 +69,7 @@
       <button type="button" class="btn btn-default btn-primary" ng-show="!webAuthenticationAvailable && !currentAccount.initialized" ng-disabled="!validForm() || currentAction != ''" ng-click="bindServer()"><span ng-show="currentAction == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span><span translate>CONNECT</span></button>
       <button type="button" class="btn btn-default btn-primary" ng-show="webAuthenticationAvailable && !currentAccount.initialized" ng-disabled="!validForm() || currentAction != ''" ng-click="webAuthentication()"><span ng-show="currentAction == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span><span translate>CONNECT</span></button>
       <button style="float:right;" title="{{ 'SELECT_SYNC_FOLDERS_DESCRIPTION' | translate }}" type="button" class="btn btn-default" ng-disabled="currentAccount.offline" ng-show="currentAccount.uid != null" ng-click="filters()" translate>SELECT_SYNC_FOLDERS</button>
+      <button style="float:right;" type="button" class="btn btn-default" ng-show="currentAccount.uid != null && currentAccount.metrics.unsynchronized_files > 0" ng-click="show_conflicts(currentAccount.uid)" translate translate-values="currentAccount.metrics">IGNORES_SYSTRAY</button>
     </div>
   </div>
   <div class="alert alert-{{ message_type }}" role="alert" ng-show="message != ''">
