@@ -10,7 +10,9 @@ import os
 import hashlib
 import tempfile
 from urllib import urlencode
+from PyQt4.QtCore import QCoreApplication
 from poster.streaminghttp import get_handlers
+from watchdog.events import FileSystemEventHandler
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import BaseClient
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
@@ -29,6 +31,7 @@ from urlparse import urlparse
 import socket
 import threading
 import math
+from collections import defaultdict
 
 log = get_logger(__name__)
 
@@ -41,6 +44,7 @@ DOWNLOAD_TMP_FILE_SUFFIX = '.nxpart'
 # 1s audit time resolution because of the datetime resolution of MYSQL
 AUDIT_CHANGE_FINDER_TIME_RESOLUTION = 1.0
 
+NO_LIMIT = -1
 
 socket.setdefaulttimeout(DEFAULT_NUXEO_TX_TIMEOUT)
 
@@ -148,29 +152,57 @@ class TokenBucket(object):
     False
     """
 
-    def __init__(self, tokens, fill_rate):
+    SMA_SIZE = 10
+
+    def __init__(self, tokens, fill_rate, name=None):
         """tokens is the total tokens in the bucket. fill_rate is the
         rate in tokens/second that the bucket will be refilled."""
+        self.name = name or 'unknown'
+        self.counter = defaultdict(int)
         self.capacity = float(tokens)
         self._tokens = float(tokens)
+        self.rates = []
         self.fill_rate = float(fill_rate)
         self.timestamp = time.time()
+        self.avg_rate = 0.
         self.lock = threading.RLock()
 
     def consume(self, tokens):
         """Consume tokens from the bucket.
         Returns 0 if there were sufficient tokens otherwise
         the expected time until enough tokens become available."""
+        if self.capacity == float(NO_LIMIT):
+            return 0
         self.lock.acquire()
         existing_tokens = self._tokens
         available_tokens = min(tokens, self.tokens)
         expected_time = (tokens - available_tokens) / self.fill_rate
         if expected_time <= 0:
             self._tokens -= available_tokens
+        else:
+            self.counter[threading.current_thread().name] = max(self.counter[threading.current_thread().name],
+                                                                expected_time)
         self.lock.release()
-        log.debug('tokens requested: %d, existing: %d, available: %d, %swait%s', tokens, existing_tokens, available_tokens,
+        log.debug('bucket "%s": thread "%s" requested tokens: %d, existing: %d, available: %d, %swait%s',
+                  self.name, threading.current_thread().name, tokens, existing_tokens, available_tokens,
                   'no ' if expected_time <= 0 else '', ': ' + str(expected_time) + 's' if expected_time > 0 else '')
         return max(0, expected_time)
+
+    def update_rate(self, stats):
+        '''
+        Compute a moving average of last SMA_SIZE rates or a simple average if not enough samples
+        '''
+        with self.lock:
+            self.rates.append(stats.rate)
+            if len(self.rates) < TokenBucket.SMA_SIZE+1:
+                # compute average
+                self.avg_rate += (stats.rate - self.avg_rate) / len(self.rates)
+            else:
+                # compute a Simple Moving Average
+                self.avg_rate = self.avg_rate + (stats.rate - self.rates[0]) / TokenBucket.SMA_SIZE
+                self.rates.pop(0)
+
+            return self.avg_rate
 
     @property
     def tokens(self):
@@ -185,6 +217,99 @@ class TokenBucket(object):
         self.lock.release()
         log.debug('current tokens: %d', value)
         return value
+
+
+class FileTransferStats(object):
+    class Stats(object):
+        SMA_SIZE = 10
+
+        def __init__(self):
+            self.reset()
+
+        def reset(self):
+            self.rates = []
+            self.rate = 0
+            self.size = 0
+            self.total = 0
+            self.last_update = 0
+            self.filename = ''
+
+        def in_progress(self):
+            return self.size > 0
+
+        def start(self, total_size=0, filename=''):
+            assert self.size == 0, "transfer is in progress, cannot start"
+            assert total_size > 0, "total size must be greater than 0"
+            self.rate = 0
+            self.size = 0
+            self.total = total_size
+            self.filename = filename
+            self.last_update = time.time()
+
+        def update(self, size):
+            if size > 0:
+                self.size += size
+                assert (int(self.size) <= int(self.total)), \
+                    "current size (%d) must not be greater than total size (%d)" % (self.size, self.total)
+                now = time.time()
+                delta = now - self.last_update
+                self.last_update = now
+                rate = size / (delta * 1000.0)
+                self.rates.append(rate)
+                if len(self.rates) < FileTransferStats.Stats.SMA_SIZE+1:
+                    # compute average
+                    self.rate += (rate - self.rate) / len(self.rates)
+                else:
+                    # compute a Simple Moving Average
+                    self.rate = self.rate + (rate - self.rates[0]) / TokenBucket.SMA_SIZE
+                    self.rates.pop(0)
+
+        def get_percent_rate(self):
+            return 100. * self.size / self.total
+
+    def __init__(self):
+        self.stats = defaultdict(FileTransferStats.Stats)
+        self.lock = threading.RLock()
+
+    def is_new_transfer(self):
+        with self.lock:
+            return not self.stats[threading.currentThread()].in_progress()
+
+    def update(self, size):
+        with self.lock:
+            self.stats[threading.currentThread()].update(size)
+
+    def start(self, total_size=0, filename=''):
+        with self.lock:
+            self.stats[threading.currentThread()].start(total_size=total_size, filename=filename)
+
+    def reset(self, total_size=0, filename=''):
+        with self.lock:
+            self.stats[threading.currentThread()].reset()
+
+    def get_rate(self):
+        with self.lock:
+            return self.stats[threading.currentThread()].rate
+
+    def get_percent_transfer(self):
+        with self.lock:
+            return self.stats[threading.currentThread()].get_percent_rate()
+
+    def get_current_size(self):
+        with self.lock:
+            return self.stats[threading.currentThread()].size
+
+    def get_total_size(self):
+        with self.lock:
+            return self.stats[threading.currentThread()].total
+
+    def get_filename(self):
+        with self.lock:
+            return self.stats[threading.currentThread()].filename
+
+    def get_stats(self):
+        with self.lock:
+            return self.stats[threading.currentThread()]
 
 
 class BaseAutomationClient(BaseClient):
@@ -212,34 +337,30 @@ class BaseAutomationClient(BaseClient):
 
     # Parameters used when negotiating authentication token:
     application_name = 'Nuxeo Drive'
-    upload_token_bucket = None
-    download_token_bucket = None
 
-    @classmethod
-    def set_upload_rate_limit(cls, bandwidth_limit):
-        cls.avg_upload_rate = None
-        if bandwidth_limit == -1:
-            cls.upload_token_bucket = None
+    @staticmethod
+    def set_upload_rate_limit(bandwidth_limit, buffer_size):
+        if bandwidth_limit == NO_LIMIT:
+            BaseAutomationClient.upload_token_bucket = TokenBucket(NO_LIMIT, NO_LIMIT, name='upload')
         else:
-            burst_limit = 1.1 * FILE_BUFFER_SIZE / 1000
-            cls.upload_token_bucket = TokenBucket(burst_limit, bandwidth_limit)
+            burst_limit = 1.1 * buffer_size / 1000
+            BaseAutomationClient.upload_token_bucket = TokenBucket(burst_limit, bandwidth_limit, name='upload')
 
-    @classmethod
-    def set_download_rate_limit(cls, bandwidth_limit):
-        cls.avg_download_rate = None
-        if bandwidth_limit == -1:
-            cls.download_token_bucket = None
+    @staticmethod
+    def set_download_rate_limit(bandwidth_limit, buffer_size):
+        if bandwidth_limit == NO_LIMIT:
+            BaseAutomationClient.download_token_bucket = TokenBucket(NO_LIMIT, NO_LIMIT, name='download')
         else:
-            burst_limit = 1.1 * FILE_BUFFER_SIZE / 1000
-            cls.download_token_bucket = TokenBucket(burst_limit, bandwidth_limit)
+            burst_limit = 1.1 * buffer_size / 1000
+            BaseAutomationClient.download_token_bucket = TokenBucket(burst_limit, bandwidth_limit, name='download')
 
-    @classmethod
-    def use_upload_rate_limit(cls):
-        return cls.upload_token_bucket is not None
+    @staticmethod
+    def use_upload_rate_limit():
+        return BaseAutomationClient.upload_token_bucket is not None
 
-    @classmethod
-    def use_download_rate_limit(cls):
-        return cls.download_token_bucket is not None
+    @staticmethod
+    def use_download_rate_limit():
+        return BaseAutomationClient.download_token_bucket is not None
 
     def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
@@ -315,14 +436,10 @@ class BaseAutomationClient(BaseClient):
         self.batch_upload_path = 'upload'
 
         # download transfer stats
-        self.last_download_rate_update = 0
-        self.downloaded_size = 0
-        self.last_download_rate_update = 0
+        self.download_stats = FileTransferStats()
 
         # upload transfer stats
-        self.last_upload_rate_update = 0
-        self.uploaded_size = 0
-        self.last_upload_rate_update = 0
+        self.upload_stats = FileTransferStats()
 
         self.fetch_api()
 
@@ -522,11 +639,13 @@ class BaseAutomationClient(BaseClient):
             finally:
                 self.end_action()
 
-    def get_upload_buffer(self, input_file):
-        if sys.platform != 'win32':
-            return os.fstatvfs(input_file.fileno()).f_bsize
-        else:
-            return FILE_BUFFER_SIZE
+    @staticmethod
+    def get_upload_buffer(input_file):
+        return FILE_BUFFER_SIZE
+        # if sys.platform != 'win32':
+        #     return os.fstatvfs(input_file.fileno()).f_bsize
+        # else:
+        #     return FILE_BUFFER_SIZE
 
     def init_upload(self):
         url = self.rest_api_url + self.batch_upload_path
@@ -589,7 +708,7 @@ class BaseAutomationClient(BaseClient):
         # Request data
         input_file = open(file_path, 'rb')
         # Use file system block size if available for streaming buffer
-        fs_block_size = self.get_upload_buffer(input_file)
+        fs_block_size = BaseAutomationClient.get_upload_buffer(input_file)
         data = self._read_data(input_file, fs_block_size)
 
         # Execute request
@@ -845,7 +964,8 @@ class BaseAutomationClient(BaseClient):
 
     def _read_data(self, file_object, buffer_size):
         total_size = os.fstat(file_object.fileno()).st_size
-        self.last_upload_rate_update = time.time()
+        filename = os.path.basename(file_object.name)
+        self.upload_stats.start(total_size=total_size, filename=filename)
         while True:
             current_action = Action.get_current_action()
             if current_action is not None and current_action.suspend:
@@ -855,8 +975,7 @@ class BaseAutomationClient(BaseClient):
                 self.check_suspended('File upload: %s' % file_object.name)
             r = file_object.read(buffer_size)
             if not r:
-                self.update_upload_transfer_rate(0, total_size)
-                self.reset_upload_transfer()
+                self.update_upload_transfer_rate(0)
                 break
 
             if BaseAutomationClient.use_upload_rate_limit():
@@ -864,18 +983,20 @@ class BaseAutomationClient(BaseClient):
                 wait_time = BaseAutomationClient.upload_token_bucket.consume(size)
                 while wait_time > 0:
                     log.trace('waiting to upload: %s sec', wait_time)
+                    QCoreApplication.processEvents()
                     time.sleep(wait_time)
                     wait_time = BaseAutomationClient.upload_token_bucket.consume(size)
 
             if current_action is not None:
                 current_action.progress += buffer_size
-            self.update_upload_transfer_rate(len(r), total_size)
+            self.update_upload_transfer_rate(len(r))
             yield r
 
     def do_get(self, url, file_out=None, digest=None, digest_algorithm=None):
         log.trace('Downloading file from %r to %r with digest=%s, digest_algorithm=%s', url, file_out, digest,
                   digest_algorithm)
         h = None
+        error = None
         if digest is not None:
             if digest_algorithm is None:
                 digest_algorithm = guess_digest_algorithm(digest)
@@ -903,10 +1024,11 @@ class BaseAutomationClient(BaseClient):
                 current_action.size = total_size
 
             if file_out is not None:
+                filename = os.path.basename(file_out)
                 locker = self.unlock_path(file_out)
                 try:
                     with open(file_out, "wb") as f:
-                        self.last_download_rate_update = time.time()
+                        self.download_stats.start(total_size=total_size, filename=filename)
                         while True:
                             # Check if synchronization thread was suspended
                             if self.check_suspended is not None:
@@ -922,6 +1044,7 @@ class BaseAutomationClient(BaseClient):
                                 wait_time = BaseAutomationClient.download_token_bucket.consume(size)
                                 while wait_time > 0:
                                     log.trace('waiting to download: %s sec', wait_time)
+                                    QCoreApplication.processEvents()
                                     time.sleep(wait_time)
                                     wait_time = BaseAutomationClient.download_token_bucket.consume(size)
 
@@ -931,7 +1054,7 @@ class BaseAutomationClient(BaseClient):
                             if h is not None:
                                 h.update(buffer_)
 
-                            self.update_download_transfer_rate(len(buffer_), total_size)
+                            self.update_download_transfer_rate(len(buffer_))
                     if digest is not None:
                         actual_digest = h.hexdigest()
                         if digest != actual_digest:
@@ -940,10 +1063,13 @@ class BaseAutomationClient(BaseClient):
                             raise CorruptedFile("Corrupted file %r: expected digest = %s, actual digest = %s"
                                                 % (file_out, digest, actual_digest))
                     return None, file_out
+                except Exception as e:
+                    e.msg = 'error downloading file: ' + e.message
+                    error = e
+                    raise e
                 finally:
                     self.lock_path(file_out, locker)
-                    self.update_download_transfer_rate(0, total_size)
-                    self.reset_download_transfer()
+                    self.update_download_transfer_rate(0)
             else:
                 result = response.read()
                 if h is not None:
@@ -965,79 +1091,81 @@ class BaseAutomationClient(BaseClient):
                 e.msg = base_error_message + ": " + e.msg
             raise
 
-    def get_download_buffer(self):
+    @staticmethod
+    def get_download_buffer():
         return FILE_BUFFER_SIZE
 
-    def update_download_transfer_rate(self, size, total):
-        now = time.time()
+    def update_download_transfer_rate(self, size, total_size=None, error=None, filename=None):
+        filename = filename or self.download_stats.get_filename()
+        identifier = "[thread %s,  object %s, filename %s]" % (threading.current_thread().name, id(self), filename)
+        total_size = total_size or self.download_stats.get_total_size()
+        assert total_size is not None and total_size > 0, "invalid total size"
+        downloaded_size = self.download_stats.get_current_size()
+        log.trace('%s download size: %d, downloaded %d of %d', identifier, size, downloaded_size, total_size)
+
         # end of file download
-        if size == 0:
-            log.trace('download complete (%d)', self.downloaded_size)
+        if size == 0 or error:
+            log.trace('%s download complete%s (%s)',
+                      identifier, ' with error \'%s\' ' % error.message if error else '',
+                      filename if filename else 'none')
+            # update average rate
+            avg_rate = BaseAutomationClient.download_token_bucket.update_rate(self.download_stats.get_stats())
+            rate = self.download_stats.get_rate()
+            downloaded_size = self.download_stats.get_current_size()
+            if total_size > 0:
+                log.trace("%s download stats: %4.1f%%, avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
+                          identifier, self.download_stats.get_percent_transfer(),
+                          avg_rate, rate, downloaded_size / 1000, total_size / 1000
+                          )
+            else:
+                log.trace("%s upload stats: avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
+                          identifier, avg_rate, rate, downloaded_size / 1000
+                          )
+
+            self.upload_stats.reset()
             return
-        # files smaller than file buffer size (~1MB) are downloaded at burst rate
-        if self.downloaded_size == 0:
-            log.trace('download started')
 
-        self.downloaded_size += size
-        delta = now - self.last_download_rate_update
-        if self.last_download_rate_update != 0:
-            if delta > 0:
-                rate = size / (delta * 1000)
-                if BaseAutomationClient.avg_download_rate is None:
-                    BaseAutomationClient.avg_download_rate = rate
+        if self.download_stats.is_new_transfer():
+            log.trace('%s download started (%s)', identifier, filename if filename else 'none')
 
-                BaseAutomationClient.avg_download_rate = 0.9 * BaseAutomationClient.avg_download_rate + 0.1 * rate
-            else:
-                rate = BaseAutomationClient.avg_download_rate or 0.
+        self.download_stats.update(size)
+        log.trace("%s file '%s' download rate: %5.1f KB/s", identifier, filename if filename else 'none',
+                  self.download_stats.get_rate())
 
-            if total > 0:
-                log.trace("download stats: %4.1f%%, avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
-                          100. * self.downloaded_size / total,
-                          BaseAutomationClient.avg_download_rate, rate, self.downloaded_size / 1000, total / 1000
-                          )
-            else:
-                log.trace("download stats: avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
-                          BaseAutomationClient.avg_download_rate, rate, self.downloaded_size / 1000
-                          )
-        self.last_download_rate_update = now
+    def update_upload_transfer_rate(self, size, total_size=None, error=None, filename=None):
+        filename = filename or self.upload_stats.get_filename()
+        identifier = "[thread %s,  object %s, filename %s]" % (threading.current_thread().name, id(self), filename)
+        total_size = total_size or self.upload_stats.get_total_size()
+        assert total_size is not None and total_size > 0, "invalid total size"
+        uploaded_size = self.upload_stats.get_current_size()
+        log.trace('%s upload size: %d, uploaded %d of %d', identifier, size, uploaded_size, total_size)
 
-    def reset_download_transfer(self):
-        self.last_download_rate_update = 0
-        self.downloaded_size = 0
-
-    def update_upload_transfer_rate(self, size, total):
-        now = time.time()
         # end of file upload
-        if size == 0:
-            log.trace('upload complete (%d)', self.uploaded_size)
+        if size == 0 or error:
+            log.trace('%s upload complete%s (%s)',
+                      identifier, ' with error \'%s\' ' % error.message if error else '',
+                      filename if filename else 'none')
+            # update average rate
+            avg_rate = BaseAutomationClient.upload_token_bucket.update_rate(self.upload_stats.get_stats())
+            rate = self.upload_stats.get_rate()
+            uploaded_size = self.upload_stats.get_current_size()
+            if total_size > 0:
+                log.trace("%s upload stats: %4.1f%%, avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
+                          identifier, self.upload_stats.get_percent_transfer(),
+                          avg_rate, rate, uploaded_size / 1000, total_size / 1000
+                          )
+            else:
+                log.trace("%s upload stats: avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
+                          identifier, avg_rate, rate, uploaded_size / 1000
+                          )
+
+            self.upload_stats.reset()
             return
-        # files smaller than file buffer size (~1MB) are uploaded at burst rate
-        if self.uploaded_size == 0:
-            log.trace('upload started')
 
-        self.uploaded_size += size
-        delta = now - self.last_upload_rate_update
-        if self.last_upload_rate_update != 0:
-            if delta > 0:
-                rate = size / (delta * 1000)
-                if BaseAutomationClient.avg_upload_rate is None:
-                    BaseAutomationClient.avg_upload_rate = rate
+        if self.upload_stats.is_new_transfer():
+            log.trace('%s upload started (%s)', identifier, filename if filename else 'none')
 
-                BaseAutomationClient.avg_upload_rate = 0.9 * BaseAutomationClient.avg_upload_rate + 0.1 * rate
-            else:
-                rate = BaseAutomationClient.avg_upload_rate or 0.
+        self.upload_stats.update(size)
+        log.trace("%s file '%s' upload rate: %5.1f KB/s", identifier, filename if filename else 'none',
+                  self.upload_stats.get_rate())
 
-            if total > 0:
-                log.trace("upload stats: %4.1f%%, avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
-                          100. * self.uploaded_size / total,
-                          BaseAutomationClient.avg_upload_rate, rate, self.uploaded_size / 1000, total / 1000
-                          )
-            else:
-                log.trace("upload stats: avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
-                          BaseAutomationClient.avg_upload_rate, rate, self.uploaded_size / 1000
-                          )
-        self.last_upload_rate_update = now
-
-    def reset_upload_transfer(self):
-        self.last_upload_rate_update = 0
-        self.uploaded_size = 0
