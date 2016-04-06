@@ -40,6 +40,18 @@ ConflictsController.prototype.constructor = ConflictsController;
 
 ConflictsController.prototype.updateErrors = function($scope) {
 	$scope.errors = angular.fromJson(drive.get_errors());
+	var ignoreds = angular.fromJson(drive.get_ignoreds());
+	for (ignore in ignoreds) {
+		if (ignoreds[ignore].last_error !== "READONLY" &&
+				ignoreds[ignore].last_error !== "PARENT_UNSYNC" &&
+				ignoreds[ignore].last_error !== "LOCKED" &&
+				ignoreds[ignore].last_error !== "MANUAL") {
+			ignoreds[ignore].ignore_reason = "IGNORE_REASON_UNKNOWN";
+		} else {
+			ignoreds[ignore].ignore_reason = "IGNORE_REASON_" + ignoreds[ignore].last_error;
+		}
+	}
+	$scope.ignoreds = ignoreds;
 }
 ConflictsController.prototype.updateConflicts = function($scope, $interval) {
 	self = this;

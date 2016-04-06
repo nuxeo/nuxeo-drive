@@ -152,7 +152,12 @@ LABELS={
         "LOCK_NOTIFICATION_TITLE": "Autolock",
         "LOCK_NOTIFICATION_DESCRIPTION": "The document '{{ name }}' has been locked",
         "ENGINE_BETA": "You have configured a beta engine. You can experience some issues and we would appreciate your feedback.",
-        "METADATA_FILE_NOT_HANDLE": "This file is not handled by the Nuxeo server or is not synchronized yet."
+        "METADATA_FILE_NOT_HANDLE": "This file is not handled by the Nuxeo server or is not synchronized yet.",
+        "IGNORE_REASON_READONLY": "This file parent is in readonly or itself in readonly",
+        "IGNORE_REASON_LOCKED": "This file is locked, it will lead to a conflict if the file is modified remotely",
+        "IGNORE_REASON_MANUAL": "This file was in error, and has been ignored manually",
+        "IGNORE_REASON_PARENT_UNSYNC": "This file is ignored as its parent is also ignored",
+        "IGNORE_REASON_UNKNOWN": "This file is ignored for unknown reason"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -307,6 +312,11 @@ LABELS={
         "LOCK_NOTIFICATION_TITLE": "Autoverrou",
         "LOCK_NOTIFICATION_DESCRIPTION": "Le document '{{ name }}' a été verrouillé",
         "ENGINE_BETA": "Vous avez configuré un moteur en phase beta. Il est possible de rencontrer des problèmes et nous vous serons reconnaissants de vos retours.",
-        "METADATA_FILE_NOT_HANDLE": "Ce fichier n'est pas géré par le serveur Nuxeo ou n'est pas synchronisé."
+        "METADATA_FILE_NOT_HANDLE": "Ce fichier n'est pas géré par le serveur Nuxeo ou n'est pas synchronisé.",
+        "IGNORE_REASON_READONLY": "Ce fichier est en lecture seule ou son parent",
+        "IGNORE_REASON_LOCKED": "Ce fichier est locké, si il est modifié sur le serveur il sera en conflit",
+        "IGNORE_REASON_MANUAL": "Ce fichier était en erreur et a été ignoré déliberement",
+        "IGNORE_REASON_PARENT_UNSYNC": "Ce fichier est ignoré car son parent l'est également",
+        "IGNORE_REASON_UNKNOWN": "Ce fichier est ignoré pour des raisons inconnues"
 	}
 }

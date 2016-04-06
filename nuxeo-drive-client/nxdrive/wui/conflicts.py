@@ -23,6 +23,10 @@ class WebConflictsApi(WebDriveApi):
         self._engine = engine
 
     @QtCore.pyqtSlot(result=str)
+    def get_ignoreds(self):
+        return super(WebConflictsApi, self).get_unsynchronizeds(self._engine._uid)
+
+    @QtCore.pyqtSlot(result=str)
     def get_errors(self):
         return super(WebConflictsApi, self).get_errors(self._engine._uid)
 
@@ -61,7 +65,7 @@ class WebConflictsApi(WebDriveApi):
     @QtCore.pyqtSlot(int)
     def unsynchronize_pair(self, state_id):
         try:
-            self._engine.unsynchronize_pair(int(state_id))
+            self._engine.unsynchronize_pair(int(state_id), "MANUAL")
         except Exception as e:
             log.exception(e)
 
