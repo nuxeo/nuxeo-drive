@@ -20,7 +20,7 @@ from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
 from nxdrive.utils import guess_digest_algorithm
-from nxdrive.client.common import FILE_BUFFER_SIZE
+from nxdrive.client.common import FILE_BUFFER_SIZE_NO_RATE_LIMIT
 from send2trash import send2trash
 
 
@@ -92,7 +92,7 @@ class FileInfo(object):
                     if self.check_suspended is not None:
                         self.check_suspended('Digest computation: %s'
                                              % self.filepath)
-                    buffer_ = f.read(FILE_BUFFER_SIZE)
+                    buffer_ = f.read(FILE_BUFFER_SIZE_NO_RATE_LIMIT)
                     if buffer_ == '':
                         break
                     h.update(buffer_)

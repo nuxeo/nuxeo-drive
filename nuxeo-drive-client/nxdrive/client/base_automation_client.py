@@ -15,7 +15,7 @@ from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import BaseClient
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.client.common import FILE_BUFFER_SIZE
+from nxdrive.client.common import FILE_BUFFER_SIZE_NO_RATE_LIMIT, FILE_BUFFER_SIZE_WITH_RATE_LIMIT
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
@@ -667,11 +667,14 @@ class BaseAutomationClient(BaseClient):
 
     @staticmethod
     def get_upload_buffer(input_file):
-        return FILE_BUFFER_SIZE
-        # if sys.platform != 'win32':
-        #     return os.fstatvfs(input_file.fileno()).f_bsize
-        # else:
-        #     return FILE_BUFFER_SIZE
+        if BaseAutomationClient.download_token_buffer.get_fill_rate == NO_LIMIT:
+            if sys.platform != 'win32':
+                return os.fstatvfs(input_file.fileno()).f_bsize
+            else:
+                return FILE_BUFFER_SIZE_NO_RATE_LIMIT
+        else:
+            return FILE_BUFFER_SIZE_WITH_RATE_LIMIT
+
 
     def init_upload(self):
         url = self.rest_api_url + self.batch_upload_path
@@ -1122,7 +1125,10 @@ class BaseAutomationClient(BaseClient):
 
     @staticmethod
     def get_download_buffer():
-        return FILE_BUFFER_SIZE
+        if BaseAutomationClient.download_token_buffer.get_fill_rate == NO_LIMIT:
+            return FILE_BUFFER_SIZE_NO_RATE_LIMIT
+        else:
+            return FILE_BUFFER_SIZE_WITH_RATE_LIMIT
 
     def update_download_transfer_rate(self, size, total_size=None, error=None, filename=None):
         filename = filename or self.download_stats.get_filename()
