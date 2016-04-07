@@ -1,6 +1,7 @@
 from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
 from Queue import Queue, Empty
 from blacklist_queue import BlacklistItem, BlacklistQueue
+from nxdrive.client.base_automation_client import BaseAutomationClient
 from nxdrive.logging_config import get_logger
 from threading import Lock, local
 from copy import deepcopy
@@ -26,8 +27,8 @@ class QueueItem(object):
 
     def __repr__(self):
         return "%s[%s](Folderish:%s, State: %s)" % (
-                        self.__class__.__name__, self.id,
-                        self.folderish, self.pair_state)
+            self.__class__.__name__, self.id,
+            self.folderish, self.pair_state)
 
 
 class QueueManager(QObject):
@@ -43,6 +44,7 @@ class QueueManager(QObject):
     '''
     classdocs
     '''
+
     def __init__(self, engine, dao, max_file_processors=5):
         '''
         Constructor
@@ -134,9 +136,9 @@ class QueueManager(QObject):
 
     def is_paused(self):
         return (not self._local_file_enable or
-                    not self._local_folder_enable or
-                    not self._remote_file_enable or
-                    not self._remote_folder_enable)
+                not self._local_folder_enable or
+                not self._remote_file_enable or
+                not self._remote_folder_enable)
 
     def suspend(self):
         log.debug("Suspending queue")
@@ -144,7 +146,6 @@ class QueueManager(QObject):
         self.enable_local_folder_queue(False)
         self.enable_remote_file_queue(False)
         self.enable_remote_folder_queue(False)
-
 
     def enable_local_file_queue(self, value=True, emit=True):
         self._local_file_enable = value
@@ -335,6 +336,7 @@ class QueueManager(QObject):
             for thread in self._processors_pool:
                 if thread.isFinished():
                     self._processors_pool.remove(thread)
+                    QueueManager.clear_client_transfer_stats(thread.worker.get_thread_id())
             if (self._local_folder_thread is not None and
                     self._local_folder_thread.isFinished()):
                 self._local_folder_thread = None
@@ -384,7 +386,7 @@ class QueueManager(QObject):
         metrics["local_folder_thread"] = self._local_folder_thread is not None
         metrics["error_queue"] = self.get_errors_count()
         metrics["total_queue"] = (metrics["local_folder_queue"] + metrics["local_file_queue"]
-                                + metrics["remote_folder_queue"] + metrics["remote_file_queue"])
+                                  + metrics["remote_folder_queue"] + metrics["remote_file_queue"])
         metrics["additional_processors"] = len(self._processors_pool)
         return metrics
 
@@ -453,7 +455,7 @@ class QueueManager(QObject):
     @pyqtSlot()
     def launch_processors(self):
         if (self._disable or self.is_paused() or (self._local_folder_queue.empty() and self._local_file_queue.empty()
-                and self._remote_folder_queue.empty() and self._remote_file_queue.empty())):
+                                                  and self._remote_folder_queue.empty() and self._remote_file_queue.empty())):
             self.queueEmpty.emit()
             if not self.is_active():
                 self.queueFinishedProcessing.emit()
@@ -476,3 +478,16 @@ class QueueManager(QObject):
         while len(self._processors_pool) < self._max_processors:
             log.debug("creating additional file processor")
             self._processors_pool.append(self._create_thread(self._get_file, name="GenericProcessor"))
+
+    @staticmethod
+    def clear_client_transfer_stats(thread_id):
+        if hasattr(BaseAutomationClient, 'download_stats') and BaseAutomationClient.download_stats is not None:
+            BaseAutomationClient.download_stats.clear(thread_id)
+        if hasattr(BaseAutomationClient, 'upload_stats') and BaseAutomationClient.upload_stats is not None:
+            BaseAutomationClient.upload_stats.clear(thread_id)
+        if hasattr(BaseAutomationClient, 'download_token_bucket') and \
+                   BaseAutomationClient.download_token_bucket is not None:
+            BaseAutomationClient.download_token_bucket.clear(thread_id)
+        if hasattr(BaseAutomationClient, 'upload_token_bucket') and \
+                   BaseAutomationClient.upload_token_bucket is not None:
+            BaseAutomationClient.upload_token_bucket.clear(thread_id)
