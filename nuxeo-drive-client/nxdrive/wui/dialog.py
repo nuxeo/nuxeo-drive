@@ -253,7 +253,6 @@ class WebDriveApi(QtCore.QObject):
     def _update_password(self, uid, password):
         """
         Convert password from unicode to string to support utf-8 character
-        scenario: Unlink from DM and provide credentials from DS Client
         """
         if password and isinstance(password, QtCore.QString):
             password = unicode(password).encode('utf-8')
@@ -449,6 +448,21 @@ class WebDriveApi(QtCore.QObject):
             engine = self._get_engine(str(uid))
             path = engine.get_abspath(unicode(ref))
             self._application.show_metadata(path)
+        except Exception as e:
+            log.exception(e)
+            return ""
+
+    @QtCore.pyqtSlot(str, result=str)
+    def get_unsynchronizeds(self, uid):
+        try:
+            engine = self._get_engine(uid)
+            result = []
+            if engine is None:
+                return result
+            result = []
+            for conflict in engine.get_dao().get_unsynchronizeds():
+                result.append(self._export_state(conflict))
+            return self._json(result)
         except Exception as e:
             log.exception(e)
             return ""

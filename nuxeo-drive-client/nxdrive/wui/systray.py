@@ -181,13 +181,14 @@ class WebSystrayView(WebDialog):
         from PyQt4.QtCore import QRect
         desktop = QApplication.desktop()
         log.trace("Screen id is %d", desktop.screenNumber(rect.topLeft()))
-        screen = desktop.availableGeometry(desktop.screenNumber(rect.topLeft()))
-        pos = screen
-        log.trace("AvailableRect is : %s,%s | %s,%s",pos.x(), pos.y(), pos.width(), pos.height())
-        pos = desktop.screenGeometry(desktop.screenNumber(rect.topLeft()))
-        log.trace("ScreenRect is : %s,%s | %s,%s",pos.x(), pos.y(), pos.width(), pos.height())
+        desk = desktop.screenGeometry(desktop.screenNumber(rect.topLeft()))
+        log.trace("ScreenRect is : %s,%s | %s,%s",desk.x(), desk.y(), desk.width(), desk.height())
         pos = QCursor.pos()
         log.trace("Cursor is : %s,%s",pos.x(), pos.y())
+        # Make our calculation on a offset screen to 0/0
+        rect = QRect(rect.x()-desk.x(), rect.y()-desk.y(), rect.width(), rect.height())
+        pos.setX(pos.x()-desk.x())
+        pos.setY(pos.y()-desk.y())
         if not rect.contains(pos) or (rect.x() == 0 and rect.y() == 0):
             # Avoid any modulo 0
             if rect.width() == 0 or rect.height() == 0:
@@ -196,6 +197,7 @@ class WebSystrayView(WebDialog):
                 rect = QRect(pos.x()-pos.x()%rect.width(), pos.y()-pos.y()%rect.height(), rect.width(), rect.height())
             log.trace("Adjusting X/Y to %d/%d", rect.x(), rect.y())
             pos = rect
+            self._icon_geometry = QRect(rect.x()+desk.x(), rect.y()+desk.y(), rect.width(), rect.height())
             log.trace("New rect is : %s,%s | %s,%s",pos.x(), pos.y(), pos.width(), pos.height())
         x = rect.x() + rect.width() - self.width()
         y = rect.y() - self.height()
@@ -204,6 +206,9 @@ class WebSystrayView(WebDialog):
             y = rect.y() + rect.height()
         if x < 0:
             x = rect.x()
+        # Use the offset again
+        x += desk.x()
+        y += desk.y()
         log.trace("Move systray menu to %d/%d", x, y)
         self.move(x, y)
 
@@ -230,9 +235,8 @@ class WebSystrayView(WebDialog):
             self.close()
 
     def focusOutEvent(self, event):
-        if self._icon is None:
-            return
-        if not (self.underMouse() or self._icon.geometry().contains(QtGui.QCursor.pos())):
+        if not (self.underMouse() or (self._icon and self._icon.geometry().contains(QtGui.QCursor.pos()))
+                or (self._icon_geometry and self._icon_geometry.contains(QtGui.QCursor.pos()))):
             self.close()
         super(WebSystrayView, self).focusOutEvent(event)
 

@@ -196,6 +196,19 @@ class WindowsIntegration(AbstractOSIntegration):
         t = win32api.GetVolumeInformation(volume)
         return t[-1] == 'NTFS'
 
+    def get_system_configuration(self):
+        result = dict()
+        try:
+            reg = _winreg.ConnectRegistry(None, _winreg.HKEY_LOCAL_MACHINE)
+            key = _winreg.OpenKey(reg, "Software\\Nuxeo\\Drive", 0, _winreg.KEY_READ)
+            for i in xrange(0, _winreg.QueryInfoKey(key)[1]):
+                subkey = _winreg.EnumValue(key, i)
+                result[subkey[0].replace('-', '_')] = subkey[1]
+            _winreg.CloseKey(key)
+        except WindowsError:
+            pass
+        return result
+
     def unregister_contextual_menu(self):
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
         if self._delete_reg_value(reg, self.get_menu_key(), ''):

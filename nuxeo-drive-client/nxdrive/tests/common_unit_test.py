@@ -189,7 +189,7 @@ class UnitTestCase(unittest.TestCase):
         if AbstractOSIntegration.is_windows():
             from nxdrive.tests.win_local_client import WindowsLocalClient
             return WindowsLocalClient(path)
-        elif AbstractOSIntegration.is_mac():
+        if AbstractOSIntegration.is_mac():
             from nxdrive.tests.mac_local_client import MacLocalClient
             return MacLocalClient(path)
         return LocalClient(path)

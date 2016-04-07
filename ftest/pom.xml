@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.nuxeo.ecm.distribution</groupId>
     <artifactId>nuxeo-distribution</artifactId>
-    <version>8.2-SNAPSHOT</version>
+    <version>8.3-SNAPSHOT</version>
     <relativePath></relativePath>
   </parent>
 
@@ -90,21 +90,6 @@
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
-    </profile>
-    <profile>
-      <id>pgsql</id>
-    </profile>
-    <profile>
-      <id>mssql</id>
-    </profile>
-    <profile>
-      <id>oracle10g</id>
-    </profile>
-    <profile>
-      <id>oracle11g</id>
-    </profile>
-    <profile>
-      <id>mysql</id>
     </profile>
   </profiles>
 

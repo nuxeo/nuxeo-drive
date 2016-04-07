@@ -4,6 +4,18 @@ import tempfile
 
 from nxdrive.commandline import CliHandler
 from nxdrive.tests.common import clean_dir
+from nxdrive.osi import AbstractOSIntegration
+
+
+class FakeOSIntegration(AbstractOSIntegration):
+    def get_system_configuration(self):
+        args = dict()
+        args["log_level_console"] = "SYSTEM_TEST"
+        return args
+
+
+def getOSIntegration(manager):
+    return FakeOSIntegration(None)
 
 
 class CommandLineTestCase(unittest.TestCase):
@@ -39,6 +51,25 @@ class CommandLineTestCase(unittest.TestCase):
         options = self.cmd.parse_cli(argv)
         self.assertEqual(options.update_site_url, "DEBUG_TEST",
                             "Should be debug test")
+
+    def test_system_default(self):
+        original = AbstractOSIntegration.get
+        AbstractOSIntegration.get = staticmethod(getOSIntegration)
+        self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
+        try:
+            self.clean_ini()
+            argv = ["ndrive", "console", "--log-level-console", "DEBUG_TEST"]
+            # Default value
+            options = self.cmd.parse_cli([])
+            self.assertEqual(options.log_level_console, "SYSTEM_TEST",
+                                "The system default is SYSTEM_TEST")
+             # Normal arg
+            options = self.cmd.parse_cli(argv)
+            self.assertEqual(options.log_level_console, "DEBUG_TEST",
+                                "Should be debug test")
+        finally:
+            clean_dir(self.cmd.default_home)
+            AbstractOSIntegration.get = staticmethod(original)
 
     def test_default_override(self):
         self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
