@@ -709,16 +709,9 @@ class LocalClient(BaseClient):
         name = name if name is not None else ref.rsplit(u'/', 1)[1]
         target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
         try:
-            shutil.move(source_os_path, target_os_path)
+            os.rename(source_os_path, target_os_path)
             new_ref = self.get_children_ref(new_parent_ref, new_name)
             return self.get_info(new_ref)
-        except (IOError, WindowsError, shutil.Error) as e:
-            log.warning("Error moving file or folder")
-            if os.path.isdir(target_os_path):
-                shutil.rmtree(target_os_path)
-            elif os.path.isfile(target_os_path):
-                os.remove(target_os_path)
-            raise e
         finally:
             self.lock_ref(ref, locker & 2)
             self.lock_ref(new_parent_ref, locker & 1 | new_locker)
