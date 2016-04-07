@@ -1,13 +1,17 @@
 from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
 from Queue import Queue, Empty
+from blacklist_queue import BlacklistItem, BlacklistQueue
+from nxdrive.client.base_automation_client import BaseAutomationClient
 from nxdrive.logging_config import get_logger
 from threading import Lock, local
 from copy import deepcopy
-import time
+
 log = get_logger(__name__)
 
 WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
-
+# with an interval of 10sec and 16 retries, it retries for over 48hrs
+ERROR_THRESHOLD = 16
+DEFAULT_DELAY = 10
 WindowsError = None
 try:
     from exceptions import WindowsError
@@ -23,8 +27,8 @@ class QueueItem(object):
 
     def __repr__(self):
         return "%s[%s](Folderish:%s, State: %s)" % (
-                        self.__class__.__name__, self.id,
-                        self.folderish, self.pair_state)
+            self.__class__.__name__, self.id,
+            self.folderish, self.pair_state)
 
 
 class QueueManager(QObject):
@@ -40,6 +44,7 @@ class QueueManager(QObject):
     '''
     classdocs
     '''
+
     def __init__(self, engine, dao, max_file_processors=5):
         '''
         Constructor
@@ -60,7 +65,7 @@ class QueueManager(QObject):
         self._local_file_thread = None
         self._remote_folder_thread = None
         self._remote_file_thread = None
-        self._error_threshold = 3
+        self._error_threshold = ERROR_THRESHOLD
         self._error_interval = 60
         self.set_max_processors(max_file_processors)
         self._threads_pool = list()
@@ -84,8 +89,9 @@ class QueueManager(QObject):
 
         # ERROR HANDLING
         self._error_lock = Lock()
-        self._on_error_queue = dict()
+        self._on_error_queue = BlacklistQueue(delay=DEFAULT_DELAY)
         self._error_timer = QTimer()
+        # TODO newErrorGiveUp signal is not connected
         self._error_timer.timeout.connect(self._on_error_timer)
         self.newError.connect(self._on_new_error)
         self.queueProcessing.connect(self.launch_processors)
@@ -130,9 +136,9 @@ class QueueManager(QObject):
 
     def is_paused(self):
         return (not self._local_file_enable or
-                    not self._local_folder_enable or
-                    not self._remote_file_enable or
-                    not self._remote_folder_enable)
+                not self._local_folder_enable or
+                not self._remote_file_enable or
+                not self._remote_folder_enable)
 
     def suspend(self):
         log.debug("Suspending queue")
@@ -140,7 +146,6 @@ class QueueManager(QObject):
         self.enable_local_folder_queue(False)
         self.enable_remote_file_queue(False)
         self.enable_remote_folder_queue(False)
-
 
     def enable_local_file_queue(self, value=True, emit=True):
         self._local_file_enable = value
@@ -217,29 +222,26 @@ class QueueManager(QObject):
 
     @pyqtSlot()
     def _on_error_timer(self):
-        cur_time = int(time.time())
-        self._error_lock.acquire()
-        try:
-            for doc_pair in self._on_error_queue.values():
-                if doc_pair.error_next_try < cur_time:
-                    queueItem = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
-                    del self._on_error_queue[doc_pair.id]
-                    log.debug('End of blacklist period, pushing doc_pair: %r', doc_pair)
-                    self.push(queueItem)
-            if len(self._on_error_queue) == 0:
-                self._error_timer.stop()
-        finally:
-            self._error_lock.release()
+        for item in self._on_error_queue.process_items():
+            doc_pair = item.get()
+            queueItem = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
+            log.debug('Retrying blacklisted doc_pair: %r', doc_pair)
+            self.push(queueItem)
+
+        if self._on_error_queue.is_empty():
+            self._error_timer.stop()
+            log.debug('blacklist queue timer stopped')
 
     def _is_on_error(self, row_id):
-        return row_id in self._on_error_queue
+        return self._on_error_queue.exists(row_id)
 
     @pyqtSlot()
     def _on_new_error(self):
         self._error_timer.start(1000)
+        log.debug('blacklist queue timer started')
 
     def get_errors_count(self):
-        return len(self._on_error_queue)
+        return self._on_error_queue.size()
 
     def get_error_threshold(self):
         return self._error_threshold
@@ -253,30 +255,20 @@ class QueueManager(QObject):
                       exception.strerror if hasattr(exception, 'strerror') else '')
             error_count = 1
         if error_count > self._error_threshold:
+            self._on_error_queue.remove(doc_pair.id)
+            # TODO this signal is not connected
             self.newErrorGiveUp.emit(doc_pair.id)
             log.debug("Giving up on pair : %r", doc_pair)
             return
-        interval = self._error_interval * error_count
-        doc_pair.error_next_try = interval + int(time.time())
-        log.debug("Blacklisting pair for %ds: %r", interval, doc_pair)
-        self._error_lock.acquire()
-        try:
-            emit_sig = False
-            if doc_pair.id not in self._on_error_queue:
-                emit_sig = True
-            self._on_error_queue[doc_pair.id] = doc_pair
-            if emit_sig:
-                self.newError.emit(doc_pair.id)
-        finally:
-            self._error_lock.release()
+
+        interval = self._on_error_queue.push(doc_pair.id, doc_pair, count=doc_pair.error_count)
+        log.debug("Blacklisting pair for %ds (error count=%d): %r", interval, doc_pair.error_count, doc_pair)
+        if not self._error_timer.isActive():
+            self.newError.emit(doc_pair.id)
 
     def requeue_errors(self):
-        self._error_lock.acquire()
-        try:
-            for doc_pair in self._on_error_queue.values():
-                doc_pair.error_next_try = 0
-        finally:
-            self._error_lock.release()
+        for doc_pair in self._on_error_queue.items():
+            doc_pair.error_next_try = 0
 
     def _get_local_folder(self):
         if self._local_folder_queue.empty():
@@ -344,6 +336,7 @@ class QueueManager(QObject):
             for thread in self._processors_pool:
                 if thread.isFinished():
                     self._processors_pool.remove(thread)
+                    QueueManager.clear_client_transfer_stats(thread.worker.get_thread_id())
             if (self._local_folder_thread is not None and
                     self._local_folder_thread.isFinished()):
                 self._local_folder_thread = None
@@ -393,7 +386,7 @@ class QueueManager(QObject):
         metrics["local_folder_thread"] = self._local_folder_thread is not None
         metrics["error_queue"] = self.get_errors_count()
         metrics["total_queue"] = (metrics["local_folder_queue"] + metrics["local_file_queue"]
-                                + metrics["remote_folder_queue"] + metrics["remote_file_queue"])
+                                  + metrics["remote_folder_queue"] + metrics["remote_file_queue"])
         metrics["additional_processors"] = len(self._processors_pool)
         return metrics
 
@@ -462,7 +455,7 @@ class QueueManager(QObject):
     @pyqtSlot()
     def launch_processors(self):
         if (self._disable or self.is_paused() or (self._local_folder_queue.empty() and self._local_file_queue.empty()
-                and self._remote_folder_queue.empty() and self._remote_file_queue.empty())):
+                                                  and self._remote_folder_queue.empty() and self._remote_file_queue.empty())):
             self.queueEmpty.emit()
             if not self.is_active():
                 self.queueFinishedProcessing.emit()
@@ -485,3 +478,16 @@ class QueueManager(QObject):
         while len(self._processors_pool) < self._max_processors:
             log.debug("creating additional file processor")
             self._processors_pool.append(self._create_thread(self._get_file, name="GenericProcessor"))
+
+    @staticmethod
+    def clear_client_transfer_stats(thread_id):
+        if hasattr(BaseAutomationClient, 'download_stats') and BaseAutomationClient.download_stats is not None:
+            BaseAutomationClient.download_stats.clear(thread_id)
+        if hasattr(BaseAutomationClient, 'upload_stats') and BaseAutomationClient.upload_stats is not None:
+            BaseAutomationClient.upload_stats.clear(thread_id)
+        if hasattr(BaseAutomationClient, 'download_token_bucket') and \
+                   BaseAutomationClient.download_token_bucket is not None:
+            BaseAutomationClient.download_token_bucket.clear(thread_id)
+        if hasattr(BaseAutomationClient, 'upload_token_bucket') and \
+                   BaseAutomationClient.upload_token_bucket is not None:
+            BaseAutomationClient.upload_token_bucket.clear(thread_id)

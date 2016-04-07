@@ -250,8 +250,10 @@ class UnitTestCase(unittest.TestCase):
         options.beta_update_site_url = None
         options.autolock_interval = 30
         options.nxdrive_home = self.nxdrive_conf_folder_1
+        options.version == __version__
         self.manager_1 = Manager(options)
         self.connected = False
+        self.version = self.manager_1.get_version()
         import nxdrive
         nxdrive_path = os.path.dirname(nxdrive.__file__)
         i18n_path = os.path.join(nxdrive_path, 'tests', 'resources', "i18n.js")
@@ -259,7 +261,6 @@ class UnitTestCase(unittest.TestCase):
         options.nxdrive_home = self.nxdrive_conf_folder_2
         Manager._singleton = None
         self.manager_2 = Manager(options)
-        self.version = __version__
         url = self.nuxeo_url
         log.debug("Will use %s as url", url)
         if '#' in url:
@@ -459,29 +460,31 @@ class UnitTestCase(unittest.TestCase):
         testMethod = getattr(self, self._testMethodName)
         if hasattr(testMethod, '_repeat'):
             repeat = testMethod._repeat
+
+        # TODO Should use a specific application
+        def launch_test():
+            log.debug("UnitTest thread started")
+            sleep(1)
+            self.setup_profiler()
+            super(UnitTestCase, self).run(result)
+            self.teardown_profiler()
+            self.app.quit()
+            log.debug("UnitTest thread finished")
+
         while repeat > 0:
             self.app = TestQApplication([], self)
-            self.setUpApp()
             self.result = result
+            try:
+                self.setUpApp()
+                sync_thread = Thread(target=launch_test)
+                sync_thread.start()
+                self.app.exec_()
+                sync_thread.join(30)
+            finally:
+                self.tearDownApp()
+                del self.app
+                repeat -= 1
 
-
-            # TODO Should use a specific application
-            def launch_test():
-                log.debug("UnitTest thread started")
-                sleep(1)
-                self.setup_profiler()
-                super(UnitTestCase, self).run(result)
-                self.teardown_profiler()
-                self.app.quit()
-                log.debug("UnitTest thread finished")
-
-            sync_thread = Thread(target=launch_test)
-            sync_thread.start()
-            self.app.exec_()
-            sync_thread.join(30)
-            self.tearDownApp()
-            del self.app
-            repeat -= 1
         log.debug("UnitTest run finished")
 
     def tearDown(self):
@@ -510,22 +513,30 @@ class UnitTestCase(unittest.TestCase):
         clean_dir(self.local_test_folder_1)
         clean_dir(self.local_test_folder_2)
 
-        del self.engine_1
-        self.engine_1 = None
-        del self.engine_2
-        self.engine_2 = None
-        del self.local_client_1
-        self.local_client_1 = None
-        del self.local_client_2
-        self.local_client_2 = None
-        del self.remote_document_client_1
-        self.remote_document_client_1 = None
-        del self.remote_document_client_2
-        self.remote_document_client_2 = None
-        del self.remote_file_system_client_1
-        self.remote_file_system_client_1 = None
-        del self.remote_file_system_client_2
-        self.remote_file_system_client_2 = None
+        if getattr(self, 'engine_1', None):
+            del self.engine_1
+            self.engine_1 = None
+        if getattr(self, 'engine_2', None):
+            del self.engine_2
+            self.engine_2 = None
+        if getattr(self, 'local_client_1', None):
+            del self.local_client_1
+            self.local_client_1 = None
+        if getattr(self, 'local_client_2', None):
+            del self.local_client_2
+            self.local_client_2 = None
+        if getattr(self, 'remote_document_client_1', None):
+            del self.remote_document_client_1
+            self.remote_document_client_1 = None
+        if getattr(self, 'remote_document_client_2', None):
+            del self.remote_document_client_2
+            self.remote_document_client_2 = None
+        if getattr(self, 'remote_file_system_client_1', None):
+            del self.remote_file_system_client_1
+            self.remote_file_system_client_1 = None
+        if getattr(self, 'remote_file_system_client_2', None):
+            del self.remote_file_system_client_2
+            self.remote_file_system_client_2 = None
         self.tearedDown = True
 
     def _interact(self, pause=0):

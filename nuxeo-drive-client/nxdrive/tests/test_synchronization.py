@@ -7,7 +7,7 @@ from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.tests.common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT
 from nxdrive.client import LocalClient
-from nxdrive.tests import RemoteTestClient
+from nxdrive.tests.remote_test_client import RemoteTestClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 from nxdrive.osi import AbstractOSIntegration
 

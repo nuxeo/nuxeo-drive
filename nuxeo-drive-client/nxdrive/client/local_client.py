@@ -20,7 +20,7 @@ from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
 from nxdrive.utils import guess_digest_algorithm
-from nxdrive.client.common import FILE_BUFFER_SIZE
+from nxdrive.client.common import FILE_BUFFER_SIZE_NO_RATE_LIMIT
 from send2trash import send2trash
 
 
@@ -92,7 +92,7 @@ class FileInfo(object):
                     if self.check_suspended is not None:
                         self.check_suspended('Digest computation: %s'
                                              % self.filepath)
-                    buffer_ = f.read(FILE_BUFFER_SIZE)
+                    buffer_ = f.read(FILE_BUFFER_SIZE_NO_RATE_LIMIT)
                     if buffer_ == '':
                         break
                     h.update(buffer_)
@@ -461,7 +461,7 @@ class LocalClient(BaseClient):
             return False
         return bool(ord(attrs[8]) & 0x20)
 
-    def is_ignored(self, parent_ref, file_name):
+    def is_ignored(self, parent_ref, file_name, ignore_guest=False):
         # Add parent_ref to be able to filter on size if needed
         ignore = False
         # Office temp file
@@ -482,6 +482,9 @@ class LocalClient(BaseClient):
                 break
         if ignore:
             return True
+        if file_name == u'Guest Folder':
+            return ignore_guest
+
         if AbstractOSIntegration.is_windows():
             # NXDRIVE-465
             ref = self.get_children_ref(parent_ref, file_name)
@@ -503,14 +506,14 @@ class LocalClient(BaseClient):
         else:
             return parent_ref + u'/' + name
 
-    def get_children_info(self, ref):
+    def get_children_info(self, ref, ignore_guest=False):
         os_path = self._abspath(ref)
         result = []
         children = os.listdir(os_path)
         children.sort()
         for child_name in children:
 
-            if not (self.is_ignored(ref, child_name) or self.is_temp_file(child_name)):
+            if not (self.is_ignored(ref, child_name, ignore_guest=ignore_guest) or self.is_temp_file(child_name)):
                 child_ref = self.get_children_ref(ref, child_name)
                 try:
                     result.append(self.get_info(child_ref))
@@ -714,15 +717,22 @@ class LocalClient(BaseClient):
             self.lock_ref(new_parent_ref, locker & 1 | new_locker)
 
     def is_inside(self, abspath):
-        return abspath.startswith(self.base_folder)
+        if abspath.startswith(self.base_folder):
+            return True
+        else:
+            # Computing path for temp file in windows
+            # during remote sync.
+            abspath = abspath.lstrip("\\?")
+            return abspath.startswith(self.base_folder)
 
     def get_path(self, abspath):
         """Relative path to the local client from an absolute OS path"""
-        path = abspath.split(self.base_folder, 1)[1]
-        rel_path = path.replace(os.path.sep, '/')
-        if rel_path == '':
-            rel_path = u'/'
-        return rel_path
+        if self.is_inside(abspath):
+            path = abspath.split(self.base_folder, 1)[1]
+            rel_path = path.replace(os.path.sep, '/')
+            if rel_path == '':
+                rel_path = u'/'
+            return rel_path
 
     def _abspath(self, ref):
         """Absolute path on the operating system"""
