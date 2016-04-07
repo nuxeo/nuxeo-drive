@@ -151,7 +151,7 @@ class TokenBucket(object):
     False
     """
 
-    SMA_SIZE = 10
+    SMA_SIZE = 50
 
     def __init__(self, tokens, fill_rate, name=None):
         """tokens is the total tokens in the bucket. fill_rate is the
@@ -179,11 +179,11 @@ class TokenBucket(object):
         if expected_time <= 0:
             self._tokens -= available_tokens
         else:
-            self.counter[threading.current_thread().name] = max(self.counter[threading.current_thread().name],
-                                                                expected_time)
+            self.counter[threading.current_thread().ident] = max(self.counter[threading.current_thread().ident],
+                                                                 expected_time)
         self.lock.release()
         log.debug('bucket "%s": thread "%s" requested tokens: %d, existing: %d, available: %d, %swait%s',
-                  self.name, threading.current_thread().name, tokens, existing_tokens, available_tokens,
+                  self.name, threading.current_thread().ident, tokens, existing_tokens, available_tokens,
                   'no ' if expected_time <= 0 else '', ': ' + str(expected_time) + 's' if expected_time > 0 else '')
         return max(0, expected_time)
 
@@ -193,7 +193,7 @@ class TokenBucket(object):
         '''
         with self.lock:
             self.rates.append(stats.rate)
-            if len(self.rates) < TokenBucket.SMA_SIZE+1:
+            if len(self.rates) < TokenBucket.SMA_SIZE + 1:
                 # compute average
                 self.avg_rate += (stats.rate - self.avg_rate) / len(self.rates)
             else:
@@ -225,6 +225,12 @@ class TokenBucket(object):
         with self.lock:
             return self.avg_rate
 
+    def clear(self, thread_id):
+        try:
+            del self.counter[thread_id]
+        except KeyError:
+            pass
+
     def __str__(self):
         with self.lock:
             return "name=%s, capacity=%d, fill rate=%d, avg rate=%d" % \
@@ -233,7 +239,7 @@ class TokenBucket(object):
 
 class FileTransferStats(object):
     class Stats(object):
-        SMA_SIZE = 10
+        SMA_SIZE = 50
 
         def __init__(self):
             self.reset()
@@ -250,8 +256,8 @@ class FileTransferStats(object):
             return self.size > 0
 
         def start(self, total_size=0, filename=''):
-            assert self.size == 0, "transfer is in progress, cannot start"
-            assert total_size > 0, "total size must be greater than 0"
+            # assert self.size == 0, "transfer is in progress, cannot start"
+            # assert total_size > 0, "total size must be greater than 0"
             self.rate = 0
             self.size = 0
             self.total = total_size
@@ -261,14 +267,14 @@ class FileTransferStats(object):
         def update(self, size):
             if size > 0:
                 self.size += size
-                assert (int(self.size) <= int(self.total)), \
-                    "current size (%d) must not be greater than total size (%d)" % (self.size, self.total)
+                # assert (int(self.size) <= int(self.total)), \
+                #     "current size (%d) must not be greater than total size (%d)" % (self.size, self.total)
                 now = time.time()
                 delta = now - self.last_update
                 self.last_update = now
                 rate = size / (delta * 1000.0)
                 self.rates.append(rate)
-                if len(self.rates) < FileTransferStats.Stats.SMA_SIZE+1:
+                if len(self.rates) < FileTransferStats.Stats.SMA_SIZE + 1:
                     # compute average
                     self.rate += (rate - self.rate) / len(self.rates)
                 else:
@@ -288,43 +294,50 @@ class FileTransferStats(object):
 
     def is_new_transfer(self):
         with self.lock:
-            return not self.stats[threading.currentThread()].in_progress()
+            return not (self.stats.has_key(threading.currentThread().ident) and
+                        self.stats[threading.currentThread().ident].in_progress())
 
     def update(self, size):
         with self.lock:
-            self.stats[threading.currentThread()].update(size)
+            self.stats[threading.currentThread().ident].update(size)
 
     def start(self, total_size=0, filename=''):
         with self.lock:
-            self.stats[threading.currentThread()].start(total_size=total_size, filename=filename)
+            self.stats[threading.currentThread().ident].start(total_size=total_size, filename=filename)
 
     def reset(self, total_size=0, filename=''):
         with self.lock:
-            self.stats[threading.currentThread()].reset()
+            self.stats[threading.currentThread().ident].reset()
 
     def get_rate(self):
         with self.lock:
-            return self.stats[threading.currentThread()].rate
+            return self.stats[threading.currentThread().ident].rate
 
     def get_percent_transfer(self):
         with self.lock:
-            return self.stats[threading.currentThread()].get_percent_rate()
+            return self.stats[threading.currentThread().ident].get_percent_rate()
 
     def get_current_size(self):
         with self.lock:
-            return self.stats[threading.currentThread()].size
+            return self.stats[threading.currentThread().ident].size
 
     def get_total_size(self):
         with self.lock:
-            return self.stats[threading.currentThread()].total
+            return self.stats[threading.currentThread().ident].total
 
     def get_filename(self):
         with self.lock:
-            return self.stats[threading.currentThread()].filename
+            return self.stats[threading.currentThread().ident].filename
 
     def get_stats(self):
         with self.lock:
-            return self.stats[threading.currentThread()]
+            return self.stats[threading.currentThread().ident]
+
+    def clear(self, thread_id):
+        try:
+            del self.stats[thread_id]
+        except KeyError:
+            pass
 
     def __str__(self):
         return '\n'.join(['thread=%s, stats=%s' % (item[0], str(item[1])) for item in self.stats.items()])
@@ -355,6 +368,12 @@ class BaseAutomationClient(BaseClient):
 
     # Parameters used when negotiating authentication token:
     application_name = 'Nuxeo Drive'
+    upload_token_bucket = None
+    download_token_bucket = None
+    # download transfer stats
+    download_stats = FileTransferStats()
+    # upload transfer stats
+    upload_stats = FileTransferStats()
 
     @staticmethod
     def get_upload_rate_limit():
@@ -460,12 +479,6 @@ class BaseAutomationClient(BaseClient):
         self.new_upload_api_available = True
         self.rest_api_url = server_url + 'api/v1/'
         self.batch_upload_path = 'upload'
-
-        # download transfer stats
-        self.download_stats = FileTransferStats()
-
-        # upload transfer stats
-        self.upload_stats = FileTransferStats()
 
         self.fetch_api()
 
@@ -667,14 +680,15 @@ class BaseAutomationClient(BaseClient):
 
     @staticmethod
     def get_upload_buffer(input_file):
-        if BaseAutomationClient.download_token_buffer.get_fill_rate == NO_LIMIT:
+        if not hasattr(BaseAutomationClient, 'upload_buffer_token') or \
+                        BaseAutomationClient.upload_token_buffer is None or \
+                        BaseAutomationClient.upload_token_buffer.get_fill_rate() == NO_LIMIT:
             if sys.platform != 'win32':
                 return os.fstatvfs(input_file.fileno()).f_bsize
             else:
                 return FILE_BUFFER_SIZE_NO_RATE_LIMIT
         else:
             return FILE_BUFFER_SIZE_WITH_RATE_LIMIT
-
 
     def init_upload(self):
         url = self.rest_api_url + self.batch_upload_path
@@ -1059,7 +1073,7 @@ class BaseAutomationClient(BaseClient):
                 locker = self.unlock_path(file_out)
                 try:
                     with open(file_out, "wb") as f:
-                        self.download_stats.start(total_size=total_size, filename=filename)
+                        BaseAutomationClient.download_stats.start(total_size=total_size, filename=filename)
                         while True:
                             # Check if synchronization thread was suspended
                             if self.check_suspended is not None:
@@ -1125,23 +1139,30 @@ class BaseAutomationClient(BaseClient):
 
     @staticmethod
     def get_download_buffer():
-        if BaseAutomationClient.download_token_buffer.get_fill_rate == NO_LIMIT:
+        if not hasattr(BaseAutomationClient, 'download_token_buffer') or \
+                        BaseAutomationClient.download_token_buffer is None or \
+                        BaseAutomationClient.download_token_buffer.get_fill_rate() == NO_LIMIT:
             return FILE_BUFFER_SIZE_NO_RATE_LIMIT
         else:
             return FILE_BUFFER_SIZE_WITH_RATE_LIMIT
 
     def update_download_transfer_rate(self, size, total_size=None, error=None, filename=None):
-        filename = filename or self.download_stats.get_filename()
-        identifier = "[thread %s,  object %s, filename %s]" % (threading.current_thread().name, id(self), filename)
-        total_size = total_size or self.download_stats.get_total_size()
-        assert total_size is not None and total_size > 0, "invalid total size"
+        filename = filename or BaseAutomationClient.download_stats.get_filename()
+        identifier = "[thread %s,  object %s, filename %s]" % (threading.current_thread().ident, id(self), filename)
+        total_size = total_size or BaseAutomationClient.download_stats.get_total_size()
+        # assert total_size is not None and total_size > 0, "invalid total size"
+        if total_size is None or total_size <= 0:
+            log.debug("invalid total size for download (%d)", total_size)
 
         if size == -1:
             log.trace('%s download start (%s)', identifier, filename if filename else 'none')
-            log.trace("%s download stats at start: %s", identifier, str(self.download_stats.get_stats()))
-            assert self.download_stats.is_new_transfer(), \
-                "%s is not a new transfer (%s)" % (identifier, filename if filename else 'none')
-            self.download_stats.start(total_size=total_size, filename=filename)
+            log.trace("%s download stats at start: %s", identifier,
+                      str(BaseAutomationClient.download_stats.get_stats()))
+            # assert BaseAutomationClient.download_stats.is_new_transfer(), \
+            #     "%s is not a new transfer (%s)" % (identifier, filename if filename else 'none')
+            if not BaseAutomationClient.download_stats.is_new_transfer():
+                log.debug("%s is not a new transfer (%s)", identifier, filename if filename else 'none')
+            BaseAutomationClient.download_stats.start(total_size=total_size, filename=filename)
             return
 
         # end of file download
@@ -1149,14 +1170,16 @@ class BaseAutomationClient(BaseClient):
             log.trace('%s download complete%s (%s)',
                       identifier, ' with error \'%s\' ' % error.message if error else '',
                       filename if filename else 'none')
-            log.trace("%s download stats at completion: %s", identifier, str(self.download_stats.get_stats()))
+            log.trace("%s download stats at completion: %s", identifier,
+                      str(BaseAutomationClient.download_stats.get_stats()))
             # update average rate
-            avg_rate = BaseAutomationClient.download_token_bucket.update_rate(self.download_stats.get_stats())
-            rate = self.download_stats.get_rate()
-            downloaded_size = self.download_stats.get_current_size()
+            avg_rate = BaseAutomationClient.download_token_bucket.update_rate(
+                BaseAutomationClient.download_stats.get_stats())
+            rate = BaseAutomationClient.download_stats.get_rate()
+            downloaded_size = BaseAutomationClient.download_stats.get_current_size()
             if total_size > 0:
                 log.trace("%s download stats: %4.1f%%, avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
-                          identifier, self.download_stats.get_percent_transfer(),
+                          identifier, BaseAutomationClient.download_stats.get_percent_transfer(),
                           avg_rate, rate, downloaded_size / 1000, total_size / 1000
                           )
             else:
@@ -1164,26 +1187,30 @@ class BaseAutomationClient(BaseClient):
                           identifier, avg_rate, rate, downloaded_size / 1000
                           )
 
-            self.upload_stats.reset()
+            BaseAutomationClient.upload_stats.reset()
             return
 
-        self.download_stats.update(size)
-        downloaded_size = self.download_stats.get_current_size()
-        log.trace("%s download rate: %5.1f KB/s, download size: %d, downloaded %d of %d",
-                  self.download_stats.get_rate(), size, downloaded_size, total_size)
+        BaseAutomationClient.download_stats.update(size)
+        downloaded_size = BaseAutomationClient.download_stats.get_current_size()
+        log.trace("%s download rate: %5.1f KB/s, download size: %d, downloaded %d of %d", identifier,
+                  BaseAutomationClient.download_stats.get_rate(), size, downloaded_size, total_size)
 
     def update_upload_transfer_rate(self, size, total_size=None, error=None, filename=None):
-        filename = filename or self.upload_stats.get_filename()
-        identifier = "[thread %s,  object %s, filename %s]" % (threading.current_thread().name, id(self), filename)
-        total_size = total_size or self.upload_stats.get_total_size()
-        assert total_size is not None and total_size > 0, "invalid total size"
+        filename = filename or BaseAutomationClient.upload_stats.get_filename()
+        identifier = "[thread %s,  object %s, filename %s]" % (threading.current_thread().ident, id(self), filename)
+        total_size = total_size or BaseAutomationClient.upload_stats.get_total_size()
+        # assert total_size is not None and total_size > 0, "invalid total size"
+        if total_size is None or total_size <= 0:
+            log.debug("invalid total size for upload (%d)", total_size)
 
         if size == -1:
             log.trace('%s upload start (%s)', identifier, filename if filename else 'none')
-            log.trace("%s upload stats at start: %s", identifier, str(self.upload_stats.get_stats()))
-            assert self.upload_stats.is_new_transfer(), \
-                "%s is not a new transfer (%s)" % (identifier, filename if filename else 'none')
-            self.upload_stats.start(total_size=total_size, filename=filename)
+            log.trace("%s upload stats at start: %s", identifier, str(BaseAutomationClient.upload_stats.get_stats()))
+            # assert BaseAutomationClient.upload_stats.is_new_transfer(), \
+            #     "%s is not a new transfer (%s)" % (identifier, filename if filename else 'none')
+            if not BaseAutomationClient.upload_stats.is_new_transfer():
+                log.debug("%s is not a new transfer (%s)", identifier, filename if filename else 'none')
+            BaseAutomationClient.upload_stats.start(total_size=total_size, filename=filename)
             return
 
         # end of file upload
@@ -1191,14 +1218,16 @@ class BaseAutomationClient(BaseClient):
             log.trace('%s upload complete%s (%s)',
                       identifier, ' with error \'%s\' ' % error.message if error else '',
                       filename if filename else 'none')
-            log.trace("%s upload stats at completion: %s", identifier, str(self.upload_stats.get_stats()))
+            log.trace("%s upload stats at completion: %s", identifier,
+                      str(BaseAutomationClient.upload_stats.get_stats()))
             # update average rate
-            avg_rate = BaseAutomationClient.upload_token_bucket.update_rate(self.upload_stats.get_stats())
-            rate = self.upload_stats.get_rate()
-            uploaded_size = self.upload_stats.get_current_size()
+            avg_rate = BaseAutomationClient.upload_token_bucket.update_rate(
+                BaseAutomationClient.upload_stats.get_stats())
+            rate = BaseAutomationClient.upload_stats.get_rate()
+            uploaded_size = BaseAutomationClient.upload_stats.get_current_size()
             if total_size > 0:
                 log.trace("%s upload stats: %4.1f%%, avg rate=%5.1f KB/s, marginal rate=%5.1f KB/s, %.1f/%.1f KB",
-                          identifier, self.upload_stats.get_percent_transfer(),
+                          identifier, BaseAutomationClient.upload_stats.get_percent_transfer(),
                           avg_rate, rate, uploaded_size / 1000, total_size / 1000
                           )
             else:
@@ -1206,11 +1235,10 @@ class BaseAutomationClient(BaseClient):
                           identifier, avg_rate, rate, uploaded_size / 1000
                           )
 
-            self.upload_stats.reset()
+                BaseAutomationClient.upload_stats.reset()
             return
 
-        self.upload_stats.update(size)
-        uploaded_size = self.upload_stats.get_current_size()
+        BaseAutomationClient.upload_stats.update(size)
+        uploaded_size = BaseAutomationClient.upload_stats.get_current_size()
         log.trace("%s upload rate: %5.1f KB/s, upload size: %d, uploaded %d of %d", identifier,
-                  self.upload_stats.get_rate(), size, uploaded_size, total_size)
-
+                  BaseAutomationClient.upload_stats.get_rate(), size, uploaded_size, total_size)
