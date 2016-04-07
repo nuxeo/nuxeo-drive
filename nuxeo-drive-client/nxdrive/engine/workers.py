@@ -83,6 +83,9 @@ class Worker(QObject):
     def get_thread(self):
         return self._thread
 
+    def get_thread_id(self):
+        return self._thread_id
+
     def _interact(self):
         QCoreApplication.processEvents()
         # Handle thread pause
