@@ -743,6 +743,11 @@ class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
         return super(TokenNetworkAccessManager, self).createRequest(op, req, outgoingData)
 
 
+class DriveWebPage(QtWebKit.QWebPage):
+    @QtCore.pyqtSlot()
+    def shouldInterruptJavaScript(self):
+        return True
+
 class WebDialog(QtGui.QDialog):
     '''
     classdocs
@@ -754,6 +759,7 @@ class WebDialog(QtGui.QDialog):
         super(WebDialog, self).__init__()
         self._zoomFactor = application.get_osi().get_zoom_factor()
         self._view = QtWebKit.QWebView()
+        self._page = DriveWebPage()
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
         if application.manager.is_debug():
@@ -772,7 +778,7 @@ class WebDialog(QtGui.QDialog):
         if not hasattr(application, 'options') or (application.options is not None and
                                                         not application.options.consider_ssl_errors):
             self.networkManager.sslErrors.connect(self._sslErrorHandler)
-        self._view.page().setNetworkAccessManager(self.networkManager)
+        self._page.setNetworkAccessManager(self.networkManager)
         # If connect to a remote page add the X-Authentication-Token
         if filename.startswith("http"):
             log.trace("Load web page: %s", filename)
@@ -786,8 +792,9 @@ class WebDialog(QtGui.QDialog):
                 filename = u"///" + filename
             url = QtCore.QUrl(filename)
             url.setScheme("file")
-        self._view.load(url)
-        self._frame = self._view.page().mainFrame()
+        self._view.setPage(self._page)
+        self._frame = self._page.mainFrame()
+        self._frame.load(url)
         if api is None:
             self._api = WebDriveApi(application, self)
         else:
