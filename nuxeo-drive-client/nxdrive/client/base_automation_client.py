@@ -29,7 +29,7 @@ from urlparse import urlparse
 import socket
 
 
-log = get_logger(__name__)
+log = None
 
 CHANGE_SUMMARY_OPERATION = 'NuxeoDrive.GetChangeSummary'
 DEFAULT_NUXEO_TX_TIMEOUT = 300
@@ -44,7 +44,8 @@ socket.setdefaulttimeout(DEFAULT_NUXEO_TX_TIMEOUT)
 
 
 class InvalidBatchException(Exception):
-    log.warning("Invalid batch exception")
+    if (log is not None):
+        log.warning("Invalid batch exception")
     pass
 
 
@@ -170,7 +171,7 @@ class BaseAutomationClient(BaseClient):
                  ignored_prefixes=None, ignored_suffixes=None,
                  timeout=20, blob_timeout=60, cookie_jar=None,
                  upload_tmp_dir=None, check_suspended=None):
-
+        log = get_logger(__name__)
         # Function to check during long-running processing like upload /
         # download if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
