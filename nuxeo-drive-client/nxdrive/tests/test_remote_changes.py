@@ -117,12 +117,12 @@ class TestRemoteChanges(IntegrationTestCase):
         self.assertEquals(len(summary['fileSystemChanges']), 2)
         change = summary['fileSystemChanges'][0]
         self.assertEquals(change['eventId'], u"deleted")
-        self.assertEquals(change['fileSystemItemName'], u"Folder 2")
+        self.assertIsNone(change['fileSystemItemName'])
         self.assertEquals(change['repositoryId'], "default")
         self.assertEquals(change['docUuid'], folder_2)
         change = summary['fileSystemChanges'][1]
         self.assertEquals(change['eventId'], u"deleted")
-        self.assertEquals(change['fileSystemItemName'], u"Folder 1")
+        self.assertIsNone(change['fileSystemItemName'])
         self.assertEquals(change['repositoryId'], "default")
         self.assertEquals(change['docUuid'], folder_1)
 
@@ -164,7 +164,7 @@ class TestRemoteChanges(IntegrationTestCase):
                                   u'defaultSyncRootFolderItemFactory#default#%s' % self.workspace)
                 self.assertIsNotNone(change['fileSystemItem'])
             elif change['eventId'] == u'deleted':
-                self.assertEquals(change['fileSystemItemName'], u'Folder 1')
+                self.assertIsNone(change['fileSystemItemName'])
                 self.assertEquals(change['fileSystemItemId'], u'default#%s' % folder_1)
                 self.assertIsNone(change['fileSystemItem'])
             else:
