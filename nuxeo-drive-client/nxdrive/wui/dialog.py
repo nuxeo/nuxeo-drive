@@ -105,6 +105,8 @@ class WebDriveApi(QtCore.QObject):
 
     def _export_engine(self, engine):
         result = dict()
+        if engine is None:
+            return result
         result["uid"] = engine._uid
         result["type"] = engine._type
         result["name"] = engine._name

@@ -141,11 +141,17 @@ class WebSettingsApi(WebDriveApi):
             return "UNAUTHORIZED"
         except FolderAlreadyUsed:
             return "FOLDER_USED"
+        except urllib2.HTTPError as e:
+            if (isinstance(url, QtCore.QString)):
+                url = str(url)
+            if e.code == 404 and not url.endswith("nuxeo/"):
+                if not url.endswith("/"):
+                    url += "/"
+                return self.bind_server(local_folder, url + "nuxeo/", username, password, name, check_fs, token)
+            return "CONNECTION_ERROR"
         except urllib2.URLError as e:
             if e.errno == 61:
                 return "CONNECTION_REFUSED"
-            return "CONNECTION_ERROR"
-        except urllib2.HTTPError as e:
             return "CONNECTION_ERROR"
         except Exception as e:
             log.exception(e)
@@ -175,6 +181,10 @@ class WebSettingsApi(WebDriveApi):
 
             # Connect to startup page
             status = self._connect_startup_page(server_url)
+            if status == 404 and not server_url.endswith("nuxeo/"):
+                status = self._connect_startup_page(server_url + "nuxeo/")
+                if status < 400 or status in (401, 500, 503):
+                    server_url = server_url + "nuxeo/"
             # Server will send a 401 in case of anonymous user configuration
             # Should maybe only check for 404
             if status < 400 or status in (401, 500, 503):
