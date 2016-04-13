@@ -26,6 +26,11 @@
 </script>
 </head>
 <body id="drive-settings" ng-app="DriveNetworkError" ng-controller="DriveNetworkErrorCtl">
-	ERROR PAGE: {{ error }}
+	<div style="width: 100%; margin-top: 50px;" align="center">
+		<img src="imgs/network.png" />
+		<h1>{{error.simple_label | translate}}</h1>
+		<h3>{{error.label | translate}}</h3>
+		<button type="button" style="margin-top: 20px;" class="btn btn-default btn-primary"  ng-click="webAuthentication()"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;<span translate>RETRY</span></button>
+	</div>
 </body>
 </html>
