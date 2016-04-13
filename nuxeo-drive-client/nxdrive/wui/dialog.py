@@ -804,7 +804,7 @@ class WebDialog(QtGui.QDialog):
         self._page.setNetworkAccessManager(self.networkManager)
         self.set_token(token)
         if page is not None:
-            self.load(page, api, token, application)
+            self.load(page, api, application)
 
     def set_token(self, token):
         self._token = token
