@@ -185,7 +185,8 @@ LABELS={
         "NETWORK_ERROR_UnknownProxyError":"Unknown error",
         "NETWORK_ERROR_UnknownContentError":"Unknown error",
         "NETWORK_ERROR_ProtocolFailure":"Unknown error",
-        "NETWORK_ERROR_Unkown":"Unknown error"
+        "NETWORK_ERROR_Unkown":"Unknown error",
+        "NETWORK_ERROR_RETRY":"Retry"
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -373,6 +374,7 @@ LABELS={
         "NETWORK_ERROR_UnknownProxyError":"Erreur inconnue",
         "NETWORK_ERROR_UnknownContentError":"Erreur inconnue",
         "NETWORK_ERROR_ProtocolFailure":"Erreur inconnue",
-        "NETWORK_ERROR_Unkown":"Erreur inconnue"
+        "NETWORK_ERROR_Unkown":"Erreur inconnue",
+        "NETWORK_ERROR_RETRY":"Ressayer"
 	}
 }

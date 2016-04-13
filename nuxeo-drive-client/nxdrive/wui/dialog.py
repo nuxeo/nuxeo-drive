@@ -79,6 +79,7 @@ class WebDriveApi(QtCore.QObject):
         self._manager = application.manager
         self._application = application
         self._dialog = dlg
+        self._last_url = None
 
     def _json_default(self, obj):
         if isinstance(obj, Action):
@@ -217,6 +218,17 @@ class WebDriveApi(QtCore.QObject):
         if not uid in engines:
             return None
         return engines[uid]
+
+    def set_last_url(self, url):
+        self._last_url = url
+
+    @QtCore.pyqtSlot(result=str)
+    def get_last_url(self):
+        return self._last_url
+
+    @QtCore.pyqtSlot()
+    def retry(self):
+        self._dialog.load(self._last_url, self)
 
     @QtCore.pyqtSlot(str, str, str, result=str)
     def get_last_files(self, uid, number, direction):
@@ -765,6 +777,7 @@ class WebDialog(QtGui.QDialog):
         self._view = QtWebKit.QWebView()
         self._frame = None
         self._page = DriveWebPage()
+        self._token = None
         self._request = None
         #self._application = application
         self._zoomFactor = application.get_osi().get_zoom_factor()
@@ -789,14 +802,21 @@ class WebDialog(QtGui.QDialog):
             self.networkManager.sslErrors.connect(self._sslErrorHandler)
         self.networkManager.finished.connect(self.requestFinished)
         self._page.setNetworkAccessManager(self.networkManager)
+        self.set_token(token)
         if page is not None:
             self.load(page, api, token, application)
 
-    def load(self, page, api=None, token=None, application=None):
-        #self._page = DriveWebPage()
+    def set_token(self, token):
+        self._token = token
+
+    def load(self, page, api=None, application=None):
         if application is None and api is not None:
             application = api._application
-        #application = self._application
+        if api is None:
+            self._api = WebDriveApi(application, self)
+        else:
+            api.set_dialog(self)
+            self._api = api
         if not (page.startswith("http") or page.startswith("file://")):
             filename = application.get_htmlpage(page)
         else:
@@ -805,9 +825,10 @@ class WebDialog(QtGui.QDialog):
         if filename.startswith("http"):
             log.trace("Load web page: %s", filename)
             self._request = url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
-            if token is not None:
-                url.setRawHeader("X-Authentication-Token", QtCore.QByteArray(token))
+            if self._token is not None:
+                url.setRawHeader("X-Authentication-Token", QtCore.QByteArray(self._token))
             self._set_proxy(application.manager)
+            self._api.set_last_url(filename)
         else:
             self._request = None
             log.trace("Load web file: %s", filename)
@@ -818,11 +839,6 @@ class WebDialog(QtGui.QDialog):
 
         self._frame = self._page.mainFrame()
         self._frame.load(url)
-        if api is None:
-            self._api = WebDriveApi(application, self)
-        else:
-            api.set_dialog(self)
-            self._api = api
         self._attachJsApi()
         self._frame.javaScriptWindowObjectCleared.connect(self._attachJsApi)
         self.activateWindow()

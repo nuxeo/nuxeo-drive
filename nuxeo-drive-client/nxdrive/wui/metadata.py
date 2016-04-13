@@ -78,9 +78,8 @@ class WebMetadataApi(WebDriveApi):
 
 
 class MetadataErrorHandler(QtCore.QObject):
-    def __init__(self, dialog, token, api):
+    def __init__(self, dialog, api):
         super(MetadataErrorHandler, self).__init__()
-        self._token = token
         self._api = api
         # Have to save itself to the dialog to avoid being destroyed by scoping
         dialog._handler = self
@@ -88,7 +87,7 @@ class MetadataErrorHandler(QtCore.QObject):
 
     def loadMetadataErrorPage(self, reply):
         self._api.set_last_error(reply)
-        self.sender().load('network_error.html', api=self._api, token=self._token)
+        self.sender().load('network_error.html', api=self._api)
 
 def CreateMetadataWebDialog(manager, file_path, application=None):
     if application is None:
@@ -103,8 +102,9 @@ def CreateMetadataWebDialog(manager, file_path, application=None):
         return dialog
     api = WebMetadataApi(application, infos[2], infos[3])
     dialog = WebDialog(application, page=None, title=manager.get_appname())
-    MetadataErrorHandler(dialog, infos[1], api)
-    dialog.load(infos[0], token=infos[1], api=api)
+    dialog.set_token(infos[1])
+    MetadataErrorHandler(dialog, api)
+    dialog.load(infos[0], api=api)
     dialog.resize(METADATA_WEBVIEW_WIDTH, METADATA_WEBVIEW_HEIGHT)
     dialog.setWindowFlags(Qt.WindowStaysOnTopHint)
     return dialog
