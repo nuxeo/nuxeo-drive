@@ -357,8 +357,12 @@ class BaseAutomationClient(BaseClient):
         try:
             resp = self.opener.open(req, timeout=timeout)
         except Exception as e:
-            self._log_details(e)
-            raise
+            log_details = self._log_details(e)
+            if isinstance(log_details, tuple):
+                _, _, _, error = log_details
+                if error and error.startswith("Unable to find batch"):
+                    raise InvalidBatchException()
+            raise e
         current_action = Action.get_current_action()
         if current_action and current_action.progress is None:
             current_action.progress = 0
@@ -513,7 +517,7 @@ class BaseAutomationClient(BaseClient):
             log_details = self._log_details(e)
             if isinstance(log_details, tuple):
                 _, _, _, error = log_details
-                if error.startswith("Unable to find batch"):
+                if error and error.startswith("Unable to find batch"):
                     raise InvalidBatchException()
             raise e
         finally:
