@@ -542,6 +542,8 @@ class LocalClient(BaseClient):
         os_path, name = self._abspath_deduped(parent, name)
         try:
             os.mkdir(os_path)
+            # Name should be the actual name of the folder created locally
+            name = os.path.basename(os_path)
             if parent == u"/":
                 return u"/" + name
             return parent + u"/" + name

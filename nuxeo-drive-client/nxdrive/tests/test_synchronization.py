@@ -13,7 +13,6 @@ from nxdrive.osi import AbstractOSIntegration
 
 
 class TestSynchronization(UnitTestCase):
-
     def get_local_client(self, path):
         if self._testMethodName == 'test_synchronize_deep_folders':
             return LocalClient(path)
@@ -707,3 +706,23 @@ class TestSynchronization(UnitTestCase):
         self.wait()
         self.assertFalse(remote.exists('/Local folder/Local file 1.odt'))
         self.assertFalse(remote.exists('/Local folder/Local file 2.odt'))
+
+    def test_synchronize_windows_foldername_endswith_space(self):
+        """
+        Use nuxeodrive.CreateFolder API to make a folder directly under the workspace "trial ".
+        Verify if the DS client downloads the folder and trims the space at the end
+        """
+        import sys
+        # The test case is meant for windows
+        if sys.platform != 'win32':
+            return
+        top_level_children = self.remote_file_system_client_1.get_top_level_children()
+        target = self.remote_file_system_client_1.make_folder(top_level_children[0]['id'], 'trial ')
+        self.remote_file_system_client_1.make_file(target.uid, 'aFile.txt', u'File A Content')
+        self.remote_file_system_client_1.make_file(target.uid, 'bFile.txt', u'File B Content')
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace'))
+        self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial/'), "Folder 'trial ' should be created without trailing space in the name")
+        self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial/aFile.txt'), "trial/aFile.txt should sync")
+        self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial/bFile.txt'), "trial/bFile.txt should sync")
