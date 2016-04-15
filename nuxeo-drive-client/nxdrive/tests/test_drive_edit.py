@@ -152,3 +152,38 @@ class TestDriveEdit(UnitTestCase):
         self.local.update_content(local_path, update_content)
         self.wait_sync()
         self.assertEquals(self.remote.get_blob(self.remote.get_info(doc_id)), update_content)
+
+
+    def test_drive_edit_cleanup(self):
+        filename = u'Mode op\xe9ratoire.txt'
+        doc_id = self.remote.make_file('/', filename, 'Some content.')
+        # Download file
+        local_path = u'/%s/%s' % (doc_id, filename)
+
+        def open_local_file(path):
+            pass
+
+        self.manager_1.open_local_file = open_local_file
+        self.drive_edit._prepare_edit(self.nuxeo_url, doc_id)
+        self.assertTrue(self.local.exists(local_path))
+        self.wait_sync(timeout=2, fail_if_timeout=False)
+        self.drive_edit.stop()
+
+        # Update file content
+        self.local.update_content(local_path, 'Test')
+
+        # Verify the cleanup dont delete document
+        self.drive_edit._cleanup()
+        self.assertTrue(self.local.exists(local_path))
+        self.assertNotEquals(self.remote.get_blob(self.remote.get_info(doc_id)), 'Test')
+
+        # Verify it reupload it
+        self.drive_edit.start()
+        self.wait_sync(timeout=2, fail_if_timeout=False)
+        self.assertTrue(self.local.exists(local_path))
+        self.assertEquals(self.remote.get_blob(self.remote.get_info(doc_id)), 'Test')
+
+        # Verify it is cleanup if sync
+        self.drive_edit.stop()
+        self.drive_edit._cleanup()
+        self.assertFalse(self.local.exists(local_path))

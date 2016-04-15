@@ -78,6 +78,10 @@ class DriveEdit(Worker):
         ref = self._local_client.get_path(src_path)
         self._lock_queue.put((ref, 'unlock'))
 
+    def start(self):
+        self._stop = False
+        super(DriveEdit, self).start()
+
     def stop(self):
         super(DriveEdit, self).stop()
         self._stop = True
@@ -112,6 +116,23 @@ class DriveEdit(Worker):
         if self._local_client.exists('/'):
             for child in self._local_client.get_children_info('/'):
                 if self._local_client.get_remote_id(child.path, "nxdriveeditlock") is not None:
+                    continue
+                children = self._local_client.get_children_info(child.path)
+                if len(children) > 1:
+                    log.warn("Cannot clean this document")
+                    continue
+                ref = children[0].path
+                uid,  engine, remote_client, digest_algorithm, digest = self._extract_edit_info(ref)
+                # Don't update if digest are the same
+                info = self._local_client.get_info(ref)
+                try:
+                    current_digest = info.get_digest(digest_func=digest_algorithm)
+                    if (current_digest != digest):
+                        log.warn("Document has been modified and not synchronized, readd to upload queue")
+                        self._upload_queue.put(ref)
+                        continue
+                except Exception as e:
+                    log.debug(e)
                     continue
                 # Place for handle reopened of interrupted Edit
                 shutil.rmtree(self._local_client._abspath(child.path), ignore_errors=True)
