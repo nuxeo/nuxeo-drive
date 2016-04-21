@@ -184,6 +184,7 @@ class RemoteWatcher(EngineWorker):
         """
         if not remote_info.folderish:
             # No children to align, early stop.
+            log.trace("Skip remote scan as it is not a folderish document: %r", remote_info)
             return
         # Check if synchronization thread was suspended
         self._interact()
@@ -205,6 +206,7 @@ class RemoteWatcher(EngineWorker):
         # This is needed to synchronize unsynchronized items back.
         if mark_unknown:
             # TODO Should be DAO method
+            log.trace("Skip remote scan as mark_unknown: %r", doc_pair)
             pass
 
         # Detect recently deleted children
