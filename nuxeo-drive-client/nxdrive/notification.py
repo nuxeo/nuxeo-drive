@@ -259,7 +259,7 @@ class LockNotification(Notification):
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
-class DriveEditErrorLockNotification(Notification):
+class DirectEditErrorLockNotification(Notification):
     def __init__(self, type, filename, ref):
         values = dict()
         values["name"] = filename
@@ -272,7 +272,7 @@ class DriveEditErrorLockNotification(Notification):
             description = Translator.get("DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION", values)
         else:
             raise Exception()
-        super(DriveEditErrorLockNotification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
+        super(DirectEditErrorLockNotification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
@@ -345,7 +345,7 @@ class DefaultNotificationService(NotificationService):
         self._manager = manager
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
-        self._manager.get_drive_edit().driveEditLockError.connect(self._driveEditLockError)
+        self._manager.get_direct_edit().directEditLockError.connect(self._directEditLockError)
         self._manager.get_autolock_service().documentLocked.connect(self._lockDocument)
 
 
@@ -361,11 +361,11 @@ class DefaultNotificationService(NotificationService):
     def _lockDocument(self, filename):
         self.send_notification(LockNotification(filename))
 
-    def _driveEditLockError(self, lock, filename, ref):
+    def _directEditLockError(self, lock, filename, ref):
         if lock != 'lock' and lock != 'unlock':
-            log.debug("DriveEdit LockError not handled: %s", lock)
+            log.debug("DirectEdit LockError not handled: %s", lock)
             return
-        self.send_notification(DriveEditErrorLockNotification(lock, filename, ref))
+        self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
 
     def _newError(self, row_id):
         engine_uid = self.sender()._uid

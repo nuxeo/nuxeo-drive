@@ -27,13 +27,13 @@ except ImportError:
     pass  # this will never be raised under unix
 
 
-class DriveEdit(Worker):
+class DirectEdit(Worker):
     localScanFinished = pyqtSignal()
-    driveEditUploadCompleted = pyqtSignal()
+    directEditUploadCompleted = pyqtSignal()
     openDocument = pyqtSignal(object)
     editDocument = pyqtSignal(object)
-    driveEditLockError = pyqtSignal(str, str, str)
-    driveEditConflict = pyqtSignal(str, str, str)
+    directEditLockError = pyqtSignal(str, str, str)
+    directEditConflict = pyqtSignal(str, str, str)
 
     '''
     classdocs
@@ -42,7 +42,7 @@ class DriveEdit(Worker):
         '''
         Constructor
         '''
-        super(DriveEdit, self).__init__()
+        super(DirectEdit, self).__init__()
         self._manager = manager
         self._url = url
         self._thread.started.connect(self.run)
@@ -80,10 +80,10 @@ class DriveEdit(Worker):
 
     def start(self):
         self._stop = False
-        super(DriveEdit, self).start()
+        super(DirectEdit, self).start()
 
     def stop(self):
-        super(DriveEdit, self).stop()
+        super(DirectEdit, self).stop()
         self._stop = True
 
     def stop_client(self, reason):
@@ -95,7 +95,7 @@ class DriveEdit(Worker):
             url = self._url
         if url is None:
             return
-        log.debug("DriveEdit load: '%r'", url)
+        log.debug("DirectEdit load: '%r'", url)
         try:
             info = parse_protocol_url(str(url))
         except UnicodeEncodeError:
@@ -111,11 +111,11 @@ class DriveEdit(Worker):
                       user=info['user'], download_url=info['download_url'])
 
     def _cleanup(self):
-        log.debug("Cleanup DriveEdit folder")
+        log.debug("Cleanup DirectEdit folder")
         # Should unlock any remaining doc that has not been unlocked or ask
         if self._local_client.exists('/'):
             for child in self._local_client.get_children_info('/'):
-                if self._local_client.get_remote_id(child.path, "nxdriveeditlock") is not None:
+                if self._local_client.get_remote_id(child.path, "nxdirecteditlock") is not None:
                     continue
                 children = self._local_client.get_children_info(child.path)
                 if len(children) > 1:
@@ -249,17 +249,17 @@ class DriveEdit(Worker):
         # Set the remote_id
         dir_path = self._local_client.get_path(os.path.dirname(file_path))
         self._local_client.set_remote_id(dir_path, doc_id)
-        self._local_client.set_remote_id(dir_path, server_url, "nxdriveedit")
+        self._local_client.set_remote_id(dir_path, server_url, "nxdirectedit")
         if user is not None:
-            self._local_client.set_remote_id(dir_path, user, "nxdriveedituser")
+            self._local_client.set_remote_id(dir_path, user, "nxdirectedituser")
         if info.digest is not None:
-            self._local_client.set_remote_id(dir_path, info.digest, "nxdriveeditdigest")
+            self._local_client.set_remote_id(dir_path, info.digest, "nxdirecteditdigest")
             # Set digest algorithm if not sent by the server
             digest_algorithm = info.digest_algorithm
             if digest_algorithm is None:
                 digest_algorithm = guess_digest_algorithm(info.digest)
-            self._local_client.set_remote_id(dir_path, digest_algorithm, "nxdriveeditdigestalgorithm")
-        self._local_client.set_remote_id(dir_path, filename, "nxdriveeditname")
+            self._local_client.set_remote_id(dir_path, digest_algorithm, "nxdirecteditdigestalgorithm")
+        self._local_client.set_remote_id(dir_path, filename, "nxdirecteditname")
         # Rename to final filename
         # Under Windows first need to delete target file if exists, otherwise will get a 183 WindowsError
         if sys.platform == 'win32' and os.path.exists(file_path):
@@ -295,20 +295,20 @@ class DriveEdit(Worker):
     def _extract_edit_info(self, ref):
         dir_path = os.path.dirname(ref)
         uid = self._local_client.get_remote_id(dir_path)
-        server_url = self._local_client.get_remote_id(dir_path, "nxdriveedit")
-        user = self._local_client.get_remote_id(dir_path, "nxdriveedituser")
+        server_url = self._local_client.get_remote_id(dir_path, "nxdirectedit")
+        user = self._local_client.get_remote_id(dir_path, "nxdirectedituser")
         engine = self._get_engine(server_url, user=user)
         if engine is None:
             raise NotFound()
         remote_client = engine.get_remote_doc_client()
         remote_client.check_suspended = self.stop_client
-        digest_algorithm = self._local_client.get_remote_id(dir_path, "nxdriveeditdigestalgorithm")
-        digest = self._local_client.get_remote_id(dir_path, "nxdriveeditdigest")
+        digest_algorithm = self._local_client.get_remote_id(dir_path, "nxdirecteditdigestalgorithm")
+        digest = self._local_client.get_remote_id(dir_path, "nxdirecteditdigest")
         return uid, engine, remote_client, digest_algorithm, digest
 
     def force_update(self, ref, digest):
         dir_path = os.path.dirname(ref)
-        self._local_client.set_remote_id(dir_path, unicode(digest), "nxdriveeditdigest")
+        self._local_client.set_remote_id(dir_path, unicode(digest), "nxdirecteditdigest")
         self._upload_queue.put(ref)
 
     def _handle_queues(self):
@@ -318,7 +318,7 @@ class DriveEdit(Worker):
             try:
                 item = self._lock_queue.get_nowait()
                 ref = item[0]
-                log.trace('Handling DriveEdit lock queue ref: %r', ref)
+                log.trace('Handling DirectEdit lock queue ref: %r', ref)
             except Empty:
                 break
             uid = ""
@@ -327,7 +327,7 @@ class DriveEdit(Worker):
                 uid, engine, remote_client, _, _ = self._extract_edit_info(ref)
                 if item[1] == 'lock':
                     remote_client.lock(uid)
-                    self._local_client.set_remote_id(dir_path, "1", "nxdriveeditlock")
+                    self._local_client.set_remote_id(dir_path, "1", "nxdirecteditlock")
                     # Emit the lock signal only when the lock is really set
                     self._manager.get_autolock_service().documentLocked.emit(os.path.basename(ref))
                 else:
@@ -338,13 +338,13 @@ class DriveEdit(Worker):
                         self._manager.get_autolock_service().orphan_unlocked(path)
                         # Clean the folder
                         shutil.rmtree(self._local_client._abspath(path), ignore_errors=True)
-                    self._local_client.remove_remote_id(dir_path, "nxdriveeditlock")
+                    self._local_client.remove_remote_id(dir_path, "nxdirecteditlock")
                     # Emit the signal only when the unlock is done - might want to avoid the call on orphan
                     self._manager.get_autolock_service().documentUnlocked.emit(os.path.basename(ref))
             except Exception as e:
                 # Try again in 30s
                 log.debug("Can't %s document '%s': %r", item[1], ref, e, exc_info=True)
-                self.driveEditLockError.emit(item[1], os.path.basename(ref), uid)
+                self.directEditLockError.emit(item[1], os.path.basename(ref), uid)
         # Unqueue any errors
         item = self._error_queue.get()
         while (item is not None):
@@ -354,7 +354,7 @@ class DriveEdit(Worker):
         while (not self._upload_queue.empty()):
             try:
                 ref = self._upload_queue.get_nowait()
-                log.trace('Handling DriveEdit queue ref: %r', ref)
+                log.trace('Handling DirectEdit queue ref: %r', ref)
             except Empty:
                 break
             uid,  engine, remote_client, digest_algorithm, digest = self._extract_edit_info(ref)
@@ -374,26 +374,26 @@ class DriveEdit(Worker):
                     # Conflict detect
                     log.trace("Remote digest: %s is different from the recorded one: %s - conflict detected for %r",
                               remote_info.digest, digest, ref)
-                    self.driveEditConflict.emit(os.path.basename(ref), ref, remote_info.digest)
+                    self.directEditConflict.emit(os.path.basename(ref), ref, remote_info.digest)
                     continue
                 log.debug('Uploading file %s', self._local_client._abspath(ref))
                 remote_client.stream_update(uid, self._local_client._abspath(ref), apply_versioning_policy=True)
                 # Update hash value
                 dir_path = os.path.dirname(ref)
-                self._local_client.set_remote_id(dir_path, current_digest, 'nxdriveeditdigest')
+                self._local_client.set_remote_id(dir_path, current_digest, 'nxdirecteditdigest')
                 self._last_action_timing = current_milli_time() - start_time
                 self.editDocument.emit(remote_info)
             except ThreadInterrupt:
                 raise
             except Exception as e:
                 # Try again in 30s
-                log.trace("Exception on drive edit: %r", e, exc_info=True)
+                log.trace("Exception on direct edit: %r", e, exc_info=True)
                 self._error_queue.push(ref, ref)
                 continue
             uploaded = True
         if uploaded:
-            log.debug('Emitting driveEditUploadCompleted')
-            self.driveEditUploadCompleted.emit()
+            log.debug('Emitting directEditUploadCompleted')
+            self.directEditUploadCompleted.emit()
 
     def _execute(self):
         try:
@@ -421,7 +421,7 @@ class DriveEdit(Worker):
             self._stop_watchdog()
 
     def get_metrics(self):
-        metrics = super(DriveEdit, self).get_metrics()
+        metrics = super(DirectEdit, self).get_metrics()
         if self._event_handler is not None:
             metrics['fs_events'] = self._event_handler.counter
         metrics['last_action_timing'] = self._last_action_timing
@@ -465,7 +465,7 @@ class DriveEdit(Worker):
                 return
             ref = self._local_client.get_path(src_path)
             file_name = os.path.basename(src_path)
-            if self.is_lock_file(file_name) and self._manager.get_drive_edit_auto_lock():
+            if self.is_lock_file(file_name) and self._manager.get_direct_edit_auto_lock():
                 if evt.event_type == 'created':
                     self._lock_queue.put((ref, 'lock'))
                 elif evt.event_type == 'deleted':
@@ -481,12 +481,12 @@ class DriveEdit(Worker):
                 file_name = os.path.basename(evt.dest_path)
                 queue = True
             dir_path = self._local_client.get_path(os.path.dirname(src_path))
-            name = self._local_client.get_remote_id(dir_path, "nxdriveeditname")
+            name = self._local_client.get_remote_id(dir_path, "nxdirecteditname")
             if name is None:
                 return
             if name != file_name:
                 return
-            if self._manager.get_drive_edit_auto_lock() and self._local_client.get_remote_id(dir_path, "nxdriveeditlock") != "1":
+            if self._manager.get_direct_edit_auto_lock() and self._local_client.get_remote_id(dir_path, "nxdirecteditlock") != "1":
                 self._manager.get_autolock_service().set_autolock(src_path, self)
             if queue:
                 # ADD TO UPLOAD QUEUE

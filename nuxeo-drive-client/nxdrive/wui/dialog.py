@@ -518,17 +518,17 @@ class WebDriveApi(QtCore.QObject):
             return ""
 
     @QtCore.pyqtSlot(bool, result=str)
-    def set_drive_edit_auto_lock(self, value):
+    def set_direct_edit_auto_lock(self, value):
         try:
-            self._manager.set_drive_edit_auto_lock(value)
+            self._manager.set_direct_edit_auto_lock(value)
         except Exception as e:
             log.exception(e)
         return ""
 
     @QtCore.pyqtSlot(result=bool)
-    def get_drive_edit_auto_lock(self):
+    def get_direct_edit_auto_lock(self):
         try:
-            return self._manager.get_drive_edit_auto_lock()
+            return self._manager.get_direct_edit_auto_lock()
         except Exception as e:
             log.exception(e)
             return False

@@ -495,7 +495,7 @@ class CliHandler(object):
         if lock.lock() is not None:
             self.log.warning("Qt application already running: exiting")
             # Handle URL if needed
-            self.manager.get_drive_edit().handle_url()
+            self.manager.get_direct_edit().handle_url()
             return
         app = self._get_application(options, console=console)
         exit_code = app.exec_()
@@ -623,7 +623,7 @@ class CliHandler(object):
                 "nxdrive.tests.test_commandline",
                 "nxdrive.tests.test_conflicts",
                 "nxdrive.tests.test_copy",
-                "nxdrive.tests.test_drive_edit",
+                "nxdrive.tests.test_direct_edit",
                 "nxdrive.tests.test_encoding",
                 "nxdrive.tests.test_engine_dao",
                 "nxdrive.tests.test_concurrent_synchronization",

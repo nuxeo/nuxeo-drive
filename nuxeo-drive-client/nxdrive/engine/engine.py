@@ -314,7 +314,7 @@ class Engine(QObject):
         from threading import Thread
 
         def run():
-            self._manager.get_drive_edit().edit(self._server_url,
+            self._manager.get_direct_edit().edit(self._server_url,
                                                 doc_ref, filename=remote_name, user=self._remote_user)
         self._edit_thread = Thread(target=run)
         self._edit_thread.start()

@@ -155,7 +155,7 @@ class Application(SimpleApplication):
         self.setup_systray()
 
         # Direct Edit conflict
-        self.manager.get_drive_edit().driveEditConflict.connect(self._direct_edit_conflict)
+        self.manager.get_direct_edit().directEditConflict.connect(self._direct_edit_conflict)
 
         # Check if actions is required, separate method so it can be override
         self.init_checks()
@@ -184,7 +184,7 @@ class Application(SimpleApplication):
             dlg.add_button("CANCEL", Translator.get("DIRECT_EDIT_CONFLICT_CANCEL"))
             res = dlg.exec_()
             if res == "OVERWRITE":
-                self.manager.get_drive_edit().force_update(unicode(ref), unicode(digest))
+                self.manager.get_direct_edit().force_update(unicode(ref), unicode(digest))
             del self._conflicts_modals[filename]
         except Exception:
             log.exception('Error while displaying Direct Edit conflict modal dialog for %r', filename)
@@ -625,11 +625,11 @@ class Application(SimpleApplication):
                     log.debug("Received nxdrive URL scheme event: %s", url)
                     if info.get('command') == 'download_edit':
                         # This is a quick operation, no need to fork a QThread
-                        self.manager.get_drive_edit().edit(
+                        self.manager.get_direct_edit().edit(
                             info['server_url'], info['doc_id'], user=info['user'], download_url=info['download_url'])
                     elif info.get('command') == 'edit':
                         # Kept for backward compatibility
-                        self.manager.get_drive_edit().edit(
+                        self.manager.get_direct_edit().edit(
                             info['server_url'], info['item_id'])
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)

@@ -171,9 +171,9 @@ class DebugDriveApi(WebDriveApi):
             log.exception(e)
 
     @QtCore.pyqtSlot(str)
-    def drive_edit(self, url):
+    def direct_edit(self, url):
         try:
-            self._manager.get_drive_edit().handle_url(str(url))
+            self._manager.get_direct_edit().handle_url(str(url))
         except Exception as e:
             log.exception(e)
 
