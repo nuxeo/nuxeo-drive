@@ -15,6 +15,7 @@ from nxdrive.manager import ProxySettings, FolderAlreadyUsed
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.base_automation_client import get_proxy_handler
 from nxdrive.client.base_automation_client import get_opener_proxies
+from nxdrive.client.base_automation_client import AddonNotInstalled
 from nxdrive.engine.engine import RootAlreadyBindWithDifferentAccount
 from nxdrive.engine.engine import InvalidDriveException
 from nxdrive.wui.translator import Translator
@@ -135,6 +136,8 @@ class WebSettingsApi(WebDriveApi):
             return self.bind_server(local_folder, url, username, password, name, check_fs=False, token=token)
         except NotFound:
             return "FOLDER_DOES_NOT_EXISTS"
+        except AddonNotInstalled:
+            return "ADDON_NOT_INSTALLED"
         except InvalidDriveException:
             return "INVALID_PARTITION"
         except Unauthorized:
