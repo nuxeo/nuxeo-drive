@@ -167,6 +167,65 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(folder_1_children[0].uid, file_2_id)
         self.assertEquals(folder_1_children[0].name, 'File 2.txt')
 
+    def test_scroll_descendants(self):
+        remote_client = self.remote_file_system_client_1
+
+        # Create documents
+        folder_1_id = remote_client.make_folder(self.workspace_id, 'Folder 1').uid
+        folder_2_id = remote_client.make_folder(self.workspace_id, 'Folder 2').uid
+        file_1_id = remote_client.make_file(self.workspace_id, 'File 1', "Content of file 1.").uid
+        file_2_id = remote_client.make_file(folder_1_id, 'File 2', "Content of file 2.").uid
+
+        # Wait for ES completion
+        self.wait()
+
+        # Check workspace descendants in one breath, ordered by remote path
+        scroll_res = remote_client.scroll_descendants(self.workspace_id, None)
+        self.assertIsNotNone(scroll_res)
+        self.assertIsNotNone(scroll_res.get('scroll_id'))
+        descendants = scroll_res.get('descendants')
+        self.assertIsNotNone(descendants)
+        self.assertEquals(len(descendants), 4)
+        self.assertEquals(descendants[0].uid, file_1_id)
+        self.assertEquals(descendants[0].name, 'File 1.txt')
+        self.assertFalse(descendants[0].folderish)
+        self.assertEquals(descendants[1].uid, folder_1_id)
+        self.assertEquals(descendants[1].name, 'Folder 1')
+        self.assertTrue(descendants[1].folderish)
+        self.assertEquals(descendants[2].uid, file_2_id)
+        self.assertEquals(descendants[2].name, 'File 2.txt')
+        self.assertFalse(descendants[2].folderish)
+        self.assertEquals(descendants[3].uid, folder_2_id)
+        self.assertEquals(descendants[3].name, 'Folder 2')
+        self.assertTrue(descendants[3].folderish)
+
+        # Check workspace descendants in several steps, ordered by remote path
+        descendants = []
+        scroll_id = None
+        while True:
+            scroll_res = remote_client.scroll_descendants(self.workspace_id, scroll_id=scroll_id, batch_size=2)
+            self.assertIsNotNone(scroll_res)
+            scroll_id = scroll_res.get('scroll_id')
+            self.assertIsNotNone(scroll_id)
+            partial_descendants = scroll_res.get('descendants')
+            self.assertIsNotNone(partial_descendants)
+            if not partial_descendants:
+                break
+            descendants.extend(partial_descendants)
+        self.assertEquals(len(descendants), 4)
+        self.assertEquals(descendants[0].uid, file_1_id)
+        self.assertEquals(descendants[0].name, 'File 1.txt')
+        self.assertFalse(descendants[0].folderish)
+        self.assertEquals(descendants[1].uid, folder_1_id)
+        self.assertEquals(descendants[1].name, 'Folder 1')
+        self.assertTrue(descendants[1].folderish)
+        self.assertEquals(descendants[2].uid, file_2_id)
+        self.assertEquals(descendants[2].name, 'File 2.txt')
+        self.assertFalse(descendants[2].folderish)
+        self.assertEquals(descendants[3].uid, folder_2_id)
+        self.assertEquals(descendants[3].name, 'Folder 2')
+        self.assertTrue(descendants[3].folderish)
+
     def test_make_folder(self):
         remote_client = self.remote_file_system_client_1
 

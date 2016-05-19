@@ -804,6 +804,14 @@ class EngineDAO(ConfigurationDAO):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_digest=? AND pair_state='synchronized'", (digest,)).fetchone()
 
+    def get_remote_descendants(self, path):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM States WHERE remote_parent_path LIKE ?", (path + '%',)).fetchall()
+
+    def get_remote_descendants_from_ref(self, ref):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM States WHERE remote_parent_path LIKE ?", ('%' + ref + '%',)).fetchall()
+
     def get_remote_children(self, ref):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_ref=?", (ref,)).fetchall()
