@@ -40,7 +40,7 @@ class TestSynchronization(UnitTestCase):
         self.assertTrue(local.exists('/Folder 1/Folder 1.2'))
         self.assertEquals(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
         self.assertTrue(local.exists('/Folder 2'))
-        # Cannot predicte the resolution in advance
+        # Cannot predict the resolution in advance
         self.assertTrue(remote.get_content(self._duplicate_file_1), "Some content.")
         self.assertTrue(remote.get_content(self._duplicate_file_2), "Other content.")
         if local.get_content('/Folder 2/Duplicated File.txt') == "Some content.":

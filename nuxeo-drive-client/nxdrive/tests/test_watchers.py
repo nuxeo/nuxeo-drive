@@ -42,7 +42,7 @@ class TestWatchers(UnitTestCase):
         # might come first, in which case we get an extra synchronized file,
         # or not, in which case we get a conflicted file
         self.assertTrue(self.engine_1.get_dao().get_sync_count() >= folders + files)
-        # Verify it has been reconcile and all items in queue are sync
+        # Verify it has been reconciled and all items in queue are synchronized
         queue = self.get_full_queue(self.queue_manager_1.get_local_file_queue())
         for item in queue:
             if item.remote_name == 'Duplicated File.txt':
