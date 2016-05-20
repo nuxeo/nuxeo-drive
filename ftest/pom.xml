@@ -20,7 +20,7 @@
   <properties>
     <!-- URL of the last archived artifacts of the nuxeo-drive marketplace 
       package on Jenkins -->
-    <nuxeo.drive.mp.url>http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/
+    <nuxeo.drive.mp.url>http://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/
     </nuxeo.drive.mp.url>
   </properties>
 
