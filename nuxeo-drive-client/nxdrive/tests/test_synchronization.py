@@ -460,7 +460,7 @@ class TestSynchronization(UnitTestCase):
         # Wait for ES indexing
         self.wait()
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(timeout=90)
 
         local = self.local_client_1
         expected_folder_path = ('/' + folder_name) * folder_depth
