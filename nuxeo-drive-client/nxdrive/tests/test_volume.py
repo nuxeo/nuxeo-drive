@@ -260,9 +260,12 @@ class VolumeTestCase(UnitTestCase):
         self._check_folder(self.get_path(True, 1, self.num_folders+2), added=[self.get_name(True, 1, 1)])
 
     def test_remote_scan(self):
+        nb_nodes = 0
         if "TEST_REMOTE_SCAN_VOLUME" in os.environ:
-            nb_nodes = int(os.environ["TEST_REMOTE_SCAN_VOLUME"])
-        else:
+            env_nb_nodes = os.environ["TEST_REMOTE_SCAN_VOLUME"]
+            if env_nb_nodes:
+                nb_nodes = int(env_nb_nodes)
+        if nb_nodes == 0:
             raise SkipTest("Skipped as TEST_REMOTE_SCAN_VOLUME is no set")
         # Random mass import
         self.root_remote_client.mass_import(TEST_WORKSPACE_PATH, nb_nodes)
