@@ -20,3 +20,19 @@ Add these lines where you want to break:
 
     import pydevd
     pydevd.settrace('localhost', trace_only_current_thread=False)
+
+# How to profile a method with PyVmMonitor
+
+- Install pyvmmonitor in /opt
+- Add this code before the method
+
+    import sys
+    sys.path.append('/opt/pyvmmonitor/public_api')
+    import pyvmmonitor
+    @pyvmmonitor.profile_method
+
+- Open PyVmMonitor
+
+    /opt/pyvmmonitor/pyvmmonitor-ui &
+
+- Run the test and check the stats

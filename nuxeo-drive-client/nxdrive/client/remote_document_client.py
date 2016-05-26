@@ -500,3 +500,32 @@ class RemoteDocumentClient(BaseAutomationClient):
         docs = self.execute("Collection.GetDocumentsFromCollection",
                            op_input="doc:" + self._check_ref(ref))
         return [doc['uid'] for doc in docs['entries']]
+
+    def mass_import(self, target_path, nb_nodes, nb_threads=12):
+        url = self.server_url + 'site/randomImporter/run?'
+        params = {
+            'targetPath': target_path,
+            'batchSize': 50,
+            'nbThreads': nb_threads,
+            'interactive': 'true',
+            'fileSizeKB': 1,
+            'nbNodes': nb_nodes,
+            'nonUniform': 'true',
+            'transactionTimeout': 3600
+        }
+        for param, value in params.iteritems():
+            url += param + '=' + str(value) + '&'
+        headers = self._get_common_headers()
+        try:
+            log.info('Calling random mass importer on %s with %d threads and %d nodes', target_path,
+                     nb_threads, nb_nodes)
+            self.opener.open(urllib2.Request(url, headers=headers), timeout=3600)
+        except Exception as e:
+            self._log_details(e)
+            raise e
+
+    def wait_for_async_and_ES_indexing(self):
+        self.execute('Elasticsearch.WaitForIndexing', timeoutSecond=3600, refresh=True)
+
+    def result_set_query(self, query):
+        return self.execute("Repository.ResultSetQuery", query=query)

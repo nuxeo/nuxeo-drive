@@ -14,7 +14,7 @@
 
   <!-- Configure nuxeo-drive marketplace package installation -->
   <property name="nuxeo.drive.mp.filename" value="nuxeo-drive.zip" />
-  <property name="mp.install" value="${out.dir}/${nuxeo.drive.mp.filename}" />
+  <property name="mp.install" value="${out.dir}/${nuxeo.drive.mp.filename},nuxeo-platform-importer" />
 
   <target name="fetch-nuxeo-drive-mp">
     <exec executable="python" failonerror="true">
