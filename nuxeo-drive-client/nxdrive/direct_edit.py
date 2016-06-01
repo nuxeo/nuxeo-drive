@@ -121,6 +121,10 @@ class DirectEdit(Worker):
                 if len(children) > 1:
                     log.warn("Cannot clean this document")
                     continue
+                if (len(children) == 0):
+                    # Cleaning the folder it is empty
+                    shutil.rmtree(self._local_client._abspath(child.path), ignore_errors=True)
+                    continue
                 ref = children[0].path
                 uid,  engine, remote_client, digest_algorithm, digest = self._extract_edit_info(ref)
                 # Don't update if digest are the same

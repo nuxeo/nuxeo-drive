@@ -171,6 +171,8 @@ class TestDirectEdit(UnitTestCase):
 
         # Update file content
         self.local.update_content(local_path, 'Test')
+        # Create empty folder (NXDRIVE-598)
+        self.local.make_folder('/', 'emptyfolder')
 
         # Verify the cleanup dont delete document
         self.direct_edit._cleanup()
