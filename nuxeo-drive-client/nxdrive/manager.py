@@ -500,16 +500,19 @@ class Manager(QtCore.QObject):
     def _get_beta_update_url(self, refresh_engines):
         beta_update_url = self._dao.get_config("beta_update_url")
         if beta_update_url is None:
-            if refresh_engines:
-                self._refresh_engine_update_infos()
-            engines = self.get_engines()
-            if engines:
-                for engine in engines.itervalues():
-                    beta_update_url = engine.get_beta_update_url()
-                    if beta_update_url is not None:
-                        log.debug('Beta update site URL has not been defined in config.ini nor through the command'
-                                  ' line, using configuration from engine [%s]: %s', engine._name, beta_update_url)
-                        return beta_update_url
+            try:
+                if refresh_engines:
+                    self._refresh_engine_update_infos()
+                engines = self.get_engines()
+                if engines:
+                    for engine in engines.itervalues():
+                        beta_update_url = engine.get_beta_update_url()
+                        if beta_update_url is not None:
+                            log.debug('Beta update site URL has not been defined in config.ini nor through the command'
+                                      ' line, using configuration from engine [%s]: %s', engine._name, beta_update_url)
+                            return beta_update_url
+            except URLError:
+                log.exception('Cannot refresh engine update infos, not using beta update site URL')
         return beta_update_url
 
     def is_beta_channel_available(self):
