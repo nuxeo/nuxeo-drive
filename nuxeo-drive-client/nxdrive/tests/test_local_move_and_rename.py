@@ -120,6 +120,16 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(len(local_client.get_children_info(u'/')), 5)
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
 
+    def test_replace_file(self):
+        local_client = self.local_client_1
+
+        # Rename /Original File 1.txt to /Renamed File 1.txt
+        original_file_1_uid = local_client.get_remote_id(u'/Original File 1.txt')
+        local_client.remove_remote_id(u'/Original File 1.txt')
+        local_client.update_content(u'/Original File 1.txt', 'plop')
+        self.wait_sync(fail_if_timeout=False)
+        self.assertEqual(local_client.get_remote_id(u'/Original File 1.txt'), original_file_1_uid)
+
     def test_local_rename_file(self):
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
