@@ -7,7 +7,10 @@ import os
 import sys
 from datetime import datetime
 
-import nx_esky
+try:
+    import nx_esky
+except Exception as e:
+    print e
 from esky.bdist_esky import Executable as es_Executable
 
 OUTPUT_DIR = 'dist'
@@ -85,6 +88,8 @@ class data_file_dir(object):
 
     def load(self):
         result = []
+        if not (os.path.exists(os.path.normpath(self.home_dir))):
+            return result
         for filename in os.listdir(os.path.normpath(self.home_dir)):
             filepath = os.path.join(self.home_dir, filename)
             if os.path.isfile(filepath):
@@ -99,6 +104,8 @@ class data_file_dir(object):
             shortpath = self.subfolderName
             path = self.home_dir
         result = []
+        if not (os.path.exists(os.path.normpath(path))):
+            return []
         for filename in os.listdir(os.path.normpath(path)):
             filepath = os.path.join(path, filename)
             childshortpath = os.path.join(shortpath, filename)
@@ -274,6 +281,13 @@ class NuxeoDriveAttributes(object):
         msilib.add_data(db, "InstallExecuteSequence", [("NuxeoDriveBinder",
                               'NOT (TARGETUSERNAME="" OR TARGETURL="")', -1)])
 
+
+class NuxeoDrivePackageAttributes(NuxeoDriveAttributes):
+    def rubric_product_name(self):
+        return self.get_name()
+    def get_long_description(self):
+        return ""
+
 class NuxeoDriveSetup(object):
 
     def __init__(self, driveAttributes):
@@ -290,7 +304,8 @@ class NuxeoDriveSetup(object):
         packages = Packages(attribs.get_package_dirs()).load()
 
         # special handling for data files, except for Linux
-        if sys.platform == "win32" or sys.platform == 'darwin':
+        if ((sys.platform == "win32" or sys.platform == 'darwin')
+                and 'nxdrive.data' in packages):
             packages.remove('nxdrive.data')
         package_data = attribs.get_package_data()
         icons_home = attribs.get_icons_home()
@@ -529,7 +544,12 @@ class NuxeoDriveSetup(object):
 
 
 def main(argv=None):
-    NuxeoDriveSetup(NuxeoDriveAttributes())
+    attribs = None
+    if ("bdist_esky" in sys.argv or "bdist_msi" in sys.argv):
+        attribs = NuxeoDriveAttributes()
+    else:
+        attribs = NuxeoDrivePackageAttributes()
+    NuxeoDriveSetup(attribs)
 
 if __name__ == '__main__':
     sys.exit(main())

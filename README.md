@@ -200,6 +200,22 @@ ndrive --help
 ndrive subcommand --help
 ```
 
+### Building pip package
+
+On Mac you can face an issue with your locale with a message like
+
+```
+ValueError: unknown locale: UTF-8
+```
+
+In that case you need to specify your locale as :
+
+```
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+```
+
+
 ## Reporting Issues
 
 1. Generate a bug report in the **Advanced** tab of the **Settings** panel of the Nuxeo Drive client.
