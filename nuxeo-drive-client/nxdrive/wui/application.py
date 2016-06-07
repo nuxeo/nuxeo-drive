@@ -76,6 +76,8 @@ class SimpleApplication(QApplication):
     """
     def __init__(self, manager, options, argv=()):
         super(SimpleApplication, self).__init__(list(argv))
+        # Make dialog unique
+        self.uniqueDialogs = dict()
         self.options = options
         self.manager = manager
         self.setApplicationName(manager.get_appname())
@@ -87,6 +89,27 @@ class SimpleApplication(QApplication):
 
     def _get_skin(self):
         return 'ui5'
+
+    def _show_window(self, window):
+        window.show()
+        window.raise_()
+
+    def _get_unique_dialog(self, name):
+        if name in self.uniqueDialogs:
+            return self.uniqueDialogs[name]
+        return None
+
+    def _destroy_dialog(self):
+        sender = self.sender()
+        name = str(sender.objectName())
+        if name in self.uniqueDialogs:
+            del self.uniqueDialogs[name]
+
+    def _create_unique_dialog(self, name, dialog):
+        self.uniqueDialogs[name] = dialog
+        dialog.setObjectName(name)
+        dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        dialog.destroyed.connect(self._destroy_dialog)
 
     def get_osi(self):
         return self.manager.get_osi()
@@ -126,8 +149,6 @@ class Application(SimpleApplication):
         self.filters_dlg = None
         self._conflicts_modals = dict()
         self.current_notification = None
-        # Make dialog unique
-        self.uniqueDialogs = dict()
 
         for _, engine in self.manager.get_engines().iteritems():
             self.mainEngine = engine
@@ -229,18 +250,6 @@ class Application(SimpleApplication):
     def get_cache_folder(self):
         return os.path.join(self.manager.get_configuration_folder(), "cache", "wui")
 
-    def _get_skin(self):
-        return 'ui5'
-
-    def get_window_icon(self):
-        return find_icon('nuxeo_drive_icon_64.png')
-
-    def get_htmlpage(self, page):
-        import nxdrive
-        nxdrive_path = os.path.dirname(nxdrive.__file__)
-        ui_path = os.path.join(nxdrive_path, 'data', self._get_skin())
-        return os.path.join(find_resource_dir(self._get_skin(), ui_path), page).replace("\\","/")
-
     def _init_translator(self):
         from nxdrive.wui.translator import Translator
         Translator(self.manager, self.get_htmlpage('i18n.js'),
@@ -303,27 +312,6 @@ class Application(SimpleApplication):
         else:
             settings.set_section(section)
         self._show_window(settings)
-
-    def _show_window(self, window):
-        window.show()
-        window.raise_()
-
-    def _get_unique_dialog(self, name):
-        if name in self.uniqueDialogs:
-            return self.uniqueDialogs[name]
-        return None
-
-    def _destroy_dialog(self):
-        sender = self.sender()
-        name = str(sender.objectName())
-        if name in self.uniqueDialogs:
-            del self.uniqueDialogs[name]
-
-    def _create_unique_dialog(self, name, dialog):
-        self.uniqueDialogs[name] = dialog
-        dialog.setObjectName(name)
-        dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        dialog.destroyed.connect(self._destroy_dialog)
 
     @QtCore.pyqtSlot()
     def destroyed_filters_dialog(self):
@@ -521,9 +509,6 @@ class Application(SimpleApplication):
                          % (self.icon_spin_count + 1))
         self._tray_icon.setIcon(QtGui.QIcon(icon))
         self.icon_spin_count = (self.icon_spin_count + 1) % 10
-
-    def get_osi(self):
-        return self.manager.get_osi()
 
     def update_tooltip(self):
         # Update also the file
