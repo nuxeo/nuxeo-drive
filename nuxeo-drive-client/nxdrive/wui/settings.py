@@ -174,7 +174,7 @@ class WebSettingsApi(WebDriveApi):
 
             # Handle server URL
             server_url = str(server_url)
-            engine_type = 'NXDRIVE'
+            engine_type = self._manager._get_default_server_type()
             if '#' in server_url:
                 info = server_url.split('#')
                 server_url = info[0]
