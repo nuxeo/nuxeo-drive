@@ -826,7 +826,7 @@ class EngineDAO(ConfigurationDAO):
     def get_conflict_count(self):
         return self.get_count("pair_state='conflicted'")
 
-    def get_error_count(self, threshold=3):
+    def get_error_count(self, threshold=16):
         return self.get_count("error_count > " + str(threshold))
 
     def get_syncing_count(self, threshold=3):
