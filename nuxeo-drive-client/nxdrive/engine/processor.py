@@ -450,11 +450,20 @@ class Processor(EngineWorker):
                 remote_ref = fs_item_info.uid
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
+            remote_id_done = False
+            # Set as soon as possible the remote_id as update_remote_state can crash with InterfaceError
+            # NXDRIVE-599
+            try:
+                local_client.set_remote_id(doc_pair.local_path, remote_ref)
+                remote_id_done = True
+            except (NotFound, IOError, OSError):
+                pass
             self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
                                           versionned=False)
             log.trace("Put remote_ref in %s", remote_ref)
             try:
-                local_client.set_remote_id(doc_pair.local_path, remote_ref)
+                if not remote_id_done:
+                    local_client.set_remote_id(doc_pair.local_path, remote_ref)
             except (NotFound, IOError, OSError):
                 new_pair = self._dao.get_state_from_id(doc_pair.id)
                 # File has been moved during creation
