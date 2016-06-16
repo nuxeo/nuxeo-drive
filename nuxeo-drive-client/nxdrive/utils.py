@@ -60,12 +60,14 @@ def is_office_temp_file(name):
     if len(name) == 8 and "." not in name:
         return is_hexastring(name)
         # for each car in "0123456789ABCDEF"
-    elif name.endswith(".tmp") and name.startswith("ppt"):
-        # ppt98D2.tmp
-        return is_hexastring(name[3:7])
-    elif len(name) == 12 and name.endswith(".tmp"):
-        # 813DEFA7.tmp file
-        return is_hexastring(name[0:7])
+    elif name.endswith(".tmp") and name.startswith("ppt") and len(name) > 7:
+        # Name is pptABCD.tmp, ppt123.tmp, etc.
+        # Check if the part between ppt & .tmp is hexadecimal string
+        return is_hexastring(name[3:-4])
+    elif  10 <= len(name) <= 12 and name.endswith(".tmp"):
+        # name like 813DEFA7.tmp, C199633.tmp
+        # 6-8 hexadecimal characters in name part with extension .tmp
+        return is_hexastring(name[0:-4])
     return False
 
 
