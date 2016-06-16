@@ -8,6 +8,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME, UNACCESSIBLE_HASH
 from nxdrive.client.common import NotFound
 from nxdrive.client.common import safe_filename
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time, is_office_temp_file
 from PyQt4.QtCore import pyqtSignal
@@ -172,6 +173,16 @@ class Processor(EngineWorker):
                     log.trace("Skip as pair is in non-processable state: %r", doc_pair)
                     self._current_item = self._get_item()
                     continue
+                if AbstractOSIntegration.is_mac() and local_client.exists(doc_pair.local_path):
+                    try:
+                        finder_info = local_client.get_remote_id(doc_pair.local_path, "com.apple.FinderInfo")
+                        if finder_info is not None and 'brokMACS' in finder_info:
+                            log.trace("Skip as pair is in use by Finder: %r", doc_pair)
+                            self._postpone_pair(doc_pair, 'Finder using file')
+                            self._current_item = self._get_item()
+                            continue
+                    except IOError:
+                        pass
                 # TODO Update as the server dont take hash to avoid conflict yet
                 if (doc_pair.pair_state.startswith("locally")
                         and doc_pair.remote_ref is not None):
@@ -200,6 +211,7 @@ class Processor(EngineWorker):
                     self._handle_no_parent(doc_pair, local_client, remote_client)
                     self._current_item = self._get_item()
                     continue
+
                 self._current_metrics = dict()
                 handler_name = '_synchronize_' + doc_pair.pair_state
                 self._action = Action(handler_name)
