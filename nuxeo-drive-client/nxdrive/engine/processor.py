@@ -178,7 +178,7 @@ class Processor(EngineWorker):
                         finder_info = local_client.get_remote_id(doc_pair.local_path, "com.apple.FinderInfo")
                         if finder_info is not None and 'brokMACS' in finder_info:
                             log.trace("Skip as pair is in use by Finder: %r", doc_pair)
-                            self._postpone_pair(doc_pair, 'Finder using file')
+                            self._postpone_pair(doc_pair, 'Finder using file', interval=3)
                             self._current_item = self._get_item()
                             continue
                     except IOError:
@@ -356,11 +356,11 @@ class Processor(EngineWorker):
         # TODO Select the only states that is not a collection
         return self._dao.get_normal_state_from_remote(ref)
 
-    def _postpone_pair(self, doc_pair, reason=''):
+    def _postpone_pair(self, doc_pair, reason='', interval=None):
         # Wait 60s for it
         log.trace("Postpone creation of local file(%s): %r", reason, doc_pair)
         doc_pair.error_count = 1
-        self._engine.get_queue_manager().push_error(doc_pair, exception=None)
+        self._engine.get_queue_manager().push_error(doc_pair, exception=None, interval=interval)
 
     def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
         name = os.path.basename(doc_pair.local_path)
