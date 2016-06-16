@@ -67,6 +67,9 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(is_office_temp_file("pptzDER.tmp"), False)
         self.assertEqual(is_office_temp_file("ppt1DER.tmp"), False)
         self.assertEqual(is_office_temp_file("ppt21AD.tmp"), True)
+        # Powerpoint temp file by Office 365 / 2013
+        self.assertEqual(is_office_temp_file("ppt1.tmp"), True)
+        self.assertEqual(is_office_temp_file("ppt23F.tmp"), True)
 
         # Office temp file 2007+
         self.assertEqual(is_office_temp_file("A239FDCA"), True)
@@ -82,6 +85,9 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(is_office_temp_file("A2D9FDCA1"), False)
         self.assertEqual(is_office_temp_file("A2D9FDCA1.tmp"), False)
         self.assertEqual(is_office_temp_file("9ABCDEF0.tep"), False)
+        # Office temp file 2013
+        self.assertEqual(is_office_temp_file("C199633.tmp"), True)
+        self.assertEqual(is_office_temp_file("BCD574.tmp"), True)
 
         # Office 97
         self.assertEqual(is_office_temp_file("~A2D9FDCA1.tmp"), True)
