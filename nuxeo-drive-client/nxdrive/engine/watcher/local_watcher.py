@@ -486,7 +486,7 @@ class LocalWatcher(EngineWorker):
                     continue
 
         for deleted in children.values():
-            if deleted.pair_state == "remotely_created":
+            if deleted.pair_state == "remotely_created" or deleted.remote_state == "created":
                 continue
             log.debug("Found deleted file %s", deleted.local_path)
             # May need to count the children to be ok
