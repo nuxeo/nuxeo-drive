@@ -638,6 +638,36 @@ class TestSynchronization(UnitTestCase):
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
         self.assertEquals(file_names, [u'file with forbidden chars- - - - - - - - - 2.txt'])
 
+    def test_synchronize_error_remote(self):
+        from urllib2 import HTTPError
+        path = '/' + self.workspace_title + '/test.odt'
+        remote = self.remote_document_client_1
+
+        self.engine_1.start()
+        self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
+        self.engine_1.invalidate_client_cache()
+        self.engine_1.get_remote_client().make_download_raise(HTTPError('', 400, '', {}, None))
+        remote.make_file('/', 'test.odt', 'Some content.')
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+        pair = self.engine_1.get_dao().get_state_from_local(u'/test.odt')
+        self.engine_1.stop()
+        pair = self.engine_1.get_dao().get_state_from_local(path)
+        self.assertEqual(pair.error_count, 4)
+        self.assertEqual(pair.pair_state, 'remotely_created')
+        self.engine_1.start()
+        self.wait_sync(fail_if_timeout=False)
+        pair = self.engine_1.get_dao().get_state_from_local(path)
+        self.assertEqual(pair.error_count, 4)
+        self.assertEqual(pair.pair_state, 'remotely_created')
+        self.engine_1.get_remote_client().make_download_raise(None)
+        # Requeue errors
+        self.engine_1.retry_pair(pair.id)
+        self.wait_sync(fail_if_timeout=False)
+        pair = self.engine_1.get_dao().get_state_from_local(path)
+        self.assertEqual(pair.error_count, 0)
+        self.assertEqual(pair.pair_state, 'synchronized')
+
+
     def test_synchronize_deleted_blob(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
