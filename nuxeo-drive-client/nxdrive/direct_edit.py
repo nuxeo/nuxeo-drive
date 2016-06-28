@@ -126,10 +126,15 @@ class DirectEdit(Worker):
                     shutil.rmtree(self._local_client._abspath(child.path), ignore_errors=True)
                     continue
                 ref = children[0].path
-                uid,  engine, remote_client, digest_algorithm, digest = self._extract_edit_info(ref)
-                # Don't update if digest are the same
-                info = self._local_client.get_info(ref)
                 try:
+                    uid,  engine, remote_client, digest_algorithm, digest = self._extract_edit_info(ref)
+                except NotFound:
+                    # Engine is not known anymore
+                    shutil.rmtree(self._local_client._abspath(child.path), ignore_errors=True)
+                    continue
+                try:
+                    # Don't update if digest are the same
+                    info = self._local_client.get_info(ref)
                     current_digest = info.get_digest(digest_func=digest_algorithm)
                     if (current_digest != digest):
                         log.warn("Document has been modified and not synchronized, readd to upload queue")
@@ -403,7 +408,12 @@ class DirectEdit(Worker):
         try:
             self._watchdog_queue = Queue()
             self._action = Action("Clean up folder")
-            self._cleanup()
+            try:
+                self._cleanup()
+            except ThreadInterrupt:
+                raise
+            except Exception as ex:
+                log.debug(ex)
             self._action = Action("Setup watchdog")
             self._setup_watchdog()
             self._end_action()
@@ -415,6 +425,10 @@ class DirectEdit(Worker):
                     self._handle_queues()
                 except NotFound:
                     pass
+                except ThreadInterrupt:
+                    raise
+                except Exception as ex:
+                    log.debug(ex)
                 while (not self._watchdog_queue.empty()):
                     evt = self._watchdog_queue.get()
                     self.handle_watchdog_event(evt)
