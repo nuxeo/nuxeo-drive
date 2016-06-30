@@ -1,4 +1,5 @@
 from nxdrive.tests.common_unit_test import UnitTestCase
+from nxdrive.osi import AbstractOSIntegration
 import shutil
 import os
 
@@ -41,6 +42,10 @@ class TestLocalDeletion(UnitTestCase):
         self.assertFalse(self.local_client_1.exists('/File_To_Delete.txt'))
         with open(os.path.join(self.local_test_folder_1, 'File_To_Delete2.txt'), 'w') as f:
             f.write('New content')
+        if AbstractOSIntegration.is_windows():
+            # Python API overwrite the tag by default
+            with open(os.path.join(self.local_test_folder_1, 'File_To_Delete2.txt:ndrive'), 'w') as f:
+                f.write(old_info.uid)
         # See if it untrash or recreate
         shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete2.txt'), self.local_client_1._abspath('/'))
         self.wait_sync(wait_for_async=True)
