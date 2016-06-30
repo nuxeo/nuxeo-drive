@@ -33,6 +33,7 @@ class TestLocalDeletion(UnitTestCase):
         self.local_client_1.make_file('/', 'File_To_Delete.txt', 'This is a content')
         self.wait_sync()
         self.assertTrue(self.remote_document_client_1.exists('/File_To_Delete.txt'))
+        uid = self.local_client_1.get_remote_id('/File_To_Delete.txt')
         old_info = self.remote_document_client_1.get_info('/File_To_Delete.txt', use_trash=True)
         abs_path = self.local_client_1._abspath('/File_To_Delete.txt')
         # Pretend we had trash the file
@@ -45,7 +46,7 @@ class TestLocalDeletion(UnitTestCase):
         if AbstractOSIntegration.is_windows():
             # Python API overwrite the tag by default
             with open(os.path.join(self.local_test_folder_1, 'File_To_Delete2.txt:ndrive'), 'w') as f:
-                f.write(old_info.uid)
+                f.write(uid)
         # See if it untrash or recreate
         shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete2.txt'), self.local_client_1._abspath('/'))
         self.wait_sync(wait_for_async=True)
