@@ -406,11 +406,17 @@ class Processor(EngineWorker):
                     remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
                     remote_doc_client.undelete(uid)
                     fs_item_info = remote_client.get_info(remote_ref)
+                    # Handle document move
                     if not fs_item_info.path.startswith(remote_parent_path):
                         fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
+                    # Handle document rename
+                    if fs_item_info.name != doc_pair.local_name:
+                        fs_item_info = remote_client.rename(fs_item_info.uid, doc_pair.local_name)
                     self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
                                                   versionned=False)
-                    self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=fs_item_info)
+                    # Handle document modification - update the doc_pair
+                    doc_pair = self._dao.get_state_from_id(doc_pair.id)
+                    self._synchronize_locally_modified(doc_pair, local_client, remote_client)
                     return
                 # Document exists on the server
                 if info.parent_uid == parent_pair.remote_ref:
@@ -451,6 +457,14 @@ class Processor(EngineWorker):
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
             remote_id_done = False
+            # Set as soon as possible the remote_id as update_remote_state can crash with InterfaceError
+            # NXDRIVE-599
+            try:
+                pass
+                #local_client.set_remote_id(doc_pair.local_path, remote_ref)
+                #remote_id_done = True
+            except (NotFound, IOError, OSError):
+                pass
             self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
                                           versionned=False)
             log.trace("Put remote_ref in %s", remote_ref)
