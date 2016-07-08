@@ -1007,9 +1007,9 @@ class Engine(QObject):
             for user in all_users:
                 if 'username' in user and 'firstName' in user and 'lastName' in user:
                     if not self._dao.get_user_info(user["username"]):
-                        self._dao.insert_user_info(user["username"], user['firstName'].strip("("), user['lastName'].strip(")"))
+                        self._dao.insert_user_info(user["username"], str(user['firstName']).strip("("), str(user['lastName']).strip(")"))
                     else:
-                        self.update_user_info(user["username"], user['firstName'], user['lastName'])
+                        self._dao.update_user_info(user["username"], str(user['firstName']).strip("("), str(user['lastName']).strip(")"))
         except Exception as e:
             log.exception(e)
         return

@@ -1450,7 +1450,4 @@ class EngineDAO(ConfigurationDAO):
 
     def get_user_info(self, userid):
         con = self._get_read_connection(factory=CustomRow).cursor()
-        self._lock.acquire()
-        user = con.execute("SELECT * FROM Users WHERE user_id=?",(userid,)).fetchone()
-        self._lock.release()
-        return user
+        return con.execute("SELECT * FROM Users WHERE user_id=?",(userid,)).fetchone()

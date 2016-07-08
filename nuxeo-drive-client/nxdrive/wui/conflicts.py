@@ -85,7 +85,7 @@ class UserNameResolver(Worker):
             self._interact()
             priority, user_id = self.to_resolve.get()
             try:
-                log.warn("retrieving %r" % user_id)
+                log.trace("retrieving %r" % user_id)
                 user_info = self.engine.get_user_full_name(user_id)
                 self.update(user_id, user_info)
             except Exception as e:

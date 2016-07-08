@@ -557,5 +557,5 @@ class RemoteDocumentClient(BaseAutomationClient):
                                 userSuggestionMaxSearchResults="100",
                                 searchType="USER_TYPE",
                                 searchTerm="")
-        except Exception as e:
+        except urllib2.HTTPError as e:
             log.exception(e)
