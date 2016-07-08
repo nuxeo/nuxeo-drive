@@ -16,6 +16,7 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.workers import Worker, ThreadInterrupt, PairInterrupt
 from nxdrive.engine.activity import Action, FileAction
 from time import sleep
+import sqlite3
 WindowsError = None
 try:
     from exceptions import WindowsError
@@ -204,8 +205,8 @@ class Engine(QObject):
         self._scanPair.connect(self._remote_watcher.scan_pair)
         # Set the root icon
         self._set_root_icon()
-        # Set user full name
-        self._user_cache = dict()
+        # Get userid to user full name mapping
+        self.fetch_all_users()
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id):
@@ -977,20 +978,38 @@ class Engine(QObject):
         """
             Get the last contributor full name
         """
-        fullname = userid
         try:
-            if userid in self._user_cache:
-                fullname = self._user_cache[userid]
-            else:
-                rest_client = self.get_rest_api_client()
-                response = rest_client.get_user_full_name(userid)
-                if response and 'properties' in response:
-                    properties = response['properties']
-                    firstName = properties.get('firstName')
-                    lastName = properties.get('lastName')
-                    if firstName and lastName:
-                        fullname = " ".join([firstName, lastName]).strip()
-                        self._user_cache[userid] = fullname
+            rest_client = self.get_rest_api_client()
+            response = rest_client.get_user_full_name(userid)
+            if response and 'properties' in response:
+                properties = response['properties']
+                firstName = properties.get('firstName')
+                lastName = properties.get('lastName')
+                if self._dao.get_user_info(userid):
+                    self._dao.update_user_info(userid, firstName, lastName)
+                else:
+                    self._dao.insert_user_info(userid, firstName, lastName)
         except urllib2.URLError as e:
             log.exception(e)
-        return fullname
+        except sqlite3.OperationalError as e:
+            log.exception(e)
+        except sqlite3.DatabaseError as e:
+            log.exception(e)
+        return self._dao.get_user_info(userid)
+
+    def fetch_all_users(self):
+        '''
+            Retrieve the userid - user name mapping of users in the current tenant
+        '''
+        try:
+            remote_doc_client = self.get_remote_doc_client()
+            all_users = remote_doc_client.get_all_users()
+            for user in all_users:
+                if 'username' in user and 'firstName' in user and 'lastName' in user:
+                    if not self._dao.get_user_info(user["username"]):
+                        self._dao.insert_user_info(user["username"], user['firstName'].strip("("), user['lastName'].strip(")"))
+                    else:
+                        self.update_user_info(user["username"], user['firstName'], user['lastName'])
+        except Exception as e:
+            log.exception(e)
+        return

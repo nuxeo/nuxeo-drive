@@ -553,6 +553,7 @@ class EngineDAO(ConfigurationDAO):
         cursor.execute("CREATE TABLE if not exists RemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
         cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
         self._create_state_table(cursor)
+        self._create_users_table(cursor)
 
     def _get_read_connection(self, factory=StateRow):
         return super(EngineDAO, self)._get_read_connection(factory)
@@ -1412,3 +1413,44 @@ class EngineDAO(ConfigurationDAO):
 
     def _escape(self, _str):
         return _str.replace("'", "''")
+
+    def _create_users_table(self, cursor, force=False):
+        '''
+            Create a new table 'Users' to store the mapping between user-id and user's full name
+        '''
+        if force:
+            statement = ''
+        else:
+            statement = 'if not exists '
+        # Cannot force UNIQUE for local_path as duplicate can have virtual the same path until they are resolved by Processor
+        # Should improve that
+        cursor.execute("CREATE TABLE " + statement + "Users(user_id VARCHAR NOT NULL PRIMARY KEY, first_name VARCHAR, last_name VARCHAR, last_refreshed TIMESTAMP);")
+
+    def insert_user_info(self, userid, firstName, lastName):
+        log.trace("Inserting user to database: %r" % userid)
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("INSERT INTO Users(user_id, first_name, last_name, last_refreshed) VALUES (?,?,?,?)",(userid, firstName, lastName, datetime.now()))
+            con.commit()
+        finally:
+            self._lock.release()
+
+    def update_user_info(self, userid, firstName, lastName):
+        log.trace("Updating user in database: %r" % userid)
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE Users SET first_name=?, last_name=?, last_refreshed=? WHERE user_id=?", (firstName, lastName, datetime.now(), userid) )
+            con.commit()
+        finally:
+            self._lock.release()
+
+    def get_user_info(self, userid):
+        con = self._get_read_connection(factory=CustomRow).cursor()
+        self._lock.acquire()
+        user = con.execute("SELECT * FROM Users WHERE user_id=?",(userid,)).fetchone()
+        self._lock.release()
+        return user
