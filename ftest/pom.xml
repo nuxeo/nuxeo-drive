@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.nuxeo.ecm.distribution</groupId>
     <artifactId>nuxeo-distribution</artifactId>
-    <version>8.3-SNAPSHOT</version>
+    <version>8.4-SNAPSHOT</version>
     <relativePath></relativePath>
   </parent>
 
@@ -18,7 +18,7 @@
   </description>
 
   <properties>
-    <!-- URL of the last archived artifacts of the nuxeo-drive marketplace 
+    <!-- URL of the last archived artifacts of the nxedge-drive marketplace
       package on Jenkins -->
     <nuxeo.drive.mp.url>http://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/
     </nuxeo.drive.mp.url>
