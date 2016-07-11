@@ -985,15 +985,8 @@ class Engine(QObject):
                 properties = response['properties']
                 firstName = properties.get('firstName')
                 lastName = properties.get('lastName')
-                if self._dao.get_user_info(userid):
-                    self._dao.update_user_info(userid, firstName, lastName)
-                else:
-                    self._dao.insert_user_info(userid, firstName, lastName)
+                self._dao.insert_update_user_info(userid, firstName, lastName)
         except urllib2.URLError as e:
-            log.exception(e)
-        except sqlite3.OperationalError as e:
-            log.exception(e)
-        except sqlite3.DatabaseError as e:
             log.exception(e)
         return self._dao.get_user_info(userid)
 
@@ -1006,10 +999,7 @@ class Engine(QObject):
             all_users = remote_doc_client.get_all_users()
             for user in all_users:
                 if 'username' in user and 'firstName' in user and 'lastName' in user:
-                    if not self._dao.get_user_info(user["username"]):
-                        self._dao.insert_user_info(user["username"], str(user['firstName']).strip("("), str(user['lastName']).strip(")"))
-                    else:
-                        self._dao.update_user_info(user["username"], str(user['firstName']).strip("("), str(user['lastName']).strip(")"))
+                    self._dao.insert_update_user_info(user["username"], str(user['firstName']).strip("("), str(user['lastName']).strip(")"))
         except Exception as e:
             log.exception(e)
         return

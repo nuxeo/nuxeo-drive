@@ -1422,31 +1422,15 @@ class EngineDAO(ConfigurationDAO):
             statement = ''
         else:
             statement = 'if not exists '
-        # Cannot force UNIQUE for local_path as duplicate can have virtual the same path until they are resolved by Processor
-        # Should improve that
         cursor.execute("CREATE TABLE " + statement + "Users(user_id VARCHAR NOT NULL PRIMARY KEY, first_name VARCHAR, last_name VARCHAR, last_refreshed TIMESTAMP);")
 
-    def insert_user_info(self, userid, firstName, lastName):
+    def insert_update_user_info(self, userid, firstName, lastName):
         log.trace("Inserting user to database: %r" % userid)
-        self._lock.acquire()
-        try:
+        with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("INSERT INTO Users(user_id, first_name, last_name, last_refreshed) VALUES (?,?,?,?)",(userid, firstName, lastName, datetime.now()))
+            c.execute("INSERT OR REPLACE INTO Users(user_id, first_name, last_name, last_refreshed) VALUES (?,?,?,?)",(userid, firstName, lastName, datetime.now()))
             con.commit()
-        finally:
-            self._lock.release()
-
-    def update_user_info(self, userid, firstName, lastName):
-        log.trace("Updating user in database: %r" % userid)
-        self._lock.acquire()
-        try:
-            con = self._get_write_connection()
-            c = con.cursor()
-            c.execute("UPDATE Users SET first_name=?, last_name=?, last_refreshed=? WHERE user_id=?", (firstName, lastName, datetime.now(), userid) )
-            con.commit()
-        finally:
-            self._lock.release()
 
     def get_user_info(self, userid):
         con = self._get_read_connection(factory=CustomRow).cursor()
