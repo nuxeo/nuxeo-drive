@@ -28,6 +28,7 @@ from cookielib import CookieJar
 from nxdrive.client.common import safe_filename
 from nxdrive.gui.resources import find_icon
 import urllib2
+from nxdrive.engine.username_resolver import UserNameResolver
 
 log = get_logger(__name__)
 
@@ -206,7 +207,7 @@ class Engine(QObject):
         # Set the root icon
         self._set_root_icon()
         # Get userid to user full name mapping
-        self.fetch_all_users()
+        self._user_name_resolver = UserNameResolver(self)
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id):
@@ -346,6 +347,7 @@ class Engine(QObject):
             return
         self._pause = False
         self._queue_manager.resume()
+        self._user_name_resolver.resume()
         for thread in self._threads:
             if thread.isRunning():
                 thread.worker.resume()
@@ -358,6 +360,7 @@ class Engine(QObject):
             return
         self._pause = True
         self._queue_manager.suspend()
+        self._user_name_resolver.suspend()
         for thread in self._threads:
             thread.worker.suspend()
         self.syncSuspended.emit()
@@ -365,6 +368,7 @@ class Engine(QObject):
     def unbind(self):
         self.stop()
         try:
+            self._user_name_resolver.stop()
             # Dont fail if not possible to remove token
             doc_client = self.get_remote_doc_client()
             doc_client.revoke_token()
@@ -1002,4 +1006,30 @@ class Engine(QObject):
                     self._dao.insert_update_user_info(user["username"], str(user['firstName']).strip("("), str(user['lastName']).strip(")"))
         except Exception as e:
             log.exception(e)
+        return
+
+    def refresh_user(self, user_id):
+        '''
+            Save userid in user_cache 
+        '''
+        if not user_id:
+            return
+        if not hasattr(self, '_user_cache'):
+            log.trace("creating _user_cache ...")
+            self._user_cache = dict()
+        # If user_id is present in local cache, it is also present in database
+        # so return
+        if user_id in self._user_cache:
+            return
+        log.trace("user_id=%r not present in _user_cache" % user_id)
+        # Retrieve the user_info from local database
+        user_info = self._dao.get_user_info(user_id)
+        if not user_info:
+            log.trace("user_id=%r not present in local database" % user_id)
+            # If not present in local database, it is new user. Fetch from server
+            user_info = self.get_user_full_name(user_id)
+        log.trace("user_id=%r resolved to user_info=%r" % (user_id, dict(user_info)))
+        # Update the local cache with user_info
+        if user_info:
+            self._user_cache[user_id] = user_info
         return

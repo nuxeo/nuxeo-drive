@@ -54,26 +54,15 @@ ConflictsController.prototype.updateErrors = function($scope) {
 	$scope.ignoreds = ignoreds;
 }
 ConflictsController.prototype.updateConflicts = function($scope, $interval) {
-    var lastContributorPending = false;
 	self = this;
 	$scope.conflicts = angular.fromJson(drive.get_conflicts());
 	for (var i=0; i<$scope.conflicts.length; i++) {
-		lastContributorPending = lastContributorPending || $scope.conflicts[i].need_refresh;
 		if ($scope.conflicts[i].last_error == "DUPLICATING") {
 			setTimeout( function() {
 				self.updateConflicts($scope, $interval);
 				$scope.$apply();
 			}, 1000);
 		}
-	}
-	if (lastContributorPending) {
-		retry_delay = 2000;
-		// increase 1 second delay per 100 entries
-		retry_delay = retry_delay + $scope.conflicts.length * 10;
-		setTimeout(function() {
-			self.updateConflicts($scope, $interval);
-			$scope.$apply();
-		}, retry_delay);
 	}
 }
 ConflictsController.prototype.openRemote = function(remote_ref, remote_name) {

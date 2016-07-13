@@ -1433,5 +1433,13 @@ class EngineDAO(ConfigurationDAO):
             con.commit()
 
     def get_user_info(self, userid):
-        con = self._get_read_connection(factory=CustomRow).cursor()
-        return con.execute("SELECT * FROM Users WHERE user_id=?",(userid,)).fetchone()
+        c = self._get_read_connection(factory=CustomRow).cursor()
+        return c.execute("SELECT * FROM Users WHERE user_id=?",(userid,)).fetchone()
+
+    def get_next_user_to_resolve(self):
+        '''
+            Always retrieve the User whose last_refreshed time is oldest
+            For not yet resolved users, the last_refreshed will be datetime.min
+        '''
+        c = self._get_read_connection(factory=CustomRow).cursor()
+        return c.execute("SELECT * FROM Users ORDER BY last_refreshed LIMIT 1").fetchone()
