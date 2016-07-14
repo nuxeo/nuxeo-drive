@@ -16,7 +16,6 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.workers import Worker, ThreadInterrupt, PairInterrupt
 from nxdrive.engine.activity import Action, FileAction
 from time import sleep
-import sqlite3
 WindowsError = None
 try:
     from exceptions import WindowsError
@@ -27,7 +26,6 @@ import datetime
 from cookielib import CookieJar
 from nxdrive.client.common import safe_filename
 from nxdrive.gui.resources import find_icon
-import urllib2
 from nxdrive.engine.username_resolver import UserNameResolver
 
 log = get_logger(__name__)
@@ -610,6 +608,8 @@ class Engine(QObject):
         log.debug("Engine %s starting", self.get_uid())
         for thread in self._threads:
             thread.start()
+        if not self._user_name_resolver.is_started():
+            self._user_name_resolver.start()
         self.syncStarted.emit(0)
         self._start.emit()
 
@@ -977,59 +977,3 @@ class Engine(QObject):
                                         self._manager.get_device_id(), self._manager.get_version(), None,
                                         self.get_remote_token(), timeout=self.timeout, cookie_jar=self.cookie_jar)
         return rest_client
-
-    def get_user_full_name(self, userid):
-        """
-            Get the last contributor full name
-        """
-        try:
-            rest_client = self.get_rest_api_client()
-            response = rest_client.get_user_full_name(userid)
-            if response and 'properties' in response:
-                properties = response['properties']
-                firstName = properties.get('firstName')
-                lastName = properties.get('lastName')
-                self._dao.insert_update_user_info(userid, firstName, lastName)
-        except urllib2.URLError as e:
-            log.exception(e)
-        return self._dao.get_user_info(userid)
-
-    def fetch_all_users(self):
-        '''
-            Retrieve the userid - user name mapping of users in the current tenant
-        '''
-        try:
-            remote_doc_client = self.get_remote_doc_client()
-            all_users = remote_doc_client.get_all_users()
-            for user in all_users:
-                if 'username' in user and 'firstName' in user and 'lastName' in user:
-                    self._dao.insert_update_user_info(user["username"], str(user['firstName']).strip("("), str(user['lastName']).strip(")"))
-        except Exception as e:
-            log.exception(e)
-        return
-
-    def refresh_user(self, user_id):
-        '''
-            Save userid in user_cache 
-        '''
-        if not user_id:
-            return
-        if not hasattr(self, '_user_cache'):
-            log.trace("creating _user_cache ...")
-            self._user_cache = dict()
-        # If user_id is present in local cache, it is also present in database
-        # so return
-        if user_id in self._user_cache:
-            return
-        log.trace("user_id=%r not present in _user_cache" % user_id)
-        # Retrieve the user_info from local database
-        user_info = self._dao.get_user_info(user_id)
-        if not user_info:
-            log.trace("user_id=%r not present in local database" % user_id)
-            # If not present in local database, it is new user. Fetch from server
-            user_info = self.get_user_full_name(user_id)
-        log.trace("user_id=%r resolved to user_info=%r" % (user_id, dict(user_info)))
-        # Update the local cache with user_info
-        if user_info:
-            self._user_cache[user_id] = user_info
-        return
