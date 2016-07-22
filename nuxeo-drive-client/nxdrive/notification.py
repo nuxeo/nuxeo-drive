@@ -265,11 +265,11 @@ class DirectEditErrorLockNotification(Notification):
         values["name"] = filename
         values["ref"] = ref
         if type == 'lock':
-            title = Translator.get("DRIVE_EDIT_LOCK_ERROR", values)
-            description = Translator.get("DRIVE_EDIT_LOCK_ERROR_DESCRIPTION", values)
+            title = Translator.get("DIRECT_EDIT_LOCK_ERROR", values)
+            description = Translator.get("DIRECT_EDIT_LOCK_ERROR_DESCRIPTION", values)
         elif type == 'unlock':
-            title = Translator.get("DRIVE_EDIT_UNLOCK_ERROR", values)
-            description = Translator.get("DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION", values)
+            title = Translator.get("DIRECT_EDIT_UNLOCK_ERROR", values)
+            description = Translator.get("DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION", values)
         else:
             raise Exception()
         super(DirectEditErrorLockNotification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
