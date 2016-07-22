@@ -41,8 +41,8 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'repository',  # server repository name
     'doc_type',  # Nuxeo document type
     'version',  # Nuxeo version
-    'state', # Nuxeo lifecycle state
-    'has_blob', # If this doc has blob
+    'state',  # Nuxeo lifecycle state
+    'has_blob',  # If this doc has blob
     'filename',  # Filename of document
     'lock_owner',  # lock owner
     'lock_created',  # lock creation time

@@ -325,7 +325,6 @@ class DeleteReadOnlyNotification(Notification):
                                                          flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
-
 class LockedNotification(Notification):
     def __init__(self, engine_uid, filename, lock_owner, lock_created):
         values = dict()

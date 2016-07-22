@@ -5,7 +5,6 @@ from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.engine.engine import Engine
 
-DRIVE_EDIT_XATTR_NAMES = ['ndrive', 'nxdriveedit', 'nxdriveeditdigest', 'nxdriveeditname']
 
 class MockUrlTestEngine(Engine):
     def __init__(self, url):
