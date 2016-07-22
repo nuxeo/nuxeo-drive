@@ -303,6 +303,17 @@ class ReadOnlyNotification(Notification):
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
+class DirectEditReadOnlyNotification(Notification):
+    def __init__(self, filename):
+        values = dict()
+        values["name"] = filename
+        title = Translator.get("READONLY", values)
+        description = Translator.get("DIRECT_EDIT_READONLY_FILE", values)
+        super(DirectEditReadOnlyNotification, self).__init__("DIRECT_EDIT_READONLY", title=title, description=description,
+            level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
+
 class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid, filename):
         values = dict()
@@ -328,6 +339,19 @@ class LockedNotification(Notification):
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
+class DirectEditLockedNotification(Notification):
+    def __init__(self, filename, lock_owner, lock_created):
+        values = dict()
+        values["name"] = filename
+        values["lock_owner"] = lock_owner
+        values["lock_created"] = lock_created.strftime("%m/%d/%Y %H:%M:%S")
+        title = Translator.get("LOCKED", values)
+        description = Translator.get("DIRECT_EDIT_LOCKED_FILE", values)
+        super(DirectEditLockedNotification, self).__init__("DIRECT_EDIT_LOCKED", title=title, description=description,
+            level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
+
 class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid):
         # show_settings('Accounts_' + engine.uid)
@@ -346,6 +370,8 @@ class DefaultNotificationService(NotificationService):
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
         self._manager.get_direct_edit().directEditLockError.connect(self._directEditLockError)
+        self._manager.get_direct_edit().directEditReadonly.connect(self._directEditReadonly)
+        self._manager.get_direct_edit().directEditLocked.connect(self._directEditLocked)
         self._manager.get_autolock_service().documentLocked.connect(self._lockDocument)
 
 
@@ -385,6 +411,9 @@ class DefaultNotificationService(NotificationService):
         engine_uid = self.sender()._uid
         self.send_notification(ReadOnlyNotification(engine_uid, filename, parent))
 
+    def _directEditReadonly(self, filename):
+        self.send_notification(DirectEditReadOnlyNotification(filename))
+
     def _deleteReadonly(self, filename):
         engine_uid = self.sender()._uid
         self.send_notification(DeleteReadOnlyNotification(engine_uid, filename))
@@ -392,6 +421,9 @@ class DefaultNotificationService(NotificationService):
     def _newLocked(self, filename, lock_owner, lock_created):
         engine_uid = self.sender()._uid
         self.send_notification(LockedNotification(engine_uid, filename, lock_owner, lock_created))
+
+    def _directEditLocked(self, filename, lock_owner, lock_created):
+        self.send_notification(DirectEditLockedNotification(filename, lock_owner, lock_created))
 
     def _validAuthentication(self):
         engine_uid = self.sender()._uid

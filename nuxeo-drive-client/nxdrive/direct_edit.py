@@ -34,6 +34,8 @@ class DirectEdit(Worker):
     editDocument = pyqtSignal(object)
     directEditLockError = pyqtSignal(str, str, str)
     directEditConflict = pyqtSignal(str, str, str)
+    directEditReadonly = pyqtSignal(object)
+    directEditLocked = pyqtSignal(object, object, object)
 
     '''
     classdocs
@@ -233,7 +235,19 @@ class DirectEdit(Worker):
         remote_client = engine.get_remote_doc_client()
         # Avoid any link with the engine, remote_doc are not cached so we can do that
         remote_client.check_suspended = self.stop_client
-        info = remote_client.get_info(doc_id)
+        rest_client = engine.get_rest_api_client()
+        doc = rest_client.fetch(doc_id, fetchDocument=['lock'], enrichers=['permissions'])
+        info = remote_client._doc_to_info(doc)
+        if (info.lock_owner is not None):
+            log.debug("Doc %s was locked by %s on %s, won't download it for edit", info.name, info.lock_owner,
+                      info.lock_created)
+            self.directEditLocked.emit(info.name, info.lock_owner, info.lock_created)
+            return None
+        if (info.permissions is not None and 'Write' not in info.permissions):
+            log.debug("Doc %s is readonly for %s, won't download it for edit", info.name, user)
+            self.directEditReadonly.emit(info.name)
+            return None
+
         filename = info.filename
 
         # Create local structure
