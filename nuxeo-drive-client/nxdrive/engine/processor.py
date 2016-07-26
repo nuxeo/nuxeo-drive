@@ -418,8 +418,9 @@ class Processor(EngineWorker):
                     doc_pair = self._dao.get_state_from_id(doc_pair.id)
                     self._synchronize_locally_modified(doc_pair, local_client, remote_client)
                     return
+                log.trace("Compare parents: %r | %r", info.parent_uid, parent_pair.remote_ref)
                 # Document exists on the server
-                if info.parent_uid == parent_pair.remote_ref:
+                if parent_pair.remote_ref is not None and parent_pair.remote_ref.endswith(info.parent_uid):
                     log.warning("Document is already on the server should not create: %r | %r", doc_pair, info)
                     self._dao.synchronize_state(doc_pair)
                     return
