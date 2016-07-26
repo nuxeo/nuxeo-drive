@@ -36,9 +36,11 @@ class Tracker(Worker):
         for _, engine in self._manager.get_engines().iteritems():
             self.connect_engine(engine)
         self._manager.newEngine.connect(self.connect_engine)
-        self._manager.get_updater().appUpdated.connect(self._send_app_update_event)
-        self._manager.get_direct_edit().openDocument.connect(self._send_directedit_open)
-        self._manager.get_direct_edit().editDocument.connect(self._send_directedit_edit)
+        if self._manager.get_updater() is not None:
+            self._manager.get_updater().appUpdated.connect(self._send_app_update_event)
+        if self._manager.get_direct_edit() is not None:
+            self._manager.get_direct_edit().openDocument.connect(self._send_directedit_open)
+            self._manager.get_direct_edit().editDocument.connect(self._send_directedit_edit)
 
     @QtCore.pyqtSlot(object)
     def connect_engine(self, engine):
