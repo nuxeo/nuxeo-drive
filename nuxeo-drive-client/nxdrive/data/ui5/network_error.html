@@ -1,0 +1,36 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="js/ndrive.js"></script>
+<script src="js/angular.min.js"></script>
+<script src="js/angular-translate.min.js"></script>
+<script src="js/jquery-2.1.3.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="i18n.js"></script>
+<script src="js/ndrive-network-error.js"></script>
+<link rel="stylesheet" href="css/bootstrap.min.css"></link>
+<link rel="stylesheet" href="css/ndrive.css"></link>
+<script>
+	resize = function() {
+		if ($("#content").height() < 5) {
+			setTimeout(resize, 100);
+			return;
+		}
+		drive.resize(450, $("#content").height() + 40);
+	}
+	if (typeof(drive) != "undefined") {
+		setTimeout(resize, 100);
+	}
+	app = drive_module("DriveNetworkError");
+	app.controller("DriveNetworkErrorCtl", NetworkErrorController);
+</script>
+</head>
+<body id="drive-settings" ng-app="DriveNetworkError" ng-controller="DriveNetworkErrorCtl">
+	<div style="width: 100%; margin-top: 50px;" align="center">
+		<img src="imgs/network.png" />
+		<h1>{{error.simple_label | translate}}</h1>
+		<h3>{{error.label | translate}}</h3>
+		<button type="button" style="margin-top: 20px;" class="btn btn-default btn-primary" onclick="drive.retry();"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;<span translate>NETWORK_ERROR_RETRY</span></button>
+	</div>
+</body>
+</html>

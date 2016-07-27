@@ -244,7 +244,7 @@ class QueueManager(QObject):
     def get_error_threshold(self):
         return self._error_threshold
 
-    def push_error(self, doc_pair, exception=None):
+    def push_error(self, doc_pair, exception=None, interval=None):
         error_count = doc_pair.error_count
         if (exception is not None and type(exception) == WindowsError
             and hasattr(exception, 'winerror') and exception.winerror == WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE):
@@ -256,7 +256,8 @@ class QueueManager(QObject):
             self.newErrorGiveUp.emit(doc_pair.id)
             log.debug("Giving up on pair : %r", doc_pair)
             return
-        interval = self._error_interval * error_count
+        if interval is None:
+            interval = self._error_interval * error_count
         doc_pair.error_next_try = interval + int(time.time())
         log.debug("Blacklisting pair for %ds: %r", interval, doc_pair)
         self._error_lock.acquire()

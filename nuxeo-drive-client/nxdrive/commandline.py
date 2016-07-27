@@ -17,6 +17,7 @@ from nxdrive.osi.daemon import daemonize
 from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive import __version__
 
 
@@ -392,13 +393,16 @@ class CliHandler(object):
             config.read(configs)
         if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
             env = config.get(ConfigParser.DEFAULTSECT, 'env')
-            args = {}
+            args = AbstractOSIntegration.get(None).get_system_configuration()
             for item in config.items(env):
                 if item[0] == 'env':
                     continue
                 args[item[0].replace('-', '_')] = item[1]
             if len(args):
                 parser.set_defaults(**args)
+        else:
+            parser.set_defaults(**AbstractOSIntegration.get(None).get_system_configuration())
+
 
     def _configure_logger(self, options):
         """Configure the logging framework from the provided options"""
@@ -491,7 +495,7 @@ class CliHandler(object):
         if lock.lock() is not None:
             self.log.warning("Qt application already running: exiting")
             # Handle URL if needed
-            self.manager.get_drive_edit().handle_url()
+            self.manager.get_direct_edit().handle_url()
             return
         app = self._get_application(options, console=console)
         exit_code = app.exec_()
@@ -619,7 +623,7 @@ class CliHandler(object):
                 "nxdrive.tests.test_commandline",
                 "nxdrive.tests.test_conflicts",
                 "nxdrive.tests.test_copy",
-                "nxdrive.tests.test_drive_edit",
+                "nxdrive.tests.test_direct_edit",
                 "nxdrive.tests.test_encoding",
                 "nxdrive.tests.test_engine_dao",
                 "nxdrive.tests.test_concurrent_synchronization",
@@ -655,7 +659,7 @@ class CliHandler(object):
                 "nxdrive.tests.test_updater",
                 "nxdrive.tests.test_utils",
                 "nxdrive.tests.test_versioning",
-                # "nxdrive.tests.test_volume",
+                "nxdrive.tests.test_volume",
                 "nxdrive.tests.test_watchers",
                 "nxdrive.tests.test_windows",
             ]

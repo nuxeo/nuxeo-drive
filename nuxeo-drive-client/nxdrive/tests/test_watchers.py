@@ -32,22 +32,31 @@ class TestWatchers(UnitTestCase):
     def test_reconcile_scan(self):
         files, folders = self.make_local_tree()
         self.make_server_tree()
+        # Wait for ES indexing
+        self.wait()
         self.queue_manager_1.suspend()
         self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_remote_scan()
-        # Remote as one more file
-        self.assertEquals(self.engine_1.get_dao().get_sync_count(), folders + files + 1)
-        # Verify it has been reconcile and all items in queue are sync
+        # Depending on remote scan results order, the remote duplicated file with the same digest as the local file
+        # might come first, in which case we get an extra synchronized file,
+        # or not, in which case we get a conflicted file
+        self.assertTrue(self.engine_1.get_dao().get_sync_count() >= folders + files)
+        # Verify it has been reconciled and all items in queue are synchronized
         queue = self.get_full_queue(self.queue_manager_1.get_local_file_queue())
         for item in queue:
-            self.assertEqual(item.pair_state, "synchronized")
+            if item.remote_name == 'Duplicated File.txt':
+                self.assertTrue(item.pair_state in ["synchronized", "conflicted"])
+            else:
+                self.assertEqual(item.pair_state, "synchronized")
         queue = self.get_full_queue(self.queue_manager_1.get_local_folder_queue())
         for item in queue:
             self.assertEqual(item.pair_state, "synchronized")
 
     def test_remote_scan(self):
         files, folders = self.make_server_tree()
+        # Wait for ES indexing
+        self.wait()
         # Add the workspace folder
         folders = folders + 1
         self.queue_manager_1.suspend()

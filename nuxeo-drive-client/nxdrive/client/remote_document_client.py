@@ -3,6 +3,7 @@
 import unicodedata
 from collections import namedtuple
 from datetime import datetime
+from dateutil import parser
 import os
 import urllib2
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
@@ -40,9 +41,12 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'repository',  # server repository name
     'doc_type',  # Nuxeo document type
     'version',  # Nuxeo version
-    'state', # Nuxeo lifecycle state
-    'has_blob', # If this doc has blob
-    'filename' # Filename of document
+    'state',  # Nuxeo lifecycle state
+    'has_blob',  # If this doc has blob
+    'filename',  # Filename of document
+    'lock_owner',  # lock owner
+    'lock_created',  # lock creation time
+    'permissions',  # permissions
 ])
 
 
@@ -294,6 +298,16 @@ class RemoteDocumentClient(BaseAutomationClient):
                 digest = blob.get('digest')
                 filename = blob.get('name')
 
+        # Lock info
+        lock_owner = doc.get('lockOwner')
+        lock_created = doc.get('lockCreated')
+        if lock_created is not None:
+            lock_created = parser.parse(lock_created)
+
+        # Permissions
+        contextParameters = doc.get('contextParameters')
+        permissions = contextParameters.get('permissions') if contextParameters is not None else None
+
         # XXX: we need another roundtrip just to fetch the parent uid...
         if parent_uid is None and fetch_parent_uid:
             parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
@@ -308,7 +322,8 @@ class RemoteDocumentClient(BaseAutomationClient):
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
             doc['path'], folderish, last_update, lastContributor,
-            digestAlgorithm, digest, self.repository, doc['type'], version, doc['state'], has_blob, filename)
+            digestAlgorithm, digest, self.repository, doc['type'], version, doc['state'], has_blob, filename,
+            lock_owner, lock_created, permissions)
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):
@@ -500,3 +515,37 @@ class RemoteDocumentClient(BaseAutomationClient):
         docs = self.execute("Collection.GetDocumentsFromCollection",
                            op_input="doc:" + self._check_ref(ref))
         return [doc['uid'] for doc in docs['entries']]
+
+    def mass_import(self, target_path, nb_nodes, nb_threads=12):
+        tx_timeout = 3600
+        url = self.server_url + 'site/randomImporter/run?'
+        params = {
+            'targetPath': target_path,
+            'batchSize': 50,
+            'nbThreads': nb_threads,
+            'interactive': 'true',
+            'fileSizeKB': 1,
+            'nbNodes': nb_nodes,
+            'nonUniform': 'true',
+            'transactionTimeout': tx_timeout
+        }
+        for param, value in params.iteritems():
+            url += param + '=' + str(value) + '&'
+        headers = self._get_common_headers()
+        headers.update({'Nuxeo-Transaction-Timeout': tx_timeout})
+        try:
+            log.info('Calling random mass importer on %s with %d threads and %d nodes', target_path,
+                     nb_threads, nb_nodes)
+            self.opener.open(urllib2.Request(url, headers=headers), timeout=tx_timeout)
+        except Exception as e:
+            self._log_details(e)
+            raise e
+
+    def wait_for_async_and_ES_indexing(self):
+        tx_timeout = 3600
+        extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout}
+        self.execute('Elasticsearch.WaitForIndexing', timeout=tx_timeout, extra_headers=extra_headers,
+                     timeoutSecond=tx_timeout, refresh=True)
+
+    def result_set_query(self, query):
+        return self.execute("Repository.ResultSetQuery", query=query)

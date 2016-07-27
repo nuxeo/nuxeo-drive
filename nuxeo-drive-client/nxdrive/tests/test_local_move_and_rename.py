@@ -7,8 +7,7 @@ from nxdrive.client import RemoteDocumentClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 from nxdrive.tests import RemoteTestClient
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
-from nxdrive.client.common import NotFound
-from nose.plugins.skip import SkipTest
+from nxdrive.osi import AbstractOSIntegration
 from time import sleep
 from nxdrive.engine.dao.sqlite import EngineDAO
 
@@ -51,6 +50,18 @@ class TestLocalMoveAndRename(UnitTestCase):
                                       content=u'Some Content 3'.encode('utf-8'))
         # Increase timeout as noticed it was sometimes insufficient in Jenkins build
         self.wait_sync(timeout=30)
+
+    def get_local_client(self, path):
+        if AbstractOSIntegration.is_mac() and (
+                    self._testMethodName == 'test_local_delete_readonly_folder' or
+                    self._testMethodName == 'test_local_rename_readonly_folder'):
+            return LocalClient(path)
+        # Old mac dont handle case rename
+        if AbstractOSIntegration.is_mac() and AbstractOSIntegration.os_version_below("10.10") and (
+                    self._testMethodName == 'test_local_rename_file_uppercase_stopped' or
+                    self._testMethodName == 'test_local_rename_file_uppercase'):
+            return LocalClient(path)
+        return super(TestLocalMoveAndRename, self).get_local_client(path)
 
     def test_local_rename_folder_while_creating(self):
         global marker
@@ -108,6 +119,16 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEquals('Renamed File.txt', info.name)
         self.assertEqual(len(local_client.get_children_info(u'/')), 5)
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
+
+    def test_replace_file(self):
+        local_client = self.local_client_1
+
+        # Rename /Original File 1.txt to /Renamed File 1.txt
+        original_file_1_uid = local_client.get_remote_id(u'/Original File 1.txt')
+        local_client.remove_remote_id(u'/Original File 1.txt')
+        local_client.update_content(u'/Original File 1.txt', 'plop')
+        self.wait_sync(fail_if_timeout=False)
+        self.assertEqual(local_client.get_remote_id(u'/Original File 1.txt'), original_file_1_uid)
 
     def test_local_rename_file(self):
         local_client = self.local_client_1

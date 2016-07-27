@@ -542,6 +542,8 @@ class LocalClient(BaseClient):
         os_path, name = self._abspath_deduped(parent, name)
         try:
             os.mkdir(os_path)
+            # Name should be the actual name of the folder created locally
+            name = os.path.basename(os_path)
             if parent == u"/":
                 return u"/" + name
             return parent + u"/" + name
@@ -706,7 +708,7 @@ class LocalClient(BaseClient):
         name = name if name is not None else ref.rsplit(u'/', 1)[1]
         target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
         try:
-            shutil.move(source_os_path, target_os_path)
+            os.rename(source_os_path, target_os_path)
             new_ref = self.get_children_ref(new_parent_ref, new_name)
             return self.get_info(new_ref)
         finally:

@@ -76,6 +76,8 @@ class SimpleApplication(QApplication):
     """
     def __init__(self, manager, options, argv=()):
         super(SimpleApplication, self).__init__(list(argv))
+        # Make dialog unique
+        self.uniqueDialogs = dict()
         self.options = options
         self.manager = manager
         self.setApplicationName(manager.get_appname())
@@ -87,6 +89,27 @@ class SimpleApplication(QApplication):
 
     def _get_skin(self):
         return 'ui5'
+
+    def _show_window(self, window):
+        window.show()
+        window.raise_()
+
+    def _get_unique_dialog(self, name):
+        if name in self.uniqueDialogs:
+            return self.uniqueDialogs[name]
+        return None
+
+    def _destroy_dialog(self):
+        sender = self.sender()
+        name = str(sender.objectName())
+        if name in self.uniqueDialogs:
+            del self.uniqueDialogs[name]
+
+    def _create_unique_dialog(self, name, dialog):
+        self.uniqueDialogs[name] = dialog
+        dialog.setObjectName(name)
+        dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        dialog.destroyed.connect(self._destroy_dialog)
 
     def get_osi(self):
         return self.manager.get_osi()
@@ -126,8 +149,6 @@ class Application(SimpleApplication):
         self.filters_dlg = None
         self._conflicts_modals = dict()
         self.current_notification = None
-        # Make dialog unique
-        self.uniqueDialogs = dict()
 
         for _, engine in self.manager.get_engines().iteritems():
             self.mainEngine = engine
@@ -155,7 +176,7 @@ class Application(SimpleApplication):
         self.setup_systray()
 
         # Direct Edit conflict
-        self.manager.get_drive_edit().driveEditConflict.connect(self._direct_edit_conflict)
+        self.manager.get_direct_edit().directEditConflict.connect(self._direct_edit_conflict)
 
         # Check if actions is required, separate method so it can be override
         self.init_checks()
@@ -184,7 +205,7 @@ class Application(SimpleApplication):
             dlg.add_button("CANCEL", Translator.get("DIRECT_EDIT_CONFLICT_CANCEL"))
             res = dlg.exec_()
             if res == "OVERWRITE":
-                self.manager.get_drive_edit().force_update(unicode(ref), unicode(digest))
+                self.manager.get_direct_edit().force_update(unicode(ref), unicode(digest))
             del self._conflicts_modals[filename]
         except Exception:
             log.exception('Error while displaying Direct Edit conflict modal dialog for %r', filename)
@@ -228,18 +249,6 @@ class Application(SimpleApplication):
 
     def get_cache_folder(self):
         return os.path.join(self.manager.get_configuration_folder(), "cache", "wui")
-
-    def _get_skin(self):
-        return 'ui5'
-
-    def get_window_icon(self):
-        return find_icon('nuxeo_drive_icon_64.png')
-
-    def get_htmlpage(self, page):
-        import nxdrive
-        nxdrive_path = os.path.dirname(nxdrive.__file__)
-        ui_path = os.path.join(nxdrive_path, 'data', self._get_skin())
-        return os.path.join(find_resource_dir(self._get_skin(), ui_path), page).replace("\\","/")
 
     def _init_translator(self):
         from nxdrive.wui.translator import Translator
@@ -303,27 +312,6 @@ class Application(SimpleApplication):
         else:
             settings.set_section(section)
         self._show_window(settings)
-
-    def _show_window(self, window):
-        window.show()
-        window.raise_()
-
-    def _get_unique_dialog(self, name):
-        if name in self.uniqueDialogs:
-            return self.uniqueDialogs[name]
-        return None
-
-    def _destroy_dialog(self):
-        sender = self.sender()
-        name = str(sender.objectName())
-        if name in self.uniqueDialogs:
-            del self.uniqueDialogs[name]
-
-    def _create_unique_dialog(self, name, dialog):
-        self.uniqueDialogs[name] = dialog
-        dialog.setObjectName(name)
-        dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        dialog.destroyed.connect(self._destroy_dialog)
 
     @QtCore.pyqtSlot()
     def destroyed_filters_dialog(self):
@@ -522,9 +510,6 @@ class Application(SimpleApplication):
         self._tray_icon.setIcon(QtGui.QIcon(icon))
         self.icon_spin_count = (self.icon_spin_count + 1) % 10
 
-    def get_osi(self):
-        return self.manager.get_osi()
-
     def update_tooltip(self):
         # Update also the file
         self._tray_icon.setToolTip(self.get_tooltip())
@@ -625,11 +610,11 @@ class Application(SimpleApplication):
                     log.debug("Received nxdrive URL scheme event: %s", url)
                     if info.get('command') == 'download_edit':
                         # This is a quick operation, no need to fork a QThread
-                        self.manager.get_drive_edit().edit(
+                        self.manager.get_direct_edit().edit(
                             info['server_url'], info['doc_id'], user=info['user'], download_url=info['download_url'])
                     elif info.get('command') == 'edit':
                         # Kept for backward compatibility
-                        self.manager.get_drive_edit().edit(
+                        self.manager.get_direct_edit().edit(
                             info['server_url'], info['item_id'])
             except:
                 log.error("Error handling URL event: %s", url, exc_info=True)

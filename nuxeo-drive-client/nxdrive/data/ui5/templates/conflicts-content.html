@@ -55,4 +55,17 @@
   			</div>
   		</div>
 	</div>
+	<div>
+		<hr />
+		<h4>Ignored files</h4>
+		<div class="panel panel-default" ng-repeat="pair in ignoreds">
+			<div class="panel-heading">
+			{{ pair.name }}
+			</div>
+			<div class="panel-body">
+				{{ pair.ignore_reason | translate }}<br />
+				<span style="color: #999; margin-bottom: 10px;cursor: pointer;" ng-click="open_local(pair.local_parent_path)" translate translate-values="{ path:'{{ pair.local_parent_path }}'}">FILE_PATH</span><br />
+			</div>
+		</div>
+	</div>
 </div>

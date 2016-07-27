@@ -259,20 +259,20 @@ class LockNotification(Notification):
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
-class DriveEditErrorLockNotification(Notification):
+class DirectEditErrorLockNotification(Notification):
     def __init__(self, type, filename, ref):
         values = dict()
         values["name"] = filename
         values["ref"] = ref
         if type == 'lock':
-            title = Translator.get("DRIVE_EDIT_LOCK_ERROR", values)
-            description = Translator.get("DRIVE_EDIT_LOCK_ERROR_DESCRIPTION", values)
+            title = Translator.get("DIRECT_EDIT_LOCK_ERROR", values)
+            description = Translator.get("DIRECT_EDIT_LOCK_ERROR_DESCRIPTION", values)
         elif type == 'unlock':
-            title = Translator.get("DRIVE_EDIT_UNLOCK_ERROR", values)
-            description = Translator.get("DRIVE_EDIT_UNLOCK_ERROR_DESCRIPTION", values)
+            title = Translator.get("DIRECT_EDIT_UNLOCK_ERROR", values)
+            description = Translator.get("DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION", values)
         else:
             raise Exception()
-        super(DriveEditErrorLockNotification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
+        super(DirectEditErrorLockNotification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
@@ -303,6 +303,17 @@ class ReadOnlyNotification(Notification):
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
+class DirectEditReadOnlyNotification(Notification):
+    def __init__(self, filename):
+        values = dict()
+        values["name"] = filename
+        title = Translator.get("READONLY", values)
+        description = Translator.get("DIRECT_EDIT_READONLY_FILE", values)
+        super(DirectEditReadOnlyNotification, self).__init__("DIRECT_EDIT_READONLY", title=title, description=description,
+            level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
+
 class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid, filename):
         values = dict()
@@ -312,7 +323,6 @@ class DeleteReadOnlyNotification(Notification):
         super(DeleteReadOnlyNotification, self).__init__("DELETE_READONLY", title=title, description=description,
                                                          engine_uid=engine_uid, level=Notification.LEVEL_INFO,
                                                          flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
-
 
 
 class LockedNotification(Notification):
@@ -325,6 +335,19 @@ class LockedNotification(Notification):
         description = Translator.get("LOCKED_FILE", values)
         super(LockedNotification, self).__init__("LOCKED", title=title, description=description,
             engine_uid=engine_uid, level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+
+
+class DirectEditLockedNotification(Notification):
+    def __init__(self, filename, lock_owner, lock_created):
+        values = dict()
+        values["name"] = filename
+        values["lock_owner"] = lock_owner
+        values["lock_created"] = lock_created.strftime("%m/%d/%Y %H:%M:%S")
+        title = Translator.get("LOCKED", values)
+        description = Translator.get("DIRECT_EDIT_LOCKED_FILE", values)
+        super(DirectEditLockedNotification, self).__init__("DIRECT_EDIT_LOCKED", title=title, description=description,
+            level=Notification.LEVEL_WARNING,
             flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
 
 
@@ -345,7 +368,9 @@ class DefaultNotificationService(NotificationService):
         self._manager = manager
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
-        self._manager.get_drive_edit().driveEditLockError.connect(self._driveEditLockError)
+        self._manager.get_direct_edit().directEditLockError.connect(self._directEditLockError)
+        self._manager.get_direct_edit().directEditReadonly.connect(self._directEditReadonly)
+        self._manager.get_direct_edit().directEditLocked.connect(self._directEditLocked)
         self._manager.get_autolock_service().documentLocked.connect(self._lockDocument)
 
 
@@ -361,11 +386,11 @@ class DefaultNotificationService(NotificationService):
     def _lockDocument(self, filename):
         self.send_notification(LockNotification(filename))
 
-    def _driveEditLockError(self, lock, filename, ref):
+    def _directEditLockError(self, lock, filename, ref):
         if lock != 'lock' and lock != 'unlock':
-            log.debug("DriveEdit LockError not handled: %s", lock)
+            log.debug("DirectEdit LockError not handled: %s", lock)
             return
-        self.send_notification(DriveEditErrorLockNotification(lock, filename, ref))
+        self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
 
     def _newError(self, row_id):
         engine_uid = self.sender()._uid
@@ -385,6 +410,9 @@ class DefaultNotificationService(NotificationService):
         engine_uid = self.sender()._uid
         self.send_notification(ReadOnlyNotification(engine_uid, filename, parent))
 
+    def _directEditReadonly(self, filename):
+        self.send_notification(DirectEditReadOnlyNotification(filename))
+
     def _deleteReadonly(self, filename):
         engine_uid = self.sender()._uid
         self.send_notification(DeleteReadOnlyNotification(engine_uid, filename))
@@ -392,6 +420,9 @@ class DefaultNotificationService(NotificationService):
     def _newLocked(self, filename, lock_owner, lock_created):
         engine_uid = self.sender()._uid
         self.send_notification(LockedNotification(engine_uid, filename, lock_owner, lock_created))
+
+    def _directEditLocked(self, filename, lock_owner, lock_created):
+        self.send_notification(DirectEditLockedNotification(filename, lock_owner, lock_created))
 
     def _validAuthentication(self):
         engine_uid = self.sender()._uid

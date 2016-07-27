@@ -19,7 +19,15 @@ class WebMetadataApi(WebDriveApi):
     def __init__(self, application, engine, remote_ref, dlg=None):
         self._engine = engine
         self._remote_ref = remote_ref
+        self._error = dict()
         super(WebMetadataApi, self).__init__(application, dlg)
+
+    def set_last_error(self, error):
+        self._error = error
+
+    @QtCore.pyqtSlot(result=str)
+    def get_last_error(self):
+        return self._json(self._error)
 
     @QtCore.pyqtSlot(str, result=str)
     def set_current_file(self, remote_ref):
@@ -69,6 +77,18 @@ class WebMetadataApi(WebDriveApi):
             return ""
 
 
+class MetadataErrorHandler(QtCore.QObject):
+    def __init__(self, dialog, api):
+        super(MetadataErrorHandler, self).__init__()
+        self._api = api
+        # Have to save itself to the dialog to avoid being destroyed by scoping
+        dialog._handler = self
+        dialog.loadError.connect(self.loadMetadataErrorPage)
+
+    def loadMetadataErrorPage(self, reply):
+        self._api.set_last_error(reply)
+        self.sender().load('network_error.html', api=self._api)
+
 def CreateMetadataWebDialog(manager, file_path, application=None):
     if application is None:
         application = QtCore.QCoreApplication.instance()
@@ -81,8 +101,10 @@ def CreateMetadataWebDialog(manager, file_path, application=None):
         dialog.add_button("OK", application.translate("OK"))
         return dialog
     api = WebMetadataApi(application, infos[2], infos[3])
-    dialog = WebDialog(application, infos[0],
-                    title=manager.get_appname(), token=infos[1], api=api)
+    dialog = WebDialog(application, page=None, title=manager.get_appname())
+    dialog.set_token(infos[1])
+    MetadataErrorHandler(dialog, api)
+    dialog.load(infos[0], api=api)
     dialog.resize(METADATA_WEBVIEW_WIDTH, METADATA_WEBVIEW_HEIGHT)
     dialog.setWindowFlags(Qt.WindowStaysOnTopHint)
     return dialog

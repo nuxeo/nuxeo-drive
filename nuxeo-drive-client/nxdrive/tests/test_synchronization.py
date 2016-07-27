@@ -13,7 +13,6 @@ from nxdrive.osi import AbstractOSIntegration
 
 
 class TestSynchronization(UnitTestCase):
-
     def get_local_client(self, path):
         if self._testMethodName == 'test_synchronize_deep_folders':
             return LocalClient(path)
@@ -41,7 +40,7 @@ class TestSynchronization(UnitTestCase):
         self.assertTrue(local.exists('/Folder 1/Folder 1.2'))
         self.assertEquals(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
         self.assertTrue(local.exists('/Folder 2'))
-        # Cannot predicte the resolution in advance
+        # Cannot predict the resolution in advance
         self.assertTrue(remote.get_content(self._duplicate_file_1), "Some content.")
         self.assertTrue(remote.get_content(self._duplicate_file_2), "Other content.")
         if local.get_content('/Folder 2/Duplicated File.txt') == "Some content.":
@@ -446,7 +445,6 @@ class TestSynchronization(UnitTestCase):
         # Increase Automation execution timeout for NuxeoDrive.GetChangeSummary
         # because of the recursive parent FileSystemItem adaptation
         self.engine_1.timeout = 90
-        self.engine_1.start()
 
         # Create a file deep down in the hierarchy
         remote = self.remote_document_client_1
@@ -459,7 +457,10 @@ class TestSynchronization(UnitTestCase):
 
         remote.make_file(folder, "File.odt", content="Fake non-zero content.")
 
-        self.wait_sync(wait_for_async=True, timeout=90)
+        # Wait for ES indexing
+        self.wait()
+        self.engine_1.start()
+        self.wait_sync(timeout=90)
 
         local = self.local_client_1
         expected_folder_path = ('/' + folder_name) * folder_depth
@@ -637,6 +638,36 @@ class TestSynchronization(UnitTestCase):
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
         self.assertEquals(file_names, [u'file with forbidden chars- - - - - - - - - 2.txt'])
 
+    def test_synchronize_error_remote(self):
+        from urllib2 import HTTPError
+        path = '/' + self.workspace_title + '/test.odt'
+        remote = self.remote_document_client_1
+
+        self.engine_1.start()
+        self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
+        self.engine_1.invalidate_client_cache()
+        self.engine_1.get_remote_client().make_download_raise(HTTPError('', 400, '', {}, None))
+        remote.make_file('/', 'test.odt', 'Some content.')
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+        pair = self.engine_1.get_dao().get_state_from_local(u'/test.odt')
+        self.engine_1.stop()
+        pair = self.engine_1.get_dao().get_state_from_local(path)
+        self.assertEqual(pair.error_count, 4)
+        self.assertEqual(pair.pair_state, 'remotely_created')
+        self.engine_1.start()
+        self.wait_sync(fail_if_timeout=False)
+        pair = self.engine_1.get_dao().get_state_from_local(path)
+        self.assertEqual(pair.error_count, 4)
+        self.assertEqual(pair.pair_state, 'remotely_created')
+        self.engine_1.get_remote_client().make_download_raise(None)
+        # Requeue errors
+        self.engine_1.retry_pair(pair.id)
+        self.wait_sync(fail_if_timeout=False)
+        pair = self.engine_1.get_dao().get_state_from_local(path)
+        self.assertEqual(pair.error_count, 0)
+        self.assertEqual(pair.pair_state, 'synchronized')
+
+
     def test_synchronize_deleted_blob(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
@@ -707,3 +738,24 @@ class TestSynchronization(UnitTestCase):
         self.wait()
         self.assertFalse(remote.exists('/Local folder/Local file 1.odt'))
         self.assertFalse(remote.exists('/Local folder/Local file 2.odt'))
+
+    def test_synchronize_windows_foldername_endswith_space(self):
+        """
+        Use nuxeodrive.CreateFolder API to make a folder directly under the workspace "trial ".
+        Verify if the DS client downloads the folder and trims the space at the end
+        """
+        top_level_children = self.remote_file_system_client_1.get_top_level_children()
+        target = self.remote_file_system_client_1.make_folder(top_level_children[0]['id'], 'trial ')
+        self.remote_file_system_client_1.make_file(target.uid, 'aFile.txt', u'File A Content')
+        self.remote_file_system_client_1.make_file(target.uid, 'bFile.txt', u'File B Content')
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace'))
+        if AbstractOSIntegration.is_windows():
+            self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial/'), "Folder 'trial ' should be created without trailing space in the name")
+            self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial/aFile.txt'), "trial/aFile.txt should sync")
+            self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial/bFile.txt'), "trial/bFile.txt should sync")
+        else:
+            self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial /'), "Folder 'trial ' should be created with trailing space in the name")
+            self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial /aFile.txt'), "trial/aFile.txt should sync")
+            self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial /bFile.txt'), "trial/bFile.txt should sync")

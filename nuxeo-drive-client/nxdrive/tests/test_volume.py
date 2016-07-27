@@ -3,6 +3,7 @@
 '''
 
 from common_unit_test import UnitTestCase
+from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.tests.common_unit_test import log
 import random
 from nose.plugins.skip import SkipTest
@@ -257,3 +258,27 @@ class VolumeTestCase(UnitTestCase):
         self._check_folder(self.get_path(True, 1, 2))
         self._check_folder(self.get_path(True, 1, self.num_folders+1), added=[self.get_name(True, 1, 1)])
         self._check_folder(self.get_path(True, 1, self.num_folders+2), added=[self.get_name(True, 1, 1)])
+
+    def test_remote_scan(self):
+        nb_nodes = 0
+        if "TEST_REMOTE_SCAN_VOLUME" in os.environ:
+            env_nb_nodes = os.environ["TEST_REMOTE_SCAN_VOLUME"]
+            if env_nb_nodes:
+                nb_nodes = int(env_nb_nodes)
+        if nb_nodes == 0:
+            raise SkipTest("Skipped as TEST_REMOTE_SCAN_VOLUME is no set")
+        # Random mass import
+        self.root_remote_client.mass_import(TEST_WORKSPACE_PATH, nb_nodes)
+        # Wait for ES indexing
+        self.root_remote_client.wait_for_async_and_ES_indexing()
+        # Synchronize
+        self.engine_1.start()
+        self.wait_sync(timeout=nb_nodes)
+        # Check local tree
+        doc_count = self.root_remote_client.result_set_query(
+            "SELECT ecm:uuid FROM Document WHERE ecm:ancestorId = '%s'"
+            " AND ecm:isCheckedInVersion = 0"
+            " AND ecm:currentLifeCycleState != 'deleted'"
+            " AND ecm:mixinType != 'HiddenInNavigation'" % self.workspace)['resultsCount']
+        local_folders, local_file = self.get_local_child_count(self.local_nxdrive_folder_1 + '/' + self.workspace_title)
+        self.assertEquals(local_folders + local_file, doc_count)

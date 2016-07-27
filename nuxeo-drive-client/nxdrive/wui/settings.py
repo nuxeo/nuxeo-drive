@@ -15,6 +15,7 @@ from nxdrive.manager import ProxySettings, FolderAlreadyUsed
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.base_automation_client import get_proxy_handler
 from nxdrive.client.base_automation_client import get_opener_proxies
+from nxdrive.client.base_automation_client import AddonNotInstalled
 from nxdrive.engine.engine import RootAlreadyBindWithDifferentAccount
 from nxdrive.engine.engine import InvalidDriveException
 from nxdrive.wui.translator import Translator
@@ -104,7 +105,7 @@ class WebSettingsApi(WebDriveApi):
         binder.no_check = False
         binder.no_fscheck = not check_fs
         binder.url = url
-        log.debug("Binder is : %s/%s/%s", binder.url, binder.username, binder.password)
+        log.debug("Binder is : %s/%s", binder.url, binder.username)
         self._manager.bind_engine(self._manager._get_default_server_type(), local_folder, name, binder,
                                   starts=start_engine)
         return ""
@@ -135,17 +136,25 @@ class WebSettingsApi(WebDriveApi):
             return self.bind_server(local_folder, url, username, password, name, check_fs=False, token=token)
         except NotFound:
             return "FOLDER_DOES_NOT_EXISTS"
+        except AddonNotInstalled:
+            return "ADDON_NOT_INSTALLED"
         except InvalidDriveException:
             return "INVALID_PARTITION"
         except Unauthorized:
             return "UNAUTHORIZED"
         except FolderAlreadyUsed:
             return "FOLDER_USED"
+        except urllib2.HTTPError as e:
+            if (isinstance(url, QtCore.QString)):
+                url = str(url)
+            if e.code == 404 and not url.endswith("nuxeo/"):
+                if not url.endswith("/"):
+                    url += "/"
+                return self.bind_server(local_folder, url + "nuxeo/", username, password, name, check_fs, token)
+            return "CONNECTION_ERROR"
         except urllib2.URLError as e:
             if e.errno == 61:
                 return "CONNECTION_REFUSED"
-            return "CONNECTION_ERROR"
-        except urllib2.HTTPError as e:
             return "CONNECTION_ERROR"
         except Exception as e:
             log.exception(e)
@@ -165,7 +174,7 @@ class WebSettingsApi(WebDriveApi):
 
             # Handle server URL
             server_url = str(server_url)
-            engine_type = 'NXDRIVE'
+            engine_type = self._manager._get_default_server_type()
             if '#' in server_url:
                 info = server_url.split('#')
                 server_url = info[0]
@@ -175,6 +184,10 @@ class WebSettingsApi(WebDriveApi):
 
             # Connect to startup page
             status = self._connect_startup_page(server_url)
+            if status == 404 and not server_url.endswith("nuxeo/"):
+                status = self._connect_startup_page(server_url + "nuxeo/")
+                if status < 400 or status in (401, 500, 503):
+                    server_url = server_url + "nuxeo/"
             # Server will send a 401 in case of anonymous user configuration
             # Should maybe only check for 404
             if status < 400 or status in (401, 500, 503):

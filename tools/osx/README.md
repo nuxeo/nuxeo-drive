@@ -14,7 +14,7 @@ and active graphical session hence can be run by the Jenkins slave managing the
 `nuxeo-drive-dmg` job in charge of the generation of the `Nuxeo
 Drive.dmg` package:
 
-  http://qa.nuxeo.org/jenkins/job/nuxeo-drive-dmg/
+  http://qa.nuxeo.org/jenkins/job/other/job/nuxeo-drive-dmg/
 
 ## Background png resolution
 

@@ -31,7 +31,7 @@ Installing Nuxeo Drive requires two components: a server addon for the Nuxeo Pla
 
 **Stable releases for Nuxeo Drive** are available as a Marketplace package from the Nuxeo Online Services portal: [https://connect.nuxeo.com/nuxeo/site/marketplace/package/nuxeo-drive](https://connect.nuxeo.com/nuxeo/site/marketplace/package/nuxeo-drive)
 
-You can also fetch the **latest development version** of the [Marketplace package for the Nuxeo master branch](http://qa.nuxeo.org/jenkins/job/addons_nuxeo-drive-master-marketplace) from the Continuous Integration server (use at your own risk).
+You can also fetch the **latest development version** of the [Marketplace package for the Nuxeo master branch](http://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace) from the Continuous Integration server (use at your own risk).
 
 ### Installing the Marketplace Package
 
@@ -49,13 +49,15 @@ $NUXEO_HOME/bin/nuxeoctl start
 
 ### Ubuntu/Debian (and Other Linux Variants) Client
 
-The .deb (or .rpm) package of the client is not yet available. In the mean time you can install it from source code.
+The .deb (or .rpm) package of the client is not yet available. In the meantime you can install it from source code.
 
 *Has been reported to work on:* Ubuntu >= 12.04.
 
+#### xattr 
+
 First note that Nuxeo Drive uses [Extended file attributes](http://en.wikipedia.org/wiki/Extended_file_attributes) through the [xattr](https://pypi.python.org/pypi/xattr/) Python wrapper.
 
-On Linux, FreeBSD, and Mac OS X, xattrs are enabled in the default kernel.
+On FreeBSD, and Mac OS X, xattrs are enabled in the default kernel.
 
 On Linux, depending on the distribution, you may need a special mount option (`user_xattr`) to enable them for a given file system, e.g.:
 
@@ -63,7 +65,19 @@ On Linux, depending on the distribution, you may need a special mount option (`u
 sudo mount -oremount,user_xattr /dev/sda3
 ```
 
-Then install the required system and Python packages:
+#### Python 2.7 or higher
+
+Nuxeo Drive uses some packages, which are only compatible from **python version 2.7 on**. 
+If this excludes using the standard python installation of certain OS distributions, you may still install python 2.7 (or higher) [manually from the download pages](https://www.python.org/downloads/) on your system. 
+However, this may break other tools in your environment, who need to be consistent with the default python packages.
+Using [Anaconda](http://continuum.io/downloads) to switch between different python installs/environments may help in this case.
+
+Make sure that the latest version of [pip](http://www.pip-installer.org/) is installed:
+
+
+#### Install Nuxeo Drive
+
+Then install the required system and Python packages and the Nuxeo Drive code itself:
 
 Debian package manager:
 
@@ -72,6 +86,7 @@ sudo apt-get install python-pip python-dev python-qt4 libffi-dev git
 ```
 
 Redhat package manager (RPM):
+
 
 ```
 sudo yum install python-pip python-devel PyQt4 libffi-devel git
@@ -102,17 +117,17 @@ sudo sh -c "echo 8192 > $ofile"
 cat $ofile
 ```
 
-### Mac OSX Desktop Client
+### Mac OS X Desktop Client
 
 Once the Marketplace package is installed, the Mac OS X desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab.
 
-You can also fetch the latest development version for Mac OS X from the [our Continous Integration server](https://qa.nuxeo.org/jenkins/job/nuxeo-drive-dmg).
+You can also fetch the latest development version for Mac OS X from the [our Continous Integration server](https://qa.nuxeo.org/jenkins/job/other/job/nuxeo-drive-dmg).
 
 ### Windows Desktop Client
 
 Once the Marketplace package is installed, the Windows desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab.
 
-You can also fetch the latest development version for nuxeo-drive-<version>-win32.msi Windows installer from [our Continuous Integration server](http://qa.nuxeo.org/jenkins/job/nuxeo-drive-msi/).
+You can also fetch the latest development version for nuxeo-drive-<version>-win32.msi Windows installer from [our Continuous Integration server](http://qa.nuxeo.org/jenkins/job/other/job/nuxeo-drive-msi/).
 
 Once you installed the package (Administrator rights required) the new folder holding the ndrive.exe and ndrivew.exe programs will be added to your `Path` environment variable automatically.
 
@@ -184,6 +199,22 @@ For more options, type:
 ndrive --help
 ndrive subcommand --help
 ```
+
+### Building pip package
+
+On Mac you can face an issue with your locale with a message like
+
+```
+ValueError: unknown locale: UTF-8
+```
+
+In that case you need to specify your locale as :
+
+```
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+```
+
 
 ## Reporting Issues
 

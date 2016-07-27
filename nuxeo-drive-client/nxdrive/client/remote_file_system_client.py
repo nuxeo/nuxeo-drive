@@ -34,6 +34,7 @@ BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
     'can_create_child',  # True is can create child
     'lock_owner',  # lock owner
     'lock_created',  # lock creation time
+    'can_scroll_descendants'  # True if the API to scroll through the descendants can be used
 ])
 
 
@@ -116,6 +117,13 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def get_children_info(self, fs_item_id):
         children = self.execute("NuxeoDrive.GetChildren", id=fs_item_id)
         return [self.file_to_info(fs_item) for fs_item in children]
+
+    def scroll_descendants(self, fs_item_id, scroll_id, batch_size=100):
+        res = self.execute("NuxeoDrive.ScrollDescendants", id=fs_item_id, scrollId=scroll_id, batchSize=batch_size)
+        return {
+            'scroll_id': res['scrollId'],
+            'descendants': [self.file_to_info(fs_item) for fs_item in res['fileSystemItems']]
+        }
 
     def is_filtered(self, path):
         return False
@@ -211,6 +219,12 @@ class RemoteFileSystemClient(BaseAutomationClient):
             download_url = None
             can_update = False
             can_create_child = fs_item['canCreateChild']
+            # Scroll API availability
+            can_scroll = fs_item.get('canScrollDescendants')
+            if can_scroll:
+                can_scroll_descendants = True
+            else:
+                can_scroll_descendants = False
         else:
             digest = fs_item['digest']
             item_digest_algorithm = fs_item['digestAlgorithm']
@@ -221,6 +235,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
             download_url = fs_item['downloadURL']
             can_update = fs_item['canUpdate']
             can_create_child = False
+            can_scroll_descendants = False
 
         # Lock info
         lock_info = fs_item.get('lockInfo')
@@ -241,7 +256,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
             name, fs_item['id'], fs_item['parentId'],
             fs_item['path'], folderish, last_update, last_contributor, digest, digest_algorithm,
             download_url, fs_item['canRename'], fs_item['canDelete'],
-            can_update, can_create_child, lock_owner, lock_created)
+            can_update, can_create_child, lock_owner, lock_created, can_scroll_descendants)
 
     #
     # API specific to the remote file system client

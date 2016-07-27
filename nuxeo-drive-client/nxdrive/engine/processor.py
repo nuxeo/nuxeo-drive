@@ -8,6 +8,7 @@ from nxdrive.logging_config import get_logger
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME, UNACCESSIBLE_HASH
 from nxdrive.client.common import NotFound
 from nxdrive.client.common import safe_filename
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time, is_office_temp_file
 from PyQt4.QtCore import pyqtSignal
@@ -172,6 +173,16 @@ class Processor(EngineWorker):
                     log.trace("Skip as pair is in non-processable state: %r", doc_pair)
                     self._current_item = self._get_item()
                     continue
+                if AbstractOSIntegration.is_mac() and local_client.exists(doc_pair.local_path):
+                    try:
+                        finder_info = local_client.get_remote_id(doc_pair.local_path, "com.apple.FinderInfo")
+                        if finder_info is not None and 'brokMACS' in finder_info:
+                            log.trace("Skip as pair is in use by Finder: %r", doc_pair)
+                            self._postpone_pair(doc_pair, 'Finder using file', interval=3)
+                            self._current_item = self._get_item()
+                            continue
+                    except IOError:
+                        pass
                 # TODO Update as the server dont take hash to avoid conflict yet
                 if (doc_pair.pair_state.startswith("locally")
                         and doc_pair.remote_ref is not None):
@@ -200,6 +211,7 @@ class Processor(EngineWorker):
                     self._handle_no_parent(doc_pair, local_client, remote_client)
                     self._current_item = self._get_item()
                     continue
+
                 self._current_metrics = dict()
                 handler_name = '_synchronize_' + doc_pair.pair_state
                 self._action = Action(handler_name)
@@ -326,11 +338,12 @@ class Processor(EngineWorker):
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
                     log.debug("Set pair unsynchronized: %r", doc_pair)
-                    self._dao.unsynchronize_state(doc_pair)
                     info = remote_client.get_info(doc_pair.remote_ref)
                     if info.lock_owner is None:
+                        self._dao.unsynchronize_state(doc_pair, 'READONLY')
                         self._engine.newReadonly.emit(doc_pair.local_name, None)
                     else:
+                        self._dao.unsynchronize_state(doc_pair, 'LOCKED')
                         self._engine.newLocked.emit(doc_pair.local_name, info.lock_owner, info.lock_created)
                     self._handle_unsynchronized(local_client, doc_pair)
                 return
@@ -343,11 +356,11 @@ class Processor(EngineWorker):
         # TODO Select the only states that is not a collection
         return self._dao.get_normal_state_from_remote(ref)
 
-    def _postpone_pair(self, doc_pair, reason=''):
+    def _postpone_pair(self, doc_pair, reason='', interval=None):
         # Wait 60s for it
         log.trace("Postpone creation of local file(%s): %r", reason, doc_pair)
         doc_pair.error_count = 1
-        self._engine.get_queue_manager().push_error(doc_pair, exception=None)
+        self._engine.get_queue_manager().push_error(doc_pair, exception=None, interval=interval)
 
     def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
         name = os.path.basename(doc_pair.local_path)
@@ -371,7 +384,7 @@ class Processor(EngineWorker):
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             if parent_pair is not None and parent_pair.pair_state == 'unsynchronized':
-                self._dao.unsynchronize_state(doc_pair)
+                self._dao.unsynchronize_state(doc_pair, 'PARENT_UNSYNC')
                 self._handle_unsynchronized(local_client, doc_pair)
                 return
             raise ValueError(
@@ -393,11 +406,17 @@ class Processor(EngineWorker):
                     remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
                     remote_doc_client.undelete(uid)
                     fs_item_info = remote_client.get_info(remote_ref)
+                    # Handle document move
                     if not fs_item_info.path.startswith(remote_parent_path):
                         fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
+                    # Handle document rename
+                    if fs_item_info.name != doc_pair.local_name:
+                        fs_item_info = remote_client.rename(fs_item_info.uid, doc_pair.local_name)
                     self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
                                                   versionned=False)
-                    self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=fs_item_info)
+                    # Handle document modification - update the doc_pair
+                    doc_pair = self._dao.get_state_from_id(doc_pair.id)
+                    self._synchronize_locally_modified(doc_pair, local_client, remote_client)
                     return
                 # Document exists on the server
                 if info.parent_uid == parent_pair.remote_ref:
@@ -437,11 +456,21 @@ class Processor(EngineWorker):
                 remote_ref = fs_item_info.uid
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
+            remote_id_done = False
+            # Set as soon as possible the remote_id as update_remote_state can crash with InterfaceError
+            # NXDRIVE-599
+            try:
+                pass
+                #local_client.set_remote_id(doc_pair.local_path, remote_ref)
+                #remote_id_done = True
+            except (NotFound, IOError, OSError):
+                pass
             self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
                                           versionned=False)
             log.trace("Put remote_ref in %s", remote_ref)
             try:
-                local_client.set_remote_id(doc_pair.local_path, remote_ref)
+                if not remote_id_done:
+                    local_client.set_remote_id(doc_pair.local_path, remote_ref)
             except (NotFound, IOError, OSError):
                 new_pair = self._dao.get_state_from_id(doc_pair.id)
                 # File has been moved during creation
@@ -462,7 +491,7 @@ class Processor(EngineWorker):
                 self._dao.remove_state(doc_pair)
             else:
                 log.debug("Set pair unsynchronized: %r", doc_pair)
-                self._dao.unsynchronize_state(doc_pair)
+                self._dao.unsynchronize_state(doc_pair, 'READONLY')
                 self._engine.newReadonly.emit(doc_pair.local_name, parent_pair.remote_name)
                 self._handle_unsynchronized(local_client, doc_pair)
 
@@ -694,7 +723,7 @@ class Processor(EngineWorker):
                 " folder" % (name, doc_pair.remote_ref))
         if parent_pair.local_path is None:
             if parent_pair.pair_state == 'unsynchronized':
-                self._dao.unsynchronize_state(doc_pair)
+                self._dao.unsynchronize_state(doc_pair, 'PARENT_UNSYNC')
                 self._handle_unsynchronized(local_client, doc_pair)
                 return
             # Illegal state: report the error and let's wait for the

@@ -1,4 +1,4 @@
-var SystrayController = function($scope, $interval, $translate) {
+var SystrayController = function($scope, $timeout, $translate) {
 	DriveController.call(this, $scope, $translate);
 	var self = this;
 	// Set default status
@@ -38,10 +38,14 @@ var SystrayController = function($scope, $interval, $translate) {
 		self.getLastFiles($scope);
 	}
 	$scope.update = function() {
+		$scope.interval = null;
 		$scope.app_update = angular.fromJson(drive.get_update_status());
 		$scope.sync = drive.is_syncing($scope.engine.uid);
 		if ($scope.sync == $scope.engine.syncing && $scope.sync != 'syncing') {
 			// Nothing to update
+			if ($scope.interval === null ) {
+				$scope.interval = $timeout($scope.update, 1000);
+			}
 			return;
 		}
 		$scope.engine.syncing = $scope.sync;
@@ -53,6 +57,9 @@ var SystrayController = function($scope, $interval, $translate) {
 			$scope.current_actions = [];
 		}
 		$scope.updateFiles();
+		if ($scope.interval === null ) {
+			$scope.interval = $timeout($scope.update, 1000);
+		}
 	}
 	$scope.triggerNotification = function(notification) {
 		drive.trigger_notification(notification.uid);
@@ -75,8 +82,8 @@ var SystrayController = function($scope, $interval, $translate) {
 		$scope.notifications = notifications;
 		$scope.current_actions = angular.fromJson(drive.get_actions(engine.uid));
 		$scope.updateFiles();
-		if ($scope.interval == null) {
-			$scope.interval = $interval($scope.update, 1000);
+		if ($scope.interval === null ) {
+			$scope.interval = $timeout($scope.update, 1000);
 		}
 	}
 	self.init($scope);

@@ -314,7 +314,7 @@ class Engine(QObject):
         from threading import Thread
 
         def run():
-            self._manager.get_drive_edit().edit(self._server_url,
+            self._manager.get_direct_edit().edit(self._server_url,
                                                 doc_ref, filename=remote_name, user=self._remote_user)
         self._edit_thread = Thread(target=run)
         self._edit_thread.start()
@@ -520,11 +520,11 @@ class Engine(QObject):
             return
         self._dao.reset_error(state)
 
-    def unsynchronize_pair(self, row_id):
+    def unsynchronize_pair(self, row_id, reason=None):
         state = self._dao.get_state_from_id(row_id)
         if state is None:
             return
-        self._dao.unsynchronize_state(state)
+        self._dao.unsynchronize_state(state, last_error=reason)
         self._dao.reset_error(state)
 
     def resolve_with_local(self, row_id):
@@ -598,6 +598,8 @@ class Engine(QObject):
     def start(self):
         if not self.check_fs_marker():
             raise FsMarkerException()
+        # Checking root in case of failed migration
+        self._check_root()
         self._stopped = False
         Processor.soft_locks = dict()
         log.debug("Engine %s starting", self.get_uid())
@@ -623,6 +625,7 @@ class Engine(QObject):
         metrics["syncing"] = self._dao.get_syncing_count()
         metrics["error_files"] = self._dao.get_error_count()
         metrics["conflicted_files"] = self._dao.get_conflict_count()
+        metrics["unsynchronized_files"] = self._dao.get_unsynchronized_count()
         metrics["files_size"] = self._dao.get_global_size()
         metrics["invalid_credentials"] = self._invalid_credentials
         return metrics
@@ -987,7 +990,7 @@ class Engine(QObject):
                     lastName = properties.get('lastName')
                     if firstName and lastName:
                         fullname = " ".join([firstName, lastName]).strip()
-                        self._user_cache[userid] = fullname
+                self._user_cache[userid] = fullname
         except urllib2.URLError as e:
             log.exception(e)
         return fullname

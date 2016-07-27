@@ -486,7 +486,7 @@ class LocalWatcher(EngineWorker):
                     continue
 
         for deleted in children.values():
-            if deleted.pair_state == "remotely_created":
+            if deleted.pair_state == "remotely_created" or deleted.remote_state == "created":
                 continue
             log.debug("Found deleted file %s", deleted.local_path)
             # May need to count the children to be ok
@@ -735,14 +735,17 @@ class LocalWatcher(EngineWorker):
                     return
                 doc_pair.local_digest = digest
                 doc_pair.local_state = 'modified'
-            if AbstractOSIntegration.is_mac() and evt.event_type == 'modified' and doc_pair.remote_ref is not None and doc_pair.remote_ref != local_info.remote_ref:
+            if evt.event_type == 'modified' and doc_pair.remote_ref is not None and doc_pair.remote_ref != local_info.remote_ref:
                 original_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
                 original_info = None
                 if original_pair is not None:
                     original_info = self.client.get_info(original_pair.local_path, raise_if_missing=False)
-                if original_info is not None and original_info.remote_ref == local_info.remote_ref:
+                if AbstractOSIntegration.is_mac() and original_info is not None and original_info.remote_ref == local_info.remote_ref:
                     log.debug("MacOSX has postponed overwriting of xattr, need to reset remote_ref for %r", doc_pair)
                     # We are in a copy/paste situation with OS overriding the xattribute
+                    self.client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
+                # This happens on overwrite through Windows Explorer
+                if original_info is None:
                     self.client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
             self._dao.update_local_state(doc_pair, local_info)
 

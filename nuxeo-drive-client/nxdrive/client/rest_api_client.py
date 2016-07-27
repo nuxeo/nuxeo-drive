@@ -36,7 +36,10 @@ class RestAPIClient(object):
     def get_acls(self, ref):
         return self.execute('id/' + ref, adapter='acl')
 
-    def execute(self, relative_url, adapter=None, timeout=-1):
+    def fetch(self, ref, fetchDocument=None, enrichers=None):
+        return self.execute('id/' + ref, fetchDocument=fetchDocument, enrichers=enrichers)
+
+    def execute(self, relative_url, adapter=None, fetchDocument=None, enrichers=None, timeout=-1):
         """Execute a REST API call"""
 
         url = self.rest_api_url + relative_url
@@ -46,8 +49,19 @@ class RestAPIClient(object):
         headers = {
             "Content-Type": "application/json+nxrequest",
             "Accept": "application/json+nxentity, */*",
+            "X-NXproperties": "*",
+            # Keep compatibility with old header name
+            "X-NXDocumentProperties": "*",
         }
         headers.update(self._get_common_headers())
+        if fetchDocument is not None:
+            headers.update({
+                "X-NXfetch.document": ', '.join(fetchDocument),
+            })
+        if enrichers is not None:
+            headers.update({
+                "X-NXenrichers.document": ', '.join(enrichers),
+            })
 
         cookies = self._get_cookies()
         log.trace("Calling REST API %s with headers %r and cookies %r", url,

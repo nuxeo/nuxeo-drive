@@ -804,6 +804,14 @@ class EngineDAO(ConfigurationDAO):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_digest=? AND pair_state='synchronized'", (digest,)).fetchone()
 
+    def get_remote_descendants(self, path):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM States WHERE remote_parent_path LIKE ?", (path + '%',)).fetchall()
+
+    def get_remote_descendants_from_ref(self, ref):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM States WHERE remote_parent_path LIKE ?", ('%' + ref + '%',)).fetchall()
+
     def get_remote_children(self, ref):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_ref=?", (ref,)).fetchall()
@@ -811,6 +819,9 @@ class EngineDAO(ConfigurationDAO):
     def get_new_remote_children(self, ref):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_state='created' AND local_state='unknown'", (ref,)).fetchall()
+
+    def get_unsynchronized_count(self):
+        return self.get_count("pair_state='unsynchronized'")
 
     def get_conflict_count(self):
         return self.get_count("pair_state='conflicted'")
@@ -844,6 +855,10 @@ class EngineDAO(ConfigurationDAO):
     def get_global_size(self):
         c = self._get_read_connection(factory=StateRow).cursor()
         return c.execute("SELECT SUM(size) as sum FROM States WHERE pair_state='synchronized'").fetchone().sum
+
+    def get_unsynchronizeds(self):
+        c = self._get_read_connection(factory=StateRow).cursor()
+        return c.execute("SELECT * FROM States WHERE pair_state='unsynchronized'").fetchall()
 
     def get_conflicts(self):
         c = self._get_read_connection(factory=StateRow).cursor()
@@ -1142,14 +1157,14 @@ class EngineDAO(ConfigurationDAO):
             return True
         return False
 
-    def unsynchronize_state(self, row):
+    def unsynchronize_state(self, row, last_error=None):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("UPDATE States SET pair_state='unsynchronized', last_sync_date=?, processor = 0," +
-                      "last_error=NULL, error_count=0, last_sync_error_date=NULL WHERE id=?",
-                      (datetime.utcnow(), row.id))
+                      "last_error=?, error_count=0, last_sync_error_date=NULL WHERE id=?",
+                      (datetime.utcnow(), last_error, row.id))
             if self.auto_commit:
                 con.commit()
         finally:

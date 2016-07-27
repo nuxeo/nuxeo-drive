@@ -1,21 +1,18 @@
 from PyQt4 import QtCore
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import FolderAlreadyUsed
-from nxdrive.wui.dialog import WebDialog
+from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
 import urllib2
 
 log = get_logger(__name__)
 
 
-class WebAuthenticationApi(QtCore.QObject):
+class WebAuthenticationApi(WebDriveApi):
     def __init__(self, settings_api, callback_params):
-        super(WebAuthenticationApi, self).__init__()
+        super(WebAuthenticationApi, self).__init__(settings_api._application)
         self._settings_api = settings_api
         self._callback_params = callback_params
-
-    def set_dialog(self, dlg):
-        self._dialog = dlg
 
     @QtCore.pyqtSlot(str, str)
     def create_account(self, username, token):
