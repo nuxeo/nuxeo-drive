@@ -4,9 +4,13 @@ import unicodedata
 from datetime import datetime
 import hashlib
 import os
+import sys
 import shutil
 import re
 import tempfile
+from functools import wraps
+from collections import Iterable
+from functools import partial
 from nxdrive.client.common import BaseClient, UNACCESSIBLE_HASH
 from nxdrive.osi import AbstractOSIntegration
 
@@ -101,6 +105,21 @@ class FileInfo(object):
         return h.hexdigest()
 
 
+# filters for files to be ignored
+MAX_SIZE = sys.maxint
+
+registry = set()
+
+
+def register(*args, **kwargs):
+    def decorator(func):
+        func2 = partial(func, *args, **kwargs)
+        registry.add(func2)
+        print 'added %s to registry' % func
+        return func2
+    return decorator
+
+
 class LocalClient(BaseClient):
     """Client API implementation for the local file system"""
 
@@ -129,6 +148,75 @@ class LocalClient(BaseClient):
             base_folder = base_folder[:-1]
         self.base_folder = base_folder
         self._digest_func = digest_func
+
+    @register()
+    def ignore_non_existant(self, parent, name, **kwargs):
+        path = self._abspath(os.path.join(parent, name))
+        return not os.path.exists(path)
+
+    @register()
+    def ignore_guest_folder(self, parent, name, **kwargs):
+        path = self._abspath(os.path.join(parent, name))
+        return os.path.exists(path) and os.path.isdir(path) and name == 'Guest Folder'
+
+    @register(prefixes=(
+            '.',  # hidden Unix files
+            '~$',  # Windows lock files
+            'Thumbs.db',  # Thumbnails files
+            'Icon\r',  # Mac Icon
+            'desktop.ini',  # Icon for windows
+    ))
+    def ignore_prefixes(self, parent, name, **kwargs):
+        prefixes = kwargs['prefixes']
+        if prefixes is None:
+            return False
+        if isinstance(prefixes, Iterable):
+            for prefix in prefixes:
+                if name.startswith(prefix):
+                    return True
+        elif isinstance(prefixes, str):
+            if name.startswith(prefixes):
+                return True
+        else:
+            return False
+
+    @register(suffixes=(
+            '~',  # editor buffers
+            '.swp',  # vim swap files
+            '.lock',  # some process use file locks
+            '.LOCK',  # other locks
+            '.part', '.crdownload', '.partial',  # partially downloaded files by browsers
+    ))
+    def ignore_suffixes(self, parent, name, **kwargs):
+        suffixes = kwargs['suffixes']
+        if suffixes is None:
+            return False
+        if isinstance(suffixes, Iterable):
+            for suffix in suffixes:
+                if name.endswith(suffix):
+                    return True
+        elif isinstance(suffixes, str):
+            if name.endswith(suffixes):
+                return True
+        else:
+            return False
+
+    @register(prefixes=('~', '#',), suffixes=('.tmp', '#',))
+    def ignore_prefix_and_suffix(self, parent, name, **kwargs):
+        prefixes = kwargs['prefixes']
+        suffixes = kwargs['suffixes']
+        if prefixes is None or suffixes is None:
+            return False
+        if len(name) < 2:
+            return False
+        if isinstance(prefixes, str) and isinstance(suffixes, str):
+            return name.startswith(prefixes) and name.endswith(suffixes)
+
+        if isinstance(prefixes, Iterable) and isinstance(suffixes, Iterable):
+            for prefix, suffix in zip(prefixes, suffixes):
+                if name.startswith(prefix) and name.endswith(suffix):
+                    return True
+        return False
 
     def is_case_sensitive(self):
         if self._case_sensitive is None:
@@ -461,41 +549,21 @@ class LocalClient(BaseClient):
             return False
         return bool(ord(attrs[8]) & 0x20)
 
-    def is_ignored(self, parent_ref, file_name):
-        # Add parent_ref to be able to filter on size if needed
-        ignore = False
-        # Office temp file
-        # http://support.microsoft.com/kb/211632
-        if file_name.startswith("~") and file_name.endswith(".tmp"):
-            return True
-        # Emacs auto save file
-        # http://www.emacswiki.org/emacs/AutoSave
-        if file_name.startswith("#") and file_name.endswith("#") and len(file_name) > 2:
-            return True
-        for suffix in self.ignored_suffixes:
-            if file_name.endswith(suffix):
-                ignore = True
-                break
-        for prefix in self.ignored_prefixes:
-            if file_name.startswith(prefix):
-                ignore = True
-                break
-        if ignore:
-            return True
-        if AbstractOSIntegration.is_windows():
-            # NXDRIVE-465
-            ref = self.get_children_ref(parent_ref, file_name)
-            path = self._abspath(ref)
-            if not os.path.exists(path):
-                return False
-            import win32con
-            import win32api
-            attrs = win32api.GetFileAttributes(path)
-            if attrs & win32con.FILE_ATTRIBUTE_SYSTEM == win32con.FILE_ATTRIBUTE_SYSTEM:
-                return True
-            if attrs & win32con.FILE_ATTRIBUTE_HIDDEN == win32con.FILE_ATTRIBUTE_HIDDEN:
-                return True
-        return False
+    def manipulate_guest_filter(self, ignore_guest):
+        if ignore_guest:
+            func = None
+            for f in registry:
+                if f.func.func_name == "ignore_guest_folder":
+                    func = f
+                    break
+            if func:
+                registry.remove(func)
+        else:
+            registry.add(self.ignore_guest_folder)
+
+    def is_ignored(self, parent_ref, file_name, ignore_guest=False):
+        self.manipulate_guest_filter(ignore_guest)
+        return any(f(self, parent_ref, file_name) for f in registry)
 
     def get_children_ref(self, parent_ref, name):
         if parent_ref == u'/':
