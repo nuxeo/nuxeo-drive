@@ -8,6 +8,7 @@ from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
 from PyQt4 import QtCore
 
+
 log = get_logger(__name__)
 
 
@@ -88,8 +89,12 @@ class WebConflictsApi(WebDriveApi):
         if state is None:
             return None
         result = super(WebConflictsApi, self)._export_state(state)
-        result["last_contributor"] = " " if state.last_remote_modifier is None \
-                                        else self._engine.get_user_full_name(state.last_remote_modifier)
+        result["last_contributor"] = ""
+        user_info = self._engine._dao.get_user_info(state.last_remote_modifier)
+        if user_info:
+            result["last_contributor"] = ("%s %s" % (user_info.first_name, user_info.last_name)).strip('(').strip(')')
+        else:
+            log.warn("User name failed to resolve for user_id : %r" % state.last_remote_modifier)
         date_time = self.get_date_from_sqlite(state.last_remote_updated)
         result["last_remote_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
         date_time = self.get_date_from_sqlite(state.last_local_updated)

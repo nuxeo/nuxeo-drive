@@ -153,6 +153,8 @@ class Processor(EngineWorker):
             doc_pair = None
             try:
                 doc_pair = self._dao.acquire_state(self._thread_id, self._current_item.id)
+                if doc_pair and doc_pair.last_remote_modifier:
+                    self._engine._user_name_resolver.refresh_user(doc_pair.last_remote_modifier)
             except:
                 log.trace("Cannot acquire state for: %r", self._current_item)
                 self._engine.get_queue_manager().push(self._current_item)

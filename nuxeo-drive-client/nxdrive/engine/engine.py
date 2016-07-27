@@ -26,7 +26,7 @@ import datetime
 from cookielib import CookieJar
 from nxdrive.client.common import safe_filename
 from nxdrive.gui.resources import find_icon
-import urllib2
+from nxdrive.engine.username_resolver import UserNameResolver
 
 log = get_logger(__name__)
 
@@ -204,8 +204,8 @@ class Engine(QObject):
         self._scanPair.connect(self._remote_watcher.scan_pair)
         # Set the root icon
         self._set_root_icon()
-        # Set user full name
-        self._user_cache = dict()
+        # Get userid to user full name mapping
+        self._user_name_resolver = UserNameResolver(self)
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id):
@@ -345,6 +345,7 @@ class Engine(QObject):
             return
         self._pause = False
         self._queue_manager.resume()
+        self._user_name_resolver.resume()
         for thread in self._threads:
             if thread.isRunning():
                 thread.worker.resume()
@@ -357,6 +358,7 @@ class Engine(QObject):
             return
         self._pause = True
         self._queue_manager.suspend()
+        self._user_name_resolver.suspend()
         for thread in self._threads:
             thread.worker.suspend()
         self.syncSuspended.emit()
@@ -364,6 +366,7 @@ class Engine(QObject):
     def unbind(self):
         self.stop()
         try:
+            self._user_name_resolver.stop()
             # Dont fail if not possible to remove token
             doc_client = self.get_remote_doc_client()
             doc_client.revoke_token()
@@ -605,6 +608,8 @@ class Engine(QObject):
         log.debug("Engine %s starting", self.get_uid())
         for thread in self._threads:
             thread.start()
+        if not self._user_name_resolver.is_started():
+            self._user_name_resolver.start()
         self.syncStarted.emit(0)
         self._start.emit()
 
@@ -972,25 +977,3 @@ class Engine(QObject):
                                         self._manager.get_device_id(), self._manager.get_version(), None,
                                         self.get_remote_token(), timeout=self.timeout, cookie_jar=self.cookie_jar)
         return rest_client
-
-    def get_user_full_name(self, userid):
-        """
-            Get the last contributor full name
-        """
-        fullname = userid
-        try:
-            if userid in self._user_cache:
-                fullname = self._user_cache[userid]
-            else:
-                rest_client = self.get_rest_api_client()
-                response = rest_client.get_user_full_name(userid)
-                if response and 'properties' in response:
-                    properties = response['properties']
-                    firstName = properties.get('firstName')
-                    lastName = properties.get('lastName')
-                    if firstName and lastName:
-                        fullname = " ".join([firstName, lastName]).strip()
-                        self._user_cache[userid] = fullname
-        except urllib2.URLError as e:
-            log.exception(e)
-        return fullname

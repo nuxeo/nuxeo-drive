@@ -549,3 +549,13 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def result_set_query(self, query):
         return self.execute("Repository.ResultSetQuery", query=query)
+
+    def get_all_users(self):
+        log.trace("Retrieving all users using UserGroup.Suggestion")
+        try:
+            return self.execute("UserGroup.Suggestion",
+                                userSuggestionMaxSearchResults="100",
+                                searchType="USER_TYPE",
+                                searchTerm="")
+        except urllib2.HTTPError as e:
+            log.exception(e)

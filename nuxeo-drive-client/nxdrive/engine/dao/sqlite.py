@@ -553,6 +553,7 @@ class EngineDAO(ConfigurationDAO):
         cursor.execute("CREATE TABLE if not exists RemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
         cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
         self._create_state_table(cursor)
+        self._create_users_table(cursor)
 
     def _get_read_connection(self, factory=StateRow):
         return super(EngineDAO, self)._get_read_connection(factory)
@@ -1412,3 +1413,33 @@ class EngineDAO(ConfigurationDAO):
 
     def _escape(self, _str):
         return _str.replace("'", "''")
+
+    def _create_users_table(self, cursor, force=False):
+        '''
+            Create a new table 'Users' to store the mapping between user-id and user's full name
+        '''
+        if force:
+            statement = ''
+        else:
+            statement = 'if not exists '
+        cursor.execute("CREATE TABLE " + statement + "Users(user_id VARCHAR NOT NULL PRIMARY KEY, first_name VARCHAR, last_name VARCHAR, last_refreshed TIMESTAMP);")
+
+    def insert_update_user_info(self, userid, firstName, lastName):
+        log.trace("Inserting user to database: %r" % userid)
+        with self._lock:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("INSERT OR REPLACE INTO Users(user_id, first_name, last_name, last_refreshed) VALUES (?,?,?,?)",(userid, firstName, lastName, datetime.utcnow()))
+            con.commit()
+
+    def get_user_info(self, userid):
+        c = self._get_read_connection(factory=CustomRow).cursor()
+        return c.execute("SELECT * FROM Users WHERE user_id=?",(userid,)).fetchone()
+
+    def get_next_users_to_resolve(self):
+        '''
+            Always retrieve the User whose last_refreshed time is oldest
+            For not yet resolved users, the last_refreshed will be datetime.min
+        '''
+        c = self._get_read_connection(factory=CustomRow).cursor()
+        return c.execute("SELECT * from Users where last_refreshed < datetime('now', '-1 day')").fetchall()
