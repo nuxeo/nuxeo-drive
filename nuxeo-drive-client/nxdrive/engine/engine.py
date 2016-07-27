@@ -990,7 +990,7 @@ class Engine(QObject):
                     lastName = properties.get('lastName')
                     if firstName and lastName:
                         fullname = " ".join([firstName, lastName]).strip()
-                        self._user_cache[userid] = fullname
+                self._user_cache[userid] = fullname
         except urllib2.URLError as e:
             log.exception(e)
         return fullname
