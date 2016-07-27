@@ -113,7 +113,12 @@ registry = set()
 
 def register(*args, **kwargs):
     def decorator(func):
+        try:
+            apply_to_parent = kwargs['apply_to_parent']
+        except KeyError:
+            apply_to_parent = False
         func2 = partial(func, *args, **kwargs)
+        func2.apply_to_parent = apply_to_parent
         registry.add(func2)
         print 'added %s to registry' % func
         return func2
@@ -165,7 +170,8 @@ class LocalClient(BaseClient):
             'Thumbs.db',  # Thumbnails files
             'Icon\r',  # Mac Icon
             'desktop.ini',  # Icon for windows
-    ))
+    ), apply_to_parent=True
+    )
     def ignore_prefixes(self, parent, name, **kwargs):
         prefixes = kwargs['prefixes']
         if prefixes is None:
@@ -218,7 +224,7 @@ class LocalClient(BaseClient):
                     return True
         return False
 
-    @register
+    @register(apply_to_parent=True)
     def ignore_hidden(self, parent, name, **kwargs):
         if AbstractOSIntegration.is_windows():
             # NXDRIVE 465
@@ -582,7 +588,12 @@ class LocalClient(BaseClient):
 
     def is_ignored(self, parent_ref, file_name, ignore_guest=False):
         self.manipulate_guest_filter(ignore_guest)
-        return any(f(self, parent_ref, file_name) for f in registry)
+        grandparent_ref, dir_name = os.path.split(parent_ref)
+        if dir_name:
+            ignore = any(f(grandparent_ref, dir_name) for f in registry if f.apply_to_parent)
+        else:
+            ignore = False
+        return ignore or any(f(self, parent_ref, file_name) for f in registry)
 
     def get_children_ref(self, parent_ref, name):
         if parent_ref == u'/':
