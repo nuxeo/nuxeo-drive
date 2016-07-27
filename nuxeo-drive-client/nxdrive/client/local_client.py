@@ -218,6 +218,25 @@ class LocalClient(BaseClient):
                     return True
         return False
 
+    @register
+    def ignore_hidden(self, parent, name, **kwargs):
+        if AbstractOSIntegration.is_windows():
+            # NXDRIVE 465
+            ref = self.get_children_ref(parent, name)
+            path = self._abspath(ref)
+            if not os.path.exists(path):
+                return False
+
+            import win32con
+            import win32api
+
+            attrs = win32api.GetFileAttributes(path)
+            if attrs & win32con.FILE_ATTRIBUTE_SYSTEM == win32con.FILE_ATTRIBUTE_SYSTEM:
+                return True
+            if attrs & win32con.FILE_ATTRIBUTE_HIDDEN == win32con.FILE_ATTRIBUTE_HIDDEN:
+                return True
+        return False
+
     def is_case_sensitive(self):
         if self._case_sensitive is None:
             lock = self.unlock_path(self.base_folder, unlock_parent=False)
