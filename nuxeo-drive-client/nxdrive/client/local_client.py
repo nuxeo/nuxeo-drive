@@ -135,16 +135,16 @@ class LocalClient(BaseClient):
         if ignored_prefixes is not None:
             # remove default prefixes and register with these new ones
             fname = cls.ignore_prefixes.func.func_name
-            cls._remove_ignore_filter(fname)
+            func = cls._remove_ignore_filter(fname)
             # reregister the "ignore_prefixes filter with the new prefixes
-            self._add_ignore_filter(fname, prefixes=ignored_prefixes)
+            self._add_ignore_filter(fname, prefixes=ignored_prefixes, apply_to_parent=func.apply_to_parent)
 
         if ignored_suffixes is not None:
             # remove default suffixes and register with these new ones
             fname = cls.ignore_suffixes.func.func_name
-            cls._remove_ignore_filter(fname)
+            func = cls._remove_ignore_filter(fname)
             # reregister the "ignore_suffixes filter with the new suffixes
-            self._add_ignore_filter(fname, suffixes=ignored_suffixes)
+            self._add_ignore_filter(fname, suffixes=ignored_suffixes, apply_to_parent=func.apply_to_parent)
 
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
@@ -160,6 +160,7 @@ class LocalClient(BaseClient):
                 break
         if partial_func:
             registry.remove(partial_func)
+        return partial_func
 
     def _add_ignore_filter(self, func_name, **kwargs):
         partial_func = getattr(self, func_name, None)
