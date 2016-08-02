@@ -51,6 +51,29 @@ class RootPrivilegeRequired(Exception):
     pass
 
 
+class FakeUpdater(QtCore.QObject):
+
+    refreshStatus = QtCore.pyqtSignal()
+    _doUpdate = QtCore.pyqtSignal(str)
+    appUpdated = QtCore.pyqtSignal(str)
+    updateAvailable = QtCore.pyqtSignal()
+
+    def get_status(self):
+        return (UPDATE_STATUS_UNAVAILABLE_SITE, None)
+
+    def force_status(self, status, version):
+        pass
+
+    def refresh_status(self):
+        pass
+
+    def update(self, version):
+        pass
+
+    def get_active_version(self):
+        from nxedge import __version__
+        return __version__
+
 class AppUpdater(PollWorker):
     """Class for updating a frozen application.
 

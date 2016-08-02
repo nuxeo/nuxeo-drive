@@ -402,8 +402,9 @@ class WebDriveApi(QtCore.QObject):
             status = self._manager.get_updater().get_status()
             return self._json(status)
         except Exception as e:
+            from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
             log.exception(e)
-            return ""
+            return self._json((UPDATE_STATUS_UNAVAILABLE_SITE, None))
 
     @QtCore.pyqtSlot(str)
     def app_update(self, version):

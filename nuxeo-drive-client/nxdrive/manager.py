@@ -15,7 +15,7 @@ from nxdrive.utils import decrypt
 from nxdrive.logging_config import get_logger, FILE_HANDLER
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.utils import normalized_path
-from nxdrive.updater import AppUpdater
+from nxdrive.updater import AppUpdater, FakeUpdater
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive import __version__
@@ -459,7 +459,8 @@ class Manager(QtCore.QObject):
     def _create_updater(self, update_check_delay):
         if (update_check_delay == 0):
             log.info("Update check delay is 0, disabling autoupdate")
-            return
+            self._app_updater = FakeUpdater()
+            return self._app_updater
         # Enable the capacity to extend the AppUpdater
         self._app_updater = AppUpdater(self, version_finder=self.get_version_finder(),
                                        check_interval=update_check_delay)
