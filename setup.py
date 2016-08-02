@@ -121,6 +121,9 @@ class data_file_dir(object):
 
 class NuxeoDriveAttributes(object):
 
+    def include_xattr_binaries(self):
+        return True
+
     def get_uid(self):
         return '{800B7778-1B71-11E2-9D65-A0FD6088709B}'
 
@@ -287,6 +290,8 @@ class NuxeoDrivePackageAttributes(NuxeoDriveAttributes):
         return self.get_name()
     def get_long_description(self):
         return ""
+    def include_xattr_binaries(self):
+        return False
 
 class NuxeoDriveSetup(object):
 
@@ -369,10 +374,12 @@ class NuxeoDriveSetup(object):
             "PyQt4.QtCore",
             "PyQt4.QtNetwork",
             "PyQt4.QtGui",
-            "atexit",  # implicitly required by PyQt4
-            "cffi",
-            "xattr"
+            "atexit"  # implicitly required by PyQt4
         ]
+        if attribs.include_xattr_binaries():
+            includes.append('cffi')
+            includes.append('xattr')
+
         attribs.append_includes(includes)
         excludes = [
             "ipdb",
@@ -381,6 +388,9 @@ class NuxeoDriveSetup(object):
             "pydoc",
             "tkinter",
         ]
+        if not attribs.include_xattr_binaries():
+            excludes.append('cffi')
+            excludes.append('xattr')
 
         if '--freeze' in sys.argv:
             print "Building standalone executable..."
@@ -457,7 +467,7 @@ class NuxeoDriveSetup(object):
             })
 
             # Include cffi compiled C extension under Linux
-            if sys.platform.startswith('linux'):
+            if sys.platform.startswith('linux') and attribs.include_xattr_binaries():
                 import xattr
                 includeFiles = [(os.path.join(os.path.dirname(xattr.__file__), '_cffi__x7c9e2f59xb862c7dd.so'),
                                  '_cffi__x7c9e2f59xb862c7dd.so')]
@@ -470,9 +480,10 @@ class NuxeoDriveSetup(object):
             # - argv_emulation=True for nxdrive:// URL scheme handling
             # - easy Info.plist customization
             import py2app  # install the py2app command
-            import xattr
-            ext_modules = [xattr.lib.ffi.verifier.get_extension()]
-            includes.append("_cffi__x7c9e2f59xb862c7dd")
+            if attribs.include_xattr_binaries():
+                import xattr
+                ext_modules = [xattr.lib.ffi.verifier.get_extension()]
+                includes.append("_cffi__x7c9e2f59xb862c7dd")
             name = attribs.get_CFBundleName()
             py2app_options = dict(
                 iconfile=icon,
