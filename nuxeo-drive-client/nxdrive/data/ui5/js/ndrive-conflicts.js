@@ -64,6 +64,19 @@ ConflictsController.prototype.updateConflicts = function($scope, $interval) {
 			}, 1000);
 		}
 	}
+
+	when(drive.get_conflicts_with_fullname_async()).then( function(res) {
+		var conflicts = angular.fromJson(res);
+		// Dont change the all array in case some action has already been taken
+		for (var i=0; i<$scope.conflicts.length; i++) {
+			if (i >= conflicts.length) break;
+			if (conflicts[i].id == $scope.conflicts[i].id) {
+				$scope.conflicts[i].last_contributor = conflicts[i].last_contributor;
+			}
+		}
+		$scope.$apply();
+	});
+
 }
 ConflictsController.prototype.openRemote = function(remote_ref, remote_name) {
 	drive.open_remote(remote_ref, remote_name);

@@ -4,7 +4,7 @@ Created on 10 mars 2015
 @author: Remi Cattiau
 '''
 from nxdrive.logging_config import get_logger
-from nxdrive.wui.dialog import WebDialog, WebDriveApi
+from nxdrive.wui.dialog import WebDialog, WebDriveApi, Promise
 from nxdrive.wui.translator import Translator
 from PyQt4 import QtCore
 
@@ -18,20 +18,29 @@ class WebConflictsApi(WebDriveApi):
         self._application = application
         self._dialog = dlg
         self._engine = engine
+        self._retrieve_name = False
 
     def set_engine(self, engine):
         self._engine = engine
 
     @QtCore.pyqtSlot(result=str)
     def get_ignoreds(self):
+        self._retrieve_name = False
         return super(WebConflictsApi, self).get_unsynchronizeds(self._engine._uid)
 
     @QtCore.pyqtSlot(result=str)
     def get_errors(self):
+        self._retrieve_name = False
         return super(WebConflictsApi, self).get_errors(self._engine._uid)
+
+    @QtCore.pyqtSlot(result=QtCore.QObject)
+    def get_conflicts_with_fullname_async(self):
+        self._retrieve_name = True
+        return Promise(super(WebConflictsApi, self).get_conflicts, self._engine._uid)
 
     @QtCore.pyqtSlot(result=str)
     def get_conflicts(self):
+        self._retrieve_name = False
         return super(WebConflictsApi, self).get_conflicts(self._engine._uid)
 
     @QtCore.pyqtSlot(int)
@@ -89,7 +98,7 @@ class WebConflictsApi(WebDriveApi):
             return None
         result = super(WebConflictsApi, self)._export_state(state)
         result["last_contributor"] = " " if state.last_remote_modifier is None \
-                                        else self._engine.get_user_full_name(state.last_remote_modifier)
+            else self._engine.get_user_full_name(state.last_remote_modifier, cache_only=not self._retrieve_name)
         date_time = self.get_date_from_sqlite(state.last_remote_updated)
         result["last_remote_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
         date_time = self.get_date_from_sqlite(state.last_local_updated)

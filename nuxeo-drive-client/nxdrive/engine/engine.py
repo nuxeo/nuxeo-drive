@@ -973,7 +973,7 @@ class Engine(QObject):
                                         self.get_remote_token(), timeout=self.timeout, cookie_jar=self.cookie_jar)
         return rest_client
 
-    def get_user_full_name(self, userid):
+    def get_user_full_name(self, userid, cache_only=False):
         """
             Get the last contributor full name
         """
@@ -981,7 +981,7 @@ class Engine(QObject):
         try:
             if userid in self._user_cache:
                 fullname = self._user_cache[userid]
-            else:
+            elif not cache_only:
                 rest_client = self.get_rest_api_client()
                 response = rest_client.get_user_full_name(userid)
                 if response and 'properties' in response:
