@@ -163,7 +163,7 @@ class WebDriveApi(QtCore.QObject):
                 result["last_sync_date"] = ""
             else:
                 # As date_time is in UTC
-                result["last_sync_date"] = Translator.format_datetime(date_time + tzlocal._dst_offset)
+                result["last_sync_date"] = Translator.format_datetime(date_time + tzlocal()._dst_offset)
         except Exception as e:
             log.exception(e)
         result["name"] = state.local_name
