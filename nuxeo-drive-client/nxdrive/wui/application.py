@@ -226,6 +226,12 @@ class Application(SimpleApplication):
             engine.reinit()
             engine.start()
 
+    @QtCore.pyqtSlot()
+    def _no_space_left(self):
+        dialog = WebModal(self, Translator.get("NO_SPACE_LEFT_ON_DEVICE"))
+        dialog.add_button("OK", Translator.get("OK"))
+        dialog.exec_()
+
     @QtCore.pyqtSlot(str)
     def _root_moved(self, new_path):
         engine = self.sender()
@@ -353,6 +359,7 @@ class Application(SimpleApplication):
         engine.online.connect(self.change_systray_icon)
         engine.rootDeleted.connect(self._root_deleted)
         engine.rootMoved.connect(self._root_moved)
+        engine.noSpaceLeftOnDevice.connect(self._no_space_left)
 
     @QtCore.pyqtSlot()
     def _debug_toggle_invalid_credentials(self):

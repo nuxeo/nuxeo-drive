@@ -189,7 +189,8 @@ LABELS={
         "NETWORK_ERROR_ProtocolFailure":"Unknown error",
         "NETWORK_ERROR_Unknown":"Unknown error",
         "NETWORK_ERROR_RETRY":"Retry",
-        "ADDON_NOT_INSTALLED": "Server module is missing"
+        "ADDON_NOT_INSTALLED": "Server module is missing",
+        "NO_SPACE_LEFT_ON_DEVICE": "No space left on device, please free some disk space."
 	},
 	"fr": {
 		"LANGUAGE": "Français",
@@ -381,6 +382,7 @@ LABELS={
         "NETWORK_ERROR_ProtocolFailure":"Erreur inconnue",
         "NETWORK_ERROR_Unknown":"Erreur inconnue",
         "NETWORK_ERROR_RETRY":"Ressayer",
-        "ADDON_NOT_INSTALLED": "Module serveur manquant"
+        "ADDON_NOT_INSTALLED": "Module serveur manquant",
+        "NO_SPACE_LEFT_ON_DEVICE": "Espace disque insuffisant, veuillez libérer de l'espace disque."
 	}
 }

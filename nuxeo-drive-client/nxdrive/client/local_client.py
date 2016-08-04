@@ -556,10 +556,15 @@ class LocalClient(BaseClient):
         locker = self.unlock_ref(parent, False)
         os_path, name = self._abspath_deduped(parent, name)
         try:
-            shutil.copy(self._abspath(ref), os_path)
             if parent == u"/":
-                return u"/" + name
-            return parent + u"/" + name
+                duplicated_file = u"/" + name
+            else:
+                duplicated_file = parent + u"/" + name
+            shutil.copy(self._abspath(ref), os_path)
+            return duplicated_file
+        except IOError as e:
+            e.duplicated_file = duplicated_file
+            raise e
         finally:
             self.lock_ref(parent, locker)
 

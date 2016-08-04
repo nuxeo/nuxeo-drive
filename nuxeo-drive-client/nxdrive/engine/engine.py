@@ -118,6 +118,7 @@ class Engine(QObject):
     syncResumed = pyqtSignal()
     rootDeleted = pyqtSignal()
     rootMoved = pyqtSignal(str)
+    noSpaceLeftOnDevice = pyqtSignal()
     invalidAuthentication = pyqtSignal()
     invalidClientsCache = pyqtSignal()
     newConflict = pyqtSignal(object)
@@ -543,7 +544,17 @@ class Engine(QObject):
         def run():
             local_client = self.get_local_client()
             # Duplicate the file
-            local_client.duplicate_file(row.local_path)
+            try:
+                local_client.duplicate_file(row.local_path)
+            except IOError as e:
+                log.exception('Cannot duplicate file %s', row.local_path)
+                if hasattr(e, 'duplicated_file') and e.duplicated_file is not None:
+                    local_client.delete_final(e.duplicated_file)
+                self._dao.reset_error(row)
+                # IOError: [Errno 28] No space left on device
+                if e.errno == 28:
+                    self.noSpaceLeftOnDevice.emit()
+                raise
             # Force the remote
             self._dao.force_remote(row)
         self._duplicate_thread = Thread(target=run)
