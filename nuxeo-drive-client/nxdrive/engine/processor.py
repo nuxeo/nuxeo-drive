@@ -461,9 +461,8 @@ class Processor(EngineWorker):
             # Set as soon as possible the remote_id as update_remote_state can crash with InterfaceError
             # NXDRIVE-599
             try:
-                pass
-                #local_client.set_remote_id(doc_pair.local_path, remote_ref)
-                #remote_id_done = True
+                local_client.set_remote_id(doc_pair.local_path, remote_ref)
+                remote_id_done = True
             except (NotFound, IOError, OSError):
                 pass
             self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
