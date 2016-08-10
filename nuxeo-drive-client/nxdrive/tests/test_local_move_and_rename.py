@@ -10,6 +10,7 @@ from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.osi import AbstractOSIntegration
 from time import sleep
 from nxdrive.engine.dao.sqlite import EngineDAO
+from nxdrive.engine.engine import Engine
 
 # TODO NXDRIVE-170: refactor
 LastKnownState = None
@@ -76,7 +77,6 @@ class TestLocalMoveAndRename(UnitTestCase):
                                           versionned=versionned, queue=queue, force_update=force_update)
             if row.local_name == 'New Folder' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed Folder')
-                sleep(5)
                 marker = True
 
         self.engine_1._dao.update_remote_state = update_remote_state
@@ -92,6 +92,74 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
 
     def test_local_rename_file_while_creating(self):
+        global marker, client
+        local_client = self.local_client_1
+        root_local_client = self.local_root_client_1
+        remote_client = self.remote_document_client_1
+        marker = False
+        client = None
+
+        def set_remote_id(ref,remote_id,name='ndrive'):
+            global marker, client
+            LocalClient.set_remote_id(client, ref, remote_id, name)
+            if 'File.txt' in ref and not marker:
+                root_local_client.rename(ref, 'Renamed File.txt')
+                marker = True
+
+        def get_local_client():
+            global client
+            client = Engine.get_local_client(self.engine_1)
+            client.set_remote_id = set_remote_id
+            return client
+
+        self.engine_1.get_local_client = get_local_client
+        self.local_client_1.make_file('/', u'File.txt',
+                                      content=u'Some Content 2'.encode('utf-8'))
+        self.wait_sync(fail_if_timeout=False)
+
+        self.assertTrue(local_client.exists(u'/Renamed File.txt'))
+        self.assertFalse(local_client.exists(u'/File.txt'))
+        # Path dont change on Nuxeo
+        info = remote_client.get_info(u'/File.txt')
+        self.assertEquals('Renamed File.txt', info.name)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 5)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
+
+    def test_local_rename_file_while_creating_before_marker(self):
+        global marker, client
+        local_client = self.local_client_1
+        root_local_client = self.local_root_client_1
+        remote_client = self.remote_document_client_1
+        marker = False
+        client = None
+
+        def set_remote_id(ref,remote_id,name='ndrive'):
+            global marker, client
+            if 'File.txt' in ref and not marker:
+                root_local_client.rename(ref, 'Renamed File.txt')
+                marker = True
+            LocalClient.set_remote_id(client, ref, remote_id, name)
+
+        def get_local_client():
+            global client
+            client = Engine.get_local_client(self.engine_1)
+            client.set_remote_id = set_remote_id
+            return client
+
+        self.engine_1.get_local_client = get_local_client
+        self.local_client_1.make_file('/', u'File.txt',
+                                      content=u'Some Content 2'.encode('utf-8'))
+        self.wait_sync(fail_if_timeout=False)
+
+        self.assertTrue(local_client.exists(u'/Renamed File.txt'))
+        self.assertFalse(local_client.exists(u'/File.txt'))
+        # Path dont change on Nuxeo
+        info = remote_client.get_info(u'/File.txt')
+        self.assertEquals('Renamed File.txt', info.name)
+        self.assertEqual(len(local_client.get_children_info(u'/')), 5)
+        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
+
+    def test_local_rename_file_while_creating_after_marker(self):
         global marker
         local_client = self.local_client_1
         root_local_client = self.local_root_client_1
@@ -104,7 +172,6 @@ class TestLocalMoveAndRename(UnitTestCase):
                                           versionned=versionned, queue=queue, force_update=force_update)
             if row.local_name == 'File.txt' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed File.txt')
-                sleep(5)
                 marker = True
 
         self.engine_1._dao.update_remote_state = update_remote_state
