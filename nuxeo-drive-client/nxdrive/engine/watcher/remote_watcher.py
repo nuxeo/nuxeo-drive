@@ -654,9 +654,16 @@ class RemoteWatcher(EngineWorker):
                                                           force_update=force_update)
                             if doc_pair.folderish:
                                 log.trace("Force scan recursive on %r : %d", doc_pair, (eventId == "securityUpdated"))
-                                self._force_remote_scan(doc_pair, consistent_new_info, remote_path=new_info.path,
-                                                        force_recursion=(eventId == "securityUpdated"),
-                                                        moved=(eventId == "documentMoved"))
+                                try:
+                                    self._force_remote_scan(doc_pair, consistent_new_info, remote_path=new_info.path,
+                                                            force_recursion=(eventId == "securityUpdated"),
+                                                            moved=(eventId == "documentMoved"))
+                                except URLError as e:
+                                    log.exception(e)
+                                    log.warn("Remote Scan failed: %s (%s). Adding to remote scan Queue",
+                                                  doc_pair.local_path, doc_pair.remote_ref)
+                                    # If remote scan fails, queue the job for scanning and ignore the error
+                                    self._dao.add_path_to_scan(doc_pair.remote_parent_path + "/" + doc_pair.remote_ref)
 
                     updated = True
                     refreshed.add(remote_ref)
