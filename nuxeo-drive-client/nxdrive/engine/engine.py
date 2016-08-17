@@ -856,7 +856,7 @@ class Engine(QObject):
 
     def _set_root_icon(self):
         local_client = self.get_local_client()
-        if local_client.has_folder_icon('/'):
+        if not local_client.exists('/') or local_client.has_folder_icon('/'):
             return
         if AbstractOSIntegration.is_mac():
             if AbstractOSIntegration.os_version_below("10.10"):
