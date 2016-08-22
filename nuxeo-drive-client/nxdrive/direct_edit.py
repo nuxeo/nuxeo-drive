@@ -121,7 +121,7 @@ class DirectEdit(Worker):
                     continue
                 children = self._local_client.get_children_info(child.path)
                 if len(children) > 1:
-                    log.warn("Cannot clean this document")
+                    log.warn("Cannot clean this document: %s", child.path)
                     continue
                 if (len(children) == 0):
                     # Cleaning the folder it is empty
