@@ -365,13 +365,13 @@ class RemoteWatcher(EngineWorker):
                     child_pair = self._dao.get_state_from_local(child.path)
                     break
         if child_pair is not None:
-            if child_pair.remote_ref is not None:
+            if child_pair.remote_ref is not None and child_pair.remote_ref != child_info.uid:
+                log.debug("Got an existing pair with different id: %r | %r", child_pair, child_info)
                 child_pair = None
             else:
                 if (child_pair.folderish == child_info.folderish
                         and self._local_client.is_equal_digests(child_pair.local_digest, child_info.digest,
-                                                                child_pair.local_path,
-                                                                remote_digest_algorithm=child_info.digest_algorithm)):
+                                child_pair.local_path, remote_digest_algorithm=child_info.digest_algorithm)):
                     self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
                     # Use version+1 as we just update the remote info
                     synced = self._dao.synchronize_state(child_pair, version=child_pair.version + 1)
@@ -390,6 +390,7 @@ class RemoteWatcher(EngineWorker):
                     if synced:
                         self._engine.stop_processor_on(child_pair.local_path)
                     # Push the remote_Id
+                    log.debug("set remote id on: %r / %s == %s", child_pair, child_pair.local_path, local_path)
                     self._local_client.set_remote_id(local_path, child_info.uid)
                     if child_pair.folderish:
                         self._dao.queue_children(child_pair)
