@@ -1,7 +1,7 @@
 import sqlite3
 import os
 import inspect
-from threading import Lock, local, current_thread
+from threading import RLock, local, current_thread
 from datetime import datetime
 from nxdrive.logging_config import get_logger
 from PyQt4.QtCore import pyqtSignal, QObject
@@ -119,7 +119,7 @@ class StateRow(CustomRow):
 
 class LogLock(object):
     def __init__(self):
-        self._lock = Lock()
+        self._lock = RLock()
 
     def acquire(self):
         log.trace("lock acquire: %s", inspect.stack()[1][3])
@@ -157,10 +157,10 @@ class ConfigurationDAO(QObject):
         self.auto_commit = True
         self.schema_version = self.get_schema_version()
         self.in_tx = None
-        self._tx_lock = Lock()
+        self._tx_lock = RLock()
         # If we dont share connection no need to lock
         if self.share_connection:
-            self._lock = Lock()
+            self._lock = RLock()
         else:
             self._lock = FakeLock()
         # Use to clean
@@ -177,6 +177,8 @@ class ConfigurationDAO(QObject):
                 schema = int(res[0])
             if schema != self.schema_version:
                 self._migrate_db(c, schema)
+        else:
+            c.execute("INSERT INTO Configuration(name,value) (?,?)", (SCHEMA_VERSION, self.schema_version))
         self._conn.commit()
         self._conns = local()
         # FOR PYTHON 3.3...
@@ -185,6 +187,12 @@ class ConfigurationDAO(QObject):
 
     def get_schema_version(self):
         return 1
+
+    def acquire_lock(self):
+        self._lock.acquire()
+
+    def release_lock(self):
+        self._lock.release()
 
     def get_db(self):
         return self._db
@@ -565,7 +573,7 @@ class EngineDAO(ConfigurationDAO):
             except:
                 self.release_processor(thread_id)
                 raise
-        return None
+        raise Exception("Cannot acquire")
 
     def release_state(self, thread_id):
         self.release_processor(thread_id)

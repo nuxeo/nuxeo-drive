@@ -155,7 +155,7 @@ class Processor(EngineWorker):
                 doc_pair = self._dao.acquire_state(self._thread_id, self._current_item.id)
             except:
                 log.trace("Cannot acquire state for: %r", self._current_item)
-                self._engine.get_queue_manager().push(self._current_item)
+                self._postpone_pair(self._current_item, 'Pair in use', interval=3)
                 self._current_item = self._get_item()
                 continue
             try:
@@ -457,16 +457,20 @@ class Processor(EngineWorker):
                 remote_ref = fs_item_info.uid
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
-            remote_id_done = False
-            # Set as soon as possible the remote_id as update_remote_state can crash with InterfaceError
-            # NXDRIVE-599
+            self._dao.acquire_lock()
             try:
-                local_client.set_remote_id(doc_pair.local_path, remote_ref)
-                remote_id_done = True
-            except (NotFound, IOError, OSError):
-                pass
-            self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
-                                          versionned=False)
+                remote_id_done = False
+                # Set as soon as possible the remote_id as update_remote_state can crash with InterfaceError
+                # NXDRIVE-599
+                try:
+                    local_client.set_remote_id(doc_pair.local_path, remote_ref)
+                    remote_id_done = True
+                except (NotFound, IOError, OSError):
+                    pass
+                self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
+                                              versionned=False, queue=False)
+            finally:
+                self._dao.release_lock()
             log.trace("Put remote_ref in %s", remote_ref)
             try:
                 if not remote_id_done:
