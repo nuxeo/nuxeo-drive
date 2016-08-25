@@ -244,8 +244,6 @@ class RemoteWatcher(EngineWorker):
                         to_process.append(descendant_info)
                         continue
                     descendant_pair, _ = self._find_remote_child_match_or_create(parent_pair, descendant_info)
-                if descendant_info.folderish:
-                    self._dao.add_path_scanned(descendant_pair.remote_parent_path + '/' + descendant_pair.remote_ref)
             # Check if synchronization thread was suspended
             self._interact()
 
@@ -260,8 +258,6 @@ class RemoteWatcher(EngineWorker):
                     log.error("Cannot find parent pair of postponed remote descendant, ignoring %s", descendant_info)
                     continue
                 descendant_pair, _ = self._find_remote_child_match_or_create(parent_pair, descendant_info)
-                if descendant_info.folderish:
-                    self._dao.add_path_scanned(descendant_pair.remote_parent_path + '/' + descendant_pair.remote_ref)
             t1 = datetime.now()
             log.trace('Postponed descendants processing took %s ms', self._get_elapsed_time_milliseconds(t0, t1))
 
