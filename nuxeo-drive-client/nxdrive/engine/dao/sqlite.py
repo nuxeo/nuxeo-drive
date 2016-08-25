@@ -178,7 +178,7 @@ class ConfigurationDAO(QObject):
             if schema != self.schema_version:
                 self._migrate_db(c, schema)
         else:
-            c.execute("INSERT INTO Configuration(name,value) (?,?)", (SCHEMA_VERSION, self.schema_version))
+            c.execute("INSERT INTO Configuration(name,value) VALUES(?,?)", (SCHEMA_VERSION, self.schema_version))
         self._conn.commit()
         self._conns = local()
         # FOR PYTHON 3.3...
