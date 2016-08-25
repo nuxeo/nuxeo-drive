@@ -207,6 +207,8 @@ class Engine(QObject):
         self._set_root_icon()
         # Set user full name
         self._user_cache = dict()
+        # Pause in case of no more space on the device
+        self.noSpaceLeftOnDevice.connect(self.suspend)
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id):
