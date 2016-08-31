@@ -164,6 +164,7 @@ class WindowsProcessFileHandlerSniffer():
                 winerror.ERROR_INVALID_HANDLE,
                 winerror.ERROR_NOT_SUPPORTED
             ):
+                log.trace("Cant duplicate handle: %d errno: %d", handle, errno)
                 return None
             else:
                 raise
@@ -182,14 +183,18 @@ class WindowsProcessFileHandlerSniffer():
                 return public_object_type_information.Name.Buffer
             elif result == STATUS_INFO_LENGTH_MISMATCH:
                 size = DWORD(size.value * 4)
+                log.trace("Cant get type info - resizing to %d : %d", size, handle)
                 resize(public_object_type_information, size.value)
             elif result == STATUS_INVALID_HANDLE:
+                log.trace("Cant get type info - invalid handle: %d", handle)
                 return None
             elif result == 0xc0000005:
+                log.trace("Cant get type info: %d errno: %d", handle)
                 # Access denied
                 # Windows 10 result
                 return None
             else:
+                log.trace("Cant get type info - raising exception : %d", handle)
                 raise x_file_handles ("NtQueryObject.2", hex (result))
 
 
@@ -216,6 +221,7 @@ class WindowsProcessFileHandlerSniffer():
             return win32event.WaitForSingleObject (handle, 10) not in (win32event.WAIT_TIMEOUT, win32event.WAIT_ABANDONED)
         except win32event.error, (errno, errctx, errmsg):
             if errno in (winerror.ERROR_ACCESS_DENIED,):
+                log.trace("Can access denied : %d", handle)
                 return False
             else:
                 raise
@@ -227,6 +233,7 @@ class WindowsProcessFileHandlerSniffer():
             self._badtype = self._badtype + 1
             return
         name = self.get_name_info(handle)
+        log.trace("Get name info for : %d returned %r", handle, name)
         if (name is None and type is None):
             # Not enough info to add to result
             self._badname = self._badname + 1
@@ -242,6 +249,7 @@ class WindowsProcessFileHandlerSniffer():
             if filter_type is not None and filter_type != type and type is not None:
                 continue
             name = self.get_name_info(handle)
+            log.trace("Get name info for : %d returned %r", handle, name)
             if name is None:
                 # Not enough info to add to result
                 continue
@@ -266,6 +274,7 @@ class WindowsProcessFileHandlerSniffer():
             if pid == this_pid:
                 continue
             hDuplicate = self.get_process_handle(pid, handle)
+            log.trace("Will search file for pid : %d", pid)
             if hDuplicate is None:
                 continue
             else:
@@ -306,6 +315,6 @@ class WindowsProcessFileHandlerSniffer():
             log.trace("files: %d", len(result))
             return result
         except x_file_handles, (context, errno):
-            print "Error in", context, "with errno", errno
+            log.trace("Error in %r - with errno : %d", context, errno)
         finally:
             self._running = False
