@@ -233,7 +233,7 @@ class WindowsProcessFileHandlerSniffer():
             self._badtype = self._badtype + 1
             return
         name = self.get_name_info(handle)
-        log.trace("Get name info for : %d returned %r", handle, name)
+        log.trace("TO_REMOVE? Get name info for : %d returned %r", handle, name)
         if (name is None and type is None):
             # Not enough info to add to result
             self._badname = self._badname + 1
@@ -244,16 +244,20 @@ class WindowsProcessFileHandlerSniffer():
         while True:
             pid, handle, filter_type = requests.get(True)
             if pid == -1:
+                win32api.CloseHandle(handle)
                 return
             type = self.get_type_info(handle)
             if filter_type is not None and filter_type != type and type is not None:
+                win32api.CloseHandle(handle)
                 continue
             name = self.get_name_info(handle)
             log.trace("Get name info for : %d returned %r", handle, name)
             if name is None:
                 # Not enough info to add to result
+                win32api.CloseHandle(handle)
                 continue
             results.put((pid, type, name))
+            win32api.CloseHandle(handle)
 
 
     def get_main_open_files(self, pids=None, filter_type='File'):
