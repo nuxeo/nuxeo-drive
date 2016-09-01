@@ -33,6 +33,7 @@ STATUS_SUCCESS = 0
 
 CURRENT_PROCESS = win32api.GetCurrentProcess ()
 
+threads = 0
 log = get_logger(__name__)
 
 class x_file_handles(Exception):
@@ -150,12 +151,29 @@ class WindowsProcessFileHandlerSniffer():
             POINTER (SYSTEM_HANDLE_TABLE_ENTRY_INFO * system_handle_information.NumberOfHandles)
         )
         for handle in pHandles.contents:
+            if handle.UniqueProcessId == 4052:
+                yield handle.UniqueProcessId, handle.HandleValue
+                                     # 0x001f01ff
+            if handle.GrantedAccess == 0x1a0089:
+                # ssh-agent
+                #print handle.UniqueProcessId
+                continue
+            if handle.GrantedAccess == 0x1a019f:
+                print handle
+                # Chrome
+                continue
+            if handle.GrantedAccess == 0x12019f:
+                # Chrome
+                continue
+            if handle.GrantedAccess == 0x120189:
+                # fsnotifier
+                continue
+            #print "grantedAccess: %x" % (handle.GrantedAccess, )
             yield handle.UniqueProcessId, handle.HandleValue
 
 
-    def get_process_handle(self, pid, handle):
+    def get_process_handle(self, pid, hProcess, handle):
         try:
-            hProcess = win32api.OpenProcess (win32con.PROCESS_DUP_HANDLE, 0, pid)
             return win32api.DuplicateHandle (hProcess, handle, CURRENT_PROCESS, 0, 0, win32con.DUPLICATE_SAME_ACCESS)
         except win32api.error, (errno, errctx, errmsg):
             if errno in (
@@ -183,18 +201,14 @@ class WindowsProcessFileHandlerSniffer():
                 return public_object_type_information.Name.Buffer
             elif result == STATUS_INFO_LENGTH_MISMATCH:
                 size = DWORD(size.value * 4)
-                log.trace("Cant get type info - resizing to %d : %d", size, handle)
                 resize(public_object_type_information, size.value)
             elif result == STATUS_INVALID_HANDLE:
-                log.trace("Cant get type info - invalid handle: %d", handle)
                 return None
             elif result == 0xc0000005:
-                log.trace("Cant get type info: %d errno: %d", handle)
                 # Access denied
                 # Windows 10 result
                 return None
             else:
-                log.trace("Cant get type info - raising exception : %d", handle)
                 raise x_file_handles ("NtQueryObject.2", hex (result))
 
 
@@ -202,12 +216,16 @@ class WindowsProcessFileHandlerSniffer():
         object_name_information = OBJECT_NAME_INFORMATION ()
         size = DWORD (sizeof (object_name_information))
         while True:
-            result = signed_to_unsigned (
-                ntdll.NtQueryObject (
-                handle, 1, byref (object_name_information), size, None
+            #print "get-name %r|%r" % (object_name_information, size)
+            info = ntdll.NtQueryObject (
+                    handle, 1, byref (object_name_information), size, None
                 )
+            #print "get-name info %r" % (info,)
+            result = signed_to_unsigned (
+                info
             )
             if result == STATUS_SUCCESS:
+                print object_name_information.Name.Buffer
                 return object_name_information.Name.Buffer
             elif result in (STATUS_BUFFER_OVERFLOW, STATUS_BUFFER_TOO_SMALL, STATUS_INFO_LENGTH_MISMATCH):
                 size = DWORD(size.value * 4)
@@ -226,72 +244,54 @@ class WindowsProcessFileHandlerSniffer():
             else:
                 raise
 
-
     def _get_object_info(self, pid, handle, filter_type):
         type = self.get_type_info(handle)
         if filter_type is not None and filter_type != type and type is not None:
-            self._badtype = self._badtype + 1
-            return
+            return None
         name = self.get_name_info(handle)
-        log.trace("TO_REMOVE? Get name info for : %d returned %r", handle, name)
-        if (name is None and type is None):
-            # Not enough info to add to result
-            self._badname = self._badname + 1
-            return
-        self._results.put((pid, type, name))
-
-    def get_object_info(self, requests, results):
-        while True:
-            pid, handle, filter_type = requests.get(True)
-            if pid == -1:
-                win32api.CloseHandle(handle)
-                return
-            type = self.get_type_info(handle)
-            if filter_type is not None and filter_type != type and type is not None:
-                win32api.CloseHandle(handle)
-                continue
-            name = self.get_name_info(handle)
-            log.trace("Get name info for : %d returned %r", handle, name)
-            if name is None:
-                # Not enough info to add to result
-                win32api.CloseHandle(handle)
-                continue
-            results.put((pid, type, name))
-            win32api.CloseHandle(handle)
-
+        return (pid, type, name, handle)
 
     def get_main_open_files(self, pids=None, filter_type='File'):
-        requests = Queue.Queue()
-        results = Queue.Queue()
-
-        # Launch 20 threads to get the result
-        for i in range(20):
-            t = threading.Thread(target=self.get_object_info, args=(requests, results))
-            t.setDaemon(True)
-            t.start()
-
         public_object_type_information = PUBLIC_OBJECT_TYPE_INFORMATION ()
         object_name_information = OBJECT_NAME_INFORMATION ()
         this_pid = os.getpid()
 
+        user, domain, type = win32security.LookupAccountName ("", win32api.GetUserName ())
+        trustee = dict()
+        trustee['Identifier'] = user
+        trustee['TrusteeForm'] = 0
+        trustee['TrusteeType'] = 1
+        trustee['MultipleTrustee'] = None
+        trustee['MultipleTrusteeOperation'] = 0
+        print user
+        process_handlers = dict()
         for pid, handle in self.get_handles():
             if pid == this_pid:
                 continue
-            hDuplicate = self.get_process_handle(pid, handle)
+            if not pid in process_handlers:
+                try:
+                    process_handlers[pid] = win32api.OpenProcess (win32con.PROCESS_DUP_HANDLE|win32con.PROCESS_VM_READ|win32con.PROCESS_ALL_ACCESS, 0, pid)
+                    retval = win32security.GetSecurityInfo(process_handlers[pid], win32security.SE_KERNEL_OBJECT, win32security.OWNER_SECURITY_INFORMATION|win32security.SACL_SECURITY_INFORMATION)
+                    print "%d:%r" % (pid, retval.GetSecurityDescriptorSacl().GetEffectiveRightsFromAcl(trustee)) #.GetEffectiveRightsFromAcl(retval.GetSecurityDescriptorOwner()))
+                    #win32api.GetSecurityInfo(process_handlers[pid], 6, )
+                except win32api.error, (errno, errctx, errmsg):
+                    continue
+            hDuplicate = self.get_process_handle(pid, process_handlers[pid], handle)
             log.trace("Will search file for pid : %d", pid)
             if hDuplicate is None:
                 continue
             else:
-                requests.put((pid, int(hDuplicate), filter_type))
-
-        while True:
-            try:
-                yield results.get(2, True)
-            except Queue.Empty:
-                # Stop command
-                for i in range(20):
-                    requests.put((-1, -1, None))
-                return
+                #if pid != 4052:
+                #    continue
+                resource = None
+                try:
+                    resource = self._get_object_info(pid, int(hDuplicate), filter_type)
+                except Exception as e:
+                    print e
+                if resource is not None:
+                    yield resource
+            #win32api.CloseHandle(hDuplicate)
+        return
 
     def filepath_from_devicepath(self, devicepath):
         if devicepath is None: return None
@@ -311,14 +311,34 @@ class WindowsProcessFileHandlerSniffer():
             ntsecuritycon.MAXIMUM_ALLOWED
         )
         try:
-            result = []
             self._running = True
             for file in self.get_main_open_files(pids):
-                result.append((file[0], self.filepath_from_devicepath(file[2])))
-            self._running = False
-            log.trace("files: %d", len(result))
-            return result
+                path = self.filepath_from_devicepath(file[2])
+                if path is None or not os.path.exists(path) or os.path.isdir(path):
+                    continue
+                yield (file[0], path, file[1], file[3])
         except x_file_handles, (context, errno):
             log.trace("Error in %r - with errno : %d", context, errno)
         finally:
             self._running = False
+
+
+if __name__ == "__main__":
+    from time import sleep
+    snif = WindowsProcessFileHandlerSniffer()
+    found = True
+    while found:
+        i = 0
+        j = 0
+        #found = False
+        for file in snif.get_open_files():
+            i += 1
+            #print file
+            if file[0] != 4052:
+                continue
+            j += 1
+            print "excel: %r" % (file,)
+            if 'Excel 97.xls' in file[1]:
+                found = True
+        print "Found %d files %d excel: continue: %r" % (i, j, found)
+        sleep(1)
