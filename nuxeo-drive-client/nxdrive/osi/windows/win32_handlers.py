@@ -293,17 +293,17 @@ class WindowsProcessFileHandlerSniffer():
                 result[handle.UniqueProcessId]["handles"] = []
                 result[handle.UniqueProcessId]["risky_handles"] = []
             if handle.GrantedAccess == 0x1a0089 or handle.GrantedAccess == 0x1a019f or handle.GrantedAccess == 0x12019f\
-                     or handle.GrantedAccess == 0x120189 or handle.GrantedAccess == 0x01f01ff:
+                     or handle.GrantedAccess == 0x120189 or handle.GrantedAccess == 0x01f01ff\
+                     or handle.GrantedAccess == 0x100081:
                 # Some process like ssh-agent or chrome make NtQueryObject hang when queried
                 result[handle.UniqueProcessId]["risky_handles"].append(handle.HandleValue)
                 continue
-            result[handle.UniqueProcessId]["handles"].append(handle.HandleValue)
+            result[handle.UniqueProcessId]["handles"].append((handle.HandleValue, handle.GrantedAccess))
         return result
 
     def get_main_open_files(self, pids=None, filter_type='File'):
         handles = self.get_handles()
         info_threads = []
-
         # Remove stopped pids from blacklist
         remove_pids = []
         for pid in self._pid_blacklist:
@@ -320,7 +320,8 @@ class WindowsProcessFileHandlerSniffer():
                 process_handler = win32api.OpenProcess (win32con.PROCESS_DUP_HANDLE, 0, pid)
             except win32api.error, (errno, errctx, errmsg):
                 continue
-            for handle in handles[pid]['handles']:
+            for handle_obj in handles[pid]['handles']:
+                handle = handle_obj[0]
                 hDuplicate = self.get_process_handle(process_handler, handle)
                 if hDuplicate is None:
                     continue
@@ -378,3 +379,4 @@ class WindowsProcessFileHandlerSniffer():
             log.trace("Error in %r - with errno : %d", context, errno)
         finally:
             self._running = False
+
