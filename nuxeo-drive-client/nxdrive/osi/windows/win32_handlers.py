@@ -116,6 +116,7 @@ class GetObjectInfoThread(threading.Thread):
         self._handles = handles
         self._filter_type = filter_type
         self._result = []
+        self.lastGrantedAccess = None
 
     def get_pid(self):
         return self._pid
@@ -164,28 +165,7 @@ class GetObjectInfoThread(threading.Thread):
                 return None
 
     @staticmethod
-    def duplicate_handle(hProcess, handle):
-        try:
-            handle = win32api.DuplicateHandle(hProcess, handle, CURRENT_PROCESS,
-                                                   0, 0, win32con.DUPLICATE_SAME_ACCESS)
-        except win32api.error, (errno, errctx, errmsg):
-            if errno in (
-                winerror.ERROR_ACCESS_DENIED,
-                winerror.ERROR_INVALID_PARAMETER,
-                winerror.ERROR_INVALID_HANDLE,
-                winerror.ERROR_NOT_SUPPORTED
-            ):
-                log.trace("Cant duplicate handle: %d errno: %d", handle, errno)
-                return None
-            else:
-                raise
-        if handle is not None:
-            return int(handle)
-        return None
-
-    @staticmethod
     def get_object_info(pid, process_handle, handle, filter_type):
-        #handle = GetObjectInfoThread.duplicate_handle(process_handle, handle)
         type = GetObjectInfoThread.get_type_info(handle)
         if filter_type is not None and filter_type != type and type is not None:
             return None
@@ -200,21 +180,10 @@ class GetObjectInfoThread(threading.Thread):
             process_handler = win32api.OpenProcess (win32con.PROCESS_DUP_HANDLE, 0, pid)
         except win32api.error, (errno, errctx, errmsg):
             return
-        for handle in handles:
-            try:
-                hDuplicate = win32api.DuplicateHandle (process_handler, handle, CURRENT_PROCESS,
-                                                       0, 0, win32con.DUPLICATE_SAME_ACCESS)
-            except win32api.error, (errno, errctx, errmsg):
-                if errno in (
-                    winerror.ERROR_ACCESS_DENIED,
-                    winerror.ERROR_INVALID_PARAMETER,
-                    winerror.ERROR_INVALID_HANDLE,
-                    winerror.ERROR_NOT_SUPPORTED
-                ):
-                    log.trace("Cant duplicate handle: %d errno: %d", handle, errno)
-                    return None
-                else:
-                    raise
+        for handle_obj in handles:
+            obj.lastGrantedAccess = handle_obj[1]
+            handle = handle_obj[0]
+            hDuplicate = WindowsProcessFileHandlerSniffer.get_process_handle(process_handler, handle)
             if hDuplicate is None:
                 continue
             handle = int(hDuplicate)
@@ -247,7 +216,8 @@ class WindowsProcessFileHandlerSniffer():
                 else:
                     raise
 
-    def get_process_handle(self, hProcess, handle):
+    @staticmethod
+    def get_process_handle(hProcess, handle):
         try:
             return win32api.DuplicateHandle (hProcess, handle, CURRENT_PROCESS,
                                                    0, 0, win32con.DUPLICATE_SAME_ACCESS)
@@ -292,13 +262,16 @@ class WindowsProcessFileHandlerSniffer():
                 result[handle.UniqueProcessId] = dict()
                 result[handle.UniqueProcessId]["handles"] = []
                 result[handle.UniqueProcessId]["risky_handles"] = []
+
+            # Useless for now but keep for later use in case
             if handle.GrantedAccess == 0x1a0089 or handle.GrantedAccess == 0x1a019f or handle.GrantedAccess == 0x12019f\
                      or handle.GrantedAccess == 0x120189 or handle.GrantedAccess == 0x01f01ff\
                      or handle.GrantedAccess == 0x100081:
                 # Some process like ssh-agent or chrome make NtQueryObject hang when queried
-                result[handle.UniqueProcessId]["risky_handles"].append(handle.HandleValue)
+                result[handle.UniqueProcessId]["risky_handles"].append((handle.HandleValue, handle.GrantedAccess))
                 continue
-            result[handle.UniqueProcessId]["handles"].append((handle.HandleValue, handle.GrantedAccess))
+
+            result[handle.UniqueProcessId]["risky_handles"].append((handle.HandleValue, handle.GrantedAccess))
         return result
 
     def get_main_open_files(self, pids=None, filter_type='File'):
@@ -322,7 +295,7 @@ class WindowsProcessFileHandlerSniffer():
                 continue
             for handle_obj in handles[pid]['handles']:
                 handle = handle_obj[0]
-                hDuplicate = self.get_process_handle(process_handler, handle)
+                hDuplicate = WindowsProcessFileHandlerSniffer.get_process_handle(process_handler, handle)
                 if hDuplicate is None:
                     continue
                 handle = int(hDuplicate)
@@ -331,7 +304,7 @@ class WindowsProcessFileHandlerSniffer():
                 if resource is not None:
                     yield resource
             win32api.CloseHandle(process_handler)
-            if len(handles[pid]['risky_handles']) > 0 and True:
+            if len(handles[pid]['risky_handles']) > 0:
                 # As they can hang the kernel we need to launch another thread for those one
                 thread = GetObjectInfoThread(pid, handles[pid]['risky_handles'], filter_type)
                 # To avoid crash at the end
@@ -345,7 +318,8 @@ class WindowsProcessFileHandlerSniffer():
             if thread.is_alive():
                 # Should not be blacklist the pid
                 self._pid_blacklist[thread.get_pid()] = True
-                log.trace('Blacklisting process %d because of stuck thread', thread.get_pid())
+                log.trace('Blacklisting process %d because of stuck thread (GrantedAccess: %d)',
+                            thread.get_pid(), thread.lastGrantedAccess)
             else:
                 for result in thread.get_results():
                     yield result
@@ -379,4 +353,3 @@ class WindowsProcessFileHandlerSniffer():
             log.trace("Error in %r - with errno : %d", context, errno)
         finally:
             self._running = False
-
