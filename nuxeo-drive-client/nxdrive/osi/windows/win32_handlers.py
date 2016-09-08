@@ -228,7 +228,6 @@ class WindowsProcessFileHandlerSniffer():
                 winerror.ERROR_INVALID_HANDLE,
                 winerror.ERROR_NOT_SUPPORTED
             ):
-                log.trace("Cant duplicate handle: %d errno: %d", handle, errno)
                 return None
             else:
                 raise

@@ -69,6 +69,9 @@ class DirectEdit(Worker):
         for lock in locks:
             if lock.path.startswith(self._folder):
                 log.debug("Should unlock: %s", lock.path)
+                if not os.path.exists(lock.path):
+                    self._manager.get_autolock_service().orphan_unlocked(lock.path)
+                    continue
                 ref = self._local_client.get_path(lock.path)
                 self._lock_queue.put((ref, 'unlock_orphan'))
 
@@ -360,7 +363,7 @@ class DirectEdit(Worker):
                         log.trace("Remove orphan: %s", path)
                         self._manager.get_autolock_service().orphan_unlocked(path)
                         # Clean the folder
-                        shutil.rmtree(self._local_client._abspath(path), ignore_errors=True)
+                        shutil.rmtree(path, ignore_errors=True)
                     self._local_client.remove_remote_id(dir_path, "nxdirecteditlock")
                     # Emit the signal only when the unlock is done - might want to avoid the call on orphan
                     self._manager.get_autolock_service().documentUnlocked.emit(os.path.basename(ref))
@@ -497,13 +500,12 @@ class DirectEdit(Worker):
                 return
             ref = self._local_client.get_path(src_path)
             file_name = os.path.basename(src_path)
+            # Disable as we use the global open files instead of editor lock file
             if self.is_lock_file(file_name) and self._manager.get_direct_edit_auto_lock():
                 if evt.event_type == 'created':
                     self._lock_queue.put((ref, 'lock'))
                 elif evt.event_type == 'deleted':
                     self._lock_queue.put((ref, 'unlock'))
-                return
-            if self._local_client.is_temp_file(file_name):
                 return
             queue = False
             if evt.event_type == 'modified' or evt.event_type == 'created':
@@ -512,6 +514,8 @@ class DirectEdit(Worker):
                 ref = self._local_client.get_path(evt.dest_path)
                 file_name = os.path.basename(evt.dest_path)
                 queue = True
+            elif self._local_client.is_temp_file(file_name):
+                return
             dir_path = self._local_client.get_path(os.path.dirname(src_path))
             name = self._local_client.get_remote_id(dir_path, "nxdirecteditname")
             if name is None:
