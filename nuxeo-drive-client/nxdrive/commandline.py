@@ -729,6 +729,9 @@ def win32_unicode_argv():
 
 
 def main(argv=None):
+    if sys.version_info[0] != 2 or sys.version_info[1] != 7:
+        print "Nuxeo Drive requires Python 2.7.x"
+        return 1
     # Print thread dump when receiving SIGUSR1,
     # except under Windows (no SIGUSR1)
     import signal
