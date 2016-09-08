@@ -220,7 +220,7 @@ class NotificationService(QtCore.QObject):
 
 class DebugNotification(Notification):
     def __init__(self, engine_uid):
-        super(InvalidCredentialNotification, self).__init__("DEBUG", engine_uid=engine_uid, level=Notification.LEVEL_ERROR, flags=Notification.FLAG_UNIQUE|Notification.FLAG_PERSISTENT)
+        super(DebugNotification, self).__init__("DEBUG", engine_uid=engine_uid, level=Notification.LEVEL_ERROR, flags=Notification.FLAG_UNIQUE|Notification.FLAG_PERSISTENT)
 
     def get_description(self):
         return "Small description for this debug notification"

@@ -286,8 +286,6 @@ class WebDriveApi(QtCore.QObject):
             if e.errno == 61:
                 return "CONNECTION_REFUSED"
             return "CONNECTION_ERROR"
-        except urllib2.HTTPError as e:
-            return "CONNECTION_ERROR"
         except Exception as e:
             log.exception(e)
             # Map error here

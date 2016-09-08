@@ -434,7 +434,7 @@ class AppUpdater(PollWorker):
     def cleanup(self, version):
         log.info("Uninstalling version %s", version)
         self.esky_app.uninstall_version(version)
-        log.info("Cleaning up Esky application", version)
+        log.info("Cleaning up Esky application")
         self.esky_app.cleanup()
 
     def get_update_site(self):

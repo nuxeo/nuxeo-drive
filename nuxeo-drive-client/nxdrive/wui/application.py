@@ -119,7 +119,6 @@ class SimpleApplication(QApplication):
             default_locale = self.options.locale
         else:
             default_locale = 'en'
-        from nxdrive.wui.translator import Translator
         Translator(self.manager, self.get_htmlpage('i18n.js'),
                         self.manager.get_config("locale", default_locale))
 
@@ -257,7 +256,6 @@ class Application(SimpleApplication):
         return os.path.join(self.manager.get_configuration_folder(), "cache", "wui")
 
     def _init_translator(self):
-        from nxdrive.wui.translator import Translator
         Translator(self.manager, self.get_htmlpage('i18n.js'),
                         self.manager.get_config("locale", self.options.locale))
 
