@@ -342,11 +342,11 @@ class Engine(QObject):
         return self._dao.get_next_sync_file(ref, sync_mode=mode)
 
     def resume(self):
+        self._pause = False
         # If stopped then start the engine
         if self._stopped:
             self.start()
             return
-        self._pause = False
         self._queue_manager.resume()
         for thread in self._threads:
             if thread.isRunning():
@@ -506,7 +506,6 @@ class Engine(QObject):
         if worker is None:
             worker = Worker(self, name=name)
         # If subclass of Processor then connect the newSync signal
-        from nxdrive.engine.processor import Processor
         if isinstance(worker, Processor):
             worker.pairSync.connect(self.newSync)
         thread = worker.get_thread()
@@ -972,7 +971,6 @@ class Engine(QObject):
         return remote_client
 
     def create_processor(self, item_getter, name=None):
-        from nxdrive.engine.processor import Processor
         return Processor(self, item_getter, name=name)
 
     def dispose_db(self):
