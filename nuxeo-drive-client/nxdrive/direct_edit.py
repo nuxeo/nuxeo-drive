@@ -513,6 +513,7 @@ class DirectEdit(Worker):
             if evt.event_type == 'moved':
                 ref = self._local_client.get_path(evt.dest_path)
                 file_name = os.path.basename(evt.dest_path)
+                src_path = evt.dest_path
                 queue = True
             elif self._local_client.is_temp_file(file_name):
                 return
