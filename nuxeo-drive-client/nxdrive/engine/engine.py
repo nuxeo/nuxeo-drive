@@ -456,7 +456,7 @@ class Engine(QObject):
         return server_link
 
     def get_abspath(self, path):
-        return self.get_local_client()._abspath(path)
+        return self.get_local_client().abspath(path)
 
     def get_binder(self):
         from nxdrive.manager import ServerBindingSettings
@@ -566,7 +566,6 @@ class Engine(QObject):
 
     @pyqtSlot()
     def _check_last_sync(self):
-        from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
         empty_events = self._local_watcher.empty_events()
         blacklist_size = self._queue_manager.get_errors_count()
         qm_size = self._queue_manager.get_overall_size()
@@ -597,9 +596,9 @@ class Engine(QObject):
 
     def _thread_finished(self):
         for thread in self._threads:
-            if thread == self._local_watcher._thread:
+            if thread == self._local_watcher.get_thread():
                 continue
-            if thread == self._remote_watcher._thread:
+            if thread == self._remote_watcher.get_thread():
                 continue
             if thread.isFinished():
                 self._threads.remove(thread)
@@ -627,8 +626,8 @@ class Engine(QObject):
         QCoreApplication.processEvents()
         log.debug("Engine status")
         for thread in self._threads:
-            log.debug("%r" % thread.worker.get_metrics())
-        log.debug("%r" % self._queue_manager.get_metrics())
+            log.debug("%r", thread.worker.get_metrics())
+        log.debug("%r", self._queue_manager.get_metrics())
 
     def get_metrics(self):
         metrics = dict()
@@ -682,17 +681,17 @@ class Engine(QObject):
             if not thread.wait(5000):
                 log.warn("Thread is not responding - terminate it")
                 thread.terminate()
-        if not self._local_watcher._thread.wait(5000):
-            self._local_watcher._thread.terminate()
-        if not self._remote_watcher._thread.wait(5000):
-            self._remote_watcher._thread.terminate()
+        if not self._local_watcher.get_thread().wait(5000):
+            self._local_watcher.get_thread().terminate()
+        if not self._remote_watcher.get_thread().wait(5000):
+            self._remote_watcher.get_thread().terminate()
         for thread in self._threads:
             if thread.isRunning():
                 thread.wait(5000)
-        if not self._remote_watcher._thread.isRunning():
-            self._remote_watcher._thread.wait(5000)
-        if not self._local_watcher._thread.isRunning():
-            self._local_watcher._thread.wait(5000)
+        if not self._remote_watcher.get_thread().isRunning():
+            self._remote_watcher.get_thread().wait(5000)
+        if not self._local_watcher.get_thread().isRunning():
+            self._local_watcher.get_thread().wait(5000)
         # Soft locks needs to be reinit in case of threads termination
         Processor.soft_locks = dict()
         log.debug("Engine %s stopped", self._uid)
@@ -830,7 +829,7 @@ class Engine(QObject):
     def cancel_action_on(self, pair_id):
         for thread in self._threads:
             if hasattr(thread, "worker") and isinstance(thread.worker, Processor):
-                pair = thread.worker._current_doc_pair
+                pair = thread.worker.get_current_pair()
                 if pair is not None and pair.id == pair_id:
                     thread.worker.quit()
 
@@ -894,15 +893,15 @@ class Engine(QObject):
         self._dao.synchronize_state(row)
         # The root should also be sync
 
-    def suspend_client(self, reason):
+    def suspend_client(self, _):
         if self.is_paused() or self._stopped:
             raise ThreadInterrupt
         # Verify thread status
         thread_id = current_thread().ident
         for thread in self._threads:
             if hasattr(thread, "worker") and isinstance(thread.worker, Processor):
-                if (thread.worker._thread_id == thread_id and
-                        thread.worker._continue == False):
+                if (thread.worker.get_thread_id() == thread_id and
+                        thread.worker.is_started() == False):
                     raise ThreadInterrupt
         # Get action
         current_file = None

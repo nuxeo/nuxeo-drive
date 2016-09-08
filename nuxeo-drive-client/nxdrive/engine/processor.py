@@ -135,6 +135,9 @@ class Processor(EngineWorker):
         finally:
             Processor.path_locker.release()
 
+    def get_current_pair(self):
+        return self._current_doc_pair
+
     def _clean(self, reason, e=None):
         super(Processor, self)._clean(reason, e)
         if reason == 'exception':
@@ -325,7 +328,7 @@ class Processor(EngineWorker):
                           doc_pair.local_name)
                 fs_item_info = remote_client.stream_update(
                     doc_pair.remote_ref,
-                    local_client._abspath(doc_pair.local_path),
+                    local_client.abspath(doc_pair.local_path),
                     parent_fs_item_id=doc_pair.remote_parent_ref,
                     filename=doc_pair.remote_name,  # Use remote name to avoid rename in case of duplicate
                 )
@@ -429,7 +432,6 @@ class Processor(EngineWorker):
 
         parent_ref = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
-            fs_item_info = None
             remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
             if doc_pair.folderish:
                 log.debug("Creating remote folder '%s' in folder '%s'",
@@ -455,7 +457,7 @@ class Processor(EngineWorker):
                         self._postpone_pair(doc_pair, 'Unaccessible hash')
                         return
                 fs_item_info = remote_client.stream_file(
-                    parent_ref, local_client._abspath(doc_pair.local_path), filename=name)
+                    parent_ref, local_client.abspath(doc_pair.local_path), filename=name)
                 remote_ref = fs_item_info.uid
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
@@ -533,8 +535,6 @@ class Processor(EngineWorker):
         # A file has been moved locally, and an error occurs when tried to
         # move on the server
         remote_info = None
-        renamed = False
-        moved = False
         if doc_pair.local_name != doc_pair.remote_name:
             try:
                 if doc_pair.remote_can_rename:
@@ -542,7 +542,6 @@ class Processor(EngineWorker):
                                                         doc_pair)
                     remote_info = remote_client.rename(doc_pair.remote_ref,
                                                             doc_pair.local_name)
-                    renamed = True
                     self._refresh_remote(doc_pair, remote_client, remote_info=remote_info)
                 else:
                     self._handle_failed_remote_rename(doc_pair, doc_pair)
@@ -551,7 +550,6 @@ class Processor(EngineWorker):
                 log.debug(e)
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
                 return
-        parent_pair = None
         parent_ref = local_client.get_remote_id(doc_pair.local_parent_path)
         if parent_ref is None:
             parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
@@ -568,7 +566,6 @@ class Processor(EngineWorker):
                 parent_path = parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
                 remote_info = remote_client.move(doc_pair.remote_ref,
                             parent_pair.remote_ref)
-                moved = True
                 self._dao.update_remote_state(doc_pair, remote_info, remote_parent_path=parent_path, versionned=False)
             else:
                 # Move it back
@@ -611,7 +608,7 @@ class Processor(EngineWorker):
             file_out = self._get_temporary_file(file_path)
             locker = local_client.unlock_path(file_out)
             try:
-                shutil.copy(local_client._abspath(pair.local_path), file_out)
+                shutil.copy(local_client.abspath(pair.local_path), file_out)
             finally:
                 local_client.lock_path(file_out, locker)
             return file_out
@@ -622,7 +619,7 @@ class Processor(EngineWorker):
         return tmp_file
 
     def _update_remotely(self, doc_pair, local_client, remote_client, is_renaming):
-        os_path = local_client._abspath(doc_pair.local_path)
+        os_path = local_client.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os.path.join(os.path.dirname(os_path), safe_filename(doc_pair.remote_name))
             log.debug("Replacing local file '%s' by '%s'.", os_path, new_os_path)
@@ -677,8 +674,8 @@ class Processor(EngineWorker):
                             local_client.exists(new_path), local_client.get_remote_id(new_path), new_path)
                         ## end of add log
                         log.debug("Moving local %s '%s' to '%s'.",
-                            file_or_folder, local_client._abspath(doc_pair.local_path),
-                            local_client._abspath(new_parent_pair.local_path + '/' + moved_name))
+                            file_or_folder, local_client.abspath(doc_pair.local_path),
+                            local_client.abspath(new_parent_pair.local_path + '/' + moved_name))
                         # May need to add a lock for move
                         updated_info = local_client.move(doc_pair.local_path,
                                           new_parent_pair.local_path, name=moved_name)
@@ -687,7 +684,7 @@ class Processor(EngineWorker):
                     elif is_renaming:
                         # renaming
                         log.debug("Renaming local %s '%s' to '%s'.",
-                            file_or_folder, local_client._abspath(doc_pair.local_path),
+                            file_or_folder, local_client.abspath(doc_pair.local_path),
                             doc_pair.remote_name)
                         updated_info = local_client.rename(
                             doc_pair.local_path, doc_pair.remote_name)
@@ -785,13 +782,13 @@ class Processor(EngineWorker):
         try:
             if doc_pair.folderish:
                 log.debug("Creating local folder '%s' in '%s'", name,
-                          local_client._abspath(parent_pair.local_path))
+                          local_client.abspath(parent_pair.local_path))
                 path = local_client.make_folder(local_parent_path, name)
             else:
                 path, os_path, name = local_client.get_new_file(local_parent_path,
                                                                 name)
                 log.debug("Creating local file '%s' in '%s'", name,
-                          local_client._abspath(parent_pair.local_path))
+                          local_client.abspath(parent_pair.local_path))
                 tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
                 tmp_file_path = local_client.get_path(tmp_file)
                 # Set remote id on tmp file already
@@ -809,12 +806,12 @@ class Processor(EngineWorker):
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
         try:
             if doc_pair.local_state != 'deleted':
-                log.debug("Deleting locally %s", local_client._abspath(doc_pair.local_path))
+                log.debug("Deleting locally %s", local_client.abspath(doc_pair.local_path))
                 if doc_pair.folderish:
                     self._engine.set_local_folder_lock(doc_pair.local_path)
                 else:
                     # Check for nxpart to clean up
-                    file_out = self._get_temporary_file(local_client._abspath(doc_pair.local_path))
+                    file_out = self._get_temporary_file(local_client.abspath(doc_pair.local_path))
                     if os.path.exists(file_out):
                         os.remove(file_out)
                 if self._engine.use_trash():

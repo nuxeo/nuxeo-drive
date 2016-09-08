@@ -159,7 +159,7 @@ class LocalClient(BaseClient):
         self.unlock_ref(u'/', unlock_parent=False)
         try:
             self.remove_root_id()
-        except Exception as e:
+        except Exception:
             pass
         finally:
             pass
@@ -732,6 +732,9 @@ class LocalClient(BaseClient):
         return rel_path
 
     def _abspath(self, ref):
+        return self.abspath(ref)
+
+    def abspath(self, ref):
         """Absolute path on the operating system"""
         if not ref.startswith(u'/'):
             raise ValueError("LocalClient expects ref starting with '/'")

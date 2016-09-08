@@ -83,6 +83,9 @@ class Worker(QObject):
     def get_thread(self):
         return self._thread
 
+    def get_thead_id(self):
+        return self._thread_id
+
     def _interact(self):
         QCoreApplication.processEvents()
         # Handle thread pause
@@ -99,8 +102,7 @@ class Worker(QObject):
             sleep(0.01)
 
     def _terminated(self):
-        log.debug("Thread %s(%r) terminated"
-                    % (self._name, self._thread_id))
+        log.debug("Thread %s(%r) terminated", self._name, self._thread_id)
 
     def _update_action(self, action):
         self.actionUpdate.emit(action)
@@ -135,18 +137,14 @@ class Worker(QObject):
         e = None
         try:
             try:
-                log.debug("Thread %s(%d) start"
-                            % (self._name, self._thread_id))
+                log.debug("Thread %s(%d) start", self._name, self._thread_id)
                 self._execute()
-                log.debug("Thread %s(%d) end"
-                            % (self._name, self._thread_id))
+                log.debug("Thread %s(%d) end", self._name, self._thread_id)
             except ThreadInterrupt:
-                log.debug("Thread %s(%d) interrupted"
-                            % (self._name, self._thread_id))
+                log.debug("Thread %s(%d) interrupted", self._name, self._thread_id)
                 reason = 'interrupt'
             except Exception as ex:
-                log.warn("Thread %s(%d) ended with exception : %r"
-                                % (self._name, self._thread_id, ex))
+                log.warn("Thread %s(%d) ended with exception : %r", self._name, self._thread_id, ex)
                 log.exception(ex)
                 e = ex
                 reason = 'exception'
