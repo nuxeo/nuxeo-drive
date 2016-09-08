@@ -235,10 +235,10 @@ class Overlay(QtGui.QWidget):
         self.movie.start()
         #self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
 
-    def redraw(self, frameNumber):
+    def redraw(self, _):
         self.repaint()
 
-    def paintEvent(self, event):
+    def paintEvent(self, _):
 
         painter = QtGui.QPainter()
         painter.begin(self)

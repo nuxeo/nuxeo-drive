@@ -13,7 +13,6 @@ except ImportError:
     debugger = pdb
 
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.osi.daemon import daemonize
 from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
 from nxdrive.logging_config import configure
 from nxdrive.logging_config import get_logger

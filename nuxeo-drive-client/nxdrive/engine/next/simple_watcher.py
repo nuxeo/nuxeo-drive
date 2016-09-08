@@ -1,12 +1,11 @@
 __author__ = 'loopingz'
-from nxdrive.engine.watcher.local_watcher import LocalWatcher, DriveFSRootEventHandler, normalize_event_filename
-from time import sleep, time, mktime
+from nxdrive.engine.watcher.local_watcher import LocalWatcher, normalize_event_filename
+from time import sleep, time
 from nxdrive.utils import current_milli_time
 import os
-import sqlite3
 import copy
 from Queue import Queue
-from watchdog.events import FileSystemEventHandler, DirModifiedEvent
+from watchdog.events import DirModifiedEvent
 from nxdrive.engine.workers import ThreadInterrupt
 from nxdrive.engine.activity import Action
 from nxdrive.logging_config import get_logger
@@ -43,7 +42,7 @@ class SimpleWatcher(LocalWatcher):
     def is_pending_scan(self, ref):
         return ref in self._to_scan
 
-    def handle_watchdog_move(self, evt, src_path, rel_path):
+    def handle_watchdog_move(self, evt, _, rel_path):
         # Dest
         dst_path = normalize_event_filename(evt.dest_path)
         if self.client.is_temp_file(os.path.basename(dst_path)):
@@ -63,7 +62,6 @@ class SimpleWatcher(LocalWatcher):
         # It is not yet created no need to move it
         if doc_pair.local_state != 'created':
             doc_pair.local_state = 'moved'
-        old_local_path = doc_pair.local_path
         local_info = self.client.get_info(dst_rel_path, raise_if_missing=False)
         if local_info is None:
             log.warn("Should not disapear")
@@ -122,7 +120,6 @@ class SimpleWatcher(LocalWatcher):
 
     def _execute(self):
         try:
-            trigger_local_scan = False
             self._init()
             if not self.client.exists('/'):
                 self.rootDeleted.emit()
@@ -175,7 +172,7 @@ class SimpleWatcher(LocalWatcher):
         # Need to check for the current file
         to_deletes = copy.copy(self._delete_files)
         # Enforce the scan of all folders to check if the file hasnt moved there
-        for path, last_event_time in self._to_scan.iteritems():
+        for path, _ in self._to_scan.iteritems():
             self._scan_path(path)
         for deleted in to_deletes:
             if deleted not in self._delete_files:

@@ -179,14 +179,14 @@ class RemoteWatcher(EngineWorker):
                         moved=False):
         if remote_info.can_scroll_descendants:
             log.debug('Performing scroll remote scan for %s (%s)', remote_info.name, remote_info.uid)
-            self._scan_remote_scroll(doc_pair, remote_info, mark_unknown=mark_unknown, moved=moved)
+            self._scan_remote_scroll(doc_pair, remote_info, moved=moved)
         else:
             log.debug('Scroll scan not available, performing recursive remote scan for %s (%s)', remote_info.name,
                       remote_info.uid)
             self._scan_remote_recursive(doc_pair, remote_info, force_recursion=force_recursion,
                                         mark_unknown=mark_unknown)
 
-    def _scan_remote_scroll(self, doc_pair, remote_info, mark_unknown=True, moved=False):
+    def _scan_remote_scroll(self, doc_pair, remote_info, moved=False):
         """Perform a scroll scan of the bound remote folder looking for updates"""
         remote_parent_path = self._init_scan_remote(doc_pair, remote_info)
         if remote_parent_path is None:
@@ -294,7 +294,6 @@ class RemoteWatcher(EngineWorker):
         if mark_unknown:
             # TODO Should be DAO method
             log.trace("Skip remote scan as mark_unknown: %r", doc_pair)
-            pass
 
         # Detect recently deleted children
         db_children = self._dao.get_remote_children(doc_pair.remote_ref)

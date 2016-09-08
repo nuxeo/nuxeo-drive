@@ -63,64 +63,64 @@ class ProcessAutoLockerWorker(PollWorker):
                 return
             pids = []
             # Can only restricted to pid if no watched folders
-            for file in self._autolocked:
-                if self._autolocked[file] == 0:
+            for file_path in self._autolocked:
+                if self._autolocked[file_path] == 0:
                     pids = None
                     break
-                pids.append(self._autolocked[file])
+                pids.append(self._autolocked[file_path])
         log.trace("get_open_files restricted to %r", pids)
         to_unlock = deepcopy(self._autolocked)
         files = self._osi.get_open_files(pids=pids)
         if files is None:
             log.debug("no opened files")
             return
-        for file in files:
+        for file_path in files:
             found = False
             for folder in self._watched_folders:
-                if file[1].startswith(folder):
-                    log.trace("found in watched_folder: %r", file)
+                if file_path[1].startswith(folder):
+                    log.trace("found in watched_folder: %r", file_path)
                     found = True
                     break
-            if file[1] in self._autolocked:
-                log.trace("found in autolocked: %r", file)
+            if file_path[1] in self._autolocked:
+                log.trace("found in autolocked: %r", file_path)
                 found = True
             if not found:
                 continue
-            if file[1] in to_unlock:
-                if self._autolocked[file[1]] == 0:
-                    self._to_lock.append(file)
-                self._autolocked[file[1]] = file[0]
-                del to_unlock[file[1]]
-            opened_files.append(file)
+            if file_path[1] in to_unlock:
+                if self._autolocked[file_path[1]] == 0:
+                    self._to_lock.append(file_path)
+                self._autolocked[file_path[1]] = file_path[0]
+                del to_unlock[file_path[1]]
+            opened_files.append(file_path)
         self._opened_files = opened_files
         self._lock_files(self._to_lock)
         self._unlock_files(to_unlock)
 
     def _lock_files(self, files):
-        for file in files:
-            self._lock_file(file)
+        for file_path in files:
+            self._lock_file(file_path)
 
     def _unlock_files(self, files):
-        for file in files:
-            pid = self._autolocked[file]
+        for file_path in files:
+            pid = self._autolocked[file_path]
             if pid == 0:
                 continue
             # No process recorded so never been locked
-            self._unlock_file(file)
+            self._unlock_file(file_path)
 
-    def _lock_file(self, file):
-        log.trace("lock file: %s", file)
-        if file[1] in self._lockers:
-            locker = self._lockers[file[1]]
-            locker.autolock_lock(file[1])
-        self._dao.lock_path(file[1], file[0], '')
-        self._to_lock.remove(file)
+    def _lock_file(self, file_path):
+        log.trace("lock file: %s", file_path)
+        if file_path[1] in self._lockers:
+            locker = self._lockers[file_path[1]]
+            locker.autolock_lock(file_path[1])
+        self._dao.lock_path(file_path[1], file_path[0], '')
+        self._to_lock.remove(file_path)
 
-    def _unlock_file(self, file):
-        log.trace("unlocking file: %s", file)
-        if file in self._lockers:
-            locker = self._lockers[file]
-            locker.autolock_unlock(file)
-        del self._autolocked[file]
-        del self._lockers[file]
-        self._dao.unlock_path(file)
+    def _unlock_file(self, file_path):
+        log.trace("unlocking file: %s", file_path)
+        if file_path in self._lockers:
+            locker = self._lockers[file_path]
+            locker.autolock_unlock(file_path)
+        del self._autolocked[file_path]
+        del self._lockers[file_path]
+        self._dao.unlock_path(file_path)

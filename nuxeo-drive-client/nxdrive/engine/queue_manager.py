@@ -1,6 +1,7 @@
 from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
 from Queue import Queue, Empty
 from nxdrive.logging_config import get_logger
+from nxdrive.engine.processor import Processor
 from threading import Lock, local
 from copy import deepcopy
 import time
@@ -403,9 +404,9 @@ class QueueManager(QObject):
                 + self._remote_folder_queue.qsize() + self._remote_file_queue.qsize())
 
     def is_processing_file(self, worker, path, exact_match=False):
-        if not hasattr(worker, "_current_doc_pair"):
+        if not isinstance(worker, Processor):
             return False
-        doc_pair = worker._current_doc_pair
+        doc_pair = worker.get_current_pair()
         if (doc_pair is None or doc_pair.local_path is None):
             return False
         if exact_match:

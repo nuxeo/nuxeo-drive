@@ -6,8 +6,6 @@ from nxdrive.wui.dialog import WebDialog
 from nxdrive.wui.dialog import WebDriveApi
 from nxdrive.logging_config import get_logger
 from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler
-from nxdrive.osi import parse_protocol_url
-import logging
 import time
 log = get_logger(__name__)
 
