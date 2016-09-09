@@ -41,7 +41,7 @@ DEFAULT_SERVER_URL = "http://localhost:8080/nuxeo"
 DEFAULT_ENGINE = "NXDRIVE"
 
 DEFAULT_MSI_FOLDER = 'dist'
-DEFAULT_LESSMSI_URL = "http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
+DEFAULT_LESSMSI_URL = "https://github.com/activescott/lessmsi/releases/download/v1.4/lessmsi-v1.4.zip"
 LESSMSI_FOLDER = 'lessmsi'
 EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
 NUXEO_DRIVE_HOME_FOLDER = os.path.expanduser('~\.nuxeo-drive')
