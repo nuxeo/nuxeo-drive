@@ -246,7 +246,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         return ref
 
     def _doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
-        return self.doc_to_info(self, doc, fetch_parent_uid, parent_uid)
+        return self.doc_to_info(doc, fetch_parent_uid, parent_uid)
 
     def doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
         """Convert Automation document description to NuxeoDocumentInfo"""
