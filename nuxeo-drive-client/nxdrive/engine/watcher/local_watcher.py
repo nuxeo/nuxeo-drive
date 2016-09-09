@@ -674,7 +674,7 @@ class LocalWatcher(EngineWorker):
             else:
                 log.trace("Don't update as in process %r", doc_pair)
         except sqlite3.OperationalError:
-            log.exception("Don't update as cannot acquire %r", doc_pair)
+            log.debug("Don't update as cannot acquire %r", doc_pair, exc_info=True)
         finally:
             self._dao.release_state(self._thread_id)
             if acquired_pair is not None:
