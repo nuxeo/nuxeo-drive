@@ -84,7 +84,7 @@ class Tracker(Worker):
         self._tracker.send('event', category='DirectEdit', action="Edit", label=extension, value=timing)
 
     @QtCore.pyqtSlot(object, object)
-    def _send_sync_event(self, pair, metrics):
+    def _send_sync_event(self, _, metrics):
         speed = None
         timing = None
         if "start_time" in metrics and "end_time" in metrics:

@@ -30,7 +30,7 @@ class StatusDialog(QtGui.QDialog):
 
 class RetryButton(QtGui.QPushButton):
     def __init__(self, view, pair):
-        super(ResolveButton, self).__init__("Retry")
+        super(RetryButton, self).__init__("Retry")
         self._pair = pair
         self._view = view
         self.clicked.connect(self.retry)

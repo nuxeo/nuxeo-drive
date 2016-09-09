@@ -56,9 +56,6 @@ class WebAuthenticationApi(WebDriveApi):
                 error = 'CONNECTION_REFUSED'
             else:
                 error = 'CONNECTION_ERROR'
-        except urllib2.HTTPError as e:
-            log.exception(e)
-            error = 'CONNECTION_ERROR'
         except:
             log.exception('Unexpected error while trying to update token for account [%s, %s, %s]',
                           engine.get_local_folder(), engine.get_server_url(), engine.get_remote_user())

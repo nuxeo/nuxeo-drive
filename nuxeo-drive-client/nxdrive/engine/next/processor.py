@@ -26,7 +26,7 @@ class Processor(OldProcessor):
         local_client = self._engine.get_local_client()
         if not local_client.exists('/.partials'):
             local_client.make_folder('/', '.partials')
-        return local_client._abspath('/.partials')
+        return local_client.abspath('/.partials')
 
     def _download_content(self, local_client, remote_client, doc_pair, file_path):
 
@@ -37,7 +37,7 @@ class Processor(OldProcessor):
         pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
         if pair:
             import shutil
-            shutil.copy(local_client._abspath(pair.local_path), file_out)
+            shutil.copy(local_client.abspath(pair.local_path), file_out)
             return file_out
         tmp_file = remote_client.stream_content( doc_pair.remote_ref, file_path,
                                 parent_fs_item_id=doc_pair.remote_parent_ref, file_out=file_out)
@@ -46,7 +46,7 @@ class Processor(OldProcessor):
 
     def _update_remotely(self, doc_pair, local_client, remote_client, is_renaming):
         log.warn("_update_remotely")
-        os_path = local_client._abspath(doc_pair.local_path)
+        os_path = local_client.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os.path.join(os.path.dirname(os_path), doc_pair.remote_name)
             log.debug("Replacing local file '%s' by '%s'.", os_path, new_os_path)
@@ -55,13 +55,11 @@ class Processor(OldProcessor):
         log.debug("Updating content of local file '%s'.", os_path)
         tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
         # Delete original file and rename tmp file
-        remote_id = local_client.get_remote_id(doc_pair.local_path)
         local_client.delete_final(doc_pair.local_path)
         rel_path = local_client.get_path(tmp_file)
         local_client.set_remote_id(rel_path, doc_pair.remote_ref)
         # Move rename
-        updated_info = local_client.move(rel_path,
-                                        doc_pair.local_parent_path, doc_pair.remote_name)
+        updated_info = local_client.move(rel_path, doc_pair.local_parent_path, doc_pair.remote_name)
         doc_pair.local_digest = updated_info.get_digest()
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
@@ -74,7 +72,7 @@ class Processor(OldProcessor):
         try:
             if doc_pair.folderish:
                 log.debug("Creating local folder '%s' in '%s'", name,
-                          local_client._abspath(parent_pair.local_path))
+                          local_client.abspath(parent_pair.local_path))
                 # Might want do temp name to original
                 path = local_client.make_folder(local_parent_path, name)
 
@@ -83,7 +81,7 @@ class Processor(OldProcessor):
                                                                 name)
                 tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
                 log.debug("Creating local file '%s' in '%s'", name,
-                          local_client._abspath(parent_pair.local_path))
+                          local_client.abspath(parent_pair.local_path))
                 # Move file to its folder - might want to split it in two for events
                 local_client.move(local_client.get_path(tmp_file),local_parent_path, name)
                 self._dao.update_last_transfer(doc_pair.id, "download")

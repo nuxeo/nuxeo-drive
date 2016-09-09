@@ -15,7 +15,6 @@ import os
 import re
 import sqlite3
 from time import sleep, time, mktime
-from datetime import datetime
 from threading import Lock
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 log = get_logger(__name__)
@@ -26,7 +25,7 @@ WIN_MOVE_RESOLUTION_PERIOD = 2000
 TEXT_EDIT_TMP_FILE_PATTERN = ur'.*\.rtf\.sb\-(\w)+\-(\w)+$'
 
 
-def is_office_file(name):
+def is_office_file(_):
     # Dont filter for now
     return True
 
@@ -365,9 +364,9 @@ class LocalWatcher(EngineWorker):
                                 self._dao.update_local_state(doc_pair, child_info)
                                 continue
                             # possible move-then-copy case, NXDRIVE-471
-                            child_full_path = self.client._abspath(child_info.path)
+                            child_full_path = self.client.abspath(child_info.path)
                             child_creation_time = self.get_creation_time(child_full_path)
-                            doc_full_path = self.client._abspath(doc_pair.local_path)
+                            doc_full_path = self.client.abspath(doc_pair.local_path)
                             doc_creation_time = self.get_creation_time(doc_full_path)
                             log.trace('child_cre_time=%f, doc_cre_time=%f', child_creation_time, doc_creation_time)
                         if doc_pair is None:
@@ -542,7 +541,7 @@ class LocalWatcher(EngineWorker):
         timeout = 30
         lock = self.client.unlock_ref('/', False)
         try:
-            fname = self.client._abspath('/.watchdog_setup')
+            fname = self.client.abspath('/.watchdog_setup')
             while (self._watchdog_queue.empty()):
                 with open(fname, 'a'):
                     os.utime(fname, None)
@@ -558,7 +557,7 @@ class LocalWatcher(EngineWorker):
         finally:
             self.client.lock_ref('/', lock)
 
-    def _stop_watchdog(self, raise_on_error=True):
+    def _stop_watchdog(self):
         if self._observer is not None:
             log.info("Stopping FS Observer thread")
             try:
@@ -868,9 +867,9 @@ class LocalWatcher(EngineWorker):
                             moved = True
                         else:
                             # possible move-then-copy case, NXDRIVE-471
-                            doc_pair_full_path = self.client._abspath(rel_path)
+                            doc_pair_full_path = self.client.abspath(rel_path)
                             doc_pair_creation_time = self.get_creation_time(doc_pair_full_path)
-                            from_pair_full_path = self.client._abspath(from_pair.local_path)
+                            from_pair_full_path = self.client.abspath(from_pair.local_path)
                             from_pair_creation_time = self.get_creation_time(from_pair_full_path)
                             log.trace('doc_pair_full_path=%s, doc_pair_creation_time=%s, from_pair_full_path=%s, version=%d', doc_pair_full_path, doc_pair_creation_time, from_pair_full_path, from_pair.version)
                             # If file at the original location is newer,
