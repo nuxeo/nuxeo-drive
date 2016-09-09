@@ -199,7 +199,7 @@ def extract_msi(lessmsi_url, msi_folder, work_folder, extracted_msi_folder):
     lessmsi = os.path.join(lessmsi_folder, 'lessmsi')
     if os.path.exists(extracted_msi_folder):
         shutil.rmtree(extracted_msi_folder)
-    execute("%s /x %s %s" % (lessmsi, msi_filename, extracted_msi_folder))
+    execute("%s x %s %s" % (lessmsi, msi_filename, extracted_msi_folder))
 
 
 def set_environment(server_url, engine):
