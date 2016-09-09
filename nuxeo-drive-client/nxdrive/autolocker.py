@@ -32,7 +32,7 @@ class ProcessAutoLockerWorker(PollWorker):
     def set_autolock(self, filepath, locker):
         self._autolocked[filepath] = 0
         self._lockers[filepath] = locker
-        self.force_poll()
+        QtCore.QTimer.singleShot(2000, self.force_poll)
 
     def get_open_files(self):
         return self._opened_files
