@@ -41,7 +41,7 @@ DEFAULT_SERVER_URL = "http://localhost:8080/nuxeo"
 DEFAULT_ENGINE = "NXDRIVE"
 
 DEFAULT_MSI_FOLDER = 'dist'
-DEFAULT_LESSMSI_URL = "http://lessmsi.googlecode.com/files/lessmsi-v1.0.8.zip"
+DEFAULT_LESSMSI_URL = "https://github.com/activescott/lessmsi/releases/download/v1.4/lessmsi-v1.4.zip"
 LESSMSI_FOLDER = 'lessmsi'
 EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
 NUXEO_DRIVE_HOME_FOLDER = os.path.expanduser('~\.nuxeo-drive')
@@ -199,7 +199,7 @@ def extract_msi(lessmsi_url, msi_folder, work_folder, extracted_msi_folder):
     lessmsi = os.path.join(lessmsi_folder, 'lessmsi')
     if os.path.exists(extracted_msi_folder):
         shutil.rmtree(extracted_msi_folder)
-    execute("%s /x %s %s" % (lessmsi, msi_filename, extracted_msi_folder))
+    execute("%s x %s %s" % (lessmsi, msi_filename, extracted_msi_folder))
 
 
 def set_environment(server_url, engine):
