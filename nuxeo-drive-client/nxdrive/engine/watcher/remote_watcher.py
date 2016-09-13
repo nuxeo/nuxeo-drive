@@ -642,7 +642,10 @@ class RemoteWatcher(EngineWorker):
                             #     safe_filename(new_info.name) != doc_pair.local_name
                             #     or new_info.parent_uid != doc_pair.remote_parent_ref):
                             if doc_pair.remote_state != 'created':
-                                doc_pair.remote_state = 'modified'
+                                if (new_info.digest != doc_pair.remote_digest or \
+                                                safe_filename(new_info.name) != doc_pair.remote_name or \
+                                                new_info.parent_uid != doc_pair.remote_parent_ref):
+                                    doc_pair.remote_state = 'modified'
                                 remote_parent_path = os.path.dirname(new_info.path)
                             else:
                                 remote_parent_path = os.path.dirname(new_info.path)
