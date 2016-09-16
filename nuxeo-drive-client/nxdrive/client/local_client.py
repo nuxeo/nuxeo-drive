@@ -482,9 +482,20 @@ class LocalClient(BaseClient):
                 break
         if ignore:
             return True
+
+        # NXDRIVE-465
+        ref = self.get_children_ref(parent_ref, file_name)
+        if self._is_hidden(ref):
+            return True
+        while parent_ref:
+            if self._is_hidden(parent_ref):
+                return True
+            parent_ref = self.get_parent_ref(parent_ref)
+
+        return False
+
+    def _is_hidden(self, ref):
         if AbstractOSIntegration.is_windows():
-            # NXDRIVE-465
-            ref = self.get_children_ref(parent_ref, file_name)
             path = self._abspath(ref)
             if not os.path.exists(path):
                 return False
@@ -495,7 +506,9 @@ class LocalClient(BaseClient):
                 return True
             if attrs & win32con.FILE_ATTRIBUTE_HIDDEN == win32con.FILE_ATTRIBUTE_HIDDEN:
                 return True
-        return False
+        else:
+            if ref.startswith('.'):
+                return True
 
     def get_children_ref(self, parent_ref, name):
         if parent_ref == u'/':
