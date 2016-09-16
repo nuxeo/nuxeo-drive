@@ -57,14 +57,6 @@ GET_CTL_MAX_NB_TRIES = 5
 GET_CTL_SLEEP_DURATION = 1
 
 
-def rate_limit_type(val):
-    if val is not None:
-        val = int(val)
-        if val < 1 and val != -1 or val > 99999:
-            raise argparse.ArgumentTypeError("rate limit[KB/s] must be between 1 and 99,999 or -1 for no limit")
-        return val
-
-
 # Taken from http://stackoverflow.com/a/600612/119527
 def mkdir_p(path):
     import errno
