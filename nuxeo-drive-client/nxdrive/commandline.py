@@ -405,6 +405,10 @@ class CliHandler(object):
 
     def _configure_logger(self, options):
         """Configure the logging framework from the provided options"""
+        # Ensure the log folder exists
+        folder_log = os.path.join(options.nxdrive_home, 'logs')
+        if not os.path.exists(folder_log):
+            os.makedirs(folder_log)
         filename = options.log_filename
         if filename is None:
             filename = os.path.join(
