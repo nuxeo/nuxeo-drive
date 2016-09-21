@@ -155,9 +155,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertEquals(workspace_children[1].name, 'Folder 2')
         self.assertTrue(workspace_children[1].folderish)
         self.assertEquals(workspace_children[2].uid, file_1_id)
-        # the .txt name is added by the server to the title of Note
-        # documents
-        self.assertEquals(workspace_children[2].name, 'File 1.txt')
+        self.assertEquals(workspace_children[2].name, 'File 1')
         self.assertFalse(workspace_children[2].folderish)
 
         # Check folder_1 children
@@ -165,7 +163,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertTrue(folder_1_children is not None)
         self.assertEquals(len(folder_1_children), 1)
         self.assertEquals(folder_1_children[0].uid, file_2_id)
-        self.assertEquals(folder_1_children[0].name, 'File 2.txt')
+        self.assertEquals(folder_1_children[0].name, 'File 2')
 
     def test_scroll_descendants(self):
         remote_client = self.remote_file_system_client_1
@@ -187,13 +185,13 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertIsNotNone(descendants)
         self.assertEquals(len(descendants), 4)
         self.assertEquals(descendants[0].uid, file_1_id)
-        self.assertEquals(descendants[0].name, 'File 1.txt')
+        self.assertEquals(descendants[0].name, 'File 1')
         self.assertFalse(descendants[0].folderish)
         self.assertEquals(descendants[1].uid, folder_1_id)
         self.assertEquals(descendants[1].name, 'Folder 1')
         self.assertTrue(descendants[1].folderish)
         self.assertEquals(descendants[2].uid, file_2_id)
-        self.assertEquals(descendants[2].name, 'File 2.txt')
+        self.assertEquals(descendants[2].name, 'File 2')
         self.assertFalse(descendants[2].folderish)
         self.assertEquals(descendants[3].uid, folder_2_id)
         self.assertEquals(descendants[3].name, 'Folder 2')
@@ -214,13 +212,13 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
             descendants.extend(partial_descendants)
         self.assertEquals(len(descendants), 4)
         self.assertEquals(descendants[0].uid, file_1_id)
-        self.assertEquals(descendants[0].name, 'File 1.txt')
+        self.assertEquals(descendants[0].name, 'File 1')
         self.assertFalse(descendants[0].folderish)
         self.assertEquals(descendants[1].uid, folder_1_id)
         self.assertEquals(descendants[1].name, 'Folder 1')
         self.assertTrue(descendants[1].folderish)
         self.assertEquals(descendants[2].uid, file_2_id)
-        self.assertEquals(descendants[2].name, 'File 2.txt')
+        self.assertEquals(descendants[2].name, 'File 2')
         self.assertFalse(descendants[2].folderish)
         self.assertEquals(descendants[3].uid, folder_2_id)
         self.assertEquals(descendants[3].name, 'Folder 2')
