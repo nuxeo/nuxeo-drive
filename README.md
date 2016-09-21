@@ -2,7 +2,7 @@
 
 This is an ongoing development project for desktop synchronization of local folders with remote Nuxeo workspaces.
 
-Watch this [screencast](http://www.nuxeo.com/blog/development/2013/04/nuxeo-drive-desktop-synchronization/) to get a 6 min overview of this project.
+Watch this [screencast](https://embedwistia-a.akamaihd.net/deliveries/db284a19e500781cdca15ecb0e5901d62154f084/file.mp4) to get a 6 min overview of this project.
 
 See [USERDOC/Nuxeo Drive](http://doc.nuxeo.com/x/04HQ) for complete up-to-date documentation.
 
@@ -53,7 +53,7 @@ The .deb (or .rpm) package of the client is not yet available. In the meantime y
 
 *Has been reported to work on:* Ubuntu >= 12.04.
 
-#### xattr 
+#### xattr
 
 First note that Nuxeo Drive uses [Extended file attributes](http://en.wikipedia.org/wiki/Extended_file_attributes) through the [xattr](https://pypi.python.org/pypi/xattr/) Python wrapper.
 
@@ -67,8 +67,8 @@ sudo mount -oremount,user_xattr /dev/sda3
 
 #### Python 2.7 or higher
 
-Nuxeo Drive uses some packages, which are only compatible from **python version 2.7 on**. 
-If this excludes using the standard python installation of certain OS distributions, you may still install python 2.7 (or higher) [manually from the download pages](https://www.python.org/downloads/) on your system. 
+Nuxeo Drive uses some packages, which are only compatible from **python version 2.7 on**.
+If this excludes using the standard python installation of certain OS distributions, you may still install python 2.7 (or higher) [manually from the download pages](https://www.python.org/downloads/) on your system.
 However, this may break other tools in your environment, who need to be consistent with the default python packages.
 Using [Anaconda](http://continuum.io/downloads) to switch between different python installs/environments may help in this case.
 
@@ -157,13 +157,13 @@ The desktop synchronization client can also be operated from the command-line:
     * You can check by typing the `ndrive --help` command in a console.
 
     * If you installed the .dmg package for OSX, the binary is:
-    
+
 	```
     /Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive
 	```
-    
+
     * You can alias it in your `bashrc` with:
-	
+
 	```
     alias ndrive="/Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive"
 	```
@@ -177,17 +177,17 @@ The desktop synchronization client can also be operated from the command-line:
 3. The first time you run this command a dialog window will open asking for the URL of the Nuxeo server and your user credentials.
 
     Alternatively you can bind to a Nuxeo server with your user credentials using the following commandline arguments:
-    
+
 	```
     ndrive bind-server nuxeo-username http://server:port/nuxeo --password secret
 	```
     This will create a new folder called Nuxeo Drive in your home folder under Linux and MacOSX and under the Documents folder under Windows.
 
-4. Go to your Nuxeo with your browser, navigate to workspaces or folder where you have permission to create new documents. 
+4. Go to your Nuxeo with your browser, navigate to workspaces or folder where you have permission to create new documents.
 5. Click on the Nuxeo Drive icon right of the title of the folder to treat this folder as a new synchronization root.
 
     Alternatively you can do this operation from the commandline with:
-    
+
 	```
     ndrive bind-root "/default-domain/workspaces/My Workspace"
 	```
