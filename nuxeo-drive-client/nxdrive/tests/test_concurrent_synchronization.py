@@ -239,7 +239,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # 'documentModified' event for the test file as a result of its
         # dc:description property update, since the file will not have been
         # renamed nor moved and its content not modified since last
-        # synchronization, its remote pzaair state will not be marked as
+        # synchronization, its remote pair state will not be marked as
         # 'modified', see Model.update_remote().
         # Thus the pair state will be ('modified', 'synchronized'), resolved as
         # 'locally_modified'.

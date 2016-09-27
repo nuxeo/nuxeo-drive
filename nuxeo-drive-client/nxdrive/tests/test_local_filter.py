@@ -83,6 +83,7 @@ class TestLocalFilter(UnitTestCase):
         self.wait_sync(enforce_errors=False,fail_if_timeout=False)
         children = self.remote_document_client_1.get_children_info(self.workspace)
         self.assertEquals(len(children), 1)
+
         # Force the postponed to ensure it's synchronized now
         self.engine_1.get_queue_manager().requeue_errors()
         self.wait_sync(wait_for_async=True)
