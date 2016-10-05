@@ -31,7 +31,7 @@ Related issue: https://jira.nuxeo.com/browse/NXDRIVE-647
 
 * Client side: “Folder1-ServerName” is downloaded (and no more “Folder1LocalRename”)
 
-<img src="/docs/Pictures/Scenario3-Pic5.png" width="300"/>
+<img src="/docs/Pictures/Scenario3-Pic6.png" width="300"/>
 
 
 ## Expected Results
