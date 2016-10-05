@@ -494,6 +494,7 @@ class RemoteWatcher(EngineWorker):
         return False
 
     def _save_changes_state(self):
+        self._last_event_log_id = self._next_last_event_log_id
         self._dao.update_config('remote_last_sync_date', self._last_sync_date)
         self._dao.update_config('remote_last_event_log_id', self._last_event_log_id)
         self._dao.update_config('remote_last_root_definitions', self._last_root_definitions)
@@ -508,9 +509,9 @@ class RemoteWatcher(EngineWorker):
             # If available, read 'upperBound' key as last event log id
             # according to the new implementation of the audit change finder,
             # see https://jira.nuxeo.com/browse/NXP-14826.
-            self._last_event_log_id = summary['upperBound']
+            self._next_last_event_log_id = summary['upperBound']
         else:
-            self._last_event_log_id = None
+            self._next_last_event_log_id = None
         return summary
 
     def _force_remote_scan(self, doc_pair, remote_info, remote_path=None, force_recursion=True, moved=False):
