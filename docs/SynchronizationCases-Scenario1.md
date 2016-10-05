@@ -1,6 +1,6 @@
 #Drive not uploading files from shared folder
 
-related issue: https://jira.nuxeo.com/browse/SUPNXP-18002
+related issue: https://jira.nuxeo.com/browse/NXDRIVE_645
 
 ## Scenario to reproduce
 
