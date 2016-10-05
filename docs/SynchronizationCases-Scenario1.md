@@ -1,5 +1,7 @@
 #Drive not uploading files from shared folder
 
+related issue: https://jira.nuxeo.com/browse/SUPNXP-18002
+
 ## Scenario to reproduce
 
 * Create user1 and user2
@@ -43,3 +45,4 @@ Previous local “final” folder is renamed “Finished__1”
 
 Rename with __ ( the option exists now ) and put the folder in conflict with option to merge it.
 (“Aerial04.jpg” is waiting for parent’s conflict resolution).
+
