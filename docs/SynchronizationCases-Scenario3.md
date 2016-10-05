@@ -1,6 +1,6 @@
 # Drive is not uploading the local renamed folder to server
 
-Related issue: https://jira.nuxeo.com/browse/SUPNXP-18044
+Related issue: https://jira.nuxeo.com/browse/NXDRIVE-647
 
 ## Scenario to reproduce
 
