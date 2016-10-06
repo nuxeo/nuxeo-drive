@@ -82,6 +82,17 @@ def test_make_documents():
 
 
 @with_temp_folder
+def test_get_info_invalid_date():
+    doc_1 = lcclient.make_file(TEST_WORKSPACE, u'Document 1.txt')
+    os.utime(lcclient._abspath(os.path.join(TEST_WORKSPACE, u'Document 1.txt')), (0, 999999999999999))
+    doc_1_info = lcclient.get_info(doc_1)
+    assert_equal(doc_1_info.name, u'Document 1.txt')
+    assert_equal(doc_1_info.path, doc_1)
+    assert_equal(doc_1_info.get_digest(), EMPTY_DIGEST)
+    assert_equal(doc_1_info.folderish, False)
+
+
+@with_temp_folder
 def test_complex_filenames():
     # create another folder with the same title
     title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"

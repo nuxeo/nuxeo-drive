@@ -5,6 +5,22 @@ from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFile
 
 class TestLocalStorageSpaceIssue(UnitTestCase):
 
+
+    def test_local_invalid_timestamp(self):
+        import os
+        # Synchronize root workspace
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(self.local_client_1.exists('/'))
+        self.engine_1.stop()
+        self.local_client_1.make_file("/", "Test.txt", "plop")
+        os.utime(self.local_client_1._abspath("/Test.txt"), (0, 999999999999999))
+        self.engine_1.start()
+        self.wait_sync()
+        children = self.remote_document_client_1.get_children_info(self.workspace_1)
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0].name, "Test.txt")
+
     def test_synchronize_no_space_left_on_device(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

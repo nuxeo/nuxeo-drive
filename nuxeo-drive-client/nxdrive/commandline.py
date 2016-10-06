@@ -639,7 +639,7 @@ class CliHandler(object):
                 "nxdrive.tests.test_local_move_and_rename",
                 "nxdrive.tests.test_local_move_folders",
                 "nxdrive.tests.test_local_paste",
-                "nxdrive.tests.test_local_storage_space_issue",
+                "nxdrive.tests.test_local_storage_issue",
                 "nxdrive.tests.test_manager_dao",
                 "nxdrive.tests.test_model_filters",
                 "nxdrive.tests.test_multiple_files",

@@ -420,7 +420,11 @@ class LocalClient(BaseClient):
             size = 0
         else:
             size = stat_info.st_size
-        mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
+        try:
+            mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
+        except ValueError, e:
+            log.error(str(e) + "file path: %s. st_mtime value: %s" % (str(os_path), str(stat_info.st_mtime)))
+            mtime = datetime.utcfromtimestamp(0)
         # TODO Do we need to load it everytime ?
         remote_ref = self.get_remote_id(ref)
         # On unix we could use the inode for file move detection but that won't
