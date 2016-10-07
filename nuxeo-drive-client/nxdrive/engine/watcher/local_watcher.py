@@ -272,10 +272,13 @@ class LocalWatcher(EngineWorker):
     @pyqtSlot(str)
     def scan_pair(self, local_path):
         info = self.client.get_info(local_path)
-        self._suspend_queue()
+        to_pause = not self._engine.get_queue_manager().is_paused()
+        if to_pause:
+            self._suspend_queue()
         self._scan_recursive(info, recursive=False)
         self._scan_handle_deleted_files()
-        self._engine.get_queue_manager().resume()
+        if to_pause:
+            self._engine.get_queue_manager().resume()
 
     def empty_events(self):
         return self._watchdog_queue.empty() and ( not AbstractOSIntegration.is_windows() or
