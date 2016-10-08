@@ -499,7 +499,15 @@ class LocalClient(BaseClient):
                 return True
             if attrs & win32con.FILE_ATTRIBUTE_HIDDEN == win32con.FILE_ATTRIBUTE_HIDDEN:
                 return True
-        return False
+        # NXDRIVE-655
+        # Need to check every parent if they are ignored
+        result = False
+        path = parent_ref
+        while (not result) and (path != '/'):
+            file_name = os.path.basename(path)
+            path = os.path.dirname(path)
+            result = self.is_ignored(path, file_name)
+        return result
 
     def get_children_ref(self, parent_ref, name):
         if parent_ref == u'/':

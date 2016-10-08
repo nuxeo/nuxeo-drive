@@ -40,3 +40,29 @@ class TestSynchronizationSuspend(UnitTestCase):
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
         self.assertEqual(len(remote.get_children_info(self.workspace_1)), 4)
         self.assertTrue(self.engine_1.get_queue_manager().is_paused())
+
+
+    def test_synchronization_end_with_children_ignore_parent(self):
+        # NXDRIVE-655
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Let's create some document on the client and the server
+        local.make_folder('/', 'Folder 3')
+        self.make_server_tree()
+
+        # Launch ndrive and check synchronization
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(remote.exists('/Folder 3'))
+        self.assertTrue(local.exists('/Folder 1'))
+        self.assertTrue(local.exists('/Folder 2'))
+        self.assertTrue(local.exists('/File 5.txt'))
+        local.make_folder('/', '.hidden')
+        local.make_file('/.hidden', 'Test.txt', 'Plop')
+        local.make_folder('/.hidden', 'normal')
+        local.make_file('/.hidden/normal', 'Test.txt', 'Plop')
+        # Should not try to sync therefor it should not timeout
+        self.wait_sync(wait_for_async=True)
+        self.assertEqual(len(remote.get_children_info(self.workspace_1)), 4)
