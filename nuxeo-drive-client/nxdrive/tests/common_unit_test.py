@@ -79,7 +79,7 @@ class RandomBug(object):
 
 def configure_logger():
     configure(
-        console_level='DEBUG',
+        console_level='TRACE',
         command_name='test',
         force_configure=True,
     )

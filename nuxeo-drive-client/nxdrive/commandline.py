@@ -658,6 +658,7 @@ class CliHandler(object):
                 "nxdrive.tests.test_synchronization",
                 "nxdrive.tests.test_synchronization_dedup",
                 "nxdrive.tests.test_synchronization_dedup_case_sensitive",
+                "nxdrive.tests.test_synchronization_suspend",
                 "nxdrive.tests.test_translator",
                 "nxdrive.tests.test_updater",
                 "nxdrive.tests.test_utils",
