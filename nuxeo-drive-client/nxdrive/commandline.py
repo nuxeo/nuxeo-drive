@@ -57,6 +57,25 @@ GET_CTL_MAX_NB_TRIES = 5
 GET_CTL_SLEEP_DURATION = 1
 
 
+# Taken from http://stackoverflow.com/a/600612/119527
+def mkdir_p(path):
+    import errno
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
+
+
+def safe_open_w(path):
+    ''' Open "path" for writing, creating any parent directories as needed.
+    '''
+    mkdir_p(os.path.dirname(path))
+    return open(path, 'w')
+
+
 class CliHandler(object):
     """ Set the default argument """
     def __init__(self):
@@ -678,7 +697,7 @@ class CliHandler(object):
             import faulthandler
             segfault_filename = os.path.join(
                 options.nxdrive_home, 'logs', 'segfault.log')
-            segfault_file = open(os.path.expanduser(segfault_filename), 'w')
+            segfault_file = safe_open_w(os.path.expanduser(segfault_filename))
             self.log.debug("Enabling faulthandler to trace segfaults in %s",
                            segfault_filename)
             faulthandler.enable(file=segfault_file)
