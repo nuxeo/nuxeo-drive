@@ -599,7 +599,7 @@ class RemoteWatcher(EngineWorker):
                                       doc_pair_repr)
                             self._dao.delete_remote_state(doc_pair)
                         else:
-                            log.debug("Unknow event: '%s'", eventId)
+                            log.debug("Unknown event: '%s'", eventId)
                     else:
                         remote_parent_factory = doc_pair.remote_parent_ref.split('#', 1)[0]
                         new_info_parent_factory = new_info.parent_uid.split('#', 1)[0]

@@ -2,7 +2,7 @@ import time
 
 from nxdrive.tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
-from nxdrive.tests.common_unit_test import UnitTestCase
+from nxdrive.tests.common_unit_test import UnitTestCase, TEST_DEFAULT_DELAY
 
 
 class TestConcurrentSynchronization(UnitTestCase):
@@ -218,6 +218,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Test file should be created remotely in the test workspace
         self.assertTrue(remote.exists('/test.odt'))
 
+        self.engine_1.get_queue_manager().suspend()
         # Locally update the file content and remotely update one of its
         # properties concurrently, then synchronize
         time.sleep(OS_STAT_MTIME_RESOLUTION)
@@ -230,6 +231,8 @@ class TestConcurrentSynchronization(UnitTestCase):
         remote.update(test_file_ref, properties={'dc:description': 'Some description.'})
         test_file = remote.fetch(test_file_ref)
         self.assertEqual(test_file['properties']['dc:description'], 'Some description.')
+        time.sleep(TEST_DEFAULT_DELAY)
+        self.engine_1.get_queue_manager().resume()
 
         self.wait_sync(wait_for_async=True)
 
@@ -239,7 +242,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # 'documentModified' event for the test file as a result of its
         # dc:description property update, since the file will not have been
         # renamed nor moved and its content not modified since last
-        # synchronization, its remote pzaair state will not be marked as
+        # synchronization, its remote pair state will not be marked as
         # 'modified', see Model.update_remote().
         # Thus the pair state will be ('modified', 'synchronized'), resolved as
         # 'locally_modified'.

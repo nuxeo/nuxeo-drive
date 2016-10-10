@@ -1232,11 +1232,13 @@ class EngineDAO(ConfigurationDAO):
         version = ''
         # Check if it really needs an update
         if ((not force_update) and row.remote_ref == info.uid and info.parent_uid == row.remote_parent_ref and remote_parent_path == row.remote_parent_path
-            and info.name == row.remote_name and unicode(info.last_modification_time) == row.last_remote_updated and info.can_rename == row.remote_can_rename
-            and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child
-            and info.last_contributor == row.last_remote_modifier and info.digest == row.remote_digest):
-            log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
-            return
+            and info.name == row.remote_name and info.can_rename == row.remote_can_rename and info.digest == row.remote_digest
+            and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child):
+            if info.last_contributor != row.last_remote_modifier or unicode(info.last_modification_time) != row.last_remote_updated:
+                row.remote_state = 'synchronized'
+            else:
+                log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
+                return
         log.trace('Updating remote state for row = %r with info = %r', row, info)
         if versionned:
             version = ', version=version+1'
