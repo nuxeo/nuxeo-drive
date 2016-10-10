@@ -503,7 +503,7 @@ class LocalClient(BaseClient):
         # Need to check every parent if they are ignored
         result = False
         path = parent_ref
-        while (not result) and (path != '/'):
+        if path != '/':
             file_name = os.path.basename(path)
             path = os.path.dirname(path)
             result = self.is_ignored(path, file_name)
