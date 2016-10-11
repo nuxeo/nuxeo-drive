@@ -191,7 +191,7 @@ class TestConflicts(UnitTestCase):
 
         pair_state = self.engine_1.get_dao().get_normal_state_from_remote(fs_item_id)
         self.assertIsNotNone(pair_state)
-        self.assertEquals(pair_state.pair_state, 'conflicted')
+        self.assertEquals(pair_state.pair_state, 'unsynchronized')
         self.assertFalse(pair_state.remote_can_update)
 
         # user2: unlock document, conflict is detected once again and remote_can_update flag is now True

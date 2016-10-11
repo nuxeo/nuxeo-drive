@@ -1231,13 +1231,13 @@ class EngineDAO(ConfigurationDAO):
             remote_parent_path = row.remote_parent_path
         version = ''
         # Check if it really needs an update
-        if ((not force_update) and row.remote_ref == info.uid and info.parent_uid == row.remote_parent_ref and remote_parent_path == row.remote_parent_path
+        if (row.remote_ref == info.uid and info.parent_uid == row.remote_parent_ref and remote_parent_path == row.remote_parent_path
             and info.name == row.remote_name and info.can_rename == row.remote_can_rename
             and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child):
-            if info.last_contributor != row.last_remote_modifier or unicode(info.last_modification_time) != row.last_remote_updated or info.digest == row.local_digest or info.digest == row.remote_digest:
+            if (info.last_contributor != row.last_remote_modifier or unicode(info.last_modification_time) != row.last_remote_updated) and (info.digest == row.local_digest or info.digest == row.remote_digest):
                 row.remote_state = 'synchronized'
                 pair_state = self._get_pair_state(row)
-            elif info.digest == row.remote_digest:
+            elif info.digest == row.remote_digest and not force_update:
                 log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
                 return
         log.trace('Updating remote state for row = %r with info = %r', row, info)

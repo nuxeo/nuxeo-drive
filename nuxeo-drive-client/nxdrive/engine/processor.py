@@ -191,7 +191,7 @@ class Processor(EngineWorker):
                         and doc_pair.remote_ref is not None):
                     try:
                         remote_info = remote_client.get_info(doc_pair.remote_ref)
-                        if remote_info.digest != doc_pair.remote_digest:
+                        if remote_info.digest != doc_pair.remote_digest and doc_pair.remote_digest is not None:
                             doc_pair.remote_state = 'modified'
                         self._refresh_remote(doc_pair, remote_client, remote_info)
                         # Can run into conflict
@@ -857,7 +857,6 @@ class Processor(EngineWorker):
 
     def _refresh_remote(self, doc_pair, remote_client, remote_info=None):
         if remote_info is None:
-            remote_info = None  # Get from remote_client
             remote_info = remote_client.get_info(doc_pair.remote_ref)
         self._dao.update_remote_state(doc_pair, remote_info, versionned=False, queue=False)
 
