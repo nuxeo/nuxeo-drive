@@ -1225,18 +1225,18 @@ class EngineDAO(ConfigurationDAO):
             self.queue_children(row)
         return result
 
-    def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False):
+    def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False, no_digest=False):
         pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
         version = ''
         # Check if it really needs an update
         if ((not force_update) and row.remote_ref == info.uid and info.parent_uid == row.remote_parent_ref and remote_parent_path == row.remote_parent_path
-            and info.name == row.remote_name and info.can_rename == row.remote_can_rename and info.digest == row.remote_digest
+            and info.name == row.remote_name and info.can_rename == row.remote_can_rename
             and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child):
-            if info.last_contributor != row.last_remote_modifier or unicode(info.last_modification_time) != row.last_remote_updated:
+            if info.last_contributor != row.last_remote_modifier or unicode(info.last_modification_time) != row.last_remote_updated or info.digest == row.local_digest or info.digest == row.remote_digest:
                 row.remote_state = 'synchronized'
-            else:
+            elif info.digest == row.remote_digest:
                 log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
                 return
         log.trace('Updating remote state for row = %r with info = %r', row, info)
@@ -1247,14 +1247,18 @@ class EngineDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET remote_ref=?, remote_parent_ref=?, " +
-                      "remote_parent_path=?, remote_name=?, last_remote_updated=?, remote_can_rename=?," +
-                      "remote_can_delete=?, remote_can_update=?, " +
-                      "remote_can_create_child=?, last_remote_modifier=?, remote_digest=?, local_state=?," +
-                      "remote_state=?, pair_state=?" + version + " WHERE id=?",
+            query = "UPDATE States SET remote_ref=?, remote_parent_ref=?, " + \
+                      "remote_parent_path=?, remote_name=?, last_remote_updated=?, remote_can_rename=?," + \
+                      "remote_can_delete=?, remote_can_update=?, " + \
+                      "remote_can_create_child=?, last_remote_modifier=?,"
+            if not no_digest and info.digest is not None:
+                query = query + "remote_digest='" + info.digest + "',"
+            query = query + " local_state=?," + \
+                      "remote_state=?, pair_state=?" + version + " WHERE id=?"
+            c.execute(query,
                       (info.uid, info.parent_uid, remote_parent_path, info.name,
                        info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
-                       info.can_create_child, info.last_contributor, info.digest, row.local_state,
+                       info.can_create_child, info.last_contributor, row.local_state,
                        row.remote_state, pair_state, row.id))
             if self.auto_commit:
                 con.commit()

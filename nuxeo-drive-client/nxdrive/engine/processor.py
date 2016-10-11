@@ -334,7 +334,7 @@ class Processor(EngineWorker):
                 )
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
-                self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False)
+                self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False, no_digest=True)
                 # TODO refresh_client
             else:
                 log.debug("Skip update of remote document '%s' as it is readonly.", doc_pair.local_name)
@@ -354,7 +354,7 @@ class Processor(EngineWorker):
                 return
         if fs_item_info is None:
             fs_item_info = remote_client.get_info(doc_pair.remote_ref)
-            self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False)
+            self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False, no_digest=True)
         self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=fs_item_info)
 
     def _get_normal_state_from_remote_ref(self, ref):
@@ -418,7 +418,7 @@ class Processor(EngineWorker):
                     if fs_item_info.name != doc_pair.local_name:
                         fs_item_info = remote_client.rename(fs_item_info.uid, doc_pair.local_name)
                     self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
-                                                  versionned=False)
+                                                  versionned=False, no_digest=True)
                     # Handle document modification - update the doc_pair
                     doc_pair = self._dao.get_state_from_id(doc_pair.id)
                     self._synchronize_locally_modified(doc_pair, local_client, remote_client)
@@ -472,7 +472,7 @@ class Processor(EngineWorker):
                 except (NotFound, IOError, OSError):
                     pass
                 self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path,
-                                              versionned=False, queue=False)
+                                              versionned=False, queue=False, no_digest=True)
             finally:
                 self._dao.release_lock()
             log.trace("Put remote_ref in %s", remote_ref)
@@ -566,7 +566,7 @@ class Processor(EngineWorker):
                 parent_path = parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
                 remote_info = remote_client.move(doc_pair.remote_ref,
                             parent_pair.remote_ref)
-                self._dao.update_remote_state(doc_pair, remote_info, remote_parent_path=parent_path, versionned=False)
+                self._dao.update_remote_state(doc_pair, remote_info, remote_parent_path=parent_path, versionned=False, no_digest=True)
             else:
                 # Move it back
                 self._handle_failed_remote_move(doc_pair, doc_pair)
