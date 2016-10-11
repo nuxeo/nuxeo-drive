@@ -1236,6 +1236,7 @@ class EngineDAO(ConfigurationDAO):
             and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child):
             if info.last_contributor != row.last_remote_modifier or unicode(info.last_modification_time) != row.last_remote_updated or info.digest == row.local_digest or info.digest == row.remote_digest:
                 row.remote_state = 'synchronized'
+                pair_state = self._get_pair_state(row)
             elif info.digest == row.remote_digest:
                 log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
                 return
