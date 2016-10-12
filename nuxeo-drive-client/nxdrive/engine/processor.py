@@ -913,17 +913,13 @@ class Processor(EngineWorker):
                 log.debug(e)
         return False
 
-    def _is_locally_edited_folder(self, doc_pair):
-        return doc_pair.local_path.endswith(LOCALLY_EDITED_FOLDER_NAME)
-
     def _handle_unsynchronized(self, local_client, doc_pair):
         # Used for overwrite
         pass
 
     def _handle_readonly(self, local_client, doc_pair):
         # Don't use readonly on folder for win32 and on Locally Edited
-        if (doc_pair.folderish and os.sys.platform == 'win32'
-            or self._is_locally_edited_folder(doc_pair)):
+        if (doc_pair.folderish and os.sys.platform == 'win32'):
             return
         if doc_pair.is_readonly():
             log.debug('Setting %r as readonly', doc_pair.local_path)

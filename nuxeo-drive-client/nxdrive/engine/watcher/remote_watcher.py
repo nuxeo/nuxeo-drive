@@ -398,6 +398,17 @@ class RemoteWatcher(EngineWorker):
         child_pair = self._dao.get_state_from_id(row_id, from_write=True)
         return child_pair, True
 
+    def _handle_readonly(self, local_client, doc_pair):
+        # Don't use readonly on folder for win32 and on Locally Edited
+        if (doc_pair.folderish and os.sys.platform == 'win32'):
+            return
+        if doc_pair.is_readonly():
+            log.debug('Setting %r as readonly', doc_pair.local_path)
+            local_client.set_readonly(doc_pair.local_path)
+        else:
+            log.debug('Unsetting %r as readonly', doc_pair.local_path)
+            local_client.unset_readonly(doc_pair.local_path)
+
     def _partial_full_scan(self, path):
         log.debug("Continue full scan of %s", path)
         if path == '/':
@@ -641,7 +652,8 @@ class RemoteWatcher(EngineWorker):
                             # if (new_info.digest != doc_pair.local_digest or
                             #     safe_filename(new_info.name) != doc_pair.local_name
                             #     or new_info.parent_uid != doc_pair.remote_parent_ref):
-                            if doc_pair.remote_state != 'created':
+                            lock_update = eventId == 'documentLocked' or eventId == 'documentUnlocked'
+                            if doc_pair.remote_state != 'created' and not lock_update:
                                 doc_pair.remote_state = 'modified'
                                 remote_parent_path = os.path.dirname(new_info.path)
                             else:
@@ -649,15 +661,20 @@ class RemoteWatcher(EngineWorker):
                                 # TODO Add modify local_path and local_parent_path if needed
                             # Force remote state update in case of a locked / unlocked event since lock info is not
                             # persisted, so not part of the dirty check
-                            force_update = eventId == 'documentLocked' or eventId == 'documentUnlocked'
                             self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path,
-                                                          force_update=force_update)
+                                                          force_update=lock_update)
                             if doc_pair.folderish:
                                 log.trace("Force scan recursive on %r : %d", doc_pair, (eventId == "securityUpdated"))
                                 self._force_remote_scan(doc_pair, consistent_new_info, remote_path=new_info.path,
                                                         force_recursion=(eventId == "securityUpdated"),
                                                         moved=(eventId == "documentMoved"))
-
+                            if lock_update:
+                                doc_pair = self._dao.get_state_from_id(doc_pair.id)
+                                try:
+                                    self._handle_readonly(self._local_client, doc_pair)
+                                except (OSError, IOError) as ex:
+                                    log.trace("Can't handle readonly for %r (%r)", doc_pair, ex)
+                                    pass
                     updated = True
                     refreshed.add(remote_ref)
 
