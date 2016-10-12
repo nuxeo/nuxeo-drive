@@ -97,7 +97,7 @@ class WebSettingsApi(WebDriveApi):
             password = unicode(password).encode('utf-8')
         if name == '':
             name = None
-        else:
+        elif name and isinstance(name, QtCore.QString):
             name = unicode(name).encode('utf-8')
         binder = namedtuple('binder', ['username', 'password', 'token', 'url', 'no_check', 'no_fscheck'])
         binder.username = username
