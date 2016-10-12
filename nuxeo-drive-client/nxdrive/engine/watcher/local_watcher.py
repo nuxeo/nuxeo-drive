@@ -706,17 +706,20 @@ class LocalWatcher(EngineWorker):
                         return
                 self._handle_watchdog_delete(doc_pair)
             return
+        local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if evt.event_type == 'created':
             # NXDRIVE-471 case maybe
             remote_ref = self.client.get_remote_id(rel_path)
             if remote_ref is None:
                 log.debug("Created event on a known pair with no remote_ref,"
                           " this should only happen in case of a quick move and copy-paste: %r", doc_pair)
-                return
+                if local_info is None or local_info.get_digest() == doc_pair.local_digest:
+                    return
+                else:
+                    log.debug("Created event on a known pair with no remote_ref but with different digest: %r" , doc_pair)
             else:
                 # NXDRIVE-509
                 log.debug("Created event on a known pair with a remote_ref: %r", doc_pair)
-        local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if local_info is not None:
             # Unchanged folder
             if doc_pair.folderish:
