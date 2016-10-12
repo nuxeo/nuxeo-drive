@@ -118,6 +118,8 @@ class TestConflicts(UnitTestCase):
         if locked_from_start:
             # user2: lock document before user1 opening it
             self.remote_document_client_2.lock(doc_uid)
+            self.wait_sync(wait_for_async=True)
+            local.unset_readonly('/Excel 97 file.xls')
 
         # user1: simulate opening XLS file with MS Office ~= update its content
         local.update_content('/Excel 97 file.xls', b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x01')
@@ -153,8 +155,7 @@ class TestConflicts(UnitTestCase):
         # 10. Delete 1743B25F.tmp
         local.make_file('/', '787D3000')
         local.update_content('/787D3000', b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00')
-        if locked_from_start:
-            local.unset_readonly('/Excel 97 file.xls')
+        local.unset_readonly('/Excel 97 file.xls')
         local.update_content('/Excel 97 file.xls', b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x02')
         local.update_content('/787D3000', b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03')
         shutil.move(local._abspath('/Excel 97 file.xls'), local._abspath('/1743B25F.tmp'))
