@@ -138,6 +138,7 @@ class TestConflicts(UnitTestCase):
         if not locked_from_start:
             # user2: lock document after user1 opening it
             self.remote_document_client_2.lock(doc_uid)
+            self.wait_sync(wait_for_async=True)
 
         # user1: simulate updating XLS file with MS Office
         # 1. Create empty file 787D3000
