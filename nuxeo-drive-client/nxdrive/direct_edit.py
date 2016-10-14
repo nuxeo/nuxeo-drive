@@ -239,7 +239,7 @@ class DirectEdit(Worker):
         rest_client = engine.get_rest_api_client()
         doc = rest_client.fetch(doc_id, fetchDocument=['lock'], enrichers=['permissions'])
         info = remote_client.doc_to_info(doc)
-        if (info.lock_owner is not None):
+        if (info.lock_owner is not None and info.lock_owner != engine.get_remote_user()):
             log.debug("Doc %s was locked by %s on %s, won't download it for edit", info.name, info.lock_owner,
                       info.lock_created)
             self.directEditLocked.emit(info.name, info.lock_owner, info.lock_created)

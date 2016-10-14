@@ -80,6 +80,24 @@ class TestDirectEdit(UnitTestCase):
         doc_id = self.remote.make_file('/', filename, 'Some content.')
         self._direct_edit_update(doc_id, filename, 'Test')
 
+    def _test_locked_file_signal(self):
+        self._received = True
+
+    def test_locked_file(self):
+        self._received = False
+        filename = u'Mode operatoire.txt'
+        doc_id = self.remote.make_file('/', filename, 'Some content.')
+        self.remote_document_client_2.lock(doc_id)
+        self.direct_edit.directEditLocked.connect(self._test_locked_file_signal)
+        self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+        self.assertTrue(self._received)
+
+    def test_self_locked_file(self):
+        filename = u'Mode operatoire.txt'
+        doc_id = self.remote.make_file('/', filename, 'Some content.')
+        self.remote.lock(doc_id)
+        self._direct_edit_update(doc_id, filename, 'Test')
+
     def _office_locker(self, path):
         return os.path.join(os.path.dirname(path), "~$" + os.path.basename(path)[2:])
 
