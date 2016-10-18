@@ -263,11 +263,7 @@ class RemoteWatcher(EngineWorker):
 
         # Delete remaining
         for deleted in descendants.values():
-            # TODO Should be DAO
-            # self._dao.mark_descendants_remotely_deleted(deleted)
             self._dao.delete_remote_state(deleted)
-
-        self._dao.add_path_scanned(remote_parent_path)
 
     def _get_elapsed_time_milliseconds(self, t0, t1):
         delta = t1 - t0
