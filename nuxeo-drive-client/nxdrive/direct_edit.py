@@ -295,6 +295,7 @@ class DirectEdit(Worker):
 
     def edit(self, server_url, doc_id, user=None, download_url=None):
         try:
+            log.debug("Editing doc %s on %s", doc_id, server_url)
             # Handle backward compatibility
             if '#' in doc_id:
                 engine = self._get_engine(server_url)
@@ -338,6 +339,7 @@ class DirectEdit(Worker):
     def _handle_queues(self):
         uploaded = False
         # Lock any documents
+        log.trace("DirectEdit handle lock queue");
         while (not self._lock_queue.empty()):
             try:
                 item = self._lock_queue.get_nowait()
@@ -370,11 +372,13 @@ class DirectEdit(Worker):
                 log.debug("Can't %s document '%s': %r", item[1], ref, e, exc_info=True)
                 self.directEditLockError.emit(item[1], os.path.basename(ref), uid)
         # Unqueue any errors
+        log.trace("DirectEdit handle error queue");
         item = self._error_queue.get()
         while (item is not None):
             self._upload_queue.put(item.get())
             item = self._error_queue.get()
         # Handle the upload queue
+        log.trace("DirectEdit handle upload queue");
         while (not self._upload_queue.empty()):
             try:
                 ref = self._upload_queue.get_nowait()
@@ -418,6 +422,10 @@ class DirectEdit(Worker):
         if uploaded:
             log.debug('Emitting directEditUploadCompleted')
             self.directEditUploadCompleted.emit()
+        log.trace("DirectEdit handle watchdog queue");
+        while (not self._watchdog_queue.empty()):
+            evt = self._watchdog_queue.get()
+            self.handle_watchdog_event(evt)
 
     def _execute(self):
         try:
@@ -444,9 +452,6 @@ class DirectEdit(Worker):
                     raise
                 except Exception as ex:
                     log.debug(ex)
-                while (not self._watchdog_queue.empty()):
-                    evt = self._watchdog_queue.get()
-                    self.handle_watchdog_event(evt)
                 sleep(0.01)
         except ThreadInterrupt:
             raise
