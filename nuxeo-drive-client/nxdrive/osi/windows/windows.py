@@ -226,8 +226,8 @@ class WindowsIntegration(AbstractOSIntegration):
     def unregister_protocol_handlers(self):
         app_name = self._manager.get_appname()
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-        self._recursive_delete(reg, 'Software\\', app_name)
-        self._recursive_delete(reg, 'Software\\Classes\\', 'nxdrive')
+        self._recursive_delete(reg, 'Software', app_name)
+        self._recursive_delete(reg, 'Software\\Classes', 'nxdrive')
 
     def register_contextual_menu(self):
         # TODO: better understand why / how this works.
