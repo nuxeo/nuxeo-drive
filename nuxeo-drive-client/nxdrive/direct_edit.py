@@ -367,6 +367,8 @@ class DirectEdit(Worker):
                     self._local_client.remove_remote_id(dir_path, "nxdirecteditlock")
                     # Emit the signal only when the unlock is done - might want to avoid the call on orphan
                     self._manager.get_autolock_service().documentUnlocked.emit(os.path.basename(ref))
+            except ThreadInterrupt:
+                raise
             except Exception as e:
                 # Try again in 30s
                 log.debug("Can't %s document '%s': %r", item[1], ref, e, exc_info=True)
@@ -442,6 +444,7 @@ class DirectEdit(Worker):
             self._end_action()
             # Load the target url if Drive was not launched before
             self.handle_url()
+            log.trace("DirectEdit Entering main loop: continue:%r pause:%r running:%r", self._continue, self._pause, self._running)
             while (1):
                 self._interact()
                 try:
@@ -532,6 +535,8 @@ class DirectEdit(Worker):
                 # ADD TO UPLOAD QUEUE
                 self._upload_queue.put(ref)
                 return
+        except ThreadInterrupt:
+            raise
         except Exception as e:
             log.warn("Watchdog exception : %r", e, exc_info=True)
         finally:
