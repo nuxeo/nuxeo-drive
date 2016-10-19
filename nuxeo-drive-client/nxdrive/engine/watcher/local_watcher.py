@@ -7,6 +7,7 @@ from watchdog.events import FileSystemEventHandler
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.utils import current_milli_time
 from nxdrive.utils import is_office_temp_file
+from nxdrive.client.local_client import LocalClient
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.activity import Action
 from Queue import Queue
@@ -600,6 +601,10 @@ class LocalWatcher(EngineWorker):
         if (evt.event_type == 'moved'):
             # Ignore move to Office tmp file
             dest_filename = os.path.basename(evt.dest_path)
+            if dest_filename.startswith(LocalClient.CASE_RENAME_PREFIX) or \
+                    os.path.basename(rel_path).startswith(LocalClient.CASE_RENAME_PREFIX):
+                log.debug('Ignoring case rename %s to %s', evt.src_path, evt.dest_path)
+                return
             if is_office_temp_file(dest_filename):
                 log.debug('Ignoring Office tmp file: %r', evt.dest_path)
                 return

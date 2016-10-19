@@ -106,6 +106,7 @@ class LocalClient(BaseClient):
 
     # TODO: initialize the prefixes and suffix with a dedicated Nuxeo
     # Automation operations fetched at manager init time.
+    CASE_RENAME_PREFIX = 'driveCaseRename_'
 
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
                     ignored_suffixes=None, check_suspended=None, case_sensitive=None, disable_duplication=False):
@@ -687,7 +688,7 @@ class LocalClient(BaseClient):
                 and not self.is_case_sensitive()):
                 # Must use a temp rename as FS is not case sensitive
                 temp_path = os.tempnam(self._abspath(parent),
-                                       '.ren_' + old_name + '_')
+                                       LocalClient.CASE_RENAME_PREFIX + old_name + '_')
                 if AbstractOSIntegration.is_windows():
                     import ctypes
                     ctypes.windll.kernel32.SetFileAttributesW(

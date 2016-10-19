@@ -408,8 +408,8 @@ class Processor(EngineWorker):
             if info:
                 if info.state == 'deleted':
                     log.debug("Untrash from the client: %r", doc_pair)
-                    remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
                     remote_doc_client.undelete(uid)
+                    remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
                     fs_item_info = remote_client.get_info(remote_ref)
                     # Handle document move
                     if not fs_item_info.path.startswith(remote_parent_path):
