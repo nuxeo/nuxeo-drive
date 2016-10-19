@@ -123,7 +123,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Create a document by streaming a binary file
         with open(file_path, 'a') as f:
             # Rename remote folder then synchronize
-            self.remote_file_system_client_1.rename(file_id, u'testFile2.pdf')
+            remote.rename(file_id, u'testFile2.pdf')
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
             self.assertTrue(local.exists('/Test folder/testFile.pdf'))
             self.assertFalse(local.exists('/Test folder/testFile2.pdf'))
