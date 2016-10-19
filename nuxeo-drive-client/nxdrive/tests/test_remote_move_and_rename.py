@@ -121,7 +121,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertIsNotNone(file_id)
 
         # Create a document by streaming a binary file
-        with open(file_path, 'w') as f:
+        with open(file_path, 'a') as f:
             # Rename remote folder then synchronize
             self.remote_file_system_client_1.rename(file_id, u'testFile2.pdf')
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
@@ -151,8 +151,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         file_id = local.get_remote_id('/Test folder/testFile.pdf')
         self.assertIsNotNone(file_id)
 
-        # Create a document by streaming a binary file
-        with open(file_path, 'w') as f:
+        # Create a document by streaming a binary file ( open it as append )
+        with open(file_path, 'a') as f:
             # Rename remote folder then synchronize
             self.remote_file_system_client_1.move(file_id, self.workspace_id)
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)

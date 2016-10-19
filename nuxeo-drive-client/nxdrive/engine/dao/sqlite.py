@@ -1234,13 +1234,14 @@ class EngineDAO(ConfigurationDAO):
         if (row.remote_ref == info.uid and info.parent_uid == row.remote_parent_ref and remote_parent_path == row.remote_parent_path
             and info.name == row.remote_name and info.can_rename == row.remote_can_rename
             and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child):
-            if (info.last_contributor != row.last_remote_modifier or unicode(info.last_modification_time) != row.last_remote_updated) and (info.digest == row.local_digest or info.digest == row.remote_digest):
+            # It looks similar
+            if info.digest == row.local_digest or info.digest == row.remote_digest:
                 row.remote_state = 'synchronized'
                 pair_state = self._get_pair_state(row)
-            elif info.digest == row.remote_digest and not force_update:
+            if info.digest == row.remote_digest and not force_update:
                 log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
                 return
-        log.trace('Updating remote state for row = %r with info = %r', row, info)
+        log.trace('Updating remote state for row = %r with info = %r (force: %r)', row, info, force_update)
         if versionned:
             version = ', version=version+1'
             log.trace('Increasing version to %d for pair %r', row.version + 1, row)
