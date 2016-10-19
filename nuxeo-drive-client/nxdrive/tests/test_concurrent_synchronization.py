@@ -149,7 +149,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # this folder, then synchronize
         folder = local.make_folder('/', 'Test folder')
         self.local_client_1.rename('/Test folder', 'Renamed folder')
-        self.wait_sync(wait_for_engine_2=True)
+        self.wait_sync(wait_for_engine_2=True, wait_for_async=True)
         self.assertTrue(local.exists('/Renamed folder'))
         self.assertTrue(self.local_client_2.exists('/Renamed folder'))
 
