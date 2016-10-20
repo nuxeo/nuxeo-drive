@@ -447,6 +447,7 @@ class DirectEdit(Worker):
             log.trace("DirectEdit Entering main loop: continue:%r pause:%r running:%r", self._continue, self._pause, self._running)
             while (1):
                 self._interact()
+                log.trace("DirectEdit post interact: continue:%r pause:%r running:%r", self._continue, self._pause, self._running)
                 try:
                     self._handle_queues()
                 except NotFound:
