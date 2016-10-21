@@ -3,6 +3,9 @@ import time
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common_unit_test import UnitTestCase
+from nxdrive.logging_config import get_logger
+
+log = get_logger(__name__)
 
 
 class TestVersioning(UnitTestCase):
@@ -46,7 +49,9 @@ class TestVersioning(UnitTestCase):
 
         # Wait for versioning delay expiration then update it as user 1 after
         # => should be versioned since the versioning delay is passed by
+        log.debug("wait for %d to end the versioning grace", (self.versioning_delay + 2.0))
         time.sleep(self.versioning_delay + 2.0)
+        log.debug("will now update content of Test versioning.txt")
         local.update_content('/Test versioning.txt', "Updated again!!")
         self.wait_sync()
         doc = self.root_remote_client.fetch(
