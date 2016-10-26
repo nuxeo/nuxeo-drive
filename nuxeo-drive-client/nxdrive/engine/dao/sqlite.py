@@ -573,7 +573,7 @@ class EngineDAO(ConfigurationDAO):
             except:
                 self.release_processor(thread_id)
                 raise
-        raise Exception("Cannot acquire")
+        raise sqlite3.OperationalError("Cannot acquire")
 
     def release_state(self, thread_id):
         self.release_processor(thread_id)

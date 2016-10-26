@@ -78,6 +78,34 @@ class TestConflicts(UnitTestCase):
         self.assertEquals(local.get_content('/test.txt'), 'Local update 2')
         self.assertEquals(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
 
+    def test_resolve_local(self):
+        self.test_real_conflict()
+        # Resolve to local file
+        pair = self.engine_1.get_dao().get_normal_state_from_remote(self.file_id)
+        self.assertIsNotNone(pair)
+        self.engine_1.resolve_with_local(pair.id)
+        self.wait_sync(wait_for_async=True)
+        self.assertEquals(self.remote_file_system_client_2.get_content(self.file_id), 'Local update 2')
+
+    def test_resolve_remote(self):
+        self.test_real_conflict()
+        # Resolve to local file
+        pair = self.engine_1.get_dao().get_normal_state_from_remote(self.file_id)
+        self.assertIsNotNone(pair)
+        self.engine_1.resolve_with_remote(pair.id)
+        self.wait_sync(wait_for_async=True)
+        self.assertEquals(self.local_client_1.get_content('/test.txt'), 'Remote update 2')
+
+    def test_resolve_duplicate(self):
+        self.test_real_conflict()
+        # Resolve to local file
+        pair = self.engine_1.get_dao().get_normal_state_from_remote(self.file_id)
+        self.assertIsNotNone(pair)
+        self.engine_1.resolve_with_duplicate(pair.id)
+        self.wait_sync(wait_for_async=True)
+        self.assertEquals(self.local_client_1.get_content('/test.txt'), 'Remote update 2')
+        self.assertEquals(self.local_client_1.get_content('/test__1.txt'), 'Local update 2')
+
     def test_conflict_on_lock(self):
         doc_uid = self.file_id.split("#")[-1]
         local = self.local_client_1
