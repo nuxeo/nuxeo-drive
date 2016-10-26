@@ -205,3 +205,43 @@ class TestConflicts(UnitTestCase):
         self.assertIsNotNone(pair_state)
         self.assertEquals(pair_state.pair_state, 'conflicted')
         self.assertTrue(pair_state.remote_can_update)
+
+    def test_resolve_conflicts(self):
+        local = self.local_client_1
+        remote = self.remote_file_system_client_2
+
+        # Update content on both sides by different users, remote last
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
+        # Race condition is still possible
+        remote.update_content(self.file_id, 'Remote update')
+        local.update_content('/test.txt', 'Local update')
+        self.wait_sync(wait_for_async=True)
+
+        self.assertEquals(remote.get_content(self.file_id), 'Remote update')
+        self.assertEquals(local.get_content('/test.txt'), 'Local update')
+        self.assertEquals(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
+
+        # Resolve conflict with local
+        self.engine_1.resolve_with_local(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).id)
+        self.wait_sync(wait_for_async=True)
+
+        # check the content in server after resolving with local
+        self.assertEquals(remote.get_content(self.file_id), 'Local update')
+
+        # Update content again on both sides by different users, remote last
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
+        # Race condition is still possible
+        remote.update_content(self.file_id, 'Remote update 2')
+        local.update_content('/test.txt', 'Local update 2')
+        self.wait_sync(wait_for_async=True)
+
+        self.assertEquals(remote.get_content(self.file_id), 'Remote update 2')
+        self.assertEquals(local.get_content('/test.txt'), 'Local update 2')
+        self.assertEquals(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
+
+        # Resolve conflict with remote
+        self.engine_1.resolve_with_remote(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).id)
+        self.wait_sync(wait_for_async=True)
+
+        # check the content in local after resolving with remote
+        local.update_content('/test.txt', 'Remote update 2')
