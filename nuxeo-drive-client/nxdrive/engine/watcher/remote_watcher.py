@@ -656,7 +656,7 @@ class RemoteWatcher(EngineWorker):
                                 if (new_info.digest != doc_pair.remote_digest or \
                                                 safe_filename(new_info.name) != doc_pair.remote_name or \
                                                 new_info.parent_uid != doc_pair.remote_parent_ref or \
-                                                eventId == 'securityUpdated' or force_update):
+                                                eventId == 'securityUpdated' or lock_update):
                                     doc_pair.remote_state = 'modified'
                                 remote_parent_path = os.path.dirname(new_info.path)
                             else:
