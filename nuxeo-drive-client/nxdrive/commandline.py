@@ -623,6 +623,7 @@ class CliHandler(object):
             argv += [
                 "nxdrive.tests.test_bind_server",
                 "nxdrive.tests.test_blacklist_queue",
+                "nxdrive.tests.test_bulk_remote_changes",
                 "nxdrive.tests.test_commandline",
                 "nxdrive.tests.test_conflicts",
                 "nxdrive.tests.test_copy",
