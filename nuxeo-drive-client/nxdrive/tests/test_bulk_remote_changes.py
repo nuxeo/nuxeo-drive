@@ -119,8 +119,8 @@ class TestBulkRemoteChanges(UnitTestCase):
         folder2 = remote_client.make_folder(self.workspace, u"folder2")
         
         self.step("3. Create files inside the 3 folders: folder1/file1.txt, folder2/file2.txt, shared/readme1.txt, shared/readme2.txt")
-        readme1 = remote_client.make_file(shared, "Readme1.txt", "This is a readme file")
-        readme2 = remote_client.make_file(shared, "Readme2.txt", "This is a readme file")
+        readme1 = remote_client.make_file(shared, "readme1.txt", "This is a readme file")
+        readme2 = remote_client.make_file(shared, "readme2.txt", "This is a readme file")
         remote_client.make_file(folder1, "file1.txt", "This is a sample file1")
         remote_client.make_file(folder2, "file2.txt", "This is a sample file2")
         
