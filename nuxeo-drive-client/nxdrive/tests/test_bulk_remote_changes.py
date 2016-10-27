@@ -77,8 +77,8 @@ class TestBulkRemoteChanges(UnitTestCase):
         """
         log.warn("\nVERIFY: " + msg, *args, **kwargs)
 
-    @patch.object(nxdrive.client.remote_file_system_client.RemoteFileSystemClient, 'get_children_info', mock_get_children_info)
-    @patch.object(nxdrive.client.remote_file_system_client.RemoteFileSystemClient, 'file_to_info', mock_file_to_info)
+    @patch.object(RemoteFileSystemClient, 'get_children_info', mock_get_children_info)
+    @patch.object(RemoteFileSystemClient, 'file_to_info', mock_file_to_info)
     def test_many_changes(self):
         """
             Objective: The objective is to make a lot of remote changes (including a folder modified) and 
