@@ -32,7 +32,6 @@ class Worker(QObject):
     _engine = None
     _pause = False
     actionUpdate = pyqtSignal(object)
-    stopWorker = pyqtSignal()
 
     def __init__(self, thread=None, name=None):
         super(Worker, self).__init__()
@@ -46,11 +45,6 @@ class Worker(QObject):
         self._name = name
         self._running = False
         self._thread.terminated.connect(self._terminated)
-        self.stopWorker.connect(self.quit)
-
-    @pyqtSlot()
-    def quit(self):
-        self._continue = False
 
     def is_started(self):
         return self._continue
@@ -59,11 +53,18 @@ class Worker(QObject):
         return self._pause
 
     def start(self):
+        """
+        Start the worker thread
+        """
         self._thread.start()
 
     def stop(self):
+        """
+        Stop the thread
+        Wait 5s before trying to terminate it
+        Return when thread is stopped or 5s max after the termination of the thread is sent
+        """
         self._continue = False
-        self.stopWorker.emit()
         if not self._thread.wait(5000):
             log.warn("Thread %d is not responding - terminate it", self._thread_id, exc_info=True)
             self._thread.terminate()
@@ -71,9 +72,16 @@ class Worker(QObject):
             self._thread.wait(5000)
 
     def resume(self):
+        """
+        Resume the thread
+        """
         self._pause = False
 
     def suspend(self):
+        """
+        Ask for thread to suspend
+        It will be truly paused only when the thread call _interact
+        """
         self._pause = True
 
     def _end_action(self):
@@ -81,12 +89,31 @@ class Worker(QObject):
         self._action = None
 
     def get_thread(self):
+        """
+        Return worker internal thread
+        """
         return self._thread
 
+    def quit(self):
+        """
+        Order the stop of the thread
+        Return before thread is stopped
+        """
+        self._continue = False
+
     def get_thread_id(self):
+        """
+        Get the thread id
+        """
         return self._thread_id
 
     def _interact(self):
+        """
+        Interact for signal/slot on Qt
+        Also handle the pause/resume of the thread and interruption
+        Return after QT events are processed or thread has been resumed
+        Throw a ThreadInterrupt if the stopping of the thread has been order either by stop or quit
+        """
         QCoreApplication.processEvents()
         # Handle thread pause
         while (self._pause and self._continue):
@@ -97,6 +124,9 @@ class Worker(QObject):
             raise ThreadInterrupt()
 
     def _execute(self):
+        """
+        Empty execute method, override this method to add your worker logic
+        """
         while (1):
             self._interact()
             sleep(0.01)
@@ -116,6 +146,10 @@ class Worker(QObject):
         return action
 
     def get_metrics(self):
+        """
+        Get the Worker metrics
+        :return a dict with differents variables that represent the worker activity
+        """
         metrics = dict()
         metrics['name'] = self._name
         metrics['thread_id'] = self._thread_id
@@ -127,6 +161,10 @@ class Worker(QObject):
 
     @pyqtSlot()
     def run(self):
+        """
+        Handle the infinite loop runned by the worker thread
+        It handles exception and logging
+        """
         if self._running:
             return
         self._running = True
