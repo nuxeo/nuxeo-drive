@@ -406,7 +406,7 @@ class CliHandler(object):
     def _configure_logger(self, options):
         """Configure the logging framework from the provided options"""
         # Ensure the log folder exists
-        folder_log = os.path.join(options.nxdrive_home, 'logs')
+        folder_log = os.path.expanduser(os.path.join(options.nxdrive_home, 'logs'))
         if not os.path.exists(folder_log):
             os.makedirs(folder_log)
         filename = options.log_filename
@@ -677,9 +677,9 @@ class CliHandler(object):
         try:
             # Use faulthandler to print python tracebacks in case of segfaults
             import faulthandler
-            segfault_filename = os.path.join(
-                options.nxdrive_home, 'logs', 'segfault.log')
-            segfault_file = open(os.path.expanduser(segfault_filename), 'w')
+            segfault_filename = os.path.expanduser(os.path.join(
+                options.nxdrive_home, 'logs', 'segfault.log'))
+            segfault_file = open(segfault_filename, 'w')
             self.log.debug("Enabling faulthandler to trace segfaults in %s",
                            segfault_filename)
             faulthandler.enable(file=segfault_file)
