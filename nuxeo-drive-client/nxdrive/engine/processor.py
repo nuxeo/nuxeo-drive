@@ -13,7 +13,6 @@ from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time, is_office_temp_file
 from PyQt4.QtCore import pyqtSignal
 from threading import Lock
-from urllib2 import HTTPError
 import os
 log = get_logger(__name__)
 
@@ -407,25 +406,22 @@ class Processor(EngineWorker):
             uid = remote_ref.split('#')[-1]
             info = remote_doc_client.get_info(uid, raise_if_missing=False, use_trash=False)
             if info:
-                try:
-                    if info.state == 'deleted':
-                        log.debug("Untrash from the client: %r", doc_pair)
-                        remote_doc_client.undelete(uid)
-                        remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
-                        fs_item_info = remote_client.get_info(remote_ref)
-                        # Handle document move
-                        if not parent_pair.remote_ref.endswith(info.parent_uid):
-                            fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
-                        # Handle document rename
-                        if fs_item_info.name != doc_pair.local_name:
-                            fs_item_info = remote_client.rename(fs_item_info.uid, doc_pair.local_name)
-                        self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path, versionned=False)
-                        # Handle document modification - update the doc_pair
-                        doc_pair = self._dao.get_state_from_id(doc_pair.id)
-                        self._synchronize_locally_modified(doc_pair, local_client, remote_client)
-                        return
-                except HTTPError as e:
-                    log.error("Upload Document ignoring existing reference " + uid + "error "+ e.message)
+                if info.state == 'deleted':
+                    log.debug("Untrash from the client: %r", doc_pair)
+                    remote_doc_client.undelete(uid)
+                    remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
+                    fs_item_info = remote_client.get_info(remote_ref)
+                    # Handle document move
+                    if fs_item_info.parent_uid != parent_pair.remote_ref:
+                        fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
+                    # Handle document rename
+                    if fs_item_info.name != doc_pair.local_name:
+                        fs_item_info = remote_client.rename(fs_item_info.uid, doc_pair.local_name)
+                    self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path, versionned=False)
+                    # Handle document modification - update the doc_pair
+                    doc_pair = self._dao.get_state_from_id(doc_pair.id)
+                    self._synchronize_locally_modified(doc_pair, local_client, remote_client)
+                    return
                 log.trace("Compare parents: %r | %r", info.parent_uid, parent_pair.remote_ref)
                 # Document exists on the server
                 if parent_pair.remote_ref is not None and parent_pair.remote_ref.endswith(info.parent_uid)\
@@ -433,7 +429,6 @@ class Processor(EngineWorker):
                     log.warning("Document is already on the server should not create: %r | %r", doc_pair, info)
                     self._dao.synchronize_state(doc_pair)
                     return
-
         parent_ref = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
             remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref

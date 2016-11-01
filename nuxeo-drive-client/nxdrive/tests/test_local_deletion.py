@@ -74,11 +74,11 @@ class TestLocalDeletion(UnitTestCase):
         shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/'))
         self.wait_sync(wait_for_async=True)
         new_info = self.remote_document_client_1.get_info(old_info.uid, use_trash=True)        
-        self.assertFalse('ToDelete' in new_info.path)
         self.assertEqual(new_info.state, 'project')
         self.assertTrue(self.local_client_1.exists('/File_To_Delete.txt'))
-        pass
-    
+        # Because remote_document_client_1 was used
+        self.assertTrue(self.local_client_1.get_remote_id('/').endswith(new_info.parent_uid))
+ 
     def test_untrash_file_on_delete_parent(self):
         file_path = '/ToDelete/File_To_Delete.txt'
         self.local_client_1.make_folder('/', 'ToDelete')
@@ -123,3 +123,4 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.remote_document_client_1.exists(old_info.uid))
         self.assertTrue(self.local_client_1.exists(file_path))
+
