@@ -53,8 +53,8 @@ class TestVersioning(UnitTestCase):
         time.sleep(self.versioning_delay + 2.0)
         log.debug("will now update content of Test versioning.txt")
         local.update_content('/Test versioning.txt', "Updated again!!")
-        # Wait for local watcher to catch it
-        time.sleep(OS_STAT_MTIME_RESOLUTION)
+        # Wait for local watcher to catch it, can took more than 3s sometimes on Mac slaves
+        time.sleep(5)
         self.wait_sync()
         doc = self.root_remote_client.fetch(
             TEST_WORKSPACE_PATH + '/Test versioning.txt')
