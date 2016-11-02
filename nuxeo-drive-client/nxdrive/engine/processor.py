@@ -12,6 +12,7 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.activity import Action
 from nxdrive.utils import current_milli_time, is_office_temp_file
 from PyQt4.QtCore import pyqtSignal
+from urllib2 import HTTPError
 from threading import Lock
 import os
 log = get_logger(__name__)
@@ -406,29 +407,36 @@ class Processor(EngineWorker):
             uid = remote_ref.split('#')[-1]
             info = remote_doc_client.get_info(uid, raise_if_missing=False, use_trash=False)
             if info:
-                if info.state == 'deleted':
-                    log.debug("Untrash from the client: %r", doc_pair)
-                    remote_doc_client.undelete(uid)
-                    remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
-                    fs_item_info = remote_client.get_info(remote_ref)
-                    # Handle document move
-                    if fs_item_info.parent_uid != parent_pair.remote_ref:
-                        fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
-                    # Handle document rename
-                    if fs_item_info.name != doc_pair.local_name:
-                        fs_item_info = remote_client.rename(fs_item_info.uid, doc_pair.local_name)
-                    self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path, versionned=False)
-                    # Handle document modification - update the doc_pair
-                    doc_pair = self._dao.get_state_from_id(doc_pair.id)
-                    self._synchronize_locally_modified(doc_pair, local_client, remote_client)
-                    return
-                log.trace("Compare parents: %r | %r", info.parent_uid, parent_pair.remote_ref)
-                # Document exists on the server
-                if parent_pair.remote_ref is not None and parent_pair.remote_ref.endswith(info.parent_uid)\
-                        and local_client.is_equal_digests(doc_pair.local_digest, info.digest, doc_pair.local_path):
-                    log.warning("Document is already on the server should not create: %r | %r", doc_pair, info)
-                    self._dao.synchronize_state(doc_pair)
-                    return
+                try:
+                    if info.state == 'deleted':
+                        log.debug("Untrash from the client: %r", doc_pair)
+                        remote_doc_client.undelete(uid)
+                        remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
+                        fs_item_info = remote_client.get_info(remote_ref)
+                        # Handle document move
+                        if fs_item_info.parent_uid != parent_pair.remote_ref:
+                            fs_item_info = remote_client.move(fs_item_info.uid, parent_pair.remote_ref)
+                        # Handle document rename
+                        if fs_item_info.name != doc_pair.local_name:
+                            fs_item_info = remote_client.rename(fs_item_info.uid, doc_pair.local_name)
+                        self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path, versionned=False)
+                        # Handle document modification - update the doc_pair
+                        doc_pair = self._dao.get_state_from_id(doc_pair.id)
+                        self._synchronize_locally_modified(doc_pair, local_client, remote_client)
+                        return
+                    log.trace("Compare parents: %r | %r", info.parent_uid, parent_pair.remote_ref)
+                    # Document exists on the server
+                    if parent_pair.remote_ref is not None and parent_pair.remote_ref.endswith(info.parent_uid)\
+                            and local_client.is_equal_digests(doc_pair.local_digest, info.digest, doc_pair.local_path):
+                        log.warning("Document is already on the server should not create: %r | %r", doc_pair, info)
+                        self._dao.synchronize_state(doc_pair)
+                        return
+                except HTTPError as e:
+                    # undelete will fail if you dont have the rights
+                    if e.code != 403:
+                        raise e
+                    log.trace("Create new document as current known document is not accessible: %s", remote_ref)
+
         parent_ref = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
             remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
@@ -558,7 +566,7 @@ class Processor(EngineWorker):
         if parent_pair is None:
             raise Exception("Should have a parent pair")
         if parent_ref != doc_pair.remote_parent_ref:
-            if doc_pair.remote_can_delete and not parent_pair.pair_state == "unsynchronized":
+            if doc_pair.remote_can_delete and not parent_pair.pair_state == "unsynchronized" and parent_pair.remote_can_create_child:
                 log.debug('Moving remote file according to local : %r', doc_pair)
                 # Bug if move in a parent with no rights / partial move
                 # if rename at the same time

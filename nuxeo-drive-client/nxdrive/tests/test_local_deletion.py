@@ -2,6 +2,7 @@ from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.osi import AbstractOSIntegration
 import shutil
 import os
+from unittest import SkipTest
 
 
 class TestLocalDeletion(UnitTestCase):
@@ -78,8 +79,9 @@ class TestLocalDeletion(UnitTestCase):
         self.assertTrue(self.local_client_1.exists('/File_To_Delete.txt'))
         # Because remote_document_client_1 was used
         self.assertTrue(self.local_client_1.get_remote_id('/').endswith(new_info.parent_uid))
- 
-    def test_untrash_file_on_delete_parent(self):
+
+    def test_move_untrash_file_on_parent_with_no_rights(self):
+        # Setup
         file_path = '/ToDelete/File_To_Delete.txt'
         self.local_client_1.make_folder('/', 'ToDelete')
         self.local_client_1.make_file('/ToDelete', 'File_To_Delete.txt', 'This is a content')
@@ -90,10 +92,83 @@ class TestLocalDeletion(UnitTestCase):
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))
         self.wait_sync(wait_for_async=True)
+
+        # Remove rights
+        folder_path = u'/default-domain/workspaces/nuxeo-drive-test-workspace/ToDelete'
+        op_input = "doc:" + folder_path
+        self.root_remote_client.execute("Document.SetACE",
+                                        op_input=op_input,
+                                        user=self.user_1,
+                                        permission="Read")
+        self.root_remote_client.block_inheritance(folder_path, overwrite=False)
+        self.root_remote_client.delete(folder_path)
+        self.wait_sync(wait_for_async=True)
+        self.assertFalse(self.remote_document_client_1.exists(file_path))
+        self.assertFalse(self.local_client_1.exists(file_path))
+
+        # See if it untrash or recreate
+        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/'))
+        self.assertIsNotNone(self.local_client_1.get_remote_id('/File_To_Delete.txt'))
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(self.local_client_1.exists('/File_To_Delete.txt'))
+        new_uid = self.local_client_1.get_remote_id('/File_To_Delete.txt')
+        # Because remote_document_client_1 was used
+        self.assertIsNotNone(new_uid)
+        self.assertFalse(new_uid.endswith(old_info.uid))
+
+    def test_move_untrash_file_on_parent_with_no_rights_on_destination(self):
+        raise SkipTest("Wait to know what is the expectation - the previous folder doesnt exist")
+        # Setup the test
+        file_path = '/ToDelete/File_To_Delete.txt'
+        self.local_client_1.make_folder('/', 'ToDelete')
+        self.local_client_1.make_folder('/', 'ToCopy')
+        self.local_client_1.make_file('/ToDelete', 'File_To_Delete.txt', 'This is a content')
+        self.wait_sync()
+        self.assertTrue(self.remote_document_client_1.exists(file_path))
+        old_info = self.remote_document_client_1.get_info(file_path, use_trash=True)
+        abs_path = self.local_client_1._abspath(file_path)
+
+        # Pretend we had trash the file
+        shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))
+        self.wait_sync(wait_for_async=True)
+
+        # Remove rights
+        folder_path = u'/default-domain/workspaces/nuxeo-drive-test-workspace/ToCopy'
+        op_input = "doc:" + folder_path
+        self.root_remote_client.execute("Document.SetACE",
+                                        op_input=op_input,
+                                        user=self.user_1,
+                                        permission="Read")
+        self.root_remote_client.block_inheritance(folder_path, overwrite=False)
+        # Delete
         self.local_client_1.delete('/ToDelete')
         self.wait_sync(wait_for_async=True)
         self.assertFalse(self.remote_document_client_1.exists(file_path))
         self.assertFalse(self.local_client_1.exists(file_path))
+
+        # See if it untrash or unsynchronized
+        self.local_client_1.unlock_ref('/ToCopy')
+        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/ToCopy'))
+        self.wait_sync(wait_for_async=True)
+
+    def test_untrash_file_on_delete_parent(self):
+        # Setup
+        file_path = '/ToDelete/File_To_Delete.txt'
+        self.local_client_1.make_folder('/', 'ToDelete')
+        self.local_client_1.make_file('/ToDelete', 'File_To_Delete.txt', 'This is a content')
+        self.wait_sync()
+        self.assertTrue(self.remote_document_client_1.exists(file_path))
+        old_info = self.remote_document_client_1.get_info(file_path, use_trash=True)
+        abs_path = self.local_client_1._abspath(file_path)
+
+        # Pretend we had trash the file
+        shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))
+        self.wait_sync(wait_for_async=True)
+        self.local_client_1.delete('/ToDelete')
+        self.wait_sync(wait_for_async=True)
+        self.assertFalse(self.remote_document_client_1.exists(file_path))
+        self.assertFalse(self.local_client_1.exists(file_path))
+
         # See if it untrash or recreate
         self.local_client_1.make_folder('/', 'ToDelete')
         shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/ToDelete/'))

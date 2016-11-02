@@ -11,6 +11,7 @@ from nxdrive.osi import AbstractOSIntegration
 from time import sleep
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
+from unittest import SkipTest
 
 # TODO NXDRIVE-170: refactor
 LastKnownState = None
@@ -766,6 +767,40 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         # Check local folder haven't been re-created
         self.assertFalse(local_client.exists(u'/Original Folder 1'))
+
+
+    def test_local_move_folder_to_readonly(self):
+        raise SkipTest("Need expectation on this test")
+        local_client = self.local_client_1
+        remote_client = self.remote_document_client_1
+
+        # Check local folder
+        self.assertTrue(local_client.exists(u'/Original Folder 1'))
+        folder_1_state = self.get_dao_state_from_engine_1(u'/Original Folder 1')
+        self.assertTrue(folder_1_state.remote_can_delete)
+
+        # Set remote folder as readonly for test user
+        folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
+        op_input = "doc:" + folder_1_path
+        self.root_remote_client.execute("Document.SetACE",
+                                        op_input=op_input,
+                                        user=self.user_1,
+                                        permission="Read")
+        self.root_remote_client.block_inheritance(folder_1_path, overwrite=False)
+
+        self.wait_sync(wait_for_async=True)
+
+        # Check can_delete flag in pair state
+        folder_1_state = self.get_dao_state_from_engine_1(u'/Original Folder 1')
+        self.assertFalse(folder_1_state.remote_can_delete)
+
+        # Delete local folder
+        local_client.unlock_ref(u'/Original Folder 1')
+        local_client.move(u'/Original Folder 2', u'/Original Folder 1')
+        self.assertFalse(local_client.exists(u'/Original Folder 2'))
+
+        self.wait_sync(wait_for_async=True)
+        # It should have move back Original Folder 2 to its origin as the target is in read only
 
     # TODO: implement me once canDelete is checked in the synchronizer
     # def test_local_move_sync_root_folder(self):
