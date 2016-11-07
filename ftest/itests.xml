@@ -9,7 +9,7 @@
   </unzip>
   <import file="${out.dir}/nuxeo-ftest.xml" />
 
-  <!-- Activate nuxeo-dm wizard preset as we  -->
+  <!-- Need nuxeo-dam to test the Picture type  -->
   <property name="wizard.preset" value="nuxeo-dam" />
 
   <!-- Configure nuxeo-drive marketplace package installation -->

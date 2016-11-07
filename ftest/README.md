@@ -6,7 +6,7 @@ Uses the [ant-assembly-maven-plugin](https://github.com/nuxeo/ant-assembly-maven
 
 - Download the `nuxeo-drive` marketplace package from [Jenkins](http://qa.nuxeo.org/jenkins/view/Drive/) via the ``fetch-mp`` command of the [integration\_tests\_setup.py](https://github.com/nuxeo/nuxeo-drive/blob/master/tools/integration_tests_setup.py) script.
 
-- Download a Nuxeo Tomcat CAP distribution.
+- Download a Nuxeo Server Tomcat distribution.
 
 - Install the `nuxeo-drive` marketplace package.
 
