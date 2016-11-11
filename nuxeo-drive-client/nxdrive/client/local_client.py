@@ -243,6 +243,8 @@ class LocalClient(BaseClient):
         return False
 
     def set_folder_icon(self, ref, icon):
+        if icon is None:
+            return
         if AbstractOSIntegration.is_windows():
             self.set_folder_icon_win32(ref, icon)
         elif AbstractOSIntegration.is_mac():
