@@ -871,6 +871,8 @@ class Engine(QObject):
         else:
             # No implementation on Linux
             return
+        if icon is None:
+            return
         locker = local_client.unlock_ref('/', unlock_parent=False)
         try:
             local_client.set_folder_icon('/', icon)
