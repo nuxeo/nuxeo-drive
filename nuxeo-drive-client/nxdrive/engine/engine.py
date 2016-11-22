@@ -23,7 +23,7 @@ except ImportError:
     pass  # this will never be raised under unix
 import os
 import datetime
-from cookielib import CookieJar
+
 from nxdrive.client.common import safe_filename
 from nxdrive.gui.resources import find_icon
 import urllib2
@@ -155,9 +155,6 @@ class Engine(QObject):
         self._case_sensitive = None
         self.timeout = 30
         self._handshake_timeout = 60
-        # Make all the automation client related to this manager
-        # share cookies using threadsafe jar
-        self.cookie_jar = CookieJar()
         self._manager = manager
         # Remove remote client cache on proxy update
         self._manager.proxyUpdated.connect(self.invalidate_client_cache)
@@ -427,7 +424,7 @@ class Engine(QObject):
         from nxdrive.engine.queue_manager import QueueManager
         if self._manager.is_debug():
             return QueueManager(self, self._dao, max_file_processors=2)
-        return QueueManager(self, self._dao)
+        return QueueManager(self, self._dao, max_file_processors=processors)
 
     def _create_remote_watcher(self, delay):
         from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
@@ -939,7 +936,8 @@ class Engine(QObject):
                         proxies=self._manager.proxies,
                         proxy_exceptions=self._manager.proxy_exceptions,
                         password=self._remote_password,
-                        timeout=self.timeout, cookie_jar=self.cookie_jar,
+                        timeout=self.timeout,
+                        cookie_jar=None,
                         token=self._remote_token, check_suspended=self.suspend_client)
             else:
                 remote_client = self.remote_fs_client_factory(
@@ -948,9 +946,12 @@ class Engine(QObject):
                         proxies=self._manager.proxies,
                         proxy_exceptions=self._manager.proxy_exceptions,
                         password=self._remote_password,
-                        timeout=self.timeout, cookie_jar=self.cookie_jar,
+                        timeout=self.timeout,
+                        cookie_jar=None,
                         token=self._remote_token, check_suspended=self.suspend_client)
             cache[cache_key] = remote_client
+        else:
+            remote_client.reset_cookie_jar()
         return remote_client
 
     def get_remote_doc_client(self, repository=DEFAULT_REPOSITORY_NAME, base_folder=None):
@@ -967,8 +968,12 @@ class Engine(QObject):
                 proxy_exceptions=self._manager.proxy_exceptions,
                 password=self._remote_password, token=self._remote_token,
                 repository=repository, base_folder=base_folder,
-                timeout=self._handshake_timeout, cookie_jar=self.cookie_jar, check_suspended=self.suspend_client)
+                timeout=self._handshake_timeout,
+                cookie_jar=None,
+                check_suspended=self.suspend_client)
             cache[cache_key] = remote_client
+        else:
+            remote_client.reset_cookie_jar()
         return remote_client
 
     def create_processor(self, item_getter, name=None):
@@ -982,7 +987,8 @@ class Engine(QObject):
         from nxdrive.client.rest_api_client import RestAPIClient
         rest_client = RestAPIClient(self.get_server_url(), self.get_remote_user(),
                                         self._manager.get_device_id(), self._manager.get_version(), None,
-                                        self.get_remote_token(), timeout=self.timeout, cookie_jar=self.cookie_jar)
+                                        self.get_remote_token(), timeout=self.timeout,
+                                        cookie_jar=None)
         return rest_client
 
     def get_user_full_name(self, userid, cache_only=False):

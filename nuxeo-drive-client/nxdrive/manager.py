@@ -605,7 +605,8 @@ class Manager(QtCore.QObject):
                     in_error[engine.engine] = True
                     self.engineNotFound.emit(engine)
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine,
-                                                                        remote_watcher_delay=self.remote_watcher_delay)
+                                                                          remote_watcher_delay=self.remote_watcher_delay,
+                                                                          processors=10)
             self._engines[engine.uid].online.connect(self._force_autoupdate)
             self.initEngine.emit(self._engines[engine.uid])
 
