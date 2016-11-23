@@ -912,6 +912,7 @@ class LocalWatcher(EngineWorker):
                             # Stop the process here
                             return
                         log.debug('Copy paste from %r to %r', from_pair.local_path, rel_path)
+                        self.client.remove_remote_id(rel_path)
                 self._dao.insert_local_state(local_info, parent_rel_path)
                 # An event can be missed inside a new created folder as
                 # watchdog will put listener after it
