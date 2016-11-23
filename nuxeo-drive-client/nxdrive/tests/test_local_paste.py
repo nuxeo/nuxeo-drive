@@ -125,3 +125,42 @@ class TestLocalPaste(UnitTestCase):
                          (self.FOLDER_A1, len(remote_children), self.NUMBER_OF_LOCAL_FILES))
 
         log.debug('*** exit TestLocalPaste.test_copy_paste_empty_folder_last()')
+
+    """
+    copy 'a1' to 'Nuxeo Drive Test Workspace', then 'a2' to 'Nuxeo Drive Test Workspace'
+    """
+    def test_copy_paste_same_file(self):
+        log.debug('*** enter TestLocalPaste.test_copy_paste_same_file()')
+        name = self.FILENAME_PATTERN % 1
+        workspace_abspath = self.local_client_1._abspath('/')
+        path = os.path.join('/', self.FOLDER_A1, name)
+        copypath = os.path.join('/', self.FOLDER_A1, name + 'copy')
+        # copy 'temp/a1' under 'Nuxeo Drive Test Workspace'
+        os.mkdir(os.path.join(workspace_abspath, self.FOLDER_A1))
+        shutil.copy2(os.path.join(self.folder1, name), os.path.join(workspace_abspath, self.FOLDER_A1, name))
+        self.wait_sync(timeout=TEST_TIMEOUT)
+
+        # check that '/Nuxeo Drive Test Workspace/a1' does exist
+        self.assertTrue(self.local_client_1.exists(os.path.join('/', self.FOLDER_A1)))
+        # check that '/Nuxeo Drive Test Workspace/a1/ has all the files
+        children = os.listdir(os.path.join(self.workspace_abspath, self.FOLDER_A1))
+        self.assertEqual(len(children), 1)
+        # check that remote (DM) 'Nuxeo Drive Test Workspace/a1' exists
+        remote_ref_1 = self.local_client_1.get_remote_id(os.path.join('/', self.FOLDER_A1))
+        self.assertTrue(self.remote_file_system_client_1.exists(remote_ref_1))
+        remote_children = [remote_info.name
+                           for remote_info in self.remote_file_system_client_1.get_children_info(remote_ref_1)]
+        self.assertEqual(len(remote_children), 1)
+        remote_id = self.local_client_1.get_remote_id(path)
+
+        log.debug('*** copy file TestLocalPaste.test_copy_paste_same_file()')
+        shutil.copy2(self.local_client_1._abspath(path), self.local_client_1._abspath(copypath))
+        self.local_client_1.set_remote_id(copypath, remote_id)
+        log.debug('*** wait for sync TestLocalPaste.test_copy_paste_same_file()')
+        self.wait_sync(timeout=TEST_TIMEOUT)
+        remote_children = [remote_info.name
+                           for remote_info in self.remote_file_system_client_1.get_children_info(remote_ref_1)]
+        self.assertEqual(len(remote_children), 2)
+        children = os.listdir(os.path.join(self.workspace_abspath, self.FOLDER_A1))
+        self.assertEqual(len(children), 2)
+        log.debug('*** exit TestLocalPaste.test_copy_paste_same_file()')
