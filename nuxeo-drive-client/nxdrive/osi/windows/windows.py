@@ -6,6 +6,7 @@ from nxdrive.logging_config import get_logger
 import os
 import sys
 import platform
+import uuid
 if sys.platform == "win32":
     import _winreg
 log = get_logger(__name__)
@@ -19,7 +20,6 @@ class WindowsIntegration(AbstractOSIntegration):
         super(WindowsIntegration, self).__init__(manager)
         from nxdrive.osi.windows.win32_handlers import WindowsProcessFileHandlerSniffer
         self._file_sniffer = WindowsProcessFileHandlerSniffer()
-        self.guid = '{800B7778-1B71-11E2-9D65-A0FD6088709B}'
 
     def get_menu_parent_key(self):
         return 'Software\\Classes\\*\\shell\\' + self._manager.get_appname()
@@ -50,10 +50,10 @@ class WindowsIntegration(AbstractOSIntegration):
        Add registry entries to support to pin in navigation panel.
     '''
 
-    def _add_reg_entries(self, local_folder):
+    def _add_reg_entries(self, local_folder, engine_id, name ):
+        engine_id_guid = '{' + str(uuid.UUID(engine_id)) + '}'
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-#        Need to fetch guid from setup NuxeoDriveAttributes get_uid
-        path = 'Software\\Classes\\CLSID\\' + self.guid
+        path = 'Software\\Classes\\CLSID\\' + engine_id_guid
         self._update_reg_key(reg, path, [
                                     ('', _winreg.REG_SZ, self._manager._get_default_nuxeo_drive_name()),
                                     ('System.IsPinnedToNamespaceTree', _winreg.REG_DWORD, 0x1),
@@ -71,9 +71,9 @@ class WindowsIntegration(AbstractOSIntegration):
                                                             ('FolderValueFlags', _winreg.REG_DWORD, 0x28),
                                                             ('Attributes', _winreg.REG_DWORD, 0xf080004d), ],)
         self._update_reg_key(reg, self.EXPLORER + '\\HideDesktopIcons\\NewStartPanel', [
-                                                            (self.guid, _winreg.REG_DWORD, 0x1), ],)
-        self._update_reg_key(reg, self.EXPLORER + '\\Desktop\\NameSpace\\' + self.guid, [
-                                                            ('', _winreg.REG_SZ, 'Cloud Portal Office'), ],)
+                                                            (engine_id_guid, _winreg.REG_DWORD, 0x1), ],)
+        self._update_reg_key(reg, self.EXPLORER + '\\Desktop\\NameSpace\\' + engine_id_guid, [
+                                                            ('', _winreg.REG_SZ, name), ],)
 
     def _update_reg_key(self, reg, path, attributes=()):
         """Helper function to create / set a key with attribute values"""
@@ -200,12 +200,13 @@ class WindowsIntegration(AbstractOSIntegration):
         delete registry entries added for windows 10 navigation panel
     '''
 
-    def _delete_registry_entries(self):
+    def _delete_registry_entries(self, engine_id):
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
         path = 'Software\\Classes\\CLSID'
-        self._recursive_delete(reg, path, self.guid)
-        self._recursive_delete(reg, self.EXPLORER + '\Desktop\NameSpace', self.guid)
-        self._delete_reg_value(reg, self.EXPLORER + '\HideDesktopIcons\NewStartPanel', self.guid)
+        engine_id_guid = '{' + str(uuid.UUID(engine_id)) + '}'
+        self._recursive_delete(reg, path, engine_id_guid)
+        self._recursive_delete(reg, self.EXPLORER + '\Desktop\NameSpace', engine_id_guid)
+        self._delete_reg_value(reg, self.EXPLORER + '\HideDesktopIcons\NewStartPanel', engine_id_guid)
 
     def _recursive_delete(self, reg, start_path, name):
         if platform.machine().endswith('64'):
@@ -287,16 +288,16 @@ class WindowsIntegration(AbstractOSIntegration):
             _winreg.DeleteKey(reg, self.get_menu_key())
             _winreg.DeleteKey(reg, self.get_menu_parent_key())
 
-    def register_folder_link(self, folder_path, name=None):
+    def register_folder_link(self, folder_path, engine_id, name=None):
         file_lnk = self._get_folder_link(name)
         self._create_shortcut(file_lnk, folder_path)
         if platform.release() == '10':
-            self._add_reg_entries(folder_path)
+            self._add_reg_entries(folder_path, engine_id, name)
 
-    def unregister_folder_link(self, name):
+    def unregister_folder_link(self, name, engine_id):
 
         if platform.release() == '10':
-            self._delete_registry_entries()
+            self._delete_registry_entries(engine_id)
 
         file_lnk = self._get_folder_link(name)
         if file_lnk is None:

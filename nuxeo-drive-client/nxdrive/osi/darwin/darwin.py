@@ -164,7 +164,7 @@ class DarwinIntegration(AbstractOSIntegration):
                 pass
         return result
 
-    def register_folder_link(self, folder_path, name=None):
+    def register_folder_link(self, folder_path, engine_id, name=None):
         try:
             from LaunchServices import LSSharedFileListInsertItemURL
             from LaunchServices import kLSSharedFileListItemBeforeFirst
@@ -196,7 +196,7 @@ class DarwinIntegration(AbstractOSIntegration):
         if item is not None:
             log.debug("Registered new favorite in Finder for: %s", folder_path)
 
-    def unregister_folder_link(self, name):
+    def unregister_folder_link(self, name, engine_id):
         try:
             from LaunchServices import LSSharedFileListItemRemove
         except ImportError:
