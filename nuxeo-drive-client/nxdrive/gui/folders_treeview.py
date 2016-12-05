@@ -292,7 +292,7 @@ class FolderTreeview(QtGui.QTreeView):
                 sum_states = sum_states + 1
             i = i + 1
         if sum_states == 0:
-            item.setCheckState(QtCore.Qt.Unchecked)
+            item.setCheckState(QtCore.Qt.PartiallyChecked)
         elif sum_states == item.rowCount():
             item.setCheckState(QtCore.Qt.Checked)
         else:
