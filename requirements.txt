@@ -12,3 +12,5 @@ universal-analytics-python==0.2.4
 mock==1.0.1
 yappi==0.94
 setuptools==19.2
+pypac==0.1.0
+Js2Py==0.35
