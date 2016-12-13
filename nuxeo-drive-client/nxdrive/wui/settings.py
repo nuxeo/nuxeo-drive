@@ -349,18 +349,20 @@ class WebSettingsApi(WebDriveApi):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, str, str, str, str, result=QtCore.QObject)
-    def set_proxy_settings_async(self, config='System', server=None, authenticated=False, username=None, password=None):
-        return Promise(self.set_proxy_settings, config, server, authenticated, username, password)
+    @QtCore.pyqtSlot(str, str, str, str, str, str, result=QtCore.QObject)
+    def set_proxy_settings_async(self, config='System', server=None, authenticated=False, username=None, password=None, pac_url=None):
+        return Promise(self.set_proxy_settings, config, server, authenticated, username, password, pac_url)
 
-    @QtCore.pyqtSlot(str, str, str, str, str, result=str)
-    def set_proxy_settings(self, config='System', server=None, authenticated=False, username=None, password=None):
+    @QtCore.pyqtSlot(str, str, str, str, str, str, result=str)
+    def set_proxy_settings(self, config='System', server=None, authenticated=False, username=None, password=None, pac_url=None):
         try:
             config = str(config)
             url = str(server)
             settings = ProxySettings(config=config)
             if config == "Manual":
                 settings.from_url(url)
+            elif config == "Automatic":
+                settings.pac_url = str(pac_url)
             settings.authenticated = "true" == authenticated
             settings.username = str(username)
             settings.password = str(password)

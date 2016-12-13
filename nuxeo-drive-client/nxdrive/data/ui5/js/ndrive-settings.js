@@ -216,7 +216,7 @@ SettingsController.prototype.constructor = SettingsController;
 SettingsController.prototype.saveProxy = function($scope, $translate) {
 	$scope.currentAction = "PROXY_APPLYING";
 	$scope.reinitMsgs();
-	when (drive.set_proxy_settings_async($scope.proxy.config, $scope.proxy.url, $scope.proxy.authenticated, $scope.proxy.username, $scope.proxy.password)).then( function (res) {
+	when (drive.set_proxy_settings_async($scope.proxy.config, $scope.proxy.url, $scope.proxy.authenticated, $scope.proxy.username, $scope.proxy.password, $scope.proxy.pac_url)).then( function (res) {
 		$scope.currentAction = "";
 		if (res != "") {
 			$scope.setErrorMessage($translate.instant(res));

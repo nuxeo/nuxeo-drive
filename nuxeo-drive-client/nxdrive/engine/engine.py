@@ -721,7 +721,7 @@ class Engine(QObject):
         self._load_configuration()
         nxclient = self.remote_doc_client_factory(
             self._server_url, self._remote_user, self._manager.device_id,
-            self._manager.get_version(), proxies=self._manager.proxies,
+            self._manager.get_version(), proxies=self._manager.get_proxies(self._server_url),
             proxy_exceptions=self._manager.proxy_exceptions,
             password=str(password), timeout=self._handshake_timeout)
         self._remote_token = nxclient.request_token()
@@ -773,7 +773,7 @@ class Engine(QObject):
         if check_credential:
             nxclient = self.remote_doc_client_factory(
                 self._server_url, self._remote_user, self._manager.device_id,
-                self._manager.get_version(), proxies=self._manager.proxies,
+                self._manager.get_version(), proxies=self._manager.get_proxies(self._server_url),
                 proxy_exceptions=self._manager.proxy_exceptions,
                 password=self._remote_password, token=self._remote_token,
                 timeout=self._handshake_timeout)
@@ -925,6 +925,7 @@ class Engine(QObject):
 
     def get_remote_client(self, filtered=True):
         """Return a client for the FileSystem abstraction."""
+        log.warn("Engine.get_remote_client(filtered=%r)", filtered)
         if self._invalid_credentials:
             return None
         cache = self._get_client_cache()
@@ -936,7 +937,7 @@ class Engine(QObject):
                 remote_client = self.remote_filtered_fs_client_factory(
                         self._server_url, self._remote_user,
                         self._manager.device_id, self.version, self._dao,
-                        proxies=self._manager.proxies,
+                        proxies=self._manager.get_proxies(self._server_url),
                         proxy_exceptions=self._manager.proxy_exceptions,
                         password=self._remote_password,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
@@ -945,7 +946,7 @@ class Engine(QObject):
                 remote_client = self.remote_fs_client_factory(
                         self._server_url, self._remote_user,
                         self._manager.device_id, self.version,
-                        proxies=self._manager.proxies,
+                        proxies=self._manager.get_proxies(self._server_url),
                         proxy_exceptions=self._manager.proxy_exceptions,
                         password=self._remote_password,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
@@ -963,7 +964,7 @@ class Engine(QObject):
             remote_client = self.remote_doc_client_factory(
                 self._server_url, self._remote_user,
                 self._manager.device_id, self.version,
-                proxies=self._manager.proxies,
+                proxies=self._manager.get_proxies(self._server_url),
                 proxy_exceptions=self._manager.proxy_exceptions,
                 password=self._remote_password, token=self._remote_token,
                 repository=repository, base_folder=base_folder,
