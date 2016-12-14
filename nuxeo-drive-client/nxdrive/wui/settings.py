@@ -227,7 +227,7 @@ class WebSettingsApi(WebDriveApi):
     def _connect_startup_page(self, server_url):
         url = server_url + DRIVE_STARTUP_PAGE
         try:
-            proxy_handler = get_proxy_handler(self._manager.get_proxies())
+            proxy_handler = get_proxy_handler(self._manager.get_proxies(server_url))
             opener = urllib2.build_opener(proxy_handler)
             log.debug('Proxy configuration for startup page connection: %s, effective proxy list: %r',
                       self._manager.get_proxy_settings().config, get_opener_proxies(opener))
@@ -344,6 +344,7 @@ class WebSettingsApi(WebDriveApi):
             result["authenticated"] = (settings.authenticated == 1)
             result["password"] = settings.password
             result["port"] = settings.port
+            result["pac_url"] = settings.pac_url
             return self._json(result)
         except Exception as e:
             log.exception(e)
