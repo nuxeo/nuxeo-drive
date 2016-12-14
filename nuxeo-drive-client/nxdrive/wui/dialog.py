@@ -826,7 +826,7 @@ class WebDialog(QtGui.QDialog):
             self._request = url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
             if self._token is not None:
                 url.setRawHeader("X-Authentication-Token", QtCore.QByteArray(self._token))
-            self._set_proxy(application.manager)
+            self._set_proxy(application.manager, server_url=page)
             self._api.set_last_url(filename)
         else:
             self._request = None
@@ -879,7 +879,7 @@ class WebDialog(QtGui.QDialog):
                      o, cn, l, ou, c, st)
         reply.ignoreSslErrors()
 
-    def _set_proxy(self, manager):
+    def _set_proxy(self, manager, server_url=None):
         proxy_settings = manager.get_proxy_settings()
         if proxy_settings.config == 'Manual':
             if proxy_settings.server and proxy_settings.port:
@@ -891,6 +891,13 @@ class WebDialog(QtGui.QDialog):
                 QNetworkProxy.setApplicationProxy(proxy)
         elif proxy_settings.config == 'System':
             QNetworkProxyFactory.setUseSystemConfiguration(True)
+        elif proxy_settings.config == 'Automatic':
+            proxy_settings = manager.get_proxies(server_url)
+            protocol = server_url.split(":")[0]
+            proxy_server_info = urllib2.urlparse.urlparse(proxy_settings[protocol])
+            proxy = QNetworkProxy(QNetworkProxy.HttpProxy, hostName=proxy_server_info.hostname, 
+                                  port=proxy_server_info.port)
+            QNetworkProxy.setApplicationProxy(proxy)
         else:
             QNetworkProxy.setApplicationProxy(QNetworkProxy(QNetworkProxy.NoProxy))
 
