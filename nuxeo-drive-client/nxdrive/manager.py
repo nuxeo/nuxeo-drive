@@ -9,7 +9,6 @@ from urlparse import urlparse
 import urllib2
 import js2py.pyjs
 import pypac
-import traceback
 
 from PyQt4 import QtCore
 from PyQt4.QtScript import QScriptEngine
@@ -187,6 +186,8 @@ class ProxySettings(object):
             Validate a proxy server for the give the target url
             @param proxy_server: The proxy server to validate
             @param target_url: The target url to check
+            @return: (True, proxy_setting) if proxy server is valid for the target_url
+            (False, proxy_setting) if proxy server does not work for the target_url
         """
         try:
             log.trace("Validating proxy server: %s for server url: %s", proxy_server, target_url)
@@ -210,7 +211,9 @@ class ProxySettings(object):
         """
             Get the proxy for the given url
             @param url: The url for which we need to find the proxy server
-            @requires: The self.pac_url should point to a valid PAC script that is downloadable 
+            @requires: The self.pac_url should point to a valid PAC script that is downloadable
+            @return: proxy_setting using first valid proxy server ip (for url), in a list of available proxy servers.
+            empty dictionary if there is no proxy server available for given url.
         """
         response = None
         try:
@@ -924,7 +927,6 @@ class Manager(QtCore.QObject):
         proxy_settings = (proxy_settings if proxy_settings is not None
                           else self.get_proxy_settings())
         if proxy_settings.config == 'Manual' or proxy_settings.config == 'System':
-            from nxdrive.client.base_automation_client import get_proxies_for_handler
             self.proxies["default"], self.proxy_exceptions = get_proxies_for_handler(
                                                                 proxy_settings)
             log.trace("Setting self.proxies['default'] = %r", self.proxies["default"])
@@ -945,6 +947,12 @@ class Manager(QtCore.QObject):
         self.proxyUpdated.emit(proxy_settings)
 
     def get_proxies(self, server_url):
+        """
+            Returns the proxy server address based on server_url. For Automatic Proxy Configuraiton (.PAC)
+            there can be different proxy server for different out bound URLs.
+            @param server_url: The url of the server
+            @return: The proxy settings required for the specific server
+        """
         proxy_settings = self.get_proxy_settings()
         if proxy_settings.config == 'Manual' or proxy_settings.config == 'System':
             if self.proxies and "default" in self.proxies:
