@@ -227,7 +227,7 @@ class WebSettingsApi(WebDriveApi):
     def _connect_startup_page(self, server_url):
         url = server_url + DRIVE_STARTUP_PAGE
         try:
-            proxy_handler = get_proxy_handler(self._manager.get_proxies())
+            proxy_handler = get_proxy_handler(self._manager.get_proxies(server_url))
             opener = urllib2.build_opener(proxy_handler)
             log.debug('Proxy configuration for startup page connection: %s, effective proxy list: %r',
                       self._manager.get_proxy_settings().config, get_opener_proxies(opener))
@@ -344,23 +344,26 @@ class WebSettingsApi(WebDriveApi):
             result["authenticated"] = (settings.authenticated == 1)
             result["password"] = settings.password
             result["port"] = settings.port
+            result["pac_url"] = settings.pac_url
             return self._json(result)
         except Exception as e:
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(str, str, str, str, str, result=QtCore.QObject)
-    def set_proxy_settings_async(self, config='System', server=None, authenticated=False, username=None, password=None):
-        return Promise(self.set_proxy_settings, config, server, authenticated, username, password)
+    @QtCore.pyqtSlot(str, str, str, str, str, str, result=QtCore.QObject)
+    def set_proxy_settings_async(self, config='System', server=None, authenticated=False, username=None, password=None, pac_url=None):
+        return Promise(self.set_proxy_settings, config, server, authenticated, username, password, pac_url)
 
-    @QtCore.pyqtSlot(str, str, str, str, str, result=str)
-    def set_proxy_settings(self, config='System', server=None, authenticated=False, username=None, password=None):
+    @QtCore.pyqtSlot(str, str, str, str, str, str, result=str)
+    def set_proxy_settings(self, config='System', server=None, authenticated=False, username=None, password=None, pac_url=None):
         try:
             config = str(config)
             url = str(server)
             settings = ProxySettings(config=config)
             if config == "Manual":
                 settings.from_url(url)
+            elif config == "Automatic":
+                settings.pac_url = str(pac_url)
             settings.authenticated = "true" == authenticated
             settings.username = str(username)
             settings.password = str(password)
