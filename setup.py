@@ -483,7 +483,7 @@ class NuxeoDriveSetup(object):
             if attribs.include_xattr_binaries():
                 import xattr
                 ext_modules = [xattr.lib.ffi.verifier.get_extension()]
-                includes.append("_cffi__x7c9e2f59xb862c7dd")
+                includes.append(xattr.lib.ffi.verifier.get_extension().name)
             name = attribs.get_CFBundleName()
             py2app_options = dict(
                 iconfile=icon,
