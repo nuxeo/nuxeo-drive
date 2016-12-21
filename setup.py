@@ -374,9 +374,10 @@ class NuxeoDriveSetup(object):
             "PyQt4.QtCore",
             "PyQt4.QtNetwork",
             "PyQt4.QtGui",
-            "atexit"  # implicitly required by PyQt4
+            "atexit",  # implicitly required by PyQt4
+            "js2py.pyjs"
         ]
-        if attribs.include_xattr_binaries():
+        if attribs.include_xattr_binaries() and sys.platform != 'win32':
             includes.append('cffi')
             includes.append('xattr')
 
@@ -388,7 +389,7 @@ class NuxeoDriveSetup(object):
             "pydoc",
             "tkinter",
         ]
-        if not attribs.include_xattr_binaries():
+        if not attribs.include_xattr_binaries() and sys.platform != 'win32':
             excludes.append('cffi')
             excludes.append('xattr')
 
@@ -441,6 +442,7 @@ class NuxeoDriveSetup(object):
                         "include_files": include_files,
                     },
                     "bdist_esky": {
+                        "includes": includes,
                         "excludes": excludes,
                         "enable_appdata_dir": True,
                         "freezer_options": {
