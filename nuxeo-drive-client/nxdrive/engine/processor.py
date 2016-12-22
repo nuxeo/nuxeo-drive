@@ -252,7 +252,7 @@ class Processor(EngineWorker):
                         if isinstance(e, IOError) and e.errno == 28:
                             self._engine.noSpaceLeftOnDevice.emit()
                         log.exception(e)
-                        self.increase_error(doc_pair, "SYNC HANDLER: %s" % handler_name, exception=e)
+                        self.increase_error(doc_pair, "SYNC_HANDLER" % handler_name, exception=e)
                         self._current_item = self._get_item()
                         continue
             except ThreadInterrupt:
