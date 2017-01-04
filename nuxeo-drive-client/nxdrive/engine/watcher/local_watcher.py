@@ -25,6 +25,9 @@ WIN_MOVE_RESOLUTION_PERIOD = 2000
 
 TEXT_EDIT_TMP_FILE_PATTERN = ur'.*\.rtf\.sb\-(\w)+\-(\w)+$'
 
+if AbstractOSIntegration.is_windows():
+    import win32api
+
 
 def is_office_file(_):
     # Dont filter for now
@@ -970,10 +973,15 @@ class DriveFSRootEventHandler(FileSystemEventHandler):
 
 def normalize_event_filename(filename):
     import unicodedata
-    if sys.platform == 'darwin':
+    if AbstractOSIntegration.is_mac():
         return unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
-    else:
-        normalized_filename = unicodedata.normalize('NFC', unicode(filename))
+    elif AbstractOSIntegration.is_windows():
+        try:
+            if os.path.exists(filename):
+                filename = win32api.GetLongPathName(filename)
+        except Exception as e:
+            log.error("long path conversion error: %r for %r", str(e), filename)
+    normalized_filename = unicodedata.normalize('NFC', unicode(filename))
     # Normalize name on the file system if not normalized
     # See https://jira.nuxeo.com/browse/NXDRIVE-188
     if os.path.exists(filename) and normalized_filename != filename:
