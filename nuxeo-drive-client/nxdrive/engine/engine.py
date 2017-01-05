@@ -925,7 +925,7 @@ class Engine(QObject):
 
     def get_remote_client(self, filtered=True):
         """Return a client for the FileSystem abstraction."""
-        log.warn("Engine.get_remote_client(filtered=%r)", filtered)
+        log.trace("Engine.get_remote_client(filtered=%r)", filtered)
         if self._invalid_credentials:
             return None
         cache = self._get_client_cache()
