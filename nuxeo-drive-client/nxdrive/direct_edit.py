@@ -44,6 +44,7 @@ class DirectEdit(Worker):
         Constructor
         '''
         super(DirectEdit, self).__init__()
+        self._test = False
         self._manager = manager
         self._url = url
         self._thread.started.connect(self.run)
@@ -440,10 +441,12 @@ class DirectEdit(Worker):
             self._end_action()
             # Load the target url if Drive was not launched before
             self.handle_url()
-            log.trace("DirectEdit Entering main loop: continue:%r pause:%r running:%r", self._continue, self._pause, self._running)
+            if self._test:
+                log.trace("DirectEdit Entering main loop: continue:%r pause:%r running:%r", self._continue, self._pause, self._running)
             while (1):
                 self._interact()
-                log.trace("DirectEdit post interact: continue:%r pause:%r running:%r", self._continue, self._pause, self._running)
+                if self._test:
+                    log.trace("DirectEdit post interact: continue:%r pause:%r running:%r", self._continue, self._pause, self._running)
                 try:
                     self._handle_queues()
                 except NotFound:
