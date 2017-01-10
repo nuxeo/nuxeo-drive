@@ -10,6 +10,7 @@ import os
 import hashlib
 import tempfile
 from urllib import urlencode
+from cookielib import CookieJar
 from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import BaseClient
@@ -207,9 +208,10 @@ class BaseAutomationClient(BaseClient):
         self.client_version = client_version
         self._update_auth(password=password, token=token)
 
-        self.cookie_jar = cookie_jar
+        self.cookie_jar = cookie_jar or CookieJar()
+
         cookie_processor = urllib2.HTTPCookieProcessor(
-            cookiejar=cookie_jar)
+            cookiejar=self.cookie_jar)
 
         # Get proxy handler
         proxy_handler = get_proxy_handler(proxies,
@@ -844,3 +846,13 @@ class BaseAutomationClient(BaseClient):
 
     def get_download_buffer(self):
         return FILE_BUFFER_SIZE
+
+    def reset_cookie_jar(self):
+        for handler in self.opener.handlers:
+            if isinstance(handler, urllib2.HTTPCookieProcessor):
+                handler.cookiejar.clear()
+                break
+        for handler in self.streaming_opener.handlers:
+            if isinstance(handler, urllib2.HTTPCookieProcessor):
+                handler.cookiejar.clear()
+                break
