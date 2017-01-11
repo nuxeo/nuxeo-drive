@@ -19,6 +19,7 @@ import sys
 import time
 import datetime
 import calendar
+from os.path import realpath
 from nxdrive.engine.engine import Engine
 from nxdrive.notification import Notification
 from nxdrive.engine.workers import Worker
@@ -830,10 +831,9 @@ class WebDialog(QtGui.QDialog):
             self._api.set_last_url(filename)
         else:
             self._request = None
+            filename = realpath(filename)
             log.trace("Load web file: %s", filename)
-            if filename[0] != '/':
-                filename = u"///" + filename
-            url = QtCore.QUrl(filename)
+            url = QtCore.QUrl.fromLocalFile(filename)
             url.setScheme("file")
 
         self._frame = self._page.mainFrame()
