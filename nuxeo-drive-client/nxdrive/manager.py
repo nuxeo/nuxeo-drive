@@ -7,8 +7,6 @@ import sys
 import logging
 from urlparse import urlparse
 import urllib2
-# NXDRIVE-679: force import of js2py.pyjs for now
-import js2py.pyjs
 import pypac
 
 from PyQt4 import QtCore

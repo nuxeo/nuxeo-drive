@@ -122,7 +122,7 @@ class data_file_dir(object):
 class NuxeoDriveAttributes(object):
 
     def include_xattr_binaries(self):
-        return True
+        return sys.platform != 'win32'
 
     def get_uid(self):
         return '{800B7778-1B71-11E2-9D65-A0FD6088709B}'
@@ -374,7 +374,8 @@ class NuxeoDriveSetup(object):
             "PyQt4.QtCore",
             "PyQt4.QtNetwork",
             "PyQt4.QtGui",
-            "atexit"  # implicitly required by PyQt4
+            "atexit",  # implicitly required by PyQt4
+            "js2py.pyjs"
         ]
         if attribs.include_xattr_binaries():
             includes.append('cffi')
@@ -441,6 +442,7 @@ class NuxeoDriveSetup(object):
                         "include_files": include_files,
                     },
                     "bdist_esky": {
+                        "includes": includes,
                         "excludes": excludes,
                         "enable_appdata_dir": True,
                         "freezer_options": {
