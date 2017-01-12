@@ -450,7 +450,7 @@ class ManagerDAO(ConfigurationDAO):
             self.update_config(SCHEMA_VERSION, 3)
 
     def get_engines(self):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute("SELECT * FROM Engines").fetchall()
 
     def update_engine_path(self, engine, path):
@@ -495,13 +495,15 @@ class EngineDAO(ConfigurationDAO):
     classdocs
     '''
     newConflict = pyqtSignal(object)
-    def __init__(self, db):
+
+    def __init__(self, db, state_factory=StateRow):
         '''
         Constructor
         '''
         self._filters = None
         self._queue_manager = None
         super(EngineDAO, self).__init__(db)
+        self._state_factory = state_factory
         self._filters = self.get_filters()
         self._items_count = None
         self._items_count = self.get_syncing_count()
@@ -562,7 +564,9 @@ class EngineDAO(ConfigurationDAO):
         cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
         self._create_state_table(cursor)
 
-    def _get_read_connection(self, factory=StateRow):
+    def _get_read_connection(self, factory=None):
+        if factory is None:
+            factory = self._state_factory
         return super(EngineDAO, self)._get_read_connection(factory)
 
     def acquire_state(self, thread_id, row_id):
@@ -717,7 +721,7 @@ class EngineDAO(ConfigurationDAO):
         return row_id
 
     def get_last_files(self, number, direction=""):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         condition = ""
         if direction == "remote":
             condition = " AND last_transfer = 'upload'"
@@ -734,7 +738,7 @@ class EngineDAO(ConfigurationDAO):
         con = None
         try:
             self._queue_manager = manager
-            con = self._get_write_connection(factory=StateRow)
+            con = self._get_write_connection(factory=self._state_factory)
             c = con.cursor()
             # Order by path to be sure to process parents before childs
             pairs = c.execute("SELECT * FROM States WHERE " + self._get_to_sync_condition() + " ORDER BY local_path ASC").fetchall()
@@ -809,23 +813,23 @@ class EngineDAO(ConfigurationDAO):
         self.update_local_state(row, info, versionned=False, queue=False)
 
     def get_valid_duplicate_file(self, digest):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE remote_digest=? AND pair_state='synchronized'", (digest,)).fetchone()
 
     def get_remote_descendants(self, path):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_path LIKE ?", (path + '%',)).fetchall()
 
     def get_remote_descendants_from_ref(self, ref):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_path LIKE ?", ('%' + ref + '%',)).fetchall()
 
     def get_remote_children(self, ref):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_ref=?", (ref,)).fetchall()
 
     def get_new_remote_children(self, ref):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_state='created' AND local_state='unknown'", (ref,)).fetchall()
 
     def get_unsynchronized_count(self):
@@ -857,35 +861,35 @@ class EngineDAO(ConfigurationDAO):
         query = "SELECT COUNT(*) as count FROM States"
         if condition is not None:
             query = query + " WHERE " + condition
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute(query).fetchone().count
 
     def get_global_size(self):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT SUM(size) as sum FROM States WHERE pair_state='synchronized'").fetchone().sum
 
     def get_unsynchronizeds(self):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE pair_state='unsynchronized'").fetchall()
 
     def get_conflicts(self):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE pair_state='conflicted'").fetchall()
 
     def get_errors(self, limit=3):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE error_count>?", (limit,)).fetchall()
 
     def get_local_children(self, path):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE local_parent_path=?", (path,)).fetchall()
 
     def get_states_from_partial_local(self, path):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE local_path LIKE ?", (path + '%',)).fetchall()
 
     def get_first_state_from_partial_remote(self, ref):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE remote_ref LIKE ? ORDER BY last_remote_updated ASC LIMIT 1",
                          ('%' + ref,)).fetchone()
 
@@ -900,11 +904,11 @@ class EngineDAO(ConfigurationDAO):
         # remote_path root is empty, should refactor this
         if path == '/':
             path = ""
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE remote_ref=? AND remote_parent_path=?", (ref,path)).fetchone()
 
     def get_states_from_remote(self, ref):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE remote_ref=?", (ref,)).fetchall()
 
     def get_state_from_id(self, row_id, from_write=False):
@@ -914,9 +918,9 @@ class EngineDAO(ConfigurationDAO):
         try:
             if from_write:
                 self._lock.acquire()
-                c = self._get_write_connection(factory=StateRow).cursor()
+                c = self._get_write_connection(factory=self._state_factory).cursor()
             else:
-                c = self._get_read_connection(factory=StateRow).cursor()
+                c = self._get_read_connection(factory=self._state_factory).cursor()
             state = c.execute("SELECT * FROM States WHERE id=?", (row_id,)).fetchone()
         finally:
             if from_write:
@@ -1037,7 +1041,7 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
 
     def get_state_from_local(self, path):
-        c = self._get_read_connection(factory=StateRow).cursor()
+        c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE local_path=?", (path,)).fetchone()
 
     def insert_remote_state(self, info, remote_parent_path, local_path, local_parent_path):
