@@ -983,7 +983,9 @@ class Engine(QObject):
         from nxdrive.client.rest_api_client import RestAPIClient
         rest_client = RestAPIClient(self.get_server_url(), self.get_remote_user(),
                                         self._manager.get_device_id(), self._manager.get_version(), None,
-                                        self.get_remote_token(), timeout=self.timeout, cookie_jar=self.cookie_jar)
+                                        self.get_remote_token(), timeout=self.timeout, cookie_jar=self.cookie_jar,
+                                        proxies=self._manager.get_proxies(self._server_url),
+                                        proxy_exceptions=self._manager.proxy_exceptions)
         return rest_client
 
     def get_user_full_name(self, userid, cache_only=False):

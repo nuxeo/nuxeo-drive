@@ -5,6 +5,7 @@ import json
 import urllib2
 
 from nxdrive.logging_config import get_logger
+from nxdrive.client.base_automation_client import get_proxy_handler
 
 log = get_logger(__name__)
 
@@ -15,7 +16,8 @@ class RestAPIClient(object):
     application_name = 'Nuxeo Drive'
 
     def __init__(self, server_url, user_id, device_id, client_version,
-                 password=None, token=None, timeout=20, cookie_jar=None):
+                 password=None, token=None, timeout=20, cookie_jar=None,
+                 proxies=None, proxy_exceptions=None):
 
         if not server_url.endswith('/'):
             server_url += '/'
@@ -31,7 +33,11 @@ class RestAPIClient(object):
         self.cookie_jar = cookie_jar
         cookie_processor = urllib2.HTTPCookieProcessor(
             cookiejar=cookie_jar)
-        self.opener = urllib2.build_opener(cookie_processor)
+        # Get proxy handler
+        proxy_handler = get_proxy_handler(proxies,
+                                          proxy_exceptions=proxy_exceptions,
+                                          url=self.server_url)
+        self.opener = urllib2.build_opener(cookie_processor, proxy_handler)
 
     def get_acls(self, ref):
         return self.execute('id/' + ref, adapter='acl')
