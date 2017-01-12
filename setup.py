@@ -122,7 +122,7 @@ class data_file_dir(object):
 class NuxeoDriveAttributes(object):
 
     def include_xattr_binaries(self):
-        return True
+        return sys.platform != 'win32'
 
     def get_uid(self):
         return '{800B7778-1B71-11E2-9D65-A0FD6088709B}'
@@ -377,7 +377,7 @@ class NuxeoDriveSetup(object):
             "atexit",  # implicitly required by PyQt4
             "js2py.pyjs"
         ]
-        if attribs.include_xattr_binaries() and sys.platform != 'win32':
+        if attribs.include_xattr_binaries():
             includes.append('cffi')
             includes.append('xattr')
 
@@ -389,7 +389,7 @@ class NuxeoDriveSetup(object):
             "pydoc",
             "tkinter",
         ]
-        if not attribs.include_xattr_binaries() and sys.platform != 'win32':
+        if not attribs.include_xattr_binaries():
             excludes.append('cffi')
             excludes.append('xattr')
 
