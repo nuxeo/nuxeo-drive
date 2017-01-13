@@ -249,10 +249,7 @@ class Processor(EngineWorker):
                         self._engine.get_queue_manager().push(doc_pair)
                         continue
                     except Exception as e:
-                        if isinstance(e, IOError) and e.errno == 28:
-                            self._engine.noSpaceLeftOnDevice.emit()
-                        log.exception(e)
-                        self.increase_error(doc_pair, "SYNC_HANDLER_%s" % handler_name, exception=e)
+                        self._handle_pair_handler_exception(doc_pair, handler_name, e)
                         self._current_item = self._get_item()
                         continue
             except ThreadInterrupt:
@@ -268,6 +265,12 @@ class Processor(EngineWorker):
                 self._dao.release_state(self._thread_id)
             self._interact()
             self._current_item = self._get_item()
+
+    def _handle_pair_handler_exception(self, doc_pair, handler_name, e):
+        if isinstance(e, IOError) and e.errno == 28:
+            self._engine.noSpaceLeftOnDevice.emit()
+        log.exception(e)
+        self.increase_error(doc_pair, "SYNC_HANDLER_%s" % handler_name, exception=e)
 
     def _synchronize_conflicted(self, doc_pair, local_client, remote_client):
         # Auto-resolve conflict
