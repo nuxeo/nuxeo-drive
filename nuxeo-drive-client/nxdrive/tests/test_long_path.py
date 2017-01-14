@@ -39,7 +39,7 @@ class TestLongPath(UnitTestCase):
         self.remote_1.delete(self.folder_a, use_trash=False)
         UnitTestCase.tearDown(self)
 
-    def test_long_Path(self):
+    def test_long_path(self):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
