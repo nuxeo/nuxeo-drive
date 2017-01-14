@@ -225,6 +225,12 @@ class UnitTestCase(unittest.TestCase):
         self.local_test_folder_1 = tempfile.mkdtemp(u'drive-1', dir=self.tmpdir)
         self.local_test_folder_2 = tempfile.mkdtemp(u'drive-2', dir=self.tmpdir)
 
+        # Correct the casing of the temp folders for windows
+        if sys.platform == 'win32':
+            import win32api
+            self.local_test_folder_1 = win32api.GetLongPathName(self.local_test_folder_1)
+            self.local_test_folder_2 = win32api.GetLongPathName(self.local_test_folder_2)
+
         self.local_nxdrive_folder_1 = os.path.join(
             self.local_test_folder_1, u'Nuxeo Drive')
         os.mkdir(self.local_nxdrive_folder_1)
