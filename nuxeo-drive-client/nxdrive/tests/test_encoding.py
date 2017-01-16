@@ -22,10 +22,10 @@ class TestEncoding(UnitTestCase):
 
         self.wait_sync(wait_for_async=True)
 
-        self.assertEquals(self.local_client.get_content(
+        self.assertEqual(self.local_client.get_content(
             u'/Nom sans accents.doc'),
             u"Contenu sans accents.")
-        self.assertEquals(self.local_client.get_content(
+        self.assertEqual(self.local_client.get_content(
             u'/Nom avec accents \xe9 \xe8.doc'),
             u"Contenu sans accents.")
 
@@ -39,10 +39,10 @@ class TestEncoding(UnitTestCase):
 
         self.wait_sync(wait_for_async=True)
 
-        self.assertEquals(self.local_client.get_content(
+        self.assertEqual(self.local_client.get_content(
             u'/Nom sans \u30bc\u30ec accents.doc'),
             u"Contenu")
-        self.assertEquals(self.remote_client.get_content(
+        self.assertEqual(self.remote_client.get_content(
             u'/Avec accents \u30d7 \u793e.doc'),
             u"Contenu")
 
@@ -51,7 +51,7 @@ class TestEncoding(UnitTestCase):
             u'Nom sans accents.txt',
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
         self.wait_sync(wait_for_async=True)
-        self.assertEquals(self.local_client.get_content(
+        self.assertEqual(self.local_client.get_content(
             u'/Nom sans accents.txt'),
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
 
@@ -63,10 +63,10 @@ class TestEncoding(UnitTestCase):
             u'Sans accents.doc',
             u"Contenu sans accents.")
         self.wait_sync(wait_for_async=True)
-        self.assertEquals(self.remote_client.get_content(
+        self.assertEqual(self.remote_client.get_content(
             u'/Avec accents \xe9 \xe8.doc'),
             u"Contenu sans accents.")
-        self.assertEquals(self.remote_client.get_content(
+        self.assertEqual(self.remote_client.get_content(
             u'/Sans accents.doc'),
             u"Contenu sans accents.")
 
@@ -75,7 +75,7 @@ class TestEncoding(UnitTestCase):
             u'Nom sans accents',
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
         self.wait_sync(wait_for_async=True)
-        self.assertEquals(self.remote_client.get_content(
+        self.assertEqual(self.remote_client.get_content(
             u'/Nom sans accents'),
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
 
@@ -83,7 +83,7 @@ class TestEncoding(UnitTestCase):
         self.local_client.make_file('/',
             u'espace\xa0 et TM\u2122.doc')
         self.wait_sync(wait_for_async=True)
-        self.assertEquals(self.remote_client.get_info(
+        self.assertEqual(self.remote_client.get_info(
             u'/espace\xa0 et TM\u2122.doc').name,
             u'espace\xa0 et TM\u2122.doc')
 

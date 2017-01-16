@@ -82,7 +82,7 @@ class TestLocalFilter(UnitTestCase):
         # Make sure that a folder is synchronized directly no matter what and the file is postponed
         self.wait_sync(enforce_errors=False,fail_if_timeout=False)
         children = self.remote_document_client_1.get_children_info(self.workspace)
-        self.assertEquals(len(children), 1)
+        self.assertEqual(len(children), 1)
 
         # Force the postponed to ensure it's synchronized now
         self.engine_1.get_queue_manager().requeue_errors()
@@ -90,8 +90,8 @@ class TestLocalFilter(UnitTestCase):
         self.assertTrue(self.local_client_1.exists("/" + hexafile))
         children = self.remote_document_client_1.get_children_info(self.workspace)
         log.debug("Children retrieved: %r", children)
-        self.assertEquals(len(children), 2)
-        self.assertEquals(children[1].name, "2345BCDF")
+        self.assertEqual(len(children), 2)
+        self.assertEqual(children[1].name, "2345BCDF")
 
     def test_synchronize_local_filter_with_move(self):
         # Bind the server and root workspace

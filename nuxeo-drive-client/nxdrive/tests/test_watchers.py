@@ -27,7 +27,7 @@ class TestWatchers(UnitTestCase):
         # Workspace should have been reconcile
         res = self.engine_1.get_dao().get_states_from_partial_local('/')
         # With root
-        self.assertEquals(len(res), folders + files + 1)
+        self.assertEqual(len(res), folders + files + 1)
 
     def test_reconcile_scan(self):
         files, folders = self.make_local_tree()
@@ -65,7 +65,7 @@ class TestWatchers(UnitTestCase):
         self.wait_remote_scan()
         res = self.engine_1.get_dao().get_states_from_partial_local('/')
         # With root
-        self.assertEquals(len(res), folders + files + 1)
+        self.assertEqual(len(res), folders + files + 1)
 
     def test_local_watchdog_creation(self):
         # Test the creation after first local scan
@@ -74,8 +74,8 @@ class TestWatchers(UnitTestCase):
         self.engine_1.start()
         self.wait_remote_scan()
         metrics = self.queue_manager_1.get_metrics()
-        self.assertEquals(metrics["local_folder_queue"], 0)
-        self.assertEquals(metrics["local_file_queue"], 0)
+        self.assertEqual(metrics["local_folder_queue"], 0)
+        self.assertEqual(metrics["local_file_queue"], 0)
         files, folders = self.make_local_tree()
         self.wait_sync(timeout=3, fail_if_timeout=False)
         metrics = self.queue_manager_1.get_metrics()
@@ -83,7 +83,7 @@ class TestWatchers(UnitTestCase):
         self.assertNotEquals(metrics["local_file_queue"], 0)
         res = self.engine_1.get_dao().get_states_from_partial_local('/')
         # With root
-        self.assertEquals(len(res), folders + files + 1)
+        self.assertEqual(len(res), folders + files + 1)
 
     def _delete_folder_1(self):
         from time import sleep
@@ -107,7 +107,7 @@ class TestWatchers(UnitTestCase):
         self.test_local_scan()
         path = self._delete_folder_1()
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
-        self.assertEquals(len(children), 0)
+        self.assertEqual(len(children), 0)
 
     def test_local_scan_delete_non_synced(self):
         # Test the deletion after first local scan
@@ -117,7 +117,7 @@ class TestWatchers(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(timeout=5, fail_if_timeout=False)
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
-        self.assertEquals(len(children), 0)
+        self.assertEqual(len(children), 0)
 
     def test_local_watchdog_delete_synced(self):
         # Test the deletion after first local scan
@@ -201,10 +201,10 @@ class TestWatchers(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
-        self.assertEquals(remote.get_info(u'/Accentue\u0301.odt').name, u'Accentu\xe9 avec un \xea et un \xe9.odt')
-        self.assertEquals(remote.get_info(u'/P\xf4le applicatif').name, u'P\xf4le appliqu\xe9')
-        self.assertEquals(remote.get_info(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt').name,
-                          u'avoir et \xeatre.odt')
+        self.assertEqual(remote.get_info(u'/Accentue\u0301.odt').name, u'Accentu\xe9 avec un \xea et un \xe9.odt')
+        self.assertEqual(remote.get_info(u'/P\xf4le applicatif').name, u'P\xf4le appliqu\xe9')
+        self.assertEqual(remote.get_info(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt').name,
+                         u'avoir et \xeatre.odt')
         # Check content update
         # NXDRIVE-389: Reload the engine to be sure that the pair are all synchronized
         log.debug("Update content of avoir et etre")
@@ -213,11 +213,11 @@ class TestWatchers(UnitTestCase):
         self.engine_1.start()
         self.wait_sync()
         self.engine_1.stop()
-        self.assertEquals(remote.get_content(u'/Accentue\u0301.odt'), u'Updated content')
+        self.assertEqual(remote.get_content(u'/Accentue\u0301.odt'), u'Updated content')
         # NXDRIVE-389: Will be Content and not Updated content
         # it is not consider as synced, so conflict is generated
-        self.assertEquals(remote.get_content(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'),
-                          u'Updated content')
+        self.assertEqual(remote.get_content(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'),
+                         u'Updated content')
 
         # Check delete
         local.delete_final(u'/Accentu\xe9 avec un \xea et un \xe9.odt')
@@ -254,17 +254,17 @@ class TestWatchers(UnitTestCase):
         local.rename(u'/P\xf4le applicatif', u'P\xf4le applique\u0301')
         local.rename(u'/Sub folder/\xeatre ou ne pas \xeatre.odt', u'avoir et e\u0302tre.odt')
         self.wait_sync()
-        self.assertEquals(remote.get_info(u'/Accentue\u0301.odt').name, u'Accentu\xe9 avec un \xea et un \xe9.odt')
-        self.assertEquals(remote.get_info(u'/P\xf4le applicatif').name, u'P\xf4le appliqu\xe9')
-        self.assertEquals(remote.get_info(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt').name,
-                          u'avoir et \xeatre.odt')
+        self.assertEqual(remote.get_info(u'/Accentue\u0301.odt').name, u'Accentu\xe9 avec un \xea et un \xe9.odt')
+        self.assertEqual(remote.get_info(u'/P\xf4le applicatif').name, u'P\xf4le appliqu\xe9')
+        self.assertEqual(remote.get_info(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt').name,
+                         u'avoir et \xeatre.odt')
         # Check content update
         local.update_content(u'/Accentu\xe9 avec un \xea et un \xe9.odt', u'Updated content')
         local.update_content(u'/Sub folder/avoir et \xeatre.odt', u'Updated content')
         self.wait_sync()
-        self.assertEquals(remote.get_content(u'/Accentue\u0301.odt'), u'Updated content')
-        self.assertEquals(remote.get_content(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt'),
-                          u'Updated content')
+        self.assertEqual(remote.get_content(u'/Accentue\u0301.odt'), u'Updated content')
+        self.assertEqual(remote.get_content(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt'),
+                         u'Updated content')
 
         # Check delete
         local.delete_final(u'/Accentu\xe9 avec un \xea et un \xe9.odt')

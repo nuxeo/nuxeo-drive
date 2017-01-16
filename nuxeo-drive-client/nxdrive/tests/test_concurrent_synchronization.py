@@ -19,7 +19,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/'))
-        self.assertEquals(local.get_children_info(u'/'), [])
+        self.assertEqual(local.get_children_info(u'/'), [])
 
         # List of children names to create
         n_children = 5
@@ -38,7 +38,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # query time ranges.
         local_children_names = [c.name for c in local.get_children_info(u'/')]
         local_children_names.sort()
-        self.assertEquals(local_children_names, children_names)
+        self.assertEqual(local_children_names, children_names)
 
     def test_delete_local_folder_2_clients(self):
         # Get local clients for each device and remote client
@@ -49,8 +49,8 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Check synchronization roots for drive1,
         # there should be 1, the test workspace
         sync_roots = remote.get_roots()
-        self.assertEquals(len(sync_roots), 1)
-        self.assertEquals(sync_roots[0].name, self.workspace_title)
+        self.assertEqual(len(sync_roots), 1)
+        self.assertEqual(sync_roots[0].name, self.workspace_title)
 
         # Launch first synchronization on both devices
         self.engine_1.start()
@@ -223,7 +223,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # properties concurrently, then synchronize
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content('/test.odt', 'Updated content.')
-        self.assertEquals(local.get_content('/test.odt'), 'Updated content.')
+        self.assertEqual(local.get_content('/test.odt'), 'Updated content.')
         test_file_ref = remote._check_ref('/test.odt')
         # Wait for 1 second to make sure the file's last modification time
         # will be different from the pair state's last remote update time
@@ -247,12 +247,12 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Thus the pair state will be ('modified', 'synchronized'), resolved as
         # 'locally_modified'.
         self.assertTrue(remote.exists('/test.odt'))
-        self.assertEquals(remote.get_content('/test.odt'), 'Updated content.')
+        self.assertEqual(remote.get_content('/test.odt'), 'Updated content.')
         test_file = remote.fetch(test_file_ref)
         self.assertEqual(test_file['properties']['dc:description'], 'Some description.')
         self.assertEqual(len(remote.get_children_info(self.workspace)), 1)
 
         # Check that the content of the test file has not changed
         self.assertTrue(local.exists('/test.odt'))
-        self.assertEquals(local.get_content('/test.odt'), 'Updated content.')
+        self.assertEqual(local.get_content('/test.odt'), 'Updated content.')
         self.assertEqual(len(local.get_children_info('/')), 1)

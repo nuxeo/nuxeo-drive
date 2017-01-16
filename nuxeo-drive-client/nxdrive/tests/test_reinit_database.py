@@ -30,7 +30,7 @@ class TestReinitDatabase(UnitTestCase):
     def _check_states(self):
         rows = self.engine_1.get_dao().get_states_from_partial_local('/')
         for row in rows:
-            self.assertEquals(row.pair_state, 'synchronized')
+            self.assertEqual(row.pair_state, 'synchronized')
 
     def _reinit_database(self):
         # Unbind engine
@@ -44,10 +44,10 @@ class TestReinitDatabase(UnitTestCase):
         self.engine_1.get_remote_watcher().noChangesFound.connect(self.app.no_remote_changes_found)
 
     def _check_conflict_automatic_resolution(self):
-        self.assertEquals(len(self.engine_1.get_dao().get_conflicts()), 0)
+        self.assertEqual(len(self.engine_1.get_dao().get_conflicts()), 0)
 
     def _check_conflict_detection(self):
-        self.assertEquals(len(self.engine_1.get_dao().get_conflicts()), 1)
+        self.assertEqual(len(self.engine_1.get_dao().get_conflicts()), 1)
 
     def test_synchronize_folderish_and_same_digest(self):
         # Start engine and wait for synchronization
@@ -68,9 +68,9 @@ class TestReinitDatabase(UnitTestCase):
         self.assertIsNotNone(file_state)
         self.assertEqual(file_state.pair_state, 'conflicted')
         # Assert content of the local file has not changed
-        self.assertEquals(self.local.get_content('/Test folder/Test.txt'),
-                          'This is some content',
-                          'Local content should not have changed')
+        self.assertEqual(self.local.get_content('/Test folder/Test.txt'),
+                         'This is some content',
+                         'Local content should not have changed')
 
     def test_synchronize_local_change(self):
         # Modify the local file
@@ -85,9 +85,9 @@ class TestReinitDatabase(UnitTestCase):
         self.assertIsNotNone(file_state)
         self.assertEqual(file_state.pair_state, 'conflicted')
         # Assert content of the remote file has not changed
-        self.assertEquals(self.remote.get_content('/Test folder/Test.txt'),
-                          'This is some content',
-                          'Remote content should not have changed')
+        self.assertEqual(self.remote.get_content('/Test folder/Test.txt'),
+                         'This is some content',
+                         'Remote content should not have changed')
 
     def test_synchronize_remote_and_local_change(self):
         # Modify the remote file
@@ -105,9 +105,9 @@ class TestReinitDatabase(UnitTestCase):
         self.assertIsNotNone(file_state)
         self.assertEqual(file_state.pair_state, 'conflicted')
         # Assert content of the local and remote files has not changed
-        self.assertEquals(self.local.get_content('/Test folder/Test.txt'),
-                          'Content has locally changed',
-                          'Local content should not have changed')
-        self.assertEquals(self.remote.get_content('/Test folder/Test.txt'),
-                          'Content has remotely changed',
-                          'Remote content should not have changed')
+        self.assertEqual(self.local.get_content('/Test folder/Test.txt'),
+                         'Content has locally changed',
+                         'Local content should not have changed')
+        self.assertEqual(self.remote.get_content('/Test folder/Test.txt'),
+                         'Content has remotely changed',
+                         'Remote content should not have changed')

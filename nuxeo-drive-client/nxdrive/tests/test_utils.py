@@ -98,64 +98,64 @@ class TestUtils(unittest.TestCase):
     def test_guess_mime_type(self):
 
         # Text
-        self.assertEquals(guess_mime_type('text.txt'), 'text/plain')
-        self.assertEquals(guess_mime_type('text.html'), 'text/html')
-        self.assertEquals(guess_mime_type('text.css'), 'text/css')
-        self.assertEquals(guess_mime_type('text.js'), 'application/javascript')
+        self.assertEqual(guess_mime_type('text.txt'), 'text/plain')
+        self.assertEqual(guess_mime_type('text.html'), 'text/html')
+        self.assertEqual(guess_mime_type('text.css'), 'text/css')
+        self.assertEqual(guess_mime_type('text.js'), 'application/javascript')
 
         # Image
-        self.assertEquals(guess_mime_type('picture.jpg'), 'image/jpeg')
-        self.assertEquals(guess_mime_type('picture.png'), 'image/png')
-        self.assertEquals(guess_mime_type('picture.gif'), 'image/gif')
+        self.assertEqual(guess_mime_type('picture.jpg'), 'image/jpeg')
+        self.assertEqual(guess_mime_type('picture.png'), 'image/png')
+        self.assertEqual(guess_mime_type('picture.gif'), 'image/gif')
         self.assertIn(guess_mime_type('picture.bmp'), ['image/x-ms-bmp',
                                                        'image/bmp'])
-        self.assertEquals(guess_mime_type('picture.tiff'), 'image/tiff')
+        self.assertEqual(guess_mime_type('picture.tiff'), 'image/tiff')
         self.assertIn(guess_mime_type('picture.ico'), ['image/x-icon', 'image/vnd.microsoft.icon'])
 
         # Audio
-        self.assertEquals(guess_mime_type('sound.mp3'), 'audio/mpeg')
+        self.assertEqual(guess_mime_type('sound.mp3'), 'audio/mpeg')
         self.assertIn(guess_mime_type('sound.wma'), ['audio/x-ms-wma', 'application/octet-stream'])
         self.assertIn(guess_mime_type('sound.wav'), ['audio/x-wav', 'audio/wav'])
 
         # Video
-        self.assertEquals(guess_mime_type('video.mpeg'), 'video/mpeg')
-        self.assertEquals(guess_mime_type('video.mp4'), 'video/mp4')
-        self.assertEquals(guess_mime_type('video.mov'), 'video/quicktime')
+        self.assertEqual(guess_mime_type('video.mpeg'), 'video/mpeg')
+        self.assertEqual(guess_mime_type('video.mp4'), 'video/mp4')
+        self.assertEqual(guess_mime_type('video.mov'), 'video/quicktime')
         self.assertIn(guess_mime_type('video.wmv'), ['video/x-ms-wmv', 'application/octet-stream'])
         self.assertIn(guess_mime_type('video.avi'), ['video/x-msvideo',
                                                      'video/avi'])
 
         # Office
-        self.assertEquals(guess_mime_type('office.doc'),
-                          'application/msword')
-        self.assertEquals(guess_mime_type('office.xls'),
-                          'application/vnd.ms-excel')
-        self.assertEquals(guess_mime_type('office.ppt'),
-                          'application/vnd.ms-powerpoint')
+        self.assertEqual(guess_mime_type('office.doc'),
+                         'application/msword')
+        self.assertEqual(guess_mime_type('office.xls'),
+                         'application/vnd.ms-excel')
+        self.assertEqual(guess_mime_type('office.ppt'),
+                         'application/vnd.ms-powerpoint')
 
         # PDF
-        self.assertEquals(guess_mime_type('document.pdf'),
-                          'application/pdf')
+        self.assertEqual(guess_mime_type('document.pdf'),
+                         'application/pdf')
 
         # Unknown
-        self.assertEquals(guess_mime_type('file.unknown'),
-                          'application/octet-stream')
+        self.assertEqual(guess_mime_type('file.unknown'),
+                         'application/octet-stream')
 
         # Cases badly handled by Windows
         # See https://jira.nuxeo.com/browse/NXP-11660
         # and http://bugs.python.org/issue15207
         if sys.platform == "win32":
             # Text
-            self.assertEquals(guess_mime_type('text.csv'),
-                              'application/octet-stream')
-            self.assertEquals(guess_mime_type('text.xml'), 'text/xml')
+            self.assertEqual(guess_mime_type('text.csv'),
+                             'application/octet-stream')
+            self.assertEqual(guess_mime_type('text.xml'), 'text/xml')
 
             # Image
             self.assertIn(guess_mime_type('picture.svg'), ['image/svg+xml', 'application/octet-stream'])
 
             # Video
-            self.assertEquals(guess_mime_type('video.flv'),
-                              'application/octet-stream')
+            self.assertEqual(guess_mime_type('video.flv'),
+                             'application/octet-stream')
 
             # Office
             self.assertIn(guess_mime_type('office.docx'),
@@ -176,33 +176,33 @@ class TestUtils(unittest.TestCase):
                           ['application/vnd.oasis.opendocument.presentation', 'application/octet-stream'])
         else:
             # Text
-            self.assertEquals(guess_mime_type('text.csv'), 'text/csv')
-            self.assertEquals(guess_mime_type('text.xml'), 'application/xml')
+            self.assertEqual(guess_mime_type('text.csv'), 'text/csv')
+            self.assertEqual(guess_mime_type('text.xml'), 'application/xml')
 
             # Image
-            self.assertEquals(guess_mime_type('picture.svg'), 'image/svg+xml')
+            self.assertEqual(guess_mime_type('picture.svg'), 'image/svg+xml')
 
             # Video
-            self.assertEquals(guess_mime_type('video.flv'), 'video/x-flv')
+            self.assertEqual(guess_mime_type('video.flv'), 'video/x-flv')
 
             # Office
-            self.assertEquals(guess_mime_type('office.docx'),
-                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-            self.assertEquals(guess_mime_type('office.xlsx'),
-                              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            self.assertEquals(guess_mime_type('office.pptx'),
-                              'application/vnd.openxmlformats-officedocument.presentationml.presentation')
+            self.assertEqual(guess_mime_type('office.docx'),
+                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+            self.assertEqual(guess_mime_type('office.xlsx'),
+                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            self.assertEqual(guess_mime_type('office.pptx'),
+                             'application/vnd.openxmlformats-officedocument.presentationml.presentation')
 
-            self.assertEquals(guess_mime_type('office.odt'), 'application/vnd.oasis.opendocument.text')
-            self.assertEquals(guess_mime_type('office.ods'), 'application/vnd.oasis.opendocument.spreadsheet')
-            self.assertEquals(guess_mime_type('office.odp'), 'application/vnd.oasis.opendocument.presentation')
+            self.assertEqual(guess_mime_type('office.odt'), 'application/vnd.oasis.opendocument.text')
+            self.assertEqual(guess_mime_type('office.ods'), 'application/vnd.oasis.opendocument.spreadsheet')
+            self.assertEqual(guess_mime_type('office.odp'), 'application/vnd.oasis.opendocument.presentation')
 
     def test_guess_digest_algorithm(self):
         s = 'joe'
         md5_digest = hashlib.md5(s).hexdigest()
-        self.assertEquals(guess_digest_algorithm(md5_digest), 'md5')
+        self.assertEqual(guess_digest_algorithm(md5_digest), 'md5')
         sha1_digest = hashlib.sha1(s).hexdigest()
-        self.assertEquals(guess_digest_algorithm(sha1_digest), 'sha1')
+        self.assertEqual(guess_digest_algorithm(sha1_digest), 'sha1')
         # For now only md5 and sha1 are supported
         sha256_digest = hashlib.sha256(s).hexdigest()
         try:

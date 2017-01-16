@@ -67,7 +67,7 @@ class TestReadOnly(UnitTestCase):
         self.assertFalse(remote.exists('/Test folder/Local sub folder 2'))
         self.assertFalse(remote.exists('/Test folder/Local sub folder 2/local sub file 2.txt'))
         self.assertTrue(local.exists('/Test folder/local.odt'))
-        self.assertEquals(remote.get_content('/Test folder/joe.odt'), 'Some content')
+        self.assertEqual(remote.get_content('/Test folder/joe.odt'), 'Some content')
 
     def touch(self, fname):
         try:

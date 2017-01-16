@@ -47,8 +47,8 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.assertNxPart('/', name='test_KO.odt', present=False)
         self.assertFalse(local.exists('/test_KO.odt'))
         states_in_error = self.engine_1.get_dao().get_errors(limit=0)
-        self.assertEquals(len(states_in_error), 1)
-        self.assertEquals(states_in_error[0].remote_name, 'test_KO.odt')
+        self.assertEqual(len(states_in_error), 1)
+        self.assertEqual(states_in_error[0].remote_name, 'test_KO.odt')
 
         # Create another file in the remote root workspace
         remote.make_file('/', 'test_OK.odt', 'Some small content.')
@@ -64,8 +64,8 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         # is not expired and there should still be 1 error
         self.assertFalse(local.exists('/test_KO.odt'))
         states_in_error = self.engine_1.get_dao().get_errors(limit=0)
-        self.assertEquals(len(states_in_error), 1)
-        self.assertEquals(states_in_error[0].remote_name, 'test_KO.odt')
+        self.assertEqual(len(states_in_error), 1)
+        self.assertEqual(states_in_error[0].remote_name, 'test_KO.odt')
 
         # Retry to synchronize blacklisted file still simulating a "No space left on device" error
         self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
@@ -78,8 +78,8 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.assertNxPart('/', name='test_KO.odt', present=False)
         self.assertFalse(local.exists('/test_KO.odt'))
         states_in_error = self.engine_1.get_dao().get_errors(limit=0)
-        self.assertEquals(len(states_in_error), 1)
-        self.assertEquals(states_in_error[0].remote_name, 'test_KO.odt')
+        self.assertEqual(len(states_in_error), 1)
+        self.assertEqual(states_in_error[0].remote_name, 'test_KO.odt')
 
         # Synchronize without simulating any error, as if space had been made
         # available on device
@@ -93,4 +93,4 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.assertNxPart('/', name='test_KO.odt', present=False)
         self.assertTrue(local.exists('/test_KO.odt'))
         states_in_error = self.engine_1.get_dao().get_errors(limit=0)
-        self.assertEquals(len(states_in_error), 0)
+        self.assertEqual(len(states_in_error), 0)

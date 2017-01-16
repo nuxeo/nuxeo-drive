@@ -126,7 +126,7 @@ class VolumeTestCase(UnitTestCase):
 
         # check locally
         os_children = os.listdir(self.local_client_1._abspath(path))
-        self.assertEquals(len(os_children), len(children))
+        self.assertEqual(len(os_children), len(children))
         cmp_children = copy(children)
         for name in os_children:
             if name not in cmp_children:
@@ -136,15 +136,15 @@ class VolumeTestCase(UnitTestCase):
             remote_refs[remote_ref]=name
             del cmp_children[name]
         # compare each name
-        self.assertEquals(0, len(cmp_children), "Expected local child in " + path + ": not present are " + ', '.join(cmp_children.values()))
+        self.assertEqual(0, len(cmp_children), "Expected local child in " + path + ": not present are " + ', '.join(cmp_children.values()))
 
         # check remotely
         remote_children = self.remote_file_system_client_1.get_children_info(remote_id)
-        self.assertEquals(len(remote_children), len(children))
+        self.assertEqual(len(remote_children), len(children))
         for child in remote_children:
             if child.uid not in remote_refs:
                 self.fail("Not expected remote child '" + child.name + "' in " + path)
-            self.assertEquals(child.name, remote_refs[child.uid])
+            self.assertEqual(child.name, remote_refs[child.uid])
 
     def test_moves_while_creating(self):
         self.create(stopped=False, wait_for_sync=False)
@@ -281,4 +281,4 @@ class VolumeTestCase(UnitTestCase):
             " AND ecm:currentLifeCycleState != 'deleted'"
             " AND ecm:mixinType != 'HiddenInNavigation'" % self.workspace)['resultsCount']
         local_folders, local_file = self.get_local_child_count(self.local_nxdrive_folder_1 + '/' + self.workspace_title)
-        self.assertEquals(local_folders + local_file, doc_count)
+        self.assertEqual(local_folders + local_file, doc_count)

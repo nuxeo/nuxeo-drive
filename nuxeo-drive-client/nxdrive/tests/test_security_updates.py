@@ -160,10 +160,10 @@ class TestSecurityUpdates(UnitTestCase):
         # Local changes should not be impacted server side.
         # Local check
         self.assertTrue(local.exists('/Test folder'))
-        self.assertEquals(len(local.get_children_info('/Test folder')), 3)
+        self.assertEqual(len(local.get_children_info('/Test folder')), 3)
         self.assertTrue(local.exists('/Test folder/joe.odt'))
-        self.assertEquals(local.get_content('/Test folder/joe.odt'),
-                          'Some locally updated content')
+        self.assertEqual(local.get_content('/Test folder/joe.odt'),
+                         'Some locally updated content')
         self.assertTrue(local.exists('/Test folder/local.odt'))
         self.assertTrue(local.exists('/Test folder/Local sub folder 2'))
         self.assertTrue(local.exists(
@@ -189,10 +189,10 @@ class TestSecurityUpdates(UnitTestCase):
                                'unsynchronized')
         # Remote check
         test_folder_uid = root_remote.get_info(test_folder_path).uid
-        self.assertEquals(len(root_remote.get_children_info(
+        self.assertEqual(len(root_remote.get_children_info(
                                                         test_folder_uid)), 5)
         self.assertTrue(root_remote.exists(test_folder_path + '/joe.odt'))
-        self.assertEquals(root_remote.get_content(
+        self.assertEqual(root_remote.get_content(
                                             test_folder_path + '/joe.odt'),
                                             'Some remotely updated content')
         self.assertTrue(root_remote.exists(test_folder_path + '/jack.odt'))
@@ -222,7 +222,7 @@ class TestSecurityUpdates(UnitTestCase):
         # Local check
         self.assertTrue(local.exists('/Test folder'))
         children_info = local.get_children_info('/Test folder')
-        self.assertEquals(len(children_info), 8)
+        self.assertEqual(len(children_info), 8)
         for info in children_info:
             if info.name == 'joe.odt':
                 remote_version = info
@@ -231,11 +231,11 @@ class TestSecurityUpdates(UnitTestCase):
         self.assertTrue(remote_version is not None)
         self.assertTrue(local_version is not None)
         self.assertTrue(local.exists(remote_version.path))
-        self.assertEquals(local.get_content(remote_version.path),
-                          'Some remotely updated content')
+        self.assertEqual(local.get_content(remote_version.path),
+                         'Some remotely updated content')
         self.assertTrue(local.exists(local_version.path))
-        self.assertEquals(local.get_content(local_version.path),
-                          'Some locally updated content')
+        self.assertEqual(local.get_content(local_version.path),
+                         'Some locally updated content')
         self.assertTrue(local.exists('/Test folder/jack.odt'))
         self.assertTrue(local.exists('/Test folder/local.odt'))
         self.assertTrue(local.exists('/Test folder/remote.odt'))
@@ -261,7 +261,7 @@ class TestSecurityUpdates(UnitTestCase):
         # Remote check
         self.assertTrue(remote.exists('/Test folder'))
         children_info = remote.get_children_info(test_folder_uid)
-        self.assertEquals(len(children_info), 8)
+        self.assertEqual(len(children_info), 8)
         for info in children_info:
             if info.name == 'joe.odt':
                 remote_version = info
@@ -273,14 +273,14 @@ class TestSecurityUpdates(UnitTestCase):
                                      - len(TEST_WORKSPACE_PATH))
         remote_version_ref = remote_version.path[-remote_version_ref_length:]
         self.assertTrue(remote.exists(remote_version_ref))
-        self.assertEquals(remote.get_content(remote_version_ref),
-                          'Some remotely updated content')
+        self.assertEqual(remote.get_content(remote_version_ref),
+                         'Some remotely updated content')
         local_version_ref_length = (len(local_version.path)
                                      - len(TEST_WORKSPACE_PATH))
         local_version_ref = local_version.path[-local_version_ref_length:]
         self.assertTrue(remote.exists(local_version_ref))
-        self.assertEquals(remote.get_content(local_version_ref),
-                          'Some locally updated content')
+        self.assertEqual(remote.get_content(local_version_ref),
+                         'Some locally updated content')
         self.assertTrue(remote.exists('/Test folder/jack.odt'))
         self.assertTrue(remote.exists('/Test folder/local.odt'))
         self.assertTrue(remote.exists('/Test folder/remote.odt'))
@@ -308,4 +308,4 @@ class TestSecurityUpdates(UnitTestCase):
     def _check_pair_state(self, session, local_path, pair_state):
         local_path = '/' + self.workspace_title + local_path
         doc_pair = self.engine_1.get_dao().get_state_from_local(local_path)
-        self.assertEquals(doc_pair.pair_state, pair_state)
+        self.assertEqual(doc_pair.pair_state, pair_state)

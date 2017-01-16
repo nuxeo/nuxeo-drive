@@ -49,7 +49,7 @@ class TestSharedFolders(UnitTestCase):
             self.wait_sync(wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True)
 
             # Check locally synchronized content
-            self.assertEquals(len(local_user2.get_children_info('/')), 1)
+            self.assertEqual(len(local_user2.get_children_info('/')), 1)
             self.assertTrue(local_user2.exists('/Parent'))
             self.assertTrue(local_user2.exists('/Parent/Child'))
 
