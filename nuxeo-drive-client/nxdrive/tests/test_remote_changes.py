@@ -27,9 +27,9 @@ class TestRemoteChanges(IntegrationTestCase):
     def test_changes_without_active_roots(self):
         remote_client = self.remote_file_system_client_1
         summary = self.get_changes()
-        self.assertEquals(summary['hasTooManyChanges'], False)
-        self.assertEquals(summary['fileSystemChanges'], [])
-        self.assertEquals(summary['activeSynchronizationRootDefinitions'], '')
+        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertEqual(summary['fileSystemChanges'], [])
+        self.assertEqual(summary['activeSynchronizationRootDefinitions'], '')
         first_timestamp = summary['syncDate']
         self.assertTrue(first_timestamp > 0)
         if remote_client.is_event_log_id_available():
@@ -39,9 +39,9 @@ class TestRemoteChanges(IntegrationTestCase):
         self.wait()
         summary = self.get_changes()
 
-        self.assertEquals(summary['hasTooManyChanges'], False)
-        self.assertEquals(summary['fileSystemChanges'], [])
-        self.assertEquals(summary['activeSynchronizationRootDefinitions'], '')
+        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertEqual(summary['fileSystemChanges'], [])
+        self.assertEqual(summary['activeSynchronizationRootDefinitions'], '')
         second_time_stamp = summary['syncDate']
         self.assertTrue(second_time_stamp >= first_timestamp)
         if remote_client.is_event_log_id_available():
@@ -58,9 +58,9 @@ class TestRemoteChanges(IntegrationTestCase):
         # Check no changes without any registered roots
         self.wait()
         summary = self.get_changes()
-        self.assertEquals(summary['hasTooManyChanges'], False)
-        self.assertEquals(summary['activeSynchronizationRootDefinitions'], '')
-        self.assertEquals(summary['fileSystemChanges'], [])
+        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertEqual(summary['activeSynchronizationRootDefinitions'], '')
+        self.assertEqual(summary['fileSystemChanges'], [])
 
         # Let's register one of the previously created folders as sync root
         self.setUpDrive_1(root=folder_1)
@@ -68,15 +68,15 @@ class TestRemoteChanges(IntegrationTestCase):
         self.wait()
         summary = self.get_changes()
 
-        self.assertEquals(summary['hasTooManyChanges'], False)
+        self.assertEqual(summary['hasTooManyChanges'], False)
         root_defs = summary['activeSynchronizationRootDefinitions'].split(',')
-        self.assertEquals(len(root_defs), 1)
+        self.assertEqual(len(root_defs), 1)
         self.assertTrue(root_defs[0].startswith('default:'))
-        self.assertEquals(len(summary['fileSystemChanges']), 1)
+        self.assertEqual(len(summary['fileSystemChanges']), 1)
         change = summary['fileSystemChanges'][0]
-        self.assertEquals(change['fileSystemItemName'], u"Folder 1")
-        self.assertEquals(change['repositoryId'], "default")
-        self.assertEquals(change['docUuid'], folder_1)
+        self.assertEqual(change['fileSystemItemName'], u"Folder 1")
+        self.assertEqual(change['repositoryId'], "default")
+        self.assertEqual(change['docUuid'], folder_1)
 
         # Let's register the second root
         self.bind_root(self.ndrive_1_options, folder_2, self.local_nxdrive_folder_1)
@@ -84,25 +84,25 @@ class TestRemoteChanges(IntegrationTestCase):
         self.wait()
         summary = self.get_changes()
 
-        self.assertEquals(summary['hasTooManyChanges'], False)
+        self.assertEqual(summary['hasTooManyChanges'], False)
         root_defs = summary['activeSynchronizationRootDefinitions'].split(',')
-        self.assertEquals(len(root_defs), 2)
+        self.assertEqual(len(root_defs), 2)
         self.assertTrue(root_defs[0].startswith('default:'))
         self.assertTrue(root_defs[1].startswith('default:'))
-        self.assertEquals(len(summary['fileSystemChanges']), 1)
+        self.assertEqual(len(summary['fileSystemChanges']), 1)
         change = summary['fileSystemChanges'][0]
-        self.assertEquals(change['fileSystemItemName'], u"Folder 2")
-        self.assertEquals(change['repositoryId'], "default")
-        self.assertEquals(change['docUuid'], folder_2)
+        self.assertEqual(change['fileSystemItemName'], u"Folder 2")
+        self.assertEqual(change['repositoryId'], "default")
+        self.assertEqual(change['docUuid'], folder_2)
 
         # Let's do nothing and refetch the changes
         summary = self.get_changes()
-        self.assertEquals(summary['hasTooManyChanges'], False)
+        self.assertEqual(summary['hasTooManyChanges'], False)
         root_defs = summary['activeSynchronizationRootDefinitions'].split(',')
-        self.assertEquals(len(root_defs), 2)
+        self.assertEqual(len(root_defs), 2)
         self.assertTrue(root_defs[0].startswith('default:'))
         self.assertTrue(root_defs[1].startswith('default:'))
-        self.assertEquals(len(summary['fileSystemChanges']), 0)
+        self.assertEqual(len(summary['fileSystemChanges']), 0)
 
         # Let's unregister both roots at the same time
         self.unbind_root(self.ndrive_1_options, folder_1, self.local_nxdrive_folder_1)
@@ -111,27 +111,27 @@ class TestRemoteChanges(IntegrationTestCase):
         self.wait()
         summary = self.get_changes()
 
-        self.assertEquals(summary['hasTooManyChanges'], False)
+        self.assertEqual(summary['hasTooManyChanges'], False)
         raw_root_defs = summary['activeSynchronizationRootDefinitions']
-        self.assertEquals(raw_root_defs, '')
-        self.assertEquals(len(summary['fileSystemChanges']), 2)
+        self.assertEqual(raw_root_defs, '')
+        self.assertEqual(len(summary['fileSystemChanges']), 2)
         change = summary['fileSystemChanges'][0]
-        self.assertEquals(change['eventId'], u"deleted")
+        self.assertEqual(change['eventId'], u"deleted")
         self.assertIsNone(change['fileSystemItemName'])
-        self.assertEquals(change['repositoryId'], "default")
-        self.assertEquals(change['docUuid'], folder_2)
+        self.assertEqual(change['repositoryId'], "default")
+        self.assertEqual(change['docUuid'], folder_2)
         change = summary['fileSystemChanges'][1]
-        self.assertEquals(change['eventId'], u"deleted")
+        self.assertEqual(change['eventId'], u"deleted")
         self.assertIsNone(change['fileSystemItemName'])
-        self.assertEquals(change['repositoryId'], "default")
-        self.assertEquals(change['docUuid'], folder_1)
+        self.assertEqual(change['repositoryId'], "default")
+        self.assertEqual(change['docUuid'], folder_1)
 
         # Let's do nothing and refetch the changes
         summary = self.get_changes()
-        self.assertEquals(summary['hasTooManyChanges'], False)
+        self.assertEqual(summary['hasTooManyChanges'], False)
         raw_root_defs = summary['activeSynchronizationRootDefinitions']
-        self.assertEquals(raw_root_defs, '')
-        self.assertEquals(len(summary['fileSystemChanges']), 0)
+        self.assertEqual(raw_root_defs, '')
+        self.assertEqual(len(summary['fileSystemChanges']), 0)
 
     def test_sync_root_parent_registration(self):
         # Create a folder
@@ -145,27 +145,27 @@ class TestRemoteChanges(IntegrationTestCase):
         self.wait()
         summary = self.get_changes()
 
-        self.assertEquals(len(summary['fileSystemChanges']), 1)
+        self.assertEqual(len(summary['fileSystemChanges']), 1)
         change = summary['fileSystemChanges'][0]
-        self.assertEquals(change['eventId'], u'rootRegistered')
-        self.assertEquals(change['fileSystemItemName'], u'Folder 1')
-        self.assertEquals(change['fileSystemItemId'], u'defaultSyncRootFolderItemFactory#default#%s' % folder_1)
+        self.assertEqual(change['eventId'], u'rootRegistered')
+        self.assertEqual(change['fileSystemItemName'], u'Folder 1')
+        self.assertEqual(change['fileSystemItemId'], u'defaultSyncRootFolderItemFactory#default#%s' % folder_1)
 
         # Mark parent folder as a sync root, should unregister Folder 1
         self.bind_root(self.ndrive_1_options, self.workspace, self.local_nxdrive_folder_1)
         self.wait()
         summary = self.get_changes()
 
-        self.assertEquals(len(summary['fileSystemChanges']), 2)
+        self.assertEqual(len(summary['fileSystemChanges']), 2)
         for change in summary['fileSystemChanges']:
             if change['eventId'] == u'rootRegistered':
-                self.assertEquals(change['fileSystemItemName'], u'Nuxeo Drive Test Workspace')
-                self.assertEquals(change['fileSystemItemId'],
-                                  u'defaultSyncRootFolderItemFactory#default#%s' % self.workspace)
+                self.assertEqual(change['fileSystemItemName'], u'Nuxeo Drive Test Workspace')
+                self.assertEqual(change['fileSystemItemId'],
+                                 u'defaultSyncRootFolderItemFactory#default#%s' % self.workspace)
                 self.assertIsNotNone(change['fileSystemItem'])
             elif change['eventId'] == u'deleted':
                 self.assertIsNone(change['fileSystemItemName'])
-                self.assertEquals(change['fileSystemItemId'], u'default#%s' % folder_1)
+                self.assertEqual(change['fileSystemItemId'], u'default#%s' % folder_1)
                 self.assertIsNone(change['fileSystemItem'])
             else:
                 self.fail('Unexpected event %s' % change['eventId'])
@@ -180,17 +180,17 @@ class TestRemoteChanges(IntegrationTestCase):
         remote.lock(doc_id)
         self.wait()
         summary = self.get_changes()
-        self.assertEquals(len(summary['fileSystemChanges']), 1)
+        self.assertEqual(len(summary['fileSystemChanges']), 1)
         change = summary['fileSystemChanges'][0]
-        self.assertEquals(change['eventId'], u"documentLocked")
-        self.assertEquals(change['docUuid'], doc_id)
-        self.assertEquals(change['fileSystemItemName'], u"TestLocking.txt")
+        self.assertEqual(change['eventId'], u"documentLocked")
+        self.assertEqual(change['docUuid'], doc_id)
+        self.assertEqual(change['fileSystemItemName'], u"TestLocking.txt")
 
         remote.unlock(doc_id)
         self.wait()
         summary = self.get_changes()
-        self.assertEquals(len(summary['fileSystemChanges']), 1)
+        self.assertEqual(len(summary['fileSystemChanges']), 1)
         change = summary['fileSystemChanges'][0]
-        self.assertEquals(change['eventId'], u"documentUnlocked")
-        self.assertEquals(change['docUuid'], doc_id)
-        self.assertEquals(change['fileSystemItemName'], u"TestLocking.txt")
+        self.assertEqual(change['eventId'], u"documentUnlocked")
+        self.assertEqual(change['docUuid'], doc_id)
+        self.assertEqual(change['fileSystemItemName'], u"TestLocking.txt")

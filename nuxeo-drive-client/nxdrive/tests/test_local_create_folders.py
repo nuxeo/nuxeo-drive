@@ -100,8 +100,8 @@ class TestLocalCreateFolders(UnitTestCase):
         self.assertTrue(self.remote_file_system_client_1.exists(self.remote_ref_2),
                         'remote folder for %s does not exist' % self.folder_path_2)
 
-        self.assertEquals(len(self.remote_file_system_client_1.get_children_info(self.remote_ref_1)),
-                          self.NUMBER_OF_LOCAL_FILES_TOTAL)
+        self.assertEqual(len(self.remote_file_system_client_1.get_children_info(self.remote_ref_1)),
+                         self.NUMBER_OF_LOCAL_FILES_TOTAL)
 
         # expect local 'Nuxeo Drive Test Workspace/A' to contain all the files
         abs_folder_path_1 = self.local_root_client_1._abspath(self.folder_path_1)

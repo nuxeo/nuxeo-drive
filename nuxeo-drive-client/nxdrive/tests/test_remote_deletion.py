@@ -241,8 +241,8 @@ class TestRemoteDeletion(UnitTestCase):
         # Local check
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.odt'))
-        self.assertEquals(local.get_content('/Test folder/joe.odt'),
-                          'Some updated content')
+        self.assertEqual(local.get_content('/Test folder/joe.odt'),
+                         'Some updated content')
         self.assertTrue(local.exists('/Test folder/new.odt'))
         self.assertTrue(local.exists('/Test folder/Sub folder 2'))
         self.assertTrue(local.exists(
@@ -278,7 +278,7 @@ class TestRemoteDeletion(UnitTestCase):
         # Local check
         self.assertTrue(local.exists('/Test folder'))
         children_info = local.get_children_info('/Test folder')
-        self.assertEquals(len(children_info), 6)
+        self.assertEqual(len(children_info), 6)
         for info in children_info:
             if info.name == 'joe.odt':
                 remote_version = info
@@ -287,10 +287,10 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(remote_version is not None)
         self.assertTrue(local_version is not None)
         self.assertTrue(local.exists(remote_version.path))
-        self.assertEquals(local.get_content(remote_version.path),
+        self.assertEqual(local.get_content(remote_version.path),
                           'Some content')
         self.assertTrue(local.exists(local_version.path))
-        self.assertEquals(local.get_content(local_version.path),
+        self.assertEqual(local.get_content(local_version.path),
                           'Some updated content')
         self.assertTrue(local.exists('/Test folder/jack.odt'))
         self.assertTrue(local.exists('/Test folder/new.odt'))
@@ -314,7 +314,7 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(remote.exists('/Test folder'))
         test_folder_uid = remote.get_info('/Test folder').uid
         children_info = remote.get_children_info(test_folder_uid)
-        self.assertEquals(len(children_info), 6)
+        self.assertEqual(len(children_info), 6)
         for info in children_info:
             if info.name == 'joe.odt':
                 remote_version = info
@@ -326,14 +326,14 @@ class TestRemoteDeletion(UnitTestCase):
                                      - len(TEST_WORKSPACE_PATH))
         remote_version_ref = remote_version.path[-remote_version_ref_length:]
         self.assertTrue(remote.exists(remote_version_ref))
-        self.assertEquals(remote.get_content(remote_version_ref),
-                          'Some content')
+        self.assertEqual(remote.get_content(remote_version_ref),
+                         'Some content')
         local_version_ref_length = (len(local_version.path)
                                      - len(TEST_WORKSPACE_PATH))
         local_version_ref = local_version.path[-local_version_ref_length:]
         self.assertTrue(remote.exists(local_version_ref))
-        self.assertEquals(remote.get_content(local_version_ref),
-                          'Some updated content')
+        self.assertEqual(remote.get_content(local_version_ref),
+                         'Some updated content')
         self.assertTrue(remote.exists('/Test folder/jack.odt'))
         self.assertTrue(remote.exists('/Test folder/new.odt'))
         self.assertTrue(remote.exists('/Test folder/Sub folder 1'))
@@ -352,8 +352,8 @@ class TestRemoteDeletion(UnitTestCase):
         # File should be kept locally and be marked as 'unsynchronized'.
         # Local check
         self.assertTrue(local.exists('/Test folder/jack.odt'))
-        self.assertEquals(local.get_content('/Test folder/jack.odt'),
-                          'Some updated content')
+        self.assertEqual(local.get_content('/Test folder/jack.odt'),
+                         'Some updated content')
         # Remote check
         self.assertFalse(remote.exists('/Test folder/jack.odt'))
         # State check
@@ -377,19 +377,19 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(remote_version is not None)
         self.assertTrue(local_version is not None)
         self.assertTrue(local.exists(remote_version.path))
-        self.assertEquals(local.get_content(remote_version.path),
-                          'Some content')
+        self.assertEqual(local.get_content(remote_version.path),
+                         'Some content')
         self.assertTrue(local.exists(local_version.path))
-        self.assertEquals(local.get_content(local_version.path),
-                          'Some updated content')
+        self.assertEqual(local.get_content(local_version.path),
+                         'Some updated content')
         # Remote check
         self.assertTrue(remote.exists(remote_version.path))
-        self.assertEquals(remote.get_content(remote_version.path),
-                          'Some content')
+        self.assertEqual(remote.get_content(remote_version.path),
+                         'Some content')
         local_version_path = self._truncate_remote_path(local_version.path)
         self.assertTrue(remote.exists(local_version_path))
-        self.assertEquals(remote.get_content(local_version_path),
-                          'Some updated content')
+        self.assertEqual(remote.get_content(local_version_path),
+                         'Some updated content')
         # State check
         self._check_pair_state(remote_version.path, 'synchronized')
         self._check_pair_state(local_version.path, 'synchronized')
@@ -404,8 +404,8 @@ class TestRemoteDeletion(UnitTestCase):
         # Local check
         self.assertFalse(local.exists('/Test folder/jack.odt'))
         self.assertTrue(local.exists('/Test folder/jack renamed.odt'))
-        self.assertEquals(local.get_content('/Test folder/jack renamed.odt'),
-                          'Some content')
+        self.assertEqual(local.get_content('/Test folder/jack renamed.odt'),
+                         'Some content')
         # Remote check
         self.assertFalse(remote.exists('/Test folder/jack.odt'))
         # State check
@@ -419,18 +419,18 @@ class TestRemoteDeletion(UnitTestCase):
         # and both files should be marked as 'synchronized'
         # Local check
         self.assertTrue(local.exists('/Test folder/jack.odt'))
-        self.assertEquals(local.get_content('/Test folder/jack.odt'),
-                          'Some content')
+        self.assertEqual(local.get_content('/Test folder/jack.odt'),
+                         'Some content')
         self.assertTrue(local.exists('/Test folder/jack renamed.odt'))
-        self.assertEquals(local.get_content('/Test folder/jack renamed.odt'),
-                          'Some content')
+        self.assertEqual(local.get_content('/Test folder/jack renamed.odt'),
+                         'Some content')
         # Remote check
         self.assertTrue(remote.exists('/Test folder/jack.odt'))
-        self.assertEquals(remote.get_content('/Test folder/jack.odt'),
-                          'Some content')
+        self.assertEqual(remote.get_content('/Test folder/jack.odt'),
+                         'Some content')
         self.assertTrue(remote.exists('/Test folder/jack renamed.odt'))
-        self.assertEquals(remote.get_content('/Test folder/jack renamed.odt'),
-                          'Some content')
+        self.assertEqual(remote.get_content('/Test folder/jack renamed.odt'),
+                         'Some content')
         # State check
         self._check_pair_state('/Test folder/jack.odt', 'synchronized')
         self._check_pair_state('/Test folder/jack renamed.odt', 'synchronized')
@@ -503,8 +503,8 @@ class TestRemoteDeletion(UnitTestCase):
         self.wait_sync()
         self.assertFalse(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder renamed'))
-        self.assertEquals(remote.get_info(test_folder_uid).name,
-                          'Test folder renamed')
+        self.assertEqual(remote.get_info(test_folder_uid).name,
+                         'Test folder renamed')
 
         # Delete remote folder then synchronize
         remote.delete('/Test folder')
@@ -516,7 +516,7 @@ class TestRemoteDeletion(UnitTestCase):
     def _check_pair_state(self, session, local_path, pair_state):
         local_path = '/' + self.workspace_title + local_path
         doc_pair = self.engine_1.get_dao().get_state_from_local(local_path)
-        self.assertEquals(doc_pair.pair_state, pair_state)
+        self.assertEqual(doc_pair.pair_state, pair_state)
 
     def _truncate_remote_path(self, path):
         doc_name = path.rsplit('/', 1)[1]

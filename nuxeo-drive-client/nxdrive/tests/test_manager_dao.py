@@ -106,15 +106,15 @@ class ManagerDAOTest(unittest.TestCase):
         dao = manager.get_dao()
         dao.insert_notification(notif)
         dao.insert_notification(notif2)
-        self.assertEquals(len(dao.get_notifications()), 2)
+        self.assertEqual(len(dao.get_notifications()), 2)
         dao.discard_notification(notif.get_uid())
-        self.assertEquals(len(dao.get_notifications(discarded=False)), 1)
-        self.assertEquals(len(dao.get_notifications()), 2)
+        self.assertEqual(len(dao.get_notifications(discarded=False)), 1)
+        self.assertEqual(len(dao.get_notifications()), 2)
         dao.remove_notification(notif.get_uid())
-        self.assertEquals(len(dao.get_notifications()), 1)
+        self.assertEqual(len(dao.get_notifications()), 1)
         dao.discard_notification(notif2.get_uid())
-        self.assertEquals(len(dao.get_notifications()), 1)
-        self.assertEquals(len(dao.get_notifications(discarded=True)), 1)
+        self.assertEqual(len(dao.get_notifications()), 1)
+        self.assertEqual(len(dao.get_notifications(discarded=True)), 1)
 
     def test_migration_db_v1(self):
         # Initialize old DB
@@ -150,31 +150,31 @@ class ManagerDAOTest(unittest.TestCase):
         dao = manager.get_dao()
 
         # Check Manager config
-        self.assertEquals(dao.get_config('device_id'), device_id)
-        self.assertEquals(dao.get_config('proxy_config'), 'Manual')
-        self.assertEquals(dao.get_config('proxy_type'), 'http')
-        self.assertEquals(dao.get_config('proxy_server'), 'proxy.server.com')
-        self.assertEquals(dao.get_config('proxy_port'), '80')
-        self.assertEquals(dao.get_config('proxy_authenticated'), '1')
-        self.assertEquals(dao.get_config('proxy_username'), 'Administrator')
-        self.assertEquals(dao.get_config('auto_update'), '1')
-        self.assertEquals(dao.get_config('proxy_config'), 'Manual')
+        self.assertEqual(dao.get_config('device_id'), device_id)
+        self.assertEqual(dao.get_config('proxy_config'), 'Manual')
+        self.assertEqual(dao.get_config('proxy_type'), 'http')
+        self.assertEqual(dao.get_config('proxy_server'), 'proxy.server.com')
+        self.assertEqual(dao.get_config('proxy_port'), '80')
+        self.assertEqual(dao.get_config('proxy_authenticated'), '1')
+        self.assertEqual(dao.get_config('proxy_username'), 'Administrator')
+        self.assertEqual(dao.get_config('auto_update'), '1')
+        self.assertEqual(dao.get_config('proxy_config'), 'Manual')
 
         # Check engine definition
         engines = dao.get_engines()
-        self.assertEquals(len(engines), 1)
+        self.assertEqual(len(engines), 1)
         engine = engines[0]
-        self.assertEquals(engine.engine, 'NXDRIVE')
-        self.assertEquals(engine.name, manager._get_engine_name(self.nuxeo_url))
+        self.assertEqual(engine.engine, 'NXDRIVE')
+        self.assertEqual(engine.name, manager._get_engine_name(self.nuxeo_url))
         self.assertTrue(local_folder in engine.local_folder)
 
         # Check engine config
         engine_uid = engine.uid
         engine_db = os.path.join(self.test_folder, 'ndrive_%s.db' % engine_uid)
         engine_dao = EngineDAO(engine_db)
-        self.assertEquals(engine_dao.get_config('server_url'), self.nuxeo_url)
-        self.assertEquals(engine_dao.get_config('remote_user'), 'Administrator')
-        self.assertEquals(engine_dao.get_config('remote_token'), token)
+        self.assertEqual(engine_dao.get_config('server_url'), self.nuxeo_url)
+        self.assertEqual(engine_dao.get_config('remote_user'), 'Administrator')
+        self.assertEqual(engine_dao.get_config('remote_token'), token)
 
         engine_dao.dispose()
         manager.dispose_all()

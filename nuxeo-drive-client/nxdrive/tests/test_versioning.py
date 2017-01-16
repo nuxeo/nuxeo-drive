@@ -70,21 +70,21 @@ class TestVersioning(UnitTestCase):
         doc = remote_client.make_file(self.workspace, 'Document to restore.txt', content="Initial content.")
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local_client.exists('/Document to restore.txt'))
-        self.assertEquals(local_client.get_content('/Document to restore.txt'),
-                          "Initial content.")
+        self.assertEqual(local_client.get_content('/Document to restore.txt'),
+                         "Initial content.")
 
         # Create version 1.0, update content, then restore version 1.0
         remote_client.create_version(doc, 'Major')
         remote_client.update_content(doc, "Updated content.")
         self.wait_sync(wait_for_async=True)
-        self.assertEquals(local_client.get_content('/Document to restore.txt'),
-                          "Updated content.")
+        self.assertEqual(local_client.get_content('/Document to restore.txt'),
+                         "Updated content.")
         version_uid = remote_client.get_versions(doc)[0][0]
         remote_client.restore_version(version_uid)
         self.wait_sync(wait_for_async=True)
-        self.assertEquals(local_client.get_content('/Document to restore.txt'),
-                          "Initial content.")
+        self.assertEqual(local_client.get_content('/Document to restore.txt'),
+                         "Initial content.")
 
     def _assert_version(self, doc, major, minor):
-        self.assertEquals(doc['properties']['uid:major_version'], major)
-        self.assertEquals(doc['properties']['uid:minor_version'], minor)
+        self.assertEqual(doc['properties']['uid:major_version'], major)
+        self.assertEqual(doc['properties']['uid:minor_version'], minor)

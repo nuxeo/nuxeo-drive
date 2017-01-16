@@ -34,22 +34,22 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/'))
         self.assertTrue(local.exists('/Folder 1'))
-        self.assertEquals(local.get_content('/Folder 1/File 1.txt'), "aaa")
+        self.assertEqual(local.get_content('/Folder 1/File 1.txt'), "aaa")
         self.assertTrue(local.exists('/Folder 1/Folder 1.1'))
-        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbb")
+        self.assertEqual(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbb")
         self.assertTrue(local.exists('/Folder 1/Folder 1.2'))
-        self.assertEquals(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
+        self.assertEqual(local.get_content('/Folder 1/Folder 1.2/File 3.txt'), "ccc")
         self.assertTrue(local.exists('/Folder 2'))
         # Cannot predict the resolution in advance
         self.assertTrue(remote.get_content(self._duplicate_file_1), "Some content.")
         self.assertTrue(remote.get_content(self._duplicate_file_2), "Other content.")
         if local.get_content('/Folder 2/Duplicated File.txt') == "Some content.":
-            self.assertEquals(local.get_content('/Folder 2/Duplicated File__1.txt'), "Other content.")
+            self.assertEqual(local.get_content('/Folder 2/Duplicated File__1.txt'), "Other content.")
         else:
-            self.assertEquals(local.get_content('/Folder 2/Duplicated File.txt'), "Other content.")
-            self.assertEquals(local.get_content('/Folder 2/Duplicated File__1.txt'), "Some content.")
-        self.assertEquals(local.get_content('/Folder 2/File 4.txt'), "ddd")
-        self.assertEquals(local.get_content('/File 5.txt'), "eee")
+            self.assertEqual(local.get_content('/Folder 2/Duplicated File.txt'), "Other content.")
+            self.assertEqual(local.get_content('/Folder 2/Duplicated File__1.txt'), "Some content.")
+        self.assertEqual(local.get_content('/Folder 2/File 4.txt'), "ddd")
+        self.assertEqual(local.get_content('/File 5.txt'), "eee")
 
         # Unbind root and resynchronize
         remote.unregister_as_root(self.workspace)
@@ -75,7 +75,7 @@ class TestSynchronization(UnitTestCase):
 
         # We should now be fully synchronized
         folder_count, file_count = self.get_local_child_count(self.local_nxdrive_folder_1)
-        self.assertEquals(folder_count, 5)
+        self.assertEqual(folder_count, 5)
         self.assertTrue(file_count, 7)
 
         # Wait a bit for file time stamps to increase enough: on OSX HFS+ the
@@ -99,15 +99,15 @@ class TestSynchronization(UnitTestCase):
 
         # We should now be fully synchronized again
         self.assertFalse(remote.exists('/File 5.txt'))
-        self.assertEquals(remote.get_content('/Folder 1/File 1.txt'), "aaaa")
+        self.assertEqual(remote.get_content('/Folder 1/File 1.txt'), "aaaa")
         self.assertTrue(remote.exists('/Folder 4'))
 
-        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
+        self.assertEqual(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
         # Let's just check remote document hasn't changed
-        self.assertEquals(remote.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
+        self.assertEqual(remote.get_content('/Folder 1/Folder 1.1/File 2.txt'), "bbbb")
         self.assertFalse(local.exists('/Folder 2'))
         self.assertTrue(local.exists('/Folder 3'))
-        self.assertEquals(local.get_content('/Folder 3/File 6.txt'), "ffff")
+        self.assertEqual(local.get_content('/Folder 3/File 6.txt'), "ffff")
 
         # Send some binary data that is not valid in utf-8 or ascii
         # (to test the HTTP transform layer).
@@ -117,10 +117,10 @@ class TestSynchronization(UnitTestCase):
 
         self.wait_sync(wait_for_async=True)
 
-        self.assertEquals(remote.get_content('/Folder 1/File 1.txt'), "\x80")
-        self.assertEquals(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
+        self.assertEqual(remote.get_content('/Folder 1/File 1.txt'), "\x80")
+        self.assertEqual(local.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
         # Let's just check remote document hasn't changed
-        self.assertEquals(remote.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
+        self.assertEqual(remote.get_content('/Folder 1/Folder 1.1/File 2.txt'), "\x80")
 
     def test_single_quote_escaping(self):
         remote = self.remote_document_client_1
@@ -158,11 +158,11 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(timeout=5, fail_if_timeout=False)
         workspace_children = self.engine_1.get_dao().get_local_children('/' + self.workspace_title)
-        self.assertEquals(len(workspace_children), 1)
-        self.assertEquals(workspace_children[0].pair_state, 'locally_created')
+        self.assertEqual(len(workspace_children), 1)
+        self.assertEqual(workspace_children[0].pair_state, 'locally_created')
         folder_children = self.engine_1.get_dao().get_local_children('/' + self.workspace_title + '/Folder')
-        self.assertEquals(len(folder_children), 1)
-        self.assertEquals(folder_children[0].pair_state, 'locally_created')
+        self.assertEqual(len(folder_children), 1)
+        self.assertEqual(folder_children[0].pair_state, 'locally_created')
 
         # Wait a bit for file time stamps to increase enough: on most OS
         # the file modification time resolution is 1s
@@ -173,7 +173,7 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(timeout=5, fail_if_timeout=False)
         # File has not been synchronized, it is still in the locally_created state
         file_state = self.engine_1.get_dao().get_state_from_local('/' + self.workspace_title + '/Folder/File.txt')
-        self.assertEquals(file_state.pair_state, 'locally_created')
+        self.assertEqual(file_state.pair_state, 'locally_created')
 
         # Assume the computer is back online, the synchronization should occur
         # as if the document was just created and not trigger an update
@@ -181,9 +181,9 @@ class TestSynchronization(UnitTestCase):
         self.queue_manager_1.resume()
         self.wait_sync(wait_for_async=True)
         folder_state = self.engine_1.get_dao().get_state_from_local('/' + self.workspace_title + '/Folder')
-        self.assertEquals(folder_state.pair_state, 'synchronized')
+        self.assertEqual(folder_state.pair_state, 'synchronized')
         file_state = self.engine_1.get_dao().get_state_from_local('/' + self.workspace_title + '/Folder/File.txt')
-        self.assertEquals(file_state.pair_state, 'synchronized')
+        self.assertEqual(file_state.pair_state, 'synchronized')
 
     def test_basic_synchronization(self):
         local = self.local_client_1
@@ -224,16 +224,16 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True, timeout=10, fail_if_timeout=False)
 
         workspace_children = self.engine_1.get_dao().get_local_children('/' + self.workspace_title)
-        self.assertEquals(len(workspace_children), 4)
+        self.assertEqual(len(workspace_children), 4)
         sorted_children = sorted(workspace_children, key=lambda x: x.local_path)
-        self.assertEquals(sorted_children[0].remote_name, 'File 5.txt')
-        self.assertEquals(sorted_children[0].pair_state, 'remotely_created')
-        self.assertEquals(sorted_children[1].remote_name, 'Folder 1')
-        self.assertEquals(sorted_children[1].pair_state, 'remotely_created')
-        self.assertEquals(sorted_children[2].remote_name, 'Folder 2')
-        self.assertEquals(sorted_children[2].pair_state, 'remotely_created')
-        self.assertEquals(sorted_children[3].local_name, 'Folder 3')
-        self.assertEquals(sorted_children[3].pair_state, 'locally_created')
+        self.assertEqual(sorted_children[0].remote_name, 'File 5.txt')
+        self.assertEqual(sorted_children[0].pair_state, 'remotely_created')
+        self.assertEqual(sorted_children[1].remote_name, 'Folder 1')
+        self.assertEqual(sorted_children[1].pair_state, 'remotely_created')
+        self.assertEqual(sorted_children[2].remote_name, 'Folder 2')
+        self.assertEqual(sorted_children[2].pair_state, 'remotely_created')
+        self.assertEqual(sorted_children[3].local_name, 'Folder 3')
+        self.assertEqual(sorted_children[3].pair_state, 'locally_created')
 
         # Simulate synchronization errors
         file_5_state = sorted_children[0]
@@ -250,20 +250,20 @@ class TestSynchronization(UnitTestCase):
         # All errors have been skipped, while the remaining docs have
         # been synchronized
         file_5_state = self.engine_1.get_dao().get_normal_state_from_remote(file_5_state.remote_ref)
-        self.assertEquals(file_5_state.pair_state, 'remotely_created')
+        self.assertEqual(file_5_state.pair_state, 'remotely_created')
         folder_3_state = self.engine_1.get_dao().get_state_from_local(folder_3_state.local_path)
-        self.assertEquals(folder_3_state.pair_state, 'locally_created')
+        self.assertEqual(folder_3_state.pair_state, 'locally_created')
         folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(sorted_children[1].remote_ref)
-        self.assertEquals(folder_1_state.pair_state, 'synchronized')
+        self.assertEqual(folder_1_state.pair_state, 'synchronized')
         folder_2_state = self.engine_1.get_dao().get_normal_state_from_remote(sorted_children[2].remote_ref)
-        self.assertEquals(folder_2_state.pair_state, 'synchronized')
+        self.assertEqual(folder_2_state.pair_state, 'synchronized')
 
         # Retry synchronization of pairs in error
         self.wait_sync()
         file_5_state = self.engine_1.get_dao().get_normal_state_from_remote(file_5_state.remote_ref)
-        self.assertEquals(file_5_state.pair_state, 'synchronized')
+        self.assertEqual(file_5_state.pair_state, 'synchronized')
         folder_3_state = self.engine_1.get_dao().get_state_from_local(folder_3_state.local_path)
-        self.assertEquals(folder_3_state.pair_state, 'synchronized')
+        self.assertEqual(folder_3_state.pair_state, 'synchronized')
 
     def test_synchronization_give_up(self):
         # Override error threshold to 1 instead of 3
@@ -295,12 +295,12 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True, timeout=60)
         states_in_error = self.engine_1.get_dao().get_errors(limit=test_error_threshold)
-        self.assertEquals(len(states_in_error), 1)
+        self.assertEqual(len(states_in_error), 1)
         workspace_children = self.engine_1.get_dao().get_states_from_partial_local('/' + self.workspace_title + '/')
-        self.assertEquals(len(workspace_children), 4)
+        self.assertEqual(len(workspace_children), 4)
         for state in workspace_children:
             if state.folderish:
-                self.assertEquals(state.pair_state, 'synchronized')
+                self.assertEqual(state.pair_state, 'synchronized')
             else:
                 self.assertNotEqual(state.pair_state, 'synchronized')
 
@@ -314,11 +314,11 @@ class TestSynchronization(UnitTestCase):
         # Verify that everything now gets synchronized
         self.wait_sync()
         states_in_error = self.engine_1.get_dao().get_errors(limit=test_error_threshold)
-        self.assertEquals(len(states_in_error), 0)
+        self.assertEqual(len(states_in_error), 0)
         workspace_children = self.engine_1.get_dao().get_states_from_partial_local('/' + self.workspace_title + '/')
-        self.assertEquals(len(workspace_children), 4)
+        self.assertEqual(len(workspace_children), 4)
         for state in workspace_children:
-            self.assertEquals(state.pair_state, 'synchronized')
+            self.assertEqual(state.pair_state, 'synchronized')
 
     def test_synchronization_offline(self):
         # Bound root but nothing is synchronized yet
@@ -355,11 +355,11 @@ class TestSynchronization(UnitTestCase):
             # - no states are inserted for the remote documents
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
             states_in_error = self.engine_1.get_dao().get_errors(limit=0)
-            self.assertEquals(len(states_in_error), 1)
-            self.assertEquals(states_in_error[0].local_name, 'Folder 3')
+            self.assertEqual(len(states_in_error), 1)
+            self.assertEqual(states_in_error[0].local_name, 'Folder 3')
             self.assertTrue(self.engine_1.is_offline())
             workspace_children = self.engine_1.get_dao().get_states_from_partial_local('/' + self.workspace_title + '/')
-            self.assertEquals(len(workspace_children), 1)
+            self.assertEqual(len(workspace_children), 1)
             self.assertNotEqual(workspace_children[0].pair_state, 'synchronized')
             self.engine_1.set_offline(value=False)
 
@@ -372,9 +372,9 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertFalse(self.engine_1.is_offline())
         states_in_error = self.engine_1.get_dao().get_errors(limit=0)
-        self.assertEquals(len(states_in_error), 0)
+        self.assertEqual(len(states_in_error), 0)
         workspace_children = self.engine_1.get_dao().get_states_from_partial_local('/' + self.workspace_title + '/')
-        self.assertEquals(len(workspace_children), 4)
+        self.assertEqual(len(workspace_children), 4)
         for state in workspace_children:
             self.assertEqual(state.pair_state, 'synchronized')
 
@@ -401,20 +401,20 @@ class TestSynchronization(UnitTestCase):
         # Let's synchronize and check the conflict handling: automatic
         # resolution will work for this case
         self.wait_sync(wait_for_async=True)
-        self.assertEquals(len(self.engine_1.get_conflicts()), 0)
+        self.assertEqual(len(self.engine_1.get_conflicts()), 0)
         workspace_children = self.engine_1.get_dao().get_states_from_partial_local('/' + self.workspace_title + '/')
-        self.assertEquals(len(workspace_children), 1)
-        self.assertEquals(workspace_children[0].pair_state, 'synchronized')
+        self.assertEqual(len(workspace_children), 1)
+        self.assertEqual(workspace_children[0].pair_state, 'synchronized')
 
         local_children = local.get_children_info('/')
-        self.assertEquals(len(local_children), 1)
-        self.assertEquals(local_children[0].name, 'Some File.doc')
-        self.assertEquals(local.get_content(local_path), 'Same new content.')
+        self.assertEqual(len(local_children), 1)
+        self.assertEqual(local_children[0].name, 'Some File.doc')
+        self.assertEqual(local.get_content(local_path), 'Same new content.')
         remote_1 = self.remote_document_client_1
         remote_children = remote_1.get_children_info(self.workspace)
-        self.assertEquals(len(remote_children), 1)
-        self.assertEquals(remote_children[0].filename, 'Some File.doc')
-        self.assertEquals(remote_1.get_content('/Some File.doc'), 'Same new content.')
+        self.assertEqual(len(remote_children), 1)
+        self.assertEqual(remote_children[0].filename, 'Some File.doc')
+        self.assertEqual(remote_1.get_content('/Some File.doc'), 'Same new content.')
 
         # Let's trigger another conflict that cannot be resolved
         # automatically:
@@ -427,19 +427,19 @@ class TestSynchronization(UnitTestCase):
 
         # Let's synchronize and check the conflict handling
         self.wait_sync(wait_for_async=True)
-        self.assertEquals(len(self.engine_1.get_conflicts()), 1)
+        self.assertEqual(len(self.engine_1.get_conflicts()), 1)
         workspace_children = self.engine_1.get_dao().get_states_from_partial_local('/' + self.workspace_title + '/')
-        self.assertEquals(len(workspace_children), 1)
-        self.assertEquals(workspace_children[0].pair_state, 'conflicted')
+        self.assertEqual(len(workspace_children), 1)
+        self.assertEqual(workspace_children[0].pair_state, 'conflicted')
 
         local_children = local.get_children_info('/')
-        self.assertEquals(len(local_children), 1)
-        self.assertEquals(local_children[0].name, 'Some File.doc')
-        self.assertEquals(local.get_content(local_path), 'Local new content.')
+        self.assertEqual(len(local_children), 1)
+        self.assertEqual(local_children[0].name, 'Some File.doc')
+        self.assertEqual(local.get_content(local_path), 'Local new content.')
         remote_children = remote_1.get_children_info(self.workspace)
-        self.assertEquals(len(remote_children), 1)
-        self.assertEquals(remote_children[0].filename, 'Some File.doc')
-        self.assertEquals(remote_1.get_content('/Some File.doc'), 'Remote new content.')
+        self.assertEqual(len(remote_children), 1)
+        self.assertEqual(remote_children[0].filename, 'Some File.doc')
+        self.assertEqual(remote_1.get_content('/Some File.doc'), 'Remote new content.')
 
     def test_synchronize_deep_folders(self):
         # Increase Automation execution timeout for NuxeoDrive.GetChangeSummary
@@ -468,8 +468,8 @@ class TestSynchronization(UnitTestCase):
         expected_file_path = expected_folder_path + '/File.odt'
         self.assertTrue(local.exists(expected_folder_path))
         self.assertTrue(local.exists(expected_file_path))
-        self.assertEquals(local.get_content(expected_file_path),
-                          "Fake non-zero content.")
+        self.assertEqual(local.get_content(expected_file_path),
+                         "Fake non-zero content.")
 
         # Delete the nested folder structure on the remote server
         # and synchronize again
@@ -495,20 +495,20 @@ class TestSynchronization(UnitTestCase):
         # States have been created for the subfolder and its content,
         # subfolder is marked as unsynchronized
         states = self.engine_1.get_dao().get_states_from_partial_local('/')
-        self.assertEquals(len(states), 6)
+        self.assertEqual(len(states), 6)
         sorted_states = sorted(states, key=lambda x: x.local_path)
-        self.assertEquals(sorted_states[0].local_name, '')
-        self.assertEquals(sorted_states[0].pair_state, 'synchronized')
-        self.assertEquals(sorted_states[1].local_name, 'Folder 3')
-        self.assertEquals(sorted_states[1].pair_state, 'unsynchronized')
-        self.assertEquals(sorted_states[2].local_name, 'File 1.txt')
+        self.assertEqual(sorted_states[0].local_name, '')
+        self.assertEqual(sorted_states[0].pair_state, 'synchronized')
+        self.assertEqual(sorted_states[1].local_name, 'Folder 3')
+        self.assertEqual(sorted_states[1].pair_state, 'unsynchronized')
+        self.assertEqual(sorted_states[2].local_name, 'File 1.txt')
         self.assertTrue(sorted_states[2].pair_state in ('locally_created', 'unsynchronized'))
-        self.assertEquals(sorted_states[3].local_name, 'Sub Folder 1')
+        self.assertEqual(sorted_states[3].local_name, 'Sub Folder 1')
         self.assertTrue(sorted_states[3].pair_state in ('locally_created', 'unsynchronized'))
-        self.assertEquals(sorted_states[4].local_name, 'File 2.txt')
+        self.assertEqual(sorted_states[4].local_name, 'File 2.txt')
         self.assertTrue(sorted_states[4].pair_state in ('locally_created', 'unsynchronized'))
-        self.assertEquals(sorted_states[5].local_name, self.workspace_title)
-        self.assertEquals(sorted_states[5].pair_state, 'synchronized')
+        self.assertEqual(sorted_states[5].local_name, self.workspace_title)
+        self.assertEqual(sorted_states[5].pair_state, 'synchronized')
 
         # Let's create a file in the main readonly folder
         local.make_file('/', 'A file in a readonly folder.txt', content='Some Content')
@@ -517,22 +517,22 @@ class TestSynchronization(UnitTestCase):
         # A state has been created, marked as unsynchronized
         # Other states are unchanged
         states = self.engine_1.get_dao().get_states_from_partial_local('/')
-        self.assertEquals(len(states), 7)
+        self.assertEqual(len(states), 7)
         sorted_states = sorted(states, key=lambda x: x.local_path)
-        self.assertEquals(sorted_states[0].local_name, '')
-        self.assertEquals(sorted_states[0].pair_state, 'synchronized')
-        self.assertEquals(sorted_states[1].local_name, 'A file in a readonly folder.txt')
-        self.assertEquals(sorted_states[1].pair_state, 'unsynchronized')
-        self.assertEquals(sorted_states[2].local_name, 'Folder 3')
-        self.assertEquals(sorted_states[2].pair_state, 'unsynchronized')
-        self.assertEquals(sorted_states[3].local_name, 'File 1.txt')
+        self.assertEqual(sorted_states[0].local_name, '')
+        self.assertEqual(sorted_states[0].pair_state, 'synchronized')
+        self.assertEqual(sorted_states[1].local_name, 'A file in a readonly folder.txt')
+        self.assertEqual(sorted_states[1].pair_state, 'unsynchronized')
+        self.assertEqual(sorted_states[2].local_name, 'Folder 3')
+        self.assertEqual(sorted_states[2].pair_state, 'unsynchronized')
+        self.assertEqual(sorted_states[3].local_name, 'File 1.txt')
         self.assertTrue(sorted_states[3].pair_state in ('locally_created', 'unsynchronized'))
-        self.assertEquals(sorted_states[4].local_name, 'Sub Folder 1')
+        self.assertEqual(sorted_states[4].local_name, 'Sub Folder 1')
         self.assertTrue(sorted_states[4].pair_state in ('locally_created', 'unsynchronized'))
-        self.assertEquals(sorted_states[5].local_name, 'File 2.txt')
+        self.assertEqual(sorted_states[5].local_name, 'File 2.txt')
         self.assertTrue(sorted_states[5].pair_state in ('locally_created', 'unsynchronized'))
-        self.assertEquals(sorted_states[6].local_name, self.workspace_title)
-        self.assertEquals(sorted_states[6].pair_state, 'synchronized')
+        self.assertEqual(sorted_states[6].local_name, self.workspace_title)
+        self.assertEqual(sorted_states[6].pair_state, 'synchronized')
 
         # Let's create a file and a folder in a folder on which the Write
         # permission has been removed. Thanks to NXP-13119, this permission
@@ -587,14 +587,14 @@ class TestSynchronization(UnitTestCase):
         self.assertFalse(remote.exists(u'/Readonly folder/Folder in readonly folder'))
 
         states = self.engine_1.get_dao().get_states_from_partial_local('/' + self.workspace_title + '/Readonly folder')
-        self.assertEquals(len(states), 3)
+        self.assertEqual(len(states), 3)
         sorted_states = sorted(states, key=lambda x: x.local_path)
-        self.assertEquals(sorted_states[0].local_name, 'Readonly folder')
-        self.assertEquals(sorted_states[0].pair_state, 'synchronized')
-        self.assertEquals(sorted_states[1].local_name, 'File in readonly folder')
-        self.assertEquals(sorted_states[1].pair_state, 'unsynchronized')
-        self.assertEquals(sorted_states[2].local_name, 'Folder in readonly folder')
-        self.assertEquals(sorted_states[2].pair_state, 'unsynchronized')
+        self.assertEqual(sorted_states[0].local_name, 'Readonly folder')
+        self.assertEqual(sorted_states[0].pair_state, 'synchronized')
+        self.assertEqual(sorted_states[1].local_name, 'File in readonly folder')
+        self.assertEqual(sorted_states[1].pair_state, 'unsynchronized')
+        self.assertEqual(sorted_states[2].local_name, 'Folder in readonly folder')
+        self.assertEqual(sorted_states[2].pair_state, 'unsynchronized')
 
     def test_synchronize_special_filenames(self):
         local = self.local_client_1
@@ -606,7 +606,7 @@ class TestSynchronization(UnitTestCase):
 
         self.wait_sync(wait_for_async=True)
         folder_names = [i.name for i in local.get_children_info('/')]
-        self.assertEquals(folder_names, [u'Folder with forbidden chars- - - - - - - -'])
+        self.assertEqual(folder_names, [u'Folder with forbidden chars- - - - - - - -'])
 
         # Create a remote file with a weird name
         file_ = remote.make_file(folder, u'File with forbidden chars: / \\ * < > ? "', content="some content",
@@ -614,29 +614,29 @@ class TestSynchronization(UnitTestCase):
 
         self.wait_sync(wait_for_async=True)
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
-        self.assertEquals(file_names, [u'File with forbidden chars- - - - - - - -.txt'])
+        self.assertEqual(file_names, [u'File with forbidden chars- - - - - - - -.txt'])
 
         # Update a remote file with a weird name (NXDRIVE-286)
         remote.update(file_, properties={'note:note': 'new content'})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
-        self.assertEquals(local.get_content(
+        self.assertEqual(local.get_content(
             u'/Folder with forbidden chars- - - - - - - -/File with forbidden chars- - - - - - - -.txt'), "new content")
         file_state = self.get_dao_state_from_engine_1(u'/Folder with forbidden chars- - - - - - - -' +
                                                       u'/File with forbidden chars- - - - - - - -.txt')
-        self.assertEquals(file_state.pair_state, 'synchronized')
+        self.assertEqual(file_state.pair_state, 'synchronized')
         self.assertEqual(file_state.local_digest, file_state.remote_digest)
 
         # Update note title with a weird name
         remote.update(file_, properties={'dc:title': u'File with forbidden chars: / \\ * < > ? " - 2'})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
-        self.assertEquals(file_names, [u'File with forbidden chars- - - - - - - - - 2.txt'])
+        self.assertEqual(file_names, [u'File with forbidden chars- - - - - - - - - 2.txt'])
 
         # Update note title changing the case (NXRIVE-532)
         remote.update(file_, properties={'dc:title': u'file with forbidden chars: / \\ * < > ? " - 2'})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
-        self.assertEquals(file_names, [u'file with forbidden chars- - - - - - - - - 2.txt'])
+        self.assertEqual(file_names, [u'file with forbidden chars- - - - - - - - - 2.txt'])
 
     def test_synchronize_error_remote(self):
         from urllib2 import HTTPError

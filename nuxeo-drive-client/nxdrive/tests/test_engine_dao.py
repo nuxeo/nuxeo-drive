@@ -53,9 +53,9 @@ class EngineDAOTest(unittest.TestCase):
             os.remove(init_db.name)
         dao = EngineDAO(init_db.name)
         # Test filters table
-        self.assertEquals(0, len(dao.get_filters()))
+        self.assertEqual(0, len(dao.get_filters()))
         # Test state table
-        self.assertEquals(0, len(dao.get_conflicts()))
+        self.assertEqual(0, len(dao.get_conflicts()))
         # Test configuration
         self.assertIsNone(dao.get_config("remote_user"))
         # Test RemoteScan table
@@ -71,9 +71,9 @@ class EngineDAOTest(unittest.TestCase):
         self._dao = EngineDAO(migrate_db.name)
         c = self._dao._get_read_connection().cursor()
         rows = c.execute("SELECT * FROM States").fetchall()
-        self.assertEquals(len(rows), 0)
+        self.assertEqual(len(rows), 0)
         cols = c.execute("PRAGMA table_info('States')").fetchall()
-        self.assertEquals(len(cols), 30)
+        self.assertEqual(len(cols), 30)
         self.assertIsNone(self._dao.get_config("remote_last_event_log_id"))
         self.assertIsNone(self._dao.get_config("remote_last_full_scan"))
 
@@ -90,9 +90,9 @@ class EngineDAOTest(unittest.TestCase):
         self._dao = EngineDAO(migrate_db.name)
         c = self._dao._get_read_connection().cursor()
         cols = c.execute("PRAGMA table_info('States')").fetchall()
-        self.assertEquals(len(cols), 30)
+        self.assertEqual(len(cols), 30)
         cols = c.execute("SELECT * FROM States").fetchall()
-        self.assertEquals(len(cols), 63)
+        self.assertEqual(len(cols), 63)
         self.test_batch_folder_files()
         self.test_batch_upload_files()
         self.test_conflicts()
@@ -101,36 +101,36 @@ class EngineDAOTest(unittest.TestCase):
         self.test_configuration()
 
     def test_conflicts(self):
-        self.assertEquals(self._dao.get_conflict_count(), 3)
-        self.assertEquals(len(self._dao.get_conflicts()), 3)
+        self.assertEqual(self._dao.get_conflict_count(), 3)
+        self.assertEqual(len(self._dao.get_conflicts()), 3)
 
     def test_errors(self):
-        self.assertEquals(self._dao.get_error_count(), 1)
-        self.assertEquals(self._dao.get_error_count(5), 0)
-        self.assertEquals(len(self._dao.get_errors()), 1)
+        self.assertEqual(self._dao.get_error_count(), 1)
+        self.assertEqual(self._dao.get_error_count(5), 0)
+        self.assertEqual(len(self._dao.get_errors()), 1)
         row = self._dao.get_errors()[0]
         # Test reset error
         self._dao.reset_error(row)
-        self.assertEquals(self._dao.get_error_count(), 0)
+        self.assertEqual(self._dao.get_error_count(), 0)
         row = self._dao.get_state_from_id(row.id)
         self.assertIsNone(row.last_error)
         self.assertIsNone(row.last_error_details)
         self.assertEqual(row.error_count, 0)
         # Test increase
         self._dao.increase_error(row, "Test")
-        self.assertEquals(self._dao.get_error_count(), 0)
+        self.assertEqual(self._dao.get_error_count(), 0)
         self._dao.increase_error(row, "Test 2")
-        self.assertEquals(self._dao.get_error_count(), 0)
-        self.assertEquals(self._dao.get_error_count(1), 1)
+        self.assertEqual(self._dao.get_error_count(), 0)
+        self.assertEqual(self._dao.get_error_count(1), 1)
         self._dao.increase_error(row, "Test 3")
-        self.assertEquals(self._dao.get_error_count(), 0)
-        self.assertEquals(self._dao.get_error_count(2), 1)
+        self.assertEqual(self._dao.get_error_count(), 0)
+        self.assertEqual(self._dao.get_error_count(2), 1)
         # Synchronize with wrong version should fail
         self.assertFalse(self._dao.synchronize_state(row, version=row.version-1))
-        self.assertEquals(self._dao.get_error_count(2), 1)
+        self.assertEqual(self._dao.get_error_count(2), 1)
         # Synchronize should reset error
         self.assertTrue(self._dao.synchronize_state(row))
-        self.assertEquals(self._dao.get_error_count(2), 0)
+        self.assertEqual(self._dao.get_error_count(2), 0)
 
     def test_remote_scans(self):
         self.assertFalse(self._dao.is_path_scanned("/"))
@@ -144,19 +144,19 @@ class EngineDAOTest(unittest.TestCase):
         # Based only on file so not showing 2
         ids = [58, 8, 62, 61, 60]
         files = self._dao.get_last_files(5)
-        self.assertEquals(len(files), 5)
+        self.assertEqual(len(files), 5)
         for i in range(5):
-            self.assertEquals(files[i].id, ids[i])
+            self.assertEqual(files[i].id, ids[i])
         ids = [58, 62, 61, 60, 63]
         files = self._dao.get_last_files(5, "remote")
-        self.assertEquals(len(files), 5)
+        self.assertEqual(len(files), 5)
         for i in range(5):
-            self.assertEquals(files[i].id, ids[i])
+            self.assertEqual(files[i].id, ids[i])
         ids = [8, 11, 5]
         files = self._dao.get_last_files(5, "local")
-        self.assertEquals(len(files), 3)
+        self.assertEqual(len(files), 3)
         for i in range(3):
-            self.assertEquals(files[i].id, ids[i])
+            self.assertEqual(files[i].id, ids[i])
 
     def test_batch_folder_files(self):
         # Verify that the batch is ok
@@ -166,11 +166,11 @@ class EngineDAOTest(unittest.TestCase):
         while index < len(ids)-1:
             index = index + 1
             state = self._dao.get_next_folder_file(state.remote_ref)
-            self.assertEquals(state.id, ids[index])
+            self.assertEqual(state.id, ids[index])
         while index > 0:
             index = index - 1
             state = self._dao.get_previous_folder_file(state.remote_ref)
-            self.assertEquals(state.id, ids[index])
+            self.assertEqual(state.id, ids[index])
         self.assertIsNone(self._dao.get_previous_folder_file(state.remote_ref))
         # Last file is 9
         state = self._dao.get_state_from_id(46)
@@ -184,11 +184,11 @@ class EngineDAOTest(unittest.TestCase):
         while index < len(ids)-1:
             index = index + 1
             state = self._dao.get_next_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD)
-            self.assertEquals(state.id, ids[index])
+            self.assertEqual(state.id, ids[index])
         while index > 0:
             index = index - 1
             state = self._dao.get_previous_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD)
-            self.assertEquals(state.id, ids[index])
+            self.assertEqual(state.id, ids[index])
         self.assertIsNone(self._dao.get_previous_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD))
         # Last file is 9
         state = self._dao.get_state_from_id(9)
@@ -196,7 +196,7 @@ class EngineDAOTest(unittest.TestCase):
 
     def test_reinit_processors(self):
         state = self._dao.get_state_from_id(1)
-        self.assertEquals(state.processor, 0)
+        self.assertEqual(state.processor, 0)
 
     def test_acquire_processors(self):
         self.assertTrue(self._dao.acquire_processor(666, 2))
@@ -214,28 +214,28 @@ class EngineDAOTest(unittest.TestCase):
 
     def test_configuration(self):
         result = self._dao.get_config("empty", "DefaultValue")
-        self.assertEquals(result, "DefaultValue")
+        self.assertEqual(result, "DefaultValue")
         result = self._dao.get_config("remote_user", "DefaultValue")
-        self.assertEquals(result, "Administrator")
+        self.assertEqual(result, "Administrator")
         self._dao.update_config("empty", "notAnymore")
         result = self._dao.get_config("empty", "DefaultValue")
         self.assertNotEquals(result, "DefaultValue")
         self._dao.update_config("remote_user", "Test")
         result = self._dao.get_config("remote_user", "DefaultValue")
-        self.assertEquals(result, "Test")
+        self.assertEqual(result, "Test")
         self._dao.update_config("empty", None)
         result = self._dao.get_config("empty", "DefaultValue")
-        self.assertEquals(result, "DefaultValue")
+        self.assertEqual(result, "DefaultValue")
         result = self._dao.get_config("empty")
-        self.assertEquals(result, None)
+        self.assertEqual(result, None)
 
     def test_filters(self):
         # Contains by default /fakeFilter/Test_Parent and /fakeFilter/Retest
-        self.assertEquals(len(self._dao.get_filters()), 2)
+        self.assertEqual(len(self._dao.get_filters()), 2)
         self._dao.remove_filter(u"/fakeFilter/Retest")
-        self.assertEquals(len(self._dao.get_filters()), 1)
+        self.assertEqual(len(self._dao.get_filters()), 1)
         self._dao.add_filter(u"/fakeFilter")
         # Should delete the subchild filter
-        self.assertEquals(len(self._dao.get_filters()), 1)
+        self.assertEqual(len(self._dao.get_filters()), 1)
         self._dao.add_filter(u"/otherFilter")
-        self.assertEquals(len(self._dao.get_filters()), 2)
+        self.assertEqual(len(self._dao.get_filters()), 2)

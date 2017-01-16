@@ -163,13 +163,13 @@ class TestDirectEdit(UnitTestCase):
         # Update file content
         self.local.update_content(local_path, content)
         self.wait_sync()
-        self.assertEquals(self.remote.get_blob(self.remote.get_info(doc_id)), content)
+        self.assertEqual(self.remote.get_blob(self.remote.get_info(doc_id)), content)
 
         # Update file content twice
         update_content = content + ' updated'
         self.local.update_content(local_path, update_content)
         self.wait_sync()
-        self.assertEquals(self.remote.get_blob(self.remote.get_info(doc_id)), update_content)
+        self.assertEqual(self.remote.get_blob(self.remote.get_info(doc_id)), update_content)
 
 
     def test_direct_edit_cleanup(self):
@@ -201,7 +201,7 @@ class TestDirectEdit(UnitTestCase):
         self.direct_edit.start()
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.assertTrue(self.local.exists(local_path))
-        self.assertEquals(self.remote.get_blob(self.remote.get_info(doc_id)), 'Test')
+        self.assertEqual(self.remote.get_blob(self.remote.get_info(doc_id)), 'Test')
 
         # Verify it is cleanup if sync
         self.direct_edit.stop()

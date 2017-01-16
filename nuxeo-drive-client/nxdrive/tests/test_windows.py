@@ -33,7 +33,7 @@ class TestWindows(UnitTestCase):
         copyfile(test_file, os.path.join(sync_root, 'test.odt'))
         self.wait_sync()
         self.assertTrue(remote.exists('/test.odt'))
-        self.assertEquals(remote.get_content('/test.odt'), 'Updated content.')
+        self.assertEqual(remote.get_content('/test.odt'), 'Updated content.')
 
         # Copy the oldest file to the root workspace and synchronize it.
         # First wait a bit for file time stamps to increase enough.
@@ -42,7 +42,7 @@ class TestWindows(UnitTestCase):
                  os.path.join(sync_root, 'test.odt'))
         self.wait_sync()
         self.assertTrue(remote.exists('/test.odt'))
-        self.assertEquals(remote.get_content('/test.odt'), 'Some content.')
+        self.assertEqual(remote.get_content('/test.odt'), 'Some content.')
 
     def test_concurrent_file_access(self):
         """Test update/deletion of a locally locked file.
@@ -98,14 +98,14 @@ class TestWindows(UnitTestCase):
             #   blacklisted and other remote modifications should be locally synchronized
             self.assertNxPart('/', name='test_update.docx', present=False)
             self.assertTrue(local.exists('/test_update.docx'))
-            self.assertEquals(local.get_content('/test_update.docx'),
-                              'Some content to update.')
+            self.assertEqual(local.get_content('/test_update.docx'),
+                             'Some content to update.')
             self.assertTrue(local.exists('/test_delete.docx'))
-            self.assertEquals(local.get_content('/test_delete.docx'),
-                              'Some content to delete.')
+            self.assertEqual(local.get_content('/test_delete.docx'),
+                             'Some content to delete.')
             self.assertTrue(local.exists('/other.docx'))
-            self.assertEquals(local.get_content('/other.docx'),
-                              'Other content.')
+            self.assertEqual(local.get_content('/other.docx'),
+                             'Other content.')
 
             # Synchronize again
             self.wait_sync(enforce_errors=False, fail_if_timeout=False)
@@ -113,11 +113,11 @@ class TestWindows(UnitTestCase):
             # default) is not expired, nothing should have changed
             self.assertNxPart('/', name='test_update.docx', present=False)
             self.assertTrue(local.exists('/test_update.docx'))
-            self.assertEquals(local.get_content('/test_update.docx'),
-                              'Some content to update.')
+            self.assertEqual(local.get_content('/test_update.docx'),
+                             'Some content to update.')
             self.assertTrue(local.exists('/test_delete.docx'))
-            self.assertEquals(local.get_content('/test_delete.docx'),
-                              'Some content to delete.')
+            self.assertEqual(local.get_content('/test_delete.docx'),
+                             'Some content to delete.')
 
             # Release file locks by closing them
             file1_desc.close()
@@ -130,13 +130,13 @@ class TestWindows(UnitTestCase):
             # temporary download file should not be there anymore and there
             # should be no pending items left
             self.assertTrue(local.exists('/test_update.docx'))
-            self.assertEquals(local.get_content('/test_update.docx'),
-                              'Updated content.')
+            self.assertEqual(local.get_content('/test_update.docx'),
+                             'Updated content.')
             self.assertNxPart('/', name='test_update.docx', present=False)
             self.assertFalse(local.exists('/test_delete.docx'))
         else:
             self.assertTrue(local.exists('/test_update.docx'))
-            self.assertEquals(local.get_content('/test_update.docx'),
-                              'Updated content.')
+            self.assertEqual(local.get_content('/test_update.docx'),
+                             'Updated content.')
             self.assertNxPart('/', name='test_update.docx', present=False)
             self.assertFalse(local.exists('/test_delete.docx'))

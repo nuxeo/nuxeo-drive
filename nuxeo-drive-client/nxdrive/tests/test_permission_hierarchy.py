@@ -55,7 +55,7 @@ class TestPermissionHierarchy(UnitTestCase):
 
             # Check locally synchronized content
             self.assertFalse(local_client.exists('/My Docs/test_folder'))
-            self.assertEquals(len(local_client.get_children_info('/My Docs')), 0)
+            self.assertEqual(len(local_client.get_children_info('/My Docs')), 0)
         finally:
             # Cleanup user workspace
             if user_workspace_uid is not None and admin_remote_client.exists(user_workspace_uid):
@@ -118,7 +118,7 @@ class TestPermissionHierarchy(UnitTestCase):
             self.wait_sync(wait_for_async=True)
             # Check locally synchronized content
             self.assertFalse(local_client_1.exists('/My Docs/test_folder'))
-            self.assertEquals(len(local_client_1.get_children_info('/My Docs')), 1)
+            self.assertEqual(len(local_client_1.get_children_info('/My Docs')), 1)
         finally:
             # Cleanup user workspace
             if user_workspace_uid is not None and admin_remote_client.exists(user_workspace_uid):

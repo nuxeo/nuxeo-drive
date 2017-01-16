@@ -81,8 +81,8 @@ class TestLocalCopyPaste(UnitTestCase):
         self.assertTrue(self.remote_file_system_client_1.exists(self.remote_ref_2),
                         'remote folder for %s does not exist' % self.folder_path_2)
 
-        self.assertEquals(len(self.remote_file_system_client_1.get_children_info(self.remote_ref_1)),
-                          self.NUMBER_OF_LOCAL_FILES_TOTAL)
+        self.assertEqual(len(self.remote_file_system_client_1.get_children_info(self.remote_ref_1)),
+                         self.NUMBER_OF_LOCAL_FILES_TOTAL)
 
         log.debug('*** exit TestLocalCopyPaste.setUp() ***')
 
