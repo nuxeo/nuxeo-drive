@@ -641,6 +641,8 @@ class CliHandler(object):
                 "nxdrive.tests.test_local_move_folders",
                 "nxdrive.tests.test_local_paste",
                 "nxdrive.tests.test_local_storage_issue",
+                "nxdrive.tests.test_local_share_move_folders",
+                "nxdrive.tests.test_long_path",
                 "nxdrive.tests.test_manager_dao",
                 "nxdrive.tests.test_model_filters",
                 "nxdrive.tests.test_multiple_files",
