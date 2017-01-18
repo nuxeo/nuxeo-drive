@@ -197,7 +197,22 @@ When building/running Nuxeo Drive client from sources (i.e. not using the .msi o
 You can install the `python-qt4` package directly:
 
 ```
-sudo apt-get install python-qt4
+sudo apt install python-qt4
+```
+
+##### PyQt4 QtWebKit
+
+On recent Debian, the package [python-qt4.webkit has been deprecated](https://wiki.debian.org/Qt4WebKitRemoval) and removed from official repositories.
+So, all Debian based distributions like Ubuntu 16.06+ will not serve this package anymore.
+It means that you will not be able to launch Drive because of lack of support of Qt4 WebKit bundles.
+
+We planned to upgrade to Qt5. In the mean time you can execute the script `dev-pyqt4.sh` at the root of this repository.
+It will download necessary files and create a virtualenv with all needed libraries for Drive to work.
+The resulting virtualenv will be created into `$HOME/drive-venv` but you can use a custom path:
+
+```
+chmod +x ./dev-pyqt4.sh
+./dev-pyqt4.sh [DEST_DIR]
 ```
 
 #### Mac OS X
