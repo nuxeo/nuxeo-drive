@@ -81,3 +81,23 @@ class TestLongPath(UnitTestCase):
         log.warn("Verify if FOLDER_D\File2.txt is uploaded to server")
         self.assertTrue("File2.txt" in children_names,
                         "FOLDER_D/File2.txt should be uploaded to server")
+
+    def test_setup_on_long_path(self):
+        # Test nuxeo drive setup on long path (more than 260 chars)
+        # on windows
+        self.engine_1.stop()
+        self.engine_1.reinit()
+        # In MAC, avoid permission denied error
+        self.engine_1.get_local_client().clean_xattr_root()
+        # NXDRIVE 689: Fix error when adding a new account when installation
+        # path is greater than 245 characters
+        test_folder_len = 245 - len(str(self.local_nxdrive_folder_1))
+        test_folder = "A" * test_folder_len
+
+        self.local_nxdrive_folder_1 = os.path.join(self.local_nxdrive_folder_1, test_folder)
+
+        self.engine_1 = self.manager_1.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_2,
+                                                   self.password_2, start_engine=False)
+
+        self.engine_1.start()
+        self.engine_1.stop()
