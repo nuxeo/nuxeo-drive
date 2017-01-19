@@ -87,10 +87,15 @@ sudo apt-get install python-pip python-dev python-qt4 libffi-dev git
 
 Redhat package manager (RPM):
 
-
 ```
 sudo yum install python-pip python-devel PyQt4 libffi-devel git
 ```
+
+On Ubuntu 16.04 you might also need to install the `python-cffi` package if you get an error like
+```
+AssertionError: version mismatch, 1.5.2 != 1.9.1
+```
+when trying to connect.
 
 Make sure that the latest version of [pip](https://pip.pypa.io/en/stable/) is installed:
 
