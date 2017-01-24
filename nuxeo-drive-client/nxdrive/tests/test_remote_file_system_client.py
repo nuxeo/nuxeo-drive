@@ -1,13 +1,12 @@
-from nxdrive.client import NotFound
-from nxdrive.client import LocalClient
-from nxdrive.tests.common import FS_ITEM_ID_PREFIX
-from nxdrive.tests.common import IntegrationTestCase
-from nxdrive.client.base_automation_client import CorruptedFile
-from shutil import copyfile
 import hashlib
+import os
+from shutil import copyfile
 from threading import current_thread
 from unittest import SkipTest
-import os
+
+from nxdrive.client import LocalClient, NotFound
+from nxdrive.client.base_automation_client import CorruptedFile
+from nxdrive.tests.common import FS_ITEM_ID_PREFIX, IntegrationTestCase
 
 
 class TestRemoteFileSystemClient(IntegrationTestCase):
@@ -444,7 +443,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         fs_item_info = remote_client.stream_file(self.workspace_id, file_path)
         local_client = LocalClient(self.upload_tmp_dir)
         self.assertEqual(fs_item_info.name, 'testFile.pdf')
@@ -456,7 +455,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         fs_item_info = remote_client.stream_file(self.workspace_id, file_path,
                                                mime_type='pdf')
         local_client = LocalClient(self.upload_tmp_dir)
@@ -468,7 +467,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Upload a PDF file, should create a File document
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         fs_item_info = self.remote_file_system_client_1.stream_file(
                                             self.workspace_id, file_path)
         fs_item_id = fs_item_info.uid
@@ -478,7 +477,7 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
 
         # Upload a JPG file, should create a Picture document
         file_path = os.path.join(self.upload_tmp_dir, 'cat.jpg')
-        copyfile('nxdrive/tests/resources/cat.jpg', file_path)
+        copyfile(self.location + '/resources/cat.jpg', file_path)
         fs_item_info = self.remote_file_system_client_1.stream_file(
                                             self.workspace_id, file_path)
         fs_item_id = fs_item_info.uid

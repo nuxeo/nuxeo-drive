@@ -2,18 +2,20 @@
 @author: Remi Cattiau
 '''
 import sys
-from nxdrive.tests.common_unit_test import UnitTestCase
+from shutil import copyfile
+
 from nxdrive.client import LocalClient
 from nxdrive.logging_config import get_logger
-from shutil import copyfile
+from nxdrive.tests.common_unit_test import UnitTestCase
+
 log = get_logger(__name__)
 
 
 class TestWatchers(UnitTestCase):
 
     def get_local_client(self, path):
-        if (self._testMethodName == 'test_local_scan_encoding' or
-            self._testMethodName == 'test_watchdog_encoding'):
+        if self._testMethodName in ('test_local_scan_encoding',
+                                    'test_watchdog_encoding'):
             return LocalClient(path)
         return super(TestWatchers, self).get_local_client(path)
 
@@ -282,11 +284,11 @@ class TestWatchers(UnitTestCase):
         self.wait_sync()
         # Create files with Unicode combining accents, Unicode latin characters and no special characters
         file_path = local._abspath('/Test.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         # Wait for test workspace synchronization
         self.wait_sync()
         remote_id = local.get_remote_id('/Test.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         self.wait_sync()
         self.assertEqual(remote_id, local.get_remote_id('/Test.pdf'), "Should have the remote id")
 
@@ -299,10 +301,10 @@ class TestWatchers(UnitTestCase):
         self.wait_sync()
         # Create files with Unicode combining accents, Unicode latin characters and no special characters
         file_path = local._abspath('/Test.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         # Wait for test workspace synchronization
         self.engine_1.stop()
         remote_id = local.get_remote_id('/Test.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         self.engine_1.start()
         self.assertEqual(remote_id, local.get_remote_id('/Test.pdf'), "Should have the remote id")

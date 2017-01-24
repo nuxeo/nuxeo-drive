@@ -1,15 +1,14 @@
-import time
 import os
-
-from nxdrive.tests.common import TEST_WORKSPACE_PATH
-from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
-from nxdrive.tests.common import DOC_NAME_MAX_LENGTH
-from nxdrive.tests.common_unit_test import UnitTestCase, RandomBug
-from nose.plugins.skip import SkipTest
-from nxdrive.engine.engine import Engine
-from shutil import copyfile
 import sys
+import time
+from shutil import copyfile
+
 from mock import patch
+from nose.plugins.skip import SkipTest
+
+from nxdrive.engine.engine import Engine
+from nxdrive.tests.common import DOC_NAME_MAX_LENGTH, OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
+from nxdrive.tests.common_unit_test import UnitTestCase
 
 
 def fstatsvfs(fd):
@@ -101,9 +100,9 @@ class TestRemoteDeletion(UnitTestCase):
 
         # Create a document by streaming a binary file
         file_path = os.path.join(local._abspath('/Test folder'), 'testFile.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         file_path = os.path.join(local._abspath('/Test folder'), 'testFile2.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
 
         # Delete remote folder then synchronize
         remote.delete('/Test folder')
@@ -148,7 +147,7 @@ class TestRemoteDeletion(UnitTestCase):
         # Create documents in the remote root workspace
         # then synchronize
         remote.make_folder('/', 'Test folder')
-        with open('nxdrive/tests/resources/testFile.pdf', 'r') as content_file:
+        with open(self.location + '/resources/testFile.pdf', 'r') as content_file:
             content = content_file.read()
         remote.make_file('/Test folder', 'testFile.pdf', content)
 

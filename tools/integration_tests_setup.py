@@ -3,16 +3,7 @@
 Steps executed by the ``test`` command:
 
     - setup test environment variables
-
-Under Windows:
-
-    - download http://code.google.com/p/lessmsi if not already there
-    - extract the MSI archive in a local, non system folder with lessmsi
-    - launch the ``ndrive test`` command to run the integration tests
-
-Under POSIX:
-
-    - run the integration tests with nosetests directly from sources
+    - run the integration tests directly from sources
 
 Get the help on running this with::
 
@@ -20,30 +11,29 @@ Get the help on running this with::
 
 """
 
-import os
-import sys
-import urllib2
 import argparse
-import re
-import zipfile
-import shutil
 import fnmatch
-
+import os
+import re
+import shutil
+import sys
+try:
+    import urllib2
+except ImportError:
+    import urllib.request as urllib2
+import zipfile
 
 DEFAULT_BASE_FOLDER = 'nuxeo-drive-client'
 DEFAULT_WORK_FOLDER = 'target'
 MARKET_PLACE_PREFIX = "nuxeo-drive"
 DEFAULT_MARKETPLACE_PATTERN = MARKET_PLACE_PREFIX + r"\-\d\.\d.*?\.zip"
 DEFAULT_MARKETPLACE_FILENAME = MARKET_PLACE_PREFIX + '.zip'
-LINKS_PATTERN = r'\bhref="([^"]+)"'
+LINKS_PATTERN = br'\bhref="([^"]+)"'
 
 DEFAULT_SERVER_URL = "http://localhost:8080/nuxeo"
 DEFAULT_ENGINE = "NXDRIVE"
 
 DEFAULT_MSI_FOLDER = 'dist'
-DEFAULT_LESSMSI_URL = "https://github.com/activescott/lessmsi/releases/download/v1.4/lessmsi-v1.4.zip"
-LESSMSI_FOLDER = 'lessmsi'
-EXTRACTED_MSI_FOLDER = 'nxdrive_msi'
 NUXEO_DRIVE_HOME_FOLDER = os.path.expanduser('~\.nuxeo-drive')
 
 NOSETESTS_LOGGING_FORMAT = '"%(asctime)s %(thread)d %(levelname)-8s %(name)-18s %(message)s"'
@@ -51,7 +41,7 @@ NOSETESTS_LOGGING_FORMAT = '"%(asctime)s %(thread)d %(levelname)-8s %(name)-18s 
 
 def pflush(message):
     """This is required to have messages in the right order in jenkins"""
-    print message
+    print(message)
     sys.stdout.flush()
 
 
@@ -99,12 +89,10 @@ def parse_args(args=None):
 
     # Integration test launcher
     parser = subparsers.add_parser(
-        'test', help="Launch integration tests with nose.")
+        'test', help="Launch integration tests.")
     parser.set_defaults(command='test')
     parser.add_argument("--server-url", default=DEFAULT_SERVER_URL)
     parser.add_argument("--engine", default=DEFAULT_ENGINE)
-    parser.add_argument("--msi-folder", default=DEFAULT_MSI_FOLDER)
-    parser.add_argument("--lessmsi-url", default=DEFAULT_LESSMSI_URL)
 
     return main_parser.parse_args(args)
 
@@ -161,12 +149,12 @@ def find_package_url(archive_page_url, pattern):
     archive_pattern = re.compile(pattern)
     for link in re.compile(LINKS_PATTERN).finditer(index_html):
         link_url = link.group(1)
-        if "/" in link_url:
-            link_filename = link_url.rsplit("/", 1)[1]
-        else:
+        try:
+            link_filename = link_url.rsplit(b'/', 1)[1]
+        except IndexError:
             link_filename = link_url
-        if archive_pattern.match(link_filename):
-            candidates.append(link_url)
+        if archive_pattern.match(link_filename.decode('utf-8')):
+            candidates.append(link_url.decode('utf-8'))
 
     if not candidates:
         raise ValueError("Could not find packages with pattern %r on %s"
@@ -180,29 +168,6 @@ def find_package_url(archive_page_url, pattern):
             archive_page_url += '/'
         archive_url = archive_page_url + archive
     return archive_url, archive_url.rsplit('/', 1)[1]
-
-
-def extract_msi(lessmsi_url, msi_folder, work_folder, extracted_msi_folder):
-    if os.path.isdir(msi_folder):
-        msi_filename = find_latest(msi_folder, suffix='.msi')
-    else:
-        msi_filename = msi_folder
-
-    lessmsi_folder = os.path.join(work_folder, LESSMSI_FOLDER)
-    if not os.path.exists(lessmsi_folder):
-        lessmsi_filename = os.path.basename(lessmsi_url)
-        lessmsi_filepath = os.path.join(work_folder, lessmsi_filename)
-        download(lessmsi_url, lessmsi_filepath)
-        unzip(lessmsi_filepath, target=lessmsi_folder)
-
-    pflush("Extracting the MSI")
-    lessmsi = os.path.join(lessmsi_folder, 'lessmsi')
-    if os.path.exists(extracted_msi_folder):
-        shutil.rmtree(extracted_msi_folder)
-    extract_folder = extracted_msi_folder
-    if not extract_folder.endswith("\\"):
-        extract_folder = extract_folder + "\\"
-    execute("%s x %s %s" % (lessmsi, msi_filename, extract_folder))
 
 
 def set_environment(server_url, engine):
@@ -223,12 +188,6 @@ def clean_pyc(dir_):
             os.unlink(file_path)
 
 
-def run_tests_from_msi(extracted_msi_folder, base_folder):
-    clean_home_folder()
-    ndrive = os.path.join(extracted_msi_folder, 'SourceDir', 'ndrive.exe')
-    execute(ndrive + " test -w " + base_folder + " --logging-format=" + NOSETESTS_LOGGING_FORMAT)
-
-
 def clean_home_folder(dir_=None):
     dir_ = dir_ if dir_ is not None else NUXEO_DRIVE_HOME_FOLDER
     if os.path.exists(dir_):
@@ -236,18 +195,12 @@ def clean_home_folder(dir_=None):
         shutil.rmtree(dir_)
 
 
-def run_tests_from_source(base_folder):
-    pflush("PATH detected by Python = " + os.environ.get('PATH'))
-    cmd = "cd " + base_folder + " && nosetests"
-    options = " -v -x"
-    if 'TESTS' in os.environ:
-        tests = os.environ['TESTS'].strip()
-        if tests:
-            pflush("TESTS to run = " + tests)
-            options += ' ' + ' '.join(['nxdrive.tests.' + test for test in tests.split(",")])
-    options += " --with-coverage --cover-html --cover-html-dir=../coverage --cover-package=nxdrive"
-    options += " --logging-format=" + NOSETESTS_LOGGING_FORMAT
-    cmd += options
+def run_tests_from_source():
+    cmd = 'sh ../tools/linux/deploy_jenkins_slave.sh --tests'
+    if sys.platform == 'darwin':
+        cmd = 'sh ../tools/osx/deploy_jenkins_slave.sh --tests'
+    elif sys.platform == 'win32':
+        cmd = r'powershell ".\..\tools\windows\deploy_jenkins_slave.ps1" -tests'
     execute(cmd)
 
 
@@ -293,14 +246,7 @@ if __name__ == "__main__":
         else:
             set_environment(options.server_url, options.engine)
             clean_pyc(options.base_folder)
-            if sys.platform == 'win32':
-                extracted_msi_folder = os.path.join(options.work_folder,
-                                                    EXTRACTED_MSI_FOLDER)
-                extract_msi(options.lessmsi_url, options.msi_folder,
-                            options.work_folder, extracted_msi_folder)
-                run_tests_from_msi(extracted_msi_folder, options.base_folder)
-            else:
-                run_tests_from_source(options.base_folder)
+            run_tests_from_source()
     elif options.command == 'fetch-mp':
         if options.url is None:
             pflush("Please provide the --url option.")

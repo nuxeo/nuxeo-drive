@@ -14,7 +14,7 @@
 
   <!-- Configure nuxeo-drive marketplace package installation -->
   <property name="nuxeo.drive.mp.filename" value="nuxeo-drive.zip" />
-  <property name="mp.install" value="nuxeo-jsf-ui,${out.dir}/${nuxeo.drive.mp.filename},nuxeo-platform-importer" />
+  <property name="mp.install" value="${out.dir}/${nuxeo.drive.mp.filename}" />
 
   <target name="fetch-nuxeo-drive-mp">
     <exec executable="python" failonerror="true">
@@ -40,7 +40,6 @@
       <arg value="--base-folder=../nuxeo-drive-client" />
       <arg value="--work-folder=${out.dir}" />
       <arg value="test" />
-      <arg value="--msi-folder=../dist" />
       <arg value="--server-url=${env.SERVER_URL}" />
       <arg value="--engine=${env.ENGINE}" />
     </exec>

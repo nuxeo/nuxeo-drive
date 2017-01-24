@@ -1,26 +1,21 @@
 import unittest
+from os.path import dirname
 
-from esky import Esky
 import esky.finder
-from nxdrive.updater import AppUpdater
-from nxdrive.updater import MissingUpdateSiteInfo
-from nxdrive.updater import MissingCompatibleVersion
-from nxdrive.utils import version_compare
-from nxdrive.updater import UPDATE_STATUS_UPGRADE_NEEDED
-from nxdrive.updater import UPDATE_STATUS_DOWNGRADE_NEEDED
-from nxdrive.updater import UPDATE_STATUS_UPDATE_AVAILABLE
-from nxdrive.updater import UPDATE_STATUS_UP_TO_DATE
-from nxdrive.updater import UPDATE_STATUS_MISSING_INFO
-from nxdrive.updater import UPDATE_STATUS_MISSING_VERSION
-from nxdrive.logging_config import configure
+from esky import Esky
 from mock import Mock
+
+from nxdrive.logging_config import configure
+from nxdrive.updater import AppUpdater, MissingCompatibleVersion, MissingUpdateSiteInfo, \
+    UPDATE_STATUS_DOWNGRADE_NEEDED, \
+    UPDATE_STATUS_MISSING_INFO, UPDATE_STATUS_MISSING_VERSION, UPDATE_STATUS_UPDATE_AVAILABLE, \
+    UPDATE_STATUS_UPGRADE_NEEDED, UPDATE_STATUS_UP_TO_DATE
+from nxdrive.utils import version_compare
 
 
 def configure_logger():
-    configure(
-        console_level='DEBUG',
-        command_name='test',
-    )
+    configure(console_level='DEBUG',
+              command_name='test')
 
 configure_logger()
 
@@ -66,8 +61,9 @@ class MockEsky(Esky):
 class TestUpdater(unittest.TestCase):
 
     def setUp(self):
-        appdir = 'nxdrive/tests/resources/esky_app'
-        version_finder = 'nxdrive/tests/resources/esky_versions'
+        location = dirname(__file__)
+        appdir = location + '/resources/esky_app'
+        version_finder = location + '/resources/esky_versions'
         self.esky_app = MockEsky(appdir, version_finder=version_finder)
         self.manager = MockManager()
         self.updater = AppUpdater(self.manager, esky_app=self.esky_app,

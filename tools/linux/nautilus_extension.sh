@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 nautilus -q
 
 # Icon overlay, uncomment when https://jira.nuxeo.com/browse/NXDRIVE-374 is fixed

@@ -1,15 +1,15 @@
 import os
-import time
 import sys
+import time
+from shutil import copyfile
+from unittest import skipIf
 
+from mock import patch
+
+from nxdrive.client import LocalClient, RemoteDocumentClient
+from nxdrive.engine.engine import Engine
 from nxdrive.tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION
 from nxdrive.tests.common_unit_test import UnitTestCase
-from nxdrive.client import LocalClient
-from nxdrive.client import RemoteDocumentClient
-from nxdrive.engine.engine import Engine
-from shutil import copyfile
-from mock import patch
-from unittest import skipIf
 
 
 class TestRemoteMoveAndRename(UnitTestCase):
@@ -61,6 +61,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
             content=u'Some Content 3'.encode('utf-8')).uid
         self.wait_sync(wait_for_async=True)
 
+
     def _get_state(self, remote):
         return self.engine_1.get_dao().get_normal_state_from_remote(remote)
 
@@ -88,9 +89,9 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Create a document by streaming a binary file
         file_path = os.path.join(local._abspath('/Test folder'), 'testFile.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         file_path = os.path.join(local._abspath('/Test folder'), 'testFile2.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
 
         # Rename remote folder then synchronize
         self.remote_file_system_client_1.rename(folder_id, u'Test folder renamed')
@@ -115,7 +116,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         local.make_folder(u'/', u'Test folder')
         file_path = os.path.join(local._abspath('/Test folder'), 'testFile.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         self.wait_sync(wait_for_async=True)
         file_id = local.get_remote_id('/Test folder/testFile.pdf')
         self.assertIsNotNone(file_id)
@@ -146,7 +147,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         local.make_folder(u'/', u'Test folder')
         file_path = os.path.join(local._abspath('/Test folder'), 'testFile.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         self.wait_sync(wait_for_async=True)
         file_id = local.get_remote_id('/Test folder/testFile.pdf')
         self.assertIsNotNone(file_id)
@@ -204,7 +205,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         folder_id = self.remote_file_system_client_1.make_folder(self.workspace_id, u'Test folder').uid
 
-        with open('nxdrive/tests/resources/testFile.pdf', 'r') as content_file:
+        with open(self.location + '/resources/testFile.pdf', 'r') as content_file:
             content = content_file.read()
         self.remote_document_client_1.make_file('/Test folder', 'testFile.pdf', content)
 
@@ -258,8 +259,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.engine_1.suspend_client = suspend_check
         self.engine_1.invalidate_client_cache()
 
-
-        with open('nxdrive/tests/resources/testFile.pdf', 'r') as content_file:
+        with open(self.location + '/resources/testFile.pdf', 'r') as content_file:
             content = content_file.read()
         file_id = self.remote_file_system_client_1.make_file(folder_id, 'testFile.pdf', content).uid
 

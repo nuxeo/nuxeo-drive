@@ -1,14 +1,11 @@
 import os
 from shutil import copyfile
 from time import sleep
-from nxdrive.client import NuxeoClient
-from nxdrive.client import Unauthorized
-from nxdrive.client import NotFound
-from nxdrive.client import LocalClient
-from nxdrive.tests.common import SOME_TEXT_CONTENT
-from nxdrive.tests.common import SOME_TEXT_DIGEST
-from nxdrive.tests.common import IntegrationTestCase
+
 from nose import SkipTest
+
+from nxdrive.client import LocalClient, NotFound, NuxeoClient, Unauthorized
+from nxdrive.tests.common import IntegrationTestCase, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 
 
 def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
@@ -331,7 +328,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
 
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         doc_ref = remote_client.stream_file(self.workspace,
                                   'Streamed binary file', file_path)
         local_client = LocalClient(self.upload_tmp_dir)
@@ -346,7 +343,7 @@ class TestRemoteDocumentClient(IntegrationTestCase):
 
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
-        copyfile('nxdrive/tests/resources/testFile.pdf', file_path)
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
         doc_ref = remote_client.stream_file(self.workspace,
                                   'Streamed binary file',
                                   file_path, mime_type='pdf')

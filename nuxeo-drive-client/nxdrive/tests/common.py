@@ -1,20 +1,17 @@
 """Common test utilities"""
-import sys
-import os
-import unittest
-import tempfile
 import hashlib
+import os
 import shutil
+import sys
+import tempfile
+import unittest
+from os.path import dirname
 
 import nxdrive
-from nxdrive.utils import safe_long_path
-from nxdrive.client import RemoteDocumentClient
-from nxdrive.client import RemoteFileSystemClient
-from nxdrive.client import RestAPIClient
-from nxdrive.client import LocalClient
+from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
 from nxdrive.client.common import BaseClient
-from nxdrive.logging_config import configure
-from nxdrive.logging_config import get_logger
+from nxdrive.logging_config import configure, get_logger
+from nxdrive.utils import safe_long_path
 
 WindowsError = None
 try:
@@ -99,6 +96,9 @@ def clean_dir(_dir):
 class IntegrationTestCase(unittest.TestCase):
 
     def setUp(self):
+        # Save the current path for test files
+        self.location = dirname(__file__)
+
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER')
@@ -228,7 +228,11 @@ class IntegrationTestCase(unittest.TestCase):
     def tearDown(self):
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
-        self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
+        try:
+            self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
+        except AttributeError:
+            # If a test did not have enough time, failed early, `root_remote_client` could be inexistant. Just ignore.
+            pass
 
         clean_dir(self.upload_tmp_dir)
         clean_dir(self.local_test_folder_1)

@@ -1,0 +1,72 @@
+#!/usr/bin/env groovy
+
+//def labels = ['OSXSLAVE', 'SLAVE', 'MULTIDB_WINDOWS'] // labels for Jenkins node types we will build on
+def labels = ['OSXSLAVE', 'MULTIDB_WINDOWS']
+def slaves_map = [OSXSLAVE: 'OSX', SLAVE: 'GNU/Linux', MULTIDB_WINDOWS: 'Windows']
+def builders = [:]
+
+// Set the default Python version needed for all steps on Drive (setup/tests/package/etc.)
+def python_version = params.PYTHON_DRIVE_VERSION ?: "2.7.13"
+def pyqt_version = params.PYQT_VERSION ?: "4.12"
+
+for (x in labels) {
+    def label = x // Need to bind the label variable before the closure - can't do 'for (label in labels)'
+
+    // Create a map to pass in to the 'parallel' step so we can fire all the builds at once
+    builders[label] = {
+        node(label) {
+            withEnv(["WORKSPACE=${pwd()}"]) {
+                def osi = slaves_map.get(label)
+                env.PYTHON_DRIVE_VERSION = "${python_version}"
+                env.PYQT_VERSION = "${pyqt_version}"
+
+                stage(osi + ' Checkout') {
+                    checkout([$class: 'GitSCM',
+                        branches: [[name: '*/' + env.BRANCH_NAME]],
+                        browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/nuxeo/nuxeo-drive'],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[url: 'https://github.com/nuxeo/nuxeo-drive.git']]])
+                }
+
+                stage(osi + ' Setup') {
+                    // Set up a complete isolated environment
+                    dir('sources') {
+                        if (osi == "OSX") {
+                            sh "tools/osx/deploy_jenkins_slave.sh"
+                        } else if (osi == "GNU/Linux") {
+                            sh "tools/linux/deploy_jenkins_slave.sh"
+                        } else {
+                            bat "powershell \".\\tools\\windows\\deploy_jenkins_slave.ps1\""
+                        }
+                    }
+                }
+
+                stage(osi + ' Tests') {
+                    // Launch the tests suite
+                    jdk = tool name: 'java-8-oracle'
+                    env.JAVA_HOME = "${jdk}"
+                    dir('sources') {
+                        def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                        if (osi == "Windows") {
+                            bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
+                        } else {
+                            sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
+                        }
+                    }
+                }
+            }
+
+            post {
+                success {
+                    // Retrieve coverage statistics as an artifact
+                    def osi_lower = label.toLowerCase()
+                    zip zipFile: "coverage-${osi_lower}.zip", dir: "../coverage", archive: true
+                }
+            }
+        }
+    }
+}
+
+parallel builders

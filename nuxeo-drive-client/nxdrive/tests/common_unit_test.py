@@ -1,26 +1,22 @@
 """Common test utilities"""
 import os
-import unittest
 import sys
 import tempfile
-
-from nxdrive.client import RemoteDocumentClient
-from nxdrive.client import RemoteFileSystemClient
-from nxdrive.client import LocalClient
-from nxdrive.client import RestAPIClient
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.manager import Manager
-from nxdrive.logging_config import configure
-from nxdrive.logging_config import get_logger
-from nxdrive.tests.common import TEST_WORKSPACE_PATH
-from nxdrive.tests.common import TEST_DEFAULT_DELAY
-from nxdrive.tests.common import clean_dir
-from nxdrive.wui.translator import Translator
-from nxdrive import __version__
-from PyQt4 import QtCore
+import unittest
 from functools import wraps
+from os.path import dirname
 from threading import Thread
 from time import sleep
+
+from PyQt4 import QtCore
+
+from nxdrive import __version__
+from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
+from nxdrive.logging_config import configure, get_logger
+from nxdrive.manager import Manager
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
+from nxdrive.wui.translator import Translator
 
 if 'DRIVE_YAPPI' in os.environ:
     import yappi
@@ -122,31 +118,19 @@ class RandomBug(object):
 
 
 def configure_logger():
-    configure(
-        console_level='TRACE',
-        command_name='test',
-        force_configure=True,
-    )
+    configure(console_level='TRACE',
+              command_name='test',
+              force_configure=True)
 
 # Configure test logger
 configure_logger()
 log = get_logger(__name__)
 
 
-class TestThread(QtCore.QThread):
-    def __init__(self, method, method_arg):
-        super(TestThread, self).__init__()
-        self._method = method
-        self._method_arg = method_arg
-
-    def run(self):
-        self._method(self._method_arg)
-
-
-class TestQApplication(QtCore.QCoreApplication):
+class StubQApplication(QtCore.QCoreApplication):
 
     def __init__(self, argv, test_case):
-        super(TestQApplication, self).__init__(argv)
+        super(StubQApplication, self).__init__(argv)
         self._test = test_case
 
     @QtCore.pyqtSlot()
@@ -185,6 +169,9 @@ class TestQApplication(QtCore.QCoreApplication):
 class UnitTestCase(unittest.TestCase):
 
     def setUpServer(self, server_profile=None):
+        # Save the current path for test files
+        self.location = dirname(__file__)
+
         # Long timeout for the root client that is responsible for the test
         # environment set: this client is doing the first query on the Nuxeo
         # server and might need to wait for a long time without failing for
@@ -510,7 +497,7 @@ class UnitTestCase(unittest.TestCase):
         if hasattr(testMethod, '_repeat'):
             repeat = testMethod._repeat
         while repeat > 0:
-            self.app = TestQApplication([], self)
+            self.app = StubQApplication([], self)
             self.setUpApp()
             self.result = result
 
