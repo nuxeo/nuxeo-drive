@@ -239,7 +239,7 @@ class DirectEdit(Worker):
         remote_client.check_suspended = self.stop_client
         rest_client = engine.get_rest_api_client()
         doc = rest_client.fetch(doc_id, fetchDocument=['lock'], enrichers=['permissions'])
-        info = remote_client.doc_to_info(doc)
+        info = remote_client.doc_to_info(doc, fetch_parent_uid=False)
         if (info.lock_owner is not None and info.lock_owner != engine.get_remote_user()):
             log.debug("Doc %s was locked by %s on %s, won't download it for edit", info.name, info.lock_owner,
                       info.lock_created)
