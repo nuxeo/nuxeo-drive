@@ -1,7 +1,5 @@
 #!/bin/sh
 #
-# 2017-01-18 Mickaël Schoentgen, Nuxeo SAS
-#
 # Install PyQt4 with QtWebKit support into a virtualenv for Drive.
 # If it succeeds, you will be able to launch Drive from that virtualenv.
 #
@@ -32,7 +30,7 @@ set -eu
 
 # Global variable of the virtualenv ath installation
 VENV="$HOME/drive-venv"
-
+source ../python_version
 
 download() {
     # Download one file and save its content to a given file name
@@ -77,11 +75,21 @@ setup_venv() {
     [ "$action" = "--no-install" ] && \
         return
 
-    pip install -r "requirements.txt"
-    pip install -r "unix-requirements.txt"
+    pip install -r "../../requirements.txt"
+    pip install -r "../../unix-requirements.txt"
+    if is_mac; then
+        pip install -r "../../mac-requirements.txt"
+    fi
 }
 
-install_sip() {
+is_mac() {
+    if [ `uname -a|awk '{print $1}'` = "Darwin" ]; then
+        return 0
+    fi
+    return 1
+}
+
+install_sip_linux() {
     # Install SIP
     local url="https://sourceforge.net/projects/pyqt/files/sip/sip-4.19/sip-4.19.tar.gz"
     local path="sip-4.19"
@@ -99,7 +107,12 @@ install_sip() {
     cd ..
 }
 
-install_pyqt4() {
+install_pyqt4_darwin() {
+    brew install qt
+    brew install pyqt
+}
+
+install_pyqt4_linux() {
     # Install PyQt4 + QtWebKit
     local url="http://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.12/PyQt4_gpl_x11-4.12.tar.gz"
     local path="PyQt4_gpl_x11-4.12"
@@ -130,6 +143,7 @@ check_qtwebkit() {
 }
 
 check_install() {
+    verify_python
     # Check PyQt4.QtWebKit installation inside its virtualenv
     setup_venv --no-install
     check_qtwebkit
@@ -138,6 +152,24 @@ check_install() {
 remove_tmp() {
     # Delete downloaded files and extracted folders on successful installation
     rm -rf PyQt4_gpl_x11-4.12* sip-4.19*
+}
+
+commands_exists() {
+    type $1 >/dev/null 2>&1 || { return 1; }
+}
+
+verify_python() {
+    if ! commands_exists "python"; then
+        echo >&2 "Requires Python $PYTHON_DRIVE_VERSION.  Aborting.";
+        exit 1;
+    fi
+
+    CUR_VERSION=`python --version 2>&1 |awk '{print $2}'`
+    if [ "$CUR_VERSION" != "$PYTHON_DRIVE_VERSION" ]; then
+        echo "Python version is $CUR_VERSION"
+        echo "Drive requires Python version $PYTHON_DRIVE_VERSION"
+        exit 1
+    fi
 }
 
 main() {
@@ -149,8 +181,12 @@ main() {
         return
 
     setup_venv
-    install_sip
-    install_pyqt4
+    if is_mac; then
+        install_pyqt4_darwin
+    else
+        install_sip_linux
+        install_pyqt4_linux
+    fi
     check_qtwebkit && \
         remove_tmp
 }
