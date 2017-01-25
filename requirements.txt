@@ -14,3 +14,4 @@ yappi==0.94
 setuptools==19.2
 pypac==0.1.0
 Js2Py==0.35
+pycrypto==2.6.1
