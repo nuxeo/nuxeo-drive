@@ -142,8 +142,10 @@ def generate_folder_files(path, files_number):
 
 
 def generate_files(path, folder_number, files_number, size_min=10, size_max=3000,
-                    depth=5, additional_files=[]):
+                    depth=5, additional_files=None):
     import math
+    if additional_files is None:
+        additional_files = []
     print "Files number: %d\tFolder number: %d\tDepth: %d" % (files_number, folder_number, depth)
     if depth > 0:
         # Get the max number of folders
