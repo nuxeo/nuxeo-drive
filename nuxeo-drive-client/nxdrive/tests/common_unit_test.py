@@ -64,6 +64,7 @@ class RandomBug(object):
     Use this annotation if a bug is a RandomBug, you need to track it with a ticket before
     """
     MODES = ['RELAX', 'STRICT', 'BYPASS']
+    OS = ['windows', 'mac', 'linux']
 
     def __init__(self, ticket, os=None, repeat=10, mode='RELAX'):
         """
@@ -76,12 +77,17 @@ class RandomBug(object):
         STRICT: Will repeat it until it fails or hit the repeat limit
         BYPASS: Skip the test
         """
-        self._repeat = repeat
+        if mode is not None and mode not in RandomBug.MODES:
+            raise Exception("Invalid Mode specified")
+        if os is not None and os not in RandomBug.OS:
+            raise Exception("Invalid OS specified")
+        self._repeat = max(1, repeat)
         # Enforce a ticket reference
         self._ticket = ticket
         self._iteration = 0
         self._mode = mode
         self._os = os
+
         if 'RANDOM_BUG_MODE' in os.environ:
             self._mode = os.environ['RANDOM_BUG_MODE']
 
