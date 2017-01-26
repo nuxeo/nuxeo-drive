@@ -107,16 +107,20 @@ class RandomBug(object):
             res = None
             for i in range(self._repeat):
                 log.debug('Repeating test %s %d/%d', func.func_name, i + 1, self._repeat)
+                success = False
                 try:
                     res = func(*args, **kwargs)
+                    success = True
                 except Exception as e:
                     # In strict mode we propagate Exception
                     if self._mode == 'STRICT':
                         raise e
                 finally:
                     # In relax mode, if the test success one we don't fail
-                    if self._mode == 'RELAX':
+                    if self._mode == 'RELAX' and success:
                         return res
+                if SimpleUnitTestCase.getSingleton() is not None and i < self._repeat - 1:
+                    SimpleUnitTestCase.getSingleton().reinit()
             return res
 
         _callable._repeat = self._repeat
@@ -172,7 +176,31 @@ class StubQApplication(QtCore.QCoreApplication):
         self._test._no_remote_changes[uid] = True
 
 
-class UnitTestCase(unittest.TestCase):
+class SimpleUnitTestCase(unittest.TestCase):
+    """
+    Simple unit test to handle reinit on RandomBug
+    """
+    _singleton = None
+
+    @staticmethod
+    def getSingleton():
+        return SimpleUnitTestCase._singleton
+
+    def reinit(self):
+        """
+        Launch the tearDown and setUp of the test
+        :return:
+        """
+        self.tearDown()
+        self.setUp()
+
+    def run(self, *args, **kwargs):
+        SimpleUnitTestCase._singleton = self
+        super(SimpleUnitTestCase, self).run(*args, **kwargs)
+        SimpleUnitTestCase._singleton = None
+
+
+class UnitTestCase(SimpleUnitTestCase):
 
     def setUpServer(self, server_profile=None):
         # Save the current path for test files
@@ -483,6 +511,12 @@ class UnitTestCase(unittest.TestCase):
             stats.strip_dirs()
             stats.print_all(out=fd, columns=columns)
         log.debug("Profiler Report generated in '%s'", report_path)
+
+    def reinit(self):
+        self.tearDown()
+        self.tearDownApp()
+        self.setUpApp()
+        self.setUp()
 
     def run(self, result=None):
         self.logger = log
