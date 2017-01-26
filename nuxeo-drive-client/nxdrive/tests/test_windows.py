@@ -6,11 +6,12 @@ from nxdrive.client import LocalClient
 from shutil import copyfile
 from nxdrive.tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
-from nxdrive.tests.common_unit_test import UnitTestCase
+from nxdrive.tests.common_unit_test import UnitTestCase, RandomBug
 
 
 class TestWindows(UnitTestCase):
 
+    @RandomBug('NXDRIVE-719', os='linux')
     def test_local_replace(self):
         local = LocalClient(self.local_test_folder_1)
         remote = self.remote_document_client_1

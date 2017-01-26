@@ -2,7 +2,7 @@ import time
 
 from nxdrive.tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
-from nxdrive.tests.common_unit_test import UnitTestCase, TEST_DEFAULT_DELAY
+from nxdrive.tests.common_unit_test import UnitTestCase, TEST_DEFAULT_DELAY, RandomBug
 
 
 class TestConcurrentSynchronization(UnitTestCase):
@@ -198,6 +198,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Check Test folder has not been re-created locally
         self.assertFalse(local.exists('/Test folder'))
 
+    @RandomBug('NXDRIVE-718', os='linux')
     def test_update_local_file_content_update_remote_file_property(self):
         # Get local and remote clients
         local = self.local_client_1

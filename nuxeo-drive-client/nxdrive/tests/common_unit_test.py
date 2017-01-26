@@ -60,19 +60,63 @@ FILE_CONTENT = """
 
 
 class RandomBug(object):
-    def __init__(self, repeat=10):
-        self._repeat = repeat
-        self._iteration = 0
+    """
+    Use this annotation if a bug is a RandomBug, you need to track it with a ticket before
+    """
+    MODES = ['RELAX', 'STRICT', 'BYPASS']
+    OS = ['windows', 'mac', 'linux']
 
-    def get_repeat(self):
-        return self._repeat
+    def __init__(self, ticket, os=None, repeat=10, mode='RELAX'):
+        """
+        :param ticket: Nuxeo ticket that track the random
+        :param os: Restrict the annotation only for a specific os
+        :param repeat: Number of time to repeat the test
+        :param mode: Mode of bug
+
+        RELAX: Will retry as repeat times until it succeed
+        STRICT: Will repeat it until it fails or hit the repeat limit
+        BYPASS: Skip the test
+        """
+        if mode is not None and mode not in RandomBug.MODES:
+            raise Exception("Invalid Mode specified")
+        if os is not None and os not in RandomBug.OS:
+            raise Exception("Invalid OS specified")
+        self._repeat = max(1, repeat)
+        # Enforce a ticket reference
+        self._ticket = ticket
+        self._iteration = 0
+        self._mode = mode
+        self._os = os
+
+        if 'RANDOM_BUG_MODE' in os.environ:
+            self._mode = os.environ['RANDOM_BUG_MODE']
 
     def __call__(self, func):
         @wraps(func)
         def callable(*args, **kwargs):
-            self._iteration += 1
-            log.debug('Repeating test %s %d/%d', func.func_name, self._iteration, self._repeat)
-            return func(*args, **kwargs)
+            # Handle specific OS
+            if self._os == 'linux' and not AbstractOSIntegration.is_linux():
+                return func(*args, **kwargs)
+            if self._os == 'windows' and not AbstractOSIntegration.is_windows():
+                return func(*args, **kwargs)
+            if self._os == 'mac' and not AbstractOSIntegration.is_mac():
+                return func(*args, **kwargs)
+            # Skip if BYPASS mode
+            if self._mode == 'BYPASS':
+                raise unittest.SkipTest('RandomTest is in ' + self._mode)
+            res = None
+            for i in range(0, self._repeat):
+                log.debug('Repeating test %s %d/%d', func.func_name, i+1, self._repeat)
+                try:
+                    res = func(*args, **kwargs)
+                    # In RELAX mode if the test success one we dont fail
+                    if self._mode == 'RELAX':
+                        return res
+                except Exception as e:
+                    # In STRICT mode we propagate Exception
+                    if self._mode == 'STRICT':
+                        raise e
+            return res
         callable._repeat = self._repeat
         return callable
 
