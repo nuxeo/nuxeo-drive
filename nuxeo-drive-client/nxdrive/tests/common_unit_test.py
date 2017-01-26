@@ -65,9 +65,10 @@ class RandomBug(object):
     """
     MODES = ['RELAX', 'STRICT', 'BYPASS']
 
-    def __init__(self, ticket, repeat=10, mode='RELAX'):
+    def __init__(self, ticket, os=None, repeat=10, mode='RELAX'):
         """
         :param ticket: Nuxeo ticket that track the random
+        :param os: Restrict the annotation only for a specific os
         :param repeat: Number of time to repeat the test
         :param mode: Mode of bug
 
@@ -80,12 +81,20 @@ class RandomBug(object):
         self._ticket = ticket
         self._iteration = 0
         self._mode = mode
+        self._os = os
         if 'RANDOM_BUG_MODE' in os.environ:
             self._mode = os.environ['RANDOM_BUG_MODE']
 
     def __call__(self, func):
         @wraps(func)
         def callable(*args, **kwargs):
+            # Handle specific OS
+            if self._os == 'linux' and not AbstractOSIntegration.is_linux():
+                return func(*args, **kwargs)
+            if self._os == 'windows' and not AbstractOSIntegration.is_windows():
+                return func(*args, **kwargs)
+            if self._os == 'mac' and not AbstractOSIntegration.is_mac():
+                return func(*args, **kwargs)
             # Skip if BYPASS mode
             if self._mode == 'BYPASS':
                 raise unittest.SkipTest('RandomTest is in ' + self._mode)
