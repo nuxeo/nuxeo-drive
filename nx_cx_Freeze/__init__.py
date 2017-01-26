@@ -64,6 +64,10 @@ if sys.platform == 'win32':
     class bdist_msi(cx_bdist_msi):
         attribs = None
 
+        def __init__(self, *args, **kwargs):
+            super(bdist_msi, self).__init__(*args, **kwargs)
+            self.initial_target_dir = None
+
         def finalize_options(self):
             self.distribution.get_name()
             if self.initial_target_dir is None:

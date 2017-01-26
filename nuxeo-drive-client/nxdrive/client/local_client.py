@@ -609,7 +609,7 @@ class LocalClient(BaseClient):
             path = parent + u"/" + name
         return path, os_path, name
 
-    def update_content(self, ref, content, xattr_names=['ndrive']):
+    def update_content(self, ref, content, xattr_names=('ndrive')):
         xattrs = {}
         for name in xattr_names:
             xattrs[name] = self.get_remote_id(ref, name=name)

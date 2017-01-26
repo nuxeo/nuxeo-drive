@@ -17,13 +17,15 @@ class ProcessAutoLockerWorker(PollWorker):
     documentLocked = QtCore.pyqtSignal(str)
     documentUnlocked = QtCore.pyqtSignal(str)
 
-    def __init__(self, check_interval, manager, watched_folders=[]):
+    def __init__(self, check_interval, manager, watched_folders=None):
         super(ProcessAutoLockerWorker, self).__init__(check_interval)
         self._manager = manager
         self._osi = manager.get_osi()
         self._dao = manager.get_dao()
         self._autolocked = dict()
         self._lockers = dict()
+        if watched_folders is None:
+            watched_folders = []
         self._watched_folders = watched_folders
         self._opened_files = dict()
         self._to_lock = []
