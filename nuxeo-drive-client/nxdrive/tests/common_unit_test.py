@@ -66,10 +66,10 @@ class RandomBug(object):
     MODES = ['RELAX', 'STRICT', 'BYPASS']
     OS = ['windows', 'mac', 'linux']
 
-    def __init__(self, ticket, os=None, repeat=10, mode='RELAX'):
+    def __init__(self, ticket, target=None, repeat=10, mode='RELAX'):
         """
         :param ticket: Nuxeo ticket that track the random
-        :param os: Restrict the annotation only for a specific os
+        :param target: Restrict the annotation only for a specific OS target
         :param repeat: Number of time to repeat the test
         :param mode: Mode of bug
 
@@ -79,14 +79,14 @@ class RandomBug(object):
         """
         if mode is not None and mode not in RandomBug.MODES:
             raise Exception("Invalid Mode specified")
-        if os is not None and os not in RandomBug.OS:
+        if target is not None and target not in RandomBug.OS:
             raise Exception("Invalid OS specified")
         self._repeat = max(1, repeat)
         # Enforce a ticket reference
         self._ticket = ticket
         self._iteration = 0
         self._mode = mode
-        self._os = os
+        self._os = target
 
         if 'RANDOM_BUG_MODE' in os.environ:
             self._mode = os.environ['RANDOM_BUG_MODE']

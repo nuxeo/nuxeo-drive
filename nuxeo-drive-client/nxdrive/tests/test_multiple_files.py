@@ -144,7 +144,7 @@ class MultipleFilesTestCase(UnitTestCase):
                          'file names are different')
         log.debug('*** exit MultipleFilesTestCase._move_and_copy_paste_folder')
 
-    @RandomBug('NXDRIVE-720', os='linux')
+    @RandomBug('NXDRIVE-720', target='linux')
     def test_move_and_copy_paste_folder_original_location(self):
         self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2, os.path.dirname(self.folder_path_1),
                                          stopped=False)
