@@ -109,7 +109,7 @@ function main {
 
 	install_python
 	install_pyqt4
-	# install_cxfreeze
+	install_cxfreeze
 	setup_venv
 	check_qtwebkit
 	if ($build) {
