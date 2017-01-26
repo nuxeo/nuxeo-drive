@@ -1,8 +1,8 @@
 # Usage: powershell ".\deploy-jenkins-slave.ps1" [ARGS]
 
 # Handle CLI arguments
-#     -msi: build the MSI package
-param ([switch]$msi = $false)
+#     -build: build the MSI package
+param ([switch]$build = $false)
 
 # Stop the execution on the fisrt error
 $ErrorActionPreference = "Stop"
@@ -109,10 +109,10 @@ function main {
 
 	install_python
 	install_pyqt4
-	install_cxfreeze
+	# install_cxfreeze
 	setup_venv
 	check_qtwebkit
-	if ($msi) {
+	if ($build) {
 		build_msi
 		# To implement with the new certificat
 		# sign_msi

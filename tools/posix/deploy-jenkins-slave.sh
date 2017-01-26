@@ -13,24 +13,23 @@
 # You should have all binaries required for a full virtual environment
 # using Python 2.7 and obvious system utilities like curl and tar.
 #
-# You will need these too (you can delete it after a successful installation):
+# You will need these too (you can delete after a successful installation):
 #
 #    $ sudo apt install qt4-qmake libqt4-dev libqtwebkit-dev
 #
 ### Usage
 #
-#    $ chmod +x dev-pyqt4.sh
-#    $ ./dev-pyqt4.sh [DEST_DIR]
+#    $ sh deploy-jenkins-slave.sh [ARGS]
 #
-# Default virtualenv directory: $HOME/drive-venv
-# You can override this parameter by setting DEST_DIR.
+# Possible ARGS:
+#     --build: build the DMG package (MacOS X)
 #
 
 set -eu
 
 # Global variable of the virtualenv ath installation
-VENV="$HOME/drive-venv"
-source ../python_version
+VENV="$(realpath ../../../drive-venv)"
+. ../python_version
 
 download() {
     # Download one file and save its content to a given file name
@@ -58,14 +57,13 @@ setup_venv() {
     # Setup virtualenv
     local action="--install"
     [ "$#" -eq 1 ] && \
-        action="--no-install"
+        action="$1"
 
     echo ">>> Setting up the virtualenv into $VENV"
 
     [ -d "$VENV" ] || \
         virtualenv \
-            -p /usr/bin/python2.7 \
-            --no-site-packages \
+            -p python \
             --always-copy \
             "$VENV"
 
@@ -102,7 +100,7 @@ install_sip_linux() {
 
     cd "$path"
     python configure.py
-    make
+    make -j4
     make install
     cd ..
 }
@@ -125,9 +123,8 @@ install_pyqt4_linux() {
 
     cd "$path"
     python configure-ng.py \
-        --confirm-license \
-        --concatenate
-    make
+        --confirm-license
+    make -j4
     make install
     cd ..
 }
@@ -143,8 +140,8 @@ check_qtwebkit() {
 }
 
 check_install() {
-    verify_python
     # Check PyQt4.QtWebKit installation inside its virtualenv
+    #verify_python
     setup_venv --no-install
     check_qtwebkit
 }
@@ -155,30 +152,47 @@ remove_tmp() {
 }
 
 commands_exists() {
-    type $1 >/dev/null 2>&1 || { return 1; }
+    type $1 >/dev/null 2>&1 || return 1
 }
 
 verify_python() {
     if ! commands_exists "python"; then
-        echo >&2 "Requires Python $PYTHON_DRIVE_VERSION.  Aborting.";
+        echo >&2 "Requires Python ${PYTHON_DRIVE_VERSION}.  Aborting.";
         exit 1;
     fi
 
     CUR_VERSION=`python --version 2>&1 |awk '{print $2}'`
-    if [ "$CUR_VERSION" != "$PYTHON_DRIVE_VERSION" ]; then
-        echo "Python version is $CUR_VERSION"
-        echo "Drive requires Python version $PYTHON_DRIVE_VERSION"
+    if [ "${CUR_VERSION}" != "${PYTHON_DRIVE_VERSION}" ]; then
+        echo "Python version ${CUR_VERSION}"
+        echo "Drive requires ${PYTHON_DRIVE_VERSION}"
         exit 1
+    fi
+}
+
+build_esky() {
+    # Build the famous DMG
+    cd ../..
+    python setup.py bdist_esky
+    if is_mac; then
+        sh tools/osx/create-dmg.sh
     fi
 }
 
 main() {
     # Launch operations
-    [ $# -eq 1 ] && \
-        VENV="$1"
+    local build=0
+    if [ $# -eq 1 ]; then
+        if [ "$1" = "--build" ]; then
+            build=1
+        fi
+    fi
 
-    check_install && \
+    if check_install; then
+        if [ ${build} -eq 1 ]; then
+            build_esky
+        fi
         return
+    fi
 
     setup_venv
     if is_mac; then
@@ -189,6 +203,10 @@ main() {
     fi
     check_qtwebkit && \
         remove_tmp
+
+    if [ ${build} -eq 1 ]; then
+        build_esky
+    fi
 }
 
 main "$@"
