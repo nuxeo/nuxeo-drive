@@ -11,9 +11,9 @@ from nxdrive.manager import Manager
 log = get_logger(__name__)
 
 import objc
-from Foundation import *
+from Foundation import NSObject, NSURL
 import AppKit
-from AppKit import *
+from AppKit import NSURLPboardType, NSRegisterServicesProvider
 
 
 def serviceSelector(fn):
@@ -36,7 +36,7 @@ class RightClickService(NSObject):
                     if value is None or value == "":
                         continue
                     # TODO Replug prompt_metadata on this one
-                    url = Foundation.NSURL.URLWithString_(value)
+                    url = NSURL.URLWithString_(value)
                     if url is None:
                         if value.startswith("file://"):
                             value = value[7:]
