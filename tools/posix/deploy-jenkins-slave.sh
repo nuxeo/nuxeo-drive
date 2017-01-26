@@ -141,7 +141,7 @@ check_qtwebkit() {
 
 check_install() {
     # Check PyQt4.QtWebKit installation inside its virtualenv
-    #verify_python
+    verify_python
     setup_venv --no-install
     check_qtwebkit
 }
