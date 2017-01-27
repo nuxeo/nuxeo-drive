@@ -10,7 +10,6 @@ psutil==5.0.1
 pycrypto==2.6.1
 pypac==0.2.1
 python-dateutil==2.6.0
-requests==2.13.0
 Send2Trash==1.3.0
 setuptools==34.0.2
 universal-analytics-python==0.2.4

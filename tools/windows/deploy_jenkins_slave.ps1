@@ -74,7 +74,7 @@ function install_cxfreeze {
 
 function activate_venv {
 	echo ">>> Activating the virtualenv"
-	& $VENV\Scripts\activate.ps1
+	& "$VENV\Scripts\activate.ps1"
 }
 
 function setup_venv {
