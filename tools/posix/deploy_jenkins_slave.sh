@@ -33,6 +33,7 @@ set -eu
 STORAGE_DIR="${WORKSPACE}/deploy-dir"
 . tools/python_version
 VENV="${STORAGE_DIR}/drive-$PYTHON_DRIVE_VERSION-venv"
+PYTHON_INTERPRETER="$(which python)"
 
 download() {
     # Download one file and save its content to a given file name
@@ -66,7 +67,7 @@ setup_venv() {
 
     [ -d "$VENV" ] || \
         virtualenv \
-            -p python \
+            -p ${PYTHON_INTERPRETER} \
             --system-site-packages \
             --always-copy \
             "$VENV"
@@ -86,6 +87,7 @@ setup_venv() {
 
 is_mac() {
     if [ `uname -a|awk '{print $1}'` = "Darwin" ]; then
+        PYTHON_INTERPRETER="/usr/local/bin/python"
         return 0
     fi
     return 1
@@ -161,12 +163,12 @@ commands_exists() {
 }
 
 verify_python() {
-    if ! commands_exists "python"; then
+    if ! commands_exists "${PYTHON_INTERPRETER}"; then
         echo >&2 "Requires Python ${PYTHON_DRIVE_VERSION}.  Aborting.";
         exit 1;
     fi
 
-    CUR_VERSION=`python --version 2>&1 |awk '{print $2}'`
+    CUR_VERSION=`${PYTHON_INTERPRETER} --version 2>&1 |awk '{print $2}'`
     if [ "${CUR_VERSION}" != "${PYTHON_DRIVE_VERSION}" ]; then
         echo "Python version ${CUR_VERSION}"
         echo "Drive requires ${PYTHON_DRIVE_VERSION}"
