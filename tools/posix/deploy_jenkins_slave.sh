@@ -67,6 +67,7 @@ setup_venv() {
     [ -d "$VENV" ] || \
         virtualenv \
             -p python \
+            --system-site-packages \
             --always-copy \
             "$VENV"
 
@@ -173,6 +174,7 @@ verify_python() {
 
 build_esky() {
     # Build the famous DMG
+    # TODO Make the DEB for GNU/Linux
     python setup.py bdist_esky
     if is_mac; then
         sh tools/osx/create-dmg.sh
