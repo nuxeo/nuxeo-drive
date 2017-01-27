@@ -1,5 +1,5 @@
-# Usage: powershell ".\deploy-jenkins-slave.ps1" [ARGS]
-
+# Usage: powershell ".\tools\windows\deploy_jenkins_slave.ps1" [ARGS]
+#
 # Handle CLI arguments
 #     -build: build the MSI package
 param ([switch]$build = $false)
@@ -8,10 +8,10 @@ param ([switch]$build = $false)
 $ErrorActionPreference = "Stop"
 
 # Properties defined outside this script
-$AppProps = convertfrom-stringdata(get-content ..\python_version)
+$AppProps = convertfrom-stringdata(get-content tools\python_version)
 
 # Global variables
-$STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "..\..\..\deploy-dir").FullName
+$STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir").FullName
 $PYTHON_DRIVE_VERSION = $AppProps."PYTHON_DRIVE_VERSION"
 $PYTHON_DIR = "$STORAGE_DIR\drive-$PYTHON_DRIVE_VERSION-python"
 $VENV = "$STORAGE_DIR\drive-$PYTHON_DRIVE_VERSION-venv"
@@ -80,8 +80,8 @@ function setup_venv {
 	& $PYTHON_DIR\Scripts\pip install virtualenv
 	& $PYTHON_DIR\Scripts\virtualenv -p "$PYTHON_DIR\python.exe" --system-site-packages --always-copy $VENV
 	activate_venv
-	pip install -r ..\..\requirements.txt
-	pip install -r ..\..\windows-requirements.txt
+	pip install -r requirements.txt
+	pip install -r windows-requirements.txt
 }
 
 function check_qtwebkit {
@@ -98,7 +98,6 @@ function check_qtwebkit {
 function build_msi {
     # Build the famous MSI
     echo ">>> Building the MSI package"
-    cd ..\..
     python setup.py --freeze bdist_msi
 }
 

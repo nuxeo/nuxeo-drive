@@ -19,7 +19,7 @@
 #
 ### Usage
 #
-#    $ sh deploy-jenkins-slave.sh [ARGS]
+#    $ sh tools/posix/deploy_jenkins_slave.sh [ARGS]
 #
 # Possible ARGS:
 #     --build: build the DMG package (MacOS X)
@@ -27,9 +27,10 @@
 
 set -eu
 
-# Global variable of the virtualenv ath installation
-VENV="$(realpath ../../../drive-venv)"
-. ../python_version
+# Global variables
+STORAGE_DIR="../deploy-dir"
+. tools/python_version
+VENV="${STORAGE_DIR}/drive-$PYTHON_DRIVE_VERSION-venv"
 
 download() {
     # Download one file and save its content to a given file name
@@ -50,7 +51,7 @@ extract() {
     echo ">>> Extracting $file to $folder"
 
     [ -d "$folder" ] || \
-        tar zxf "$file"
+        tar zxf "$file" -C "$STORAGE_DIR"
 }
 
 setup_venv() {
@@ -73,10 +74,10 @@ setup_venv() {
     [ "$action" = "--no-install" ] && \
         return
 
-    pip install -r "../../requirements.txt"
-    pip install -r "../../unix-requirements.txt"
+    pip install -r requirements.txt
+    pip install -r unix-requirements.txt
     if is_mac; then
-        pip install -r "../../mac-requirements.txt"
+        pip install -r mac-requirements.txt
     fi
 }
 
@@ -90,7 +91,7 @@ is_mac() {
 install_sip_linux() {
     # Install SIP
     local url="https://sourceforge.net/projects/pyqt/files/sip/sip-4.19/sip-4.19.tar.gz"
-    local path="sip-4.19"
+    local path="${STORAGE_DIR}/sip-4.19"
     local output="${path}.tar.gz"
 
     echo ">>> Installing SIP"
@@ -102,7 +103,7 @@ install_sip_linux() {
     python configure.py
     make -j4
     make install
-    cd ..
+    cd "${WORKSPACE}"
 }
 
 install_pyqt4_darwin() {
@@ -113,7 +114,7 @@ install_pyqt4_darwin() {
 install_pyqt4_linux() {
     # Install PyQt4 + QtWebKit
     local url="http://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.12/PyQt4_gpl_x11-4.12.tar.gz"
-    local path="PyQt4_gpl_x11-4.12"
+    local path="${STORAGE_DIR}/PyQt4_gpl_x11-4.12"
     local output="${path}.tar.gz"
 
     echo ">>> Installing PyQt4 with WebKit support"
@@ -122,11 +123,10 @@ install_pyqt4_linux() {
     extract "$output" "$path"
 
     cd "$path"
-    python configure-ng.py \
-        --confirm-license
+    python configure-ng.py --confirm-license
     make -j4
     make install
-    cd ..
+    cd "${WORKSPACE}"
 }
 
 check_qtwebkit() {
@@ -148,7 +148,7 @@ check_install() {
 
 remove_tmp() {
     # Delete downloaded files and extracted folders on successful installation
-    rm -rf PyQt4_gpl_x11-4.12* sip-4.19*
+    rm -rf "${STORAGE_DIR}/PyQt4_gpl_x11-4.12*" "${STORAGE_DIR}/sip-4.19*"
 }
 
 commands_exists() {
@@ -171,7 +171,6 @@ verify_python() {
 
 build_esky() {
     # Build the famous DMG
-    cd ../..
     python setup.py bdist_esky
     if is_mac; then
         sh tools/osx/create-dmg.sh
@@ -186,6 +185,9 @@ main() {
             build=1
         fi
     fi
+
+    echo "    STORAGE_DIR = ${STORAGE_DIR}"
+    echo "    VENV        = ${VENV}"
 
     if check_install; then
         if [ ${build} -eq 1 ]; then
