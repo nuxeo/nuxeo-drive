@@ -28,7 +28,9 @@
 set -eu
 
 # Global variables
-STORAGE_DIR="../deploy-dir"
+[ -n "${WORKSPACE}" ] && \
+    WORKSPACE="$(pwd)"
+STORAGE_DIR="${WORKSPACE}/deploy-dir"
 . tools/python_version
 VENV="${STORAGE_DIR}/drive-$PYTHON_DRIVE_VERSION-venv"
 

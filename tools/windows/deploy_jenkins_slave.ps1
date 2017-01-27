@@ -9,10 +9,13 @@ $ErrorActionPreference = "Stop"
 
 # Properties defined outside this script
 $AppProps = convertfrom-stringdata(get-content tools\python_version)
+$PYTHON_DRIVE_VERSION = $AppProps."PYTHON_DRIVE_VERSION"
 
 # Global variables
+if (-Not ($Env:WORKSPACE)) {
+    $Env:WORKSPACE = $pwd
+}
 $STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir").FullName
-$PYTHON_DRIVE_VERSION = $AppProps."PYTHON_DRIVE_VERSION"
 $PYTHON_DIR = "$STORAGE_DIR\drive-$PYTHON_DRIVE_VERSION-python"
 $VENV = "$STORAGE_DIR\drive-$PYTHON_DRIVE_VERSION-venv"
 
