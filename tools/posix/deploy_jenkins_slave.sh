@@ -34,6 +34,7 @@ STORAGE_DIR="${WORKSPACE}/deploy-dir"
 . tools/python_version
 VENV="${STORAGE_DIR}/drive-$PYTHON_DRIVE_VERSION-venv"
 PYTHON_INTERPRETER="$(which python)"
+VIRTUALENV="$(which virtualenv)"
 
 download() {
     # Download one file and save its content to a given file name
@@ -66,7 +67,7 @@ setup_venv() {
     echo ">>> Setting up the virtualenv into $VENV"
 
     [ -d "$VENV" ] || \
-        virtualenv \
+        ${VIRTUALENV} \
             -p ${PYTHON_INTERPRETER} \
             --system-site-packages \
             --always-copy \
@@ -87,7 +88,6 @@ setup_venv() {
 
 is_mac() {
     if [ `uname -a|awk '{print $1}'` = "Darwin" ]; then
-        PYTHON_INTERPRETER="/usr/local/bin/python"
         return 0
     fi
     return 1
@@ -147,6 +147,8 @@ check_qtwebkit() {
 check_install() {
     # Check PyQt4.QtWebKit installation inside its virtualenv
     if is_mac; then
+        VIRTUALENV="/usr/local/bin/virtualenv"
+        PYTHON_INTERPRETER="/usr/local/bin/python"
         verify_python
     fi
     setup_venv --no-install
