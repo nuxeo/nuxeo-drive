@@ -144,7 +144,9 @@ check_qtwebkit() {
 
 check_install() {
     # Check PyQt4.QtWebKit installation inside its virtualenv
-    verify_python
+    if is_mac; then
+        verify_python
+    fi
     setup_venv --no-install
     check_qtwebkit
 }
