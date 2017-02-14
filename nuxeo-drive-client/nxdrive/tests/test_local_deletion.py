@@ -1,8 +1,9 @@
-from nxdrive.tests.common_unit_test import UnitTestCase
-from nxdrive.osi import AbstractOSIntegration
-import shutil
 import os
-from unittest import SkipTest
+import shutil
+from unittest import skip
+
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.tests.common_unit_test import UnitTestCase
 
 
 class TestLocalDeletion(UnitTestCase):
@@ -28,7 +29,6 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.remote_document_client_1.exists(old_info.uid))
         self.assertTrue(self.local_client_1.exists('/File_To_Delete.txt'))
-
 
     def test_untrash_file_with_rename(self):
         self.local_client_1.make_file('/', 'File_To_Delete.txt', 'This is a content')
@@ -116,8 +116,8 @@ class TestLocalDeletion(UnitTestCase):
         self.assertIsNotNone(new_uid)
         self.assertFalse(new_uid.endswith(old_info.uid))
 
+    @skip('Wait to know what is the expectation - the previous folder doesnt exist')
     def test_move_untrash_file_on_parent_with_no_rights_on_destination(self):
-        raise SkipTest("Wait to know what is the expectation - the previous folder doesnt exist")
         # Setup the test
         file_path = '/ToDelete/File_To_Delete.txt'
         self.local_client_1.make_folder('/', 'ToDelete')

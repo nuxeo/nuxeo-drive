@@ -1,19 +1,19 @@
 import os
-import sys
-from unittest import SkipTest
+from unittest import skip, skipIf
 
-from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.tests.common_unit_test import UnitTestCase
 
 log = get_logger(__name__)
 
 
+@skipIf(AbstractOSIntegration.is_linux(),
+        'Case insensitive test')
 class TestDedupInsensitiveCaseSync(UnitTestCase):
 
     def setUp(self):
         super(TestDedupInsensitiveCaseSync, self).setUp()
-        if sys.platform.startswith('linux'):
-            raise SkipTest("Case insensitive test")
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
@@ -236,9 +236,9 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.assertTrue(local.exists('/test/' + Test_dedup))
         self.assertFalse(local.exists('/' + Test_dedup))
 
+    @skip
     def test_uppercase_lowercase_duplicate(self):
         # Duplication should be disable later
-        raise SkipTest
         remote = self.remote_document_client_1
         # Test without delay might cause issue on Windows
         self.doc1 = remote.make_folder('/', 'A')

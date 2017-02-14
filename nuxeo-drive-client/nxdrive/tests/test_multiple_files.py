@@ -5,14 +5,13 @@ Created on Jul 29, 2015
 Adapted to Drive
 '''
 
-from common_unit_test import UnitTestCase, RandomBug
-from nxdrive.tests.common_unit_test import log
-from nxdrive.tests.common_unit_test import FILE_CONTENT
-from nxdrive.osi import AbstractOSIntegration
-from nose.plugins.skip import SkipTest
-
 import os
 import shutil
+from unittest import skipIf
+
+from common_unit_test import RandomBug, UnitTestCase
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.tests.common_unit_test import FILE_CONTENT, log
 
 
 class MultipleFilesTestCase(UnitTestCase):
@@ -149,9 +148,9 @@ class MultipleFilesTestCase(UnitTestCase):
         self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2, os.path.dirname(self.folder_path_1),
                                          stopped=False)
 
+    @skipIf(AbstractOSIntegration.is_linux(),
+            'NXDRIVE-471: Not handled under Linux as creation time is not stored')
     def test_move_and_copy_paste_folder_original_location_stopped(self):
-        if AbstractOSIntegration.is_linux():
-            raise SkipTest("NXDRIVE-471: Not handled under Linux as creation time is not stored")
         self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2, os.path.dirname(self.folder_path_1))
 
     def test_move_and_copy_paste_folder_new_location(self):

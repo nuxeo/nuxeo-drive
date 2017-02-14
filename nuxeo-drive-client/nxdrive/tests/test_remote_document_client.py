@@ -1,8 +1,8 @@
-import os
-from shutil import copyfile
 from time import sleep
 
-from nose import SkipTest
+import os
+from shutil import copyfile
+from unittest import SkipTest
 
 from nxdrive.client import LocalClient, NotFound, NuxeoClient, Unauthorized
 from nxdrive.tests.common import IntegrationTestCase, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST

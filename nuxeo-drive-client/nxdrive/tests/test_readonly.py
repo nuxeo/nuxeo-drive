@@ -1,11 +1,12 @@
-import os
 import time
 
-from nxdrive.tests.common import TEST_WORKSPACE_PATH
-from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
-from nxdrive.tests.common_unit_test import UnitTestCase
-from nose.plugins.skip import SkipTest
+import os
+from unittest import skipIf
+
 from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
+from nxdrive.tests.common_unit_test import UnitTestCase
 
 log = get_logger(__name__)
 
@@ -78,9 +79,9 @@ class TestReadOnly(UnitTestCase):
             return False
         return True
 
+    @skipIf(AbstractOSIntegration.is_windows(),
+            'Readonly folder let new file creation')
     def test_readonly_user_access(self):
-        if os.sys.platform == 'win32':
-            raise SkipTest('Readonly folder let new file creation')
         # Should not be able to create content in root folder
         fname = os.path.join(self.local_nxdrive_folder_1, 'test.txt')
         self.assertFalse(self.touch(fname), "Should not be able to create in ROOT folder")
@@ -91,9 +92,9 @@ class TestReadOnly(UnitTestCase):
         fname = os.path.join(self.sync_root_folder_1, 'Test folder', 'Sub folder 1', 'test.txt')
         self.assertFalse(self.touch(fname), "Should be able to create in SYNCROOT folder")
 
+    @skipIf(AbstractOSIntegration.is_windows(),
+            'Readonly folder let new file creation')
     def test_file_readonly_change(self):
-        if os.sys.platform == 'win32':
-            raise SkipTest('Readonly folder let new file creation')
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace

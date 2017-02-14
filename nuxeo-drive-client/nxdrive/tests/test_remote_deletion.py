@@ -1,10 +1,10 @@
-import os
 import sys
 import time
-from shutil import copyfile
 
+import os
 from mock import patch
-from nose.plugins.skip import SkipTest
+from shutil import copyfile
+from unittest import skip
 
 from nxdrive.engine.engine import Engine
 from nxdrive.tests.common import DOC_NAME_MAX_LENGTH, OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
@@ -164,8 +164,8 @@ class TestRemoteDeletion(UnitTestCase):
         else:
             self._remote_deletion_while_download_file()
 
+    @skip('Behavior has changed with trash feature - remove this test ?')
     def test_synchronize_remote_deletion_local_modification(self):
-        raise SkipTest("Behavior has changed with trash feature - remove this test ?")
         """Test remote deletion with concurrent local modification
 
         Use cases:

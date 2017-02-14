@@ -2,16 +2,17 @@
 @author: rcattiau
 '''
 
+from math import floor, log10
+
+import os
+import random
+import shutil
+from copy import copy
+from unittest import SkipTest, skipIf
+
 from common_unit_test import UnitTestCase
 from nxdrive.tests.common import TEST_WORKSPACE_PATH
 from nxdrive.tests.common_unit_test import log
-import random
-from nose.plugins.skip import SkipTest
-from math import floor, log10
-from copy import copy
-
-import os
-import shutil
 
 
 class VolumeTestCase(UnitTestCase):
@@ -46,8 +47,8 @@ class VolumeTestCase(UnitTestCase):
                     self.generate_random_jpg(file_path, random.randint(1000, 3000))
                 self.items = self.items + 1
 
-    '''
-    '''
+    @skipIf('TEST_VOLUME' not in os.environ,
+            'Deactivate if not launch on purpose with TEST_VOLUME set')
     def create(self, stopped=True, wait_for_sync=True):
         self.fake = False
         if not self.fake:
@@ -56,13 +57,7 @@ class VolumeTestCase(UnitTestCase):
             if not stopped:
                 self.engine_1.stop()
         self.items = 0
-        values = None
-        if "TEST_VOLUME" in os.environ:
-            values = os.environ["TEST_VOLUME"].split(",")
-        else:
-            # Deactivate if needed
-            raise SkipTest("Deactivate if not launch on purpose with TEST_VOLUME set")
-            #pass
+        values = os.environ["TEST_VOLUME"].split(",")
         if values is None or len(values) < 3:
             # Low volume by default to stick to 1h
             values = "3, 10, 2".split(",")
@@ -259,14 +254,11 @@ class VolumeTestCase(UnitTestCase):
         self._check_folder(self.get_path(True, 1, self.num_folders+1), added=[self.get_name(True, 1, 1)])
         self._check_folder(self.get_path(True, 1, self.num_folders+2), added=[self.get_name(True, 1, 1)])
 
+    @skipIf('TEST_REMOTE_SCAN_VOLUME' not in os.environ
+            or int(os.environ['TEST_REMOTE_SCAN_VOLUME']) == 0,
+            'Skipped as TEST_REMOTE_SCAN_VOLUME is no set')
     def test_remote_scan(self):
-        nb_nodes = 0
-        if "TEST_REMOTE_SCAN_VOLUME" in os.environ:
-            env_nb_nodes = os.environ["TEST_REMOTE_SCAN_VOLUME"]
-            if env_nb_nodes:
-                nb_nodes = int(env_nb_nodes)
-        if nb_nodes == 0:
-            raise SkipTest("Skipped as TEST_REMOTE_SCAN_VOLUME is no set")
+        nb_nodes = int(os.environ["TEST_REMOTE_SCAN_VOLUME"])
         # Random mass import
         self.root_remote_client.mass_import(TEST_WORKSPACE_PATH, nb_nodes)
         # Wait for ES indexing

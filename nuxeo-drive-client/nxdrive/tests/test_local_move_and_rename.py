@@ -1,17 +1,16 @@
-import os
-import urllib2
-
-from nxdrive.tests.common_unit_test import UnitTestCase
-from nxdrive.client import LocalClient
-from nxdrive.client import RemoteDocumentClient
-from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
-from nxdrive.tests import RemoteTestClient
-from nxdrive.tests.common import TEST_WORKSPACE_PATH
-from nxdrive.osi import AbstractOSIntegration
 from time import sleep
+
+import urllib2
+from unittest import skip
+
+from nxdrive.client import LocalClient, RemoteDocumentClient
+from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
-from unittest import SkipTest
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.tests import RemoteTestClient
+from nxdrive.tests.common import TEST_WORKSPACE_PATH
+from nxdrive.tests.common_unit_test import UnitTestCase
 
 # TODO NXDRIVE-170: refactor
 LastKnownState = None
@@ -768,9 +767,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         # Check local folder haven't been re-created
         self.assertFalse(local_client.exists(u'/Original Folder 1'))
 
-
+    @skip('Need expectation on this test')
     def test_local_move_folder_to_readonly(self):
-        raise SkipTest("Need expectation on this test")
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
 

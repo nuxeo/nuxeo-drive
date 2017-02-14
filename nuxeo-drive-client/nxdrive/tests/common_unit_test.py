@@ -1,14 +1,14 @@
 """Common test utilities"""
-import os
 import sys
+from PyQt4 import QtCore
+from time import sleep
+
+import os
 import tempfile
 import unittest
 from functools import wraps
 from os.path import dirname
 from threading import Thread
-from time import sleep
-
-from PyQt4 import QtCore
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
@@ -247,10 +247,6 @@ class UnitTestCase(unittest.TestCase):
             if not os.path.isdir(self.tmpdir):
                 os.makedirs(self.tmpdir)
         self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads', dir=self.tmpdir)
-
-        if None in (self.nuxeo_url, self.admin_user, self.password):
-            raise unittest.SkipTest(
-                "No integration server configuration found in environment.")
 
         # Check the local filesystem test environment
         self.local_test_folder_1 = tempfile.mkdtemp(u'drive-1', dir=self.tmpdir)

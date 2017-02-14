@@ -1,18 +1,18 @@
 __author__ = 'loopingz'
 
-from nxdrive.tests.common_unit_test import UnitTestCase
+from unittest import skipIf
+
 from nxdrive.osi import AbstractOSIntegration
-from unittest import SkipTest
+from nxdrive.tests.common_unit_test import UnitTestCase
 
 
+@skipIf(not AbstractOSIntegration.is_mac(),
+        'Not relevant on GNU/Linux nor Windows')
 class TestMacSpecific(UnitTestCase):
 
-    '''
-    Test that if Finder is using the file we postpone the sync
-    '''
     def test_finder_in_use(self):
-        if not AbstractOSIntegration.is_mac():
-            raise SkipTest('Not relevant on Linux or Windows')
+        """ Test that if Finder is using the file we postpone the sync. """
+
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.local_client_1.make_file('/', u'File.txt',

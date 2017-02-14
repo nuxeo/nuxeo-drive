@@ -3,34 +3,32 @@ Created on 2 juil. 2015
 
 @author: Remi Cattiau
 '''
-import unittest
-from nxdrive.report import Report
-from nxdrive.manager import Manager
 import os
 import tempfile
-from nxdrive.logging_config import configure
-from nxdrive.logging_config import get_logger
+from mock import Mock
+from unittest import TestCase, skipIf
+
+from nxdrive.logging_config import configure, get_logger
+from nxdrive.manager import Manager
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.report import Report
 from nxdrive.tests.common import clean_dir
-from nose.plugins.skip import SkipTest
 
 
 def configure_logger():
-    configure(
-        console_level='DEBUG',
-        command_name='test',
-        force_configure=True,
-    )
+    configure(console_level='DEBUG',
+              command_name='test',
+              force_configure=True)
 
 # Configure test logger
 configure_logger()
 log = get_logger(__name__)
 
 
-class ReportTest(unittest.TestCase):
+class ReportTest(TestCase):
 
     def setUp(self):
         self.folder = tempfile.mkdtemp(u'-nxdrive-tests')
-        from mock import Mock
         options = Mock()
         options.debug = False
         options.force_locale = None
@@ -47,11 +45,9 @@ class ReportTest(unittest.TestCase):
         Manager._singleton = None
         clean_dir(self.folder)
 
-    def testLogs(self):
-        from nxdrive.osi import AbstractOSIntegration
-        if AbstractOSIntegration.is_windows():
-            raise SkipTest("Temporarily skipped, need to investigate")
-        # NXDRIVE-358
+    @skipIf(AbstractOSIntegration.is_windows(),
+            'NXDRIVE-358: Temporarily skipped, need to investigate')
+    def test_logs(self):
         report = Report(self.manager, os.path.join(self.folder, "report.zip"))
         log.debug("Strange encoding \xe9")
         log.debug(u"Unicode encoding \xe8")

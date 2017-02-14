@@ -1,6 +1,9 @@
+import os
+from unittest import skipIf
 
+from nxdrive.client.local_client import FileInfo
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.tests.common_unit_test import UnitTestCase
-
 
 class TestEncoding(UnitTestCase):
 
@@ -87,13 +90,9 @@ class TestEncoding(UnitTestCase):
             u'/espace\xa0 et TM\u2122.doc').name,
             u'espace\xa0 et TM\u2122.doc')
 
+    @skipIf(AbstractOSIntegration.is_mac(),
+            'Normalization dont work on Mac')
     def test_fileinfo_normalization(self):
-        import os
-        from nxdrive.client.local_client import FileInfo
-        from nose.plugins.skip import SkipTest
-        from nxdrive.osi import AbstractOSIntegration
-        if AbstractOSIntegration.is_mac():
-            raise SkipTest("Normalization dont work on Mac")
         self.engine_1.stop()
         name = u'Teste\u0301'
         self.local_client.make_file('/', name, 'Test')

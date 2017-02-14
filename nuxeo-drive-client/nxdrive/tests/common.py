@@ -1,11 +1,12 @@
 """Common test utilities"""
+import sys
+
 import hashlib
 import os
 import shutil
-import sys
 import tempfile
-import unittest
 from os.path import dirname
+from unittest import TestCase
 
 import nxdrive
 from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
@@ -53,10 +54,8 @@ TEST_DEFAULT_QUIT_TIMEOUT = 30
 
 
 def configure_logger():
-    configure(
-        console_level=DEFAULT_CONSOLE_LOG_LEVEL,
-        command_name='test',
-    )
+    configure(console_level=DEFAULT_CONSOLE_LOG_LEVEL,
+              command_name='test')
 
 # Configure test logger
 configure_logger()
@@ -93,7 +92,7 @@ def clean_dir(_dir):
                 os.system('rmdir /S /Q %s' % to_remove)
 
 
-class IntegrationTestCase(unittest.TestCase):
+class IntegrationTestCase(TestCase):
 
     def setUp(self):
         # Save the current path for test files
@@ -117,10 +116,6 @@ class IntegrationTestCase(unittest.TestCase):
             self.tmpdir = os.path.join(self.build_workspace, "tmp")
             if not os.path.isdir(self.tmpdir):
                 os.makedirs(self.tmpdir)
-
-        if None in (self.nuxeo_url, self.admin_user, self.password):
-            raise unittest.SkipTest(
-                "No integration server configuration found in environment.")
 
         self.full_nuxeo_url = self.nuxeo_url
         if '#' in self.nuxeo_url:

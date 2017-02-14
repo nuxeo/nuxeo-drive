@@ -2,7 +2,7 @@ import hashlib
 import os
 from shutil import copyfile
 from threading import current_thread
-from unittest import SkipTest
+from unittest import skip
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.base_automation_client import CorruptedFile
@@ -165,8 +165,8 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertEqual(folder_1_children[0].uid, file_2_id)
         self.assertEqual(folder_1_children[0].name, 'File 2')
 
+    @skip('Not ready yet')
     def test_scroll_descendants(self):
-        raise SkipTest("Not ready yet")
         remote_client = self.remote_file_system_client_1
 
         # Create documents

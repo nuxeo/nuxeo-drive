@@ -4,7 +4,7 @@ import shutil
 from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
 from nxdrive.tests.common_unit_test import UnitTestCase
 from nxdrive.osi import AbstractOSIntegration
-from nose.plugins.skip import SkipTest
+from unittest import skipIf
 
 
 class TestConflicts(UnitTestCase):
@@ -126,14 +126,14 @@ class TestConflicts(UnitTestCase):
         self.assertEqual(remote.get_content(self.file_id), 'Remote update')
         self.assertEqual(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
 
+    @skipIf(not AbstractOSIntegration.is_windows(),
+            'Windows Office only test')
     def test_XLS_conflict_on_locked_document(self):
-        if not AbstractOSIntegration.is_windows():
-            raise SkipTest("Windows Office only test")
         self._XLS_local_update_on_locked_document(locked_from_start=False)
 
+    @skipIf(not AbstractOSIntegration.is_windows(),
+            'Windows Office only test')
     def test_XLS_conflict_on_locked_document_from_start(self):
-        if not AbstractOSIntegration.is_windows():
-            raise SkipTest("Windows Office only test")
         self._XLS_local_update_on_locked_document()
 
     def _XLS_local_update_on_locked_document(self, locked_from_start=True):

@@ -1,9 +1,9 @@
 import time
 
-from nxdrive.tests.common import TEST_WORKSPACE_PATH
-from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION
+from unittest import skip
+
+from nxdrive.tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
 from nxdrive.tests.common_unit_test import UnitTestCase
-from nose.plugins.skip import SkipTest
 
 
 class TestSecurityUpdates(UnitTestCase):
@@ -73,9 +73,9 @@ class TestSecurityUpdates(UnitTestCase):
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
+    @skip('NXDRIVE-170: WIP')
     def test_synchronize_denying_read_access_local_modification(self):
         # TO_REVIEW: Trash feature, delete it, might need to modify the behavior
-        raise SkipTest("WIP in https://jira.nuxeo.com/browse/NXDRIVE-170")
         """Test denying Read access with concurrent local modification
 
         Use cases:
