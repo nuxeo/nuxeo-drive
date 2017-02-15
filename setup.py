@@ -394,11 +394,9 @@ class NuxeoDriveSetup(object):
             excludes.append('xattr')
         attribs.append_includes(includes)
 
-        # Do not include tests and debug packages
-        packages.remove('nxdrive.engine.next')
+        # Do not include debug packages
         packages.remove('nxdrive.debug')
         packages.remove('nxdrive.debug.wui')
-        packages.remove('nxdrive.tests')
 
         if '--freeze' in sys.argv:
             print "Building standalone executable..."

@@ -7,25 +7,13 @@
 #     --build: build the package
 #     --tests: launch the tests suite
 #
-# Dependencies: https://github.com/yyuu/pyenv/wiki/Common-build-problems#requirements
-#
-### About environment variables
-#
-# PYTHON_DRIVE_VERSION is the required Python version to use, i.e. "2.7.13".
-# PYQT_VERSION is the required PyQt version to use, i.e. "4.12".
-# WORKSPACE is the absolute path to the WORKSPACE, i.e. "/opt/jenkins/workspace/xxx"
-#
-#### Optional envvars
-#
-# WORKSPACE_DRIVE is the absolute path to Drive sources, i.e. "$WORKSPACE/sources".
-#     If not defined, it will be set to $WORKSPACE/sources or $WORKSPACE/nuxeo-drive if found else $WORKSPACE.
-# SIP_VERSION is the SIP version to use, i.e. "4.19".
+# See /docs/deployement.md for more informations.
 #
 
 #set -x  # verbose
 
 # Global variables
-PIP="pip install -q --upgrade"
+PIP="python -m pip install -q --upgrade"
 
 build_esky() {
     echo ">>> Building the release package"
@@ -95,6 +83,15 @@ check_vars() {
     echo "    WORKSPACE            = ${WORKSPACE}"
     echo "    WORKSPACE_DRIVE      = ${WORKSPACE_DRIVE}"
     echo "    STORAGE_DIR          = ${STORAGE_DIR}"
+
+    if [ "${SPECIFIC_TEST:=unset}" = "unset" ] ||
+       [ "${SPECIFIC_TEST}" = "" ] ||
+       [ "${SPECIFIC_TEST}" = "nuxeo-drive-client/tests" ]; then
+        export SPECIFIC_TEST="nuxeo-drive-client/tests"
+    else
+        echo "    SPECIFIC_TEST        = ${SPECIFIC_TEST}"
+        export SPECIFIC_TEST="nuxeo-drive-client/tests/${SPECIFIC_TEST}"
+    fi
 }
 
 download() {
@@ -115,6 +112,27 @@ extract() {
     echo ">>> Extracting $file"
     echo "            to $folder"
     [ -d "$folder" ] || tar zxf "$file" -C "${STORAGE_DIR}"
+}
+
+install_cxfreeze() {
+    # Install cx_Freeze manually as pip does not work for this package
+    local version="${CXFREEZE_VERSION:=4.3.3}"
+    local url="https://sourceforge.net/projects/cx-freeze/files/${version}/cx_Freeze-${version}.tar.gz"
+    local path="${STORAGE_DIR}/cx_Freeze-${version}"
+    local output="${path}.tar.gz"
+
+    # Not used on Mac
+    [ "${OSI}" = "osx" ] && return
+
+    check_import "import cx_Freeze" && return
+    echo ">>> Installing cx_Freeze ${version}"
+
+    download "$url" "$output"
+    extract "$output" "$path"
+
+    cd "$path"
+    python setup.py install
+    cd "${WORKSPACE_DRIVE}"
 }
 
 install_deps() {
@@ -232,16 +250,16 @@ launch_tests() {
     echo ">>> Launching the tests suite"
 
     ${PIP} -r requirements-tests.txt
-    pytest nuxeo-drive-client/nxdrive \
+    pytest "${SPECIFIC_TEST}" \
         --showlocals \
-        --exitfirst \
         --strict \
         --failed-first \
         -r Efx \
         --full-trace \
-        --cache-clear \
         --capture=sys \
         --no-cov-on-fail \
+        --cov-append \
+        --cov-report term-missing:skip-covered \
         --cov-report html:../coverage \
         --cov=nuxeo-drive-client/nxdrive
 }
@@ -269,8 +287,9 @@ main() {
     install_python "${PYTHON_DRIVE_VERSION}"
     verify_python "${PYTHON_DRIVE_VERSION}"
     install_pyqt "${PYQT_VERSION}"
+    install_cxfreeze
     install_deps
-    if ! check_import "import PyQt4.QtWebKit" > /dev/null; then
+    if ! check_import "import PyQt4.QtWebKit" >/dev/null; then
         echo ">>> Installation failed."
         exit 1
     fi

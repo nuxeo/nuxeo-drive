@@ -9,12 +9,14 @@
   </unzip>
   <import file="${out.dir}/nuxeo-ftest.xml" />
 
-  <!-- Need nuxeo-dam to test the Picture type  -->
+  <!-- Needed to test the Picture type -->
   <property name="wizard.preset" value="nuxeo-dam" />
 
   <!-- Configure nuxeo-drive marketplace package installation -->
   <property name="nuxeo.drive.mp.filename" value="nuxeo-drive.zip" />
-  <property name="mp.install" value="${out.dir}/${nuxeo.drive.mp.filename}" />
+  <!-- nuxeo-jsf-ui is needed to test the Document (un)lock -->
+  <!-- nuxeo-platform-importer is needed to test mass import -->
+  <property name="mp.install" value="nuxeo-jsf-ui,${out.dir}/${nuxeo.drive.mp.filename},nuxeo-platform-importer" />
 
   <target name="fetch-nuxeo-drive-mp">
     <exec executable="python" failonerror="true">

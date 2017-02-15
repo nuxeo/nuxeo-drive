@@ -11,12 +11,14 @@ Get the help on running this with::
 
 """
 
+import sys
+
 import argparse
 import fnmatch
 import os
 import re
 import shutil
-import sys
+
 try:
     import urllib2
 except ImportError:
@@ -196,6 +198,7 @@ def clean_home_folder(dir_=None):
 
 
 def run_tests_from_source():
+    os.environ['SPECIFIC_TEST'] = 'test_synchronization.py::TestSynchronization::test_synchronize_special_filenames'
     cmd = 'sh ../tools/linux/deploy_jenkins_slave.sh --tests'
     if sys.platform == 'darwin':
         cmd = 'sh ../tools/osx/deploy_jenkins_slave.sh --tests'

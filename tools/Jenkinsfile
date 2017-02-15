@@ -1,68 +1,131 @@
-#!/usr/bin/env groovy
+#!groovy
 
-//def labels = ['OSXSLAVE', 'SLAVE', 'MULTIDB_WINDOWS'] // labels for Jenkins node types we will build on
-def labels = ['OSXSLAVE', 'MULTIDB_WINDOWS']
-def slaves_map = [OSXSLAVE: 'OSX', SLAVE: 'GNU/Linux', MULTIDB_WINDOWS: 'Windows']
+// Pipeline properties
+properties([
+    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
+    [$class: 'ParametersDefinitionProperty',
+        parameterDefinitions: [
+            [$class: 'StringParameterDefinition',
+                name: 'SPECIFIC_TEST',
+                defaultValue: '',
+                description: 'Specific test to launch. The syntax must be the same as <a href="http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id">pytest markers</a>'],
+            [$class: 'StringParameterDefinition',
+                name: 'PYTHON_DRIVE_VERSION',
+                defaultValue: '2.7.13',
+                description: '<b>Required</b> Python version to use'],
+            [$class: 'StringParameterDefinition',
+                name: 'PYQT_VERSION',
+                defaultValue: '4.12',
+                description: '<b>Required</b> PyQt version to use (GNU/Linux and macOS only)'],
+            [$class: 'StringParameterDefinition',
+                name: 'CXFREEZE_VERSION',
+                defaultValue: '4.3.3',
+                description: '<i>Optional</i> cx_Freeze version to use'],
+            [$class: 'StringParameterDefinition',
+                name: 'SIP_VERSION',
+                defaultValue: '4.19',
+                description: '<i>Optional</i> SIP version to use (GNU/Linux and macOS only)'],,
+            [$class: 'StringParameterDefinition',
+                name: 'TEST_REMOTE_SCAN_VOLUME',
+                defaultValue: '100',
+                description: '<i>Optional</i> Number of nodes for the remote scan volume test'],
+            [$class: 'ChoiceParameterDefinition',
+                name: 'RANDOM_BUG_MODE',
+                choices: 'relax\nstrict\nbypass',
+                description: 'Random bug mode']
+        ]
+    ],
+    pipelineTriggers([[$class: 'GitHubPushTrigger']])
+])
+
+// Jenkins slaves we will build on
+def slaves = ['OSXSLAVE', 'MULTIDB_LINUX', 'MULTIDB_WINDOWS']
+def labels = [
+    OSXSLAVE: 'macOS',
+    MULTIDB_LINUX: 'GNU/Linux',
+    MULTIDB_WINDOWS: 'Windows'
+]
 def builders = [:]
 
-// Set the default Python version needed for all steps on Drive (setup/tests/package/etc.)
-def python_version = params.PYTHON_DRIVE_VERSION ?: "2.7.13"
-def pyqt_version = params.PYQT_VERSION ?: "4.12"
-
-for (x in labels) {
-    def label = x // Need to bind the label variable before the closure - can't do 'for (label in labels)'
+for (x in slaves) {
+    def slave = x
+    def osi = labels.get(slave)
 
     // Create a map to pass in to the 'parallel' step so we can fire all the builds at once
-    builders[label] = {
-        node(label) {
+    builders[slave] = {
+        node(slave) {
             withEnv(["WORKSPACE=${pwd()}"]) {
-                def osi = slaves_map.get(label)
-                env.PYTHON_DRIVE_VERSION = "${python_version}"
-                env.PYQT_VERSION = "${pyqt_version}"
+                // Required envars
+                env.PYTHON_DRIVE_VERSION = params.PYTHON_DRIVE_VERSION ?: '2.7.13'
+                env.PYQT_VERSION = params.PYQT_VERSION ?: '4.12'
 
-                stage(osi + ' Checkout') {
-                    checkout([$class: 'GitSCM',
-                        branches: [[name: '*/' + env.BRANCH_NAME]],
-                        browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/nuxeo/nuxeo-drive'],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
-                        submoduleCfg: [],
-                        userRemoteConfigs: [[url: 'https://github.com/nuxeo/nuxeo-drive.git']]])
-                }
+                try {
+                    stage(osi + ' Checkout') {
+                        checkout([$class: 'GitSCM',
+                            branches: [[name: '*/' + env.BRANCH_NAME]],
+                            browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/nuxeo/nuxeo-drive'],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: 'https://github.com/nuxeo/nuxeo-drive.git']]])
+                    }
 
-                stage(osi + ' Setup') {
-                    // Set up a complete isolated environment
-                    dir('sources') {
-                        if (osi == "OSX") {
-                            sh "tools/osx/deploy_jenkins_slave.sh"
-                        } else if (osi == "GNU/Linux") {
-                            sh "tools/linux/deploy_jenkins_slave.sh"
-                        } else {
-                            bat "powershell \".\\tools\\windows\\deploy_jenkins_slave.ps1\""
+                    stage(osi + ' Setup') {
+                        // Set up a complete isolated environment
+                        dir('deploy-dir') {
+                            echo 'Directory purgation'
+                            deleteDir()
+                        }
+                        dir('sources') {
+                            if (slave == 'OSXSLAVE') {
+                                sh 'tools/osx/deploy_jenkins_slave.sh'
+                            } else if (slave == 'MULTIDB_LINUX') {
+                                sh 'tools/linux/deploy_jenkins_slave.sh'
+                            } else {
+                                bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1"'
+                            }
                         }
                     }
-                }
 
-                stage(osi + ' Tests') {
-                    // Launch the tests suite
-                    jdk = tool name: 'java-8-oracle'
-                    env.JAVA_HOME = "${jdk}"
-                    dir('sources') {
-                        def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                        if (osi == "Windows") {
-                            bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
-                        } else {
-                            sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
+                    stage(osi + ' Tests') {
+                        // Launch the tests suite
+                        jdk = tool name: 'java-8-oracle'
+                        env.JAVA_HOME = "${jdk}"
+
+                        // Number of nodes for the remote scan volume test
+                        env.TEST_REMOTE_SCAN_VOLUME = params.TEST_REMOTE_SCAN_VOLUME ?: '100'
+
+                        dir('sources') {
+                            def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                            if (slave == 'MULTIDB_WINDOWS') {
+                                bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
+                            } else {
+                                sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
+                            }
+                            currentBuild.result = 'SUCCESS'
+                        }
+
+                        dir('deploy-dir') {
+                            echo 'Directory purgation'
+                            deleteDir()
                         }
                     }
-                }
-            }
+                } finally {
+                    // We use catchError to not let notifiers and recorders change the current build status
+                    catchError {
+                        // Retrieve logs
+                        archive 'sources/ftest/target/tomcat/log/*.log'
 
-            post {
-                success {
-                    // Retrieve coverage statistics as an artifact
-                    def osi_lower = label.toLowerCase()
-                    zip zipFile: "coverage-${osi_lower}.zip", dir: "../coverage", archive: true
+                        echo 'Retrieve coverage statistics'
+                        archive 'coverage/*'
+
+                        // Update revelant Jira issues only if we are working on the master branch
+                        if (env.BRANCH_NAME == 'master') {
+                            step([$class: 'JiraIssueUpdater',
+                                issueSelector: [$class: 'DefaultIssueSelector'],
+                                scm: scm])
+                        }
+                    }
                 }
             }
         }
