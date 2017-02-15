@@ -377,7 +377,7 @@ class NuxeoDriveSetup(object):
             "atexit",  # implicitly required by PyQt4
             "js2py.pyjs"
         ]
-        if attribs.include_xattr_binaries():
+        if attribs.include_xattr_binaries() and sys.platform != 'win32':
             includes.append('cffi')
             includes.append('xattr')
 
@@ -389,7 +389,7 @@ class NuxeoDriveSetup(object):
             "pydoc",
             "tkinter",
         ]
-        if not attribs.include_xattr_binaries():
+        if not attribs.include_xattr_binaries() and sys.platform != 'win32':
             excludes.append('cffi')
             excludes.append('xattr')
 
