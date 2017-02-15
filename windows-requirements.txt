@@ -1,0 +1,2 @@
+urllib3==1.20
+pypiwin32==219
