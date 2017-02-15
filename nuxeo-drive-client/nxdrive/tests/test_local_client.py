@@ -1,255 +1,207 @@
-import os
-import tempfile
+from time import sleep
+
 import hashlib
-from nose import with_setup
-from nose.tools import assert_true
-from nose.tools import assert_false
-from nose.tools import assert_equal
-from nose.tools import assert_not_equal
-from nose.tools import assert_raises
+import os
 
-from nxdrive.client import LocalClient
 from nxdrive.client import NotFound
-from nxdrive.tests.common import EMPTY_DIGEST
-from nxdrive.tests.common import SOME_TEXT_CONTENT
-from nxdrive.tests.common import SOME_TEXT_DIGEST
-from nxdrive.tests.common import clean_dir
+from nxdrive.tests.common import EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
+from nxdrive.tests.common_unit_test import UnitTestCase
 
 
-LOCAL_TEST_FOLDER = None
-TEST_WORKSPACE = None
-lcclient = None
+class TestLocalClient(UnitTestCase):
 
+    def setUp(self):
+        super(TestLocalClient, self).setUp()
+        self.engine_1.start()
+        self.wait_sync()
 
-def setup_temp_folder():
-    global lcclient, LOCAL_TEST_FOLDER, TEST_WORKSPACE
-    build_workspace = os.environ.get('WORKSPACE')
-    tmpdir = None
-    if build_workspace is not None:
-        tmpdir = os.path.join(build_workspace, "tmp")
-        if not os.path.isdir(tmpdir):
-            os.makedirs(tmpdir)
-    LOCAL_TEST_FOLDER = tempfile.mkdtemp(u'-nuxeo-drive-tests', dir=tmpdir)
-    lcclient = LocalClient(LOCAL_TEST_FOLDER)
-    TEST_WORKSPACE = lcclient.make_folder(u'/', u'Some Workspace')
+    def test_make_documents(self):
+        doc_1 = self.local_client_1.make_file('/', 'Document 1.txt')
+        self.assertTrue(self.local_client_1.exists(doc_1))
+        self.assertEqual(self.local_client_1.get_content(doc_1), b'')
+        doc_1_info = self.local_client_1.get_info(doc_1)
+        self.assertEqual(doc_1_info.name, 'Document 1.txt')
+        self.assertEqual(doc_1_info.path, doc_1)
+        self.assertEqual(doc_1_info.get_digest(), EMPTY_DIGEST)
+        self.assertEqual(doc_1_info.folderish, False)
 
+        doc_2 = self.local_client_1.make_file('/', 'Document 2.txt',
+                                              content=SOME_TEXT_CONTENT)
+        self.assertTrue(self.local_client_1.exists(doc_2))
+        self.assertEqual(self.local_client_1.get_content(doc_2), SOME_TEXT_CONTENT)
+        doc_2_info = self.local_client_1.get_info(doc_2)
+        self.assertEqual(doc_2_info.name, 'Document 2.txt')
+        self.assertEqual(doc_2_info.path, doc_2)
+        self.assertEqual(doc_2_info.get_digest(), SOME_TEXT_DIGEST)
+        self.assertEqual(doc_2_info.folderish, False)
 
-def teardown_temp_folder():
-    clean_dir(LOCAL_TEST_FOLDER)
+        self.local_client_1.delete(doc_2)
+        self.assertTrue(self.local_client_1.exists(doc_1))
+        self.assertFalse(self.local_client_1.exists(doc_2))
 
+        folder_1 = self.local_client_1.make_folder('/', 'A new folder')
+        self.assertTrue(self.local_client_1.exists(folder_1))
+        folder_1_info = self.local_client_1.get_info(folder_1)
+        self.assertEqual(folder_1_info.name, 'A new folder')
+        self.assertEqual(folder_1_info.path, folder_1)
+        self.assertEqual(folder_1_info.get_digest(), None)
+        self.assertEqual(folder_1_info.folderish, True)
 
-with_temp_folder = with_setup(setup_temp_folder, teardown_temp_folder)
+        doc_3 = self.local_client_1.make_file(folder_1, 'Document 3.txt',
+                                              content=SOME_TEXT_CONTENT)
+        self.local_client_1.delete(folder_1)
+        self.assertFalse(self.local_client_1.exists(folder_1))
+        self.assertFalse(self.local_client_1.exists(doc_3))
 
+    def test_get_info_invalid_date(self):
+        doc_1 = self.local_client_1.make_file('/', 'Document 1.txt')
+        os.utime(self.local_client_1._abspath(os.path.join('/', 'Document 1.txt')), (0, 999999999999999))
+        doc_1_info = self.local_client_1.get_info(doc_1)
+        self.assertEqual(doc_1_info.name, 'Document 1.txt')
+        self.assertEqual(doc_1_info.path, doc_1)
+        self.assertEqual(doc_1_info.get_digest(), EMPTY_DIGEST)
+        self.assertEqual(doc_1_info.folderish, False)
 
-@with_temp_folder
-def test_make_documents():
-    doc_1 = lcclient.make_file(TEST_WORKSPACE, u'Document 1.txt')
-    assert_true(lcclient.exists(doc_1))
-    assert_equal(lcclient.get_content(doc_1), b"")
-    doc_1_info = lcclient.get_info(doc_1)
-    assert_equal(doc_1_info.name, u'Document 1.txt')
-    assert_equal(doc_1_info.path, doc_1)
-    assert_equal(doc_1_info.get_digest(), EMPTY_DIGEST)
-    assert_equal(doc_1_info.folderish, False)
+    def test_complex_filenames(self):
+        # create another folder with the same title
+        title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
+        folder_1 = self.local_client_1.make_folder('/', title_with_accents)
+        folder_1_info = self.local_client_1.get_info(folder_1)
+        self.assertEqual(folder_1_info.name, title_with_accents)
 
-    doc_2 = lcclient.make_file(TEST_WORKSPACE, u'Document 2.txt',
-                              content=SOME_TEXT_CONTENT)
-    assert_true(lcclient.exists(doc_2))
-    assert_equal(lcclient.get_content(doc_2), SOME_TEXT_CONTENT)
-    doc_2_info = lcclient.get_info(doc_2)
-    assert_equal(doc_2_info.name, u'Document 2.txt')
-    assert_equal(doc_2_info.path, doc_2)
-    assert_equal(doc_2_info.get_digest(), SOME_TEXT_DIGEST)
-    assert_equal(doc_2_info.folderish, False)
+        # create another folder with the same title
+        title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
+        folder_2 = self.local_client_1.make_folder('/', title_with_accents)
+        folder_2_info = self.local_client_1.get_info(folder_2)
+        self.assertEqual(folder_2_info.name, title_with_accents + u"__1")
+        self.assertNotEqual(folder_1, folder_2)
 
-    lcclient.delete(doc_2)
-    assert_true(lcclient.exists(doc_1))
-    assert_false(lcclient.exists(doc_2))
+        title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
+        folder_3 = self.local_client_1.make_folder('/', title_with_accents)
+        folder_3_info = self.local_client_1.get_info(folder_3)
+        self.assertEqual(folder_3_info.name, title_with_accents + u"__2")
+        self.assertNotEqual(folder_1, folder_3)
 
-    folder_1 = lcclient.make_folder(TEST_WORKSPACE, u'A new folder')
-    assert_true(lcclient.exists(folder_1))
-    folder_1_info = lcclient.get_info(folder_1)
-    assert_equal(folder_1_info.name, u'A new folder')
-    assert_equal(folder_1_info.path, folder_1)
-    assert_equal(folder_1_info.get_digest(), None)
-    assert_equal(folder_1_info.folderish, True)
+        # Create a long file name with weird chars
+        long_filename = u"\xe9" * 50 + u"%$#!()[]{}+_-=';&^" + u".doc"
+        file_1 = self.local_client_1.make_file(folder_1, long_filename)
+        file_1 = self.local_client_1.get_info(file_1)
+        self.assertEqual(file_1.name, long_filename)
+        self.assertEqual(file_1.path, folder_1_info.path + u"/" + long_filename)
 
-    doc_3 = lcclient.make_file(folder_1, u'Document 3.txt',
-                               content=SOME_TEXT_CONTENT)
-    lcclient.delete(folder_1)
-    assert_false(lcclient.exists(folder_1))
-    assert_false(lcclient.exists(doc_3))
+        # Create a file with invalid chars
+        invalid_filename = u"a/b\\c*d:e<f>g?h\"i|j.doc"
+        escaped_filename = u"a-b-c-d-e-f-g-h-i-j.doc"
+        file_2 = self.local_client_1.make_file(folder_1, invalid_filename)
+        file_2 = self.local_client_1.get_info(file_2)
+        self.assertEqual(file_2.name, escaped_filename)
+        self.assertEqual(file_2.path, folder_1_info.path + u'/' + escaped_filename)
 
+    def test_missing_file(self):
+        with self.assertRaises(NotFound):
+            self.local_client_1.get_info('/Something Missing')
 
-@with_temp_folder
-def test_get_info_invalid_date():
-    doc_1 = lcclient.make_file(TEST_WORKSPACE, u'Document 1.txt')
-    os.utime(lcclient._abspath(os.path.join(TEST_WORKSPACE, u'Document 1.txt')), (0, 999999999999999))
-    doc_1_info = lcclient.get_info(doc_1)
-    assert_equal(doc_1_info.name, u'Document 1.txt')
-    assert_equal(doc_1_info.path, doc_1)
-    assert_equal(doc_1_info.get_digest(), EMPTY_DIGEST)
-    assert_equal(doc_1_info.folderish, False)
+    def test_get_children_info(self):
+        folder_1 = self.local_client_1.make_folder('/', 'Folder 1')
+        folder_2 = self.local_client_1.make_folder('/', 'Folder 2')
+        file_1 = self.local_client_1.make_file('/', 'File 1.txt',
+                                               content=b'foo\n')
 
+        # not a direct child of '/'
+        self.local_client_1.make_file(folder_1, 'File 2.txt', content=b'bar\n')
 
-@with_temp_folder
-def test_complex_filenames():
-    # create another folder with the same title
-    title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
-    folder_1 = lcclient.make_folder(TEST_WORKSPACE, title_with_accents)
-    folder_1_info = lcclient.get_info(folder_1)
-    assert_equal(folder_1_info.name, title_with_accents)
+        # ignored files
+        self.local_client_1.make_file('/', '.File 2.txt', content=b'baz\n')
+        self.local_client_1.make_file('/', '~$File 2.txt', content=b'baz\n')
+        self.local_client_1.make_file('/', 'File 2.txt~', content=b'baz\n')
+        self.local_client_1.make_file('/', 'File 2.txt.swp', content=b'baz\n')
+        self.local_client_1.make_file('/', 'File 2.txt.lock', content=b'baz\n')
+        self.local_client_1.make_file('/', 'File 2.txt.LOCK', content=b'baz\n')
+        self.local_client_1.make_file('/', 'File 2.txt.part', content=b'baz\n')
+        self.local_client_1.make_file('/', '.File 2.txt.nxpart', content=b'baz\n')
 
-    # create another folder with the same title
-    title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
-    folder_2 = lcclient.make_folder(TEST_WORKSPACE, title_with_accents)
-    folder_2_info = lcclient.get_info(folder_2)
-    assert_equal(folder_2_info.name, title_with_accents + u"__1")
-    assert_not_equal(folder_1, folder_2)
+        workspace_children = self.local_client_1.get_children_info('/')
+        self.assertEqual(len(workspace_children), 3)
+        self.assertEqual(workspace_children[0].path, file_1)
+        self.assertEqual(workspace_children[1].path, folder_1)
+        self.assertEqual(workspace_children[2].path, folder_2)
 
-    title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
-    folder_3 = lcclient.make_folder(TEST_WORKSPACE, title_with_accents)
-    folder_3_info = lcclient.get_info(folder_3)
-    assert_equal(folder_3_info.name, title_with_accents + u"__2")
-    assert_not_equal(folder_1, folder_3)
+    def test_deep_folders(self):
+        # Check that local client can workaround the default windows MAX_PATH limit
+        folder = '/'
+        for _i in range(30):
+            folder = self.local_client_1.make_folder(folder, '0123456789')
 
-    # Create a long file name with weird chars
-    long_filename = u"\xe9" * 50 + u"%$#!()[]{}+_-=';&^" + u".doc"
-    file_1 = lcclient.make_file(folder_1, long_filename)
-    file_1 = lcclient.get_info(file_1)
-    assert_equal(file_1.name, long_filename)
-    assert_equal(file_1.path, folder_1_info.path + u"/" + long_filename)
+        # Last Level
+        last_level_folder_info = self.local_client_1.get_info(folder)
+        self.assertEqual(last_level_folder_info.path, '/0123456789' * 30)
 
-    # Create a file with invalid chars
-    invalid_filename = u"a/b\\c*d:e<f>g?h\"i|j.doc"
-    escaped_filename = u"a-b-c-d-e-f-g-h-i-j.doc"
-    file_2 = lcclient.make_file(folder_1, invalid_filename)
-    file_2 = lcclient.get_info(file_2)
-    assert_equal(file_2.name, escaped_filename)
-    assert_equal(file_2.path, folder_1_info.path + u'/' + escaped_filename)
+        # Create a nested file
+        deep_file = self.local_client_1.make_file(folder, 'File.txt',
+                                                  content=b'Some Content.')
 
+        # Check the consistency of  get_children_info and get_info
+        deep_file_info = self.local_client_1.get_info(deep_file)
+        deep_children = self.local_client_1.get_children_info(folder)
+        self.assertEqual(len(deep_children), 1)
+        deep_child_info = deep_children[0]
+        self.assertEqual(deep_file_info.name, deep_child_info.name)
+        self.assertEqual(deep_file_info.path, deep_child_info.path)
+        self.assertEqual(deep_file_info.get_digest(), deep_child_info.get_digest())
 
-@with_temp_folder
-def test_missing_file():
-    assert_raises(NotFound, lcclient.get_info, u'/Something Missing')
+        # Update the file content
+        self.local_client_1.update_content(deep_file, b'New Content.')
+        self.assertEqual(self.local_client_1.get_content(deep_file), b'New Content.')
 
+        # Delete the folder
+        self.local_client_1.delete(folder)
+        self.assertFalse(self.local_client_1.exists(folder))
+        self.assertFalse(self.local_client_1.exists(deep_file))
 
-@with_temp_folder
-def test_get_children_info():
-    folder_1 = lcclient.make_folder(TEST_WORKSPACE, u'Folder 1')
-    folder_2 = lcclient.make_folder(TEST_WORKSPACE, u'Folder 2')
-    file_1 = lcclient.make_file(TEST_WORKSPACE, u'File 1.txt',
-                                content=b"foo\n")
+        # Delete the root folder and descendants
+        self.local_client_1.delete('/0123456789')
+        self.assertFalse(self.local_client_1.exists('/0123456789'))
 
-    # not a direct child of TEST_WORKSPACE
-    lcclient.make_file(folder_1, u'File 2.txt', content=b"bar\n")
+    def test_get_new_file(self):
+        path, os_path, name = self.local_client_1.get_new_file('/', 'Document 1.txt')
+        self.assertEqual(path, '/Document 1.txt')
+        self.assertTrue(os_path.endswith(os.path.join(self.workspace_title,
+                                                      'Document 1.txt')))
+        self.assertEqual(name, 'Document 1.txt')
+        self.assertFalse(self.local_client_1.exists(path))
+        self.assertFalse(os.path.exists(os_path))
 
-    # ignored files
-    lcclient.make_file(TEST_WORKSPACE, u'.File 2.txt', content=b"baz\n")
-    lcclient.make_file(TEST_WORKSPACE, u'~$File 2.txt', content=b"baz\n")
-    lcclient.make_file(TEST_WORKSPACE, u'File 2.txt~', content=b"baz\n")
-    lcclient.make_file(TEST_WORKSPACE, u'File 2.txt.swp', content=b"baz\n")
-    lcclient.make_file(TEST_WORKSPACE, u'File 2.txt.lock', content=b"baz\n")
-    lcclient.make_file(TEST_WORKSPACE, u'File 2.txt.LOCK', content=b"baz\n")
-    lcclient.make_file(TEST_WORKSPACE, u'File 2.txt.part', content=b"baz\n")
-    lcclient.make_file(TEST_WORKSPACE, u'.File 2.txt.nxpart', content=b"baz\n")
+    def test_xattr(self):
+        ref = self.local_client_1.make_file('/', 'File 2.txt', content=b'baz\n')
+        path = self.local_client_1._abspath(ref)
+        mtime = int(os.path.getmtime(path))
+        sleep(1)
+        self.local_client_1.set_remote_id(ref, 'TEST')
+        self.assertTrue(mtime == int(os.path.getmtime(path)))
+        sleep(1)
+        self.local_client_1.remove_remote_id(ref)
+        self.assertTrue(mtime == int(os.path.getmtime(path)))
 
-    workspace_children = lcclient.get_children_info(TEST_WORKSPACE)
-    assert_equal(len(workspace_children), 3)
-    assert_equal(workspace_children[0].path, file_1)
-    assert_equal(workspace_children[1].path, folder_1)
-    assert_equal(workspace_children[2].path, folder_2)
+    def test_get_path(self):
+        abs_path = os.path.join(self.local_nxdrive_folder_1, self.workspace_title, 'Test doc.txt')
+        self.assertEqual(self.local_client_1.get_path(abs_path), '/Test doc.txt')
 
-
-@with_temp_folder
-def test_deep_folders():
-    # Check that local client can workaround the default windows MAX_PATH limit
-    folder = '/'
-    for _i in range(30):
-        folder = lcclient.make_folder(folder, u'0123456789')
-
-    # Last Level
-    last_level_folder_info = lcclient.get_info(folder)
-    assert_equal(last_level_folder_info.path, u'/0123456789' * 30)
-
-    # Create a nested file
-    deep_file = lcclient.make_file(folder, u'File.txt',
-        content=b"Some Content.")
-
-    # Check the consistency of  get_children_info and get_info
-    deep_file_info = lcclient.get_info(deep_file)
-    deep_children = lcclient.get_children_info(folder)
-    assert_equal(len(deep_children), 1)
-    deep_child_info = deep_children[0]
-    assert_equal(deep_file_info.name, deep_child_info.name)
-    assert_equal(deep_file_info.path, deep_child_info.path)
-    assert_equal(deep_file_info.get_digest(), deep_child_info.get_digest())
-
-    # Update the file content
-    lcclient.update_content(deep_file, b"New Content.")
-    assert_equal(lcclient.get_content(deep_file), b"New Content.")
-
-    # Delete the folder
-    lcclient.delete(folder)
-    assert_false(lcclient.exists(folder))
-    assert_false(lcclient.exists(deep_file))
-
-    # Delete the root folder and descendants
-    lcclient.delete(u'/0123456789')
-    assert_false(lcclient.exists(u'/0123456789'))
-
-
-@with_temp_folder
-def test_get_new_file():
-    path, os_path, name = lcclient.get_new_file(TEST_WORKSPACE,
-                                                u'Document 1.txt')
-    assert_equal(path, '/Some Workspace/Document 1.txt')
-    assert_true(os_path.endswith(
-                    os.path.join('-nuxeo-drive-tests', 'Some Workspace',
-                        'Document 1.txt')))
-    assert_equal(name, 'Document 1.txt')
-    assert_false(lcclient.exists(path))
-    assert_false(os.path.exists(os_path))
-
-
-@with_temp_folder
-def test_xattr():
-    ref = lcclient.make_file(TEST_WORKSPACE, u'File 2.txt', content=b"baz\n")
-    path = lcclient._abspath(ref)
-    mtime = int(os.path.getmtime(path))
-    from time import sleep
-    sleep(1)
-    lcclient.set_remote_id(ref, 'TEST')
-    assert_true(mtime == int(os.path.getmtime(path)))
-    sleep(1)
-    lcclient.remove_remote_id(ref)
-    assert_true(mtime == int(os.path.getmtime(path)))
-
-
-@with_temp_folder
-def test_get_path():
-    abs_path = os.path.join(
-                        LOCAL_TEST_FOLDER, 'Some Workspace', 'Test doc.txt')
-    assert_equal(lcclient.get_path(abs_path), '/Some Workspace/Test doc.txt')
-
-
-@with_temp_folder
-def test_is_equal_digests():
-    content = b"joe"
-    local_path = lcclient.make_file(TEST_WORKSPACE, u'File.txt', content=content)
-    local_digest = hashlib.md5(content).hexdigest()
-    # Equal digests
-    assert_true(lcclient.is_equal_digests(local_digest, local_digest, local_path))
-    # Different digests with same digest algorithm
-    other_content = b"jack"
-    remote_digest = hashlib.md5(other_content).hexdigest()
-    assert_not_equal(local_digest, remote_digest)
-    assert_false(lcclient.is_equal_digests(local_digest, remote_digest, local_path))
-    # Different digests with different digest algorithms but same content
-    remote_digest = hashlib.sha1(content).hexdigest()
-    assert_not_equal(local_digest, remote_digest)
-    assert_true(lcclient.is_equal_digests(local_digest, remote_digest, local_path))
-    # Different digests with different digest algorithms and different content
-    remote_digest = hashlib.sha1(other_content).hexdigest()
-    assert_not_equal(local_digest, remote_digest)
-    assert_false(lcclient.is_equal_digests(local_digest, remote_digest, local_path))
+    def test_is_equal_digests(self):
+        content = b'joe'
+        local_path = self.local_client_1.make_file('/', 'File.txt', content=content)
+        local_digest = hashlib.md5(content).hexdigest()
+        # Equal digests
+        self.assertTrue(self.local_client_1.is_equal_digests(local_digest, local_digest, local_path))
+        # Different digests with same digest algorithm
+        other_content = b'jack'
+        remote_digest = hashlib.md5(other_content).hexdigest()
+        self.assertNotEqual(local_digest, remote_digest)
+        self.assertFalse(self.local_client_1.is_equal_digests(local_digest, remote_digest, local_path))
+        # Different digests with different digest algorithms but same content
+        remote_digest = hashlib.sha1(content).hexdigest()
+        self.assertNotEqual(local_digest, remote_digest)
+        self.assertTrue(self.local_client_1.is_equal_digests(local_digest, remote_digest, local_path))
+        # Different digests with different digest algorithms and different content
+        remote_digest = hashlib.sha1(other_content).hexdigest()
+        self.assertNotEqual(local_digest, remote_digest)
+        self.assertFalse(self.local_client_1.is_equal_digests(local_digest, remote_digest, local_path))
