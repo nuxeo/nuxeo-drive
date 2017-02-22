@@ -14,6 +14,9 @@ function build_msi {
 	# Build the famous MSI
 	echo ">>> Building the MSI package"
 	& $Env:PYTHON_DIR\python setup.py --freeze bdist_msi
+	if ($lastExitCode -eq 0) {
+		ExitWithCode $lastExitCode
+	}
 }
 
 function check_import($import) {
@@ -102,7 +105,6 @@ function install_cxfreeze {
 
 	download $url $output
 	echo ">>> Installing cx_Freeze"
-	# Here we use the "/a" argument to prevent cx_Freeze to be listed in installed softwares
 	Start-Process msiexec -ArgumentList "/a `"$output`" /passive TARGETDIR=`"$Env:PYTHON_DIR`"" -wait
 }
 
@@ -129,9 +131,14 @@ function install_pip {
 	echo ">>> Installing pip"
 	download $url $output
 	& $Env:PYTHON_DIR\python "$output" -q -t "$Env:PYTHON_DIR"
+	$ret = $lastExitCode
 
 	# Cleanup
 	Remove-Item -Force "$output"
+
+	if ($ret -ne 0) {
+		ExitWithCode $ret
+	}
 }
 
 function install_pyqt {
@@ -151,6 +158,9 @@ function install_pyqt {
 
 	echo ">>> Installing PyQt $Env:PYQT_VERSION"
 	& 7z x "$output" "Lib" "`$_OUTDIR" -xr"!doc" -xr"!examples" -xr"!mkspecs" -xr"!sip" -y
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
 	Copy-Item -Force "$source\sip.pyd" -Destination "$packages"
 	Copy-Item -Recurse -Force "$source_pyqt\imports" -Destination "$packages_pyqt"
 	Copy-Item -Recurse -Force "$source_pyqt\plugins" -Destination "$packages_pyqt"
@@ -211,9 +221,15 @@ function sign_msi {
 
 	echo ">>> Signing the MSI"
 	& signtool sign /v /f "$certificate" /p "$password" /d "$msi" /t "$timstamp"
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
 
 	echo ">>> Verifying the signature"
 	& signtool verify /v /pa "$dest/*.msi"
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
 }
 
 function main {

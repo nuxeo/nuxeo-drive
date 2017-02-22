@@ -37,13 +37,18 @@ create_package() {
     echo ">>> [DMG ${app_version}] Fixing Qt choice"
     touch "${pkg_path}/appdata/${esky_app_name}/${bundle_name}/Contents/Resources/qt.conf"
 
-    echo ">>> [DMG ${app_version}] Signing the app bundle"
-    codesign -s "${signing_id}" "${pkg_path}"
+    # TODO: reactivate with new certificate
+    # TODO: add parameters to Jenkinsfile
+    #echo ">>> Unlocking the Nuxeo keychain"
+    #security unlock-keychain -p "${NUXEO_KEYCHAIN_PWD}" "${NUXEO_KEYCHAIN_PATH}"
 
-    echo ">>> [DMG ${app_version}] Verifying code signature"
-    codesign "{$pkg_path}"
-    codesign -d "${pkg_path}"
-    spctl --assess --type execute "${pkg_path}"
+    #echo ">>> [DMG ${app_version}] Signing the app bundle"
+    #codesign -s "${signing_id}" "${pkg_path}"
+
+    #echo ">>> [DMG ${app_version}] Verifying code signature"
+    #codesign "{$pkg_path}"
+    #codesign -d "${pkg_path}"
+    #spctl --assess --type execute "${pkg_path}"
 
     # Clean tmp directories
     rm -rf "${src_folder_tmp}" "${dmg_tmp}"

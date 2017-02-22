@@ -250,7 +250,7 @@ launch_tests() {
     echo ">>> Launching the tests suite"
 
     ${PIP} -r requirements-tests.txt
-    pytest "${SPECIFIC_TEST}" \
+    python -m pytest "${SPECIFIC_TEST}" \
         --showlocals \
         --strict \
         --failed-first \

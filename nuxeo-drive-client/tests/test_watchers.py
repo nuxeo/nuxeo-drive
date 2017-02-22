@@ -60,7 +60,7 @@ class TestWatchers(UnitTestCase):
         # Wait for ES indexing
         self.wait()
         # Add the workspace folder
-        folders = folders + 1
+        folders += 1
         self.queue_manager_1.suspend()
         self.queue_manager_1._disable = True
         self.engine_1.start()

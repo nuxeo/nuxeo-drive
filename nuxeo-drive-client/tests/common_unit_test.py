@@ -577,7 +577,7 @@ class UnitTestCase(unittest.TestCase):
         local_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
         local_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         local_client.make_file(root, u'File 5.txt', content=b"eee")
-        return 6, 5
+        return (6, 5)
 
     def make_server_tree(self, deep=True):
         remote_client = self.remote_document_client_1
@@ -599,7 +599,7 @@ class UnitTestCase(unittest.TestCase):
             remote_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
             remote_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         remote_client.make_file(self.workspace, u'File 5.txt', content=b"eee")
-        return 7, 4 if deep else 1, 2
+        return (7, 4) if deep else (1, 2)
 
     def get_local_child_count(self, path):
         dir_count = 0
@@ -609,7 +609,7 @@ class UnitTestCase(unittest.TestCase):
             file_count += len(filenames)
         if os.path.exists(os.path.join(path, '.partials')):
             dir_count -= 1
-        return dir_count, file_count
+        return (dir_count, file_count)
 
     def get_full_queue(self, queue, dao=None):
         if dao is None:

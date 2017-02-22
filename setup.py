@@ -309,6 +309,13 @@ class NuxeoDriveSetup(object):
         name = attribs.get_name()
         packages = Packages(attribs.get_package_dirs()).load()
 
+        # Special handling for data files, except for GNU/Linux
+        if sys.platform in ('darwin', 'win32'):
+            try:
+                packages.remove('nxdrive.data')
+            except ValueError:
+                pass
+
         package_data = attribs.get_package_data()
         icons_home = attribs.get_icons_home()
         ui5_home = attribs.get_ui5_home()

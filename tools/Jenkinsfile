@@ -2,6 +2,7 @@
 
 // Pipeline properties
 properties([
+    [$class: 'SchedulerPreference', preferEvenload: true],
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
     [$class: 'ParametersDefinitionProperty',
         parameterDefinitions: [
@@ -39,15 +40,16 @@ properties([
 ])
 
 // Jenkins slaves we will build on
-def slaves = ['OSXSLAVE', 'MULTIDB_LINUX', 'MULTIDB_WINDOWS']
+def slaves = ['OSXSLAVE', 'SLAVE', 'WINSLAVE']
 def labels = [
     OSXSLAVE: 'macOS',
-    MULTIDB_LINUX: 'GNU/Linux',
-    MULTIDB_WINDOWS: 'Windows'
+    SLAVE: 'GNU/Linux',
+    WINSLAVE: 'Windows'
 ]
 def builders = [:]
 
 for (x in slaves) {
+    // Need to bind the label variable before the closure - can't do 'for (slave in slaves)'
     def slave = x
     def osi = labels.get(slave)
 
@@ -72,14 +74,10 @@ for (x in slaves) {
 
                     stage(osi + ' Setup') {
                         // Set up a complete isolated environment
-                        dir('deploy-dir') {
-                            echo 'Directory purgation'
-                            deleteDir()
-                        }
                         dir('sources') {
-                            if (slave == 'OSXSLAVE') {
+                            if (osi == 'macOS') {
                                 sh 'tools/osx/deploy_jenkins_slave.sh'
-                            } else if (slave == 'MULTIDB_LINUX') {
+                            } else if (osi == 'GNU/Linux') {
                                 sh 'tools/linux/deploy_jenkins_slave.sh'
                             } else {
                                 bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1"'
@@ -97,7 +95,7 @@ for (x in slaves) {
 
                         dir('sources') {
                             def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                            if (slave == 'MULTIDB_WINDOWS') {
+                            if (osi == 'Windows') {
                                 bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
                             } else {
                                 sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
@@ -105,10 +103,9 @@ for (x in slaves) {
                             currentBuild.result = 'SUCCESS'
                         }
 
-                        dir('deploy-dir') {
-                            echo 'Directory purgation'
-                            deleteDir()
-                        }
+                        //dir('deploy-dir') {
+                        //    deleteDir()
+                        //}
                     }
                 } finally {
                     // We use catchError to not let notifiers and recorders change the current build status
