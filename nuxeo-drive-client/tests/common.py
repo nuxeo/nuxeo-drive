@@ -67,7 +67,8 @@ def execute(cmd, exit_on_failure=True):
         code = os.WEXITSTATUS(code)
     if code != 0 and exit_on_failure:
         log.error("Command %s returned with code %d", cmd, code)
-        sys.exit(code)
+        exit(code)
+
 
 def clean_dir(_dir):
     if os.path.exists(_dir):

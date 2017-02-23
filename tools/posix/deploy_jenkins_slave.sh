@@ -13,7 +13,8 @@
 #set -x  # verbose
 
 # Global variables
-PIP="python -m pip install -q --upgrade"
+PYTHON="python -E"
+PIP="${PYTHON} -m pip install -q --upgrade"
 
 build_esky() {
     echo ">>> Building the release package"
@@ -40,7 +41,7 @@ check_import() {
     local ret=0
 
     /bin/echo -n ">>> Checking module: ${import} ... "
-    python -c "${import}" 2>/dev/null || ret=1
+    ${PYTHON} -c "${import}" 2>/dev/null || ret=1
     if [ ${ret} -ne 0 ]; then
         echo "Failed."
         return 1
@@ -177,9 +178,6 @@ install_pyqt() {
     esac
     local output="${path}.tar.gz"
 
-    # First, we need to install SIP
-    install_sip
-
     check_import "import PyQt4.QtWebKit" && return
     echo ">>> Installing PyQt ${version}"
 
@@ -189,7 +187,7 @@ install_pyqt() {
     cd "$path"
 
     echo ">>> [PyQt ${version}] Configuring"
-    python configure-ng.py \
+    ${PYTHON} configure-ng.py \
         --confirm-license \
         --no-designer-plugin \
         --no-docstrings \
@@ -208,8 +206,6 @@ install_pyqt() {
 
 install_python() {
     local version="$1"
-
-    install_pyenv
 
     # To fix Mac error when building the package "libpython27.dylib does not exist"
     [ "${OSI}" = "osx" ] && export PYTHON_CONFIGURE_OPTS="--enable-shared"
@@ -235,7 +231,7 @@ install_sip() {
     cd "$path"
 
     echo ">>> [SIP ${version}] Configuring"
-    python configure.py
+    ${PYTHON} configure.py
 
     echo ">>> [SIP ${version}] Compiling"
     make --quiet -j 4
@@ -250,8 +246,9 @@ launch_tests() {
     echo ">>> Launching the tests suite"
 
     ${PIP} -r requirements-tests.txt
-    python -m pytest "${SPECIFIC_TEST}" \
+    ${PYTHON} -m pytest "${SPECIFIC_TEST}" \
         --showlocals \
+        --exitfirst \
         --strict \
         --failed-first \
         -r Efx \
@@ -275,20 +272,36 @@ verify_python() {
         echo "Drive requires ${version}"
         exit 1
     fi
+
+    # Also, check that primary modules are present (in case of wrong build)
+    if ! check_import "import sqlite3"; then
+        echo ">>> Uninstalling erroned Python version"
+        pyenv uninstall -f "${PYTHON_DRIVE_VERSION}"
+        install_python "${PYTHON_DRIVE_VERSION}"
+    fi
 }
 
 # The main function, last in the script
 main() {
-    # Adjust PATH envar for Mac
+    # Adjust PATH for Mac
     [ "${OSI}" = "osx" ] && export PATH="$PATH:/usr/local/bin"
 
     # Launch operations
     check_vars
+    install_pyenv
     install_python "${PYTHON_DRIVE_VERSION}"
     verify_python "${PYTHON_DRIVE_VERSION}"
+
+    if ! check_import "import sqlite3" >/dev/null; then
+        echo ">>> Python installation failed, check compilation process."
+        exit 1
+    fi
+
+    install_sip
     install_pyqt "${PYQT_VERSION}"
     install_cxfreeze
     install_deps
+
     if ! check_import "import PyQt4.QtWebKit" >/dev/null; then
         echo ">>> Installation failed."
         exit 1

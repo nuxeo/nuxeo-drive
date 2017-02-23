@@ -102,15 +102,11 @@ for (x in slaves) {
                                     sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
                                 }
 
-                                echo 'Retrieve coverage statistics'
-                                archive 'coverage/*'
-
                                 currentBuild.result = 'SUCCESS'
                             }
 
-                            //dir('deploy-dir') {
-                            //    deleteDir()
-                            //}
+                            echo 'Retrieve coverage statistics'
+                            archive 'coverage/*'
                         }
                     }
                 } finally {

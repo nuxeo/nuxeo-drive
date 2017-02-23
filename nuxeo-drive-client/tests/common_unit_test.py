@@ -58,35 +58,35 @@ FILE_CONTENT = """
 
 class RandomBug(object):
     """
-    Use this annotation if a bug is a RandomBug, you need to track it with a ticket before
+    Use this annotation if a bug is a RandomBug, you need to track it with a ticket before.
     """
-    MODES = ['relax', 'strict', 'bypass']
-    OS = ['windows', 'mac', 'linux']
+    MODES = ('relax', 'strict', 'bypass')
+    OS = ('windows', 'mac', 'linux')
 
     def __init__(self, ticket, target=None, repeat=10, mode='relax'):
         """
-        :param ticket: Nuxeo ticket that track the random
+        :param ticket: Nuxeo ticket that tracks the random
         :param target: Restrict the annotation only for a specific OS target
-        :param repeat: Number of time to repeat the test
-        :param mode: Mode of bug
+        :param repeat: Number of times to repeat the test
+        :param mode: Mode of the bug
 
         relax: will retry as repeat times until it succeeds
         strict: will repeat it until it fails or hits the repeat limit
         bypass: skip the test
         """
-        if mode not in RandomBug.MODES:
-            raise ValueError("Random bug, invalid mode: {} not in [{}]".format(mode, ', '.join(RandomBug.MODES)))
-        if target not in RandomBug.OS:
-            raise ValueError("Random bug, invalid OS: {} not in [{}]".format(target, ', '.join(RandomBug.OS)))
+        if target not in self.OS:
+            raise ValueError('Random bug, invalid OS: {} not in ({})'.format(target, ', '.join(self.OS)))
+        if mode not in self.MODES:
+            raise ValueError('Random bug, invalid mode: {} not in ({})'.format(mode, ', '.join(self.MODES)))
 
         self._repeat = max(1, repeat)
         # Enforce a ticket reference
         self._ticket = ticket
         self._iteration = 0
-        self._mode = mode
-        self._os = target
+        self._mode = mode.lower()
+        self._os = target.lower()
 
-        if os.environ.get('RANDOM_BUG_MODE', '') in RandomBug.MODES:
+        if os.environ.get('RANDOM_BUG_MODE', '') in self.MODES:
             self._mode = os.environ['RANDOM_BUG_MODE']
 
     def __call__(self, func):
@@ -95,25 +95,28 @@ class RandomBug(object):
             # Handle specific OS
             if self._os == 'linux' and not AbstractOSIntegration.is_linux():
                 return func(*args, **kwargs)
-            if self._os == 'windows' and not AbstractOSIntegration.is_windows():
+            elif self._os == 'windows' and not AbstractOSIntegration.is_windows():
                 return func(*args, **kwargs)
-            if self._os == 'mac' and not AbstractOSIntegration.is_mac():
+            elif self._os == 'mac' and not AbstractOSIntegration.is_mac():
                 return func(*args, **kwargs)
+
             # Skip if BYPASS mode
-            if self._mode == 'BYPASS':
+            if self._mode == 'bypass':
                 raise unittest.SkipTest('RandomTest is in ' + self._mode)
+
             res = None
-            for i in range(1, self._repeat + 1, 1):
-                log.debug('Repeating test %s %d/%d', func.func_name, i, self._repeat)
+            for i in range(self._repeat):
+                log.debug('Repeating test %s %d/%d', func.func_name, i + 1, self._repeat)
                 try:
                     res = func(*args, **kwargs)
-                    # In RELAX mode if the test success one we dont fail
-                    if self._mode == 'RELAX':
-                        return res
                 except Exception as e:
-                    # In STRICT mode we propagate Exception
-                    if self._mode == 'STRICT':
+                    # In strict mode we propagate Exception
+                    if self._mode == 'strict':
                         raise e
+                finally:
+                    # In relax mode, if the test success one we don't fail
+                    if self._mode == 'relax':
+                        return res
             return res
 
         _callable._repeat = self._repeat

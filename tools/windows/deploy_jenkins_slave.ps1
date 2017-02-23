@@ -13,7 +13,7 @@ $ErrorActionPreference = "Stop"
 function build_msi {
 	# Build the famous MSI
 	echo ">>> Building the MSI package"
-	& $Env:PYTHON_DIR\python setup.py --freeze bdist_msi
+	& $Env:PYTHON_DIR\python -E setup.py --freeze bdist_msi
 	if ($lastExitCode -eq 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -24,7 +24,7 @@ function check_import($import) {
 	# i.e: check_import "from PyQt4 import QtWebKit"
 	#  or: check_import "import cx_Freeze"
 
-	& $Env:PYTHON_DIR\python -c "$import"
+	& $Env:PYTHON_DIR\python -E -c "$import"
 	if ($lastExitCode -eq 0) {
 		return 1
 	}
@@ -110,11 +110,11 @@ function install_cxfreeze {
 
 function install_deps {
 	echo ">>> Installing requirements"
-	& $Env:PYTHON_DIR\python -m pip install -q -t "$Env:PYTHON_DIR" -r requirements.txt
+	& $Env:PYTHON_DIR\python -E -m pip install -q -t "$Env:PYTHON_DIR" -r requirements.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python -m pip install -q -t "$Env:PYTHON_DIR" -r requirements-windows.txt
+	& $Env:PYTHON_DIR\python -E -m pip install -q -t "$Env:PYTHON_DIR" -r requirements-windows.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -130,7 +130,7 @@ function install_pip {
 
 	echo ">>> Installing pip"
 	download $url $output
-	& $Env:PYTHON_DIR\python "$output" -q -t "$Env:PYTHON_DIR"
+	& $Env:PYTHON_DIR\python -E "$output" -q -t "$Env:PYTHON_DIR"
 	$ret = $lastExitCode
 
 	# Cleanup
@@ -201,11 +201,11 @@ function install_python {
 
 function launch_tests {
 	# Launch the tests suite
-	& $Env:PYTHON_DIR\python -m pip install -q -t "$Env:PYTHON_DIR" -r requirements-tests.txt
+	& $Env:PYTHON_DIR\python -E -m pip install -q -t "$Env:PYTHON_DIR" -r requirements-tests.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python -m pytest --showlocals --strict --failed-first -r Efx --full-trace --capture=sys --no-cov-on-fail --cov-append --cov-report term-missing:skip-covered --cov-report html:..\coverage --cov=nuxeo-drive-client\nxdrive "$Env:SPECIFIC_TEST"
+	& $Env:PYTHON_DIR\python -E -m pytest --showlocals --exitfirst --strict --failed-first -r Efx --full-trace --capture=sys --no-cov-on-fail --cov-append --cov-report term-missing:skip-covered --cov-report html:..\coverage --cov=nuxeo-drive-client\nxdrive "$Env:SPECIFIC_TEST"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}

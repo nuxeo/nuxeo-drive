@@ -1,3 +1,6 @@
+from unittest import skipIf
+
+from nxdrive.osi import AbstractOSIntegration
 from tests.common import IntegrationTestCase
 
 
@@ -48,6 +51,8 @@ class TestRemoteChanges(IntegrationTestCase):
             second_event_log_id = summary['upperBound']
             self.assertTrue(second_event_log_id >= first_event_log_id)
 
+    @skipIf(AbstractOSIntegration.is_windows(),
+            'NXDRIVE-739: Need refactor')
     def test_changes_root_registrations(self):
         # Lets create some folders in Nuxeo
         remote_client = self.remote_document_client_1
@@ -133,6 +138,8 @@ class TestRemoteChanges(IntegrationTestCase):
         self.assertEqual(raw_root_defs, '')
         self.assertEqual(len(summary['fileSystemChanges']), 0)
 
+    @skipIf(AbstractOSIntegration.is_windows(),
+            'NXDRIVE-739: Need refactor')
     def test_sync_root_parent_registration(self):
         # Create a folder
         remote_client = self.remote_document_client_1
@@ -170,6 +177,8 @@ class TestRemoteChanges(IntegrationTestCase):
             else:
                 self.fail('Unexpected event %s' % change['eventId'])
 
+    @skipIf(AbstractOSIntegration.is_windows(),
+            'NXDRIVE-739: Need refactor')
     def test_lock_unlock_events(self):
         remote = self.remote_document_client_1
         doc_id = remote.make_file(self.workspace, 'TestLocking.txt', 'File content')
