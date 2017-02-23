@@ -6,12 +6,12 @@ from gi.repository import Nautilus, GObject
 
 
 class NuxeoDriveMenuProvider(GObject.GObject, Nautilus.MenuProvider):
-
     def __init__(self):
         pass
 
     def get_file_items(self, window, files):
-        main_item = Nautilus.MenuItem(name='Nautilus::nuxe_drive',
+        _ = window
+        main_item = Nautilus.MenuItem(name='Nautilus::nuxeodrive',
                                       label='Nuxeo Drive',
                                       tip='Nuxeo Drive')
         main_item.connect("activate", self.open_metadata_view, files)
@@ -19,11 +19,12 @@ class NuxeoDriveMenuProvider(GObject.GObject, Nautilus.MenuProvider):
 
     def open_metadata_view(self, menu, files):
         """Called when the user selects the menu."""
+        _ = menu
         file_uri = self._get_uri_path(files[0].get_uri())
         self.drive_exec(['metadata', '--file', file_uri])
 
     def drive_exec(self, cmds):
-        # Add the ndrive command
+        """ Add the ndrive command. """
         cmds.insert(0, "ndrive")
         p = subprocess.Popen(cmds, stdout=subprocess.PIPE)
         p.communicate()

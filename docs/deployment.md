@@ -1,4 +1,4 @@
-# Explanations about deployement scripts
+# Explanations about deployment scripts
 
 ## GNU/Linux, macOS
 
@@ -55,3 +55,4 @@ If an envar is specifying a version, this means that the specified version of th
     test_local_client.py::TestLocalClient (a whole class)
     test_local_client.py::TestLocalClient::test_make_documents (only one method)
 ```
+- `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.

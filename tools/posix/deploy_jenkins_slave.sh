@@ -7,7 +7,7 @@
 #     --build: build the package
 #     --tests: launch the tests suite
 #
-# See /docs/deployement.md for more informations.
+# See /docs/deployment.md for more informations.
 #
 
 #set -x  # verbose
@@ -275,7 +275,7 @@ verify_python() {
 
     # Also, check that primary modules are present (in case of wrong build)
     if ! check_import "import sqlite3"; then
-        echo ">>> Uninstalling erroned Python version"
+        echo ">>> Uninstalling wrong Python version"
         pyenv uninstall -f "${PYTHON_DRIVE_VERSION}"
         install_python "${PYTHON_DRIVE_VERSION}"
     fi

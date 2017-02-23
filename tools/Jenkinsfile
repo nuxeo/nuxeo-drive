@@ -32,7 +32,7 @@ properties([
                 description: '<i>Optional</i> Number of nodes for the remote scan volume test'],
             [$class: 'ChoiceParameterDefinition',
                 name: 'RANDOM_BUG_MODE',
-                choices: 'relax\nstrict\nbypass',
+                choices: 'RELAX\nSTRICT\nBYPASS',
                 description: 'Random bug mode']
         ]
     ],
@@ -40,15 +40,33 @@ properties([
 ])
 
 // Jenkins slaves we will build on
-def slaves = ['OSXSLAVE', 'SLAVE', 'WINSLAVE']
-def labels = [
+slaves = ['OSXSLAVE', 'SLAVE', 'WINSLAVE']
+labels = [
     OSXSLAVE: 'macOS',
     SLAVE: 'GNU/Linux',
     WINSLAVE: 'Windows'
 ]
-def builders = [:]
+builders = [:]
 
-for (x in slaves) {
+// GitHub stuff
+repos_url = 'https://github.com/nuxeo/nuxeo-drive'
+repos_git = 'https://github.com/nuxeo/nuxeo-drive.git'
+status_msg = [
+    'FAILURE': 'Failed to build on Nuxeo CI',
+    'PENDING': 'Building on on Nuxeo CI',
+    'SUCCESS': 'Successfully built on Nuxeo CI'
+]
+
+def github_status(status) {
+    step([$class: 'GitHubCommitStatusSetter',
+        reposSource: [$class: 'ManuallyEnteredRepositorySource', url: repos_url],
+        contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/qa.nuxeo.com'],
+        statusResultSource: [$class: 'ConditionalStatusResultSource',
+            results: [[$class: 'AnyBuildResult',
+                message: status_msg.get(status), state: status]]]])
+}
+
+for (def x in slaves) {
     // Need to bind the label variable before the closure - can't do 'for (slave in slaves)'
     def slave = x
     def osi = labels.get(slave)
@@ -57,63 +75,70 @@ for (x in slaves) {
     builders[slave] = {
         node(slave) {
             withEnv(["WORKSPACE=${pwd()}"]) {
+                github_status('PENDING')
+
                 // Required envars
                 env.PYTHON_DRIVE_VERSION = params.PYTHON_DRIVE_VERSION ?: '2.7.13'
                 env.PYQT_VERSION = params.PYQT_VERSION ?: '4.12'
 
                 try {
-                    timestamps {
-                        stage(osi + ' Checkout') {
-                            checkout([$class: 'GitSCM',
-                                branches: [[name: '*/' + env.BRANCH_NAME]],
-                                browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/nuxeo/nuxeo-drive'],
-                                doGenerateSubmoduleConfigurations: false,
-                                extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
-                                submoduleCfg: [],
-                                userRemoteConfigs: [[url: 'https://github.com/nuxeo/nuxeo-drive.git']]])
-                        }
+                    stage(osi + ' Checkout') {
+                        checkout([$class: 'GitSCM',
+                            branches: [[name: '*/' + env.BRANCH_NAME]],
+                            browser: [$class: 'GithubWeb', repoUrl: repos_url],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
+                            submoduleCfg: [], userRemoteConfigs: [[url: repos_git]]])
+                    }
 
-                        stage(osi + ' Setup') {
-                            // Set up a complete isolated environment
-                            dir('sources') {
-                                if (osi == 'macOS') {
-                                    sh 'tools/osx/deploy_jenkins_slave.sh'
-                                } else if (osi == 'GNU/Linux') {
-                                    sh 'tools/linux/deploy_jenkins_slave.sh'
-                                } else {
-                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1"'
-                                }
+                    stage(osi + ' Setup') {
+                        // Set up a complete isolated environment
+                        dir('sources') {
+                            if (osi == 'macOS') {
+                                sh 'tools/osx/deploy_jenkins_slave.sh'
+                            } else if (osi == 'GNU/Linux') {
+                                sh 'tools/linux/deploy_jenkins_slave.sh'
+                            } else {
+                                bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1"'
                             }
-                        }
-
-                        stage(osi + ' Tests') {
-                            // Launch the tests suite
-                            jdk = tool name: 'java-8-oracle'
-                            env.JAVA_HOME = "${jdk}"
-
-                            // Number of nodes for the remote scan volume test
-                            env.TEST_REMOTE_SCAN_VOLUME = params.TEST_REMOTE_SCAN_VOLUME ?: '100'
-
-                            dir('sources') {
-                                def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                                if (osi == 'Windows') {
-                                    bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
-                                } else {
-                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
-                                }
-
-                                currentBuild.result = 'SUCCESS'
-                            }
-
-                            echo 'Retrieve coverage statistics'
-                            archive 'coverage/*'
                         }
                     }
+
+                    stage(osi + ' Tests') {
+                        // Launch the tests suite
+                        def jdk = tool name: 'java-8-oracle'
+                        env.JAVA_HOME = "${jdk}"
+                        def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+
+                        // Number of nodes for the remote scan volume test
+                        env.TEST_REMOTE_SCAN_VOLUME = params.TEST_REMOTE_SCAN_VOLUME ?: '100'
+
+                        dir('sources') {
+	                        // Set up the report name folder
+	                        env.REPORT_PATH = env.WORKSPACE + '/sources'
+
+                            if (osi == 'Windows') {
+                                bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
+                            } else {
+                                sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
+                            }
+                        }
+
+                        echo 'Retrieve coverage statistics'
+                        archive 'coverage/*'
+
+                        currentBuild.result = 'SUCCESS'
+                    }
+                } catch(e) {
+                    currentBuild.result = 'FAILURE'
+                    throw e
                 } finally {
                     // We use catchError to not let notifiers and recorders change the current build status
                     catchError {
-                        // Retrieve logs
-                        archive 'sources/ftest/target/tomcat/log/*.log'
+                        // Update GitHub status whatever the result
+                        github_status(currentBuild.result)
+
+                        archive 'sources/ftest/target/tomcat/log/*.log, sources/report_*.zip'
 
                         // Update revelant Jira issues only if we are working on the master branch
                         if (env.BRANCH_NAME == 'master') {
@@ -128,4 +153,6 @@ for (x in slaves) {
     }
 }
 
-parallel builders
+timestamps {
+    parallel builders
+}

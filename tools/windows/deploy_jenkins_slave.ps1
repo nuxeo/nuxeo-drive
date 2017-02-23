@@ -4,7 +4,7 @@
 #     -build: build the MSI package
 #     -tests: launch the tests suite
 #
-# See /docs/deployement.md for more informations.
+# See /docs/deployment.md for more informations.
 param ([switch]$build = $false, [switch]$tests = $false)
 
 # Stop the execution on the first error

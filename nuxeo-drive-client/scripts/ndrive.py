@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-"""Commandline interface for the Nuxeo Drive filesystem synchronizer"""
+""" Commandline interface for the Nuxeo Drive filesystem synchronizer.
+    TODO: With NXDRIVE-739 this file should be the same as others in this directory.
+"""
 
-from sys import exit
+import sys
 
 try:
     from nxdrive.commandline import main
@@ -14,4 +16,4 @@ except ImportError:
     from nxdrive.commandline import main
 
 
-exit(main())
+sys.exit(main())

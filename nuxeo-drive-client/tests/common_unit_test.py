@@ -60,19 +60,19 @@ class RandomBug(object):
     """
     Use this annotation if a bug is a RandomBug, you need to track it with a ticket before.
     """
-    MODES = ('relax', 'strict', 'bypass')
+    MODES = ('RELAX', 'STRICT', 'BYPASS')
     OS = ('windows', 'mac', 'linux')
 
-    def __init__(self, ticket, target=None, repeat=10, mode='relax'):
+    def __init__(self, ticket, target=None, repeat=10, mode='RELAX'):
         """
         :param ticket: Nuxeo ticket that tracks the random
         :param target: Restrict the annotation only for a specific OS target
         :param repeat: Number of times to repeat the test
         :param mode: Mode of the bug
 
-        relax: will retry as repeat times until it succeeds
-        strict: will repeat it until it fails or hits the repeat limit
-        bypass: skip the test
+        RELAX: will retry as repeat times until it succeeds
+        STRICT: will repeat it until it fails or hits the repeat limit
+        BYPASS: skip the test
         """
         if target not in self.OS:
             raise ValueError('Random bug, invalid OS: {} not in ({})'.format(target, ', '.join(self.OS)))
@@ -83,7 +83,7 @@ class RandomBug(object):
         # Enforce a ticket reference
         self._ticket = ticket
         self._iteration = 0
-        self._mode = mode.lower()
+        self._mode = mode.upper()
         self._os = target.lower()
 
         if os.environ.get('RANDOM_BUG_MODE', '') in self.MODES:
@@ -101,7 +101,7 @@ class RandomBug(object):
                 return func(*args, **kwargs)
 
             # Skip if BYPASS mode
-            if self._mode == 'bypass':
+            if self._mode == 'BYPASS':
                 raise unittest.SkipTest('RandomTest is in ' + self._mode)
 
             res = None
@@ -111,11 +111,11 @@ class RandomBug(object):
                     res = func(*args, **kwargs)
                 except Exception as e:
                     # In strict mode we propagate Exception
-                    if self._mode == 'strict':
+                    if self._mode == 'STRICT':
                         raise e
                 finally:
                     # In relax mode, if the test success one we don't fail
-                    if self._mode == 'relax':
+                    if self._mode == 'RELAX':
                         return res
             return res
 
@@ -493,6 +493,7 @@ class UnitTestCase(unittest.TestCase):
         while repeat > 0:
             self.app = StubQApplication([], self)
             self.setUpApp()
+            self.result = result
 
             # TODO Should use a specific application
             def launch_test():
@@ -521,6 +522,11 @@ class UnitTestCase(unittest.TestCase):
     def tearDownApp(self, server_profile=None):
         if self.tearedDown:
             return
+        if sys.exc_info() != (None, None, None):
+            self.generate_report()
+        elif self.result is not None:
+            if hasattr(self.result, "wasSuccessful") and not self.result.wasSuccessful():
+                self.generate_report()
         log.debug("TearDown unit test")
         # Unbind all
         self.manager_1.unbind_all()
@@ -631,6 +637,15 @@ class UnitTestCase(unittest.TestCase):
             if retry > 0:
                 log.debug("Retry to wait")
                 self.wait(retry - 1)
+
+    def generate_report(self):
+        if "REPORT_PATH" not in os.environ:
+            return
+
+        report_path = os.path.join(os.environ["REPORT_PATH"], self.id())
+        self.manager_1.generate_report(report_path)
+        log.debug("Report generated in '%s'", report_path)
+
 
     def _set_read_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
