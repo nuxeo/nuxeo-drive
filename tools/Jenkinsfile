@@ -62,59 +62,62 @@ for (x in slaves) {
                 env.PYQT_VERSION = params.PYQT_VERSION ?: '4.12'
 
                 try {
-                    stage(osi + ' Checkout') {
-                        checkout([$class: 'GitSCM',
-                            branches: [[name: '*/' + env.BRANCH_NAME]],
-                            browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/nuxeo/nuxeo-drive'],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: 'https://github.com/nuxeo/nuxeo-drive.git']]])
-                    }
-
-                    stage(osi + ' Setup') {
-                        // Set up a complete isolated environment
-                        dir('sources') {
-                            if (osi == 'macOS') {
-                                sh 'tools/osx/deploy_jenkins_slave.sh'
-                            } else if (osi == 'GNU/Linux') {
-                                sh 'tools/linux/deploy_jenkins_slave.sh'
-                            } else {
-                                bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1"'
-                            }
-                        }
-                    }
-
-                    stage(osi + ' Tests') {
-                        // Launch the tests suite
-                        jdk = tool name: 'java-8-oracle'
-                        env.JAVA_HOME = "${jdk}"
-
-                        // Number of nodes for the remote scan volume test
-                        env.TEST_REMOTE_SCAN_VOLUME = params.TEST_REMOTE_SCAN_VOLUME ?: '100'
-
-                        dir('sources') {
-                            def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                            if (osi == 'Windows') {
-                                bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
-                            } else {
-                                sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
-                            }
-                            currentBuild.result = 'SUCCESS'
+                    timestamps {
+                        stage(osi + ' Checkout') {
+                            checkout([$class: 'GitSCM',
+                                branches: [[name: '*/' + env.BRANCH_NAME]],
+                                browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/nuxeo/nuxeo-drive'],
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
+                                submoduleCfg: [],
+                                userRemoteConfigs: [[url: 'https://github.com/nuxeo/nuxeo-drive.git']]])
                         }
 
-                        //dir('deploy-dir') {
-                        //    deleteDir()
-                        //}
+                        stage(osi + ' Setup') {
+                            // Set up a complete isolated environment
+                            dir('sources') {
+                                if (osi == 'macOS') {
+                                    sh 'tools/osx/deploy_jenkins_slave.sh'
+                                } else if (osi == 'GNU/Linux') {
+                                    sh 'tools/linux/deploy_jenkins_slave.sh'
+                                } else {
+                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1"'
+                                }
+                            }
+                        }
+
+                        stage(osi + ' Tests') {
+                            // Launch the tests suite
+                            jdk = tool name: 'java-8-oracle'
+                            env.JAVA_HOME = "${jdk}"
+
+                            // Number of nodes for the remote scan volume test
+                            env.TEST_REMOTE_SCAN_VOLUME = params.TEST_REMOTE_SCAN_VOLUME ?: '100'
+
+                            dir('sources') {
+                                def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                                if (osi == 'Windows') {
+                                    bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
+                                } else {
+                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
+                                }
+
+                                echo 'Retrieve coverage statistics'
+                                archive 'coverage/*'
+
+                                currentBuild.result = 'SUCCESS'
+                            }
+
+                            //dir('deploy-dir') {
+                            //    deleteDir()
+                            //}
+                        }
                     }
                 } finally {
                     // We use catchError to not let notifiers and recorders change the current build status
                     catchError {
                         // Retrieve logs
                         archive 'sources/ftest/target/tomcat/log/*.log'
-
-                        echo 'Retrieve coverage statistics'
-                        archive 'coverage/*'
 
                         // Update revelant Jira issues only if we are working on the master branch
                         if (env.BRANCH_NAME == 'master') {
