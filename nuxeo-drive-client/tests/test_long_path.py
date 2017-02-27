@@ -5,22 +5,23 @@ Created on Dec 22, 2016
 @author: dgraja
 
 '''
-from tests.common_unit_test import UnitTestCase
-from nxdrive.logging_config import get_logger
-import os
 import sys
 
+import os
 
-log = get_logger(__name__)
-if sys.platform == "win32":
+from nxdrive.logging_config import get_logger
+from tests.common_unit_test import UnitTestCase
+
+if sys.platform == 'win32':
     import win32api
 
+log = get_logger(__name__)
 
-# number of chars in path c://.../Nuxeo.. is approx 96 chars
-FOLDER_A = "A" * (90)
-FOLDER_B = "B" * (90)
-FOLDER_C = "C" * (90)
-FOLDER_D = "D" * (50)
+# Number of chars in path c://.../Nuxeo.. is approx 96 chars
+FOLDER_A = 'A' * 90
+FOLDER_B = 'B' * 90
+FOLDER_C = 'C' * 90
+FOLDER_D = 'D' * 50
 
 
 class TestLongPath(UnitTestCase):
@@ -81,3 +82,28 @@ class TestLongPath(UnitTestCase):
         log.warn("Verify if FOLDER_D\File2.txt is uploaded to server")
         self.assertTrue("File2.txt" in children_names,
                         "FOLDER_D/File2.txt should be uploaded to server")
+
+    def test_setup_on_long_path(self):
+        """ NXDRIVE 689: Fix error when adding a new account when installation
+            path is greater than 245 characters.
+        """
+
+        self.engine_1.stop()
+        self.engine_1.reinit()
+
+        # On Mac, avoid permission denied error
+        self.engine_1.get_local_client().clean_xattr_root()
+
+        test_folder_len = 245 - len(str(self.local_nxdrive_folder_1))
+        test_folder = 'A' * test_folder_len
+
+        self.local_nxdrive_folder_1 = os.path.join(self.local_nxdrive_folder_1, test_folder)
+        self.assertTrue(len(self.local_nxdrive_folder_1) > 245)
+
+        self.manager_1.unbind_all()
+        self.engine_1 = self.manager_1.bind_server(
+                self.local_nxdrive_folder_1, self.nuxeo_url, self.user_2,
+                self.password_2, start_engine=False)
+
+        self.engine_1.start()
+        self.engine_1.stop()
