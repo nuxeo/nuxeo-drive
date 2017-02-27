@@ -223,12 +223,6 @@ class UnitTestCase(unittest.TestCase):
             self.root_remote_client.deactivate_profile(server_profile)
 
     def get_local_client(self, path):
-        if AbstractOSIntegration.is_windows():
-            from tests.win_local_client import WindowsLocalClient
-            return WindowsLocalClient(path)
-        if AbstractOSIntegration.is_mac():
-            from tests.mac_local_client import MacLocalClient
-            return MacLocalClient(path)
         return LocalClient(path)
 
     def setUpApp(self, server_profile=None):
@@ -236,7 +230,8 @@ class UnitTestCase(unittest.TestCase):
         self.location = dirname(__file__)
 
         # Check the Nuxeo server test environment
-        self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL', 'http://localhost:8080/nuxeo')
+        self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL',
+                                        'http://localhost:8080/nuxeo')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD', 'Administrator')
         self.build_workspace = os.environ.get('WORKSPACE')
