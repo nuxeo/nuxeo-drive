@@ -99,20 +99,20 @@ class CliHandler(object):
         )
         common_parser.add_argument(
             "--locale",
-            help=("Select the default language")
+            help="Select the default language"
         )
         common_parser.add_argument(
             "--force-locale",
-            help=("Force the language")
+            help="Force the language"
         )
         common_parser.add_argument(
             "--update-site-url",
             default=DEFAULT_UPDATE_SITE_URL,
-            help=("Website for client auto-update")
+            help="Website for client auto-update"
         )
         common_parser.add_argument(
             "--beta-update-site-url",
-            help=("Website for client beta auto-update")
+            help="Website for client beta auto-update"
         )
         common_parser.add_argument(
             "--debug", default=False, action="store_true",
@@ -308,28 +308,6 @@ class CliHandler(object):
             "--file", default="",
             help="File path.")
 
-        # embedded test runner base on nose:
-        test_parser = subparsers.add_parser(
-            'test',
-            help='Run the Nuxeo Drive test suite.',
-            parents=[common_parser],
-        )
-        test_parser.set_defaults(command='test')
-        test_parser.add_argument(
-            "-w", help="Nose working directory.")
-        test_parser.add_argument(
-            "--nologcapture", default=False, action="store_true",
-            help="Disable nose logging capture plugin.")
-        test_parser.add_argument(
-            "--logging-format", help="Format of noestests log capture statements."
-            " Uses the same format as used by standard logging handlers.")
-        test_parser.add_argument(
-            "--with-coverage", default=False, action="store_true",
-            help="Compute coverage report.")
-        test_parser.add_argument(
-            "--with-profile", default=False, action="store_true",
-            help="Compute profiling report.")
-
         return parser
     """Command Line Interface handler: parse options and execute operation"""
 
@@ -402,7 +380,6 @@ class CliHandler(object):
         else:
             parser.set_defaults(**AbstractOSIntegration.get(None).get_system_configuration())
 
-
     def _configure_logger(self, options):
         """Configure the logging framework from the provided options"""
         # Ensure the log folder exists
@@ -453,14 +430,12 @@ class CliHandler(object):
         self.log.debug("Command line: argv=%r, options=%r",
                        ' '.join(argv), options)
 
-        if command != 'test' and command != 'uninstall':
+        if command != 'uninstall':
             # Install utility to help debugging segmentation faults
             self._install_faulthandler(options)
 
-        if command != 'test':
-            # Initialize a manager for this process, except for the tests
-            # as they initialize their own
-            self.manager = self.get_manager(options)
+        # Initialize a manager for this process
+        self.manager = self.get_manager(options)
 
         # Find the command to execute based on the
         handler = getattr(self, command, None)
@@ -471,7 +446,7 @@ class CliHandler(object):
         try:
             return handler(options)
         except Exception, e:
-            if command == 'test' or options.debug:
+            if options.debug:
                 # Make it possible to use the postmortem debugger
                 raise
             else:
@@ -575,104 +550,6 @@ class CliHandler(object):
                 return 0
         self.log.error('No engine registered for local folder %s', options.local_folder)
         return 1
-
-    def test(self, options):
-        import nose
-        # Monkeypatch nose usage message as it's complicated to include
-        # the missing text resource in the frozen binary package
-        nose.core.TestProgram.usage = lambda cls: ""
-        argv = [
-            '',
-            '--verbose',
-            '--stop',
-        ]
-
-        if options.w:
-            argv += [
-                '-w',
-                options.w,
-            ]
-
-        if options.nologcapture:
-            argv += [
-                '--nologcapture',
-            ]
-
-        if options.logging_format:
-            argv += [
-                '--logging-format',
-                options.logging_format,
-            ]
-
-        if options.with_coverage:
-            argv += [
-                '--with-coverage',
-                '--cover-package=nxdrive',
-                '--cover-html',
-                '--cover-html-dir=coverage',
-            ]
-
-        if options.with_profile:
-            argv += [
-                '--with-profile',
-                '--profile-restrict=nxdrive',
-            ]
-        if "TESTS" not in os.environ or os.environ["TESTS"].strip() == "":
-            # List the test modules explicitly as recursive discovery is broken
-            # when the app is frozen.
-            argv += [
-                "nxdrive.tests.test_bind_server",
-                "nxdrive.tests.test_blacklist_queue",
-                "nxdrive.tests.test_bulk_remote_changes",
-                "nxdrive.tests.test_commandline",
-                "nxdrive.tests.test_conflicts",
-                "nxdrive.tests.test_copy",
-                "nxdrive.tests.test_direct_edit",
-                "nxdrive.tests.test_encoding",
-                "nxdrive.tests.test_engine_dao",
-                "nxdrive.tests.test_concurrent_synchronization",
-                "nxdrive.tests.test_integration_local_root_deletion",
-                "nxdrive.tests.test_local_client",
-                "nxdrive.tests.test_local_copy_paste",
-                "nxdrive.tests.test_local_create_folders",
-                "nxdrive.tests.test_local_deletion",
-                "nxdrive.tests.test_local_filter",
-                "nxdrive.tests.test_local_move_and_rename",
-                "nxdrive.tests.test_local_move_folders",
-                "nxdrive.tests.test_local_paste",
-                "nxdrive.tests.test_local_storage_issue",
-                "nxdrive.tests.test_local_share_move_folders",
-                "nxdrive.tests.test_long_path",
-                "nxdrive.tests.test_manager_dao",
-                "nxdrive.tests.test_model_filters",
-                "nxdrive.tests.test_multiple_files",
-                "nxdrive.tests.test_permission_hierarchy",
-                "nxdrive.tests.test_readonly",
-                "nxdrive.tests.test_reinit_database",
-                "nxdrive.tests.test_remote_changes",
-                "nxdrive.tests.test_remote_deletion",
-                "nxdrive.tests.test_remote_document_client",
-                "nxdrive.tests.test_remote_file_system_client",
-                "nxdrive.tests.test_remote_move_and_rename",
-                "nxdrive.tests.test_report",
-                "nxdrive.tests.test_security_updates",
-                "nxdrive.tests.test_shared_folders",
-                "nxdrive.tests.test_sync_roots",
-                "nxdrive.tests.test_synchronization",
-                "nxdrive.tests.test_synchronization_dedup",
-                "nxdrive.tests.test_synchronization_dedup_case_sensitive",
-                "nxdrive.tests.test_synchronization_suspend",
-                "nxdrive.tests.test_translator",
-                "nxdrive.tests.test_updater",
-                "nxdrive.tests.test_utils",
-                "nxdrive.tests.test_versioning",
-                "nxdrive.tests.test_volume",
-                "nxdrive.tests.test_watchers",
-                "nxdrive.tests.test_windows",
-            ]
-        else:
-            argv.extend(['nxdrive.tests.' + test for test in os.environ["TESTS"].strip().split(",")])
-        return 0 if nose.run(argv=argv) else 1
 
     def _install_faulthandler(self, options):
         """Utility to help debug segfaults"""

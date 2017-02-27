@@ -34,7 +34,7 @@ WIN32_PATCHED_MIME_TYPES = {
 }
 
 DEVICE_DESCRIPTIONS = {
-    'linux2': 'Linux Desktop',
+    'linux2': 'GNU/Linux Desktop',
     'darwin': 'Mac OSX Desktop',
     'cygwin': 'Windows Desktop',
     'win32': 'Windows Desktop',
@@ -297,17 +297,16 @@ def find_resource_dir(directory, default_path):
     return dir_path
 
 
-def force_decode(string, codecs=['utf-8', 'cp1252']):
+def force_decode(string, codecs=('utf-8', 'cp1252')):
     if isinstance(string, unicode):
         string = string.encode('utf-8')
     for codec in codecs:
         try:
             return string.decode(codec)
-        except:
+        except UnicodeDecodeError:
             pass
     log.debug("Cannot decode string '%s' with any of the given codecs: %r",
               string, codecs)
-    return None
 
 
 def encrypt(plaintext, secret, lazy=True):

@@ -94,6 +94,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             self._base_folder_path = base_folder_doc['path']
         else:
             self._base_folder_ref, self._base_folder_path = None, None
+
     #
     # API common with the local client API
     #

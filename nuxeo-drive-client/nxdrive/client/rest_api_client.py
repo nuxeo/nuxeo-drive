@@ -39,6 +39,11 @@ class RestAPIClient(object):
                                           url=self.server_url)
         self.opener = urllib2.build_opener(cookie_processor, proxy_handler)
 
+    def __repr__(self):
+        attrs = ', '.join('{}={!r}'.format(attr, getattr(self, attr, None))
+                          for attr in sorted(self.__init__.__code__.co_varnames[1:]))
+        return '<{} {}>'.format(self.__class__.__name__, attrs)
+
     def get_acls(self, ref):
         return self.execute('id/' + ref, adapter='acl')
 
