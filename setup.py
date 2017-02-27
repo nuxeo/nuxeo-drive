@@ -45,6 +45,7 @@ def create_json_metadata(client_version, server_version):
 class Packages(object):
     def __init__(self, directory_list):
         self.directory_list = directory_list
+        self.packages = []
 
     def _make_package_name_from_path(self, root, filepath):
         basename = '/' + os.path.basename(root)
@@ -55,7 +56,7 @@ class Packages(object):
         return root
 
     def _isNonTrivialPythonFile(self, afile):
-        if afile.endswith('/' + '__init__.py'):
+        if afile.endswith('/__init__.py'):
             return False
         if afile.endswith('.py'):
             return True
@@ -73,7 +74,6 @@ class Packages(object):
             self.packages.append(aa)
 
     def load(self):
-        self.packages = []
         for directory in self.directory_list:
             self._load_packages_in_tree(directory)
         return self.packages
@@ -293,6 +293,7 @@ class NuxeoDrivePackageAttributes(NuxeoDriveAttributes):
     def include_xattr_binaries(self):
         return False
 
+
 class NuxeoDriveSetup(object):
 
     def __init__(self, driveAttributes):
@@ -308,10 +309,13 @@ class NuxeoDriveSetup(object):
         name = attribs.get_name()
         packages = Packages(attribs.get_package_dirs()).load()
 
-        # special handling for data files, except for Linux
-        if ((sys.platform == "win32" or sys.platform == 'darwin')
-                and 'nxdrive.data' in packages):
-            packages.remove('nxdrive.data')
+        # Special handling for data files, except for GNU/Linux
+        if sys.platform in ('darwin', 'win32'):
+            try:
+                packages.remove('nxdrive.data')
+            except ValueError:
+                pass
+
         package_data = attribs.get_package_data()
         icons_home = attribs.get_icons_home()
         ui5_home = attribs.get_ui5_home()
@@ -374,24 +378,32 @@ class NuxeoDriveSetup(object):
             "PyQt4.QtCore",
             "PyQt4.QtNetwork",
             "PyQt4.QtGui",
+            "sip",
             "atexit",  # implicitly required by PyQt4
             "js2py.pyjs"
         ]
-        if attribs.include_xattr_binaries():
-            includes.append('cffi')
-            includes.append('xattr')
-
-        attribs.append_includes(includes)
         excludes = [
+            "PyQt4.QtDesigner",
+            "PyQt4.QtOpenGL",
+            "PyQt4.QtTest",
+            "PyQt4.phonon",
             "ipdb",
             "clf",
             "IronPython",
             "pydoc",
             "tkinter",
         ]
-        if not attribs.include_xattr_binaries():
+        if attribs.include_xattr_binaries():
+            includes.append('cffi')
+            includes.append('xattr')
+        else:
             excludes.append('cffi')
             excludes.append('xattr')
+        attribs.append_includes(includes)
+
+        # Do not include debug packages
+        packages.remove('nxdrive.debug')
+        packages.remove('nxdrive.debug.wui')
 
         if '--freeze' in sys.argv:
             print "Building standalone executable..."
@@ -435,9 +447,7 @@ class NuxeoDriveSetup(object):
                     },
                     "build_exe": {
                         "includes": includes,
-                        "packages": packages + [
-                            "nose",
-                        ],
+                        "packages": packages,
                         "excludes": excludes,
                         "include_files": include_files,
                     },
@@ -446,9 +456,7 @@ class NuxeoDriveSetup(object):
                         "excludes": excludes,
                         "enable_appdata_dir": True,
                         "freezer_options": {
-                            "packages": packages + [
-                                "nose",
-                            ],
+                            "packages": packages,
                         },
                         "rm_freeze_dir_after_zipping": False,
                     },
@@ -468,24 +476,11 @@ class NuxeoDriveSetup(object):
                 },
             })
 
-            # Include cffi compiled C extension under Linux
-            if sys.platform.startswith('linux') and attribs.include_xattr_binaries():
-                import xattr
-                includeFiles = [(os.path.join(os.path.dirname(xattr.__file__), '_cffi__x7c9e2f59xb862c7dd.so'),
-                                 '_cffi__x7c9e2f59xb862c7dd.so')]
-                freeze_options['options']['bdist_esky']['freezer_options'].update({
-                    "includeFiles": includeFiles
-                })
-
         if sys.platform == 'darwin':
             # Under OSX we use py2app instead of cx_Freeze because we need:
             # - argv_emulation=True for nxdrive:// URL scheme handling
             # - easy Info.plist customization
             import py2app  # install the py2app command
-            if attribs.include_xattr_binaries():
-                import xattr
-                ext_modules = [xattr.lib.ffi.verifier.get_extension()]
-                includes.append(xattr.lib.ffi.verifier.get_extension().name)
             name = attribs.get_CFBundleName()
             py2app_options = dict(
                 iconfile=icon,
@@ -556,13 +551,12 @@ class NuxeoDriveSetup(object):
             print "Restored version to " + old_version
 
 
-def main(argv=None):
-    attribs = None
-    if ("bdist_esky" in sys.argv or "bdist_msi" in sys.argv):
+def main():
+    if "bdist_esky" in sys.argv or "bdist_msi" in sys.argv:
         attribs = NuxeoDriveAttributes()
     else:
         attribs = NuxeoDrivePackageAttributes()
     NuxeoDriveSetup(attribs)
 
 if __name__ == '__main__':
-    sys.exit(main())
+    exit(main())
