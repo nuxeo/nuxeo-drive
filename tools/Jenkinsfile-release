@@ -42,6 +42,16 @@ def labels = [
 ]
 def builders = [:]
 
+def checkout() {
+    checkout([$class: 'GitSCM',
+    branches: [[name: '*/' + env.BRANCH_NAME]],
+    browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/nuxeo/nuxeo-drive'],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: 'https://github.com/nuxeo/nuxeo-drive.git']]])
+}
+
 for (x in slaves) {
     def slave = x
     def osi = labels.get(slave)
@@ -50,13 +60,7 @@ for (x in slaves) {
         node(slave) {
             withEnv(["WORKSPACE=${pwd()}"]) {
                 stage(osi + ' Checkout') {
-                    checkout([$class: 'GitSCM',
-                        branches: [[name: '*/' + env.BRANCH_NAME]],
-                        browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/nuxeo/nuxeo-drive'],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
-                        submoduleCfg: [],
-                        userRemoteConfigs: [[url: 'https://github.com/nuxeo/nuxeo-drive.git']]])
+                    checkout()
                 }
 
                 stage(osi + ' Build') {
@@ -71,14 +75,18 @@ for (x in slaves) {
                         if (osi == 'macOS') {
                             sh 'tools/osx/deploy_jenkins_slave.sh --build'
                             archive 'dist/*.dmg'
+                            stash name: 'mac', includes: 'dist/*.dmg'
                         } else if (osi == 'GNU/Linux') {
                             sh 'tools/linux/deploy_jenkins_slave.sh --build'
                             archive 'dist/*.deb'
+                            stash name: 'lin', includes: 'dist/*.deb'
                         } else {
                             bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
                             archive 'dist/*.msi'
+                            stash name: 'win', includes: 'dist/*.msi'
                         }
                         archive 'dist/*.json, dist/*.zip'
+                        stash name: 'json', includes: 'dist/*.json'
                     }
                 }
             }
@@ -87,3 +95,16 @@ for (x in slaves) {
 }
 
 parallel builders
+
+node('IT') {
+    if (currentBuild.result == 'SUCCESS') {
+        checkout()
+        dir('sources') {
+            unstash name: 'json'
+            unstash name: 'lin'
+            unstash name: 'mac'
+            unstash name: 'win'
+            sh 'tools/release_and_deploy.sh'
+        }
+    }
+}
