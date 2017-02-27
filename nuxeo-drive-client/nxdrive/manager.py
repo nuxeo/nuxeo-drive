@@ -883,8 +883,7 @@ class Manager(QtCore.QObject):
                 opener = urllib2.build_opener(urllib2.ProxyHandler(proxies),
                                           urllib2.HTTPBasicAuthHandler(),
                                           urllib2.HTTPHandler)
-                urllib2.install_opener(opener)
-                conn = urllib2.urlopen(url)
+                conn = opener.open(url)
                 conn.read()
             elif proxy_settings.config == 'Automatic':
                 pac_script = ""
