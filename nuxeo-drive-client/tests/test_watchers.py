@@ -13,12 +13,6 @@ log = get_logger(__name__)
 
 class TestWatchers(UnitTestCase):
 
-    def get_local_client(self, path):
-        if self._testMethodName in ('test_local_scan_encoding',
-                                    'test_watchdog_encoding'):
-            return LocalClient(path)
-        return super(TestWatchers, self).get_local_client(path)
-
     def test_local_scan(self):
         files, folders = self.make_local_tree()
         self.queue_manager_1.suspend()
@@ -157,11 +151,12 @@ class TestWatchers(UnitTestCase):
         # during local scan
         local.make_file('/', u'Test file.odt', 'Content')
 
-        def get_local_client():
-            return LocalClient(self.local_nxdrive_folder_1, digest_func='invalid')
+        def get_local_client_wrong():
+            return LocalClient(self.local_nxdrive_folder_1,
+                               digest_func='invalid')
 
         original_getter = self.engine_1.get_local_client
-        self.engine_1.get_local_client = get_local_client
+        self.engine_1.get_local_client = get_local_client_wrong
         self.engine_1.start()
         self.wait_sync()
         self.engine_1.stop()
