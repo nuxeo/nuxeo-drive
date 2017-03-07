@@ -97,7 +97,7 @@ function ExitWithCode($retCode) {
 function install_cxfreeze {
 	# Install cx_Freeze manually as pip does not work for this package
 	$output = "$Env:STORAGE_DIR\cx_Freeze-$Env:CXFREEZE_VERSION.win32-py2.7.msi"
-	$url = "https://sourceforge.net/projects/cx-freeze/files/$Env:CXFREEZE_VERSION/cx_Freeze-$Env:CXFREEZE_VERSION.win32-py2.7.msi"
+	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/cx_Freeze-$Env:CXFREEZE_VERSION.win32-py2.7.msi"
 
 	if (check_import "import cx_Freeze") {
 		return
@@ -143,7 +143,7 @@ function install_pip {
 
 function install_pyqt {
 	$output = "$Env:STORAGE_DIR\PyQt4-$Env:PYQT_VERSION-gpl-Py2.7-Qt4.8.7-x32.exe"
-	$url = "https://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-$Env:PYQT_VERSION/PyQt4-$Env:PYQT_VERSION-gpl-Py2.7-Qt4.8.7-x32.exe"
+	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/PyQt4-$Env:PYQT_VERSION-gpl-Py2.7-Qt4.8.7-x32.exe"
 	$packages = "$Env:PYTHON_DIR\Lib\site-packages"
 	$packages_pyqt = "$packages\PyQt4"
 	$source = "Lib\site-packages"
