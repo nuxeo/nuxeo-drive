@@ -883,8 +883,7 @@ class Manager(QtCore.QObject):
                 opener = urllib2.build_opener(urllib2.ProxyHandler(proxies),
                                           urllib2.HTTPBasicAuthHandler(),
                                           urllib2.HTTPHandler)
-                urllib2.install_opener(opener)
-                conn = urllib2.urlopen(url)
+                conn = opener.open(url)
                 conn.read()
             elif proxy_settings.config == 'Automatic':
                 pac_script = ""
@@ -1014,14 +1013,6 @@ class Manager(QtCore.QObject):
             log.trace("returning proxies: %r", self.proxies[server_url])
             return self.proxies[server_url]
         return {}
-
-    def get_engine(self, local_folder):
-        if self._engines is None:
-            self.load()
-        for engine_def in self._engine_definitions:
-            if local_folder.startswith(engine_def.local_folder):
-                return self._engines[engine_def.uid]
-        return None
 
     def edit(self, engine, remote_ref):
         """Find the local file if any and start OS editor on it."""
