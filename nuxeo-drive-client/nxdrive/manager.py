@@ -944,6 +944,54 @@ class Manager(QtCore.QObject):
             self.proxies["default"], self.proxy_exceptions = {}, None
         self.proxyUpdated.emit(proxy_settings)
 
+    @staticmethod
+    def get_system_pac_url():
+        """ Get the proxy auto config url (if present)  """
+        # Assume PAC url not configured in system
+        pac_url = None
+        try:
+            if AbstractOSIntegration.is_windows():
+                # For windows retrieve pac-url from registry key
+                import _winreg
+                internetSettings = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
+                    r'Software\Microsoft\Windows\CurrentVersion\Internet Settings')
+                pac_url = str(_winreg.QueryValueEx(internetSettings, 'AutoConfigURL')[0])
+            elif AbstractOSIntegration.is_mac():
+                # For Mac retrieve using SystemConfiguration library
+                import SystemConfiguration
+                config = SystemConfiguration.SCDynamicStoreCopyProxies(None)
+                if ("ProxyAutoConfigEnable" in config and "ProxyAutoConfigURLString" in config):
+                    # 'Auto Proxy Discovery' or WPAD is not supported yet
+                    # Only 'Automatic Proxy configuration' URL setting is supported
+                    if not ("ProxyAutoDiscoveryEnable" in config and config["ProxyAutoDiscoveryEnable"] == 1):
+                        pac_url = str(config["ProxyAutoConfigURLString"])
+        except Exception as e:
+            log.error("Error retrieving PAC url from system: %r", e)
+        # Return the result
+        return pac_url
+    
+    def retreive_system_proxies(self, server_url):
+        """
+            Gets the proxy server if system is configured with PAC url
+            @param server_url: The server url for which the proxy server should be determined 
+        """
+        proxies = None
+        if self.proxies and "default" in self.proxies:
+            proxies = self.proxies["default"]
+        if proxies is None:
+            pac_url = self.get_system_pac_url()
+            if pac_url:
+                # A pac Url is configured
+                proxy_settings  = ProxySettings()
+                proxy_settings.config = "Automatic"
+                proxy_settings.pac_url = pac_url
+                proxies = proxy_settings.get_proxies_automatic(server_url)
+                log.trace("System proxy (from PAC) retreived: %r", proxies)
+            else:
+                # Ignore this case. urllib2.ProxyHandler will take care of this
+                pass
+        return proxies
+
     def get_proxies(self, server_url):
         """
             Returns the proxy server address based on server_url. For Automatic Proxy Configuraiton (.PAC)
@@ -952,10 +1000,12 @@ class Manager(QtCore.QObject):
             @return: The proxy settings required for the specific server
         """
         proxy_settings = self.get_proxy_settings()
-        if proxy_settings.config == 'Manual' or proxy_settings.config == 'System':
+        if proxy_settings.config == 'Manual':
             if self.proxies and "default" in self.proxies:
                 log.trace("returning proxies: %r", self.proxies["default"])
                 return self.proxies["default"]
+        elif proxy_settings.config == 'System':
+            return self.retreive_system_proxies(server_url)
         elif proxy_settings.config =='Automatic':
             if server_url not in self.proxies:
                 log.trace("New Server. server_url: %r is not found in self.proxies", server_url)
