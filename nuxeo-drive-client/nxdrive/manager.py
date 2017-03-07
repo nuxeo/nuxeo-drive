@@ -964,14 +964,6 @@ class Manager(QtCore.QObject):
             return self.proxies[server_url]
         return {}
 
-    def get_engine(self, local_folder):
-        if self._engines is None:
-            self.load()
-        for engine_def in self._engine_definitions:
-            if local_folder.startswith(engine_def.local_folder):
-                return self._engines[engine_def.uid]
-        return None
-
     def edit(self, engine, remote_ref):
         """Find the local file if any and start OS editor on it."""
 
