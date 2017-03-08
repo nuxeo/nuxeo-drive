@@ -3,7 +3,7 @@
 
 export OSI="osx"
 
-include="$(python -c "import os.path; print(os.path.realpath('$0').replace('osx', 'posix'))")"
+include="$(python -c "import os.path; print(os.path.realpath('$0').replace('/osx/', '/posix/'))")"
 . "${include}"
 
 create_package() {
