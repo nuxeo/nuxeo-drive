@@ -118,7 +118,7 @@ extract() {
 install_cxfreeze() {
     # Install cx_Freeze manually as pip does not work for this package
     local version="${CXFREEZE_VERSION:=4.3.3}"
-    local url="https://sourceforge.net/projects/cx-freeze/files/${version}/cx_Freeze-${version}.tar.gz"
+    local url="https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/cx_Freeze-${version}.tar.gz"
     local path="${STORAGE_DIR}/cx_Freeze-${version}"
     local output="${path}.tar.gz"
 
@@ -164,7 +164,7 @@ install_pyenv() {
 
 install_pyqt() {
     local version="$1"
-    local url="https://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-${version}"
+    local url="https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive"
     local path="${STORAGE_DIR}"
     case "${OSI}" in
         "linux")
@@ -218,7 +218,7 @@ install_python() {
 
 install_sip() {
     local version="${SIP_VERSION:=4.19}"
-    local url="https://sourceforge.net/projects/pyqt/files/sip/sip-${version}/sip-${version}.tar.gz"
+    local url="https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/sip-${version}.tar.gz"
     local path="${STORAGE_DIR}/sip-${version}"
     local output="${path}.tar.gz"
 
