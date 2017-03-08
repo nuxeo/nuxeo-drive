@@ -456,14 +456,26 @@ class LocalWatcher(EngineWorker):
                             # Load correct doc_pair | Put the others one back to children
                             log.warn("Detected file substitution: %s (%s/%s)", child_pair.local_path, remote_ref,
                                      child_pair.remote_ref)
-                            if remote_ref is None and not child_info.folderish:
-                                # Alternative stream or xattr can have been removed by external software or user
-                                digest = child_info.get_digest()
-                                if child_pair.local_digest != digest:
-                                    child_pair.local_digest = digest
-                                    child_pair.local_state = 'modified'
+                            if remote_ref is None:
+                                if not child_info.folderish:
+                                    # Alternative stream or xattr can have been removed by external software or user
+                                    digest = child_info.get_digest()
+                                    if child_pair.local_digest != digest:
+                                        child_pair.local_digest = digest
+                                        child_pair.local_state = 'modified'
+                                # NXDRIVE-668: Here we might be in the case of a new folder/file
+                                # with the same name as the old name of a renamed folder/file, typically:
+                                # - initial state: subfolder01
+                                # - rename subfolder01 to subfolder02
+                                # - create subfolder01
+                                # => substitution will be detected when scanning subfolder01, so we need to
+                                # set the remote id and update the local state to avoid performing a wrong
+                                # locally_created operation leading to an IntegrityError.
+                                # This is true for folders and files.
                                 self.client.set_remote_id(child_pair.local_path, child_pair.remote_ref)
                                 self._dao.update_local_state(child_pair, child_info)
+                                if child_info.folderish:
+                                    to_scan.append(child_info)
                                 continue
                             old_pair = self._dao.get_normal_state_from_remote(remote_ref)
                             if old_pair is None:
