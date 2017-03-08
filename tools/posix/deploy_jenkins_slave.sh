@@ -13,8 +13,9 @@
 #set -x  # verbose
 
 # Global variables
-PYTHON="python -E"
-PIP="${PYTHON} -m pip install -q --upgrade"
+PYTHON="python -E -s"
+PIP_INST="${PYTHON} -m pip install -q"
+PIP="${PIP_INST} --upgrade"
 
 build_esky() {
     echo ">>> Building the release package"
@@ -138,6 +139,8 @@ install_cxfreeze() {
 
 install_deps() {
     echo ">>> Installing requirements"
+    # Do not delete, it fixes "Could not import setuptools which is required to install from a source distribution."
+    ${PIP_INST} setuptools
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-unix.txt
     case "${OSI}" in

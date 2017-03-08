@@ -9,7 +9,7 @@ from mock import patch
 from nxdrive.client import LocalClient, RemoteDocumentClient
 from nxdrive.engine.engine import Engine
 from tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION
-from tests.common_unit_test import UnitTestCase
+from tests.common_unit_test import RandomBug, UnitTestCase
 
 
 class TestRemoteMoveAndRename(UnitTestCase):
@@ -215,6 +215,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertTrue(local.exists('/Test folder renamed'))
         self.assertTrue(local.exists('/Test folder renamed/testFile.pdf'))
 
+    @RandomBug('NXDRIVE-757', target='linux')
     def test_synchronize_remote_move_while_download_file(self):
         if sys.platform != 'win32':
             with patch('nxdrive.client.base_automation_client.os.fstatvfs', return_value=False) as mock_os:
