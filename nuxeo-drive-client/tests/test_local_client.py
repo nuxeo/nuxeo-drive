@@ -1,6 +1,8 @@
 """
 Test LocalClient with native FS operations and specific OS ones.
 See win_local_client.py and mac_local_client.py for more informations.
+
+See NXDRIVE-742.
 """
 from time import sleep
 
@@ -20,10 +22,11 @@ except ImportError:
 
 
 class StubLocalClient(object):
-    """ All tests goes here. If you need to implement a special behavior for
-        one OS, override the test method in the class TestLocalClientSimulation.
-        Check TestLocalClientSimulation.test_complex_filenames() for a real
-        world example.
+    """
+    All tests goes here. If you need to implement a special behavior for
+    one OS, override the test method in the class TestLocalClientSimulation.
+    Check TestLocalClientSimulation.test_complex_filenames() for a real
+    world example.
     """
 
     def test_make_documents(self):
@@ -243,8 +246,9 @@ class StubLocalClient(object):
 
 
 class TestLocalClientNative(StubLocalClient, UnitTestCase):
-    """ Test LocalClient using native python commands to make FS operations.
-        This will simulate Drive actions.
+    """
+    Test LocalClient using native python commands to make FS operations.
+    This will simulate Drive actions.
     """
 
     def setUp(self):
@@ -259,10 +263,11 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
 @skipIf(AbstractOSIntegration.is_linux(),
         'GNU/Linux uses native LocalClient.')
 class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
-    """ Test LocalClient using OS specific commands to make FS operations.
-        This will simulate user actions on:
-            - Explorer (Windows)
-            - File Manager (macOS)
+    """
+    Test LocalClient using OS specific commands to make FS operations.
+    This will simulate user actions on:
+        - Explorer (Windows)
+        - File Manager (macOS)
     """
 
     def setUp(self):
@@ -271,8 +276,9 @@ class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
         self.wait_sync()
 
     def test_complex_filenames(self):
-        """ It should fail on Windows:
-            Explorer cannot find the directory as the path is way to long.
+        """
+        It should fail on Windows:
+        Explorer cannot find the directory as the path is way to long.
         """
 
         if AbstractOSIntegration.is_windows():
@@ -282,15 +288,16 @@ class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
                     super(TestLocalClientSimulation,
                           self).test_complex_filenames()
             except AssertionError:
-                # Sometimes it does not raises the expected assertion ...
+                # Sometimes it does not raise the expected assertion ...
                 # TODO: More tests to know why.
                 pass
         else:
             super(TestLocalClientSimulation, self).test_complex_filenames()
 
     def test_deep_folders(self):
-        """ It should fail on Windows:
-            Explorer cannot deal with very long paths.
+        """
+        It should fail on Windows:
+        Explorer cannot deal with very long paths.
         """
 
         if AbstractOSIntegration.is_windows():
