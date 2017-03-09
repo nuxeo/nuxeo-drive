@@ -66,22 +66,6 @@ class NotFound(Exception):
 
 DEFAULT_REPOSITORY_NAME = 'default'
 
-DEFAULT_IGNORED_PREFIXES = [
-    '.',  # hidden Unix files
-    '~$',  # Windows lock files
-    'Thumbs.db',  # Thumbnails files
-    'Icon\r',  # Mac Icon
-    'desktop.ini',  # Icon for windows
-]
-
-DEFAULT_IGNORED_SUFFIXES = [
-    '~',  # editor buffers
-    '.swp',  # vim swap files
-    '.lock',  # some process use file locks
-    '.LOCK',  # other locks
-    '.part', '.crdownload', '.partial',  # partially downloaded files by browsers
-]
-
 # Default buffer size for file upload / download and digest computation
 FILE_BUFFER_SIZE = 1024 ** 2
 

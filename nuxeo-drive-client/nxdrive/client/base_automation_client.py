@@ -15,8 +15,6 @@ from nxdrive.logging_config import get_logger
 from nxdrive.client.common import BaseClient
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.client.common import FILE_BUFFER_SIZE
-from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.utils import DEVICE_DESCRIPTIONS
@@ -183,15 +181,6 @@ class BaseAutomationClient(BaseClient):
         if blob_timeout is None or blob_timeout < 0:
             blob_timeout = 60
         self.blob_timeout = blob_timeout
-        if ignored_prefixes is not None:
-            self.ignored_prefixes = ignored_prefixes
-        else:
-            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
-
-        if ignored_suffixes is not None:
-            self.ignored_suffixes = ignored_suffixes
-        else:
-            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
 
         self.upload_tmp_dir = (upload_tmp_dir if upload_tmp_dir is not None
                                else tempfile.gettempdir())
