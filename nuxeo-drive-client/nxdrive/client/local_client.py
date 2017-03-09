@@ -14,9 +14,9 @@ from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import safe_filename
+from nxdrive.client.common import register, add_ignore_filter, remove_ignore_filter, \
+    ignore_prefixes, ignore_suffixes, base_is_ignored
 from nxdrive.client.common import NotFound
-from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.utils import normalized_path
 from nxdrive.utils import safe_long_path
 from nxdrive.utils import guess_digest_algorithm
@@ -117,14 +117,18 @@ class LocalClient(BaseClient):
         self.check_suspended = check_suspended
 
         if ignored_prefixes is not None:
-            self.ignored_prefixes = ignored_prefixes
-        else:
-            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
+            # remove default prefixes and register with these new ones
+            fname = ignore_prefixes.func.func_name
+            func = remove_ignore_filter(fname)
+            # reregister the "ignore_prefixes filter with the new prefixes
+            add_ignore_filter(func, prefixes=ignored_prefixes, apply_to_parent=func.apply_to_parent)
 
         if ignored_suffixes is not None:
-            self.ignored_suffixes = ignored_suffixes
-        else:
-            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
+            # remove default suffixes and register with these new ones
+            fname = ignore_suffixes.func.func_name
+            func = remove_ignore_filter(fname)
+            # reregister the "ignore_suffixes filter with the new suffixes
+            add_ignore_filter(func, suffixes=ignored_suffixes, apply_to_parent=func.apply_to_parent)
 
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
@@ -469,35 +473,35 @@ class LocalClient(BaseClient):
             return False
         return bool(ord(attrs[8]) & 0x20)
 
-    def is_ignored(self, parent_ref, file_name):
-        # Add parent_ref to be able to filter on size if needed
-        ignore = False
-        # Office temp file
-        # http://support.microsoft.com/kb/211632
-        if file_name.startswith("~") and file_name.endswith(".tmp"):
-            return True
-        # Emacs auto save file
-        # http://www.emacswiki.org/emacs/AutoSave
-        if file_name.startswith("#") and file_name.endswith("#") and len(file_name) > 2:
-            return True
-        for suffix in self.ignored_suffixes:
-            if file_name.endswith(suffix):
-                ignore = True
-                break
-        for prefix in self.ignored_prefixes:
-            if file_name.startswith(prefix):
-                ignore = True
-                break
-        if ignore:
-            return True
+    @register()
+    def ignore_non_existant(self, parent, name, **kwargs):
+        # 'self' here represents the context where the function is called and is used to facilitate its work; use
+        # 'duck-typing' to check for the right context.
+        # skip if called with a context which cannot compute the absolute path, e.g. missing,
+        # not derived from LocalClient, etc.
+        if self is None or not hasattr(self, '_abspath'):
+            return False
+        path = self._abspath(os.path.join(parent, name))
+        return not os.path.exists(path)
+
+    @register(apply_to_parent=True)
+    def ignore_hidden(self, parent, name, **kwargs):
         if AbstractOSIntegration.is_windows():
-            # NXDRIVE-465
-            ref = self.get_children_ref(parent_ref, file_name)
+            # 'self' here represents the context where the function is called and is used to facilitate its work; use
+            # 'duck-typing' to check for the right context.
+            # skip if called with a context which cannot compute the absolute path, e.g. missing,
+            # not derived from LocalClient, etc.
+            if self is None or not hasattr(self, '_abspath') or not hasattr(self, 'get_children_ref'):
+                return False
+            # NXDRIVE 465
+            ref = self.get_children_ref(parent, name)
             path = self._abspath(ref)
             if not os.path.exists(path):
                 return False
+
             import win32con
             import win32api
+
             attrs = win32api.GetFileAttributes(path)
             if attrs & win32con.FILE_ATTRIBUTE_SYSTEM == win32con.FILE_ATTRIBUTE_SYSTEM:
                 return True
@@ -512,6 +516,18 @@ class LocalClient(BaseClient):
             path = os.path.dirname(path)
             result = self.is_ignored(path, file_name)
         return result
+
+    def manipulate_guest_filter(self, ignore_guest):
+        if ignore_guest:
+            remove_ignore_filter("ignore_guest_folder")
+        else:
+            func = getattr(self, "ignore_guest_folder", None)
+            if func:
+                add_ignore_filter(func)
+
+    def is_ignored(self, parent_ref, file_name, ignore_guest=False):
+        self.manipulate_guest_filter(ignore_guest)
+        return base_is_ignored(self, parent_ref, file_name)
 
     def get_children_ref(self, parent_ref, name):
         if parent_ref == u'/':

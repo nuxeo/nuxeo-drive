@@ -13,10 +13,9 @@ from urllib import urlencode
 from poster.streaminghttp import get_handlers
 from nxdrive.logging_config import get_logger
 from nxdrive.client.common import BaseClient
+from nxdrive.client.common import add_ignore_filter, remove_ignore_filter, ignore_prefixes, ignore_suffixes
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.client.common import FILE_BUFFER_SIZE
-from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
 from nxdrive.client.common import safe_filename
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.utils import DEVICE_DESCRIPTIONS
@@ -184,14 +183,18 @@ class BaseAutomationClient(BaseClient):
             blob_timeout = 60
         self.blob_timeout = blob_timeout
         if ignored_prefixes is not None:
-            self.ignored_prefixes = ignored_prefixes
-        else:
-            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
+            # remove default prefixes and register with these new ones
+            fname = ignore_prefixes.func.func_name
+            func = remove_ignore_filter(fname)
+            # reregister the "ignore_prefixes filter with the new prefixes
+            add_ignore_filter(fname, prefixes=ignored_prefixes, apply_to_parent=func.apply_to_parent)
 
         if ignored_suffixes is not None:
-            self.ignored_suffixes = ignored_suffixes
-        else:
-            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
+            # remove default suffixes and register with these new ones
+            fname = ignore_suffixes.func.func_name
+            func = remove_ignore_filter(fname)
+            # reregister the "ignore_suffixes filter with the new suffixes
+            add_ignore_filter(fname, suffixes=ignored_suffixes, apply_to_parent=func.apply_to_parent)
 
         self.upload_tmp_dir = (upload_tmp_dir if upload_tmp_dir is not None
                                else tempfile.gettempdir())
