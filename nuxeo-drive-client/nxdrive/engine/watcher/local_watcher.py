@@ -15,6 +15,7 @@ import sys
 import os
 import re
 import sqlite3
+import win32api
 from time import sleep, time, mktime
 from threading import Lock
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
@@ -987,4 +988,8 @@ def normalize_event_filename(filename):
     if os.path.exists(filename) and normalized_filename != filename:
         log.debug('Forcing normalization of %r to %r', filename, normalized_filename)
         os.rename(filename, normalized_filename)
+    try:
+        normalized_filename = win32api.GetLongPathName(normalized_filename)
+    except Exception as e:
+        log.debug('Long path conversion error %r', e.message)
     return normalized_filename
