@@ -23,6 +23,10 @@ from nxdrive.utils import guess_digest_algorithm
 from nxdrive.client.common import FILE_BUFFER_SIZE
 from send2trash import send2trash
 
+try:
+    from exceptions import WindowsError
+except ImportError:
+    WindowsError = IOError
 
 log = get_logger(__name__)
 

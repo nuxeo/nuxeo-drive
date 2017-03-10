@@ -5,8 +5,15 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.logging_config import get_logger
 import os
 import sys
-if sys.platform == "win32":
+
+try:
+    from exceptions import WindowsError
+except ImportError:
+    WindowsError = IOError
+
+if AbstractOSIntegration.is_windows():
     import _winreg
+
 log = get_logger(__name__)
 
 
