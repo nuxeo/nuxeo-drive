@@ -48,7 +48,7 @@ class Translator(object):
         if values is None:
             return label
         result = label
-        for token in re.findall("\{\{[^\}]+\}\}", label):
+        for token in re.findall(r'\{\{[^\}]+\}\}', label):
             attr = token[2:-2].strip()
             value = ""
             if attr in values:
