@@ -18,12 +18,13 @@ from time import sleep
 import shutil
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from Queue import Queue, Empty
-log = get_logger(__name__)
-WindowsError = None
+
 try:
     from exceptions import WindowsError
 except ImportError:
-    pass  # this will never be raised under unix
+    WindowsError = IOError
+
+log = get_logger(__name__)
 
 
 class DirectEdit(Worker):
