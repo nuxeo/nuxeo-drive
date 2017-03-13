@@ -50,6 +50,20 @@ check_import() {
     echo "OK."
 }
 
+check_sum() {
+    # Calculate the MD5 sum of the file to check its integrity.
+    # Note 1: we have to use Python from the host since we have no dev env installed.
+    # Note 2: we use Python and not md5sum/md5 because we are not sure those tools are installed on the host.
+    local file="$1"
+    local filename="$(python -sBc "import os.path; print(os.path.basename('${file}'))")"
+    local checksums="${WORKSPACE_DRIVE}/tools/checksums.txt"
+    local md5="$(python -sBc "import hashlib; print(hashlib.md5(open('${file}', 'rb').read()).hexdigest())")"
+
+    if [ $(grep -c "${md5}  ${filename}" "${checksums}") -ne 1 ]; then
+        return 1
+    fi
+}
+
 check_vars() {
     # Check required variables
     if [ "${PYTHON_DRIVE_VERSION:=unset}" = "unset" ]; then
@@ -100,10 +114,27 @@ download() {
     # Download one file and save its content to a given file name
     local url="$1"
     local output="$2"
+    local try=1
 
-    echo ">>> Downloading $url"
-    echo "             to $output"
-    [ -f "$output" ] || curl --silent -L "$url" > "$output"
+    # 5 tries, because we are generous
+    until [ ${try} -ge 6 ]; do
+        if [ -f "${output}" ]; then
+            if check_sum "${output}"; then
+                return
+            fi
+            rm -rf "${output}"
+        fi
+        echo ">>> [$try/5] Downloading $url"
+        echo "                   to $output"
+        set +e
+        curl --silent -L "$url" -o "$output"
+        set -e
+        try=$(( ${try} + 1 ))
+        sleep 5
+    done
+
+    echo ">>> Impossible to download and verify ${url}"
+    return 1
 }
 
 extract() {
@@ -271,8 +302,8 @@ verify_python() {
     echo ">>> Verifying Python version in use"
 
     if [ "${cur_version}" != "${version}" ]; then
-        echo "Python version ${cur_version}"
-        echo "Drive requires ${version}"
+        echo ">>> Python version ${cur_version}"
+        echo ">>> Drive requires ${version}"
         exit 1
     fi
 

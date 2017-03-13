@@ -1,0 +1,26 @@
+# Keep files sorted
+
+# GNU/Linux and macOS
+
+## cx_Freeze
+c729d5663320f6afc23682634c7f4cc2  cx_Freeze-4.3.3.tar.gz
+
+## PyQt
+a96bba07188767d92deb01decd0d890f  PyQt4_gpl_mac-4.12.tar.gz
+eb8c338f2d8842aa7655e8e1aa840bed  PyQt4_gpl_x11-4.12.tar.gz
+
+## SIP
+be51a05065c9323b98a2ec2966c64e6a  sip-4.19.tar.gz
+
+---
+
+# Windows
+
+## cx_Freeze
+6b63c90e839dbc0345d462096e7f7734  cx_Freeze-4.3.3.win32-py2.7.msi
+
+## Python
+0f057ab4490e63e528eaa4a70df711d9  python-2.7.13.msi
+
+## PyQt
+2b4be3c2b351a87ed09f265eb2f5e4cc  PyQt4-4.11.4-gpl-Py2.7-Qt4.8.7-x32.exe
