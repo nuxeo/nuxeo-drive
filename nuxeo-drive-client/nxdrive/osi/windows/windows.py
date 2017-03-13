@@ -5,6 +5,8 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.logging_config import get_logger
 import os
 import sys
+import platform
+import uuid
 if sys.platform == "win32":
     import _winreg
 log = get_logger(__name__)
@@ -12,6 +14,7 @@ log = get_logger(__name__)
 
 class WindowsIntegration(AbstractOSIntegration):
     RUN_KEY = 'Software\\Microsoft\\Windows\\CurrentVersion\\Run'
+    EXPLORER = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer'
 
     def __init__(self, manager):
         super(WindowsIntegration, self).__init__(manager)
@@ -25,8 +28,12 @@ class WindowsIntegration(AbstractOSIntegration):
         return self.get_menu_parent_key() + '\\command'
 
     def _delete_reg_value(self, reg, path, value):
+        if platform.machine().endswith('64'):
+            access_mask = _winreg.KEY_ALL_ACCESS | _winreg.KEY_WOW64_64KEY
+        else:
+            access_mask = _winreg.KEY_ALL_ACCESS
         try:
-            key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_ALL_ACCESS)
+            key = _winreg.OpenKey(reg, path, 0, access_mask)
         except Exception, e:
             return False
         try:
@@ -39,11 +46,46 @@ class WindowsIntegration(AbstractOSIntegration):
     def get_open_files(self, pids=None):
         return self._file_sniffer.get_open_files(pids)
 
+    '''
+       Add registry entries to support to pin in navigation panel.
+    '''
+
+    def _add_reg_entries(self, local_folder, engine_id, name ):
+        engine_id_guid = '{' + str(uuid.UUID(engine_id)) + '}'
+        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
+        path = 'Software\\Classes\\CLSID\\' + engine_id_guid
+        self._update_reg_key(reg, path, [
+                                    ('', _winreg.REG_SZ, self._manager._get_default_nuxeo_drive_name()),
+                                    ('System.IsPinnedToNamespaceTree', _winreg.REG_DWORD, 0x1),
+                                    ('SortOrderIndex', _winreg.REG_DWORD, 0x42), ],)
+        self._update_reg_key(reg, path + '\\DefaultIcon', [
+                                                            ('', _winreg.REG_SZ, self._manager.find_exe_path() + ',0'), ],)
+        self._update_reg_key(reg, path + '\\InProcServer32', [
+                                                            ('', _winreg.REG_EXPAND_SZ, '%systemroot%\system32\shell32.dll'), ],)
+        self._update_reg_key(reg, path + '\\Instance', [
+                                                            ('CLSID', _winreg.REG_SZ, '{0E5AAE11-A475-4c5b-AB00-C66DE400274E}'), ],)
+        self._update_reg_key(reg, path + '\\Instance\\InitPropertyBag', [
+                                                            ('Attributes', _winreg.REG_DWORD, 0x00000011),
+                                                            ('TargetFolderPath', _winreg.REG_SZ, local_folder), ],)
+        self._update_reg_key(reg, path + '\\ShellFolder', [
+                                                            ('FolderValueFlags', _winreg.REG_DWORD, 0x28),
+                                                            ('Attributes', _winreg.REG_DWORD, 0xf080004d), ],)
+        self._update_reg_key(reg, self.EXPLORER + '\\HideDesktopIcons\\NewStartPanel', [
+                                                            (engine_id_guid, _winreg.REG_DWORD, 0x1), ],)
+        self._update_reg_key(reg, self.EXPLORER + '\\Desktop\\NameSpace\\' + engine_id_guid, [
+                                                            ('', _winreg.REG_SZ, name), ],)
+
     def _update_reg_key(self, reg, path, attributes=()):
         """Helper function to create / set a key with attribute values"""
-        key = _winreg.CreateKey(reg, path)
+
+        if platform.machine().endswith('64'):
+            access_mask = _winreg.KEY_ALL_ACCESS | _winreg.KEY_WOW64_64KEY
+        else:
+            access_mask = _winreg.KEY_ALL_ACCESS
+
+        key = _winreg.CreateKeyEx(reg, path, 0, access_mask)
         _winreg.CloseKey(key)
-        key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_WRITE)
+        key = _winreg.OpenKey(reg, path, 0, access_mask)
         for attribute, type_, value in attributes:
             # Handle None case for app name in
             # contextual_menu.register_contextual_menu_win32
@@ -143,19 +185,50 @@ class WindowsIntegration(AbstractOSIntegration):
             [('', _winreg.REG_SZ, command)],
         )
 
-    def _recursive_delete(self, reg, start_path, end_path):
-        try:
-            while (len(start_path) < len(end_path)):
-                _winreg.DeleteKey(reg, end_path)
-                end_path = end_path[0:end_path.rfind('\\')]
-        except Exception, e:
-            pass
+    def traverse_path(self, reg, start_path, access_mask, enrties_list):
+        key = _winreg.OpenKey(reg, start_path, 0, access_mask)
+        count = 0
+        child_count = _winreg.QueryInfoKey(key)[0]
+        while count < child_count:
+            reg_name = _winreg.EnumKey(key, count)
+            self.traverse_path(reg, start_path + '\\' + reg_name, access_mask, enrties_list)
+            enrties_list.append(start_path + '\\' + reg_name)
+            count = count + 1
+        _winreg.CloseKey(key)
+
+    '''
+        delete registry entries added for windows 10 navigation panel
+    '''
+
+    def _delete_registry_entries(self, engine_id):
+        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
+        path = 'Software\\Classes\\CLSID'
+        engine_id_guid = '{' + str(uuid.UUID(engine_id)) + '}'
+        self._recursive_delete(reg, path, engine_id_guid)
+        self._recursive_delete(reg, self.EXPLORER + '\Desktop\NameSpace', engine_id_guid)
+        self._delete_reg_value(reg, self.EXPLORER + '\HideDesktopIcons\NewStartPanel', engine_id_guid)
+
+    def _recursive_delete(self, reg, start_path, name):
+        if platform.machine().endswith('64'):
+            access_mask = _winreg.KEY_ALL_ACCESS | _winreg.KEY_WOW64_64KEY
+        else:
+            access_mask = _winreg.KEY_ALL_ACCESS
+
+        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
+        entries_list = list()
+        self.traverse_path(reg, start_path + '\\' + name, access_mask, entries_list)
+        entries_list.append(start_path + '\\' + name)
+        key = _winreg.OpenKey(reg, start_path, 0, access_mask)
+        for entry in entries_list:
+            local_path = entry
+            _winreg.DeleteKey(key, local_path.replace(start_path + '\\', ''))
+        _winreg.CloseKey(key)
 
     def unregister_protocol_handlers(self):
         app_name = self._manager.get_appname()
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-        self._recursive_delete(reg, 'Software\\', 'Software\\' + app_name + '\\Protocols\\nxdrive\\shell\\open\\command')
-        self._recursive_delete(reg, 'Software\\Classes\\', 'Software\\Classes\\nxdrive\\shell\\open\\command')
+        self._recursive_delete(reg, 'Software', app_name)
+        self._recursive_delete(reg, 'Software\\Classes', 'nxdrive')
 
     def register_contextual_menu(self):
         # TODO: better understand why / how this works.
@@ -215,11 +288,17 @@ class WindowsIntegration(AbstractOSIntegration):
             _winreg.DeleteKey(reg, self.get_menu_key())
             _winreg.DeleteKey(reg, self.get_menu_parent_key())
 
-    def register_folder_link(self, folder_path, name=None):
+    def register_folder_link(self, folder_path, engine_id, name=None):
         file_lnk = self._get_folder_link(name)
         self._create_shortcut(file_lnk, folder_path)
+        if platform.release() == '10':
+            self._add_reg_entries(folder_path, engine_id, name)
 
-    def unregister_folder_link(self, name):
+    def unregister_folder_link(self, name, engine_id):
+
+        if platform.release() == '10':
+            self._delete_registry_entries(engine_id)
+
         file_lnk = self._get_folder_link(name)
         if file_lnk is None:
             return

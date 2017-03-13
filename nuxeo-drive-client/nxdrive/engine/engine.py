@@ -367,6 +367,8 @@ class Engine(QObject):
     def unbind(self):
         self.stop()
         try:
+            # Unregister the favorite link for Nuxeo Drive upon disconnecting.
+            self._manager.get_osi().unregister_folder_link(self._manager._get_default_nuxeo_drive_name(), self._uid)
             # Dont fail if not possible to remove token
             doc_client = self.get_remote_doc_client()
             doc_client.revoke_token()
@@ -795,6 +797,8 @@ class Engine(QObject):
             # If the top level state for the server binding doesn't exist,
             # create the local folder and the top level state.
             self._check_root()
+            self._manager.get_osi().register_folder_link(self._local_folder, self._uid, 
+                                                             self._manager._get_default_nuxeo_drive_name())
 
     def _check_fs(self, path):
         if not self._manager.get_osi().is_partition_supported(path):
