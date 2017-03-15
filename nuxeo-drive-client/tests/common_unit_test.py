@@ -516,7 +516,12 @@ class UnitTestCase(SimpleUnitTestCase):
         self.tearDown()
         self.tearDownApp()
         self.setUpApp()
-        self.setUp()
+        try:
+            self.setUp()
+        except:
+            # We can end on a wait timeout. Just ignore it, the test should
+            # fail and will be launched again.
+            pass
 
     def run(self, result=None):
         self.logger = log
