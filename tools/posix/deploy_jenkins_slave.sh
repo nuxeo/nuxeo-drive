@@ -126,9 +126,7 @@ download() {
         fi
         echo ">>> [$try/5] Downloading $url"
         echo "                   to $output"
-        set +e
-        curl --silent -L "$url" -o "$output"
-        set -e
+        curl --silent -L "$url" -o "$output" || true
         try=$(( ${try} + 1 ))
         sleep 5
     done
