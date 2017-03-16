@@ -40,6 +40,9 @@ PAIR_STATES = {
     ('created', 'created'): 'conflicted',
     ('created', 'modified'): 'conflicted',
 
+    # conflict cases that have been manually resolved
+    ('resolved', 'unknown'): 'locally_resolved',
+
     # inconsistent cases
     ('unknown', 'deleted'): 'unknown_deleted',
     ('deleted', 'unknown'): 'deleted_unknown',
@@ -1138,11 +1141,12 @@ class EngineDAO(ConfigurationDAO):
     def force_local(self, row):
         self._lock.acquire()
         try:
+            pair_state = 'locally_resolved'
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET local_state='created', remote_state='unknown', pair_state='locally_created', last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
-                      " WHERE id=? AND version=?", (row.id, row.version))
-            self._queue_pair_state(row.id, row.folderish, "locally_created")
+            c.execute("UPDATE States SET local_state='resolved', remote_state='unknown', pair_state=?, last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
+                      " WHERE id=? AND version=?", (pair_state, row.id, row.version))
+            self._queue_pair_state(row.id, row.folderish, pair_state)
             if self.auto_commit:
                 con.commit()
         finally:
