@@ -4,10 +4,9 @@ import shutil
 from tests.common import OS_STAT_MTIME_RESOLUTION
 from tests.common_unit_test import UnitTestCase
 from nxdrive.osi import AbstractOSIntegration
-from unittest import skip, skipIf
+from unittest import skipIf
 
 
-@skip('NXDRIVE-766: these are failing due to NXP-21854')
 class TestConflicts(UnitTestCase):
 
     def setUp(self):

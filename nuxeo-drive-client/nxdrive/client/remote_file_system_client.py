@@ -128,9 +128,9 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def is_filtered(self, path):
         return False
 
-    def make_folder(self, parent_id, name):
+    def make_folder(self, parent_id, name, overwrite=False):
         fs_item = self.execute("NuxeoDrive.CreateFolder",
-            parentId=parent_id, name=name)
+            parentId=parent_id, name=name, overwrite=overwrite)
         return self.file_to_info(fs_item)
 
     def make_file(self, parent_id, name, content):
@@ -146,11 +146,13 @@ class RemoteFileSystemClient(BaseAutomationClient):
         finally:
             os.remove(file_path)
 
-    def stream_file(self, parent_id, file_path, filename=None, mime_type=None):
-        """Create a document by streaming the file with the given path"""
+    def stream_file(self, parent_id, file_path, filename=None, mime_type=None, overwrite=False):
+        """Create a document by streaming the file with the given path
+        :param overwrite Allows to overwrite an existing document with the same title on the server.
+        """
         fs_item = self.execute_with_blob_streaming("NuxeoDrive.CreateFile",
             file_path, filename=filename, mime_type=mime_type,
-            parentId=parent_id)
+            parentId=parent_id, overwrite=overwrite)
         return self.file_to_info(fs_item)
 
     def update_content(self, fs_item_id, content, filename=None,
