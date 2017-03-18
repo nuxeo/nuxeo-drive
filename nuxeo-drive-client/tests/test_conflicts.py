@@ -3,6 +3,7 @@ import shutil
 
 from tests.common import OS_STAT_MTIME_RESOLUTION
 from tests.common_unit_test import UnitTestCase
+from tests.common_unit_test import RandomBug
 from nxdrive.osi import AbstractOSIntegration
 from unittest import skipIf
 
@@ -53,6 +54,7 @@ class TestConflicts(UnitTestCase):
         self.assertEqual(remote.get_content(remote_children[0].uid), 'Remote update 2')
         self.assertEqual(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
 
+    @RandomBug('NXDRIVE-771', target='linux')
     def test_real_conflict(self):
         local = self.local_client_1
         remote = self.remote_file_system_client_2
