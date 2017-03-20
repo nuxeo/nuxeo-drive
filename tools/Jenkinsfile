@@ -36,7 +36,8 @@ properties([
                 description: 'Random bug mode']
         ]
     ],
-    pipelineTriggers([[$class: 'GitHubPushTrigger']])
+    pipelineTriggers([[$class: 'GitHubPushTrigger']]),
+    disableConcurrentBuilds()
 ])
 
 // Jenkins slaves we will build on
@@ -153,6 +154,8 @@ for (def x in slaves) {
     }
 }
 
-timestamps {
-    parallel builders
+timeout(150) {
+    timestamps {
+        parallel builders
+    }
 }
