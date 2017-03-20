@@ -286,7 +286,6 @@ launch_tests() {
         --strict \
         --failed-first \
         -r Efx \
-        --full-trace \
         --capture=sys \
         --no-cov-on-fail \
         --cov-append \
