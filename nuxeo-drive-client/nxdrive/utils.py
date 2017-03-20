@@ -206,6 +206,7 @@ def safe_long_path(path):
             # Decode path with local encoding when not already decoded
             # explicitly  by the caller
             path = unicode(path.decode(ENCODING))
+        log.debug('Prefix the path with \\\\?\\')
         path = u"\\\\?\\" + path
     return path
 

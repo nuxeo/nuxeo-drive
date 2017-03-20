@@ -9,13 +9,12 @@ import sys
 
 import os
 
-from nxdrive.logging_config import get_logger
+from nxdrive.utils import safe_long_path
+from tests.common import log
 from tests.common_unit_test import UnitTestCase
 
 if sys.platform == 'win32':
     import win32api
-
-log = get_logger(__name__)
 
 # Number of chars in path c://.../Nuxeo.. is approx 96 chars
 FOLDER_A = 'A' * 90
@@ -47,15 +46,13 @@ class TestLongPath(UnitTestCase):
         base_folder_path = self.local_1._abspath("/")
         if sys.platform == "win32":
             if not os.path.exists(base_folder_path):
-                log.info("prefix the path with \\\\?\\ in windows platform")
-                base_folder_path = "\\\\?\\" + base_folder_path
+                base_folder_path = safe_long_path(base_folder_path)
         # Creating new folder under "/CCCCCCC.../"
         parent_path = os.path.join(base_folder_path,
                                    FOLDER_A, FOLDER_B, FOLDER_C)
         if sys.platform == 'win32':
             if not os.path.exists(parent_path):
-                log.info("prefix the path with \\\\?\\ in windows platform")
-                parent_path = "\\\\?\\" + parent_path
+                parent_path = safe_long_path(parent_path)
             log.info("Convert path of FOLDER_D to short path format")
             parent_path = win32api.GetShortPathName(parent_path)
         new_folder_path = os.path.join(parent_path, FOLDER_D)
