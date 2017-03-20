@@ -3,8 +3,10 @@
 '''
 import sys
 from shutil import copyfile
+from unittest import skipIf
 
 from nxdrive.client import LocalClient
+from nxdrive.osi import AbstractOSIntegration
 from tests.common import log
 from tests.common_unit_test import UnitTestCase
 
@@ -228,6 +230,29 @@ class TestWatchers(UnitTestCase):
         self.assertFalse(remote.exists(u'/Accentue\u0301.odt'))
         self.assertFalse(remote.exists(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'))
 
+    @skipIf(AbstractOSIntegration.is_windows(),
+            'Windows cannot have file ending with a space.')
+    def test_watchdog_space_remover(self):
+        """
+        Test files and folders ending with space.
+        """
+
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+
+        self.engine_1.start()
+        self.wait_sync()
+
+        local.make_file(u'/', u'Accentue\u0301.odt ', u'Content')
+        self.wait_sync()
+        self.assertTrue(remote.exists(u'/Accentue\u0301.odt'))
+        self.assertFalse(remote.exists(u'/Accentue\u0301.odt '))
+
+        local.rename(u'/Accentu\xe9.odt',
+                     u'Accentu\xe9 avec un \xea et un \xe9.odt ')
+        self.wait_sync()
+        self.assertEqual(remote.get_info(u'/Accentue\u0301.odt').name,
+                         u'Accentu\xe9 avec un \xea et un \xe9.odt')
     def test_watchdog_encoding(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

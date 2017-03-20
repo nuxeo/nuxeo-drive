@@ -2,6 +2,7 @@
 '''
 @author: Remi Cattiau
 '''
+import unicodedata
 from nxdrive.logging_config import get_logger
 from watchdog.events import FileSystemEventHandler
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
@@ -623,11 +624,6 @@ class LocalWatcher(EngineWorker):
             if is_office_temp_file(dest_filename):
                 log.debug('Ignoring Office tmp file: %r', evt.dest_path)
                 return
-            # Ignore normalization of the filename on the file system
-            # See https://jira.nuxeo.com/browse/NXDRIVE-188
-            if evt.dest_path == normalize_event_filename(evt.src_path):
-                log.debug('Ignoring move from %r to normalized name: %r', evt.src_path, evt.dest_path)
-                return
             src_path = normalize_event_filename(evt.dest_path)
             rel_path = self.client.get_path(src_path)
             # Office weird replacement handling
@@ -790,6 +786,11 @@ class LocalWatcher(EngineWorker):
         self._action = Action("Handle watchdog event")
         if evt.event_type == 'moved':
             log.debug("Handling watchdog event [%s] on %s to %s", evt.event_type, evt.src_path, evt.dest_path)
+            # Ignore normalization of the filename on the file system
+            # See https://jira.nuxeo.com/browse/NXDRIVE-188
+            if evt.dest_path == normalize_event_filename(evt.src_path, action=False) or evt.dest_path == evt.src_path.strip():
+                log.debug('Ignoring move from %r to normalized name: %r', evt.src_path, evt.dest_path)
+                return
         else:
             log.debug("Handling watchdog event [%s] on %r", evt.event_type, evt.src_path)
         try:
@@ -823,11 +824,6 @@ class LocalWatcher(EngineWorker):
             if (evt.event_type == 'moved'):
                 dest_filename = os.path.basename(evt.dest_path)
                 if (self.client.is_ignored(parent_rel_path, dest_filename)):
-                    return
-                # Ignore normalization of the filename on the file system
-                # See https://jira.nuxeo.com/browse/NXDRIVE-188
-                if evt.dest_path == normalize_event_filename(evt.src_path):
-                    log.debug('Ignoring move from %r to normalized name: %r', evt.src_path, evt.dest_path)
                     return
                 src_path = normalize_event_filename(evt.dest_path)
                 rel_path = self.client.get_path(src_path)
@@ -983,20 +979,44 @@ class DriveFSRootEventHandler(FileSystemEventHandler):
         self.watcher.handle_watchdog_root_event(event)
 
 
-def normalize_event_filename(filename):
-    import unicodedata
+def normalize_event_filename(filename, action=True):
+    """
+    Normalize a file name.
+
+    :param filename The file name to normalize.
+    :param action Apply changes on the file system.
+    :return The normalized file name.
+    """
+
+    # NXDRIVE-688: Ensure the name is stripped for a file
+    stripped = filename.strip()
+    if AbstractOSIntegration.is_windows():
+        # Windows does not allow files/folders ending with space(s)
+        filename = stripped
+    elif filename != stripped and os.path.exists(filename):
+        # We can have folders ending with spaces
+        if action and not os.path.isdir(filename):
+            log.debug('Forcing space normalization: %r -> %r',
+                      filename, stripped)
+            os.rename(filename, stripped)
+            filename = stripped
+
+    # NXDRIVE-188: Normalize name on the file system, if needed
+    try:
+        normalized = unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
+    except TypeError:
+        normalized = unicodedata.normalize('NFC', unicode(filename))
+
     if AbstractOSIntegration.is_mac():
-        return unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
-    elif AbstractOSIntegration.is_windows():
+        return normalized
+    elif AbstractOSIntegration.is_windows() and os.path.exists(filename):
         try:
-            if os.path.exists(filename):
-                filename = win32api.GetLongPathName(filename)
-        except Exception as e:
-            log.error("long path conversion error: %r for %r", str(e), filename)
-    normalized_filename = unicodedata.normalize('NFC', unicode(filename))
-    # Normalize name on the file system if not normalized
-    # See https://jira.nuxeo.com/browse/NXDRIVE-188
-    if os.path.exists(filename) and normalized_filename != filename:
-        log.debug('Forcing normalization of %r to %r', filename, normalized_filename)
-        os.rename(filename, normalized_filename)
-    return normalized_filename
+            filename = win32api.GetLongPathName(filename)
+        except (win32api.error, UnicodeEncodeError) as e:
+            log.error('Long path conversion error: %s for %r', e, filename)
+
+    if action and filename != normalized and os.path.exists(filename):
+        log.debug('Forcing normalization: %r -> %r', filename, normalized)
+        os.rename(filename, normalized)
+
+    return normalized

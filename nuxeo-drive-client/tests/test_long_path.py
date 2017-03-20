@@ -43,42 +43,33 @@ class TestLongPath(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        base_folder_path = self.local_1._abspath("/")
-        if sys.platform == "win32":
-            if not os.path.exists(base_folder_path):
-                base_folder_path = safe_long_path(base_folder_path)
-        # Creating new folder under "/CCCCCCC.../"
-        parent_path = os.path.join(base_folder_path,
-                                   FOLDER_A, FOLDER_B, FOLDER_C)
-        if sys.platform == 'win32':
-            if not os.path.exists(parent_path):
-                parent_path = safe_long_path(parent_path)
-            log.info("Convert path of FOLDER_D to short path format")
-            parent_path = win32api.GetShortPathName(parent_path)
-        new_folder_path = os.path.join(parent_path, FOLDER_D)
-        log.info("Creating folder with path: %s", new_folder_path)
-        os.makedirs(new_folder_path)
+        parent_path = os.path.join(self.local_1._abspath('/'),
+                                   FOLDER_A, FOLDER_B, FOLDER_C, FOLDER_D)
+        log.info("Creating folder with path: %s", parent_path)
+        if sys.platform == 'win32' and not os.path.exists(parent_path):
+            log.debug('Add \\\\?\\ prefix to path %r', parent_path)
+            parent_path = safe_long_path(parent_path)
+        os.makedirs(parent_path)
+
         if sys.platform == 'win32':
             log.info("Convert path of FOLDER_D\File2.txt to short path format")
-            new_folder_path = win32api.GetShortPathName(new_folder_path)
+            parent_path = win32api.GetShortPathName(parent_path)
 
-        new_file_path = os.path.join(new_folder_path, "File2.txt")
-        log.info("Creating file with path: %s", new_file_path)
-        with open(new_file_path, "w") as f:
+        new_file = os.path.join(parent_path, "File2.txt")
+        log.info("Creating file with path: %s", new_file)
+        with open(new_file, "w") as f:
             f.write("Hello world")
 
         self.wait_sync(wait_for_async=True, timeout=45, fail_if_timeout=False)
         remote_children_of_c = self.remote_1.get_children_info(self.folder_c)
         children_names = [item.name for item in remote_children_of_c]
         log.warn("Verify if FOLDER_D is uploaded to server")
-        self.assertTrue(FOLDER_D in children_names,
-                        "FOLDER_D should be uploaded to server")
+        self.assertIn(FOLDER_D, children_names)
         folder_d = [item.uid for item in remote_children_of_c if item.name == FOLDER_D][0]
         remote_children_of_d = self.remote_1.get_children_info(folder_d)
         children_names = [item.name for item in remote_children_of_d]
         log.warn("Verify if FOLDER_D\File2.txt is uploaded to server")
-        self.assertTrue("File2.txt" in children_names,
-                        "FOLDER_D/File2.txt should be uploaded to server")
+        self.assertIn('File2.txt', children_names)
 
     def test_setup_on_long_path(self):
         """ NXDRIVE 689: Fix error when adding a new account when installation

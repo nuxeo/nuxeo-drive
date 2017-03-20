@@ -184,30 +184,33 @@ def version_compare(x, y):
 
 
 def normalized_path(path):
-    """Return absolute, normalized file path."""
+    """ Return absolute, normalized file path. """
     if isinstance(path, bytes):
         # Decode path with local encoding when not already decoded explicitly
         # by the caller
         path = path.decode(ENCODING)
 
-    # XXX: we could os.path.normcase as well under Windows but it might be the
-    # source of unexpected troubles so not doing it for now.
-    return os.path.realpath((os.path.normpath(os.path.abspath(os.path.expanduser(path)))))
+    return os.path.realpath(
+        os.path.normpath(os.path.abspath(os.path.expanduser(path))))
 
 
 def safe_long_path(path):
-    """Utility to prefix path with the long path marker for Windows
+    """
+    Utility to prefix path with the long path marker for Windows
+    Source: http://msdn.microsoft.com/en-us/library/aa365247.aspx#maxpath
 
-    http://msdn.microsoft.com/en-us/library/aa365247.aspx#maxpath
-
+    We also need to normalize the path as described here:
+        https://bugs.python.org/issue18199#msg260122
     """
     if sys.platform == 'win32':
         if isinstance(path, bytes):
             # Decode path with local encoding when not already decoded
-            # explicitly  by the caller
+            # explicitly by the caller
             path = unicode(path.decode(ENCODING))
-        log.debug('Prefix the path with \\\\?\\')
-        path = u"\\\\?\\" + path
+
+        if not path.startswith(u'\\\\?\\'):
+            path = u'\\\\?\\' + normalized_path(path)
+
     return path
 
 
