@@ -154,7 +154,7 @@ for (def x in slaves) {
     }
 }
 
-timeout(150) {
+timeout(180) {
     timestamps {
         parallel builders
     }
