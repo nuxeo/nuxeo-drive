@@ -1,15 +1,16 @@
-import os
 import sys
-import re
+import time
+from Crypto import Random
+
+import base64
 import locale
 import mimetypes
+import os
 import psutil
-import time
-import base64
+import re
 from Crypto.Cipher import AES
-from Crypto import Random
-from nxdrive.logging_config import get_logger
 
+from nxdrive.logging_config import get_logger
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 log = get_logger(__name__)
@@ -48,10 +49,11 @@ def current_milli_time():
 
 
 def is_hexastring(value):
-    for c in value:
-        if c not in "0123456789ABCDEF":
-            return False
-    return True
+    try:
+        int(value, 16)
+        return True
+    except ValueError:
+        return False
 
 
 def is_office_temp_file(name):
@@ -64,7 +66,7 @@ def is_office_temp_file(name):
         # Name is pptABCD.tmp, ppt123.tmp, etc.
         # Check if the part between ppt & .tmp is hexadecimal string
         return is_hexastring(name[3:-4])
-    elif  10 <= len(name) <= 12 and name.endswith(".tmp"):
+    elif 10 <= len(name) <= 12 and name.endswith(".tmp"):
         # name like 813DEFA7.tmp, C199633.tmp
         # 6-8 hexadecimal characters in name part with extension .tmp
         return is_hexastring(name[0:-4])

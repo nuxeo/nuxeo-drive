@@ -3,22 +3,24 @@
 @author: Remi Cattiau
 '''
 import unicodedata
-from nxdrive.logging_config import get_logger
-from watchdog.events import FileSystemEventHandler
-from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
-from nxdrive.utils import current_milli_time
-from nxdrive.utils import is_office_temp_file
-from nxdrive.client.local_client import LocalClient
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.engine.activity import Action
-from Queue import Queue
-import sys
+from time import mktime, sleep, time
+
 import os
 import re
 import sqlite3
-from time import sleep, time, mktime
-from threading import Lock
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
+from Queue import Queue
+from threading import Lock
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+
+from nxdrive.client.local_client import LocalClient
+from nxdrive.engine.activity import Action
+from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
+from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.utils import current_milli_time, is_office_temp_file
+
 log = get_logger(__name__)
 
 # Windows 2s between resolution of delete event
@@ -268,7 +270,6 @@ class LocalWatcher(EngineWorker):
             metrics['fs_events'] = self._event_handler.counter
         return dict(metrics.items() + self._metrics.items())
 
-
     def _suspend_queue(self):
         self._engine.get_queue_manager().suspend()
         for processor in self._engine.get_queue_manager().get_processors_on('/', exact_match=False):
@@ -509,7 +510,7 @@ class LocalWatcher(EngineWorker):
                 continue
             log.debug("Found deleted file %s", deleted.local_path)
             # May need to count the children to be ok
-            self._metrics['delete_files'] = self._metrics['delete_files'] + 1
+            self._metrics['delete_files'] += 1
             if deleted.remote_ref is None:
                 self._dao.remove_state(deleted)
             else:
@@ -543,7 +544,6 @@ class LocalWatcher(EngineWorker):
                 log.trace('read_directory_changes import error', exc_info=True)
                 log.warn('Cannot import read_directory_changes, probably under Windows XP'
                          ', watchdog will fall back on polling')
-        from watchdog.observers import Observer
         log.debug("Watching FS modification on : %s", self.client.base_folder)
         self._event_handler = DriveFSEventHandler(self)
         self._root_event_handler = DriveFSRootEventHandler(self, os.path.basename(self.client.base_folder))
@@ -562,7 +562,7 @@ class LocalWatcher(EngineWorker):
         lock = self.client.unlock_ref('/', False)
         try:
             fname = self.client.abspath('/.watchdog_setup')
-            while (self._watchdog_queue.empty()):
+            while self._watchdog_queue.empty():
                 with open(fname, 'a'):
                     os.utime(fname, None)
                 sleep(1)
@@ -614,7 +614,7 @@ class LocalWatcher(EngineWorker):
 
     def _handle_watchdog_event_on_known_pair(self, doc_pair, evt, rel_path):
         log.trace("watchdog event %r on known pair: %r", evt, doc_pair)
-        if (evt.event_type == 'moved'):
+        if evt.event_type == 'moved':
             # Ignore move to Office tmp file
             dest_filename = os.path.basename(evt.dest_path)
             if dest_filename.startswith(LocalClient.CASE_RENAME_PREFIX) or \
@@ -634,12 +634,13 @@ class LocalWatcher(EngineWorker):
                     local_info = self.client.get_info(rel_path, raise_if_missing=False)
                     if local_info is not None:
                         digest = local_info.get_digest()
-                        # Drop event if digest hasn't changed, can be the case if only file permissions have been updated
+                        # Drop event if digest hasn't changed, can be the case
+                        # if only file permissions have been updated
                         if not doc_pair.folderish and pair.local_digest == digest:
                             log.trace('Dropping watchdog event [%s] as digest has not changed for %s',
                               evt.event_type, rel_path)
-                            # If pair are the same dont drop it
-                            # It can happen in case of server rename on a document
+                            # If pair are the same dont drop it. It can happen
+                            # in case of server rename on a document.
                             if doc_pair.id != pair.id:
                                 self._dao.remove_state(doc_pair)
                             return
@@ -652,7 +653,8 @@ class LocalWatcher(EngineWorker):
             local_info = self.client.get_info(rel_path, raise_if_missing=False)
             if local_info is not None:
                 if is_text_edit_tmp_file(local_info.name):
-                    log.debug('Ignoring move to TextEdit tmp file %r for %r', local_info.name, doc_pair)
+                    log.debug('Ignoring move to TextEdit tmp file %r for %r',
+                              local_info.name, doc_pair)
                     return
                 old_local_path = None
                 rel_parent_path = self.client.get_path(os.path.dirname(src_path))
@@ -668,12 +670,15 @@ class LocalWatcher(EngineWorker):
                         doc_pair.local_state = 'synchronized'
                 elif not (local_info.name == doc_pair.local_name and
                         doc_pair.remote_parent_ref == remote_parent_ref):
-                    log.debug("Detect move for %r (%r)", local_info.name, doc_pair)
+                    log.debug("Detect move for %r (%r)",
+                              local_info.name, doc_pair)
                     if doc_pair.local_state != 'created':
                         doc_pair.local_state = 'moved'
                         old_local_path = doc_pair.local_path
-                        self._dao.update_local_state(doc_pair, local_info, versionned=True)
-                self._dao.update_local_state(doc_pair, local_info, versionned=False)
+                        self._dao.update_local_state(doc_pair, local_info,
+                                                     versionned=True)
+                self._dao.update_local_state(doc_pair, local_info,
+                                             versionned=False)
                 if self._windows and old_local_path is not None and self._windows_folder_scan_delay > 0:
                     self._win_lock.acquire()
                     try:
@@ -681,7 +686,7 @@ class LocalWatcher(EngineWorker):
                             log.debug('Update queue of folders to scan: move from %r to %r', old_local_path, rel_path)
                             del self._folder_scan_events[old_local_path]
                             self._folder_scan_events[rel_path] = (
-                                            mktime(local_info.last_modification_time.timetuple()), doc_pair)
+                                mktime(local_info.last_modification_time.timetuple()), doc_pair)
                     finally:
                         self._win_lock.release()
             return
@@ -700,8 +705,10 @@ class LocalWatcher(EngineWorker):
                 refreshed_pair = self._dao.get_state_from_id(acquired_pair.id)
                 if refreshed_pair is not None:
                     log.trace("Re-queuing acquired, released and refreshed state %r", refreshed_pair)
-                    self._dao._queue_pair_state(refreshed_pair.id, refreshed_pair.folderish,
-                                                refreshed_pair.pair_state, pair=refreshed_pair)
+                    self._dao._queue_pair_state(refreshed_pair.id,
+                                                refreshed_pair.folderish,
+                                                refreshed_pair.pair_state,
+                                                pair=refreshed_pair)
 
     def _handle_watchdog_event_on_known_acquired_pair(self, doc_pair, evt, rel_path):
         if evt.event_type == 'deleted':
@@ -960,7 +967,7 @@ class DriveFSEventHandler(FileSystemEventHandler):
         self.watcher = watcher
 
     def on_any_event(self, event):
-        self.counter = self.counter + 1
+        self.counter += 1
         log.trace("Queueing watchdog: %r", event)
         self.watcher._watchdog_queue.put(event)
 
@@ -975,7 +982,7 @@ class DriveFSRootEventHandler(FileSystemEventHandler):
     def on_any_event(self, event):
         if os.path.basename(event.src_path) != self.name:
             return
-        self.counter = self.counter + 1
+        self.counter += 1
         self.watcher.handle_watchdog_root_event(event)
 
 

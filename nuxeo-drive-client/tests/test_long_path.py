@@ -85,7 +85,8 @@ class TestLongPath(UnitTestCase):
         test_folder_len = 245 - len(str(self.local_nxdrive_folder_1))
         test_folder = 'A' * test_folder_len
 
-        self.local_nxdrive_folder_1 = os.path.join(self.local_nxdrive_folder_1, test_folder)
+        self.local_nxdrive_folder_1 = os.path.join(self.local_nxdrive_folder_1,
+                                                   test_folder)
         self.assertTrue(len(self.local_nxdrive_folder_1) > 245)
 
         self.manager_1.unbind_all()

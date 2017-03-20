@@ -2,6 +2,7 @@
 @author: Remi Cattiau
 '''
 import sys
+
 from shutil import copyfile
 from unittest import skipIf
 
@@ -253,50 +254,64 @@ class TestWatchers(UnitTestCase):
         self.wait_sync()
         self.assertEqual(remote.get_info(u'/Accentue\u0301.odt').name,
                          u'Accentu\xe9 avec un \xea et un \xe9.odt')
+
     def test_watchdog_encoding(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
-        # Start engine
+
         self.engine_1.start()
-        # Wait for test workspace synchronization
         self.wait_sync()
-        # Create files with Unicode combining accents, Unicode latin characters and no special characters
+
+        # Create files with Unicode combining accents, Unicode latin characters
+        # and no special characters
         local.make_file(u'/', u'Accentue\u0301.odt', u'Content')
         local.make_folder(u'/', u'P\xf4le applicatif')
         local.make_folder(u'/', u'Sub folder')
-        local.make_file(u'/Sub folder', u'e\u0302tre ou ne pas \xeatre.odt', u'Content')
+        local.make_file(
+            u'/Sub folder', u'e\u0302tre ou ne pas \xeatre.odt', u'Content')
         local.make_file(u'/', u'No special character.odt', u'Content')
-        # Wait for upstream synchronization
         self.wait_sync()
         self.assertTrue(remote.exists(u'/Accentue\u0301.odt'))
         self.assertTrue(remote.exists(u'/P\xf4le applicatif'))
         self.assertTrue(remote.exists(u'/Sub folder'))
-        self.assertTrue(remote.exists(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt'))
+        self.assertTrue(remote.exists(
+            u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt'))
         self.assertTrue(remote.exists(u'/No special character.odt'))
 
-        # Check rename using normalized names as previous watchdog handling has normalized them on the file system
-        local.rename(u'/Accentu\xe9.odt', u'Accentue\u0301 avec un e\u0302 et un \xe9.odt')
+        # Check rename using normalized names as previous watchdog handling has
+        # normalized them on the file system
+        local.rename(u'/Accentu\xe9.odt',
+                     u'Accentue\u0301 avec un e\u0302 et un \xe9.odt')
         local.rename(u'/P\xf4le applicatif', u'P\xf4le applique\u0301')
-        local.rename(u'/Sub folder/\xeatre ou ne pas \xeatre.odt', u'avoir et e\u0302tre.odt')
+        local.rename(u'/Sub folder/\xeatre ou ne pas \xeatre.odt',
+                     u'avoir et e\u0302tre.odt')
         self.wait_sync()
-        self.assertEqual(remote.get_info(u'/Accentue\u0301.odt').name, u'Accentu\xe9 avec un \xea et un \xe9.odt')
-        self.assertEqual(remote.get_info(u'/P\xf4le applicatif').name, u'P\xf4le appliqu\xe9')
-        self.assertEqual(remote.get_info(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt').name,
-                         u'avoir et \xeatre.odt')
+        self.assertEqual(remote.get_info(u'/Accentue\u0301.odt').name,
+                         u'Accentu\xe9 avec un \xea et un \xe9.odt')
+        self.assertEqual(remote.get_info(u'/P\xf4le applicatif').name,
+                         u'P\xf4le appliqu\xe9')
+        info = remote.get_info(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt')
+        self.assertEqual(info.name, u'avoir et \xeatre.odt')
+
         # Check content update
-        local.update_content(u'/Accentu\xe9 avec un \xea et un \xe9.odt', u'Updated content')
-        local.update_content(u'/Sub folder/avoir et \xeatre.odt', u'Updated content')
+        local.update_content(u'/Accentu\xe9 avec un \xea et un \xe9.odt',
+                             u'Updated content')
+        local.update_content(u'/Sub folder/avoir et \xeatre.odt',
+                             u'Updated content')
         self.wait_sync()
-        self.assertEqual(remote.get_content(u'/Accentue\u0301.odt'), u'Updated content')
-        self.assertEqual(remote.get_content(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt'),
+        self.assertEqual(remote.get_content(u'/Accentue\u0301.odt'),
                          u'Updated content')
+        content = remote.get_content(
+            u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt')
+        self.assertEqual(content, u'Updated content')
 
         # Check delete
         local.delete_final(u'/Accentu\xe9 avec un \xea et un \xe9.odt')
         local.delete_final(u'/Sub folder/avoir et \xeatre.odt')
         self.wait_sync()
         self.assertFalse(remote.exists(u'/Accentue\u0301.odt'))
-        self.assertFalse(remote.exists(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt'))
+        self.assertFalse(
+            remote.exists(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt'))
 
     def test_watcher_remote_id_setter(self):
         local = self.local_client_1
