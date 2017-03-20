@@ -513,7 +513,6 @@ class UnitTestCase(SimpleUnitTestCase):
             pass
 
     def run(self, result=None):
-        self.logger = log
         repeat = 1
         testMethod = getattr(self, self._testMethodName)
         if hasattr(testMethod, '_repeat'):

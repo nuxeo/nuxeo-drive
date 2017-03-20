@@ -1,9 +1,6 @@
 import os
 
 from tests.common_unit_test import UnitTestCase
-from nxdrive.logging_config import get_logger
-
-log = get_logger(__name__)
 
 
 class TestDedupSensitiveCaseSync(UnitTestCase):

@@ -1,11 +1,8 @@
 import time
 
-from tests.common import TEST_WORKSPACE_PATH
-from tests.common import OS_STAT_MTIME_RESOLUTION
+from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
+from tests.common import log
 from tests.common_unit_test import UnitTestCase
-from nxdrive.logging_config import get_logger
-
-log = get_logger(__name__)
 
 
 class TestVersioning(UnitTestCase):
