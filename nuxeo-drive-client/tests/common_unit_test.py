@@ -16,7 +16,7 @@ from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemCl
 from nxdrive.manager import Manager
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.translator import Translator
-from tests.common import log, TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
+from tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir, log
 
 if 'DRIVE_YAPPI' in os.environ:
     import yappi

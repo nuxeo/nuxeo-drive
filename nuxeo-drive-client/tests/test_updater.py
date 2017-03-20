@@ -1,9 +1,8 @@
-import unittest
-from os.path import dirname
-
 import esky.finder
+import unittest
 from esky import Esky
 from mock import Mock
+from os.path import dirname
 
 from nxdrive.updater import AppUpdater, MissingCompatibleVersion, MissingUpdateSiteInfo, \
     UPDATE_STATUS_DOWNGRADE_NEEDED, \
