@@ -50,8 +50,9 @@ TEST_DEFAULT_QUIT_TIMEOUT = 30
 
 
 def configure_logger():
-    configure(console_level='DEBUG',
-              command_name='test')
+    configure(console_level='TRACE',
+              command_name='test',
+              force_configure=True)
 
 # Configure test logger
 configure_logger()

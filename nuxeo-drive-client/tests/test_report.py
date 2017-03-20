@@ -8,21 +8,10 @@ import tempfile
 from mock import Mock
 from unittest import TestCase, skipIf
 
-from nxdrive.logging_config import configure, get_logger
 from nxdrive.manager import Manager
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.report import Report
-from tests.common import clean_dir
-
-
-def configure_logger():
-    configure(console_level='DEBUG',
-              command_name='test',
-              force_configure=True)
-
-# Configure test logger
-configure_logger()
-log = get_logger(__name__)
+from tests.common import clean_dir, log
 
 
 class ReportTest(TestCase):

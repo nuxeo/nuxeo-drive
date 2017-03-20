@@ -13,11 +13,10 @@ from threading import Thread
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
-from nxdrive.logging_config import configure, get_logger
 from nxdrive.manager import Manager
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.translator import Translator
-from tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
+from tests.common import log, TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
 
 if 'DRIVE_YAPPI' in os.environ:
     import yappi
@@ -125,16 +124,6 @@ class RandomBug(object):
 
         _callable._repeat = self._repeat
         return _callable
-
-
-def configure_logger():
-    configure(console_level='TRACE',
-              command_name='test',
-              force_configure=True)
-
-# Configure test logger
-configure_logger()
-log = get_logger(__name__)
 
 
 class StubQApplication(QtCore.QCoreApplication):
