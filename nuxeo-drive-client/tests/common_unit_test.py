@@ -593,12 +593,14 @@ class UnitTestCase(SimpleUnitTestCase):
             self.app.processEvents()
 
     def make_local_tree(self, root=None, local_client=None):
-        if local_client is None:
+        nb_files, nb_folders = 6, 4
+        if not local_client:
             local_client = self.local_root_client_1
-        if root is None:
+        if not root:
             root = u"/" + self.workspace_title
             if not local_client.exists(root):
                 local_client.make_folder(u"/", self.workspace_title)
+                nb_folders += 1
         # create some folders
         folder_1 = local_client.make_folder(root, u'Folder 1')
         folder_1_1 = local_client.make_folder(folder_1, u'Folder 1.1')
@@ -613,7 +615,7 @@ class UnitTestCase(SimpleUnitTestCase):
         local_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
         local_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         local_client.make_file(root, u'File 5.txt', content=b"eee")
-        return (6, 5)
+        return nb_files, nb_folders
 
     def make_server_tree(self, deep=True):
         remote_client = self.remote_document_client_1
