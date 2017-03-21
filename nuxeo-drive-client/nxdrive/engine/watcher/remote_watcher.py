@@ -350,9 +350,7 @@ class RemoteWatcher(EngineWorker):
         # Try to get the local definition if not linked
         child_pair = self._dao.get_state_from_local(local_path)
         # Case of duplication: the file can exists in with a __x
-        # NXDRIVE-727 fix for shared folders also
-        if (child_pair is None and parent_pair is not None and self._local_client.exists(parent_pair.local_path) or
-                child_pair and child_info.uid != str(self._local_client.get_remote_id(child_pair.local_path))):
+        if child_pair is None and parent_pair is not None and self._local_client.exists(parent_pair.local_path):
             for child in self._local_client.get_children_info(parent_pair.local_path):
                 # Skip any file without __ as it cannot be a deduplicate
                 if '__' not in child.name:
