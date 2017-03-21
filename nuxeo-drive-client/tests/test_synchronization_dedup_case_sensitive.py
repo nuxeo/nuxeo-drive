@@ -181,3 +181,62 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         # Might want go back to the original name
         self.assertTrue(local.exists('/test/' + test2_dedup))
         self.assertFalse(local.exists('/' + test2_dedup))
+
+    def test_dedup_shared_folders(self):
+        remote = self.remote_document_client_1
+        # Create documents in the remote root workspace
+        # then synchronize
+        test_uid = remote.make_folder('/', 'test')
+        remote.make_folder('/', 'parent')
+        test2_uid = remote.make_folder('/parent', 'test')
+
+        self.remote_document_client_2.unregister_as_root(self.workspace)
+        # Register test folder as a sync root for user2
+        self.remote_document_client_2.register_as_root(test_uid)
+        self.remote_document_client_2.register_as_root(test2_uid)
+
+        self.engine_2.start()
+        # Wait for synchronization
+        self.wait_sync(wait_for_async=True)
+
+        local = self.local_root_client_2
+        test_path = '/test'
+        test2_path = '/%s' % (self._dedup_name('test'))
+        self.assertTrue(local.exists(test_path))
+        self.assertTrue(local.exists(test2_path))
+        self.assertEquals(len(local.get_children_info('/')), 2)
+        self.assertEquals(remote.get_info(test_uid).name, 'test')
+        self.assertEquals(remote.get_info(test2_uid).name, 'test')
+
+    def test_dedup_shared_folders_reinit(self):
+        remote = self.remote_document_client_1
+        # Create documents in the remote root workspace
+        # then synchronize
+        test_uid = remote.make_folder('/', 'test')
+        remote.make_folder('/', 'parent')
+        test2_uid = remote.make_folder('/parent', 'test')
+
+        self.remote_document_client_2.unregister_as_root(self.workspace)
+        # Register test folder for user2
+        self.remote_document_client_2.register_as_root(test_uid)
+        self.remote_document_client_2.register_as_root(test2_uid)
+
+        self.engine_2.start()
+        # Wait for synchronization
+        self.wait_sync(wait_for_async=True)
+
+        self.engine_2.stop()
+        # Disconnect and reconnect
+        self.engine_2.reinit()
+        self.engine_2.start()
+        # Wait for synchronization
+        self.wait_sync(wait_for_async=True)
+
+        local = self.local_root_client_2
+        test_path = '/test'
+        test2_path = '/%s' % (self._dedup_name('test'))
+        self.assertTrue(local.exists(test_path))
+        self.assertTrue(local.exists(test2_path))
+        self.assertEquals(len(local.get_children_info('/')), 2)
+        self.assertEquals(remote.get_info(test_uid).name, 'test')
+        self.assertEquals(remote.get_info(test2_uid).name, 'test')
