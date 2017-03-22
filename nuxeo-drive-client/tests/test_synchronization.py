@@ -2,7 +2,6 @@ import time
 import urllib2
 import socket
 
-from unittest import skipIf
 from tests.common import TEST_WORKSPACE_PATH
 from tests.common import OS_STAT_MTIME_RESOLUTION
 from tests.common_unit_test import UnitTestCase
@@ -597,8 +596,6 @@ class TestSynchronization(UnitTestCase):
         self.assertEqual(sorted_states[2].local_name, 'Folder in readonly folder')
         self.assertEqual(sorted_states[2].pair_state, 'unsynchronized')
 
-    @skipIf(AbstractOSIntegration.is_windows(),
-            'TODO: NXDRIVE-756')
     def test_synchronize_special_filenames(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
