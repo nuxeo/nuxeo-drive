@@ -2,7 +2,6 @@ import time
 import urllib2
 import socket
 
-from unittest import skipIf
 from tests.common import TEST_WORKSPACE_PATH
 from tests.common import OS_STAT_MTIME_RESOLUTION
 from tests.common_unit_test import UnitTestCase
@@ -597,49 +596,47 @@ class TestSynchronization(UnitTestCase):
         self.assertEqual(sorted_states[2].local_name, 'Folder in readonly folder')
         self.assertEqual(sorted_states[2].pair_state, 'unsynchronized')
 
-    @skipIf(AbstractOSIntegration.is_windows(),
-            'TODO: NXDRIVE-756')
     def test_synchronize_special_filenames(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
         self.engine_1.start()
 
         # Create a remote folder with a weird name
-        folder = remote.make_folder(self.workspace, u'Folder with forbidden chars: / \\ * < > ? "')
+        folder = remote.make_folder(self.workspace, u'Folder with chars: / \\ * < > ? "')
 
         self.wait_sync(wait_for_async=True)
         folder_names = [i.name for i in local.get_children_info('/')]
-        self.assertEqual(folder_names, [u'Folder with forbidden chars- - - - - - - -'])
+        self.assertEqual(folder_names, [u'Folder with chars- - - - - - - -'])
 
         # Create a remote file with a weird name
-        file_ = remote.make_file(folder, u'File with forbidden chars: / \\ * < > ? "', content="some content",
+        file_ = remote.make_file(folder, u'File with chars: / \\ * < > ? "', content="some content",
                                  doc_type='Note')
 
         self.wait_sync(wait_for_async=True)
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
-        self.assertEqual(file_names, [u'File with forbidden chars- - - - - - - -.txt'])
+        self.assertEqual(file_names, [u'File with chars- - - - - - - -.txt'])
 
         # Update a remote file with a weird name (NXDRIVE-286)
         remote.update(file_, properties={'note:note': 'new content'})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         self.assertEqual(local.get_content(
-            u'/Folder with forbidden chars- - - - - - - -/File with forbidden chars- - - - - - - -.txt'), "new content")
-        file_state = self.get_dao_state_from_engine_1(u'/Folder with forbidden chars- - - - - - - -' +
-                                                      u'/File with forbidden chars- - - - - - - -.txt')
+            u'/Folder with chars- - - - - - - -/File with chars- - - - - - - -.txt'), "new content")
+        file_state = self.get_dao_state_from_engine_1(u'/Folder with chars- - - - - - - -' +
+                                                      u'/File with chars- - - - - - - -.txt')
         self.assertEqual(file_state.pair_state, 'synchronized')
         self.assertEqual(file_state.local_digest, file_state.remote_digest)
 
         # Update note title with a weird name
-        remote.update(file_, properties={'dc:title': u'File with forbidden chars: / \\ * < > ? " - 2'})
+        remote.update(file_, properties={'dc:title': u'File with chars: / \\ * < > ? " - 2'})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
-        self.assertEqual(file_names, [u'File with forbidden chars- - - - - - - - - 2.txt'])
+        self.assertEqual(file_names, [u'File with chars- - - - - - - - - 2.txt'])
 
         # Update note title changing the case (NXRIVE-532)
-        remote.update(file_, properties={'dc:title': u'file with forbidden chars: / \\ * < > ? " - 2'})
+        remote.update(file_, properties={'dc:title': u'file with chars: / \\ * < > ? " - 2'})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         file_names = [i.name for i in local.get_children_info(local.get_children_info('/')[0].path)]
-        self.assertEqual(file_names, [u'file with forbidden chars- - - - - - - - - 2.txt'])
+        self.assertEqual(file_names, [u'file with chars- - - - - - - - - 2.txt'])
 
     def test_synchronize_error_remote(self):
         from urllib2 import HTTPError
