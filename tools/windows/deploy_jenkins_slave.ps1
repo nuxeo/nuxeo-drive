@@ -234,7 +234,7 @@ function launch_tests {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python -E -m pytest --showlocals --exitfirst --strict --failed-first -r Efx --full-trace --capture=sys --no-cov-on-fail --cov-append --cov-report term-missing:skip-covered --cov-report html:..\coverage --cov=nuxeo-drive-client\nxdrive "$Env:SPECIFIC_TEST"
+	& $Env:PYTHON_DIR\python -E -m pytest --showlocals --exitfirst --strict --failed-first -r Efx --full-trace "$Env:SPECIFIC_TEST"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
