@@ -285,13 +285,7 @@ launch_tests() {
         --exitfirst \
         --strict \
         --failed-first \
-        -r Efx \
-        --capture=sys \
-        --no-cov-on-fail \
-        --cov-append \
-        --cov-report term-missing:skip-covered \
-        --cov-report html:../coverage \
-        --cov=nuxeo-drive-client/nxdrive
+        -r Efx
 }
 
 verify_python() {
