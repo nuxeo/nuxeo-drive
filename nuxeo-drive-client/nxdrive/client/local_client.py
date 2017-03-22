@@ -418,10 +418,9 @@ class LocalClient(BaseClient):
         os_path = self._abspath(ref)
         if not os.path.exists(os_path):
             if raise_if_missing:
-                raise NotFound("Could not found file '%s' under '%s'" % (
-                ref, self.base_folder))
-            else:
-                return None
+                err = 'Could not find file into {!r}: ref={!r}, os_path={!r}'
+                raise NotFound(err.format(self.base_folder, ref, os_path))
+            return None
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
         if folderish:
@@ -534,9 +533,10 @@ class LocalClient(BaseClient):
                 child_ref = self.get_children_ref(ref, child_name)
                 try:
                     result.append(self.get_info(child_ref))
-                except (OSError, NotFound):
+                except (OSError, NotFound) as e:
                     # the child file has been deleted in the mean time or while
                     # reading some of its attributes
+                    log.exception(e)
                     pass
 
         return result
