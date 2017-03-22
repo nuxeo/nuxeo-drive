@@ -2,26 +2,23 @@
 
 import unicodedata
 from datetime import datetime
+
 import hashlib
 import os
-import shutil
 import re
+import shutil
 import tempfile
-from nxdrive.client.common import BaseClient, UNACCESSIBLE_HASH
-from nxdrive.osi import AbstractOSIntegration
-
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
-from nxdrive.logging_config import get_logger
-from nxdrive.client.common import safe_filename
-from nxdrive.client.common import NotFound
-from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
-from nxdrive.utils import normalized_path
-from nxdrive.utils import safe_long_path
-from nxdrive.utils import guess_digest_algorithm
-from nxdrive.client.common import FILE_BUFFER_SIZE
 from send2trash import send2trash
+
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
+    DOWNLOAD_TMP_FILE_SUFFIX
+from nxdrive.client.common import BaseClient, DEFAULT_IGNORED_PREFIXES, \
+    DEFAULT_IGNORED_SUFFIXES, FILE_BUFFER_SIZE, NotFound, UNACCESSIBLE_HASH, \
+    safe_filename
+from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.utils import guess_digest_algorithm, normalized_path, \
+    safe_long_path
 
 try:
     from exceptions import WindowsError
@@ -516,7 +513,8 @@ class LocalClient(BaseClient):
             result = self.is_ignored(path, file_name)
         return result
 
-    def get_children_ref(self, parent_ref, name):
+    @staticmethod
+    def get_children_ref(parent_ref, name):
         if parent_ref == u'/':
             return parent_ref + name
         else:
@@ -526,22 +524,27 @@ class LocalClient(BaseClient):
         os_path = self._abspath(ref)
         result = []
         children = os.listdir(os_path)
-        children.sort()
-        for child_name in children:
 
-            if not (self.is_ignored(ref, child_name) or self.is_temp_file(child_name)):
-                child_ref = self.get_children_ref(ref, child_name)
-                try:
-                    result.append(self.get_info(child_ref))
-                except (OSError, NotFound) as e:
-                    # the child file has been deleted in the mean time or while
-                    # reading some of its attributes
-                    log.exception(e)
-                    pass
+        for child_name in sorted(children):
+            if self.is_ignored(ref, child_name):
+                continue
+            elif self.is_temp_file(child_name):
+                continue
+
+            child_ref = self.get_children_ref(ref, child_name)
+            try:
+                info = self.get_info(child_ref)
+            except (OSError, NotFound) as ex:
+                # the child file has been deleted in the mean time or while
+                # reading some of its attributes
+                log.exception(ex)
+                continue
+            result.append(info)
 
         return result
 
-    def get_parent_ref(self, ref):
+    @staticmethod
+    def get_parent_ref(ref):
         if ref == '/':
             return None
         parent = ref.rsplit(u'/', 1)[0]
