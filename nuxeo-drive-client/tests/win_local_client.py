@@ -13,6 +13,7 @@ import os
 from win32com.shell import shell, shellcon
 
 from nxdrive.client.local_client import LocalClient
+from tests.common import log
 
 
 class WindowsLocalClient(LocalClient):
@@ -64,7 +65,12 @@ class WindowsLocalClient(LocalClient):
 
     def _abspath(self, ref):
         # Remove \\?\
-        return super(WindowsLocalClient, self)._abspath(ref)[4:]
+        abs_path = super(WindowsLocalClient, self)._abspath(ref)
+        if len(abs_path) >= 260:
+            log.warning(('The path is longer than 260 characters and '
+                         'WindowsLocalClient is about the remove the long path '
+                         'prefix. So the test is likely to fail.'))
+        return abs_path[4:]
 
     def rename(self, ref, to_name):
         path = self._abspath(ref)
