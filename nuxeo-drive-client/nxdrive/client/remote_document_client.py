@@ -127,6 +127,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             "       WHERE ecm:parentId = '%s'"
             "       AND ecm:primaryType IN ('%s')"
             "       AND ecm:currentLifeCycleState != 'deleted'"
+            "       AND ecm:isCheckedInVersion = 0"
             "       ORDER BY dc:title, dc:created LIMIT %d"
         ) % (ref, "', '".join(types), limit)
 
