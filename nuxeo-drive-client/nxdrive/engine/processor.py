@@ -371,7 +371,17 @@ class Processor(EngineWorker):
         doc_pair.error_count = 1
         self._engine.get_queue_manager().push_error(doc_pair, exception=None, interval=interval)
 
-    def _synchronize_locally_created(self, doc_pair, local_client, remote_client):
+    def _synchronize_locally_resolved(self, doc_pair, local_client, remote_client):
+        """
+        Processes a locally resolved conflict.
+        See https://jira.nuxeo.com/browse/NXDRIVE-766
+        """
+        return self._synchronize_locally_created(doc_pair, local_client, remote_client, overwrite=True)
+
+    def _synchronize_locally_created(self, doc_pair, local_client, remote_client, overwrite=False):
+        """
+        :param overwrite Allows to overwrite an existing document with the same title on the server.
+        """
         name = os.path.basename(doc_pair.local_path)
         if not doc_pair.folderish and is_office_temp_file(name) and doc_pair.error_count == 0:
             # Might be an Office temp file delay it by 60s
@@ -446,7 +456,7 @@ class Processor(EngineWorker):
             if doc_pair.folderish:
                 log.debug("Creating remote folder '%s' in folder '%s'",
                           name, parent_pair.remote_name)
-                fs_item_info = remote_client.make_folder(parent_ref, name)
+                fs_item_info = remote_client.make_folder(parent_ref, name, overwrite=overwrite)
                 remote_ref = fs_item_info.uid
             else:
                 # TODO Check if the file is already on the server with the good digest
@@ -467,7 +477,7 @@ class Processor(EngineWorker):
                         self._postpone_pair(doc_pair, 'Unaccessible hash')
                         return
                 fs_item_info = remote_client.stream_file(
-                    parent_ref, local_client.abspath(doc_pair.local_path), filename=name)
+                    parent_ref, local_client.abspath(doc_pair.local_path), filename=name, overwrite=overwrite)
                 remote_ref = fs_item_info.uid
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()

@@ -1,11 +1,8 @@
 import os
 from unittest import skip, skipIf
 
-from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from tests.common_unit_test import UnitTestCase
-
-log = get_logger(__name__)
 
 
 @skipIf(AbstractOSIntegration.is_linux(),

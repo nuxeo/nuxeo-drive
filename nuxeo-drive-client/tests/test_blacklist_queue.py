@@ -5,11 +5,12 @@ Created on 2 juil. 2015
 '''
 import unittest
 from nxdrive.engine.blacklist_queue import BlacklistQueue
+from tests.common_unit_test import RandomBug
 from time import sleep
-
 
 class BlacklistQueueTest(unittest.TestCase):
 
+    @RandomBug('NXDRIVE-767', target='mac', mode='BYPASS')
     def testDelay(self):
         sleep_time = 3
         # Push two items with a delay of 1s

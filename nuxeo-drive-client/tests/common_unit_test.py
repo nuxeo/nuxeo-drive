@@ -13,11 +13,10 @@ from threading import Thread
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
-from nxdrive.logging_config import configure, get_logger
 from nxdrive.manager import Manager
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.translator import Translator
-from tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
+from tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir, log
 
 if 'DRIVE_YAPPI' in os.environ:
     import yappi
@@ -107,30 +106,24 @@ class RandomBug(object):
             res = None
             for i in range(self._repeat):
                 log.debug('Repeating test %s %d/%d', func.func_name, i + 1, self._repeat)
+                success = False
                 try:
                     res = func(*args, **kwargs)
+                    success = True
                 except Exception as e:
                     # In strict mode we propagate Exception
                     if self._mode == 'STRICT':
                         raise e
                 finally:
                     # In relax mode, if the test success one we don't fail
-                    if self._mode == 'RELAX':
+                    if self._mode == 'RELAX' and success:
                         return res
+                if SimpleUnitTestCase.getSingleton() is not None and i < self._repeat - 1:
+                    SimpleUnitTestCase.getSingleton().reinit()
             return res
 
         _callable._repeat = self._repeat
         return _callable
-
-
-def configure_logger():
-    configure(console_level='TRACE',
-              command_name='test',
-              force_configure=True)
-
-# Configure test logger
-configure_logger()
-log = get_logger(__name__)
 
 
 class StubQApplication(QtCore.QCoreApplication):
@@ -172,7 +165,31 @@ class StubQApplication(QtCore.QCoreApplication):
         self._test._no_remote_changes[uid] = True
 
 
-class UnitTestCase(unittest.TestCase):
+class SimpleUnitTestCase(unittest.TestCase):
+    """
+    Simple unit test to handle reinit on RandomBug
+    """
+    _singleton = None
+
+    @staticmethod
+    def getSingleton():
+        return SimpleUnitTestCase._singleton
+
+    def reinit(self):
+        """
+        Launch the tearDown and setUp of the test
+        :return:
+        """
+        self.tearDown()
+        self.setUp()
+
+    def run(self, *args, **kwargs):
+        SimpleUnitTestCase._singleton = self
+        super(SimpleUnitTestCase, self).run(*args, **kwargs)
+        SimpleUnitTestCase._singleton = None
+
+
+class UnitTestCase(SimpleUnitTestCase):
 
     def setUpServer(self, server_profile=None):
         # Save the current path for test files
@@ -484,8 +501,18 @@ class UnitTestCase(unittest.TestCase):
             stats.print_all(out=fd, columns=columns)
         log.debug("Profiler Report generated in '%s'", report_path)
 
+    def reinit(self):
+        self.tearDown()
+        self.tearDownApp()
+        self.setUpApp()
+        try:
+            self.setUp()
+        except:
+            # We can end on a wait timeout. Just ignore it, the test should
+            # fail and will be launched again.
+            pass
+
     def run(self, result=None):
-        self.logger = log
         repeat = 1
         testMethod = getattr(self, self._testMethodName)
         if hasattr(testMethod, '_repeat'):
@@ -566,12 +593,14 @@ class UnitTestCase(unittest.TestCase):
             self.app.processEvents()
 
     def make_local_tree(self, root=None, local_client=None):
-        if local_client is None:
+        nb_files, nb_folders = 6, 4
+        if not local_client:
             local_client = self.local_root_client_1
-        if root is None:
+        if not root:
             root = u"/" + self.workspace_title
             if not local_client.exists(root):
                 local_client.make_folder(u"/", self.workspace_title)
+                nb_folders += 1
         # create some folders
         folder_1 = local_client.make_folder(root, u'Folder 1')
         folder_1_1 = local_client.make_folder(folder_1, u'Folder 1.1')
@@ -586,7 +615,7 @@ class UnitTestCase(unittest.TestCase):
         local_client.make_file(folder_1_2, u'File 3.txt', content=b"ccc")
         local_client.make_file(folder_2, u'File 4.txt', content=b"ddd")
         local_client.make_file(root, u'File 5.txt', content=b"eee")
-        return (6, 5)
+        return nb_files, nb_folders
 
     def make_server_tree(self, deep=True):
         remote_client = self.remote_document_client_1
@@ -642,7 +671,8 @@ class UnitTestCase(unittest.TestCase):
         if "REPORT_PATH" not in os.environ:
             return
 
-        report_path = os.path.join(os.environ["REPORT_PATH"], self.id())
+        report_path = os.path.join(os.environ["REPORT_PATH"],
+                                   self.id() + '-' + sys.platform)
         self.manager_1.generate_report(report_path)
         log.debug("Report generated in '%s'", report_path)
 

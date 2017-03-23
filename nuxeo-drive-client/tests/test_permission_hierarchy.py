@@ -1,9 +1,5 @@
 from tests.common_unit_test import UnitTestCase
-from nxdrive.client import LocalClient
-from nxdrive.client import RemoteDocumentClient
-from nxdrive.logging_config import get_logger
-
-log = get_logger(__name__)
+from nxdrive.client import LocalClient, RemoteDocumentClient
 
 
 class TestPermissionHierarchy(UnitTestCase):

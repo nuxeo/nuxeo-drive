@@ -1,15 +1,16 @@
-import os
 import sys
-import re
+import time
+from Crypto import Random
+
+import base64
 import locale
 import mimetypes
+import os
 import psutil
-import time
-import base64
+import re
 from Crypto.Cipher import AES
-from Crypto import Random
-from nxdrive.logging_config import get_logger
 
+from nxdrive.logging_config import get_logger
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 log = get_logger(__name__)
@@ -48,10 +49,11 @@ def current_milli_time():
 
 
 def is_hexastring(value):
-    for c in value:
-        if c not in "0123456789ABCDEF":
-            return False
-    return True
+    try:
+        int(value, 16)
+        return True
+    except ValueError:
+        return False
 
 
 def is_office_temp_file(name):
@@ -64,7 +66,7 @@ def is_office_temp_file(name):
         # Name is pptABCD.tmp, ppt123.tmp, etc.
         # Check if the part between ppt & .tmp is hexadecimal string
         return is_hexastring(name[3:-4])
-    elif  10 <= len(name) <= 12 and name.endswith(".tmp"):
+    elif 10 <= len(name) <= 12 and name.endswith(".tmp"):
         # name like 813DEFA7.tmp, C199633.tmp
         # 6-8 hexadecimal characters in name part with extension .tmp
         return is_hexastring(name[0:-4])
@@ -184,29 +186,33 @@ def version_compare(x, y):
 
 
 def normalized_path(path):
-    """Return absolute, normalized file path."""
+    """ Return absolute, normalized file path. """
     if isinstance(path, bytes):
         # Decode path with local encoding when not already decoded explicitly
         # by the caller
         path = path.decode(ENCODING)
 
-    # XXX: we could os.path.normcase as well under Windows but it might be the
-    # source of unexpected troubles so not doing it for now.
-    return os.path.realpath((os.path.normpath(os.path.abspath(os.path.expanduser(path)))))
+    return os.path.realpath(
+        os.path.normpath(os.path.abspath(os.path.expanduser(path))))
 
 
 def safe_long_path(path):
-    """Utility to prefix path with the long path marker for Windows
+    """
+    Utility to prefix path with the long path marker for Windows
+    Source: http://msdn.microsoft.com/en-us/library/aa365247.aspx#maxpath
 
-    http://msdn.microsoft.com/en-us/library/aa365247.aspx#maxpath
-
+    We also need to normalize the path as described here:
+        https://bugs.python.org/issue18199#msg260122
     """
     if sys.platform == 'win32':
         if isinstance(path, bytes):
             # Decode path with local encoding when not already decoded
-            # explicitly  by the caller
+            # explicitly by the caller
             path = unicode(path.decode(ENCODING))
-        path = u"\\\\?\\" + path
+
+        if not path.startswith(u'\\\\?\\'):
+            path = u'\\\\?\\' + normalized_path(path)
+
     return path
 
 

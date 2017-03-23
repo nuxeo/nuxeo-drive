@@ -16,7 +16,7 @@ from nxdrive.utils import safe_long_path
 try:
     from exceptions import WindowsError
 except ImportError:
-    WindowsError = None  # This will never be raised under Unix
+    WindowsError = IOError
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
@@ -50,8 +50,9 @@ TEST_DEFAULT_QUIT_TIMEOUT = 30
 
 
 def configure_logger():
-    configure(console_level='DEBUG',
-              command_name='test')
+    configure(console_level='TRACE',
+              command_name='test',
+              force_configure=True)
 
 # Configure test logger
 configure_logger()

@@ -7,7 +7,6 @@ from mock import Mock
 import nxdrive
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.engine.dao.sqlite import EngineDAO
-from nxdrive.logging_config import configure
 from nxdrive.manager import Manager
 from tests.common import clean_dir
 
@@ -16,14 +15,6 @@ try:
     from exceptions import WindowsError
 except ImportError:
     pass  # This will never be raised under Unix
-
-
-def configure_logger():
-    configure(
-        console_level='DEBUG',
-        command_name='test',
-    )
-configure_logger()
 
 
 class ManagerDAOTest(unittest.TestCase):

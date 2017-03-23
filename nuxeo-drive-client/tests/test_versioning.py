@@ -1,22 +1,13 @@
 import time
 
-from tests.common import TEST_WORKSPACE_PATH
-from tests.common import OS_STAT_MTIME_RESOLUTION
+from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
+from tests.common import log
 from tests.common_unit_test import UnitTestCase
-from nxdrive.logging_config import get_logger
-
-log = get_logger(__name__)
 
 
 class TestVersioning(UnitTestCase):
 
     def test_versioning(self):
-        # Call the Nuxeo operation to set the versioning delay to 30 seconds
-        self.versioning_delay = OS_STAT_MTIME_RESOLUTION * 30
-        self.root_remote_client.execute(
-            "NuxeoDrive.SetVersioningOptions",
-            delay=str(self.versioning_delay))
-
         local = self.local_client_1
         self.engine_1.start()
 
@@ -46,19 +37,6 @@ class TestVersioning(UnitTestCase):
         doc = self.root_remote_client.fetch(
             TEST_WORKSPACE_PATH + '/Test versioning.txt')
         self._assert_version(doc, 0, 1)
-
-        # Wait for versioning delay expiration then update it as user 1 after
-        # => should be versioned since the versioning delay is passed by
-        log.debug("wait for %d to end the versioning grace", (self.versioning_delay + 2.0))
-        time.sleep(self.versioning_delay + 2.0)
-        log.debug("will now update content of Test versioning.txt")
-        local.update_content('/Test versioning.txt', "Updated again!!")
-        # Wait for local watcher to catch it, can took more than 3s sometimes on Mac slaves
-        time.sleep(5)
-        self.wait_sync()
-        doc = self.root_remote_client.fetch(
-            TEST_WORKSPACE_PATH + '/Test versioning.txt')
-        self._assert_version(doc, 0, 2)
 
     def test_version_restore(self):
         remote_client = self.remote_document_client_1

@@ -36,7 +36,8 @@ properties([
                 description: 'Random bug mode']
         ]
     ],
-    pipelineTriggers([[$class: 'GitHubPushTrigger']])
+    pipelineTriggers([[$class: 'GitHubPushTrigger']]),
+    disableConcurrentBuilds()
 ])
 
 // Jenkins slaves we will build on
@@ -138,7 +139,7 @@ for (def x in slaves) {
                         // Update GitHub status whatever the result
                         github_status(currentBuild.result)
 
-                        archive 'sources/ftest/target/tomcat/log/*.log, sources/report_*.zip'
+                        archive 'sources/ftest/target/tomcat/log/*.log, sources/*.zip'
 
                         // Update revelant Jira issues only if we are working on the master branch
                         if (env.BRANCH_NAME == 'master') {
@@ -153,6 +154,8 @@ for (def x in slaves) {
     }
 }
 
-timestamps {
-    parallel builders
+timeout(180) {
+    timestamps {
+        parallel builders
+    }
 }

@@ -54,17 +54,19 @@ class Report(object):
     def get_path(self):
         return self._zipfile
 
-    def _export_logs(self):
-        logs = u""
+    @staticmethod
+    def _export_logs():
+        logs = u''
         logger = get_logger(None)
         handler = get_handler(logger, "memory")
         log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
         for record in log_buffer:
             try:
-                log = handler.format(record).decode("utf-8", errors="replace")
+                log_ = handler.format(record).decode('utf-8', errors='replace')
             except UnicodeEncodeError:
-                log = handler.format(record)
-            logs = logs + log + u"\n"
+                log_ = handler.format(record).encode('utf-8', errors='replace')\
+                                             .decode('utf-8')
+            logs += log_ + u'\n'
         return logs
 
     def generate(self):
@@ -78,4 +80,5 @@ class Report(object):
                 self.copy_db(myzip, engine.get_dao())
                 # Might want threads too here
             self.copy_logs(myzip)
-            myzip.writestr("debug.log", self._export_logs().encode('utf-8', errors="ignore").strip())
+            content = self._export_logs().encode('utf-8', errors='ignore')
+            myzip.writestr('debug.log', content.strip())

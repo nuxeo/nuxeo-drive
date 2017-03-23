@@ -2,27 +2,28 @@
 
 import unicodedata
 from datetime import datetime
+
 import hashlib
 import os
-import shutil
 import re
+import shutil
 import tempfile
-from nxdrive.client.common import BaseClient, UNACCESSIBLE_HASH
-from nxdrive.osi import AbstractOSIntegration
-
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
-from nxdrive.logging_config import get_logger
-from nxdrive.client.common import safe_filename
-from nxdrive.client.common import NotFound
-from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
-from nxdrive.utils import normalized_path
-from nxdrive.utils import safe_long_path
-from nxdrive.utils import guess_digest_algorithm
-from nxdrive.client.common import FILE_BUFFER_SIZE
 from send2trash import send2trash
 
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
+    DOWNLOAD_TMP_FILE_SUFFIX
+from nxdrive.client.common import BaseClient, DEFAULT_IGNORED_PREFIXES, \
+    DEFAULT_IGNORED_SUFFIXES, FILE_BUFFER_SIZE, NotFound, UNACCESSIBLE_HASH, \
+    safe_filename
+from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.utils import guess_digest_algorithm, normalized_path, \
+    safe_long_path
+
+try:
+    from exceptions import WindowsError
+except ImportError:
+    WindowsError = IOError
 
 log = get_logger(__name__)
 
@@ -134,7 +135,8 @@ class LocalClient(BaseClient):
     def is_case_sensitive(self):
         if self._case_sensitive is None:
             lock = self.unlock_path(self.base_folder, unlock_parent=False)
-            path = tempfile.mkdtemp(prefix='.caseTest_', dir=self.base_folder)
+            path = tempfile.mkdtemp(prefix='.caseTest_',
+                                    dir=safe_long_path(self.base_folder))
             if os.path.exists(path.upper()):
                 self._case_sensitive = False
             else:
@@ -413,10 +415,9 @@ class LocalClient(BaseClient):
         os_path = self._abspath(ref)
         if not os.path.exists(os_path):
             if raise_if_missing:
-                raise NotFound("Could not found file '%s' under '%s'" % (
-                ref, self.base_folder))
-            else:
-                return None
+                err = 'Could not find file into {!r}: ref={!r}, os_path={!r}'
+                raise NotFound(err.format(self.base_folder, ref, os_path))
+            return None
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
         if folderish:
@@ -512,7 +513,8 @@ class LocalClient(BaseClient):
             result = self.is_ignored(path, file_name)
         return result
 
-    def get_children_ref(self, parent_ref, name):
+    @staticmethod
+    def get_children_ref(parent_ref, name):
         if parent_ref == u'/':
             return parent_ref + name
         else:
@@ -522,21 +524,27 @@ class LocalClient(BaseClient):
         os_path = self._abspath(ref)
         result = []
         children = os.listdir(os_path)
-        children.sort()
-        for child_name in children:
 
-            if not (self.is_ignored(ref, child_name) or self.is_temp_file(child_name)):
-                child_ref = self.get_children_ref(ref, child_name)
-                try:
-                    result.append(self.get_info(child_ref))
-                except (OSError, NotFound):
-                    # the child file has been deleted in the mean time or while
-                    # reading some of its attributes
-                    pass
+        for child_name in sorted(children):
+            if self.is_ignored(ref, child_name):
+                continue
+            elif self.is_temp_file(child_name):
+                continue
+
+            child_ref = self.get_children_ref(ref, child_name)
+            try:
+                info = self.get_info(child_ref)
+            except (OSError, NotFound) as ex:
+                # the child file has been deleted in the mean time or while
+                # reading some of its attributes
+                log.exception(ex)
+                continue
+            result.append(info)
 
         return result
 
-    def get_parent_ref(self, ref):
+    @staticmethod
+    def get_parent_ref(ref):
         if ref == '/':
             return None
         parent = ref.rsplit(u'/', 1)[0]
@@ -604,7 +612,7 @@ class LocalClient(BaseClient):
             path = parent + u"/" + name
         return path, os_path, name
 
-    def update_content(self, ref, content, xattr_names=['ndrive']):
+    def update_content(self, ref, content, xattr_names=('ndrive')):
         xattrs = {}
         for name in xattr_names:
             xattrs[name] = self.get_remote_id(ref, name=name)

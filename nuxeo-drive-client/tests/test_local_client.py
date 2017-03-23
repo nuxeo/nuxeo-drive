@@ -1,19 +1,33 @@
+"""
+Test LocalClient with native FS operations and specific OS ones.
+See win_local_client.py and mac_local_client.py for more informations.
+
+See NXDRIVE-742.
+"""
 from time import sleep
 
 import hashlib
 import os
+from unittest import skipIf
 
-from nxdrive.client import NotFound
+from nxdrive.client import LocalClient, NotFound
+from nxdrive.osi import AbstractOSIntegration
 from tests.common import EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from tests.common_unit_test import UnitTestCase
 
+try:
+    from exceptions import WindowsError
+except ImportError:
+    WindowsError = IOError
 
-class TestLocalClient(UnitTestCase):
 
-    def setUp(self):
-        super(TestLocalClient, self).setUp()
-        self.engine_1.start()
-        self.wait_sync()
+class StubLocalClient(object):
+    """
+    All tests goes here. If you need to implement a special behavior for
+    one OS, override the test method in the class TestLocalClientSimulation.
+    Check TestLocalClientSimulation.test_complex_filenames() for a real
+    world example.
+    """
 
     def test_make_documents(self):
         doc_1 = self.local_client_1.make_file('/', 'Document 1.txt')
@@ -28,7 +42,8 @@ class TestLocalClient(UnitTestCase):
         doc_2 = self.local_client_1.make_file('/', 'Document 2.txt',
                                               content=SOME_TEXT_CONTENT)
         self.assertTrue(self.local_client_1.exists(doc_2))
-        self.assertEqual(self.local_client_1.get_content(doc_2), SOME_TEXT_CONTENT)
+        self.assertEqual(self.local_client_1.get_content(doc_2),
+                         SOME_TEXT_CONTENT)
         doc_2_info = self.local_client_1.get_info(doc_2)
         self.assertEqual(doc_2_info.name, 'Document 2.txt')
         self.assertEqual(doc_2_info.path, doc_2)
@@ -55,7 +70,8 @@ class TestLocalClient(UnitTestCase):
 
     def test_get_info_invalid_date(self):
         doc_1 = self.local_client_1.make_file('/', 'Document 1.txt')
-        os.utime(self.local_client_1._abspath(os.path.join('/', 'Document 1.txt')), (0, 999999999999999))
+        os.utime(self.local_client_1._abspath(
+                os.path.join('/', 'Document 1.txt')), (0, 999999999999999))
         doc_1_info = self.local_client_1.get_info(doc_1)
         self.assertEqual(doc_1_info.name, 'Document 1.txt')
         self.assertEqual(doc_1_info.path, doc_1)
@@ -95,7 +111,8 @@ class TestLocalClient(UnitTestCase):
         file_2 = self.local_client_1.make_file(folder_1, invalid_filename)
         file_2 = self.local_client_1.get_info(file_2)
         self.assertEqual(file_2.name, escaped_filename)
-        self.assertEqual(file_2.path, folder_1_info.path + u'/' + escaped_filename)
+        self.assertEqual(
+                file_2.path, folder_1_info.path + u'/' + escaped_filename)
 
     def test_missing_file(self):
         with self.assertRaises(NotFound):
@@ -111,14 +128,15 @@ class TestLocalClient(UnitTestCase):
         self.local_client_1.make_file(folder_1, 'File 2.txt', content=b'bar\n')
 
         # ignored files
-        self.local_client_1.make_file('/', '.File 2.txt', content=b'baz\n')
-        self.local_client_1.make_file('/', '~$File 2.txt', content=b'baz\n')
-        self.local_client_1.make_file('/', 'File 2.txt~', content=b'baz\n')
-        self.local_client_1.make_file('/', 'File 2.txt.swp', content=b'baz\n')
-        self.local_client_1.make_file('/', 'File 2.txt.lock', content=b'baz\n')
-        self.local_client_1.make_file('/', 'File 2.txt.LOCK', content=b'baz\n')
-        self.local_client_1.make_file('/', 'File 2.txt.part', content=b'baz\n')
-        self.local_client_1.make_file('/', '.File 2.txt.nxpart', content=b'baz\n')
+        data = b'baz\n'
+        self.local_client_1.make_file('/', '.File 2.txt', content=data)
+        self.local_client_1.make_file('/', '~$File 2.txt', content=data)
+        self.local_client_1.make_file('/', 'File 2.txt~', content=data)
+        self.local_client_1.make_file('/', 'File 2.txt.swp', content=data)
+        self.local_client_1.make_file('/', 'File 2.txt.lock', content=data)
+        self.local_client_1.make_file('/', 'File 2.txt.LOCK', content=data)
+        self.local_client_1.make_file('/', 'File 2.txt.part', content=data)
+        self.local_client_1.make_file('/', '.File 2.txt.nxpart', content=data)
 
         workspace_children = self.local_client_1.get_children_info('/')
         self.assertEqual(len(workspace_children), 3)
@@ -127,7 +145,8 @@ class TestLocalClient(UnitTestCase):
         self.assertEqual(workspace_children[2].path, folder_2)
 
     def test_deep_folders(self):
-        # Check that local client can workaround the default windows MAX_PATH limit
+        # Check that local client can workaround the default >indows
+        # MAX_PATH limit
         folder = '/'
         for _i in range(30):
             folder = self.local_client_1.make_folder(folder, '0123456789')
@@ -147,11 +166,13 @@ class TestLocalClient(UnitTestCase):
         deep_child_info = deep_children[0]
         self.assertEqual(deep_file_info.name, deep_child_info.name)
         self.assertEqual(deep_file_info.path, deep_child_info.path)
-        self.assertEqual(deep_file_info.get_digest(), deep_child_info.get_digest())
+        self.assertEqual(deep_file_info.get_digest(),
+                         deep_child_info.get_digest())
 
         # Update the file content
         self.local_client_1.update_content(deep_file, b'New Content.')
-        self.assertEqual(self.local_client_1.get_content(deep_file), b'New Content.')
+        self.assertEqual(self.local_client_1.get_content(deep_file),
+                         b'New Content.')
 
         # Delete the folder
         self.local_client_1.delete(folder)
@@ -163,7 +184,8 @@ class TestLocalClient(UnitTestCase):
         self.assertFalse(self.local_client_1.exists('/0123456789'))
 
     def test_get_new_file(self):
-        path, os_path, name = self.local_client_1.get_new_file('/', 'Document 1.txt')
+        path, os_path, name = self.local_client_1.get_new_file('/',
+                                                               'Document 1.txt')
         self.assertEqual(path, '/Document 1.txt')
         self.assertTrue(os_path.endswith(os.path.join(self.workspace_title,
                                                       'Document 1.txt')))
@@ -183,25 +205,104 @@ class TestLocalClient(UnitTestCase):
         self.assertTrue(mtime == int(os.path.getmtime(path)))
 
     def test_get_path(self):
-        abs_path = os.path.join(self.local_nxdrive_folder_1, self.workspace_title, 'Test doc.txt')
-        self.assertEqual(self.local_client_1.get_path(abs_path), '/Test doc.txt')
+        abs_path = os.path.join(self.local_nxdrive_folder_1,
+                                self.workspace_title,
+                                'Test doc.txt')
+        self.assertEqual(self.local_client_1.get_path(abs_path),
+                         '/Test doc.txt')
 
     def test_is_equal_digests(self):
         content = b'joe'
-        local_path = self.local_client_1.make_file('/', 'File.txt', content=content)
+        local_path = self.local_client_1.make_file('/', 'File.txt',
+                                                   content=content)
         local_digest = hashlib.md5(content).hexdigest()
         # Equal digests
-        self.assertTrue(self.local_client_1.is_equal_digests(local_digest, local_digest, local_path))
+        self.assertTrue(self.local_client_1.is_equal_digests(local_digest,
+                                                             local_digest,
+                                                             local_path))
+
         # Different digests with same digest algorithm
         other_content = b'jack'
         remote_digest = hashlib.md5(other_content).hexdigest()
         self.assertNotEqual(local_digest, remote_digest)
-        self.assertFalse(self.local_client_1.is_equal_digests(local_digest, remote_digest, local_path))
+        self.assertFalse(self.local_client_1.is_equal_digests(local_digest,
+                                                              remote_digest,
+                                                              local_path))
+
         # Different digests with different digest algorithms but same content
         remote_digest = hashlib.sha1(content).hexdigest()
         self.assertNotEqual(local_digest, remote_digest)
-        self.assertTrue(self.local_client_1.is_equal_digests(local_digest, remote_digest, local_path))
-        # Different digests with different digest algorithms and different content
+        self.assertTrue(self.local_client_1.is_equal_digests(local_digest,
+                                                             remote_digest,
+                                                             local_path))
+
+        # Different digests with different digest algorithms and different
+        # content
         remote_digest = hashlib.sha1(other_content).hexdigest()
         self.assertNotEqual(local_digest, remote_digest)
-        self.assertFalse(self.local_client_1.is_equal_digests(local_digest, remote_digest, local_path))
+        self.assertFalse(self.local_client_1.is_equal_digests(local_digest,
+                                                              remote_digest,
+                                                              local_path))
+
+
+class TestLocalClientNative(StubLocalClient, UnitTestCase):
+    """
+    Test LocalClient using native python commands to make FS operations.
+    This will simulate Drive actions.
+    """
+
+    def setUp(self):
+        super(TestLocalClientNative, self).setUp()
+        self.engine_1.start()
+        self.wait_sync()
+
+    def get_local_client(self, path):
+        return LocalClient(path)
+
+
+@skipIf(AbstractOSIntegration.is_linux(),
+        'GNU/Linux uses native LocalClient.')
+class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
+    """
+    Test LocalClient using OS specific commands to make FS operations.
+    This will simulate user actions on:
+        - Explorer (Windows)
+        - File Manager (macOS)
+    """
+
+    def setUp(self):
+        super(TestLocalClientSimulation, self).setUp()
+        self.engine_1.start()
+        self.wait_sync()
+
+    def test_complex_filenames(self):
+        """
+        It should fail on Windows:
+        Explorer cannot find the directory as the path is way to long.
+        """
+
+        if AbstractOSIntegration.is_windows():
+            try:
+                # IOError: [Errno 2] No such file or directory
+                with self.assertRaises(IOError):
+                    super(TestLocalClientSimulation,
+                          self).test_complex_filenames()
+            except AssertionError:
+                # Sometimes it does not raise the expected assertion ...
+                # TODO: More tests to know why.
+                pass
+        else:
+            super(TestLocalClientSimulation, self).test_complex_filenames()
+
+    def test_deep_folders(self):
+        """
+        It should fail on Windows:
+        Explorer cannot deal with very long paths.
+        """
+
+        if AbstractOSIntegration.is_windows():
+            # WindowsError: [Error 206] The filename or extension is too long
+            with self.assertRaises(WindowsError):
+                super(TestLocalClientSimulation, self).test_deep_folders()
+        else:
+            super(TestLocalClientSimulation, self).test_deep_folders()

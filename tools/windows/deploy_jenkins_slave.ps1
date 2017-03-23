@@ -23,9 +23,23 @@ function check_import($import) {
 	# Check module import to know if it must be installed
 	# i.e: check_import "from PyQt4 import QtWebKit"
 	#  or: check_import "import cx_Freeze"
-
 	& $Env:PYTHON_DIR\python -E -c "$import"
 	if ($lastExitCode -eq 0) {
+		return 1
+	}
+	return 0
+}
+
+function check_sum($file) {
+	# Calculate the MD5 sum of the file to check its integrity
+	$filename = (Get-Item "$file").Name
+	$checksums = "$Env:WORKSPACE_DRIVE\tools\checksums.txt"
+	$md5 = (Get-FileHash "$file" -Algorithm MD5).Hash.ToLower()
+
+	# Ignore this package as it evolves every day
+	if ("$filename" -eq "get-pip.py") {
+		return 1
+	} elseif ((Select-String "$md5  $filename" "$checksums" -ca).count -eq 1) {
 		return 1
 	}
 	return 0
@@ -81,12 +95,26 @@ function check_vars {
 
 function download($url, $output) {
 	# Download one file and save its content to a given file name
-	echo ">>> Downloading $url"
-	echo "             to $output"
-	if (-Not (Test-Path $output)) {
-		$curl = New-Object System.Net.WebClient
-		$curl.DownloadFile($url, $output)
+	$try = 1
+	while ($try -lt 6) {
+		if (Test-Path "$output") {
+			if (check_sum "$output") {
+				return
+			}
+			Remove-Item -Force "$output"
+		}
+		echo ">>> [$try/5] Downloading $url"
+		echo "                   to $output"
+		Try {
+			$curl = New-Object System.Net.WebClient
+			$curl.DownloadFile($url, $output)
+		} Catch {}
+		$try += 1
+		Start-Sleep -s 5
 	}
+
+	echo ">>> Impossible to download and verify $url"
+	ExitWithCode 1
 }
 
 function ExitWithCode($retCode) {
@@ -97,7 +125,7 @@ function ExitWithCode($retCode) {
 function install_cxfreeze {
 	# Install cx_Freeze manually as pip does not work for this package
 	$output = "$Env:STORAGE_DIR\cx_Freeze-$Env:CXFREEZE_VERSION.win32-py2.7.msi"
-	$url = "https://sourceforge.net/projects/cx-freeze/files/$Env:CXFREEZE_VERSION/cx_Freeze-$Env:CXFREEZE_VERSION.win32-py2.7.msi"
+	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/cx_Freeze-$Env:CXFREEZE_VERSION.win32-py2.7.msi"
 
 	if (check_import "import cx_Freeze") {
 		return
@@ -143,7 +171,7 @@ function install_pip {
 
 function install_pyqt {
 	$output = "$Env:STORAGE_DIR\PyQt4-$Env:PYQT_VERSION-gpl-Py2.7-Qt4.8.7-x32.exe"
-	$url = "https://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-$Env:PYQT_VERSION/PyQt4-$Env:PYQT_VERSION-gpl-Py2.7-Qt4.8.7-x32.exe"
+	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/PyQt4-$Env:PYQT_VERSION-gpl-Py2.7-Qt4.8.7-x32.exe"
 	$packages = "$Env:PYTHON_DIR\Lib\site-packages"
 	$packages_pyqt = "$packages\PyQt4"
 	$source = "Lib\site-packages"
@@ -153,10 +181,11 @@ function install_pyqt {
 		return
 	}
 
+	echo ">>> Installing PyQt $Env:PYQT_VERSION"
+
 	download $url $output
 	Set-Location "$Env:STORAGE_DIR"
 
-	echo ">>> Installing PyQt $Env:PYQT_VERSION"
 	& 7z x "$output" "Lib" "`$_OUTDIR" -xr"!doc" -xr"!examples" -xr"!mkspecs" -xr"!sip" -y
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
@@ -194,8 +223,8 @@ function install_python {
 		return
 	}
 
-	download $url $output
 	echo ">>> Installing Python"
+	download $url $output
 	Start-Process msiexec -ArgumentList "/a `"$output`" /passive TARGETDIR=`"$Env:PYTHON_DIR`"" -wait
 }
 
@@ -205,7 +234,7 @@ function launch_tests {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python -E -m pytest --showlocals --exitfirst --strict --failed-first -r Efx --full-trace --capture=sys --no-cov-on-fail --cov-append --cov-report term-missing:skip-covered --cov-report html:..\coverage --cov=nuxeo-drive-client\nxdrive "$Env:SPECIFIC_TEST"
+	& $Env:PYTHON_DIR\python -E -m pytest --showlocals --exitfirst --strict --failed-first -r Efx --full-trace "$Env:SPECIFIC_TEST"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
