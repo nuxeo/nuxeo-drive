@@ -16,11 +16,10 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.engine.workers import Worker, ThreadInterrupt, PairInterrupt
 from nxdrive.engine.activity import Action, FileAction
 from time import sleep
-WindowsError = None
 try:
     from exceptions import WindowsError
 except ImportError:
-    pass  # this will never be raised under unix
+    WindowsError = IOError
 import os
 import datetime
 from cookielib import CookieJar

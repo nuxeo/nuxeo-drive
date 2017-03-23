@@ -1,3 +1,4 @@
+appdirs
 setuptools
 argparse==1.4.0;python_version=='2.7'
 esky==0.9.9;python_version=='2.7'

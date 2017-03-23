@@ -1,43 +1,49 @@
 #!groovy
+// Functional tests
+// Script to launch Nuxeo Drive tests on every supportable platform.
+
+// Default values for required envars
+PYTHON_DRIVE_VERSION = '2.7.13'
+PYQT_VERSION = '4.12'
+CXFREEZE_VERSION = '4.3.3'
+SIP_VERSION = '4.19'
 
 // Pipeline properties
 properties([
+    disableConcurrentBuilds(),
+    pipelineTriggers([[$class: 'GitHubPushTrigger']]),
     [$class: 'SchedulerPreference', preferEvenload: true],
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
-    [$class: 'ParametersDefinitionProperty',
-        parameterDefinitions: [
-            [$class: 'StringParameterDefinition',
-                name: 'SPECIFIC_TEST',
-                defaultValue: '',
-                description: 'Specific test to launch. The syntax must be the same as <a href="http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id">pytest markers</a>'],
-            [$class: 'StringParameterDefinition',
-                name: 'PYTHON_DRIVE_VERSION',
-                defaultValue: '2.7.13',
-                description: '<b>Required</b> Python version to use'],
-            [$class: 'StringParameterDefinition',
-                name: 'PYQT_VERSION',
-                defaultValue: '4.12',
-                description: '<b>Required</b> PyQt version to use (GNU/Linux and macOS only)'],
-            [$class: 'StringParameterDefinition',
-                name: 'CXFREEZE_VERSION',
-                defaultValue: '4.3.3',
-                description: '<i>Optional</i> cx_Freeze version to use'],
-            [$class: 'StringParameterDefinition',
-                name: 'SIP_VERSION',
-                defaultValue: '4.19',
-                description: '<i>Optional</i> SIP version to use (GNU/Linux and macOS only)'],,
-            [$class: 'StringParameterDefinition',
-                name: 'TEST_REMOTE_SCAN_VOLUME',
-                defaultValue: '100',
-                description: '<i>Optional</i> Number of nodes for the remote scan volume test'],
-            [$class: 'ChoiceParameterDefinition',
-                name: 'RANDOM_BUG_MODE',
-                choices: 'RELAX\nSTRICT\nBYPASS',
-                description: 'Random bug mode']
-        ]
-    ],
-    pipelineTriggers([[$class: 'GitHubPushTrigger']]),
-    disableConcurrentBuilds()
+    [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
+        [$class: 'StringParameterDefinition',
+            name: 'SPECIFIC_TEST',
+            defaultValue: '',
+            description: 'Specific test to launch. The syntax must be the same as <a href="http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id">pytest markers</a>'],
+        [$class: 'StringParameterDefinition',
+            name: 'PYTHON_DRIVE_VERSION',
+            defaultValue: PYTHON_DRIVE_VERSION,
+            description: '<b>Required</b> Python version to use'],
+        [$class: 'StringParameterDefinition',
+            name: 'PYQT_VERSION',
+            defaultValue: PYQT_VERSION,
+            description: '<b>Required</b> PyQt version to use (GNU/Linux and macOS only)'],
+        [$class: 'StringParameterDefinition',
+            name: 'CXFREEZE_VERSION',
+            defaultValue: CXFREEZE_VERSION,
+            description: '<i>Optional</i> cx_Freeze version to use'],
+        [$class: 'StringParameterDefinition',
+            name: 'SIP_VERSION',
+            defaultValue: SIP_VERSION,
+            description: '<i>Optional</i> SIP version to use (GNU/Linux and macOS only)'],
+        [$class: 'ChoiceParameterDefinition',
+            name: 'RANDOM_BUG_MODE',
+            choices: 'RELAX\nSTRICT\nBYPASS',
+            description: 'Random bug mode'],
+        [$class: 'StringParameterDefinition',
+            name: 'ENGINE',
+            defaultValue: 'NXDRIVE',
+            description: '<i>Optional</i> The engine to use (another possible value is <i>NXDRIVENEXT</i>)']
+    ]]
 ])
 
 // Jenkins slaves we will build on
@@ -67,6 +73,16 @@ def github_status(status) {
                 message: status_msg.get(status), state: status]]]])
 }
 
+def checkout_custom() {
+    checkout([$class: 'GitSCM',
+        branches: [[name: '*/' + env.BRANCH_NAME]],
+        browser: [$class: 'GithubWeb', repoUrl: repos_url],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: repos_git]]])
+}
+
 for (def x in slaves) {
     // Need to bind the label variable before the closure - can't do 'for (slave in slaves)'
     def slave = x
@@ -76,20 +92,10 @@ for (def x in slaves) {
     builders[slave] = {
         node(slave) {
             withEnv(["WORKSPACE=${pwd()}"]) {
-                github_status('PENDING')
-
-                // Required envars
-                env.PYTHON_DRIVE_VERSION = params.PYTHON_DRIVE_VERSION ?: '2.7.13'
-                env.PYQT_VERSION = params.PYQT_VERSION ?: '4.12'
-
                 try {
                     stage(osi + ' Checkout') {
-                        checkout([$class: 'GitSCM',
-                            branches: [[name: '*/' + env.BRANCH_NAME]],
-                            browser: [$class: 'GithubWeb', repoUrl: repos_url],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
-                            submoduleCfg: [], userRemoteConfigs: [[url: repos_git]]])
+                        github_status('PENDING')
+                        checkout_custom()
                     }
 
                     stage(osi + ' Setup') {
@@ -111,22 +117,23 @@ for (def x in slaves) {
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
 
-                        // Number of nodes for the remote scan volume test
-                        env.TEST_REMOTE_SCAN_VOLUME = params.TEST_REMOTE_SCAN_VOLUME ?: '100'
-
                         dir('sources') {
-	                        // Set up the report name folder
-	                        env.REPORT_PATH = env.WORKSPACE + '/sources'
+                            // Set up the report name folder
+                            env.REPORT_PATH = env.WORKSPACE + '/sources'
+                            env.TEST_REMOTE_SCAN_VOLUME = 100
 
-                            if (osi == 'Windows') {
-                                bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
-                            } else {
-                                sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
+                            // Do not launch tests if we are on a Work In Progress branch
+                            if (!env.BRANCH_NAME.startsWith('wip-')) {
+                                if (osi == 'Windows') {
+                                    bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
+                                } else {
+                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
+                                }
                             }
                         }
 
-                        echo 'Retrieve coverage statistics'
-                        archive 'coverage/*'
+                        // echo 'Retrieve coverage statistics'
+                        // archive 'coverage/*'
 
                         currentBuild.result = 'SUCCESS'
                     }

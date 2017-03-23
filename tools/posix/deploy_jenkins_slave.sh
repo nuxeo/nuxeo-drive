@@ -10,12 +10,9 @@
 # See /docs/deployment.md for more informations.
 #
 
-#set -x  # verbose
-
 # Global variables
 PYTHON="python -E -s"
-PIP_INST="${PYTHON} -m pip install -q"
-PIP="${PIP_INST} --upgrade"
+PIP="${PYTHON} -m pip install -q --upgrade"
 
 build_esky() {
     echo ">>> Building the release package"
@@ -126,9 +123,7 @@ download() {
         fi
         echo ">>> [$try/5] Downloading $url"
         echo "                   to $output"
-        set +e
-        curl --silent -L "$url" -o "$output"
-        set -e
+        curl --silent -L "$url" -o "$output" || true
         try=$(( ${try} + 1 ))
         sleep 5
     done
@@ -171,7 +166,7 @@ install_cxfreeze() {
 install_deps() {
     echo ">>> Installing requirements"
     # Do not delete, it fixes "Could not import setuptools which is required to install from a source distribution."
-    ${PIP_INST} setuptools
+    ${PIP} setuptools
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-unix.txt
     case "${OSI}" in
