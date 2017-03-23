@@ -16,7 +16,7 @@ from nxdrive.utils import safe_long_path
 try:
     from exceptions import WindowsError
 except ImportError:
-    WindowsError = None  # This will never be raised under Unix
+    WindowsError = IOError
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3

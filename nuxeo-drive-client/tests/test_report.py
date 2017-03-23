@@ -9,7 +9,6 @@ from mock import Mock
 from unittest import TestCase, skipIf
 
 from nxdrive.manager import Manager
-from nxdrive.osi import AbstractOSIntegration
 from nxdrive.report import Report
 from tests.common import clean_dir, log
 
@@ -34,8 +33,6 @@ class ReportTest(TestCase):
         Manager._singleton = None
         clean_dir(self.folder)
 
-    @skipIf(AbstractOSIntegration.is_windows(),
-            'NXDRIVE-358: Temporarily skipped, need to investigate')
     def test_logs(self):
         report = Report(self.manager, os.path.join(self.folder, "report.zip"))
         log.debug("Strange encoding \xe9")

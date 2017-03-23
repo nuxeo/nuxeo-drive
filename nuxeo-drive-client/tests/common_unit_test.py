@@ -671,7 +671,8 @@ class UnitTestCase(SimpleUnitTestCase):
         if "REPORT_PATH" not in os.environ:
             return
 
-        report_path = os.path.join(os.environ["REPORT_PATH"], self.id())
+        report_path = os.path.join(os.environ["REPORT_PATH"],
+                                   self.id() + '-' + sys.platform)
         self.manager_1.generate_report(report_path)
         log.debug("Report generated in '%s'", report_path)
 
