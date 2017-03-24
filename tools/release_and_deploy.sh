@@ -30,13 +30,23 @@ create_beta() {
     echo ">>> [beta ${drive_version}] Retrieving artifacts"
     [ -f dist.zip ] && rm -f dist.zip
     curl --silent -L "$artifacts" -o dist.zip
-    unzip dist.zip
+    unzip -o dist.zip
 
     echo ">>> [beta ${drive_version}] Deploying to the staging website"
     scp dist/*${drive_version}* nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-tests/
 
     echo ">>> [beta ${drive_version}] Creating the GitHub pre-release"
     # TODO
+    cat <<EOF
+${changelog}
+
+If you have a Nuxeo Drive instance running against a LTS or a Fast Track version of Nuxeo, a notification about this new version should be displayed in the systray menu within an hour allowing you to upgrade (can bypass this delay by restarting Drive).
+
+It is also directly available for download from:
+- http://community.nuxeo.com/static/drive-tests/nuxeo-drive-${drive_version}-win32.msi
+- http://community.nuxeo.com/static/drive-tests/nuxeo-drive-${drive_version}-osx.dmg
+Or from the Nuxeo Drive tab in the User Center of a LTS or a Fast Track version of Nuxeo.
+EOF
 }
 
 get_lastest_release_tag() {
