@@ -5,10 +5,11 @@ export RELEASE_TYPE="${RELEASE_TYPE:=nightly}"
 create_beta() {
     local version="$(egrep -o "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
     local drive_version="${version}.$(date +%-m%d)"
+    local artifacts="https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-nightly-build/lastSuccessfulBuild/artifact/dist/*zip*/dist.zip"
 
     echo ">>> [beta ${drive_version}] Creating the commit"
     rm nuxeo-drive-client/nxdrive/__init__.py
-    echo "__version__ = '$drive_version'\n" > nuxeo-drive-client/nxdrive/__init__.py
+    echo "__version__ = '$drive_version'" > nuxeo-drive-client/nxdrive/__init__.py
     git commit -am "Release $drive_version"
 
     echo ">>> [beta ${drive_version}] Creating the tag"
@@ -16,19 +17,23 @@ create_beta() {
 
     echo ">>> [beta ${drive_version}] Creating the post commit"
     rm nuxeo-drive-client/nxdrive/__init__.py
-    echo "__version__ = '${version}-dev'\n" > nuxeo-drive-client/nxdrive/__init__.py
+    echo "__version__ = '${version}-dev'" > nuxeo-drive-client/nxdrive/__init__.py
     git commit -am "Post release ${drive_version}"
 
     echo ">>> [beta ${drive_version}] Pushing to GitHub"
     git push origin master
     git push --tags origin release-${drive_version}
 
-    echo ">>> [beta ${drive_version}] Deploying to the staging website"
-    # TODO: Where are the files?!
-    scp dist/*.deb dist/*.dmg dist/*.json dist/*.msi dist/*.zip nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-tests/
+    echo ">>> [beta ${drive_version}] Retrieving artifacts"
+    [ -f dist.zip ] && rm -f dist.zip
+    curl --silent -L "$artifacts" -o dist.zip
+    unzip dist.zip
 
-    # TODO: create changelog
-    # TODO: create GitHub pre-release
+    echo ">>> [beta ${drive_version}] Deploying to the staging website"
+    scp dist/*${drive_version}* nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-tests/
+
+    echo ">>> [beta ${drive_version}] Creating the GitHub pre-release"
+    # TODO
 }
 
 get_lastest_release_tag() {
@@ -60,7 +65,6 @@ release() {
     python setup.py sdist upload
 
     # TODO: convert GitHub pre-release to release
-    # TODO: Slack notification?
 }
 
 main() {

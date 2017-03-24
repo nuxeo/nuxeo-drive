@@ -16,6 +16,22 @@ properties([
     ]]
 ])
 
+// Trigger the Drive nightly build job to build executables and have artifacts
+triggerRemoteJob mode: [
+        $class: 'TrackProgressAwaitResult',
+        scheduledTimeout: [timeoutStr: '30m'],
+        startedTimeout: [timeoutStr: '30m'],
+        timeout: [timeoutStr: '1d'],
+        whenFailure: [$class: 'StopAsFailure'],
+        whenScheduledTimeout: [$class: 'StopAsFailure'],
+        whenStartedTimeout: [$class: 'StopAsFailure'],
+        whenTimeout: [$class: 'StopAsFailure'],
+        whenUnstable: [$class: 'StopAsFailure']
+    ],
+    remotePathMissing: [$class: 'StopAsFailure'],
+    remotePathUrl: 'jenkins://0ebd1d5127f055c8c674d7778f51ea00/Drive/Drive-nightly-build'
+
+
 node('IT') {
     withEnv(["WORKSPACE=${pwd()}"]) {
         stage('Checkout') {
