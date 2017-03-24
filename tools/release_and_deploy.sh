@@ -12,6 +12,9 @@ create_beta() {
     echo "__version__ = '$drive_version'" > nuxeo-drive-client/nxdrive/__init__.py
     git commit -am "Release $drive_version"
 
+    echo ">>> [beta ${drive_version}] Generating the changelog"
+    local changelog="$(python tools/changelog.py --format=md)"
+
     echo ">>> [beta ${drive_version}] Creating the tag"
     git tag release-${drive_version}
 
