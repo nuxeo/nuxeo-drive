@@ -1,31 +1,36 @@
-from PyQt4.QtCore import QObject, QCoreApplication
-from PyQt4.QtCore import pyqtSlot, pyqtSignal
-from nxdrive.logging_config import get_logger
-from nxdrive.commandline import DEFAULT_REMOTE_WATCHER_DELAY
-from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
-from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.client.common import NotFound
-from nxdrive.client import LocalClient
-from nxdrive.client import RemoteFileSystemClient
-from nxdrive.client import RemoteFilteredFileSystemClient
-from nxdrive.client import RemoteDocumentClient
-from nxdrive.utils import normalized_path
-from nxdrive.engine.processor import Processor
-from threading import current_thread
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.engine.workers import Worker, ThreadInterrupt, PairInterrupt
-from nxdrive.engine.activity import Action, FileAction
+import datetime
+import os
+import urllib2
+from cookielib import CookieJar
+from threading import Thread, current_thread
 from time import sleep
+
+from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
+
+from nxdrive.client import LocalClient, RemoteDocumentClient, \
+    RemoteFileSystemClient, RemoteFilteredFileSystemClient
+from nxdrive.client.common import BaseClient, DEFAULT_REPOSITORY_NAME, \
+    NotFound, safe_filename
+from nxdrive.client.rest_api_client import RestAPIClient
+from nxdrive.commandline import DEFAULT_REMOTE_WATCHER_DELAY, \
+    DEFAULT_UPDATE_SITE_URL
+from nxdrive.engine.activity import Action, FileAction
+from nxdrive.engine.dao.sqlite import EngineDAO
+from nxdrive.engine.processor import Processor
+from nxdrive.engine.queue_manager import QueueManager
+from nxdrive.engine.watcher.local_watcher import LocalWatcher
+from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
+from nxdrive.engine.workers import PairInterrupt, ThreadInterrupt, Worker
+from nxdrive.gui.resources import find_icon
+from nxdrive.logging_config import get_logger
+from nxdrive.manager import ServerBindingSettings
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.utils import normalized_path
+
 try:
     from exceptions import WindowsError
 except ImportError:
     WindowsError = IOError
-import os
-import datetime
-from cookielib import CookieJar
-from nxdrive.client.common import safe_filename
-from nxdrive.gui.resources import find_icon
-import urllib2
 
 log = get_logger(__name__)
 
@@ -45,6 +50,7 @@ class RootAlreadyBindWithDifferentAccount(Exception):
 
     def get_url(self):
         return self._url
+
 
 class FsMarkerException(Exception):
     pass
@@ -287,7 +293,8 @@ class Engine(QObject):
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
 
-    def get_document_id(self, remote_ref):
+    @staticmethod
+    def get_document_id(remote_ref):
         remote_ref_segments = remote_ref.split("#", 2)
         return remote_ref_segments[2]
 
@@ -313,7 +320,6 @@ class Engine(QObject):
             doc_ref = doc_ref[doc_ref.rfind('#') + 1:]
         log.debug("Will try to open edit : %s", doc_ref)
         # TODO Implement a TemporaryWorker
-        from threading import Thread
 
         def run():
             self._manager.get_direct_edit().edit(self._server_url,
@@ -395,7 +401,8 @@ class Engine(QObject):
             return False
         return True
 
-    def _normalize_url(self, url):
+    @staticmethod
+    def _normalize_url(url):
         """Ensure that user provided url always has a trailing '/'"""
         if url is None or not url:
             raise ValueError("Invalid url: %r" % url)
@@ -423,17 +430,14 @@ class Engine(QObject):
         return self._dao.get_config("remote_token")
 
     def _create_queue_manager(self, processors):
-        from nxdrive.engine.queue_manager import QueueManager
         if self._manager.is_debug():
             return QueueManager(self, self._dao, max_file_processors=2)
         return QueueManager(self, self._dao)
 
     def _create_remote_watcher(self, delay):
-        from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
         return RemoteWatcher(self, self._dao, delay)
 
     def _create_local_watcher(self):
-        from nxdrive.engine.watcher.local_watcher import LocalWatcher
         return LocalWatcher(self, self._dao)
 
     def _get_db_file(self):
@@ -441,7 +445,6 @@ class Engine(QObject):
                                 "ndrive_" + self._uid + ".db")
 
     def _create_dao(self):
-        from nxdrive.engine.dao.sqlite import EngineDAO
         return EngineDAO(self._get_db_file())
 
     def get_remote_url(self):
@@ -458,7 +461,6 @@ class Engine(QObject):
         return self.get_local_client().abspath(path)
 
     def get_binder(self):
-        from nxdrive.manager import ServerBindingSettings
         return ServerBindingSettings(server_url=self._server_url,
                         web_authentication=self._web_authentication,
                         server_version=None,
@@ -498,7 +500,8 @@ class Engine(QObject):
     def get_dao(self):
         return self._dao
 
-    def local_rollback(self):
+    @staticmethod
+    def local_rollback():
         return False
 
     def create_thread(self, worker=None, name=None, start_connect=True):
@@ -539,7 +542,6 @@ class Engine(QObject):
     def resolve_with_duplicate(self, row_id):
         row = self._dao.get_state_from_id(row_id)
         self._dao.increase_error(row, "DUPLICATING")
-        from threading import Thread
 
         def run():
             local_client = self.get_local_client()
@@ -651,13 +653,18 @@ class Engine(QObject):
             pair = self._dao.get_state_from_id(row_id)
             local_client = self.get_local_client()
             parent_ref = local_client.get_remote_id(pair.local_parent_path)
-            log.warn("conflict_resolver: name: %d digest: %d(%s/%s) parents: %d(%s/%s)", pair.remote_name == pair.local_name,
-                      local_client.is_equal_digests(pair.local_digest, pair.remote_digest, pair.local_path),
-                      pair.local_digest, pair.remote_digest,
-                      pair.remote_parent_ref == parent_ref,
-                      pair.remote_parent_ref, parent_ref)
+            log.warn("conflict_resolver: name: %d digest: %d(%s/%s) parents: %d(%s/%s)",
+                     pair.remote_name == pair.local_name,
+                     local_client.is_equal_digests(pair.local_digest,
+                                                   pair.remote_digest,
+                                                   pair.local_path),
+                     pair.local_digest, pair.remote_digest,
+                     pair.remote_parent_ref == parent_ref,
+                     pair.remote_parent_ref, parent_ref)
             if (safe_filename(pair.remote_name) == pair.local_name
-                and local_client.is_equal_digests(pair.local_digest, pair.remote_digest, pair.local_path)
+                and local_client.is_equal_digests(pair.local_digest,
+                                                  pair.remote_digest,
+                                                  pair.local_path)
                     and pair.remote_parent_ref == parent_ref):
                 self._dao.synchronize_state(pair)
             elif emit:
@@ -698,7 +705,8 @@ class Engine(QObject):
     def _get_client_cache(self):
         return self._remote_clients
 
-    def use_trash(self):
+    @staticmethod
+    def use_trash():
         return True
 
     def get_update_infos(self, client=None):
@@ -804,13 +812,12 @@ class Engine(QObject):
             if root_id is not None:
                 # server_url|user|device_id|uid
                 token = root_id.split("|")
-                if (self._server_url != token[0] or self._remote_user != token[1]):
+                if self._server_url != token[0] or self._remote_user != token[1]:
                     raise RootAlreadyBindWithDifferentAccount(token[1], token[0])
 
     def _check_root(self):
         root = self._dao.get_state_from_local("/")
         if root is None:
-            from nxdrive.client.common import BaseClient
             if os.path.exists(self._local_folder):
                 BaseClient.unset_path_readonly(self._local_folder)
             self._make_local_folder(self._local_folder)
@@ -818,7 +825,8 @@ class Engine(QObject):
             self._set_root_icon()
             BaseClient.set_path_readonly(self._local_folder)
 
-    def _make_local_folder(self, local_folder):
+    @staticmethod
+    def _make_local_folder(local_folder):
         if not os.path.exists(local_folder):
             os.makedirs(local_folder)
             # OSI package
@@ -940,7 +948,8 @@ class Engine(QObject):
                         proxy_exceptions=self._manager.proxy_exceptions,
                         password=self._remote_password,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
-                        token=self._remote_token, check_suspended=self.suspend_client)
+                        token=self._remote_token,
+                        check_suspended=self.suspend_client)
             else:
                 remote_client = self.remote_fs_client_factory(
                         self._server_url, self._remote_user,
@@ -949,7 +958,8 @@ class Engine(QObject):
                         proxy_exceptions=self._manager.proxy_exceptions,
                         password=self._remote_password,
                         timeout=self.timeout, cookie_jar=self.cookie_jar,
-                        token=self._remote_token, check_suspended=self.suspend_client)
+                        token=self._remote_token,
+                        check_suspended=self.suspend_client)
             cache[cache_key] = remote_client
         return remote_client
 
@@ -967,7 +977,8 @@ class Engine(QObject):
                 proxy_exceptions=self._manager.proxy_exceptions,
                 password=self._remote_password, token=self._remote_token,
                 repository=repository, base_folder=base_folder,
-                timeout=self._handshake_timeout, cookie_jar=self.cookie_jar, check_suspended=self.suspend_client)
+                timeout=self._handshake_timeout, cookie_jar=self.cookie_jar,
+                check_suspended=self.suspend_client)
             cache[cache_key] = remote_client
         return remote_client
 
@@ -979,12 +990,13 @@ class Engine(QObject):
             self._dao.dispose()
 
     def get_rest_api_client(self):
-        from nxdrive.client.rest_api_client import RestAPIClient
-        rest_client = RestAPIClient(self.get_server_url(), self.get_remote_user(),
-                                        self._manager.get_device_id(), self._manager.get_version(), None,
-                                        self.get_remote_token(), timeout=self.timeout, cookie_jar=self.cookie_jar,
-                                        proxies=self._manager.get_proxies(self._server_url),
-                                        proxy_exceptions=self._manager.proxy_exceptions)
+        rest_client = RestAPIClient(
+            self.get_server_url(), self.get_remote_user(),
+            self._manager.get_device_id(), self._manager.get_version(), None,
+            self.get_remote_token(), timeout=self.timeout,
+            cookie_jar=self.cookie_jar,
+            proxies=self._manager.get_proxies(self._server_url),
+            proxy_exceptions=self._manager.proxy_exceptions)
         return rest_client
 
     def get_user_full_name(self, userid, cache_only=False):

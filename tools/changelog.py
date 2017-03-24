@@ -33,7 +33,7 @@ from subprocess import check_output
 from sys import stderr
 
 from docopt import docopt
-from requests import get
+from requests import HTTPError, get
 
 __version__ = '1.0.0'
 
@@ -108,6 +108,7 @@ Example 3: changelog.py '' COMMIT_ID
     """
 
     print(examples.__doc__.strip())
+
 
 def get_commits_between(start, end):
     """ Retrieve commits between two states. """
