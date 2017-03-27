@@ -1,6 +1,6 @@
 #!groovy
 // Functional tests
-// Script to launch Nuxeo Drive tests on every supportable platform.
+// Script to launch Nuxeo Drive tests on every supported platform.
 
 // Default values for required envars
 PYTHON_DRIVE_VERSION = '2.7.13'

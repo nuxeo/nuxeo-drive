@@ -1,6 +1,6 @@
 #!groovy
-// Nightly build
-// Script to build Nuxeo Drive on every supportable platform.
+// Executables build
+// Script to build Nuxeo Drive on every supported platform.
 
 // Default values for required envars
 PYTHON_DRIVE_VERSION = '2.7.13'
@@ -11,8 +11,7 @@ SIP_VERSION = '4.19'
 // Pipeline properties
 properties([
     disableConcurrentBuilds(),
-    overrideIndexTriggers(true),
-    pipelineTriggers([[$class: 'TimerTrigger', spec: 'H H(22-23) * * *']]),
+    pipelineTriggers([[$class: 'GitHubPushTrigger']]),
     [$class: 'SchedulerPreference', preferEvenload: true],
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
     [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
