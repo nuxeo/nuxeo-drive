@@ -1,6 +1,6 @@
 #!groovy
 // Executables build
-// Script to build Nuxeo Drive on every supported platform.
+// Script to build Nuxeo Drive pacakges on every supported platform.
 
 // Default values for required envars
 PYTHON_DRIVE_VERSION = '2.7.13'
