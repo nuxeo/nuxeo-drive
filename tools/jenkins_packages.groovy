@@ -3,10 +3,10 @@
 // Script to build Nuxeo Drive pacakges on every supported platform.
 
 // Default values for required envars
-PYTHON_DRIVE_VERSION = '2.7.13'
-PYQT_VERSION = '4.12'
-CXFREEZE_VERSION = '4.3.3'
-SIP_VERSION = '4.19'
+python_drive_version = '2.7.13'
+pyqt_version = '4.12'
+cxfreeze_version = '4.3.3'
+sip_version = '4.19'
 
 // Pipeline properties
 properties([
@@ -20,19 +20,19 @@ properties([
             defaultValue: 'master'],
         [$class: 'StringParameterDefinition',
             name: 'PYTHON_DRIVE_VERSION',
-            defaultValue: PYTHON_DRIVE_VERSION,
+            defaultValue: python_drive_version,
             description: '<b>Required</b> Python version to use'],
         [$class: 'StringParameterDefinition',
             name: 'PYQT_VERSION',
-            defaultValue: PYQT_VERSION,
+            defaultValue: pyqt_version,
             description: '<b>Required</b> PyQt version to use (GNU/Linux and macOS only)'],
         [$class: 'StringParameterDefinition',
             name: 'CXFREEZE_VERSION',
-            defaultValue: CXFREEZE_VERSION,
+            defaultValue: cxfreeze_version,
             description: '<i>Optional</i> cx_Freeze version to use'],
         [$class: 'StringParameterDefinition',
             name: 'SIP_VERSION',
-            defaultValue: SIP_VERSION,
+            defaultValue: sip_version,
             description: '<i>Optional</i> SIP version to use (GNU/Linux and macOS only)'],
         [$class: 'StringParameterDefinition',
             name: 'ENGINE',
@@ -44,9 +44,9 @@ properties([
 // Jenkins slaves we will build on
 slaves = ['OSXSLAVE', 'SLAVE', 'WINSLAVE']
 labels = [
-    OSXSLAVE: 'macOS',
-    SLAVE: 'GNU/Linux',
-    WINSLAVE: 'Windows'
+    'OSXSLAVE': 'macOS',
+    'SLAVE': 'GNU/Linux',
+    'WINSLAVE': 'Windows'
 ]
 builders = [:]
 
