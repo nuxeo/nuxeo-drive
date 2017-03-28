@@ -16,6 +16,8 @@ PIP="${PYTHON} -m pip install -q --upgrade"
 
 build_esky() {
     echo ">>> Building the release package"
+    [ -d build ] && rm -rf build
+    [ -d dist ] && rm -rf dist
     python setup.py bdist_esky
 
     case "${OSI}" in
