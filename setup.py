@@ -409,7 +409,7 @@ class NuxeoDriveSetup(object):
             from esky.util import get_platform
 
             # build_exe does not seem to take the package_dir info into account
-            sys.path.append(attribs.get_path_append())
+            sys.path.insert(0, attribs.get_path_append())
 
             executables = [cx_Executable(script)]
             freeze_options = dict()
