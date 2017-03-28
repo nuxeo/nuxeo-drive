@@ -1,23 +1,35 @@
-#!/bin/bash -xe
+#!/bin/sh -eu
+#
+# Deploy a release: it means moving artifacts from the staging site to the production's one, uploading to PyPi and
+# converting GitHub pre-release to release.
+#
+# Warning: do not execute this script manually but from Jenkins.
+#
 
-MAJOR_VERSION=${MAJOR_VERSION:-$1}
-MINOR_VERSION=${MINOR_VERSION:-$2}
-RELEASE_VERSION=${RELEASE_VERSION:-$3}
+release() {
+    local latest_release=$(git tag -l "release-*" --sort=-taggerdate | head -n1)
+    local drive_version=$(echo ${latest_release} | cut -d'-' -f2)
 
-[ -n "$MAJOR_VERSION" ]
-[ -n "$MINOR_VERSION" ]
-[ -n "$RELEASE_VERSION" ]
+    if [ "${drive_version}" = '' ]; then
+        echo ">>> No Drive version found."
+        exit 1
+    fi
 
-VERSION=$MAJOR_VERSION.$MINOR_VERSION.$RELEASE_VERSION
-PROTOCOL=http
-STAGING_SITE=community.nuxeo.com/static/drive-tests
-PROD_SITE=community.nuxeo.com/static/drive
-SSH_STRING=nuxeo@lethe.nuxeo.com
-START_PATH=/var/www
-APP_NAME=nuxeo-drive
-OSX_UPDATE_APP_NAME="Nuxeo\ Drive"
+    echo ">>> [release ${drive_version}] Deploying to the production website"
+    ssh nuxeo@lethe.nuxeo.com "cp -vf /var/www/community.nuxeo.com/static/drive-tests/*${drive_version}* /var/www/community.nuxeo.com/static/drive/"
 
-echo Deploying Nuxeo Drive $VERSION from $PROTOCOL://$STAGING_SITE to $PROTOCOL://$PROD_SITE
-ssh $SSH_STRING "cp $START_PATH/$STAGING_SITE/$VERSION.json $START_PATH/$STAGING_SITE/$APP_NAME-$VERSION* $START_PATH/$STAGING_SITE/$OSX_UPDATE_APP_NAME-$VERSION.* $START_PATH/$PROD_SITE"
+    echo ">>> [release ${drive_version}] Uploading to PyPi"
+    python setup.py sdist upload
 
+    echo ">>> [release ${drive_version}] Saving release on GitHub"
+    # Fetch the pre-release informations to find the complete URL
+    # Note: if the pre-release is still a draft, the command below will fail
+    curl --silent -X GET -n -o prerelease.json \
+        https://api.github.com/repos/nuxeo/nuxeo-drive/releases/tags/${latest_release}
 
+    local release_url=$(grep '"url"' prerelease.json | head -1 | cut -d'"' -f4)
+    echo "Pre-release URL: ${release_url}"
+    curl -X PATCH -i -n -d '{ "prerelease": false }' ${release_url}
+}
+
+release
