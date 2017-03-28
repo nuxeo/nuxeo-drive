@@ -1,5 +1,4 @@
 #!groovy
-// Functional tests
 // Script to launch Nuxeo Drive tests on every supported platform.
 
 // Default values for required envars

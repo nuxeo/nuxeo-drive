@@ -6,8 +6,6 @@
 # Warning: do not execute this script manually but from Jenkins.
 #
 
-export RELEASE_TYPE="${RELEASE_TYPE:=nightly}"
-
 release() {
     local latest_release=$(git tag -l "release-*" --sort=-taggerdate | head -n1)
     local drive_version=$(echo ${latest_release} | cut -d'-' -f2)
@@ -34,15 +32,4 @@ release() {
     curl -X PATCH -i -n -d '{ "prerelease": false }' ${release_url}
 }
 
-main() {
-    echo ">>> Release type: ${RELEASE_TYPE}"
-
-    if [ "${RELEASE_TYPE}" != "release" ]; then
-        echo "Bad RELEASE_TYPE."
-        exit 1
-    fi
-
-    release
-}
-
-main
+release

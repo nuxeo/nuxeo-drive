@@ -6,8 +6,6 @@
 # Warning: do not execute this script manually but from Jenkins.
 #
 
-export RELEASE_TYPE="${RELEASE_TYPE:=nightly}"
-
 changelog() {
     # Create the draft.json file with the pre-release content
     local drive_version="$1"
@@ -42,14 +40,22 @@ EOF
 EOF
 }
 
+change_version() {
+    local version="$1"
+    local file="nuxeo-drive-client/nxdrive/__init__.py"
+
+    rm -f ${file}
+    echo "__version__ = '$version'" > ${file}
+    git add ${file}
+}
+
 create_beta() {
     local version="$(egrep -o "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
     local drive_version="${version}.$(date +%-m%d)"
 
     echo ">>> [beta ${drive_version}] Creating the commit"
-    rm nuxeo-drive-client/nxdrive/__init__.py
-    echo "__version__ = '$drive_version'" > nuxeo-drive-client/nxdrive/__init__.py
-    git commit -am "Release $drive_version"
+    change_version "${drive_version}"
+    git commit -m "Release $drive_version"
     git push origin master
 
     echo ">>> [beta ${drive_version}] Generating the changelog"
@@ -57,7 +63,7 @@ create_beta() {
 
     echo ">>> [beta ${drive_version}] Creating the tag"
     git tag release-${drive_version}
-    git push origin --tags release-${drive_version}
+    git push origin --tags
 }
 
 publish_beta() {
@@ -66,9 +72,8 @@ publish_beta() {
     local artifacts="https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/lastSuccessfulBuild/artifact/dist/*zip*/dist.zip"
 
     echo ">>> [beta ${drive_version}] Creating the post commit"
-    rm nuxeo-drive-client/nxdrive/__init__.py
-    echo "__version__ = '${version}-dev'" > nuxeo-drive-client/nxdrive/__init__.py
-    git commit -am "Post release ${drive_version}"
+    change_version "${version}-dev"
+    git commit -m "Post release ${drive_version}"
     git push origin master
 
     echo ">>> [beta ${drive_version}] Retrieving artifacts"
@@ -85,23 +90,10 @@ publish_beta() {
 }
 
 main() {
-    echo ">>> Release type: ${RELEASE_TYPE}"
-
-    if [ "${RELEASE_TYPE}" != "beta" ]; then
-        echo "Bad RELEASE_TYPE."
-        exit 1
-    elif [ $# -ne 1 ]; then
-        echo "Argument needed (--create, --publish)."
-        exit 2
-    fi
-
     if [ "$1" = "--create" ]; then
         create_beta
     elif [ "$1" = "--publish" ]; then
         publish_beta
-    else
-        echo "Bad argument."
-        exit 3
     fi
 }
 
