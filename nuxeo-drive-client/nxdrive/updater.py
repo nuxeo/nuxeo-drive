@@ -212,13 +212,17 @@ class AppUpdater(PollWorker):
         return self.esky_app.version
 
     def find_versions(self):
+        versions = [self.get_current_latest_version()]
         try:
-            return sorted(self.esky_app.version_finder.find_versions(
-                                        self.esky_app), cmp=version_compare)
+            versions.extend(
+                self.esky_app.version_finder.find_versions(self.esky_app))
         except URLError as e:
             self._handle_URL_error(e)
         except socket.timeout as e:
             self._handle_timeout_error(e)
+        except Exception as e:
+            log.exception(e)
+        return sorted(versions, cmp=version_compare)
 
     def get_server_min_version(self, client_version):
         info_file = client_version + '.json'
@@ -298,11 +302,8 @@ class AppUpdater(PollWorker):
     def get_latest_compatible_version(self):
         self.compute_common_versions()
         latest_version = None
-        client_versions = self.find_versions()
-        client_versions.append(self.get_current_latest_version())
-        client_versions = sorted(client_versions, cmp=version_compare)
-        for client_version in client_versions:
-            if self.min_client_version <= client_version:
+        for client_version in self.find_versions():
+            if self.min_client_version < client_version:
                 server_min_version = self.get_server_min_version(
                                                     client_version)
                 if server_min_version <= self.min_server_version:
@@ -318,8 +319,6 @@ class AppUpdater(PollWorker):
         try:
             client_version = self._manager.get_version()
             latest_version = self.get_latest_compatible_version()
-            # TO_REVIEW What the need for that
-            self.get_server_min_version(client_version)
             server_version = self.min_server_version
             client_min_version = self.min_client_version
             server_min_version = self.min_server_version
