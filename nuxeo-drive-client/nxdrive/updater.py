@@ -226,6 +226,7 @@ class AppUpdater(PollWorker):
 
     def find_versions(self):
         versions = [self.get_current_latest_version()]
+
         try:
             versions.extend(
                 self.esky_app.version_finder.find_versions(self.esky_app))
@@ -235,7 +236,6 @@ class AppUpdater(PollWorker):
             self._handle_timeout_error(e)
         except Exception as e:
             log.exception(e)
-        return sorted(versions, cmp=version_compare)
 
         return sorted(versions, cmp=version_compare)
 
