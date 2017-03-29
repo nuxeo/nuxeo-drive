@@ -224,6 +224,8 @@ class AppUpdater(PollWorker):
             log.exception(e)
         return sorted(versions, cmp=version_compare)
 
+        return sorted(versions, cmp=version_compare)
+
     def get_server_min_version(self, client_version):
         info_file = client_version + '.json'
         missing_msg = (
