@@ -41,7 +41,11 @@ properties([
         [$class: 'StringParameterDefinition',
             name: 'ENGINE',
             defaultValue: 'NXDRIVE',
-            description: '<i>Optional</i> The engine to use (another possible value is <i>NXDRIVENEXT</i>)']
+            description: '<i>Optional</i> The engine to use (another possible value is <i>NXDRIVENEXT</i>)'],
+        [$class: 'BooleanParameterDefinition',
+            name: 'CLEAN_WORKSPACE',
+            defaultValue: false,
+            description: 'Clean the entire workspace before doing anything.']
     ]]
 ])
 
@@ -91,7 +95,14 @@ for (def x in slaves) {
     builders[slave] = {
         node(slave) {
             withEnv(["WORKSPACE=${pwd()}"]) {
+                if (params.CLEAN_WORKSPACE) {
+                    deleteDir()
+                }
                 try {
+                    // Required envars
+                    env.PYTHON_DRIVE_VERSION = params.PYTHON_DRIVE_VERSION ?: python_drive_version
+                    env.PYQT_VERSION = params.PYQT_VERSION ?: pyqt_version
+
                     stage(osi + ' Checkout') {
                         github_status('PENDING')
                         checkout_custom()
