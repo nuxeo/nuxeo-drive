@@ -7,20 +7,10 @@ properties([
     pipelineTriggers([]),
     [$class: 'SchedulerPreference', preferEvenload: true],
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
-    [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
-        [$class: 'BooleanParameterDefinition',
-            name: 'CLEAN_WORKSPACE',
-            defaultValue: false,
-            description: 'Clean the entire workspace before doing anything.']
-    ]]
 ])
 
 node('IT') {
     withEnv(["WORKSPACE=${pwd()}"]) {
-        if (params.CLEAN_WORKSPACE) {
-            deleteDir()
-        }
-
         stage('Checkout') {
             checkout scm
         }
@@ -31,7 +21,7 @@ node('IT') {
 
         stage('Trigger') {
             def commit_id = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
-            param.BRANCH_NAME = commit_id
+            params.BRANCH_NAME = commit_id
             env.BRANCH_NAME = commit_id
 
             // Trigger the Drive packages job to build executables and have artifacts.

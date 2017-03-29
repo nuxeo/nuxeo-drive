@@ -29,9 +29,9 @@ build_esky() {
         "osx")
             fix_version
             python setup.py bdist_esky
-            unfix_version
             echo ">>> [package] Creating the DMG file"
             create_package
+            unfix_version
             ;;
     esac
 }
