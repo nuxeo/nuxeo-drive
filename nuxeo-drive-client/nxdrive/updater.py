@@ -1,20 +1,22 @@
-"""Application update utilities using esky"""
+# coding: utf-8
+""" Application update utilities using Esky. """
 
-import sys
 import errno
 import json
-from urlparse import urljoin
-from urllib2 import URLError
-from urllib2 import HTTPError
 import socket
+import sys
+from urllib2 import HTTPError, URLError
+from urlparse import urljoin
+
+from PyQt4 import QtCore
 from esky import Esky
 from esky.errors import Error
-from nxdrive.logging_config import get_logger
-from nxdrive.engine.workers import PollWorker
-from nxdrive.engine.activity import Action
+
 from nxdrive.commandline import DEFAULT_UPDATE_CHECK_DELAY
+from nxdrive.engine.activity import Action
+from nxdrive.engine.workers import PollWorker
+from nxdrive.logging_config import get_logger
 from nxdrive.utils import version_compare
-from PyQt4 import QtCore
 
 log = get_logger(__name__)
 
@@ -58,8 +60,9 @@ class FakeUpdater(QtCore.QObject):
     appUpdated = QtCore.pyqtSignal(str)
     updateAvailable = QtCore.pyqtSignal()
 
-    def get_status(self):
-        return (UPDATE_STATUS_UNAVAILABLE_SITE, None)
+    @staticmethod
+    def get_status():
+        return UPDATE_STATUS_UNAVAILABLE_SITE, None
 
     def force_status(self, status, version):
         pass
@@ -70,7 +73,8 @@ class FakeUpdater(QtCore.QObject):
     def update(self, version):
         pass
 
-    def get_active_version(self):
+    @staticmethod
+    def get_active_version():
         from nxedge import __version__
         return __version__
 
@@ -84,7 +88,8 @@ class AppUpdater(PollWorker):
     appUpdated = QtCore.pyqtSignal(str)
     updateAvailable = QtCore.pyqtSignal()
 
-    def __init__(self, manager, version_finder=None, check_interval=DEFAULT_UPDATE_CHECK_DELAY,
+    def __init__(self, manager, version_finder=None,
+                 check_interval=DEFAULT_UPDATE_CHECK_DELAY,
                  esky_app=None, local_update_site=False):
         super(AppUpdater, self).__init__(check_interval)
         self.refreshStatus.connect(self._poll)
@@ -96,12 +101,12 @@ class AppUpdater(PollWorker):
             self._enable = True
         elif not hasattr(sys, 'frozen'):
             log.debug("Application is not frozen, cannot build Esky"
-                               " instance, as a consequence update features"
-                               " won't be available")
+                      " instance, as a consequence update features"
+                      " won't be available")
         elif version_finder is None:
             log.debug("Cannot initialize Esky instance with no"
-                                   " version finder, as a consequence update"
-                                   " features won't be available")
+                      " version finder, as a consequence update"
+                      " features won't be available")
         else:
             try:
                 executable = sys.executable
@@ -119,7 +124,7 @@ class AppUpdater(PollWorker):
         if self._enable:
             self.update_site = self.esky_app.version_finder.download_url
             if not self.local_update_site and not self.update_site.endswith('/'):
-                self.update_site = self.update_site + '/'
+                self.update_site += '/'
         self.last_status = (UPDATE_STATUS_UP_TO_DATE, None)
 
     def get_status(self):
@@ -142,9 +147,11 @@ class AppUpdater(PollWorker):
     def _poll(self):
         if self.last_status != UPDATE_STATUS_UPDATING:
             # Refresh update site URL
-            self.set_version_finder(self._manager.get_version_finder(refresh_engines=True))
-            log.debug('Polling %s for application update, current version is %s', self.update_site,
-                      self._manager.get_version())
+            self.set_version_finder(
+                self._manager.get_version_finder(refresh_engines=True))
+            log.debug(
+                'Polling %s for application update, current version is %s',
+                self.update_site, self._manager.get_version())
             status = self._get_update_status()
             if status != self.last_status:
                 self.last_status = status
@@ -171,7 +178,8 @@ class AppUpdater(PollWorker):
             log.debug("Fetched information from update site %s: update"
                      " status = '%s', update version = '%s'",
                      self.update_site, update_status, update_version)
-            if update_status in [UPDATE_STATUS_DOWNGRADE_NEEDED, UPDATE_STATUS_UPGRADE_NEEDED]:
+            if update_status in (UPDATE_STATUS_DOWNGRADE_NEEDED,
+                                 UPDATE_STATUS_UPGRADE_NEEDED):
                 # Current client version not compatible with server
                 # version, upgrade or downgrade needed.
                 # Let's stop synchronization.
@@ -179,7 +187,8 @@ class AppUpdater(PollWorker):
                          " server version, an upgrade or downgrade is"
                          " needed. Synchronization won't start until then.")
                 self._manager.stop()
-            elif update_status == UPDATE_STATUS_UPDATE_AVAILABLE and self._manager.get_auto_update():
+            elif update_status == UPDATE_STATUS_UPDATE_AVAILABLE and \
+                    self._manager.get_auto_update():
                 # Update available and auto-update checked, let's process update
                 log.info("An application update is available and"
                          " auto-update is checked")
@@ -187,12 +196,16 @@ class AppUpdater(PollWorker):
                 try:
                     self._update(update_version)
                 except UpdateError:
-                    log.error("An error occurred while trying to automatically update Nuxeo Drive to version %s,"
-                              " setting 'Auto update' to False", update_version, exc_info=True)
+                    log.error("An error occurred while trying to automatically"
+                              "update Nuxeo Drive to version %s,"
+                              " setting 'Auto update' to False",
+                              update_version, exc_info=True)
                     self._manager.set_auto_update(False)
-            elif update_status == UPDATE_STATUS_UPDATE_AVAILABLE and not self._manager.get_auto_update():
+            elif update_status == UPDATE_STATUS_UPDATE_AVAILABLE and \
+                    not self._manager.get_auto_update():
                 # Update available and auto-update not checked, let's just
-                # update the systray notification and let the user explicitly choose to  update
+                # update the systray notification and let the user explicitly
+                # choose to  update
                 log.info("An update is available and auto-update is not"
                          " checked, let's just update the systray notification"
                          " and let the user explicitly choose to update")
@@ -244,7 +257,8 @@ class AppUpdater(PollWorker):
             return version
         except HTTPError as e:
             version = DEFAULT_SERVER_MIN_VERSION
-            log.debug(missing_msg + ", using default one: %s", DEFAULT_SERVER_MIN_VERSION)
+            log.debug(missing_msg + ", using default one: %s",
+                      DEFAULT_SERVER_MIN_VERSION)
         except URLError as e:
             self._handle_URL_error(e)
         except socket.timeout as e:
@@ -324,10 +338,10 @@ class AppUpdater(PollWorker):
             server_version = self.min_server_version
             client_min_version = self.min_client_version
             server_min_version = self.min_server_version
-            if (client_version == latest_version):
+            if client_version == latest_version:
                 log.debug("Client version %s is up-to-date regarding server"
                          " version %s.", client_version, self.min_server_version)
-                return (UPDATE_STATUS_UP_TO_DATE, None)
+                return UPDATE_STATUS_UP_TO_DATE, None
 
             if version_compare(client_version, client_min_version) < 0:
                 log.info("Client version %s is lighter than %s, the minimum"
@@ -335,7 +349,7 @@ class AppUpdater(PollWorker):
                          " An upgrade to version %s is needed.",
                          client_version, client_min_version, server_version,
                          latest_version)
-                return (UPDATE_STATUS_UPGRADE_NEEDED, latest_version)
+                return UPDATE_STATUS_UPGRADE_NEEDED, latest_version
 
             if (version_compare(server_version, server_min_version) < 0
                     or version_compare(latest_version, client_version) < 0):
@@ -344,21 +358,21 @@ class AppUpdater(PollWorker):
                          " A downgrade to version %s is needed.",
                          server_version, server_min_version, client_version,
                          latest_version)
-                return (UPDATE_STATUS_DOWNGRADE_NEEDED, latest_version)
+                return UPDATE_STATUS_DOWNGRADE_NEEDED, latest_version
 
             log.info("Client version %s is compatible with server version %s,"
                      " yet an update is available: version %s.",
                      client_version, server_version, latest_version)
-            return (UPDATE_STATUS_UPDATE_AVAILABLE, latest_version)
+            return UPDATE_STATUS_UPDATE_AVAILABLE, latest_version
         except UnavailableUpdateSite as e:
             log.error(e)
-            return (UPDATE_STATUS_UNAVAILABLE_SITE, None)
+            return UPDATE_STATUS_UNAVAILABLE_SITE, None
         except MissingUpdateSiteInfo as e:
             log.warning(e)
-            return (UPDATE_STATUS_MISSING_INFO, None)
+            return UPDATE_STATUS_MISSING_INFO, None
         except MissingCompatibleVersion as e:
             log.warning(e)
-            return (UPDATE_STATUS_MISSING_VERSION, None)
+            return UPDATE_STATUS_MISSING_VERSION, None
 
     def update(self, version):
         self.last_status = (UPDATE_STATUS_UPDATING, str(version), 0)
@@ -409,13 +423,15 @@ class AppUpdater(PollWorker):
     def _update_callback(self, status):
         if "received" in status and "size" in status:
             self.action.progress = (status["received"] * 100 / status["size"])
-            self.last_status = (self.last_status[0], self.last_status[1], self.action.progress)
+            self.last_status = (self.last_status[0],
+                                self.last_status[1],
+                                self.action.progress)
 
     def _do_update(self, version):
         log.info("Starting application update process")
 
-        log.info("Fetching version %s from update site %s", version,
-                      self.update_site)
+        log.info("Fetching version %s from update site %s",
+                 version, self.update_site)
         self.action = Action("Downloading %s version" % version)
         self.action.progress = 0
         self._update_action(self.action)
@@ -443,8 +459,10 @@ class AppUpdater(PollWorker):
 
     def _handle_URL_error(self, e):
         log.error(e, exc_info=True)
-        raise UnavailableUpdateSite("Cannot connect to update site '%s'" % self.update_site)
+        raise UnavailableUpdateSite(
+            "Cannot connect to update site '%s'" % self.update_site)
 
     def _handle_timeout_error(self, e):
         log.error(e, exc_info=True)
-        raise UnavailableUpdateSite("Connection to update site '%s' timed out" % self.update_site)
+        raise UnavailableUpdateSite(
+            "Connection to update site '%s' timed out" % self.update_site)

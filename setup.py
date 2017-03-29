@@ -476,7 +476,6 @@ class NuxeoDriveSetup(object):
             # Under OSX we use py2app instead of cx_Freeze because we need:
             # - argv_emulation=True for nxdrive:// URL scheme handling
             # - easy Info.plist customization
-            import py2app  # install the py2app command
             name = attribs.get_CFBundleName()
             py2app_options = dict(
                 iconfile=icon,
