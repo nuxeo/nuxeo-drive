@@ -1,4 +1,10 @@
-# Explanations about deployment scripts
+# Deployment script
+
+We are using scripts to automate the isolated environment creation. With only one script, you will be able to setup the environment, launch the tests suite and build Drive package. 
+
+You could modify these scripts, but we will not be able to do support, these are the official way to manage the Drive ecosystem.
+
+Finally, scripts names are refering to Jenkins, but you can always execute them on your personnal computer or outside a Jenkins job.
 
 ## GNU/Linux, macOS
 
@@ -10,29 +16,60 @@ Where `$OSI` is one of: `linux`, `osx`.
 
 Possible `ARG`:
 
-    --build: build the package
+    --build: freeze the client into self-hosted binary package
     --tests: launch the tests suite
+
+Notes:
+1. Executing the script without argument will setup the isolated environment.
+2. For now, code signing is not implemented.
 
 ### Dependencies:
 
-See [pyenv](https://github.com/yyuu/pyenv/wiki/Common-build-problems#requirements) requirements.
+For both OSes, see [pyenv](https://github.com/yyuu/pyenv/wiki/Common-build-problems#requirements) requirements.
+
+#### macOS
+
+You will also need to install the Qt4 library, using HomeBrew:
+
+	brew install qt4
+	# if the previous command fails, try this one:
+	brew install TODO
+
+#### GNU/Linux
+
+You will also need to install the Qt4 qmake tool:
+
+	apt install qt4-make
 
 ## Windows
 
 ### Usage
 
-    powershell ".\tools\windows\deploy_jenkins_slave.ps1" [ARG]
+    powershell .\tools\windows\deploy_jenkins_slave.ps1 [ARG]
 
 Possible `ARG`:
 
-    -build: build the package
+    -build: freeze the client into self-hosted binary package
     -tests: launch the tests suite
+
+Notes:
+1. Executing the script without argument will setup the isolated environment.
+2. For now, code signing is not implemented.
 
 ### Dependencies:
 
 You will need [Microsoft Visual C++ Compiler for Python 2.7](https://www.microsoft.com/en-us/download/details.aspx?id=44266) to build few required modules.
 
+### Troubleshooting
+
+If you get an error message complaining about the lack of signature for this script.
+You can disable that security check with the following command inside PowerShell:
+
+	Set-ExecutionPolicy Unrestricted
+
 ## Environment variables
+
+Note: this section applies for Jenkins jobs, but you can always use it to create custom Drive versions.
 
 Each build can be driven by several envars.
 
