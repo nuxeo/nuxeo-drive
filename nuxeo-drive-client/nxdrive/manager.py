@@ -23,6 +23,16 @@ from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive import __version__
 from nxdrive.utils import ENCODING, OSX_SUFFIX
 
+try:
+    from exceptions import WindowsError
+except ImportError:
+    WindowsError = IOError
+
+if AbstractOSIntegration.is_windows():
+    import _winreg
+elif AbstractOSIntegration.is_mac():
+    import SystemConfiguration
+
 log = get_logger(__name__)
 
 
@@ -40,7 +50,7 @@ try:
             lib_path = nxdrive_path
         log.debug('Using %s as tmpdir for cffi module', lib_path)
         set_tmpdir(lib_path)
-except Exception as e:
+except:
     pass
 
 
@@ -946,30 +956,30 @@ class Manager(QtCore.QObject):
 
     @staticmethod
     def get_system_pac_url():
-        """ Get the proxy auto config url (if present)  """
-        # Assume PAC url not configured in system
-        pac_url = None
-        try:
-            if AbstractOSIntegration.is_windows():
-                # For windows retrieve pac-url from registry key
-                import _winreg
-                internetSettings = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
-                    r'Software\Microsoft\Windows\CurrentVersion\Internet Settings')
-                pac_url = str(_winreg.QueryValueEx(internetSettings, 'AutoConfigURL')[0])
-            elif AbstractOSIntegration.is_mac():
-                # For Mac retrieve using SystemConfiguration library
-                import SystemConfiguration
-                config = SystemConfiguration.SCDynamicStoreCopyProxies(None)
-                if ("ProxyAutoConfigEnable" in config and "ProxyAutoConfigURLString" in config):
-                    # 'Auto Proxy Discovery' or WPAD is not supported yet
-                    # Only 'Automatic Proxy configuration' URL setting is supported
-                    if not ("ProxyAutoDiscoveryEnable" in config and config["ProxyAutoDiscoveryEnable"] == 1):
-                        pac_url = str(config["ProxyAutoConfigURLString"])
-        except Exception as e:
-            log.error("Error retrieving PAC url from system: %r", e)
-        # Return the result
-        return pac_url
-    
+        """ Get the proxy auto config (PAC) URL, if present. """
+
+        regkey = r'Software\Microsoft\Windows\CurrentVersion\Internet Settings'
+        if AbstractOSIntegration.is_windows():
+            # Use the registry
+            settings = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, regkey)
+            try:
+                return str(_winreg.QueryValueEx(settings, 'AutoConfigURL')[0])
+            except WindowsError as e:
+                if e.errno not in (2,):
+                    log.error('Error retrieving PAC URL', exc_info=True)
+            finally:
+                _winreg.CloseKey(settings)
+        elif AbstractOSIntegration.is_mac():
+            # Use SystemConfiguration library
+            config = SystemConfiguration.SCDynamicStoreCopyProxies(None)
+            if 'ProxyAutoConfigEnable' in config and \
+                    'ProxyAutoConfigURLString' in config:
+                # 'Auto Proxy Discovery' or WPAD is not supported yet
+                # Only 'Automatic Proxy configuration' URL setting is supported
+                if not ('ProxyAutoDiscoveryEnable' in config
+                        and config['ProxyAutoDiscoveryEnable'] == 1):
+                    return str(config['ProxyAutoConfigURLString'])
+
     def retreive_system_proxies(self, server_url):
         """
             Gets the proxy server if system is configured with PAC url
