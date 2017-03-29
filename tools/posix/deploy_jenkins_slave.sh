@@ -18,15 +18,18 @@ build_esky() {
     echo ">>> Building the release package"
     [ -d build ] && rm -rf build
     [ -d dist ] && rm -rf dist
-    python setup.py bdist_esky
 
     case "${OSI}" in
         "linux")
+            python setup.py bdist_esky
             echo ">>> [package] Creating the DEB file"
             echo ">>> [package] TODO The DEB creation for GNU/Linux is not yet implemented."
             # create_package
             ;;
         "osx")
+            fix_version
+            python setup.py bdist_esky
+            unfix_version
             echo ">>> [package] Creating the DMG file"
             create_package
             ;;
