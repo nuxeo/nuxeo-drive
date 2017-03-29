@@ -8,7 +8,7 @@ from urllib2 import URLError
 from urllib2 import HTTPError
 import socket
 from esky import Esky
-from esky.errors import EskyBrokenError
+from esky.errors import Error
 from nxdrive.logging_config import get_logger
 from nxdrive.engine.workers import PollWorker
 from nxdrive.engine.activity import Action
@@ -43,7 +43,7 @@ class MissingCompatibleVersion(Exception):
     pass
 
 
-class UpdateError(Exception):
+class UpdateError(Error):
     pass
 
 
@@ -110,7 +110,7 @@ class AppUpdater(PollWorker):
                           executable, version_finder)
                 self.esky_app = Esky(executable, version_finder=version_finder)
                 self._enable = True
-            except EskyBrokenError as e:
+            except UpdateError as e:
                 log.error(e, exc_info=True)
                 log.debug("Error initializing Esky instance, as a"
                                        " consequence update features won't be"
@@ -388,17 +388,17 @@ class AppUpdater(PollWorker):
                 # Other EnvironmentError, probably not related to permissions
                 log.warn("UpdateError", exc_info=True)
                 return
-            except:
+            except UpdateError:
                 # Error during update process, not related to permissions
-                log.warn("UpdateError", exc_info=True)
+                log.error("UpdateError", exc_info=True)
                 return
             finally:
                 self.last_status = self._get_update_status()
         else:
             try:
                 self._do_update(version)
-            except:
-                log.warn("UpdateError", exc_info=True)
+            except UpdateError:
+                log.error("UpdateError", exc_info=True)
                 return
             finally:
                 self.last_status = self._get_update_status()
