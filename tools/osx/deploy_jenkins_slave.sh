@@ -3,6 +3,25 @@
 
 export OSI="osx"
 
+# Fix for Esky that cannot update between different macOS versions.
+# For instance, even if macOS 10.12 is compatible with 10.4, a package
+# created with 10.12 cannot be updated with the 10.4 version.
+#
+# Example with these releases:
+#     Nuxeo Drive-2.1.0914.macosx-10_10-x86_64.zip
+#     Nuxeo Drive-2.1.1130.macosx-10_12-x86_64.zip
+#     Nuxeo Drive-2.1.1221.macosx-10_10-x86_64.zip
+#
+# You will       be able to update from 2.1.0914 to 2.1.1221.
+# You will _not_ be able to update from 2.1.0914 to 2.1.1130.
+# You will _not_ be able to update from 2.1.1130 to 2.1.1221.
+#
+# So, we use "universal" builds by setting the version to the minimal, i.e. 10.4.
+#
+# See distutils/utils.py get_platform() for technical details about how Esky
+# build the version for the current OS.
+export _PYTHON_HOST_PLATFORM="${_PYTHON_HOST_PLATFORM:=macosx-10_4-x86_64}"
+
 . "$(python -c "import os.path; print(os.path.realpath('$0').replace('/osx/', '/posix/'))")"
 
 create_package() {
