@@ -36,7 +36,11 @@ properties([
         [$class: 'StringParameterDefinition',
             name: 'ENGINE',
             defaultValue: 'NXDRIVE',
-            description: '<i>Optional</i> The engine to use (another possible value is <i>NXDRIVENEXT</i>)']
+            description: '<i>Optional</i> The engine to use (another possible value is <i>NXDRIVENEXT</i>)'],
+        [$class: 'BooleanParameterDefinition',
+            name: 'CLEAN_WORKSPACE',
+            defaultValue: false,
+            description: 'Clean the entire workspace before doing anything.']
     ]]
 ])
 
@@ -70,6 +74,10 @@ for (x in slaves) {
     builders[slave] = {
         node(slave) {
             withEnv(["WORKSPACE=${pwd()}"]) {
+                if (params.CLEAN_WORKSPACE) {
+                    deleteDir()
+                }
+
                 stage(osi + ' Checkout') {
                     checkout_custom()
                 }

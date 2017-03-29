@@ -7,16 +7,28 @@ properties([
     pipelineTriggers([]),
     [$class: 'SchedulerPreference', preferEvenload: true],
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
+    [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
+        [$class: 'BooleanParameterDefinition',
+            name: 'CLEAN_WORKSPACE',
+            defaultValue: false,
+            description: 'Clean the entire workspace before doing anything.']
+    ]]
 ])
 
 node('IT') {
     withEnv(["WORKSPACE=${pwd()}"]) {
+        if (params.CLEAN_WORKSPACE) {
+            deleteDir()
+        }
+
         stage('Checkout') {
             checkout scm
         }
+
         stage('Create') {
             sh 'tools/release.sh --create'
         }
+
         stage('Trigger') {
             def commit_id = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
             param.BRANCH_NAME = commit_id
@@ -45,6 +57,7 @@ node('IT') {
                 remotePathMissing: [$class: 'StopAsFailure'],
                 remotePathUrl: 'jenkins://0ebd1d5127f055c8c674d7778f51ea00/Drive/Drive-packages'
         }
+
         stage('Publish') {
             dir('dist') {
                 deleteDir()
