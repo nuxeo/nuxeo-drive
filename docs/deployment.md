@@ -33,7 +33,7 @@ You will also need to install the Qt4 library, using HomeBrew:
 
 	brew install qt4
 	# if the previous command fails, try this one:
-	brew install TODO
+	brew install cartr/qt4/qt
 
 #### GNU/Linux
 
