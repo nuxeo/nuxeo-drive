@@ -8,17 +8,17 @@ The projects comes into two parts: the addon deployed on the Nuxeo server, writt
 
 Nuxeo Drive Client is a Python daemon that looks for changes on the local machine filesystem in a specific folder and on a remote workspace on the Nuxeo server using the Content Automation HTTP API and propagates those changes one way or the other.
 
-## Building the server addon
+## Building the Server Addon
 
 To build the nuxeo-drive addon see the related [nuxeo-drive-server](https://github.com/nuxeo/nuxeo-drive-server) GitHub repository.
 
 To build the Marketplace package see the related [marketplace-drive](https://github.com/nuxeo/marketplace-drive) GitHub repository.
 
-## Building the Nuxeo Drive client
+## Building the Nuxeo Drive Client
 
 See [docs/deployment.md](docs/deployment.md).
 
-## Client architecture
+## Client Architecture
 
 ![Nuxeo Drive architecture][nuxeo-drive-architecture-schema]
 [nuxeo-drive-architecture-schema]: https://www.lucidchart.com/publicSegments/view/54e8e2a7-d2a4-4ec7-9843-5c740a00c10b/image.png

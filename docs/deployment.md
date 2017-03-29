@@ -1,4 +1,4 @@
-# Deployment script
+# Deployment Script
 
 We are using scripts to automate the isolated environment creation. With only one script, you will be able to setup the environment, launch the tests suite and build Drive package. 
 
@@ -67,7 +67,7 @@ You can disable that security check with the following command inside PowerShell
 
 	Set-ExecutionPolicy Unrestricted
 
-## Environment variables
+## Environment Variables
 
 Note: this section applies for Jenkins jobs, but you can always use it to create custom Drive versions.
 
@@ -75,13 +75,13 @@ Each build can be driven by several envars.
 
 If an envar is specifying a version, this means that the specified version of the library/software sources will be downloaded from the official website and compiled to fit Drive needs. It allows to create full isolated and reproductible build environnements.
 
-### Required envars
+### Required Envars
 
 - `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `2.7.13`.
 - `PYQT_VERSION` is the required **PyQt version** to use, i.e. `4.12`.
 - `WORKSPACE` is the **absolute path to the WORKSPACE**, i.e. `/opt/jenkins/workspace/xxx`.
 
-### Optional envars
+### Optional Envars
 
 - `WORKSPACE_DRIVE` is the **absolute path to Drive sources**, i.e. `$WORKSPACE/sources`. If not defined, it will be set to `$WORKSPACE/sources` or `$WORKSPACE/nuxeo-drive` if folder exists else `$WORKSPACE`.
 - `CXFREEZE_VERSION` is the **cx_Freeze version** to use, i.e. `4.3.3`.

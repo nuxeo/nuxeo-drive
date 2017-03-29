@@ -1,4 +1,4 @@
-# Nuxeo Drive - desktop synchronization client for Nuxeo
+# Nuxeo Drive - Desktop Synchronization Client for Nuxeo
 
 This is an ongoing development project for desktop synchronization of local folders with remote Nuxeo workspaces.
 
@@ -51,7 +51,7 @@ Alternatively, from the command line:
 
 ## Clients
 
-### Debian based distributions (and other GNU/Linux Variants) client
+### Debian based Distributions (and Other GNU/Linux Variants) Client
 
 The .deb (or .rpm) package of the client is not yet available. In the meantime you can install it from source code.
 
@@ -114,7 +114,7 @@ These are common installation actions, not depending on the package manager:
 	pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
 
 
-### macOS desktop client
+### macOS Desktop Client
 
 Once the Marketplace package is installed, the macOS desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab.
 
@@ -200,7 +200,7 @@ For more options, type:
 	ndrive --help
 	ndrive subcommand --help
 
-### Building pip package
+### Building pip Package
 
 This is as simple as:
 
