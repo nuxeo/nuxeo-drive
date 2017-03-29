@@ -16,7 +16,7 @@ To build the Marketplace package see the related [marketplace-drive](https://git
 
 ## Building the Nuxeo Drive client
 
-See [docs/deployment.md](https://github.com/nuxeo/nuxeo-drive/blob/master/docs/deployment.md).
+See [docs/deployment.md](docs/deployment.md).
 
 ## Client architecture
 
