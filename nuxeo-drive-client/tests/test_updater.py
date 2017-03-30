@@ -271,7 +271,7 @@ class TestUpdater(unittest.TestCase):
 
     def test_find_versions(self):
         versions = self.updater.find_versions()
-        self.assertEqual(versions, ['1.3.0524', '1.4.0622'])
+        self.assertEqual(versions, ['1.3.0424', '1.3.0524', '1.4.0622'])
 
     def test_get_server_min_version(self):
         # Unexisting version
