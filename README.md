@@ -8,8 +8,8 @@ See [USERDOC/Nuxeo Drive](http://doc.nuxeo.com/x/04HQ) for complete up-to-date d
 
 Note: this documentation follows the Drive version of the master branch, which could evolve rapidly. To see the documentation of a given Drive release, use this kind of link:
 
-	# For Drive 2.1.113 go to:
-	https://github.com/nuxeo/nuxeo-drive/release-2.1.113/README.md
+    # For Drive 2.1.113 go to:
+    https://github.com/nuxeo/nuxeo-drive/release-2.1.113/README.md
 
 
 ## License
@@ -45,9 +45,9 @@ The Marketplace package can be installed using the **Admin Center** / **Update C
 
 Alternatively, from the command line:
 
-	$NUXEO_HOME/bin/nuxeoctl stop
-	$NUXEO_HOME/bin/nuxeoctl mp-install --nodeps marketplace-<version>.zip
-	$NUXEO_HOME/bin/nuxeoctl start
+    $NUXEO_HOME/bin/nuxeoctl stop
+    $NUXEO_HOME/bin/nuxeoctl mp-install --nodeps marketplace-<version>.zip
+    $NUXEO_HOME/bin/nuxeoctl start
 
 ## Clients
 
@@ -109,7 +109,7 @@ To easily manage all dependencies and packaging steps, we created several Jenkin
 
 1. Launch the Nuxeo Drive program (e.g. from the Start menu under Windows).
 
-	A new icon should open in the system tray and a popup menu should open asking the user for the URL of the Nuxeo server and credentials.
+    A new icon should open in the system tray and a popup menu should open asking the user for the URL of the Nuxeo server and credentials.
 
 2. In the Nuxeo web interface, mark workspaces and folders for synchronization.
 
@@ -125,29 +125,29 @@ The desktop synchronization client can also be operated from the command-line:
 
     * If you installed the .dmg package for OSX, the binary is:
 
-	```
+    ```
     /Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive
-	```
+    ```
 
     * You can alias it in your `bashrc` with:
 
-	```
+    ```
     alias ndrive="/Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive"
-	```
+    ```
 2. Launch Nuxeo Drive (no automatic background mode yet, this will come in future versions):
 
-	```
+    ```
     ndrive
-	```  
+    ```
     Under Windows you can launch `ndrivew.exe` instead to avoid keeping the cmd console open while Nuxeo Drive is running instead.
 
 3. The first time you run this command a dialog window will open asking for the URL of the Nuxeo server and your user credentials.
 
     Alternatively you can bind to a Nuxeo server with your user credentials using the following commandline arguments:
 
-	```
+    ```
     ndrive bind-server nuxeo-username http://server:port/nuxeo --password secret
-	```
+    ```
     This will create a new folder called Nuxeo Drive in your home folder on GNU/Linux & macOS and under the Documents folder on  Windows.
 
 4. Go to your Nuxeo with your browser, navigate to workspaces or folder where you have permission to create new documents.
@@ -155,60 +155,60 @@ The desktop synchronization client can also be operated from the command-line:
 
     Alternatively you can do this operation from the commandline with:
 
-	```
+    ```
     ndrive bind-root "/default-domain/workspaces/My Workspace"
-	```
-	You can now create office documents and folders locally or inside Nuxeo and watch them getting synchronized both ways automatically.
+    ```
+    You can now create office documents and folders locally or inside Nuxeo and watch them getting synchronized both ways automatically.
 
 For more options, type:
 
-	ndrive --help
-	ndrive subcommand --help
+    ndrive --help
+    ndrive subcommand --help
 
 ### Building pip Package
 
 This is as simple as:
 
-	python setup.py sdist
+    python setup.py sdist
 
 On macOS you can face an issue with your locale with a message like:
 
-	ValueError: unknown locale: UTF-8
+    ValueError: unknown locale: UTF-8
 
 In that case you need to specify your locale as :
 
-	export LC_ALL=en_US.UTF-8
-	export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
 
 ## Reporting Issues
 
 1. Generate a bug report in the **Advanced** tab of the **Settings** panel of the Nuxeo Drive client.
 
-	You can also log DEBUG information directly in the console by using the following command-line:
+    You can also log DEBUG information directly in the console by using the following command-line:
 
-	```
-	ndrive --log-level-console=DEBUG
-	```
+    ```
+    ndrive --log-level-console=DEBUG
+    ```
 
 2. Create a GitHub issue mentionning the version of the Nuxeo Platform, your operating system name and version (e.g. Windows 7), the steps to reproduce the error and a copy of the logs.
 
 3. For long running sessions, it is better to dump the debug information in a log file. This can be done with the following command:
 
-	```
-	ndrive --log-level-file=DEBUG
-	```
+    ```
+    ndrive --log-level-file=DEBUG
+    ```
 
-	or even:
+    or even:
 
-	```
-	ndrive --log-level-file=TRACE
-	```
+    ```
+    ndrive --log-level-file=TRACE
+    ```
 
-	By default the location of the log file is: `~/.nuxeo-drive/logs/` where `~` stands for the location of the user folder. For instance:
+    By default the location of the log file is: `~/.nuxeo-drive/logs/` where `~` stands for the location of the user folder. For instance:
 
-	* Under Windows 7 and 8: `C:\Users\username\.nuxeo-drive\logs`
-	* Under macOS: `/Users/username/.nuxeo-drive/logs`
-	* Under Ubuntu (and other GNU/Linux variants): `/home/username/.nuxeo-drive/logs`
+    * Under Windows 7 and 8: `C:\Users\username\.nuxeo-drive\logs`
+    * Under macOS: `/Users/username/.nuxeo-drive/logs`
+    * Under Ubuntu (and other GNU/Linux variants): `/home/username/.nuxeo-drive/logs`
 
 ## Roadmap
 
