@@ -17,6 +17,8 @@ release() {
 
     echo ">>> [release ${drive_version}] Deploying to the production website"
     ssh nuxeo@lethe.nuxeo.com "cp -vf /var/www/community.nuxeo.com/static/drive-tests/*${drive_version}* /var/www/community.nuxeo.com/static/drive/"
+    ssh nuxeo@lethe.nuxeo.com "ln -sf /var/www/community.nuxeo.com/static/drive/nuxeo-drive-${drive_version}-osx.dmg /var/www/community.nuxeo.com/static/drive/latest/nuxeo-drive.dmg"
+    ssh nuxeo@lethe.nuxeo.com "ln -sf /var/www/community.nuxeo.com/static/drive/nuxeo-drive-${drive_version}-win32.msi /var/www/community.nuxeo.com/static/drive/latest/nuxeo-drive.msi"
 
     echo ">>> [release ${drive_version}] Uploading to PyPi"
     python setup.py sdist upload
