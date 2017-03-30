@@ -55,7 +55,9 @@ Alternatively, from the command line:
 
 The .deb (or .rpm) package of the client is not yet available. In the meantime you can install it from source code.
 
-*Has been reported to work on:* Ubuntu >= 12.04.
+*Has been reported to work on* Ubuntu >= 12.04.
+
+The easiest and safest way to build Drive is to follow the same steps as we do on [Jenkins](#jenkins).
 
 #### xattr
 
@@ -65,72 +67,35 @@ On FreeBSD and macOS, xattrs are enabled in the default kernel.
 
 On GNU/Linux, depending on the distribution, you may need a special mount option (`user_xattr`) to enable them for a given file system, e.g.:
 
-	sudo mount -o remount,user_xattr /dev/sda3
+    sudo mount -o remount,user_xattr /dev/sda3
 
-#### Python 2.7
+#### Python
 
-Nuxeo Drive uses some packages, which are only compatible from **Python 2.7 only**.
-If this excludes using the standard python installation of certain OS distributions, you may still install Python 2.7 [manually from the download pages](https://www.python.org/downloads/) on your system.
-However, this may break other tools in your environment, who need to be consistent with the default python packages.
-Using [Anaconda](http://continuum.io/downloads) to switch between different python installs/environments may help in this case.
-
-Make sure that the latest version of [pip](http://www.pip-installer.org/) is installed:
-
+Nuxeo Drive is officially supported on **Python 2.7 only**.
 
 #### Install Nuxeo Drive
 
-Then install the required system and Python packages and the Nuxeo Drive code itself:
-
-Debian package manager:
-
-```
-sudo apt-get install python-pip python-dev python-qt4 libffi-dev git
-```
-
-Redhat package manager (RPM):
-
-	sudo yum install python-pip python-devel PyQt4 libffi-devel git
-
-
-On Ubuntu 16.04 you might also need to install the `python-cffi` package if you get an error like
-
-	AssertionError: version mismatch, 1.5.2 != 1.9.1
-
-when trying to connect.
-
-Then finally install the Nuxeo Drive requirements and Nuxeo Drive itself.
+Let's say you have installed Qt4 (from official repository or compiled manually), then install Nuxeo Drive requirements and Nuxeo Drive itself.
 These are common installation actions, not depending on the package manager:
 
-	# For Drive < 2.2.227:
-	DRIVE_VERSION=release-2.1.113
-	pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
-	pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/unix-requirements.txt
-	pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
+    # For Drive < 2.2.227:
+    DRIVE_VERSION=release-2.1.113
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/unix-requirements.txt
+    pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
 
-	# For Drive >= 2.2.227:
-	DRIVE_VERSION=release-2.2.323
-	pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
-	pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements-unix.txt
-	pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
+    # For Drive >= 2.2.227:
+    DRIVE_VERSION=release-2.2.323
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements-unix.txt
+    pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
 
 
-### macOS Desktop Client
+### macOS and Windows Desktop Clients
 
-Once the Marketplace package is installed, the macOS desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab.
+Once the Marketplace package is installed, the macOS/Windows desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab.
 
-You can also fetch the latest development version for macOS from the [our Continous Integration server](https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/).
-
-### Windows desktop client
-
-Once the Marketplace package is installed, the Windows desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab.
-
-You can also fetch the latest development version for Windows from [our Continuous Integration server](https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/).
-
-Once you installed the package (Administrator rights required) the new folder holding the ndrive.exe and ndrivew.exe programs will be added to your `Path` environment variable automatically.
-
-You can start the Nuxeo Drive program from the "Start..." menu.
-
-All the necessary dependencies (such as the Python interpreter and the QT / PyQt for the client side user interface) are included in this folder and should not impact any alternative version you may have already installed on your computer.
+You can also fetch the latest development version from the [our Continous Integration server](https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/).
 
 ### Jenkins
 
