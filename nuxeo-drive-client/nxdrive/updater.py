@@ -319,7 +319,7 @@ class AppUpdater(PollWorker):
         self.compute_common_versions()
         latest_version = None
         for client_version in self.find_versions():
-            if self.min_client_version < client_version:
+            if self.min_client_version <= client_version:
                 server_min_version = self.get_server_min_version(
                                                     client_version)
                 if server_min_version <= self.min_server_version:
@@ -335,6 +335,8 @@ class AppUpdater(PollWorker):
         try:
             client_version = self._manager.get_version()
             latest_version = self.get_latest_compatible_version()
+            # TO_REVIEW What the need for that
+            self.get_server_min_version(client_version)
             server_version = self.min_server_version
             client_min_version = self.min_client_version
             server_min_version = self.min_server_version
