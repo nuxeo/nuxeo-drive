@@ -7,8 +7,12 @@
 #
 
 release() {
-    local latest_release="$(git tag -l "release-*" --sort=-taggerdate | head -n1)"
-    local drive_version="$(echo "${latest_release}" | cut -d'-' -f2)"
+    local latest_release
+    local drive_version
+    local release_url
+
+    latest_release="$(git tag -l "release-*" --sort=-taggerdate | head -n1)"
+    drive_version="$(echo "${latest_release}" | cut -d'-' -f2)"
 
     if [ "${drive_version}" = '' ]; then
         echo ">>> No Drive version found."
@@ -29,7 +33,7 @@ release() {
     curl --silent -X GET -n -o prerelease.json \
         "https://api.github.com/repos/nuxeo/nuxeo-drive/releases/tags/${latest_release}"
 
-    local release_url=$(grep '"url"' prerelease.json | head -1 | cut -d'"' -f4)
+    release_url="$(grep '"url"' prerelease.json | head -1 | cut -d'"' -f4)"
     echo "Pre-release URL: ${release_url}"
     curl -X PATCH -i -n -d '{ "prerelease": false }' "${release_url}"
 }
