@@ -162,6 +162,9 @@ Release date: `2017-09-06`
 - [NXDRIVE-958](https://jira.nuxeo.com/browse/NXDRIVE-958): Disallow root uncheck in the filter list
 - [NXDRIVE-959](https://jira.nuxeo.com/browse/NXDRIVE-959): Disable the filter list when syncing
 
+### Doc
+- [NXDRIVE-755](https://jira.nuxeo.com/browse/NXDRIVE-755): Update deployment documentation
+
 
 # 2.5.2
 Release date: `2017-08-31`
