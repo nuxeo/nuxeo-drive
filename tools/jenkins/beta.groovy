@@ -14,12 +14,14 @@ node('IT') {
         stage('Checkout') {
             checkout scm
         }
+
         stage('Create') {
             sh 'tools/release.sh --create'
         }
+
         stage('Trigger') {
             def commit_id = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
-            param.BRANCH_NAME = commit_id
+            params.BRANCH_NAME = commit_id
             env.BRANCH_NAME = commit_id
 
             // Trigger the Drive packages job to build executables and have artifacts.
@@ -45,6 +47,7 @@ node('IT') {
                 remotePathMissing: [$class: 'StopAsFailure'],
                 remotePathUrl: 'jenkins://0ebd1d5127f055c8c674d7778f51ea00/Drive/Drive-packages'
         }
+
         stage('Publish') {
             dir('dist') {
                 deleteDir()

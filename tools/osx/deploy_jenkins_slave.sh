@@ -32,7 +32,7 @@ create_package() {
 
     # Fix to prevent conflicts if there are several Qt installations on the system
     # Source: http://stackoverflow.com/a/11071241
-    local esky_app_name="${app_name}-${app_version}.$(python -c "import esky.util; print(esky.util.get_platform())")"
+    local esky_app_name="${app_name}-${app_version}.${_PYTHON_HOST_PLATFORM}"
     echo ">>> [DMG ${app_version}] Fixing Qt choice"
     touch "${pkg_path}/appdata/${esky_app_name}/${bundle_name}/Contents/Resources/qt.conf"
 
