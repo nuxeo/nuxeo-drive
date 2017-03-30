@@ -10,7 +10,7 @@ changelog() {
     # Create the draft.json file with the pre-release content
     local drive_version="$1"
     local changelog="$(python tools/changelog.py --format=md)"
-    local complete_changelog=$(cat <<EOF
+    local complete_changelog="$(cat <<EOF
 ${changelog}
 
 If you have a Nuxeo Drive instance running against a LTS or a Fast Track version of Nuxeo, a notification about this new version should be displayed in the systray menu within an hour allowing you to upgrade (can bypass this delay by restarting Drive).
@@ -21,10 +21,10 @@ It is also directly available for download from:
 
 Or from the Nuxeo Drive tab in the User Center of a LTS or a Fast Track version of Nuxeo.
 EOF
-)
+)"
 
-    # Escape lines feed for JSON
-    complete_changelog="$(echo "${complete_changelog}" | sed 's/$/\\n/g')"
+    # Escape lines feed and double quotes for JSON
+    complete_changelog="$(echo "${complete_changelog}" | sed 's|$|\\n|g ; s|\"|\\\"|g')"
 
     # Create the pre-release draft
     [ -f draft.json ] && rm draft.json
@@ -50,7 +50,7 @@ change_version() {
 }
 
 create_beta() {
-    local version="$(egrep -o "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
+    local version="$(grep -Eo "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
     local drive_version="${version}.$(date +%-m%d)"
 
     echo ">>> [beta ${drive_version}] Creating the commit"
@@ -62,13 +62,13 @@ create_beta() {
     changelog "${drive_version}"
 
     echo ">>> [beta ${drive_version}] Creating the tag"
-    git tag release-${drive_version}
+    git tag "release-${drive_version}"
     git push origin --tags
 }
 
 publish_beta() {
-    local version="$(egrep -o "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
-    local drive_version="$(egrep -o "[0-9]+.[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
+    local version="$(grep -Eo "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
+    local drive_version="$(grep -Eo "[0-9]+.[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
     local artifacts="https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/lastSuccessfulBuild/artifact/dist/*zip*/dist.zip"
 
     echo ">>> [beta ${drive_version}] Creating the post commit"
@@ -90,11 +90,17 @@ publish_beta() {
 }
 
 main() {
-    if [ "$1" = "--create" ]; then
+    local txt="Possible argument is one of --create or --publish."
+
+    if [ "$#" -ne 1 ]; then
+        echo "${txt}" && exit 1
+    elif [ "$1" = "--create" ]; then
         create_beta
     elif [ "$1" = "--publish" ]; then
         publish_beta
+    else
+        echo "${txt}" && exit 2
     fi
 }
 
-main
+main "$@"
