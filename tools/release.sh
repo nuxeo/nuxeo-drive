@@ -60,37 +60,35 @@ change_version() {
 create_beta() {
     local version
     local drive_version
+    local git_opt
 
     version="$(grep -Eo "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
     drive_version="${version}.$(date +%-m%d)"
 
+    if [ "${DRY_RUN}" = true ]; then
+        git_opt="--dry-run"
+    else
+        git_opt=""
+    fi
+
     echo ">>> [beta ${drive_version}] Creating the commit"
     change_version "${drive_version}"
     git commit -m "Release $drive_version"
-    if [ "${DRY_RUN}" = true ]; then
-        echo "DRY-RUN git push origin master"
-        git log -n 5 --abbrev-commit --pretty=oneline
-    else
-        git push origin master
-    fi
+    git push origin master ${git_opt}
 
     echo ">>> [beta ${drive_version}] Generating the changelog"
     changelog "${drive_version}"
 
     echo ">>> [beta ${drive_version}] Creating the tag"
-    if [ "${DRY_RUN}" = true ]; then
-        echo "DRY-RUN git tag \"release-${drive_version}\""
-        echo "DRY-RUN git push origin --tags"
-    else
-        git tag "release-${drive_version}"
-        git push origin --tags
-    fi
+    git tag "release-${drive_version}"
+    git push origin --tags ${git_opt}
 }
 
 publish_beta() {
     local version
     local drive_version
     local artifacts
+    local git_opt
     local rsync_opt
 
     version="$(grep -Eo "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
@@ -98,15 +96,17 @@ publish_beta() {
     artifacts="https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/lastSuccessfulBuild/artifact/dist/*zip*/dist.zip"
     rsync_opt="--verbose --compress"
 
+    if [ "${DRY_RUN}" = true ]; then
+        git_opt="--dry-run"
+        rsync_opt="${rsync_opt} --dry-run"
+    else
+        git_opt=""
+    fi
+
     echo ">>> [beta ${drive_version}] Creating the post commit"
     change_version "${version}-dev"
     git commit -m "Post release ${drive_version}"
-    if [ "${DRY_RUN}" = true ]; then
-        echo "DRY-RUN git push origin master"
-        git log -n 5 --abbrev-commit --pretty=oneline
-    else
-        git push origin master
-    fi
+    git push origin master ${git_opt}
 
     echo ">>> [beta ${drive_version}] Retrieving artifacts"
     [ -f dist.zip ] && rm -f dist.zip
@@ -114,9 +114,6 @@ publish_beta() {
     unzip -o dist.zip
 
     echo ">>> [beta ${drive_version}] Deploying to the staging website"
-    if [ "${DRY_RUN}" = true ]; then
-        rsync_opt="${rsync_opt} --dry-run"
-    fi
     rsync ${rsync_opt} dist/*${drive_version}* nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-tests/
 
     echo ">>> [beta ${drive_version}] Creating the GitHub pre-release"
