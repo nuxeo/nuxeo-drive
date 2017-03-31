@@ -18,15 +18,15 @@ properties([
 node('IT') {
     withEnv(["WORKSPACE=${pwd()}"]) {
         env.DRY_RUN = params.DRY_RUN
-        def agent = '4691426b-aa51-428b-901d-4e851ee37b01'
+        def credential_id = '4691426b-aa51-428b-901d-4e851ee37b01'
 
         stage('Checkout') {
             deleteDir()
-            git credentialsId: agent, url: 'https://github.com/nuxeo/nuxeo-drive.git'
+            git credentialsId: credential_id, url: 'https://github.com/nuxeo/nuxeo-drive.git'
         }
 
         stage('Create') {
-            sshagent([agent]) { {
+            sshagent([credential_id]) { {
                 sh 'tools/release.sh --create'
             }
         }
@@ -43,7 +43,7 @@ node('IT') {
             dir('dist') {
                 deleteDir()
             }
-            sshagent([agent]) { {
+            sshagent([credential_id]) { {
                 sh 'tools/release.sh --publish'
             }
         }
