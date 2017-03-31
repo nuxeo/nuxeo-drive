@@ -20,7 +20,14 @@ node('IT') {
         env.DRY_RUN = params.DRY_RUN
 
         stage('Checkout') {
+            deleteDir()
             checkout scm
+            checkout([
+                $class: 'GitSCM', branches: [[name: '*/master']],
+                extensions: [
+                    [$class: 'CleanCheckout'],
+                    [$class: 'LocalBranch', localBranch: 'master']]
+            ])
         }
 
         stage('Create') {
