@@ -18,20 +18,17 @@ properties([
 node('IT') {
     withEnv(["WORKSPACE=${pwd()}"]) {
         env.DRY_RUN = params.DRY_RUN
+        def credential_id = '4691426b-aa51-428b-901d-4e851ee37b01'
 
         stage('Checkout') {
             deleteDir()
-            checkout scm
-            checkout([
-                $class: 'GitSCM', branches: [[name: '*/master']],
-                extensions: [
-                    [$class: 'CleanCheckout'],
-                    [$class: 'LocalBranch', localBranch: 'master']]
-            ])
+            git credentialsId: credential_id, url: 'https://github.com/nuxeo/nuxeo-drive.git'
         }
 
         stage('Create') {
-            sh 'tools/release.sh --create'
+            sshagent([credential_id]) { {
+                sh 'tools/release.sh --create'
+            }
         }
 
         stage('Trigger') {
@@ -46,7 +43,9 @@ node('IT') {
             dir('dist') {
                 deleteDir()
             }
-            sh 'tools/release.sh --publish'
+            sshagent([credential_id]) { {
+                sh 'tools/release.sh --publish'
+            }
         }
     }
 }
