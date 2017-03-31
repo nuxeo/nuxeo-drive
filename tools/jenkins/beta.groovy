@@ -26,7 +26,7 @@ node('IT') {
         }
 
         stage('Create') {
-            sshagent([credential_id]) { {
+            sshagent([credential_id]) {
                 sh 'tools/release.sh --create'
             }
         }
@@ -43,7 +43,7 @@ node('IT') {
             dir('dist') {
                 deleteDir()
             }
-            sshagent([credential_id]) { {
+            sshagent([credential_id]) {
                 sh 'tools/release.sh --publish'
             }
         }
