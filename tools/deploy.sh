@@ -10,6 +10,9 @@ release() {
     local latest_release
     local drive_version
     local release_url
+    local path
+    local dmg
+    local msi
 
     latest_release="$(git tag -l "release-*" --sort=-taggerdate | head -n1)"
     drive_version="$(echo "${latest_release}" | cut -d'-' -f2)"
@@ -19,10 +22,26 @@ release() {
         exit 1
     fi
 
+    path="/var/www/community.nuxeo.com/static"
+    dmg="${path}/drive/nuxeo-drive-${drive_version}-osx.dmg"
+    msi="${path}/drive/nuxeo-drive-${drive_version}-win32.msi"
+
     echo ">>> [release ${drive_version}] Deploying to the production website"
-    ssh nuxeo@lethe.nuxeo.com "cp -vf /var/www/community.nuxeo.com/static/drive-tests/*${drive_version}* /var/www/community.nuxeo.com/static/drive/"
-    ssh nuxeo@lethe.nuxeo.com "ln -sf /var/www/community.nuxeo.com/static/drive/nuxeo-drive-${drive_version}-osx.dmg /var/www/community.nuxeo.com/static/drive/latest/nuxeo-drive.dmg"
-    ssh nuxeo@lethe.nuxeo.com "ln -sf /var/www/community.nuxeo.com/static/drive/nuxeo-drive-${drive_version}-win32.msi /var/www/community.nuxeo.com/static/drive/latest/nuxeo-drive.msi"
+    ssh -T nuxeo@lethe.nuxeo.com <<EOF
+# Copy artifacts from staging website to the production one
+cp -vf ${path}/drive-tests/*${drive_version}* ${path}/drive
+
+# Create symbolic links of the latest packages
+ln -sfv ${dmg} ${path}/drive/latest/nuxeo-drive.dmg
+ln -sfv ${msi} ${path}/drive/latest/nuxeo-drive.msi
+
+# Create symbolic links of the latest packages for all supported versions of Nuxeo
+for nuxeo_version in 6.0 7.10 8.10 9.1-SNAPSHOT; do
+    mkdir -pv ${path}/drive/latest/\$nuxeo_version
+    ln -sfv ${dmg} ${path}/drive/latest/\$nuxeo_version/nuxeo-drive.dmg
+    ln -sfv ${msi} ${path}/drive/latest/\$nuxeo_version/nuxeo-drive.msi
+done
+EOF
 
     echo ">>> [release ${drive_version}] Uploading to PyPi"
     python setup.py sdist upload
