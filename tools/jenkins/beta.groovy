@@ -12,6 +12,7 @@ properties([
             name: 'CLEAN_WORKSPACE',
             defaultValue: true,
             description: 'Clean the entire workspace before doing anything.']
+    ]]
 ])
 
 node('IT') {
