@@ -7,6 +7,11 @@ properties([
     pipelineTriggers([]),
     [$class: 'SchedulerPreference', preferEvenload: true],
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
+    [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
+        [$class: 'BooleanParameterDefinition',
+            name: 'CLEAN_WORKSPACE',
+            defaultValue: true,
+            description: 'Clean the entire workspace before doing anything.']
 ])
 
 node('IT') {
@@ -20,6 +25,7 @@ node('IT') {
         }
 
         stage('Trigger') {
+            // Propagate the commit ID to the triggered job
             def commit_id = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
             params.BRANCH_NAME = commit_id
             env.BRANCH_NAME = commit_id

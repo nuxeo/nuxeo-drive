@@ -21,7 +21,7 @@ build_esky() {
 
     case "${OSI}" in
         "linux")
-            python setup.py bdist_esky
+            python setup.py --freeze bdist_esky
             echo ">>> [package] Creating the DEB file"
             echo ">>> [package] TODO The DEB creation for GNU/Linux is not yet implemented."
             # create_package
