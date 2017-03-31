@@ -6,6 +6,8 @@
 # Warning: do not execute this script manually but from Jenkins.
 #
 
+export DRY_RUN="${DRY_RUN:=true}"
+
 changelog() {
     # Create the draft.json file with the pre-release content
     local drive_version
@@ -65,29 +67,46 @@ create_beta() {
     echo ">>> [beta ${drive_version}] Creating the commit"
     change_version "${drive_version}"
     git commit -m "Release $drive_version"
-    git push origin master
+    if [ "${DRY_RUN}" = true ]; then
+        echo "DRY-RUN git push origin master"
+        git log -n 5 --abbrev-commit --pretty=oneline
+    else
+        git push origin master
+    fi
 
     echo ">>> [beta ${drive_version}] Generating the changelog"
     changelog "${drive_version}"
 
     echo ">>> [beta ${drive_version}] Creating the tag"
-    git tag "release-${drive_version}"
-    git push origin --tags
+    if [ "${DRY_RUN}" = true ]; then
+        echo "DRY-RUN git tag \"release-${drive_version}\""
+        echo "DRY-RUN git push origin --tags"
+    else
+        git tag "release-${drive_version}"
+        git push origin --tags
+    fi
 }
 
 publish_beta() {
     local version
     local drive_version
     local artifacts
+    local rsync_opt
 
     version="$(grep -Eo "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
     drive_version="$(grep -Eo "[0-9]+.[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
     artifacts="https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/lastSuccessfulBuild/artifact/dist/*zip*/dist.zip"
+    rsync_opt="--verbose --compress"
 
     echo ">>> [beta ${drive_version}] Creating the post commit"
     change_version "${version}-dev"
     git commit -m "Post release ${drive_version}"
-    git push origin master
+    if [ "${DRY_RUN}" = true ]; then
+        echo "DRY-RUN git push origin master"
+        git log -n 5 --abbrev-commit --pretty=oneline
+    else
+        git push origin master
+    fi
 
     echo ">>> [beta ${drive_version}] Retrieving artifacts"
     [ -f dist.zip ] && rm -f dist.zip
@@ -95,11 +114,20 @@ publish_beta() {
     unzip -o dist.zip
 
     echo ">>> [beta ${drive_version}] Deploying to the staging website"
-    scp dist/*${drive_version}* nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-tests/
+    if [ "${DRY_RUN}" = true ]; then
+        rsync_opt="${rsync_opt} --dry-run"
+    fi
+    rsync ${rsync_opt} dist/*${drive_version}* nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-tests/
 
     echo ">>> [beta ${drive_version}] Creating the GitHub pre-release"
-    curl -X POST -i -n -d @draft.json \
-        https://api.github.com/repos/nuxeo/nuxeo-drive/releases
+    if [ "${DRY_RUN}" = true ]; then
+        echo "DRY-RUN curl -X POST -i -n -d @draft.json https://api.github.com/repos/nuxeo/nuxeo-drive/releases"
+        echo "DRY-RUN ============ draft.json start"
+        cat draft.json
+        echo "DRY-RUN ============ draft.json end"
+    else
+        curl -X POST -i -n -d @draft.json https://api.github.com/repos/nuxeo/nuxeo-drive/releases
+    fi
 }
 
 main() {

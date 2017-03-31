@@ -11,11 +11,18 @@ properties([
         [$class: 'BooleanParameterDefinition',
             name: 'CLEAN_WORKSPACE',
             defaultValue: true,
-            description: 'Clean the entire workspace before doing anything.']
+            description: 'Clean the entire workspace before doing anything.'],
+        [$class: 'BooleanParameterDefinition',
+            name: 'DRY_RUN',
+            defaultValue: false,
+            description: 'Do nothing but checking the job actually works.']
+    ]]
 ])
 
 node('IT') {
     withEnv(["WORKSPACE=${pwd()}"]) {
+        env.DRY_RUN = params.DRY_RUN
+
         stage('Checkout') {
             checkout scm
         }
