@@ -6,7 +6,7 @@ properties([
     disableConcurrentBuilds(),
     pipelineTriggers([]),
     [$class: 'SchedulerPreference', preferEvenload: true],
-    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
+    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false]
 ])
 
 
