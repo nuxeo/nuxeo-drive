@@ -10,13 +10,15 @@ properties([
 ])
 
 
-node('IT') {
-    withEnv(["WORKSPACE=${pwd()}"]) {
-        stage('Checkout') {
-            checkout scm
-        }
-        stage('Deploy') {
-            sh 'tools/deploy.sh'
+timestamps {
+    node('IT') {
+        withEnv(["WORKSPACE=${pwd()}"]) {
+            stage('Checkout') {
+                checkout scm
+            }
+            stage('Deploy') {
+                sh 'tools/deploy.sh'
+            }
         }
     }
 }
