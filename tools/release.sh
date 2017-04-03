@@ -128,19 +128,10 @@ publish_beta() {
 }
 
 main() {
-    local txt
-
-    echo ">>> DRY-RUN: ${DRY_RUN}"
-    txt="Possible argument is one of --create or --publish."
-
-    if [ "$#" -ne 1 ]; then
-        echo "${txt}" && exit 1
-    elif [ "$1" = "--create" ]; then
+    if [ "$1" = "--create" ]; then
         create_beta
     elif [ "$1" = "--publish" ]; then
         publish_beta
-    else
-        echo "${txt}" && exit 2
     fi
 }
 
