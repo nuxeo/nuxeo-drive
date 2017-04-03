@@ -697,8 +697,9 @@ class LocalClient(BaseClient):
             if (old_name != new_name and old_name.lower() == new_name.lower()
                 and not self.is_case_sensitive()):
                 # Must use a temp rename as FS is not case sensitive
-                temp_path = os.tempnam(self._abspath(parent),
-                                       LocalClient.CASE_RENAME_PREFIX + old_name + '_')
+                prefix = LocalClient.CASE_RENAME_PREFIX + old_name + '_'
+                _, temp_path = tempfile.mkstemp(dir=self._abspath(parent),
+                                                prefix=prefix)
                 if AbstractOSIntegration.is_windows():
                     import ctypes
                     ctypes.windll.kernel32.SetFileAttributesW(
