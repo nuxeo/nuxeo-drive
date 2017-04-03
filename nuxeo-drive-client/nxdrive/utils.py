@@ -1,6 +1,5 @@
 import sys
 import time
-from Crypto import Random
 
 import base64
 import locale
@@ -8,6 +7,7 @@ import mimetypes
 import os
 import psutil
 import re
+from Crypto import Random
 from Crypto.Cipher import AES
 from semver import compare
 
@@ -119,7 +119,7 @@ def version_compare(x, y):
 
     x_numbers = x.split('.')
     y_numbers = y.split('.')
-    while (x_numbers and y_numbers):
+    while x_numbers and y_numbers:
         x_number = x_numbers.pop(0)
         y_number = y_numbers.pop(0)
         # Handle hotfixes
@@ -136,7 +136,7 @@ def version_compare(x, y):
         y_date_based = 'I' in y_number
         x_snapshot = 'SNAPSHOT' in x_number
         y_snapshot = 'SNAPSHOT' in y_number
-        if (not x_date_based and not x_snapshot and (y_date_based or y_snapshot)):
+        if not x_date_based and not x_snapshot and (y_date_based or y_snapshot):
             # y is date-based or snapshot, x is not
             x_number = int(x_number)
             y_number = int(re.sub(ur'-(I.*|SNAPSHOT)', '', y_number))
@@ -156,8 +156,8 @@ def version_compare(x, y):
         else:
             if x_date_based and y_date_based:
                 # x and y are date-based
-                x_number = int(re.sub(ur'(I|-|_)', '', x_number))
-                y_number = int(re.sub(ur'(I|-|_)', '', y_number))
+                x_number = int(re.sub(ur'[I\-_]', '', x_number))
+                y_number = int(re.sub(ur'[I\-_]', '', y_number))
             elif x_snapshot and y_snapshot:
                 # x and y are snapshots
                 x_number = int(re.sub(ur'-SNAPSHOT', '', x_number))
