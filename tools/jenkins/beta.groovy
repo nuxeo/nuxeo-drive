@@ -6,19 +6,12 @@ properties([
     disableConcurrentBuilds(),
     pipelineTriggers([]),
     [$class: 'SchedulerPreference', preferEvenload: true],
-    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
-    [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
-        [$class: 'BooleanParameterDefinition',
-            name: 'DRY_RUN',
-            defaultValue: false,
-            description: 'Do nothing but checking the job actually works.']
-    ]]
+    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false]
 ])
 
 timestamps {
     node('IT') {
         withEnv(["WORKSPACE=${pwd()}"]) {
-            env.DRY_RUN = params.DRY_RUN
             def credential_id = '4691426b-aa51-428b-901d-4e851ee37b01'
             def release = ''
 
@@ -30,6 +23,7 @@ timestamps {
             stage('Create') {
                 sshagent([credential_id]) {
                     sh 'tools/release.sh --create'
+                    archive 'draft.json'
                 }
             }
 
