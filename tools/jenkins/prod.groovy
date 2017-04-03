@@ -18,6 +18,10 @@ timestamps {
             }
             stage('Deploy') {
                 sh 'tools/deploy.sh'
+
+                def release = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
+                release = release.trim() - 'release-'
+                currentBuild.description = "Release ${release}"
             }
         }
     }
