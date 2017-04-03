@@ -260,6 +260,17 @@ class TestUpdater(unittest.TestCase):
         self.assertEqual(version_compare('2.0.0905', '2.0.806'), 1)
         self.assertEqual(version_compare('2.0.805', '2.0.1206'), -1)
 
+        # Compare client versions using semantic versioning
+        self.assertEqual(version_compare('2.0.805', '2.4.0'), -1)
+        self.assertEqual(version_compare('2.1.1130', '2.4.0-beta1'), -1)
+        self.assertEqual(version_compare('2.4.0-beta1', '2.4.0-beta2'), -1)
+        self.assertEqual(version_compare('2.4.0-beta10', '2.4.0-beta1'), 1)
+        self.assertEqual(version_compare('2.4.0-beta1', '2.4.0-beta1'), 0)
+        self.assertEqual(version_compare('2.1.1130', '2.4.0b1'), -1)
+        self.assertEqual(version_compare('2.4.0b1', '2.4.0b2'), -1)
+        self.assertEqual(version_compare('2.4.0b10', '2.4.0b1'), 1)
+        self.assertEqual(version_compare('2.4.0b1', '2.4.0b1'), 0)
+
     def test_get_active_version(self):
         # Active version is None because Esky instance is built from a
         # directory, see Esky._init_from_appdir

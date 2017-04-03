@@ -9,6 +9,7 @@ import os
 import psutil
 import re
 from Crypto.Cipher import AES
+from semver import compare
 
 from nxdrive.logging_config import get_logger
 
@@ -111,6 +112,11 @@ def version_compare(x, y):
         - 5.8.0-HF15-SNAPSHOT < 5.8.0-HF16-SNAPSHOT
     """
 
+    # distutils normalizes '2.4.0-beta1' to '2.4.0b1', so we expand to fit
+    # SemVer specification
+    x = x.replace('b', '-beta')
+    y = y.replace('b', '-beta')
+
     x_numbers = x.split('.')
     y_numbers = y.split('.')
     while (x_numbers and y_numbers):
@@ -170,7 +176,11 @@ def version_compare(x, y):
                     return 0
             else:
                 # x and y are not date-based
-                x_number = int(x_number)
+                try:
+                    x_number = int(x_number)
+                except ValueError:
+                    # There is a '-betaN' or something added for SemVer
+                    return compare(x, y)
                 y_number = int(y_number)
         if x_number != y_number:
             diff = x_number - y_number
