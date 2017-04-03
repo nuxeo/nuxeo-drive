@@ -20,7 +20,7 @@ timestamps {
         withEnv(["WORKSPACE=${pwd()}"]) {
             env.DRY_RUN = params.DRY_RUN
             def credential_id = '4691426b-aa51-428b-901d-4e851ee37b01'
-            def commit_id = ''
+            def release = ''
 
             stage('Checkout') {
                 deleteDir()
@@ -35,9 +35,9 @@ timestamps {
 
             stage('Trigger') {
                 // Trigger the Drive packages job to build executables and have artifacts
-                commit_id = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
+                release = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
                 build job: '/Drive/Drive-packages', parameters: [
-                    [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: commit_id],
+                    [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: 'refs/tags/' + release],
                     [$class: 'BooleanParameterValue', name: 'CLEAN_WORKSPACE', value: true]]
             }
 
@@ -48,7 +48,7 @@ timestamps {
                 sshagent([credential_id]) {
                     sh 'tools/release.sh --publish'
                 }
-                currentBuild.description = "Beta ${commit_id}"
+                currentBuild.description = "Beta ${release}"
             }
         }
     }
