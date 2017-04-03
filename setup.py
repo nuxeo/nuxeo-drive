@@ -3,6 +3,7 @@
 # Copyright (C) 2012 Nuxeo
 #
 
+import re
 import os
 import sys
 
@@ -35,7 +36,7 @@ def get_version(init_file):
     with open(init_file) as handler:
         for line in handler.readlines():
             if line.startswith('__version__'):
-                return line.split('=')[1].replace("'", '').strip()
+                return re.findall(r"'(.+)'", line)[0]
 
 
 class Packages(object):

@@ -29,13 +29,14 @@ Arguments:
 from __future__ import print_function, unicode_literals
 
 from operator import itemgetter
+from re import findall
 from subprocess import check_output
 from sys import stderr
 
 from docopt import docopt
 from requests import HTTPError, get
 
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 
 
 def backtick(cmd):
@@ -256,7 +257,7 @@ def get_version():
     with open(init_file) as handler:
         for line in handler.readlines():
             if line.startswith('__version__'):
-                return line.split('=')[1].replace("'", '').strip()
+                return findall(r"'(.+)'", line)[0]
 
 
 def main():

@@ -74,6 +74,15 @@ def is_office_temp_file(name):
     return False
 
 
+def version_compare_client(x, y):
+    """ Try to compare SemVer and fallback to version_compare on error. """
+
+    try:
+        return compare(x.replace('b', '-beta'), y.replace('b', '-beta'))
+    except ValueError:
+        return version_compare(x, y)
+
+
 def version_compare(x, y):
     """Compare version numbers using the usual x.y.z pattern.
 
@@ -111,11 +120,6 @@ def version_compare(x, y):
         - 5.8.0-HF15-SNAPSHOT < 5.8.0-HF15
         - 5.8.0-HF15-SNAPSHOT < 5.8.0-HF16-SNAPSHOT
     """
-
-    # distutils normalizes '2.4.0-beta1' to '2.4.0b1', so we expand to fit
-    # SemVer specification
-    x = x.replace('b', '-beta')
-    y = y.replace('b', '-beta')
 
     x_numbers = x.split('.')
     y_numbers = y.split('.')
@@ -176,11 +180,7 @@ def version_compare(x, y):
                     return 0
             else:
                 # x and y are not date-based
-                try:
-                    x_number = int(x_number)
-                except ValueError:
-                    # There is a '-betaN' or something added for SemVer
-                    return compare(x, y)
+                x_number = int(x_number)
                 y_number = int(y_number)
         if x_number != y_number:
             diff = x_number - y_number

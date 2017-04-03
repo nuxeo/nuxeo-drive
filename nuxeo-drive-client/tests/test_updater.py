@@ -8,7 +8,7 @@ from nxdrive.updater import AppUpdater, MissingCompatibleVersion, MissingUpdateS
     UPDATE_STATUS_DOWNGRADE_NEEDED, \
     UPDATE_STATUS_MISSING_INFO, UPDATE_STATUS_MISSING_VERSION, UPDATE_STATUS_UPDATE_AVAILABLE, \
     UPDATE_STATUS_UPGRADE_NEEDED, UPDATE_STATUS_UP_TO_DATE
-from nxdrive.utils import version_compare
+from nxdrive.utils import version_compare, version_compare_client
 
 
 class MockManager(Mock):
@@ -247,29 +247,26 @@ class TestUpdater(unittest.TestCase):
                                          '5.10.0-HF01'), -1)
 
         # Compare client versions
-        self.assertEqual(version_compare('0.1', '1.0'), -1)
-        self.assertEqual(version_compare('1.0', '1.0'), 0)
-        self.assertEqual(version_compare('1.3.0424', '1.3.0424'), 0)
-        self.assertEqual(version_compare('1.3.0524', '1.3.0424'), 1)
-        self.assertEqual(version_compare('1.4', '1.3.0524'), 1)
-        self.assertEqual(version_compare('1.4.0622', '1.3.0524'), 1)
-        self.assertEqual(version_compare('1.10', '1.1.2'), 1)
-        self.assertEqual(version_compare('2.1.0528', '1.10'), 1)
-        self.assertEqual(version_compare('2.0.0626', '2.0.806'), -1)
-        self.assertEqual(version_compare('2.0.0805', '2.0.806'), -1)
-        self.assertEqual(version_compare('2.0.0905', '2.0.806'), 1)
-        self.assertEqual(version_compare('2.0.805', '2.0.1206'), -1)
+        self.assertEqual(version_compare_client('0.1', '1.0'), -1)
+        self.assertEqual(version_compare_client('1.0', '1.0'), 0)
+        self.assertEqual(version_compare_client('1.3.0424', '1.3.0424'), 0)
+        self.assertEqual(version_compare_client('1.3.0524', '1.3.0424'), 1)
+        self.assertEqual(version_compare_client('1.4', '1.3.0524'), 1)
+        self.assertEqual(version_compare_client('1.4.0622', '1.3.0524'), 1)
+        self.assertEqual(version_compare_client('1.10', '1.1.2'), 1)
+        self.assertEqual(version_compare_client('2.1.0528', '1.10'), 1)
+        self.assertEqual(version_compare_client('2.0.0626', '2.0.806'), -1)
+        self.assertEqual(version_compare_client('2.0.0805', '2.0.806'), -1)
+        self.assertEqual(version_compare_client('2.0.0905', '2.0.806'), 1)
+        self.assertEqual(version_compare_client('2.0.805', '2.0.1206'), -1)
 
         # Compare client versions using semantic versioning
-        self.assertEqual(version_compare('2.0.805', '2.4.0'), -1)
-        self.assertEqual(version_compare('2.1.1130', '2.4.0-beta1'), -1)
-        self.assertEqual(version_compare('2.4.0-beta1', '2.4.0-beta2'), -1)
-        self.assertEqual(version_compare('2.4.0-beta10', '2.4.0-beta1'), 1)
-        self.assertEqual(version_compare('2.4.0-beta1', '2.4.0-beta1'), 0)
-        self.assertEqual(version_compare('2.1.1130', '2.4.0b1'), -1)
-        self.assertEqual(version_compare('2.4.0b1', '2.4.0b2'), -1)
-        self.assertEqual(version_compare('2.4.0b10', '2.4.0b1'), 1)
-        self.assertEqual(version_compare('2.4.0b1', '2.4.0b1'), 0)
+        self.assertEqual(version_compare_client('2.0.805', '2.4.0'), -1)
+        self.assertEqual(version_compare_client('2.1.1130', '2.4.0b1'), -1)
+        self.assertEqual(version_compare_client('2.4.0b1', '2.4.0b2'), -1)
+        self.assertEqual(version_compare_client('2.4.0b10', '2.4.0b1'), 1)
+        self.assertEqual(version_compare_client('2.4.0b1', '2.4.0b1'), 0)
+        self.assertEqual(version_compare_client('2.4.2b1', '2.4.2'), -1)
 
     def test_get_active_version(self):
         # Active version is None because Esky instance is built from a

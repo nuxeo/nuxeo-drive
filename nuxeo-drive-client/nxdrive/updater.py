@@ -16,7 +16,7 @@ from nxdrive.commandline import DEFAULT_UPDATE_CHECK_DELAY
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import PollWorker
 from nxdrive.logging_config import get_logger
-from nxdrive.utils import version_compare
+from nxdrive.utils import version_compare, version_compare_client
 
 log = get_logger(__name__)
 
@@ -237,7 +237,7 @@ class AppUpdater(PollWorker):
         except Exception as e:
             log.exception(e)
 
-        return sorted(versions, cmp=version_compare)
+        return sorted(versions, cmp=version_compare_client)
 
     def get_server_min_version(self, client_version):
         info_file = client_version + '.json'
@@ -312,7 +312,7 @@ class AppUpdater(PollWorker):
                 self.min_client_version = client_version
                 continue
             # Get the maximal "minimum"
-            if version_compare(self.min_client_version, client_version) < 0:
+            if version_compare_client(self.min_client_version, client_version) < 0:
                 self.min_client_version = client_version
 
     def get_latest_compatible_version(self):
@@ -345,7 +345,7 @@ class AppUpdater(PollWorker):
                          " version %s.", client_version, self.min_server_version)
                 return UPDATE_STATUS_UP_TO_DATE, None
 
-            if version_compare(client_version, client_min_version) < 0:
+            if version_compare_client(client_version, client_min_version) < 0:
                 log.info("Client version %s is lighter than %s, the minimum"
                          " version compatible with the server version %s."
                          " An upgrade to version %s is needed.",
@@ -354,7 +354,7 @@ class AppUpdater(PollWorker):
                 return UPDATE_STATUS_UPGRADE_NEEDED, latest_version
 
             if (version_compare(server_version, server_min_version) < 0
-                    or version_compare(latest_version, client_version) < 0):
+                    or version_compare_client(latest_version, client_version) < 0):
                 log.info("Server version %s is lighter than %s, the minimum"
                          " version compatible with the client version %s."
                          " A downgrade to version %s is needed.",
