@@ -20,7 +20,7 @@ timestamps {
                 sh 'tools/deploy.sh'
 
                 def release = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
-                release = release.trim() - 'release-'
+                release = release.replace('release-', '').trim()
                 currentBuild.description = "Release ${release}"
             }
         }

@@ -35,7 +35,7 @@ from sys import stderr
 from docopt import docopt
 from requests import HTTPError, get
 
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 
 
 def backtick(cmd):
@@ -48,34 +48,36 @@ def backtick(cmd):
 def changelog(issues, formatter='txt', func=None):
     """ Generate the changelog. """
 
-    def simple_report(issues):
-        """ A simple report. """
+    # def report_simple(issues_list):
+    #     """ A simple report. """
+    #
+    #     print('Bug fixes / improvements:')
+    #     for issue in issues_list:
+    #         print(formatter[issue['sla']].format(**issue))
 
-        print('Bug fixes / improvements:')
-        for issue in issues:
-            print(formatter[issue['sla']].format(**issue))
+    def report_categorized(issues_list):
+        """ A more sophisticated report using primary components. """
 
-    def categorized_report(issues):
-        """ A more sophisticated report using primary categories. """
-
-        categories = {'Core': [], 'GUI': [], 'Packaging / Build': [],
+        components = {'Core': [], 'GUI': [], 'Packaging / Build': [],
                       'Tests': [], 'Doc': []}
 
-        for issue in issues:
-            for category in categories:
-                if category in issue['components']:
-                    categories[category].append(formatter[issue['sla']].format(**issue))
+        for issue in issues_list:
+            for component in components:
+                if component in issue['components']:
+                    components[component].append(
+                        formatter[issue['sla']].format(**issue))
                     break
             else:
-                categories['Core'].append(formatter[issue['sla']].format(**issue))
+                components['Core'].append(
+                    formatter[issue['sla']].format(**issue))
 
-        for category in categories:
-            if categories[category]:
-                subheader = {'title': category,
+        for component in components:
+            if components[component]:
+                subheader = {'title': component,
                              'separator': '-',
-                             'length': len(category)}
+                             'length': len(component)}
                 print(formatter['subheader'].format(**subheader))
-                print('\n'.join(categories[category]))
+                print('\n'.join(components[component]))
 
     # Available formatters
     format_issue = {
@@ -104,9 +106,9 @@ def changelog(issues, formatter='txt', func=None):
               'length': len(version)}
     print(formatter['header'].format(**header))
 
-    # Print issues
+    # Print the report
     if not callable(func):
-        func = categorized_report
+        func = report_categorized
     func(issues)
 
 
@@ -136,11 +138,7 @@ Example 3: changelog.py '' COMMIT_ID
 
     Print changelog of commits from HEAD to COMMIT_ID.
 
-Example 3: changelog.py '' COMMIT_ID
-
-    Print changelog of commits from HEAD to COMMIT_ID.
-
-Example 3: changelog.py release-2.2.227 release-2.3.323
+Example 4: changelog.py release-2.2.227 release-2.3.323
 
     Print changelog of commits between the 2 releases.
     """
@@ -205,7 +203,7 @@ def get_issues(start='HEAD', end=None, types=('NXDRIVE', 'NXP')):
 def get_issue_infos(issue, raw=False):
     """ Retrieve issue informations. """
 
-    debug('>>> Retrieving issue {} informations'.format(issue))
+    debug('>>> Fetching informations of {}'.format(issue))
     base_url = 'https://jira.nuxeo.com'
     url = base_url + '/rest/api/2/issue/{}'.format(issue)
 
@@ -263,6 +261,8 @@ def get_version():
 
 def main():
     """ Main logic. """
+
+    debug('>>> Changelog.py v{}'.format(__version__))
 
     args = docopt(__doc__, version=__version__)
 

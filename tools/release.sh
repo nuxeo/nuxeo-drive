@@ -33,7 +33,7 @@ EOF
     complete_changelog="$(echo "${complete_changelog}" | sed 's|$|\\n|g ; s|\"|\\\"|g')"
 
     # Create the pre-release draft
-    [ -f draft.json ] && rm draft.json
+    [ -f draft.json ] && rm -f draft.json
     cat > draft.json <<EOF
 {
     "tag_name": "release-${drive_version}",
