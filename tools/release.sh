@@ -33,7 +33,7 @@ EOF
     complete_changelog="$(echo "${complete_changelog}" | sed 's|$|\\n|g ; s|\"|\\\"|g')"
 
     # Create the pre-release draft
-    [ -f draft.json ] && rm draft.json
+    [ -f draft.json ] && rm -f draft.json
     cat > draft.json <<EOF
 {
     "tag_name": "release-${drive_version}",
@@ -128,17 +128,10 @@ publish_beta() {
 }
 
 main() {
-    local txt
-
-    txt="Possible argument is one of --create or --publish."
-    if [ "$#" -ne 1 ]; then
-        echo "${txt}" && exit 1
-    elif [ "$1" = "--create" ]; then
+    if [ "$1" = "--create" ]; then
         create_beta
     elif [ "$1" = "--publish" ]; then
         publish_beta
-    else
-        echo "${txt}" && exit 2
     fi
 }
 

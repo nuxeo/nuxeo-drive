@@ -35,7 +35,7 @@ from sys import stderr
 from docopt import docopt
 from requests import HTTPError, get
 
-__version__ = '1.0.0'
+__version__ = '1.0.2'
 
 
 def backtick(cmd):
@@ -45,18 +45,52 @@ def backtick(cmd):
     return output.decode('utf-8').strip()
 
 
-def changelog(issues, formatter='txt'):
+def changelog(issues, formatter='txt', func=None):
     """ Generate the changelog. """
+
+    # def report_simple(issues_list):
+    #     """ A simple report. """
+    #
+    #     print('Bug fixes / improvements:')
+    #     for issue in issues_list:
+    #         print(formatter[issue['sla']].format(**issue))
+
+    def report_categorized(issues_list):
+        """ A more sophisticated report using primary components. """
+
+        components = {'Core': [], 'GUI': [], 'Packaging / Build': [],
+                      'Tests': [], 'Doc': []}
+
+        for issue in issues_list:
+            for component in components:
+                if component in issue['components']:
+                    components[component].append(
+                        formatter[issue['sla']].format(**issue))
+                    break
+            else:
+                components['Core'].append(
+                    formatter[issue['sla']].format(**issue))
+
+        for component in components:
+            if components[component]:
+                subheader = {'title': component,
+                             'separator': '-',
+                             'length': len(component)}
+                print(formatter['subheader'].format(**subheader))
+                print('\n'.join(components[component]))
 
     # Available formatters
     format_issue = {
-        'md': {'header': '# Release {version}',
+        'md': {'header': '# {title}',
+               'subheader': '### {title}',
                'regular': '- [{name}]({url}): {title}',
                'important': '- **[{name}]({url})**: {title}'},
-        'rst': {'header': 'Release {version}\n{separator:=>{length}}',
+        'rst': {'header': '{title}\n{separator:{separator}>{length}}',
+                'subheader': '{title}\n{separator:{separator}>{length}}',
                 'regular': '- `{name} <{url}>`_: {title}',
                 'important': '- **[SupCom]** `{name} <{url}>`_: {title}'},
-        'txt': {'header': 'Release {version}',
+        'txt': {'header': '{title}',
+                'subheader': '{title}:',
                 'regular': '- {name}: {title}',
                 'important': '- [SupCom] {name}: {title}'}
     }
@@ -67,17 +101,15 @@ def changelog(issues, formatter='txt'):
 
     # Print the header
     version = get_version()
-    header = {'version': version,
-              'separator': '',
-              'length': len('Release ') + len(version)}
+    header = {'title': version,
+              'separator': '=',
+              'length': len(version)}
     print(formatter['header'].format(**header))
 
-    # Print issues
-    print('Bug fixes / improvements:')
-    for issue in issues:
-        print(formatter[issue['sla']].format(**issue))
-
-    # Print download links
+    # Print the report
+    if not callable(func):
+        func = report_categorized
+    func(issues)
 
 
 def debug(*args, **kwargs):
@@ -105,6 +137,10 @@ Example 2: changelog.py COMMIT_ID
 Example 3: changelog.py '' COMMIT_ID
 
     Print changelog of commits from HEAD to COMMIT_ID.
+
+Example 4: changelog.py release-2.2.227 release-2.3.323
+
+    Print changelog of commits between the 2 releases.
     """
 
     print(examples.__doc__.strip())
@@ -125,10 +161,9 @@ def get_latest_tag():
     """ Retrieve the latest release tag. """
 
     debug('>>> Retrieving latest created tag')
-    backtick('git fetch --tags')
     cmd = 'git rev-list --tags --remove-empty --branches=master --max-count=10'
     for sha1 in backtick(cmd).splitlines():
-        tag = backtick('git describe --tags ' + sha1)
+        tag = backtick('git describe --abbrev=0 --tags ' + sha1)
         if tag.startswith('release-'):
             return tag
     return ''
@@ -168,7 +203,7 @@ def get_issues(start='HEAD', end=None, types=('NXDRIVE', 'NXP')):
 def get_issue_infos(issue, raw=False):
     """ Retrieve issue informations. """
 
-    debug('>>> Retrieving issue {} informations'.format(issue))
+    debug('>>> Fetching informations of {}'.format(issue))
     base_url = 'https://jira.nuxeo.com'
     url = base_url + '/rest/api/2/issue/{}'.format(issue)
 
@@ -184,6 +219,10 @@ def get_issue_infos(issue, raw=False):
         debug('>>> Impossible to to retrieve informations, passing')
         return
 
+    # Skip unfinished work
+    if data['fields']['status']['name'] != 'Resolved':
+        return
+
     if raw:
         return data
 
@@ -192,7 +231,12 @@ def get_issue_infos(issue, raw=False):
              'title': data['fields']['summary'],
              'priority': data['fields']['priority']['id'],
              'type': data['fields']['issuetype']['name'],
-             'sla': 'regular'}
+             'sla': 'regular', 'components': []}
+
+    # Fill components
+    for component in data['fields']['components']:
+        infos['components'].append(component['name'])
+
     try:
         # We are not authentificated, so we cannot know the SUPNXP issue but
         # we can know that there is a related SUPNXP and set the issue as
@@ -217,6 +261,8 @@ def get_version():
 
 def main():
     """ Main logic. """
+
+    debug('>>> Changelog.py v{}'.format(__version__))
 
     args = docopt(__doc__, version=__version__)
 
