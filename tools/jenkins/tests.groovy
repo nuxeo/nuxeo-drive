@@ -78,7 +78,7 @@ def github_status(status) {
 
 def checkout_custom() {
     checkout([$class: 'GitSCM',
-        branches: [[name: '*/' + env.BRANCH_NAME]],
+        branches: [[name: env.BRANCH_NAME]],
         browser: [$class: 'GithubWeb', repoUrl: repos_url],
         doGenerateSubmoduleConfigurations: false,
         extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
