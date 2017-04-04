@@ -1036,7 +1036,7 @@ class Manager(QtCore.QObject):
 
         # Find the best editor for the file according to the OS configuration
         local_client = engine.get_local_client()
-        self.open_local_file(local_client._abspath(doc_pair.local_path))
+        self.open_local_file(local_client.abspath(doc_pair.local_path))
 
     def _get_default_server_type(self):
         return "NXDRIVE"

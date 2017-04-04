@@ -150,11 +150,11 @@ class LocalClient(BaseClient):
                             filename.endswith(DOWNLOAD_TMP_FILE_SUFFIX))
 
     def set_readonly(self, ref):
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         self.set_path_readonly(path)
 
     def unset_readonly(self, ref):
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         if os.path.exists(path):
             self.unset_path_readonly(path)
 
@@ -188,7 +188,7 @@ class LocalClient(BaseClient):
 
     def remove_remote_id(self, ref, name='ndrive'):
         # Can be move to another class
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         log.trace('Removing xattr %s from %s', name, path)
         locker = self.unlock_path(path, False)
         if AbstractOSIntegration.is_windows():
@@ -228,14 +228,14 @@ class LocalClient(BaseClient):
         '''
         if AbstractOSIntegration.is_windows():
             # TODO Clean version
-            desktop_ini_file_path = os.path.join(self._abspath(ref), "desktop.ini")
+            desktop_ini_file_path = os.path.join(self.abspath(ref), "desktop.ini")
         if AbstractOSIntegration.is_mac():
-            desktop_ini_file_path = os.path.join(self._abspath(ref), "Icon\r")
+            desktop_ini_file_path = os.path.join(self.abspath(ref), "Icon\r")
         if os.path.exists(desktop_ini_file_path):
             os.remove(desktop_ini_file_path)
 
     def has_folder_icon(self, ref):
-        target_folder = self._abspath(ref)
+        target_folder = self.abspath(ref)
         if AbstractOSIntegration.is_mac():
             meta_file = os.path.join(target_folder, "Icon\r")
             return os.path.exists(meta_file)
@@ -279,8 +279,8 @@ class LocalClient(BaseClient):
             desktop_ini_content = ini_file_content.replace("icon_file_path", icon)
 
         # Create the desktop.ini file inside the ReadOnly shared folder.
-        created_ini_file_path = os.path.join(self._abspath(ref), 'desktop.ini')
-        attrib_command_path = self._abspath(ref)
+        created_ini_file_path = os.path.join(self.abspath(ref), 'desktop.ini')
+        attrib_command_path = self.abspath(ref)
         if not os.path.exists(created_ini_file_path):
             try:
                 create_file = open(created_ini_file_path,'w')
@@ -323,7 +323,7 @@ class LocalClient(BaseClient):
         try:
             import xattr
             import stat
-            target_folder = self._abspath(ref)
+            target_folder = self.abspath(ref)
             # Generate the value for 'com.apple.FinderInfo'
             has_icon_xdata = bytes(bytearray(self._get_icon_xdata()))
             # Configure 'com.apple.FinderInfo' for the folder
@@ -347,7 +347,7 @@ class LocalClient(BaseClient):
         if type(remote_id).__name__ == "unicode":
             remote_id = unicodedata.normalize('NFC', remote_id).encode('utf-8')
         # Can be move to another class
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         log.trace('Setting xattr %s with value %r on %r', name, remote_id, path)
         locker = self.unlock_path(path, False)
         if AbstractOSIntegration.is_windows():
@@ -385,7 +385,7 @@ class LocalClient(BaseClient):
 
     def get_remote_id(self, ref, name="ndrive"):
         # Can be move to another class
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         return LocalClient.get_path_remote_id(path, name)
 
     @staticmethod
@@ -412,7 +412,7 @@ class LocalClient(BaseClient):
     def get_info(self, ref, raise_if_missing=True):
         if isinstance(ref, str):
             ref = unicode(ref)
-        os_path = self._abspath(ref)
+        os_path = self.abspath(ref)
         if not os.path.exists(os_path):
             if raise_if_missing:
                 err = 'Could not find file into {!r}: ref={!r}, os_path={!r}'
@@ -451,7 +451,7 @@ class LocalClient(BaseClient):
             return self.get_info(local_path).get_digest(digest_func=remote_digest_algorithm) == remote_digest
 
     def get_content(self, ref):
-        return open(self._abspath(ref), "rb").read()
+        return open(self.abspath(ref), "rb").read()
 
     def is_osxbundle(self, ref):
         '''
@@ -459,7 +459,7 @@ class LocalClient(BaseClient):
         '''
         if not AbstractOSIntegration.is_mac():
             return False
-        if (os.path.isfile(self._abspath(ref))):
+        if (os.path.isfile(self.abspath(ref))):
             return False
         # Dont want to synchornize app - when copy paste this file might not has been created yet
         if os.path.isfile(os.path.join(ref, "Contents", "Info.plist")):
@@ -493,7 +493,7 @@ class LocalClient(BaseClient):
         if AbstractOSIntegration.is_windows():
             # NXDRIVE-465
             ref = self.get_children_ref(parent_ref, file_name)
-            path = self._abspath(ref)
+            path = self.abspath(ref)
             if not os.path.exists(path):
                 return False
             import win32con
@@ -521,7 +521,7 @@ class LocalClient(BaseClient):
             return parent_ref + u'/' + name
 
     def get_children_info(self, ref):
-        os_path = self._abspath(ref)
+        os_path = self.abspath(ref)
         result = []
         children = os.listdir(os_path)
 
@@ -553,11 +553,11 @@ class LocalClient(BaseClient):
         return parent
 
     def unlock_ref(self, ref, unlock_parent=True):
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         return self.unlock_path(path, unlock_parent)
 
     def lock_ref(self, ref, locker):
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         return self.lock_path(path, locker)
 
     def make_folder(self, parent, name):
@@ -583,7 +583,7 @@ class LocalClient(BaseClient):
                 duplicated_file = u"/" + name
             else:
                 duplicated_file = parent + u"/" + name
-            shutil.copy(self._abspath(ref), os_path)
+            shutil.copy(self.abspath(ref), os_path)
             return duplicated_file
         except IOError as e:
             e.duplicated_file = duplicated_file
@@ -616,7 +616,7 @@ class LocalClient(BaseClient):
         xattrs = {}
         for name in xattr_names:
             xattrs[name] = self.get_remote_id(ref, name=name)
-        with open(self._abspath(ref), "wb") as f:
+        with open(self.abspath(ref), "wb") as f:
             f.write(content)
         for name in xattr_names:
             if xattrs[name] is not None:
@@ -624,7 +624,7 @@ class LocalClient(BaseClient):
 
     def delete(self, ref):
         locker = self.unlock_ref(ref)
-        os_path = self._abspath(ref)
+        os_path = self.abspath(ref)
         if not self.exists(ref):
             return
         # Remove the \\?\ for SHFileOperation on win
@@ -636,7 +636,7 @@ class LocalClient(BaseClient):
                 info = self.move(ref, '/')
                 new_ref = info.path
                 try:
-                    send2trash(self._abspath(new_ref)[4:])
+                    send2trash(self.abspath(new_ref)[4:])
                 except:
                     log.debug('Cant use trash for ' + os_path
                                  + ', delete it')
@@ -663,7 +663,7 @@ class LocalClient(BaseClient):
                 parent_ref = os.path.dirname(ref)
                 locker = self.unlock_ref(parent_ref, False)
             self.unset_readonly(ref)
-            os_path = self._abspath(ref)
+            os_path = self.abspath(ref)
             if os.path.isfile(os_path):
                 os.unlink(os_path)
             elif os.path.isdir(os_path):
@@ -673,11 +673,11 @@ class LocalClient(BaseClient):
                 self.lock_ref(parent_ref, locker)
 
     def exists(self, ref):
-        os_path = self._abspath(ref)
+        os_path = self.abspath(ref)
         return os.path.exists(os_path)
 
     def check_writable(self, ref):
-        os_path = self._abspath(ref)
+        os_path = self.abspath(ref)
         return os.access(os_path, os.W_OK)
 
     def rename(self, ref, to_name):
@@ -687,7 +687,7 @@ class LocalClient(BaseClient):
 
         """
         new_name = safe_filename(to_name)
-        source_os_path = self._abspath(ref)
+        source_os_path = self.abspath(ref)
         parent = ref.rsplit(u'/', 1)[0]
         old_name = ref.rsplit(u'/', 1)[1]
         parent = u'/' if parent == '' else parent
@@ -697,7 +697,7 @@ class LocalClient(BaseClient):
             if (old_name != new_name and old_name.lower() == new_name.lower()
                 and not self.is_case_sensitive()):
                 # Must use a temp rename as FS is not case sensitive
-                temp_path = os.tempnam(self._abspath(parent),
+                temp_path = os.tempnam(self.abspath(parent),
                                        LocalClient.CASE_RENAME_PREFIX + old_name + '_')
                 if AbstractOSIntegration.is_windows():
                     import ctypes
@@ -706,7 +706,7 @@ class LocalClient(BaseClient):
                 os.rename(source_os_path, temp_path)
                 source_os_path = temp_path
                 # Try the os rename part
-                target_os_path = self._abspath(os.path.join(parent, new_name))
+                target_os_path = self.abspath(os.path.join(parent, new_name))
             else:
                 target_os_path, new_name = self._abspath_deduped(parent,
                                                                 new_name, old_name)
@@ -732,7 +732,7 @@ class LocalClient(BaseClient):
             raise ValueError("Cannot move the toplevel folder.")
         locker = self.unlock_ref(ref)
         new_locker = self.unlock_ref(new_parent_ref, False)
-        source_os_path = self._abspath(ref)
+        source_os_path = self.abspath(ref)
         name = name if name is not None else ref.rsplit(u'/', 1)[1]
         target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
         try:
@@ -754,9 +754,6 @@ class LocalClient(BaseClient):
             rel_path = u'/'
         return rel_path
 
-    def _abspath(self, ref):
-        return self.abspath(ref)
-
     def abspath(self, ref):
         """Absolute path on the operating system"""
         if not ref.startswith(u'/'):
@@ -772,7 +769,7 @@ class LocalClient(BaseClient):
 
         # decompose the name into actionable components
         name, suffix = os.path.splitext(name)
-        os_path = self._abspath(os.path.join(parent, name + suffix))
+        os_path = self.abspath(os.path.join(parent, name + suffix))
         return os_path
 
     def _abspath_deduped(self, parent, orig_name, old_name=None):
@@ -784,7 +781,7 @@ class LocalClient(BaseClient):
         name, suffix = os.path.splitext(name)
 
         for _ in range(1000):
-            os_path = self._abspath(os.path.join(parent, name + suffix))
+            os_path = self.abspath(os.path.join(parent, name + suffix))
             if old_name == (name + suffix):
                 return os_path, name + suffix
             if not os.path.exists(os_path):

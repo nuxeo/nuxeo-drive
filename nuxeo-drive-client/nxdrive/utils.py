@@ -409,7 +409,7 @@ class ServerLoader(object):
                     child_uid = self._remote_client.make_folder(remote_uid, child.name)
                 else:
                     print "Making file: %s" % child.path
-                    self._remote_client.stream_file(remote_uid, self._local_client._abspath(child.path))
+                    self._remote_client.stream_file(remote_uid, self._local_client.abspath(child.path))
             else:
                 child_uid = existing_childs[child.path].uid
             if child.folderish:
