@@ -23,8 +23,8 @@ class MacLocalClient(LocalClient):
         self.fm = Cocoa.NSFileManager.defaultManager()
 
     def copy(self, srcref, dstref):
-        src = self._abspath(srcref)
-        dst = self._abspath(dstref)
+        src = self.abspath(srcref)
+        dst = self.abspath(dstref)
         path, name = os.path.split(src)
         if not os.path.exists(dst) and not os.path.exists(os.path.dirname(dst)):
             raise ValueError('parent destination directory %s does not exist',
@@ -39,8 +39,8 @@ class MacLocalClient(LocalClient):
         self._process_result(result)
 
     def move(self, srcref, parentref, name=None):
-        src = self._abspath(srcref)
-        parent = self._abspath(parentref)
+        src = self.abspath(srcref)
+        parent = self.abspath(parentref)
         path, srcname = os.path.split(src)
 
         if name:
@@ -65,7 +65,7 @@ class MacLocalClient(LocalClient):
         self.move(srcref, dstref, name=to_name)
 
     def delete(self, ref):
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         error = None
         result = self.fm.removeItemAtPath_error_(path, error)
         self._process_result(result)

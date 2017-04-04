@@ -18,14 +18,14 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync()
         self.assertTrue(self.remote_document_client_1.exists('/File_To_Delete.txt'))
         old_info = self.remote_document_client_1.get_info('/File_To_Delete.txt', use_trash=True)
-        abs_path = self.local_client_1._abspath('/File_To_Delete.txt')
+        abs_path = self.local_client_1.abspath('/File_To_Delete.txt')
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))
         self.wait_sync(wait_for_async=True)
         self.assertFalse(self.remote_document_client_1.exists('/File_To_Delete.txt'))
         self.assertFalse(self.local_client_1.exists('/File_To_Delete.txt'))
         # See if it untrash or recreate
-        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/'))
+        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1.abspath('/'))
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.remote_document_client_1.exists(old_info.uid))
         self.assertTrue(self.local_client_1.exists('/File_To_Delete.txt'))
@@ -36,7 +36,7 @@ class TestLocalDeletion(UnitTestCase):
         self.assertTrue(self.remote_document_client_1.exists('/File_To_Delete.txt'))
         uid = self.local_client_1.get_remote_id('/File_To_Delete.txt')
         old_info = self.remote_document_client_1.get_info('/File_To_Delete.txt', use_trash=True)
-        abs_path = self.local_client_1._abspath('/File_To_Delete.txt')
+        abs_path = self.local_client_1.abspath('/File_To_Delete.txt')
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete2.txt'))
         self.wait_sync(wait_for_async=True)
@@ -49,7 +49,7 @@ class TestLocalDeletion(UnitTestCase):
             with open(os.path.join(self.local_test_folder_1, 'File_To_Delete2.txt:ndrive'), 'w') as f:
                 f.write(uid)
         # See if it untrash or recreate
-        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete2.txt'), self.local_client_1._abspath('/'))
+        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete2.txt'), self.local_client_1.abspath('/'))
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.remote_document_client_1.exists(old_info.uid))
         self.assertTrue(self.local_client_1.exists('/File_To_Delete2.txt'))
@@ -63,7 +63,7 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync()
         self.assertTrue(self.remote_document_client_1.exists(file_path))
         old_info = self.remote_document_client_1.get_info(file_path, use_trash=True)
-        abs_path = self.local_client_1._abspath(file_path)
+        abs_path = self.local_client_1.abspath(file_path)
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))        
         self.wait_sync(wait_for_async=True)
@@ -72,7 +72,7 @@ class TestLocalDeletion(UnitTestCase):
         self.assertFalse(self.remote_document_client_1.exists(file_path))
         self.assertFalse(self.local_client_1.exists(file_path))
         # See if it untrash or recreate
-        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/'))
+        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1.abspath('/'))
         self.wait_sync(wait_for_async=True)
         new_info = self.remote_document_client_1.get_info(old_info.uid, use_trash=True)        
         self.assertEqual(new_info.state, 'project')
@@ -88,7 +88,7 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync()
         self.assertTrue(self.remote_document_client_1.exists(file_path))
         old_info = self.remote_document_client_1.get_info(file_path, use_trash=True)
-        abs_path = self.local_client_1._abspath(file_path)
+        abs_path = self.local_client_1.abspath(file_path)
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))
         self.wait_sync(wait_for_async=True)
@@ -107,7 +107,7 @@ class TestLocalDeletion(UnitTestCase):
         self.assertFalse(self.local_client_1.exists(file_path))
 
         # See if it untrash or recreate
-        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/'))
+        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1.abspath('/'))
         self.assertIsNotNone(self.local_client_1.get_remote_id('/File_To_Delete.txt'))
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.local_client_1.exists('/File_To_Delete.txt'))
@@ -126,7 +126,7 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync()
         self.assertTrue(self.remote_document_client_1.exists(file_path))
         old_info = self.remote_document_client_1.get_info(file_path, use_trash=True)
-        abs_path = self.local_client_1._abspath(file_path)
+        abs_path = self.local_client_1.abspath(file_path)
 
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))
@@ -148,7 +148,7 @@ class TestLocalDeletion(UnitTestCase):
 
         # See if it untrash or unsynchronized
         self.local_client_1.unlock_ref('/ToCopy')
-        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/ToCopy'))
+        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1.abspath('/ToCopy'))
         self.wait_sync(wait_for_async=True)
 
     def test_untrash_file_on_delete_parent(self):
@@ -159,7 +159,7 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync()
         self.assertTrue(self.remote_document_client_1.exists(file_path))
         old_info = self.remote_document_client_1.get_info(file_path, use_trash=True)
-        abs_path = self.local_client_1._abspath(file_path)
+        abs_path = self.local_client_1.abspath(file_path)
 
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))
@@ -171,7 +171,7 @@ class TestLocalDeletion(UnitTestCase):
 
         # See if it untrash or recreate
         self.local_client_1.make_folder('/', 'ToDelete')
-        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/ToDelete/'))
+        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1.abspath('/ToDelete/'))
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.remote_document_client_1.exists(old_info.uid))
         new_info = self.remote_document_client_1.get_info(old_info.uid, use_trash=True)
@@ -185,7 +185,7 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync()
         self.assertTrue(self.remote_document_client_1.exists(file_path))
         old_info = self.remote_document_client_1.get_info(file_path, use_trash=True)
-        abs_path = self.local_client_1._abspath(file_path)
+        abs_path = self.local_client_1.abspath(file_path)
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))
         self.local_client_1.delete('/ToDelete')
@@ -194,7 +194,7 @@ class TestLocalDeletion(UnitTestCase):
         self.assertFalse(self.local_client_1.exists(file_path))
         # See if it untrash or recreate
         self.local_client_1.make_folder('/', 'ToDelete')
-        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1._abspath('/ToDelete/'))
+        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1.abspath('/ToDelete/'))
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.remote_document_client_1.exists(old_info.uid))
         self.assertTrue(self.local_client_1.exists(file_path))

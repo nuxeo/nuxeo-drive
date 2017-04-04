@@ -321,7 +321,7 @@ class TestWatchers(UnitTestCase):
         # Wait for test workspace synchronization
         self.wait_sync()
         # Create files with Unicode combining accents, Unicode latin characters and no special characters
-        file_path = local._abspath('/Test.pdf')
+        file_path = local.abspath('/Test.pdf')
         copyfile(self.location + '/resources/testFile.pdf', file_path)
         # Wait for test workspace synchronization
         self.wait_sync()
@@ -338,7 +338,7 @@ class TestWatchers(UnitTestCase):
         # Wait for test workspace synchronization
         self.wait_sync()
         # Create files with Unicode combining accents, Unicode latin characters and no special characters
-        file_path = local._abspath('/Test.pdf')
+        file_path = local.abspath('/Test.pdf')
         copyfile(self.location + '/resources/testFile.pdf', file_path)
         # Wait for test workspace synchronization
         self.engine_1.stop()

@@ -28,17 +28,17 @@ class WindowsLocalClient(LocalClient):
                                                  disable_duplication)
 
     def delete_final(self, ref):
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         res = shell.SHFileOperation((0, shellcon.FO_DELETE, path, None,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
         if res[0] != 0:
             raise IOError(res)
 
     def move(self, ref, new_parent_ref, name=None):
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         if name is None:
             name = os.path.basename(path)
-        new_path = os.path.join(self._abspath(new_parent_ref), name)
+        new_path = os.path.join(self.abspath(new_parent_ref), name)
         res = shell.SHFileOperation((0, shellcon.FO_MOVE, path, new_path,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
         if res[0] != 0:
@@ -52,7 +52,7 @@ class WindowsLocalClient(LocalClient):
         os_path, name = self._abspath_deduped(parent, name)
         try:
             res = shell.SHFileOperation((0, shellcon.FO_COPY, os_path,
-                                         self._abspath(ref),
+                                         self.abspath(ref),
                                          shellcon.FOF_NOCONFIRMATION, None,
                                          None))
             if res[0] != 0:
@@ -63,9 +63,9 @@ class WindowsLocalClient(LocalClient):
         finally:
             self.lock_ref(parent, locker)
 
-    def _abspath(self, ref):
+    def abspath(self, ref):
         # Remove \\?\
-        abs_path = super(WindowsLocalClient, self)._abspath(ref)
+        abs_path = super(WindowsLocalClient, self).abspath(ref)
         if len(abs_path) >= 260:
             log.warning(('The path is longer than 260 characters and '
                          'WindowsLocalClient is about the remove the long path '
@@ -73,7 +73,7 @@ class WindowsLocalClient(LocalClient):
         return abs_path[4:]
 
     def rename(self, ref, to_name):
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         new_path = os.path.join(os.path.dirname(path), to_name)
         res = shell.SHFileOperation((0, shellcon.FO_RENAME, path, new_path,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
@@ -81,7 +81,7 @@ class WindowsLocalClient(LocalClient):
             raise IOError(res)
 
     def delete(self, ref):
-        path = self._abspath(ref)
+        path = self.abspath(ref)
         # FOF_ALLOWUNDO send to Trash
         res = shell.SHFileOperation((0, shellcon.FO_DELETE, path, None,
                                      shellcon.FOF_NOCONFIRMATION | shellcon.FOF_ALLOWUNDO,

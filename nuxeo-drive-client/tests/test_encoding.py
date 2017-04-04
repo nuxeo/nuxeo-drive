@@ -98,6 +98,6 @@ class TestEncoding(UnitTestCase):
         self.local_client.make_file('/', name, 'Test')
         info = FileInfo(self.local_client.base_folder, '/' + name, False, 0)
         # The encoding should be different - cannot trust the get_children as they use FileInfo
-        children = os.listdir(self.local_client._abspath('/'))
+        children = os.listdir(self.local_client.abspath('/'))
         children.sort()
         self.assertNotEqual(children[0], name)

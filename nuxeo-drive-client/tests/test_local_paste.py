@@ -32,7 +32,7 @@ class TestLocalPaste(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         log.debug('*** engine 1 synced')
         self.assertTrue(self.local_client_1.exists('/'), "Test sync root should be sync")
-        self.workspace_abspath = self.local_client_1._abspath('/')
+        self.workspace_abspath = self.local_client_1.abspath('/')
 
         # create  folder a1 and a2 under a temp folder
         self.local_temp = tempfile.mkdtemp(self.TEMP_FOLDER)
@@ -95,7 +95,7 @@ class TestLocalPaste(UnitTestCase):
     """
     def test_copy_paste_empty_folder_last(self):
         log.debug('*** enter TestLocalPaste.test_copy_paste_empty_folder_last()')
-        workspace_abspath = self.local_client_1._abspath('/')
+        workspace_abspath = self.local_client_1.abspath('/')
         # copy 'temp/a1' under 'Nuxeo Drive Test Workspace'
         shutil.copytree(self.folder1, os.path.join(workspace_abspath, self.FOLDER_A1))
         # copy 'temp/a2' under 'Nuxeo Drive Test Workspace'
@@ -132,7 +132,7 @@ class TestLocalPaste(UnitTestCase):
     def test_copy_paste_same_file(self):
         log.debug('*** enter TestLocalPaste.test_copy_paste_same_file()')
         name = self.FILENAME_PATTERN % 1
-        workspace_abspath = self.local_client_1._abspath('/')
+        workspace_abspath = self.local_client_1.abspath('/')
         path = os.path.join('/', self.FOLDER_A1, name)
         copypath = os.path.join('/', self.FOLDER_A1, name + 'copy')
         # copy 'temp/a1' under 'Nuxeo Drive Test Workspace'
@@ -154,7 +154,7 @@ class TestLocalPaste(UnitTestCase):
         remote_id = self.local_client_1.get_remote_id(path)
 
         log.debug('*** copy file TestLocalPaste.test_copy_paste_same_file()')
-        shutil.copy2(self.local_client_1._abspath(path), self.local_client_1._abspath(copypath))
+        shutil.copy2(self.local_client_1.abspath(path), self.local_client_1.abspath(copypath))
         self.local_client_1.set_remote_id(copypath, remote_id)
         log.debug('*** wait for sync TestLocalPaste.test_copy_paste_same_file()')
         self.wait_sync(timeout=TEST_TIMEOUT)

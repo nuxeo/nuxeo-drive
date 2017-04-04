@@ -35,13 +35,13 @@ class TestLocalCreateFolders(UnitTestCase):
     def tearDown(self):
         log.debug('*** enter TestLocalCreateFolders.tearDown() ***')
         # list content of folder A
-        abs_folder_path_1 = self.local_root_client_1._abspath(self.folder_path_1)
+        abs_folder_path_1 = self.local_root_client_1.abspath(self.folder_path_1)
         log.debug('content of folder "%s"', abs_folder_path_1)
         for f in os.listdir(abs_folder_path_1):
             log.debug(f)
 
         # list content of folder B
-        abs_folder_path_2 = self.local_root_client_1._abspath(self.folder_path_2)
+        abs_folder_path_2 = self.local_root_client_1.abspath(self.folder_path_2)
         log.debug('content of folder "%s"', abs_folder_path_2)
         for f in os.listdir(abs_folder_path_2):
             log.debug(f)
@@ -73,7 +73,7 @@ class TestLocalCreateFolders(UnitTestCase):
         self.test_doc_path = os.path.join(test_resources_path, TestLocalCreateFolders.TEST_DOC_RESOURCE)
 
         # add image files in folder 'Nuxeo Drive Test Workspace/A'
-        abs_folder_path_1 = self.local_root_client_1._abspath(self.folder_path_1)
+        abs_folder_path_1 = self.local_root_client_1.abspath(self.folder_path_1)
         for file_num in range(self.NUMBER_OF_LOCAL_TEXT_FILES + 1, self.NUMBER_OF_LOCAL_FILES_TOTAL + 1):
             filename = self.FILE_NAME_PATTERN % (file_num, os.path.splitext(self.TEST_DOC_RESOURCE)[1])
             dst_path = os.path.join(abs_folder_path_1, filename)
@@ -104,7 +104,7 @@ class TestLocalCreateFolders(UnitTestCase):
                          self.NUMBER_OF_LOCAL_FILES_TOTAL)
 
         # expect local 'Nuxeo Drive Test Workspace/A' to contain all the files
-        abs_folder_path_1 = self.local_root_client_1._abspath(self.folder_path_1)
+        abs_folder_path_1 = self.local_root_client_1.abspath(self.folder_path_1)
         self.assertTrue(os.path.exists(abs_folder_path_1))
         children_1 = os.listdir(abs_folder_path_1)
         postcondition1 = len(children_1) == self.NUMBER_OF_LOCAL_FILES_TOTAL
@@ -121,7 +121,7 @@ class TestLocalCreateFolders(UnitTestCase):
                                                                                       missing_expected_files)
 
         # expect local 'Nuxeo Drive Test Workspace/B' to exist
-        abs_folder_path_2 = self.local_root_client_1._abspath(self.folder_path_2)
+        abs_folder_path_2 = self.local_root_client_1.abspath(self.folder_path_2)
         self.assertTrue(os.path.exists(abs_folder_path_2))
 
         # expect remote 'Nuxeo Drive Test Workspace/A' to contain all the files

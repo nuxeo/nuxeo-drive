@@ -702,7 +702,7 @@ class UnitTestCase(SimpleUnitTestCase):
         im_out.save(filename)
 
     def assertNxPart(self, path, name=None, present=True):
-        os_path = self.local_client_1._abspath(path)
+        os_path = self.local_client_1.abspath(path)
         children = os.listdir(os_path)
         for child in children:
             if len(child) < 8:

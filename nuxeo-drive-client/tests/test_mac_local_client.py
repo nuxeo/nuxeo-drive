@@ -30,7 +30,7 @@ class TestMacSpecific(UnitTestCase):
         key[6] = 0x43
         key[7] = 0x53
         import xattr
-        xattr.setxattr(self.local_client_1._abspath(u'/File.txt'), xattr.XATTR_FINDERINFO_NAME, bytes(bytearray(key)))
+        xattr.setxattr(self.local_client_1.abspath(u'/File.txt'), xattr.XATTR_FINDERINFO_NAME, bytes(bytearray(key)))
 
         # The file should not be synced and there have no remote id
         self.wait_sync(wait_for_async=True, fail_if_timeout=False, timeout=10)

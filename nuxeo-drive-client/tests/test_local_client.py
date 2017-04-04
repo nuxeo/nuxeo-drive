@@ -70,7 +70,7 @@ class StubLocalClient(object):
 
     def test_get_info_invalid_date(self):
         doc_1 = self.local_client_1.make_file('/', 'Document 1.txt')
-        os.utime(self.local_client_1._abspath(
+        os.utime(self.local_client_1.abspath(
                 os.path.join('/', 'Document 1.txt')), (0, 999999999999999))
         doc_1_info = self.local_client_1.get_info(doc_1)
         self.assertEqual(doc_1_info.name, 'Document 1.txt')
@@ -195,7 +195,7 @@ class StubLocalClient(object):
 
     def test_xattr(self):
         ref = self.local_client_1.make_file('/', 'File 2.txt', content=b'baz\n')
-        path = self.local_client_1._abspath(ref)
+        path = self.local_client_1.abspath(ref)
         mtime = int(os.path.getmtime(path))
         sleep(1)
         self.local_client_1.set_remote_id(ref, 'TEST')
