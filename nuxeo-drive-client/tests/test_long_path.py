@@ -43,7 +43,7 @@ class TestLongPath(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        parent_path = os.path.join(self.local_1._abspath('/'),
+        parent_path = os.path.join(self.local_1.abspath('/'),
                                    FOLDER_A, FOLDER_B, FOLDER_C, FOLDER_D)
         log.info("Creating folder with path: %s", parent_path)
         if sys.platform == 'win32' and not os.path.exists(parent_path):

@@ -14,7 +14,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.assertTrue(self.local_client_1.exists('/'))
         self.engine_1.stop()
         self.local_client_1.make_file("/", "Test.txt", "plop")
-        os.utime(self.local_client_1._abspath("/Test.txt"), (0, 999999999999999))
+        os.utime(self.local_client_1.abspath("/Test.txt"), (0, 999999999999999))
         self.engine_1.start()
         self.wait_sync()
         children = self.remote_document_client_1.get_children_info(self.workspace_1)

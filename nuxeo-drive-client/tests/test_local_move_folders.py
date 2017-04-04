@@ -27,7 +27,7 @@ class TestLocalMoveFolders(UnitTestCase):
         self.folder_path_2 = self.local_client_1.make_folder(u'/', u'a2')
 
         # Add image files to a1
-        abs_folder_path_1 = self.local_client_1._abspath(self.folder_path_1)
+        abs_folder_path_1 = self.local_client_1.abspath(self.folder_path_1)
         for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1):
             file_name = self.FILE_NAME_PATTERN % (file_num, 'jpg')
             file_path = os.path.join(abs_folder_path_1, file_name)
@@ -35,7 +35,7 @@ class TestLocalMoveFolders(UnitTestCase):
         log.debug('Local test files created in a1')
 
         # Add image files to a2
-        abs_folder_path_2 = self.local_client_1._abspath(self.folder_path_2)
+        abs_folder_path_2 = self.local_client_1.abspath(self.folder_path_2)
         for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1):
             file_name = self.FILE_NAME_PATTERN % (file_num, 'jpg')
             file_path = os.path.join(abs_folder_path_2, file_name)
@@ -90,8 +90,8 @@ class TestLocalMoveFolders(UnitTestCase):
                                                       for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
 
     def test_local_move_folder_with_files(self):
-        src = self.local_client_1._abspath(self.folder_path_1)
-        dst = self.local_client_1._abspath(self.folder_path_2)
+        src = self.local_client_1.abspath(self.folder_path_1)
+        dst = self.local_client_1.abspath(self.folder_path_2)
         shutil.move(src, dst)
         self.wait_sync()
 

@@ -34,7 +34,7 @@ class VolumeTestCase(UnitTestCase):
                 self.local_client_1.make_folder(parent["path"], foldername)
             folderobj["name"] = foldername
             folderobj["childs"] = dict()
-            abspath = self.local_client_1._abspath(folderobj["path"])
+            abspath = self.local_client_1.abspath(folderobj["path"])
             parent["childs"][foldername] = folderobj
             self.items = self.items + 1
             self.create_tree(folders, files, depth-1, folderobj)
@@ -70,9 +70,9 @@ class VolumeTestCase(UnitTestCase):
         self.tree = dict()
         self.tree["childs"] = dict()
         self.tree["path"] = "/"
-        log.debug("Generating in: " + self.local_client_1._abspath('/'))
+        log.debug("Generating in: " + self.local_client_1.abspath('/'))
         self.create_tree(self.num_folders, self.num_files, self.depth, self.tree)
-        log.debug("Generated done in: " + self.local_client_1._abspath('/'))
+        log.debug("Generated done in: " + self.local_client_1.abspath('/'))
         if not self.fake:
             if not stopped:
                 log.debug('*** engine1 starting')
@@ -120,7 +120,7 @@ class VolumeTestCase(UnitTestCase):
         remote_refs = dict()
 
         # check locally
-        os_children = os.listdir(self.local_client_1._abspath(path))
+        os_children = os.listdir(self.local_client_1.abspath(path))
         self.assertEqual(len(os_children), len(children))
         cmp_children = copy(children)
         for name in os_children:
@@ -169,12 +169,12 @@ class VolumeTestCase(UnitTestCase):
         child = self.get_path(True, self.depth, 1)
         log.debug("Will move " + root_2 + " into " + child)
         if not self.fake:
-            shutil.move(self.local_client_1._abspath(root_2), self.local_client_1._abspath(child))
+            shutil.move(self.local_client_1.abspath(root_2), self.local_client_1.abspath(child))
         root_1 = self.get_path(True, 1, 1)
         root_3 = self.get_path(True, 1, 3)
         log.debug("Will move " + root_1 + " into " + root_3)
         if not self.fake:
-            shutil.move(self.local_client_1._abspath(root_1), self.local_client_1._abspath(root_3))
+            shutil.move(self.local_client_1.abspath(root_1), self.local_client_1.abspath(root_3))
         # Update paths
         child = "/" + self.get_name(True, 1, 3) + child
         root_2 = child + self.get_name(True, 1, 2)
@@ -213,7 +213,7 @@ class VolumeTestCase(UnitTestCase):
         child = self.get_path(True, self.depth, 1)
         log.debug("Will copy " + root_2 + " into " + child)
         if not self.fake:
-            shutil.copytree(self.local_client_1._abspath(root_2), self.local_client_1._abspath(child + self.get_name(True, 1, 2)))
+            shutil.copytree(self.local_client_1.abspath(root_2), self.local_client_1.abspath(child + self.get_name(True, 1, 2)))
         root_1 = self.get_path(True, 1, 1)
         root_3 = self.get_path(True, 1, 3)
         # new copies
@@ -221,17 +221,17 @@ class VolumeTestCase(UnitTestCase):
         root_5 = self.get_path(True, 1, self.num_folders + 2)
         log.debug("Will copy " + root_1 + " into " + root_3)
         if not self.fake:
-            shutil.copytree(self.local_client_1._abspath(root_1), self.local_client_1._abspath(root_3+self.get_name(True, 1, 1)))
+            shutil.copytree(self.local_client_1.abspath(root_1), self.local_client_1.abspath(root_3+self.get_name(True, 1, 1)))
             log.debug("Will copy " + root_3 + " into " + root_4)
             log.debug("Will copy " + root_3 + " into " + root_5)
-            shutil.copytree(self.local_client_1._abspath(root_3), self.local_client_1._abspath(root_4))
-            shutil.copytree(self.local_client_1._abspath(root_3), self.local_client_1._abspath(root_5))
+            shutil.copytree(self.local_client_1.abspath(root_3), self.local_client_1.abspath(root_4))
+            shutil.copytree(self.local_client_1.abspath(root_3), self.local_client_1.abspath(root_5))
         # Update paths
         child = "/" + self.get_name(True, 1, 3) + child
         root_2 = child + self.get_name(True, 1, 2)
         root_1 = root_3 + self.get_name(True, 1, 1)
-        root_1_path = self.local_client_1._abspath(root_1)
-        child_path = self.local_client_1._abspath(child)
+        root_1_path = self.local_client_1.abspath(root_1)
+        child_path = self.local_client_1.abspath(child)
         added_files = []
         # Copies files from one folder to another
         for name in os.listdir(child_path):

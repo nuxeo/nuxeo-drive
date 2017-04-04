@@ -88,9 +88,9 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Create a document by streaming a binary file
-        file_path = os.path.join(local._abspath('/Test folder'), 'testFile.pdf')
+        file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
         copyfile(self.location + '/resources/testFile.pdf', file_path)
-        file_path = os.path.join(local._abspath('/Test folder'), 'testFile2.pdf')
+        file_path = os.path.join(local.abspath('/Test folder'), 'testFile2.pdf')
         copyfile(self.location + '/resources/testFile.pdf', file_path)
 
         # Rename remote folder then synchronize
@@ -115,7 +115,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.workspace_pair_local_path = u'/' + self.workspace_title
 
         local.make_folder(u'/', u'Test folder')
-        file_path = os.path.join(local._abspath('/Test folder'), 'testFile.pdf')
+        file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
         copyfile(self.location + '/resources/testFile.pdf', file_path)
         self.wait_sync(wait_for_async=True)
         file_id = local.get_remote_id('/Test folder/testFile.pdf')
@@ -146,7 +146,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.workspace_pair_local_path = u'/' + self.workspace_title
 
         local.make_folder(u'/', u'Test folder')
-        file_path = os.path.join(local._abspath('/Test folder'), 'testFile.pdf')
+        file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
         copyfile(self.location + '/resources/testFile.pdf', file_path)
         self.wait_sync(wait_for_async=True)
         file_id = local.get_remote_id('/Test folder/testFile.pdf')

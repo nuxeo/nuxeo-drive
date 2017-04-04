@@ -59,7 +59,7 @@ class TestLocalCopyPaste(UnitTestCase):
         self.test_doc_path = os.path.join(test_resources_path, TestLocalCopyPaste.TEST_DOC_RESOURCE)
 
         # add image files in folder 'Nuxeo Drive Test Workspace/A'
-        abs_folder_path_1 = self.local_root_client_1._abspath(self.folder_path_1)
+        abs_folder_path_1 = self.local_root_client_1.abspath(self.folder_path_1)
         for file_num in range(self.NUMBER_OF_LOCAL_TEXT_FILES + 1, self.NUMBER_OF_LOCAL_FILES_TOTAL + 1):
             filename = self.FILE_NAME_PATTERN % (file_num, os.path.splitext(self.TEST_DOC_RESOURCE)[1])
             dst_path = os.path.join(abs_folder_path_1, filename)
@@ -89,13 +89,13 @@ class TestLocalCopyPaste(UnitTestCase):
     def tearDown(self):
         log.debug('*** enter TestLocalCopyPaste.tearDown() ***')
         # list content of folder A
-        abs_folder_path_1 = self.local_root_client_1._abspath(self.folder_path_1)
+        abs_folder_path_1 = self.local_root_client_1.abspath(self.folder_path_1)
         log.debug('content of folder "%s"', abs_folder_path_1)
         for f in os.listdir(abs_folder_path_1):
             log.debug(f)
 
         # list content of folder B
-        abs_folder_path_2 = self.local_root_client_1._abspath(self.folder_path_2)
+        abs_folder_path_2 = self.local_root_client_1.abspath(self.folder_path_2)
         log.debug('content of folder "%s"', abs_folder_path_2)
         for f in os.listdir(abs_folder_path_2):
             log.debug(f)
@@ -114,8 +114,8 @@ class TestLocalCopyPaste(UnitTestCase):
         if not stopped:
             self.engine_1.start()
         # copy all children (files) of A to B
-        src = self.local_root_client_1._abspath(self.folder_path_1)
-        dst = self.local_root_client_1._abspath(self.folder_path_2)
+        src = self.local_root_client_1.abspath(self.folder_path_1)
+        dst = self.local_root_client_1.abspath(self.folder_path_2)
         for f in os.listdir(src):
             shutil.copy(os.path.join(src, f), dst)
         if stopped:
@@ -124,7 +124,7 @@ class TestLocalCopyPaste(UnitTestCase):
         log.debug('*** engine1 synced ***')
 
         # expect local 'Nuxeo Drive Test Workspace/A' to contain all the files
-        abs_folder_path_1 = self.local_root_client_1._abspath(self.folder_path_1)
+        abs_folder_path_1 = self.local_root_client_1.abspath(self.folder_path_1)
         self.assertTrue(os.path.exists(abs_folder_path_1))
         children_1 = os.listdir(abs_folder_path_1)
         postcondition1 = len(children_1) == self.NUMBER_OF_LOCAL_FILES_TOTAL
@@ -141,7 +141,7 @@ class TestLocalCopyPaste(UnitTestCase):
                                                                                       missing_expected_files)
 
         # expect local 'Nuxeo Drive Test Workspace/B' to contain also the same files
-        abs_folder_path_2 = self.local_root_client_1._abspath(self.folder_path_2)
+        abs_folder_path_2 = self.local_root_client_1.abspath(self.folder_path_2)
         self.assertTrue(os.path.exists(abs_folder_path_2))
         children_2 = os.listdir(abs_folder_path_2)
         postcondition3 = len(children_2) == self.NUMBER_OF_LOCAL_FILES_TOTAL
