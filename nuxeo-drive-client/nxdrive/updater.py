@@ -319,10 +319,10 @@ class AppUpdater(PollWorker):
         self.compute_common_versions()
         latest_version = None
         for client_version in self.find_versions():
-            if self.min_client_version <= client_version:
+            if version_compare_client(self.min_client_version, client_version) < 1:
                 server_min_version = self.get_server_min_version(
                                                     client_version)
-                if server_min_version <= self.min_server_version:
+                if version_compare(server_min_version, self.min_server_version) < 1:
                     latest_version = client_version
         if latest_version is None:
             raise MissingCompatibleVersion(

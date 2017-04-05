@@ -1,15 +1,16 @@
-import sys
-import time
-
+# coding: utf-8
 import base64
 import locale
 import mimetypes
 import os
-import psutil
 import re
+import sys
+import time
+from distutils.version import StrictVersion
+
+import psutil
 from Crypto import Random
 from Crypto.Cipher import AES
-from semver import compare
 
 from nxdrive.logging_config import get_logger
 
@@ -78,7 +79,7 @@ def version_compare_client(x, y):
     """ Try to compare SemVer and fallback to version_compare on error. """
 
     try:
-        return compare(x.replace('b', '-beta'), y.replace('b', '-beta'))
+        return cmp(StrictVersion(x), StrictVersion(y))
     except ValueError:
         return version_compare(x, y)
 
