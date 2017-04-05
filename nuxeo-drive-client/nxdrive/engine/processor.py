@@ -542,7 +542,7 @@ class Processor(EngineWorker):
                 self._dao.remove_state(doc_pair)
             else:
                 log.debug("%s can not be remotely deleted:  either it is readonly or it is a virtual folder that "
-                          "doesn't exist in the server hierarchy")
+                          "doesn't exist in the server hierarchy", doc_pair.local_path)
                 if doc_pair.remote_state != 'deleted':
                     log.debug("Marking %s as filter since remote document '%s' (%s) can not be deleted:", doc_pair,
                               doc_pair.remote_name, doc_pair.remote_ref)
@@ -701,7 +701,7 @@ class Processor(EngineWorker):
                         log.debug("DOC_PAIR(%r): old_path[%d][%r]: %s, new_path[%d][%r]: %s",
                             doc_pair, local_client.exists(old_path), local_client.get_remote_id(old_path), old_path,
                             local_client.exists(new_path), local_client.get_remote_id(new_path), new_path)
-                        ## end of add log
+                        # end of add log
                         log.debug("Moving local %s '%s' to '%s'.",
                             file_or_folder, local_client.abspath(doc_pair.local_path),
                             local_client.abspath(new_parent_pair.local_path + '/' + moved_name))
@@ -934,7 +934,7 @@ class Processor(EngineWorker):
                     else:
                         self._dao.remove_state(target_pair)
                     # Mark all local as unknown
-                    #self._mark_unknown_local_recursive(session, source_pair)
+                    # self._mark_unknown_local_recursive(session, source_pair)
                 self._dao.synchronize_state(source_pair)
                 return True
             except Exception, e:
