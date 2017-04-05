@@ -279,7 +279,8 @@ class TestUpdater(unittest.TestCase):
 
     def test_find_versions(self):
         versions = self.updater.find_versions()
-        self.assertEqual(versions, ['1.3.0424', '1.3.0524', '1.4.0622'])
+        self.assertEqual(versions, ['1.3.0424', '1.3.0524', '1.4.0622',
+                                    '2.4.2b1', '2.4.2', '2.5.0b1', '2.5.0b2'])
 
     def test_get_server_min_version(self):
         # Unexisting version
@@ -291,6 +292,10 @@ class TestUpdater(unittest.TestCase):
                          '5.9.1')
         self.assertEqual(self.updater.get_server_min_version('1.4.0622'),
                          '5.9.2')
+        self.assertEqual(self.updater.get_server_min_version('2.4.2b1'),
+                         '9.1')
+        self.assertEqual(self.updater.get_server_min_version('2.5.0b1'),
+                         '9.2')
 
     def test_get_client_min_version(self):
         # Unexisting version
@@ -306,6 +311,10 @@ class TestUpdater(unittest.TestCase):
                          '1.4.0622')
         self.assertEqual(self.updater._get_client_min_version('5.9.4'),
                          '1.5.0715')
+        self.assertEqual(self.updater._get_client_min_version('9.1'),
+                         '2.4.2b1')
+        self.assertEqual(self.updater._get_client_min_version('9.2'),
+                         '2.5.0b1')
 
     def _get_latest_compatible_version(self, version):
         self.manager.clean_engines()
@@ -328,6 +337,8 @@ class TestUpdater(unittest.TestCase):
                          '1.3.0524')
         self.assertEqual(self._get_latest_compatible_version('5.8'),
                          '1.3.0424')
+        self.assertEqual(self._get_latest_compatible_version('9.1'),
+                         '2.4.2')
 
     def _get_update_status(self, client_version, server_version, add_version=None):
         self.manager.set_version(client_version)
@@ -374,6 +385,11 @@ class TestUpdater(unittest.TestCase):
         status = self._get_update_status('1.3.0524', '5.9.2')
         self.assertEqual(status,
                          (UPDATE_STATUS_UPDATE_AVAILABLE, '1.4.0622'))
+        self.assertEqual(self._get_update_status('2.4.2b1', '9.1'),
+                         (UPDATE_STATUS_UPDATE_AVAILABLE, '2.4.2'))
+        self.assertEqual(self._get_update_status('2.5.0b1', '9.2'),
+                         (UPDATE_STATUS_UPDATE_AVAILABLE, '2.5.0b2'))
+
         # Up-to-date
         status = self._get_update_status('1.3.0424', '5.8')
         self.assertEqual(status,
@@ -386,6 +402,8 @@ class TestUpdater(unittest.TestCase):
                          (UPDATE_STATUS_UP_TO_DATE, None))
         status = self._get_update_status('1.4.0622', '5.9.3')
         self.assertEqual(status,
+                         (UPDATE_STATUS_UP_TO_DATE, None))
+        self.assertEqual(self._get_update_status('2.4.2', '9.1'),
                          (UPDATE_STATUS_UP_TO_DATE, None))
 
         # Test multi server
