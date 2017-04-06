@@ -3,9 +3,9 @@
 # Copyright (C) 2012 Nuxeo
 #
 
+import re
 import os
 import sys
-from datetime import datetime
 
 try:
     import nx_esky
@@ -15,18 +15,6 @@ from esky.bdist_esky import Executable as es_Executable
 
 OUTPUT_DIR = 'dist'
 SERVER_MIN_VERSION = '5.6'
-
-
-def read_version(init_file):
-    if 'DRIVE_VERSION' in os.environ:
-        return os.environ['DRIVE_VERSION']
-    with open(init_file, 'rb') as f:
-        return f.readline().split("=")[1].strip().replace('\'', '')
-
-
-def update_version(init_file, version):
-    with open(init_file, 'wb') as f:
-        f.write("__version__ = '%s'\n" % version)
 
 
 def create_json_metadata(client_version, server_version):
@@ -40,6 +28,15 @@ def create_json_metadata(client_version, server_version):
     with open(file_path, 'wb') as f:
         f.write('{"nuxeoPlatformMinVersion": "%s"}\n' % server_version)
     return file_path
+
+
+def get_version(init_file):
+    """ Find the current version. """
+
+    with open(init_file) as handler:
+        for line in handler.readlines():
+            if line.startswith('__version__'):
+                return re.findall(r"'(.+)'", line)[0]
 
 
 class Packages(object):
@@ -336,34 +333,10 @@ class NuxeoDriveSetup(object):
         data_files = [('icons', icon_files)]
         data_files.extend(ui5_files)
         data_files.extend(attribs.get_data_files())
-        old_version = None
-        init_file = attribs.get_init_file()
-        version = read_version(init_file)
-
-        if '-dev' in version:
-            # timestamp the dev artifacts as distutils only accepts "b" + digit
-            timestamp = datetime.utcnow().isoformat()
-            timestamp = timestamp.replace(":", "")
-            timestamp = timestamp.replace(".", "")
-            timestamp = timestamp.replace("T", "")
-            timestamp = timestamp.replace("-", "")
-            old_version = version
-            # distutils imposes a max 3 levels integer version
-            # (+ prerelease markers which are not allowed in a
-            # msi package version). On the other hand,
-            # msi imposes the a.b.c.0 or a.b.c.d format where
-            # a, b, c and d are all 16 bits integers
-            # TODO: align on latest distutils versioning
-            month_day = timestamp[4:8]
-            if month_day.startswith('0'):
-                month_day = month_day[1:]
-            version = version.replace('-dev', ".%s" % (
-                month_day))
-            update_version(init_file, version)
-            print "Updated version to " + version
+        drive_version = get_version(attribs.get_init_file())
 
         # Create JSON metadata file for the frozen application
-        json_file = create_json_metadata(version, SERVER_MIN_VERSION)
+        json_file = create_json_metadata(drive_version, SERVER_MIN_VERSION)
         print "Created JSON metadata file for frozen app: " + json_file
 
         includes = [
@@ -431,7 +404,7 @@ class NuxeoDriveSetup(object):
 
             package_data = {}
             esky_app_name = (attribs.get_name()
-                             + '-' + version + '.' + get_platform())
+                             + '-' + drive_version + '.' + get_platform())
             esky_dist_dir = os.path.join(OUTPUT_DIR, esky_app_name)
             freeze_options.update({
                 'executables': executables,
@@ -524,7 +497,7 @@ class NuxeoDriveSetup(object):
             )
         setup(
             name=name,
-            version=version,
+            version=drive_version,
             description=attribs.get_description(),
             author=attribs.get_author(),
             author_email=attribs.get_author_email(),
@@ -538,10 +511,6 @@ class NuxeoDriveSetup(object):
             ext_modules=ext_modules,
             **freeze_options
         )
-
-        if old_version is not None:
-            update_version(init_file, old_version)
-            print "Restored version to " + old_version
 
 
 def main():
