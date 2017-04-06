@@ -268,6 +268,15 @@ class TestUpdater(unittest.TestCase):
         self.assertEqual(version_compare_client('2.4.0b1', '2.4.0b1'), 0)
         self.assertEqual(version_compare_client('2.4.2b1', '2.4.2'), -1)
 
+        # Compare to None
+        self.assertEqual(version_compare('8.10-HF37', None), 1)
+        self.assertEqual(version_compare(None, '8.10-HF37'), -1)
+        self.assertEqual(version_compare(None, None), 0)
+        self.assertEqual(version_compare_client('2.0.805', None), 1)
+        self.assertEqual(version_compare_client(None, '2.0.805'), -1)
+        self.assertEqual(version_compare_client(None, None), 0)
+
+
     def test_get_active_version(self):
         # Active version is None because Esky instance is built from a
         # directory, see Esky._init_from_appdir

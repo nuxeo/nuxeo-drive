@@ -80,7 +80,7 @@ def version_compare_client(x, y):
 
     try:
         return cmp(StrictVersion(x), StrictVersion(y))
-    except ValueError:
+    except (AttributeError, ValueError):
         return version_compare(x, y)
 
 
@@ -121,6 +121,9 @@ def version_compare(x, y):
         - 5.8.0-HF15-SNAPSHOT < 5.8.0-HF15
         - 5.8.0-HF15-SNAPSHOT < 5.8.0-HF16-SNAPSHOT
     """
+
+    if not all((x, y)):
+        return cmp(x, y)
 
     x_numbers = x.split('.')
     y_numbers = y.split('.')
