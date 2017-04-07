@@ -1,15 +1,5 @@
-import time
-import urllib2
-import socket
-
-from tests.common import TEST_WORKSPACE_PATH
-from tests.common import OS_STAT_MTIME_RESOLUTION
-from tests.common_unit_test import UnitTestCase
-from tests.common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT
 from nxdrive.client import LocalClient
-from tests import RemoteTestClient
-from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
-from nxdrive.osi import AbstractOSIntegration
+from tests.common_unit_test import RandomBug, UnitTestCase
 
 
 class TestSynchronizationSuspend(UnitTestCase):
@@ -18,6 +8,7 @@ class TestSynchronizationSuspend(UnitTestCase):
             return LocalClient(path)
         return super(TestSynchronizationSuspend, self).get_local_client(path)
 
+    @RandomBug('NXDRIVE-805', target='windows', repeat=2)
     def test_basic_synchronization_suspend(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
@@ -41,9 +32,10 @@ class TestSynchronizationSuspend(UnitTestCase):
         self.assertEqual(len(remote.get_children_info(self.workspace_1)), 4)
         self.assertTrue(self.engine_1.get_queue_manager().is_paused())
 
-
+    @RandomBug('NXDRIVE-812', target='linux', mode='BYPASS')
     def test_synchronization_end_with_children_ignore_parent(self):
-        # NXDRIVE-655
+        """ NXDRIVE-655: children of ignored folder are not ignored. """
+
         local = self.local_client_1
         remote = self.remote_document_client_1
         self.engine_1.start()

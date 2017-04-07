@@ -1,5 +1,7 @@
-from tests.common import log
-from tests.common_unit_test import UnitTestCase
+from nxdrive.logging_config import get_logger
+from tests.common_unit_test import RandomBug, UnitTestCase
+
+log = get_logger(__name__)
 
 
 class TestLocalFilter(UnitTestCase):
@@ -162,6 +164,7 @@ class TestLocalFilter(UnitTestCase):
         self.assertFalse(local.exists('/Test/Subfolder/SubSubfolder'))
         self.assertFalse(local.exists('/Test/Subfolder/SubSubfolder/joe4.txt'))
 
+    @RandomBug('NXDRIVE-814', target='mac', mode='BYPASS')
     def test_synchronize_local_filter_with_remote_trash(self):
         self.engine_1.start()
 

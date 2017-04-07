@@ -3,9 +3,12 @@ import time
 import os
 from unittest import skipIf
 
+from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
-from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH, log
-from tests.common_unit_test import UnitTestCase
+from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
+from tests.common_unit_test import RandomBug, UnitTestCase
+
+log = get_logger(__name__)
 
 
 class TestReadOnly(UnitTestCase):
@@ -91,6 +94,7 @@ class TestReadOnly(UnitTestCase):
 
     @skipIf(AbstractOSIntegration.is_windows(),
             'Readonly folder let new file creation')
+    @RandomBug('NXDRIVE-816', target='mac', mode='BYPASS')
     def test_file_readonly_change(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

@@ -13,14 +13,16 @@ from threading import Thread
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
+from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.translator import Translator
-from tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir, log
+from tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
 
 if 'DRIVE_YAPPI' in os.environ:
     import yappi
 
+log = get_logger(__name__)
 DEFAULT_WAIT_SYNC_TIMEOUT = 20
 DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 
