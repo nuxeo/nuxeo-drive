@@ -7,9 +7,11 @@ from shutil import copyfile
 from unittest import skipIf
 
 from nxdrive.client import LocalClient
+from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
-from tests.common import log
-from tests.common_unit_test import UnitTestCase
+from tests.common_unit_test import RandomBug, UnitTestCase
+
+log = get_logger(__name__)
 
 
 class TestWatchers(UnitTestCase):
@@ -70,6 +72,7 @@ class TestWatchers(UnitTestCase):
         # With root
         self.assertEqual(len(res), folders + files + 1)
 
+    @RandomBug('NXDRIVE-806', target='linux', mode='BYPASS')
     def test_local_watchdog_creation(self):
         # Test the creation after first local scan
         self.queue_manager_1.suspend()
