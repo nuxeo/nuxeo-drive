@@ -22,13 +22,13 @@ Note: searching for the following regular expression in log file will filter the
 
 from mock import patch
 from urllib2 import URLError
-import nxdrive
-from tests.common_unit_test import log, UnitTestCase
+from tests.common_unit_test import RandomBug, UnitTestCase
 from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
+from nxdrive.logging_config import get_logger
 from tests.common import TEST_DEFAULT_DELAY
 from time import sleep
 
-
+log = get_logger(__name__)
 network_error = 0
 original_get_children_info = RemoteFileSystemClient.get_children_info
 original_file_to_info = RemoteFileSystemClient.file_to_info
@@ -79,6 +79,7 @@ class TestBulkRemoteChanges(UnitTestCase):
 
     @patch.object(RemoteFileSystemClient, 'get_children_info', mock_get_children_info)
     @patch.object(RemoteFileSystemClient, 'file_to_info', mock_file_to_info)
+    @RandomBug('NXDRIVE-817', target='mac', repeat=2)
     def test_many_changes(self):
         """
             Objective: The objective is to make a lot of remote changes (including a folder modified) and 
@@ -101,13 +102,11 @@ class TestBulkRemoteChanges(UnitTestCase):
             9. Check that folder1/sample1.txt and folder2/sample2.txt are synced to local PC
             10. Sleep for two remote scan attempts (to compenstate for two network failures)
             11. Check if two files 'shared/readme1.txt' and 'shared/readme3.txt' are synced to local PC
-             
         """
         global network_error
         remote_client = self.remote_document_client_1
         local_client = self.local_client_1
-        
-        
+
         self.engine_1.start()
         self.step("1. Configure drive and wait for sync")
         self.wait_sync(wait_for_async=True)

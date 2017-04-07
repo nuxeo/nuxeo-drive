@@ -1,6 +1,6 @@
 import os
 
-from tests.common_unit_test import UnitTestCase
+from tests.common_unit_test import RandomBug, UnitTestCase
 
 
 class TestDedupSensitiveCaseSync(UnitTestCase):
@@ -10,7 +10,8 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-    def _dedup_name(self, name, idx=1):
+    @staticmethod
+    def _dedup_name(name, idx=1):
         name, suffix = os.path.splitext(name)
         return "%s__%d%s" % (name, idx, suffix)
 
@@ -100,6 +101,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         self.assertEqual(remote.get_info(test_uid).name, 'test')
         self.assertEqual(remote.get_info(test2_uid).name, 'test')
 
+    @RandomBug('NXDRIVE-819', target='linux', mode='BYPASS')
     def test_dedup_move_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

@@ -9,9 +9,11 @@ import os
 import shutil
 from unittest import skipIf
 
-from common_unit_test import RandomBug, UnitTestCase
+from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
-from tests.common_unit_test import FILE_CONTENT, log
+from tests.common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
+
+log = get_logger(__name__)
 
 
 class MultipleFilesTestCase(UnitTestCase):
@@ -143,7 +145,8 @@ class MultipleFilesTestCase(UnitTestCase):
                          'file names are different')
         log.debug('*** exit MultipleFilesTestCase._move_and_copy_paste_folder')
 
-    @RandomBug('NXDRIVE-720', target='linux')
+    @RandomBug('NXDRIVE-720', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-813', target='mac', mode='BYPASS')
     def test_move_and_copy_paste_folder_original_location(self):
         self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2, os.path.dirname(self.folder_path_1),
                                          stopped=False)
