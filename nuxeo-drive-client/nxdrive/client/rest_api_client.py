@@ -51,7 +51,8 @@ class RestAPIClient(object):
     def fetch(self, ref, fetchDocument=None, enrichers=None):
         return self.execute('id/' + ref, fetchDocument=fetchDocument, enrichers=enrichers)
 
-    def execute(self, relative_url, adapter=None, fetchDocument=None, enrichers=None, timeout=-1):
+    def execute(self, relative_url, method='GET', body=None, adapter=None, fetchDocument=None, enrichers=None,
+                timeout=-1):
         """Execute a REST API call"""
 
         url = self.rest_api_url + relative_url
@@ -59,7 +60,7 @@ class RestAPIClient(object):
             url += '/@' + adapter
 
         headers = {
-            "Content-Type": "application/json+nxrequest",
+            "Content-Type": "application/json",
             "Accept": "application/json+nxentity, */*",
             "X-NXproperties": "*",
             # Keep compatibility with old header name
@@ -75,10 +76,13 @@ class RestAPIClient(object):
                 "X-NXenrichers.document": ', '.join(enrichers),
             })
 
+        data = json.dumps(body) if body is not None else None
+
         cookies = self._get_cookies()
-        log.trace("Calling REST API %s with headers %r and cookies %r", url,
-                  headers, cookies)
-        req = urllib2.Request(url, headers=headers)
+        log.trace("Calling REST API %s %s with headers %r, cookies %r and JSON payload %r", method, url, headers,
+                  cookies, data)
+        req = urllib2.Request(url, data=data, headers=headers)
+        req.get_method = lambda: method
         timeout = self.timeout if timeout == -1 else timeout
         try:
             resp = self.opener.open(req, timeout=timeout)
@@ -86,7 +90,7 @@ class RestAPIClient(object):
             self._log_details(e)
             raise
 
-        return self._read_response(resp, url)
+        return self._read_response(resp, url, method=method)
 
     def log_on_server(self, message, level='WARN'):
         """ Log the current test server side. Helpful for debugging. """
@@ -158,18 +162,16 @@ class RestAPIClient(object):
     def _get_cookies(self):
         return list(self.cookie_jar) if self.cookie_jar is not None else []
 
-    def _read_response(self, response, url):
+    def _read_response(self, response, url, method='GET'):
         info = response.info()
         s = response.read()
         content_type = info.get('content-type', '')
         cookies = self._get_cookies()
         if content_type.startswith("application/json"):
-            log.trace("Response for %s with cookies %r: %r",
-                url, cookies, s)
+            log.trace("Response for %s %s with cookies %r: %r", method, url, cookies, s)
             return json.loads(s) if s else None
         else:
-            log.trace("Response for %s with cookies %r has content-type %r",
-                url, cookies, content_type)
+            log.trace("Response for %s %s with cookies %r has content-type %r", method, url, cookies, content_type)
             return s
 
     def _log_details(self, e):
@@ -177,12 +179,27 @@ class RestAPIClient(object):
             detail = e.fp.read()
             try:
                 exc = json.loads(detail)
-                log.debug(exc['message'])
-                log.debug(exc['stack'], exc_info=True)
+                message = exc.get('message')
+                stack = exc.get('stack')
+                error = exc.get('error')
+                if message:
+                    log.debug('Remote exception message: %s', message)
+                if stack:
+                    log.debug('Remote exception stack: %r', exc['stack'], exc_info=True)
+                else:
+                    log.debug('Remote exception details: %r', detail)
+                return exc.get('status'), exc.get('code'), message, error
             except:
                 # Error message should always be a JSON message,
                 # but sometimes it's not
-                log.debug(detail)
+                if '<html>' in detail:
+                    message = e
+                else:
+                    message = detail
+                log.error(message)
+                if isinstance(e, urllib2.HTTPError):
+                    return e.code, None, message, None
+        return None
 
     def get_user_full_name(self, userid, adapter=None, timeout=-1):
         """Execute a REST API call to get User Information"""
