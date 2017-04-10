@@ -204,3 +204,31 @@ class RestAPIClient(object):
     def get_user_full_name(self, userid, adapter=None, timeout=-1):
         """Execute a REST API call to get User Information"""
         return self.execute(relative_url='user/'+ userid)
+
+    def get_group_names(self):
+        return [entry['groupname'] for entry in self.execute('groups/search?q=*')['entries']]
+
+    def create_group(self, name, member_users=None, member_groups=None):
+        group = {
+            'entity-type': 'group',
+            'groupname': name
+        }
+        if member_users is not None:
+            group['memberUsers'] = member_users
+        if member_groups is not None:
+            group['memberGroups'] = member_groups
+        return self.execute('group', method='POST', body=group)
+
+    def delete_group(self, name):
+        self.execute('group/%s' % name, method='DELETE')
+
+    def update_group(self, name, member_users=None, member_groups=None):
+        group = {
+            'entity-type': 'group',
+            'groupname': name
+        }
+        if member_users is not None:
+            group['memberUsers'] = member_users
+        if member_groups is not None:
+            group['memberGroups'] = member_groups
+        return self.execute('group/%s' % name, method='PUT', body=group)
