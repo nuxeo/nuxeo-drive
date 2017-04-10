@@ -808,7 +808,7 @@ class TestSynchronization(UnitTestCase):
 
         # Check server
         children = remote_1.get_children_info(folder)
-        self.assertEquals(len(children), 2)
+        self.assertEqual(len(children), 2)
         subfolder = children[0]
         self.assertEqual(subfolder.name, 'subfolder01')
         file_path = '/Folder01/%s/File02' % subfolder.path.rsplit('/', 1)[1]
@@ -868,7 +868,7 @@ class TestSynchronization(UnitTestCase):
 
         # Check server
         children = remote_1.get_children_info(folder)
-        self.assertEquals(len(children), 2)
+        self.assertEqual(len(children), 2)
         file_ = children[0]
         self.assertEqual(file_.name, 'File01')
         file_path = '/Folder01/%s' % file_.path.rsplit('/', 1)[1]
@@ -905,7 +905,7 @@ class TestSynchronization(UnitTestCase):
 
         # Check server
         children = remote_1.get_children_info(folder)
-        self.assertEquals(len(children), 3)
+        self.assertEqual(len(children), 3)
         file_ = children[0]
         self.assertEqual(file_.name, 'File01')
         file_path = '/Folder01/%s' % file_.path.rsplit('/', 1)[1]
