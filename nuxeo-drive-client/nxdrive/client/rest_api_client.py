@@ -203,7 +203,7 @@ class RestAPIClient(object):
 
     def get_user_full_name(self, userid, adapter=None, timeout=-1):
         """Execute a REST API call to get User Information"""
-        return self.execute(relative_url='user/'+ userid)
+        return self.execute(relative_url='user/' + userid)
 
     def get_group_names(self):
         return [entry['groupname'] for entry in self.execute('groups/search?q=*')['entries']]
