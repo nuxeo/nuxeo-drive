@@ -147,7 +147,7 @@ class TestLocalMoveFolders(UnitTestCase):
                                                       for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
 
     def test_local_move_folder_both_sides(self):
-        """ NXDRIVE-647: no upload of a local renamed folder. """
+        """ NXDRIVE-647: sync when a folder is renamed locally and remotely. """
 
         local = self.local_client_1
         remote = self.remote_document_client_1

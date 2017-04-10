@@ -194,6 +194,9 @@ class Processor(EngineWorker):
                         remote_info = remote_client.get_info(doc_pair.remote_ref)
                         if remote_info.digest != doc_pair.remote_digest and doc_pair.remote_digest is not None:
                             doc_pair.remote_state = 'modified'
+                        if doc_pair.folderish and \
+                                remote_info.name != doc_pair.remote_name:
+                            doc_pair.remote_state = 'moved'  # NXDRIVE-647
                         self._refresh_remote(doc_pair, remote_client, remote_info)
                         # Can run into conflict
                         if doc_pair.pair_state == 'conflicted':
@@ -278,6 +281,9 @@ class Processor(EngineWorker):
             if local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path):
                 log.debug("Auto-resolve conflict has digest are the same")
                 self._dao.synchronize_state(doc_pair)
+        elif doc_pair.local_state == doc_pair.remote_state == 'moved':
+            # NXDRIVE-647, manual conflict resolution needed
+            self._dao.set_conflict_state(doc_pair)
         elif local_client.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref:
             log.debug("Auto-resolve conflict has folder has same remote_id")
             self._dao.synchronize_state(doc_pair)
@@ -441,7 +447,10 @@ class Processor(EngineWorker):
                     # Document exists on the server
                     if parent_pair.remote_ref is not None and parent_pair.remote_ref.endswith(info.parent_uid)\
                             and local_client.is_equal_digests(doc_pair.local_digest, info.digest, doc_pair.local_path):
-                        log.warning("Document is already on the server should not create: %r | %r", doc_pair, info)
+                        if overwrite and info.folderish:  # NXDRIVE-647
+                            self._synchronize_locally_moved(doc_pair, local_client, remote_client)
+                        else:
+                            log.warning("Document is already on the server should not create: %r | %r", doc_pair, info)
                         self._dao.synchronize_state(doc_pair)
                         return
                 except HTTPError as e:
