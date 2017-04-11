@@ -796,6 +796,6 @@ class LocalClient(BaseClient):
                 name = u"%s__%d" % (short_name, int(increment) + 1)
             else:
                 name = name + u'__1'
-            log.trace("Deduplicate a name: %s", name, exc_info=True)
+            log.trace("Deduplicate a name: %s", name)
         raise ValueError("Failed to de-duplicate '%s' under '%s'" % (
             orig_name, parent))
