@@ -23,7 +23,7 @@ if 'DRIVE_YAPPI' in os.environ:
     import yappi
 
 log = get_logger(__name__)
-DEFAULT_WAIT_SYNC_TIMEOUT = 20
+DEFAULT_WAIT_SYNC_TIMEOUT = 30
 DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 
 FILE_CONTENT = """
