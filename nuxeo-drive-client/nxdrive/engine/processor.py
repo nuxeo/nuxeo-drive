@@ -427,7 +427,7 @@ class Processor(EngineWorker):
             # If same hash dont do anything and reconcile
             remote_doc_client = self._engine.get_remote_doc_client()
             uid = remote_ref.split('#')[-1]
-            info = remote_doc_client.get_info(uid, raise_if_missing=False, use_trash=False)
+            info = remote_doc_client.get_info(uid, raise_if_missing=False, fetch_parent_uid=False, use_trash=False)
             if info:
                 try:
                     if info.state == 'deleted':
@@ -446,11 +446,16 @@ class Processor(EngineWorker):
                         doc_pair = self._dao.get_state_from_id(doc_pair.id)
                         self._synchronize_locally_modified(doc_pair, local_client, remote_client)
                         return
-                    log.trace("Compare parents: %r | %r", info.parent_uid, parent_pair.remote_ref)
+                    fs_item_info = remote_client.get_info(remote_ref)
+                    log.trace("Compare parents: %r | %r", fs_item_info.parent_uid, parent_pair.remote_ref)
                     # Document exists on the server
-                    if parent_pair.remote_ref is not None and parent_pair.remote_ref.endswith(info.parent_uid)\
-                            and local_client.is_equal_digests(doc_pair.local_digest, info.digest, doc_pair.local_path):
-                        log.warning("Document is already on the server should not create: %r | %r", doc_pair, info)
+                    if parent_pair.remote_ref is not None and parent_pair.remote_ref == fs_item_info.parent_uid\
+                            and local_client.is_equal_digests(doc_pair.local_digest,
+                                                              fs_item_info.digest,
+                                                              doc_pair.local_path):
+                        log.warning("Document is already on the server should not create: %r | %r",
+                                    doc_pair,
+                                    fs_item_info)
                         self._dao.synchronize_state(doc_pair)
                         return
                 except HTTPError as e:

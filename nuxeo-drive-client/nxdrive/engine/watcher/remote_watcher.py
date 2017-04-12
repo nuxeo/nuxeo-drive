@@ -349,14 +349,14 @@ class RemoteWatcher(EngineWorker):
         remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
         # Try to get the local definition if not linked
         child_pair = self._dao.get_state_from_local(local_path)
-        # Case of duplication: the file can exists in with a __x
+        # Case of duplication (the file can exists in with a __x) or local rename
         if child_pair is None and parent_pair is not None and self._local_client.exists(parent_pair.local_path):
             for child in self._local_client.get_children_info(parent_pair.local_path):
-                # Skip any file without __ as it cannot be a deduplicate
-                if '__' not in child.name:
-                    continue
                 if self._local_client.get_remote_id(child.path) == child_info.uid:
-                    log.debug("Found a deduplication case: %r on %s", child_info, child.path)
+                    if '__' in child.name:
+                        log.debug("Found a deduplication case: %r on %s", child_info, child.path)
+                    else:
+                        log.debug("Found a local rename case: %r on %s", child_info, child.path)
                     child_pair = self._dao.get_state_from_local(child.path)
                     break
         if child_pair is not None:
@@ -367,28 +367,36 @@ class RemoteWatcher(EngineWorker):
                 if (child_pair.folderish == child_info.folderish
                         and self._local_client.is_equal_digests(child_pair.local_digest, child_info.digest,
                                 child_pair.local_path, remote_digest_algorithm=child_info.digest_algorithm)):
-                    self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
-                    # Use version+1 as we just update the remote info
-                    synced = self._dao.synchronize_state(child_pair, version=child_pair.version + 1)
-                    if not synced:
-                        # Try again, might happen that it has been modified locally and remotely
-                        child_pair = self._dao.get_state_from_id(child_pair.id)
-                        if (child_pair.folderish == child_info.folderish
-                                and self._local_client.is_equal_digests(
-                                    child_pair.local_digest, child_info.digest,
-                                    child_pair.local_path,
-                                    remote_digest_algorithm=child_info.digest_algorithm)):
-                            self._dao.synchronize_state(child_pair)
+                    # Local rename
+                    if child_pair.local_path != local_path:
+                        child_pair.local_state = 'moved'
+                        child_pair.remote_state = 'synchronized'
+                        local_info = self._local_client.get_info(child_pair.local_path)
+                        self._dao.update_local_state(child_pair, local_info)
+                        self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
+                    else:
+                        self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
+                        # Use version+1 as we just update the remote info
+                        synced = self._dao.synchronize_state(child_pair, version=child_pair.version + 1)
+                        if not synced:
+                            # Try again, might happen that it has been modified locally and remotely
                             child_pair = self._dao.get_state_from_id(child_pair.id)
-                            synced = child_pair.pair_state == 'synchronized'
-                    # Can be updated in previous call
-                    if synced:
-                        self._engine.stop_processor_on(child_pair.local_path)
-                    # Push the remote_Id
-                    log.debug("set remote id on: %r / %s == %s", child_pair, child_pair.local_path, local_path)
-                    self._local_client.set_remote_id(local_path, child_info.uid)
-                    if child_pair.folderish:
-                        self._dao.queue_children(child_pair)
+                            if (child_pair.folderish == child_info.folderish
+                                    and self._local_client.is_equal_digests(
+                                        child_pair.local_digest, child_info.digest,
+                                        child_pair.local_path,
+                                        remote_digest_algorithm=child_info.digest_algorithm)):
+                                self._dao.synchronize_state(child_pair)
+                                child_pair = self._dao.get_state_from_id(child_pair.id)
+                                synced = child_pair.pair_state == 'synchronized'
+                        # Can be updated in previous call
+                        if synced:
+                            self._engine.stop_processor_on(child_pair.local_path)
+                        # Push the remote_Id
+                        log.debug("set remote id on: %r / %s == %s", child_pair, child_pair.local_path, child_pair.local_path)
+                        self._local_client.set_remote_id(child_pair.local_path, child_info.uid)
+                        if child_pair.folderish:
+                            self._dao.queue_children(child_pair)
                 else:
                     child_pair.remote_state = 'modified'
                     self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
