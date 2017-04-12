@@ -441,7 +441,9 @@ class Processor(EngineWorker):
                         # Handle document rename
                         if fs_item_info.name != doc_pair.local_name:
                             fs_item_info = remote_client.rename(fs_item_info.uid, doc_pair.local_name)
-                        self._dao.update_remote_state(doc_pair, fs_item_info, remote_parent_path=remote_parent_path, versionned=False)
+                        self._dao.update_remote_state(doc_pair, fs_item_info,
+                                                      remote_parent_path=remote_parent_path,
+                                                      versionned=False)
                         # Handle document modification - update the doc_pair
                         doc_pair = self._dao.get_state_from_id(doc_pair.id)
                         self._synchronize_locally_modified(doc_pair, local_client, remote_client)
