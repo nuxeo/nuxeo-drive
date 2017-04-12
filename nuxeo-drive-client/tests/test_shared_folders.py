@@ -150,9 +150,8 @@ class TestSharedFolders(UnitTestCase):
         self.assertTrue(local_1.exists('/Folder01'))
         if unbind:
             # File has been renamed and deleted image has been recreated
-            # TODO NXDRIVE-646; fix it!
-#             self.assertFalse(local_1.exists('/Folder01/File01.txt'))
-#             self.assertTrue(local_1.exists('/Folder01/File01_renamed.txt'))
+            self.assertFalse(local_1.exists('/Folder01/File01.txt'))
+            self.assertTrue(local_1.exists('/Folder01/File01_renamed.txt'))
             self.assertTrue(local_1.exists('/Folder01/SubFolder01/Image01.jpg'))
         else:
             # File has been renamed and image deleted
@@ -165,8 +164,7 @@ class TestSharedFolders(UnitTestCase):
         self.assertEquals(len(children), 2)
         if unbind:
             # File has been renamed and image not deleted
-            # TODO NXDRIVE-646; fix it!
-#             self.assertEqual(remote_2.get_info(fname).name, 'File01_renamed.txt')
+            self.assertEqual(remote_2.get_info(fname).name, 'File01_renamed.txt')
             self.assertTrue(remote_2.exists('/Folder01/SubFolder01/Image01.jpg'))
         else:
             # File has been renamed and image deleted
