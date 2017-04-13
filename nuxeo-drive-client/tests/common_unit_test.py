@@ -526,6 +526,8 @@ class UnitTestCase(SimpleUnitTestCase):
 
             # TODO Should use a specific application
             def launch_test():
+                self.remote_restapi_client_admin.log_on_server(
+                    '----- Testing ' + self.id())
                 log.debug("UnitTest thread started")
                 sleep(1)
                 self.setup_profiler()
@@ -677,7 +679,6 @@ class UnitTestCase(SimpleUnitTestCase):
                                    self.id() + '-' + sys.platform)
         self.manager_1.generate_report(report_path)
         log.debug("Report generated in '%s'", report_path)
-
 
     def _set_read_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
