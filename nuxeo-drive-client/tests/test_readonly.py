@@ -94,7 +94,7 @@ class TestReadOnly(UnitTestCase):
 
     @skipIf(AbstractOSIntegration.is_windows(),
             'Readonly folder let new file creation')
-    @RandomBug('NXDRIVE-816', target='mac', mode='BYPASS')
+    @RandomBug('NXDRIVE-816', target='mac', repeat=5)
     def test_file_readonly_change(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

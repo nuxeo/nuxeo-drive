@@ -200,7 +200,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Check Test folder has not been re-created locally
         self.assertFalse(local.exists('/Test folder'))
 
-    @RandomBug('NXDRIVE-718', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-718', target='linux', repeat=5)
     @RandomBug('NXDRIVE-718', target='mac', repeat=2)
     def test_update_local_file_content_update_remote_file_property(self):
         # Get local and remote clients
