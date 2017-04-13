@@ -268,6 +268,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertFalse(local.exists('/Test folder/testFile.pdf'))
         self.assertTrue(local.exists('/Test folder/New folder/testFile.pdf'))
 
+    @RandomBug('NXDRIVE-808', target='linux', repeat=2)
     def test_synchronize_remote_rename_while_download_file(self):
         if sys.platform != 'win32':
             with patch('nxdrive.client.base_automation_client.os.fstatvfs', return_value=False) as mock_os:
