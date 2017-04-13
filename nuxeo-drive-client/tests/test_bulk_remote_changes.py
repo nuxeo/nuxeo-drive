@@ -79,7 +79,6 @@ class TestBulkRemoteChanges(UnitTestCase):
 
     @patch.object(RemoteFileSystemClient, 'get_children_info', mock_get_children_info)
     @patch.object(RemoteFileSystemClient, 'file_to_info', mock_file_to_info)
-    @RandomBug('NXDRIVE-817', target='mac', repeat=2)
     def test_many_changes(self):
         """
             Objective: The objective is to make a lot of remote changes (including a folder modified) and 
@@ -147,8 +146,10 @@ class TestBulkRemoteChanges(UnitTestCase):
         self.remote_document_client_2.register_as_root(shared)
         # Delete folder 'shared'
         remote_client.delete(shared)
+        self.wait()
         # Restore folder 'shared' from trash
         remote_client.undelete(shared)
+        self.wait()
         # restore file 'shared/readme1.txt' from trash
         remote_client.undelete(readme1)
         remote_client.make_file(shared, "readme3.txt", "This is a another shared file")
