@@ -146,6 +146,19 @@ class Processor(EngineWorker):
             if self._current_doc_pair is not None:
                 self.increase_error(self._current_doc_pair, "EXCEPTION", exception=e)
 
+    @staticmethod
+    def check_pair_state(doc_pair):
+        """ Eliminate unprocessable states. """
+
+        if (not doc_pair
+            or doc_pair.pair_state == 'synchronized'
+            or doc_pair.pair_state == 'unsynchronized'
+            or doc_pair.pair_state is None
+            or doc_pair.pair_state.startswith('parent_')):
+            log.trace('Skip as pair is in non-processable state: %r', doc_pair)
+            return False
+        return True
+
     def _execute(self):
         self._current_metrics = dict()
         self._current_item = self._get_item()
@@ -170,11 +183,7 @@ class Processor(EngineWorker):
                 log.debug('Executing processor on %r(%d)', doc_pair, doc_pair.version)
                 self._current_doc_pair = doc_pair
                 self._current_temp_file = None
-                if (doc_pair.pair_state == 'synchronized'
-                    or doc_pair.pair_state == 'unsynchronized'
-                    or doc_pair.pair_state is None
-                    or doc_pair.pair_state.startswith('parent_')):
-                    log.trace("Skip as pair is in non-processable state: %r", doc_pair)
+                if not self.check_pair_state(doc_pair):
                     self._current_item = self._get_item()
                     continue
                 if AbstractOSIntegration.is_mac() and local_client.exists(doc_pair.local_path):
@@ -203,7 +212,7 @@ class Processor(EngineWorker):
                             self._current_item = self._get_item()
                             continue
                         doc_pair = self._dao.get_state_from_id(doc_pair.id)
-                        if doc_pair is None:
+                        if not self.check_pair_state(doc_pair):
                             self._current_item = self._get_item()
                             continue
                     except NotFound:
