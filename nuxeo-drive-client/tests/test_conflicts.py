@@ -147,8 +147,9 @@ class TestConflicts(UnitTestCase):
         local = self.local_client_1
 
         # user2: create remote XLS file
-        fs_item_id = remote.make_file(self.workspace_id, 'Excel 97 file.xls',
-                                  b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00').uid
+        fs_item_id = remote.make_file(self.workspace_id,
+                                      'Excel 97 file.xls',
+                                      b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00').uid
         doc_uid = fs_item_id.split("#")[-1]
         self.wait_sync(wait_for_async=True)
         self.assertTrue(local.exists('/Excel 97 file.xls'))

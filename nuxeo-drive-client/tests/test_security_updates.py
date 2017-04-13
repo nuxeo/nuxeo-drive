@@ -148,10 +148,10 @@ class TestSecurityUpdates(UnitTestCase):
         # Create new folder with files
         root_remote.make_folder(test_folder_path, 'Remote sub folder 2')
         root_remote.make_file(test_folder_path + '/Remote sub folder 2',
-                'remote sub file 2.txt', 'Other remote content')
+                              'remote sub file 2.txt',
+                              'Other remote content')
         # Update file
-        root_remote.update_content(test_folder_path + '/joe.odt',
-                'Some remotely updated content')
+        root_remote.update_content(test_folder_path + '/joe.odt', 'Some remotely updated content')
 
         self.wait_sync(wait_for_async=True)
         # Only locally modified content should exist
@@ -193,9 +193,7 @@ class TestSecurityUpdates(UnitTestCase):
         self.assertEqual(len(root_remote.get_children_info(
                                                         test_folder_uid)), 5)
         self.assertTrue(root_remote.exists(test_folder_path + '/joe.odt'))
-        self.assertEqual(root_remote.get_content(
-                                            test_folder_path + '/joe.odt'),
-                                            'Some remotely updated content')
+        self.assertEqual(root_remote.get_content(test_folder_path + '/joe.odt'), 'Some remotely updated content')
         self.assertTrue(root_remote.exists(test_folder_path + '/jack.odt'))
         self.assertTrue(root_remote.exists(test_folder_path + '/remote.odt'))
         self.assertTrue(root_remote.exists(test_folder_path + '/Sub folder 1'))
@@ -257,8 +255,7 @@ class TestSecurityUpdates(UnitTestCase):
                                'synchronized')
         self._check_pair_state('/Test folder/Local sub folder 2',
                                'synchronized')
-        self._check_pair_state('/Test folder/Local sub folder 2/local sub file 2.txt',
-                        'synchronized')
+        self._check_pair_state('/Test folder/Local sub folder 2/local sub file 2.txt', 'synchronized')
         # Remote check
         self.assertTrue(remote.exists('/Test folder'))
         children_info = remote.get_children_info(test_folder_uid)
@@ -270,14 +267,12 @@ class TestSecurityUpdates(UnitTestCase):
                 local_version = info
         self.assertTrue(remote_version is not None)
         self.assertTrue(local_version is not None)
-        remote_version_ref_length = (len(remote_version.path)
-                                     - len(TEST_WORKSPACE_PATH))
+        remote_version_ref_length = (len(remote_version.path) - len(TEST_WORKSPACE_PATH))
         remote_version_ref = remote_version.path[-remote_version_ref_length:]
         self.assertTrue(remote.exists(remote_version_ref))
         self.assertEqual(remote.get_content(remote_version_ref),
                          'Some remotely updated content')
-        local_version_ref_length = (len(local_version.path)
-                                     - len(TEST_WORKSPACE_PATH))
+        local_version_ref_length = (len(local_version.path) - len(TEST_WORKSPACE_PATH))
         local_version_ref = local_version.path[-local_version_ref_length:]
         self.assertTrue(remote.exists(local_version_ref))
         self.assertEqual(remote.get_content(local_version_ref),
@@ -299,10 +294,10 @@ class TestSecurityUpdates(UnitTestCase):
         op_input = "doc:" + doc_path
         if grant:
             self.root_remote_client.execute("Document.SetACE",
-                op_input=op_input,
-                user=user,
-                permission="Read",
-                grant="true")
+                                            op_input=op_input,
+                                            user=user,
+                                            permission="Read",
+                                            grant="true")
         else:
             self.root_remote_client.block_inheritance(doc_path)
 

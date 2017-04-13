@@ -159,8 +159,8 @@ class TestWatchers(UnitTestCase):
         self.engine_1.start()
         self.wait_sync()
         self.engine_1.stop()
-        # Create a local file and use an invalid digest function in local watcher file system client to trigger an error
-        # during local scan
+        # Create a local file and use an invalid digest function in local watcher file system client
+        # to trigger an error during local scan
         local.make_file('/', u'Test file.odt', 'Content')
 
         def get_local_client():
