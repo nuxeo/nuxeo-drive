@@ -5,7 +5,7 @@ import socket
 from tests.common import TEST_WORKSPACE_PATH
 from tests.common import OS_STAT_MTIME_RESOLUTION
 from tests.common_unit_test import UnitTestCase
-from tests.common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT
+from tests.common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT, RandomBug
 from nxdrive.client import LocalClient
 from tests import RemoteTestClient
 from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
@@ -686,6 +686,7 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/test.odt'))
 
+    @RandomBug('NXDRIVE-808', target='mac', repeat=2)
     def test_synchronize_deletion(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
