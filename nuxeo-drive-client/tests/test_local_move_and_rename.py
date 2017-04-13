@@ -137,7 +137,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(len(local_client.get_children_info(u'/')), 5)
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
 
-    @RandomBug('NXDRIVE-811', target='windows', mode='BYPASS')
+    @RandomBug('NXDRIVE-811', target='windows', repeat=5)
     def test_local_rename_file_while_creating_before_marker(self):
         global marker, client
         local_client = self.local_client_1

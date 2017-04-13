@@ -23,9 +23,9 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.assertEqual(len(children), 1)
         self.assertEqual(children[0].name, "Test.txt")
 
-    @RandomBug('NXDRIVE-818', target='windows', mode='BYPASS')
-    @RandomBug('NXDRIVE-818', target='mac', mode='BYPASS')
-    @RandomBug('NXDRIVE-818', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-818', target='windows', repeat=2)
+    @RandomBug('NXDRIVE-818', target='mac', repeat=5)
+    @RandomBug('NXDRIVE-818', target='linux', repeat=2)
     def test_synchronize_no_space_left_on_device(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

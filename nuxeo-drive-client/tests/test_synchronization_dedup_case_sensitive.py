@@ -15,6 +15,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         name, suffix = os.path.splitext(name)
         return "%s__%d%s" % (name, idx, suffix)
 
+    @RandomBug('NXDRIVE-808', target='linux', repeat=2)
     def test_dedup_multiple_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
@@ -101,7 +102,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         self.assertEqual(remote.get_info(test_uid).name, 'test')
         self.assertEqual(remote.get_info(test2_uid).name, 'test')
 
-    @RandomBug('NXDRIVE-819', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-819', target='linux', repeat=5)
     def test_dedup_move_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

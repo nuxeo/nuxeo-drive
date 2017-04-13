@@ -4,8 +4,8 @@ import shutil
 from tests.common import OS_STAT_MTIME_RESOLUTION
 from tests.common_unit_test import UnitTestCase
 from tests.common_unit_test import RandomBug
-# from nxdrive.osi import AbstractOSIntegration
-from unittest import skip
+from nxdrive.osi import AbstractOSIntegration
+from unittest import skipIf
 
 
 class TestConflicts(UnitTestCase):
@@ -54,7 +54,7 @@ class TestConflicts(UnitTestCase):
         self.assertEqual(remote.get_content(remote_children[0].uid), 'Remote update 2')
         self.assertEqual(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
 
-    @RandomBug('NXDRIVE-771', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-771', target='linux', repeat=5)
     def test_real_conflict(self):
         local = self.local_client_1
         remote = self.remote_file_system_client_2
@@ -128,17 +128,13 @@ class TestConflicts(UnitTestCase):
         self.assertEqual(remote.get_content(self.file_id), 'Remote update')
         self.assertEqual(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
 
-    # @skipIf(not AbstractOSIntegration.is_windows(),
-    #        'Windows Office only test')
-    @skip(('NXDRIVE-776: Random bug but we cannot use RandomBug because this'
-           'test would take ~30 minutes to complete.'))
+    @skipIf(not AbstractOSIntegration.is_windows(), 'Windows Office only test')
+    @RandomBug('NXDRIVE-776', target='windows', repeat=5)
     def test_XLS_conflict_on_locked_document(self):
         self._XLS_local_update_on_locked_document(locked_from_start=False)
 
-    # @skipIf(not AbstractOSIntegration.is_windows(),
-    #        'Windows Office only test')
-    @skip(('NXDRIVE-776: Random bug but we cannot use RandomBug because this'
-           'test would take ~30 minutes to complete.'))
+    @skipIf(not AbstractOSIntegration.is_windows(), 'Windows Office only test')
+    @RandomBug('NXDRIVE-776', target='windows', repeat=5)
     def test_XLS_conflict_on_locked_document_from_start(self):
         self._XLS_local_update_on_locked_document()
 

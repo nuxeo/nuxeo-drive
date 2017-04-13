@@ -8,7 +8,7 @@ from tests.common_unit_test import RandomBug, UnitTestCase
 
 class TestSecurityUpdates(UnitTestCase):
 
-    @RandomBug('NXDRIVE-821', target='mac', mode='BYPASS')
+    @RandomBug('NXDRIVE-821', target='mac', repeat=5)
     def test_synchronize_denying_read_access(self):
         """Test that denying Read access server side is impacted client side
 

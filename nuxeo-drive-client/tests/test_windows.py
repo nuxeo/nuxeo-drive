@@ -11,7 +11,7 @@ from tests.common_unit_test import UnitTestCase, RandomBug
 
 class TestWindows(UnitTestCase):
 
-    @RandomBug('NXDRIVE-719', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-719', target='linux', repeat=5)
     def test_local_replace(self):
         local = LocalClient(self.local_test_folder_1)
         remote = self.remote_document_client_1

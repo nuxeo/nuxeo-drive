@@ -73,7 +73,7 @@ class TestWatchers(UnitTestCase):
         # With root
         self.assertEqual(len(res), folders + files + 1)
 
-    @RandomBug('NXDRIVE-806', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-806', target='linux', repeat=5)
     @RandomBug('NXDRIVE-806', target='windows', repeat=2)
     def test_local_watchdog_creation(self):
         # Test the creation after first local scan
