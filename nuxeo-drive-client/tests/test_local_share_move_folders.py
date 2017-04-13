@@ -45,9 +45,9 @@ class TestLocalShareMoveFolders(UnitTestCase):
         # Add image files to a1
         abs_folder_path_1 = self.local_client_1.abspath(self.folder_path_1)
         for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1):
-            file_name = self.FILE_NAME_PATTERN % (file_num, 'jpg')
+            file_name = self.FILE_NAME_PATTERN % (file_num, 'png')
             file_path = os.path.join(abs_folder_path_1, file_name)
-            self.generate_random_jpg(file_path, random.randint(1000, 3000))
+            self.generate_random_png(file_path, random.randint(1, 42))
         log.debug('Local test files created in a1')
 
         self.engine_1.start()
@@ -59,7 +59,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         self.assertEqual(len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
                          'Number of local files (%d) in a1 is different from original (%d)' %
                          (len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(children_1), set(['file%03d.jpg' % file_num
+        self.assertEqual(set(children_1), set(['file%03d.png' % file_num
                                                for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
 
         # Check remote files in a1
@@ -72,7 +72,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         self.assertEqual(len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
                          'Number of remote files (%d) in a1 is different from original (%d)' %
                          (len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(remote_children_1), set(['file%03d.jpg' % file_num
+        self.assertEqual(set(remote_children_1), set(['file%03d.png' % file_num
                                                       for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
     @patch.object(RemoteWatcher, '_get_changes', mock_get_changes)  
     def test_local_share_move_folder_with_files(self):
@@ -109,7 +109,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         self.assertEqual(len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
                          'Number of local files (%d) in a1 is different from original (%d)' %
                          (len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(children_1), set(['file%03d.jpg' % file_num
+        self.assertEqual(set(children_1), set(['file%03d.png' % file_num
                                                for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
 
         # Check that a1 doesn't exist anymore remotely
@@ -126,7 +126,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         self.assertEqual(len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
                          'Number of remote files (%d) in a1 is different from original (%d)' %
                          (len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(remote_children_1), set(['file%03d.jpg' % file_num
+        self.assertEqual(set(remote_children_1), set(['file%03d.png' % file_num
                                                       for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
         
         # As Admin create a folder inside a1

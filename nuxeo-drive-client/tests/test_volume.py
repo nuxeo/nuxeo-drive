@@ -44,7 +44,7 @@ class VolumeTestCase(UnitTestCase):
                 folderobj["childs"][filename]["name"]=filename
                 if not self.fake:
                     file_path = os.path.join(abspath, filename)
-                    self.generate_random_jpg(file_path, random.randint(1000, 3000))
+                    self.generate_random_png(file_path, random.randint(1, 42))
                 self.items = self.items + 1
 
     @skipIf('TEST_VOLUME' not in os.environ,
@@ -85,7 +85,7 @@ class VolumeTestCase(UnitTestCase):
         if folder:
             return unicode(("folder_"+self.fmt[2]+"_"+self.fmt[0]) % (depth, number))
         else:
-            return unicode(("file_"+self.fmt[2]+"_"+self.fmt[1] + ".jpg") % (depth, number))
+            return unicode(("file_"+self.fmt[2]+"_"+self.fmt[1] + ".png") % (depth, number))
 
     def get_path(self, folder, depth, number):
         child = ""

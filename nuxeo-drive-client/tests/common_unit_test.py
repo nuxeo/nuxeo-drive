@@ -1,15 +1,17 @@
 """Common test utilities"""
-import sys
-from PyQt4 import QtCore
-from time import sleep
-
 import os
+import struct
+import sys
 import tempfile
 import unittest
+import zlib
 from functools import wraps
-from mock import Mock
 from os.path import dirname
 from threading import Thread
+from time import sleep
+
+from PyQt4 import QtCore
+from mock import Mock
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
@@ -691,18 +693,32 @@ class UnitTestCase(SimpleUnitTestCase):
         else:
             self.root_remote_client.block_inheritance(doc_path)
 
-    def generate_random_jpg(self, filename, size):
-        try:
-            import numpy
-            from PIL import Image
-        except ImportError:
-            # Create random file
-            with open(filename, 'wb') as f:
-                f.write(os.urandom(1024 * size))
-            return
-        a = numpy.random.rand(size, size, 3) * 255
-        im_out = Image.fromarray(a.astype('uint8')).convert('RGBA')
-        im_out.save(filename)
+    @staticmethod
+    def generate_random_png(filename=None, size=1):
+        """ Generate a random PNG file.
+
+        :param filename: The output file name. If None, returns picture content.
+        :param size: The number of black pixels of the picture.
+        :return mixed: None if given filename else bytes
+        """
+
+        pack = struct.pack
+
+        def chunk(header, data):
+            return (pack('>I', len(data)) + header + data
+                    + pack('>I', zlib.crc32(header + data) & 0xffffffff))
+
+        data = pack('>{}B'.format(size), *[0] * size)
+        png = (b'\x89PNG\r\n\x1A\n'
+               + chunk(b'IHDR', pack('>2I5B', size, size, 1, 0, 0, 0, 0))
+               + chunk(b'IDAT', zlib.compress(data))
+               + chunk(b'IEND', b''))
+
+        if not filename:
+            return png
+
+        with open(filename, 'wb') as f:
+            f.write(png)
 
     def assertNxPart(self, path, name=None, present=True):
         os_path = self.local_client_1.abspath(path)
