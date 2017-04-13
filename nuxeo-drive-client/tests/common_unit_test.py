@@ -119,11 +119,23 @@ class RandomBug(object):
                     if self._mode == 'STRICT':
                         raise e
                 finally:
-                    # In relax mode, if the test success one we don't fail
+                    # In RELAX mode, if the test succeeds once we don't fail
                     if self._mode == 'RELAX' and success:
                         return res
                 if SimpleUnitTestCase.getSingleton() is not None and i < self._repeat - 1:
                     SimpleUnitTestCase.getSingleton().reinit()
+            # In RELAX mode, if the test never succeeds we fail because it means that
+            # this is probably not a random bug but a systematic one
+            if self._mode == 'RELAX':
+                raise ValueError("No success after %d tries in %s mode."
+                                 " Either the %s issue is not random or you should increase the 'repeat' value." %
+                                 (self._repeat, self._mode, self._ticket))
+            # In STRICT mode, if the test never fails we fail because it means that
+            # this is probably not a random bug anymore
+            if self._mode == 'STRICT':
+                raise ValueError("No failure after %d tries in %s mode."
+                                 " Either the %s issue is fixed or you should increase the 'repeat' value." %
+                                 (self._repeat, self._mode, self._ticket))
             return res
 
         _callable._repeat = self._repeat
@@ -517,34 +529,28 @@ class UnitTestCase(SimpleUnitTestCase):
             pass
 
     def run(self, result=None):
-        repeat = 1
-        testMethod = getattr(self, self._testMethodName)
-        if hasattr(testMethod, '_repeat'):
-            repeat = testMethod._repeat
-        while repeat > 0:
-            self.app = StubQApplication([], self)
-            self.setUpApp()
-            self.result = result
+        self.app = StubQApplication([], self)
+        self.setUpApp()
+        self.result = result
 
-            # TODO Should use a specific application
-            def launch_test():
-                self.remote_restapi_client_admin.log_on_server(
-                    '----- Testing ' + self.id())
-                log.debug("UnitTest thread started")
-                sleep(1)
-                self.setup_profiler()
-                super(UnitTestCase, self).run(result)
-                self.teardown_profiler()
-                self.app.quit()
-                log.debug("UnitTest thread finished")
+        # TODO Should use a specific application
+        def launch_test():
+            self.remote_restapi_client_admin.log_on_server(
+                '----- Testing ' + self.id())
+            log.debug("UnitTest thread started")
+            sleep(1)
+            self.setup_profiler()
+            super(UnitTestCase, self).run(result)
+            self.teardown_profiler()
+            self.app.quit()
+            log.debug("UnitTest thread finished")
 
-            sync_thread = Thread(target=launch_test)
-            sync_thread.start()
-            self.app.exec_()
-            sync_thread.join(30)
-            self.tearDownApp()
-            del self.app
-            repeat -= 1
+        sync_thread = Thread(target=launch_test)
+        sync_thread.start()
+        self.app.exec_()
+        sync_thread.join(30)
+        self.tearDownApp()
+        del self.app
         log.debug("UnitTest run finished")
 
     def tearDown(self):
