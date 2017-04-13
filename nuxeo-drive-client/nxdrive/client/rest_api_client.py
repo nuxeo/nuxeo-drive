@@ -3,6 +3,7 @@
 import base64
 import json
 import urllib2
+from urllib import urlencode
 
 from nxdrive.logging_config import get_logger
 from nxdrive.client.base_automation_client import get_proxy_handler
@@ -86,6 +87,18 @@ class RestAPIClient(object):
             raise
 
         return self._read_response(resp, url)
+
+    def log_on_server(self, message, level='WARN'):
+        """ Log the current test server side. Helpful for debugging. """
+
+        params = {'token': 'dolog', 'level': level, 'message': message}
+        url = self.server_url + 'restAPI/systemLog?' + urlencode(params)
+        req = urllib2.Request(url, headers=self._get_common_headers())
+        try:
+            self.opener.open(req, timeout=self.timeout)
+        except urllib2.HTTPError as e:
+            self._log_details(e)
+            raise
 
     def is_locked(self, ref):
         # TODO Create an adapter on the rest-api server-side
