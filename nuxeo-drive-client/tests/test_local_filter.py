@@ -42,10 +42,9 @@ class TestLocalFilter(UnitTestCase):
 
         # Add remote folder as filter then synchronize
         doc = remote.get_info('/Test folder')
-        root_path = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#"
+        root_path = '/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#'
         root_path = root_path + doc.root
-        doc_path = (root_path + "/defaultFileSystemItemFactory#default#"
-                    + doc.uid)
+        doc_path = (root_path + "/defaultFileSystemItemFactory#default#" + doc.uid)
 
         self.engine_1.add_filter(doc_path)
         self.wait_sync()
@@ -82,7 +81,7 @@ class TestLocalFilter(UnitTestCase):
         self.local_client_1.make_folder('/', hexaname)
         self.local_client_1.make_file('/', hexafile, 'test')
         # Make sure that a folder is synchronized directly no matter what and the file is postponed
-        self.wait_sync(enforce_errors=False,fail_if_timeout=False)
+        self.wait_sync(enforce_errors=False, fail_if_timeout=False)
         children = self.remote_document_client_1.get_children_info(self.workspace)
         self.assertEqual(len(children), 1)
 
@@ -111,8 +110,7 @@ class TestLocalFilter(UnitTestCase):
         remote.make_file('/Test/Subfolder', 'joe2.txt', 'Some content')
         remote.make_file('/Test/Subfolder', 'joe3.txt', 'Somecossntent')
         remote.make_folder('/Test/Subfolder/', 'SubSubfolder')
-        remote.make_file('/Test/Subfolder/SubSubfolder', 'joe4.txt',
-                                                    'Some qwqwqontent')
+        remote.make_file('/Test/Subfolder/SubSubfolder', 'joe4.txt', 'Some qwqwqontent')
 
         # Fake server binding with the unit test class
         self.wait_sync(wait_for_async=True)
@@ -129,11 +127,10 @@ class TestLocalFilter(UnitTestCase):
         doc_file = remote.get_info('/Test/joe.txt')
         doc = remote.get_info('/Test')
         filtered_doc = remote.get_info('/Test/Filtered')
-        root_path = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#"
+        root_path = '/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#'
         root_path = root_path + doc.root
-        doc_path_filtered = (root_path +
-                "/defaultFileSystemItemFactory#default#" + doc.uid +
-                "/defaultFileSystemItemFactory#default#" + filtered_doc.uid)
+        doc_path_filtered = (root_path + "/defaultFileSystemItemFactory#default#" + doc.uid +
+                             "/defaultFileSystemItemFactory#default#" + filtered_doc.uid)
 
         self.engine_1.add_filter(doc_path_filtered)
         self.wait_sync()
@@ -183,10 +180,9 @@ class TestLocalFilter(UnitTestCase):
 
         # Add remote folder as filter then synchronize
         doc = remote.get_info('/Test')
-        root_path = "/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#"
+        root_path = '/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#/defaultSyncRootFolderItemFactory#default#'
         root_path = root_path + doc.root
-        doc_path = (root_path + "/defaultFileSystemItemFactory#default#"
-                    + doc.uid)
+        doc_path = (root_path + "/defaultFileSystemItemFactory#default#" + doc.uid)
 
         self.engine_1.add_filter(doc_path)
         self.wait_sync()
