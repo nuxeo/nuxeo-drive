@@ -129,12 +129,12 @@ class TestConflicts(UnitTestCase):
         self.assertEqual(self.engine_1.get_dao().get_normal_state_from_remote(self.file_id).pair_state, "conflicted")
 
     @skipIf(not AbstractOSIntegration.is_windows(), 'Windows Office only test')
-    @RandomBug('NXDRIVE-776', target='windows', repeat=5)
+    @RandomBug('NXDRIVE-776', target='windows', mode='BYPASS')
     def test_XLS_conflict_on_locked_document(self):
         self._XLS_local_update_on_locked_document(locked_from_start=False)
 
     @skipIf(not AbstractOSIntegration.is_windows(), 'Windows Office only test')
-    @RandomBug('NXDRIVE-776', target='windows', repeat=5)
+    @RandomBug('NXDRIVE-776', target='windows', mode='BYPASS')
     def test_XLS_conflict_on_locked_document_from_start(self):
         self._XLS_local_update_on_locked_document()
 
