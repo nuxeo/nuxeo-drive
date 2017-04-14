@@ -1,7 +1,7 @@
 import time
 
 from tests.common import OS_STAT_MTIME_RESOLUTION
-from tests.common_unit_test import UnitTestCase
+from tests.common_unit_test import RandomBug, UnitTestCase
 
 
 class TestReinitDatabase(UnitTestCase):
@@ -89,6 +89,7 @@ class TestReinitDatabase(UnitTestCase):
                          'This is some content',
                          'Remote content should not have changed')
 
+    @RandomBug('NXDRIVE-808', target='mac', repeat=2)
     def test_synchronize_remote_and_local_change(self):
         # Modify the remote file
         self.remote.update_content('/Test folder/Test.txt',
