@@ -41,6 +41,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         local_children_names.sort()
         self.assertEqual(local_children_names, children_names)
 
+    @RandomBug('NXDRIVE-808', target='linux', repeat=5)
     def test_delete_local_folder_2_clients(self):
         # Get local clients for each device and remote client
         local1 = self.local_client_1
