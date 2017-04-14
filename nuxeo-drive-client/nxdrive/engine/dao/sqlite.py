@@ -49,22 +49,21 @@ PAIR_STATES = {
     ('deleted', 'unknown'): 'deleted_unknown',
 }
 
+
 class AutoRetryCursor(sqlite3.Cursor):
     def execute(self, *args, **kwargs):
         count = 0
-        obj = None
-        while (1):
+        while True:
+            count += 1
             try:
-                count += 1
                 obj = super(AutoRetryCursor, self).execute(*args, **kwargs)
                 if count > 1:
                     log.trace('Result returned from try #%d', count)
-                break
+                return obj
             except sqlite3.OperationalError as e:
                 log.trace('Retry locked database #%d', count)
                 if count > 5:
                     raise e
-        return obj
 
 
 class AutoRetryConnection(sqlite3.Connection):

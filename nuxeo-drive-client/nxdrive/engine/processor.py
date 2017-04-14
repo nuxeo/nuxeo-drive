@@ -163,7 +163,7 @@ class Processor(EngineWorker):
         self._current_metrics = dict()
         self._current_item = self._get_item()
         soft_lock = None
-        while (self._current_item != None):
+        while self._current_item:
             # Take client every time as it is cached in engine
             local_client = self._engine.get_local_client()
             remote_client = self._engine.get_remote_client()
@@ -205,7 +205,7 @@ class Processor(EngineWorker):
                             doc_pair.remote_state = 'modified'
                         if doc_pair.folderish and \
                                 remote_info.name != doc_pair.remote_name:
-                            doc_pair.remote_state = 'moved'  # NXDRIVE-647
+                            doc_pair.remote_state = 'moved'
                         self._refresh_remote(doc_pair, remote_client, remote_info)
                         # Can run into conflict
                         if doc_pair.pair_state == 'conflicted':
@@ -291,7 +291,7 @@ class Processor(EngineWorker):
                 log.debug("Auto-resolve conflict has digest are the same")
                 self._dao.synchronize_state(doc_pair)
         elif doc_pair.local_state == doc_pair.remote_state == 'moved':
-            # NXDRIVE-647, manual conflict resolution needed
+            # Manual conflict resolution needed
             self._dao.set_conflict_state(doc_pair)
         elif local_client.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref:
             log.debug("Auto-resolve conflict has folder has same remote_id")
@@ -461,7 +461,7 @@ class Processor(EngineWorker):
                             and local_client.is_equal_digests(doc_pair.local_digest,
                                                               fs_item_info.digest,
                                                               doc_pair.local_path):
-                        if overwrite and info.folderish:  # NXDRIVE-647
+                        if overwrite and info.folderish:
                             self._synchronize_locally_moved(doc_pair,
                                                             local_client,
                                                             remote_client)

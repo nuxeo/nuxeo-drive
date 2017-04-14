@@ -397,7 +397,7 @@ class Engine(QObject):
         if client.get_remote_id('/', tag) != tag_value:
             return False
         client.remove_remote_id('/', tag)
-        if client.get_remote_id('/', tag) != None:
+        if client.get_remote_id('/', tag):
             return False
         return True
 
@@ -910,7 +910,7 @@ class Engine(QObject):
         for thread in self._threads:
             if hasattr(thread, "worker") and isinstance(thread.worker, Processor):
                 if (thread.worker.get_thread_id() == thread_id and
-                        thread.worker.is_started() == False):
+                        not thread.worker.is_started()):
                     raise ThreadInterrupt
         # Get action
         current_file = None
@@ -932,7 +932,6 @@ class Engine(QObject):
 
     def get_remote_client(self, filtered=True):
         """Return a client for the FileSystem abstraction."""
-        log.trace("Engine.get_remote_client(filtered=%r)", filtered)
         if self._invalid_credentials:
             return None
         cache = self._get_client_cache()

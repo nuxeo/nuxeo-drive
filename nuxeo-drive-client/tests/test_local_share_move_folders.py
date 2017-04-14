@@ -15,7 +15,7 @@ def mock_get_changes(self, *args, **kwargs):
     global wait_for_security_update 
     global src
     global dst
-    if wait_for_security_update == True:
+    if wait_for_security_update:
         summary = original_get_changes(self, *args, **kwargs)
         for event in summary['fileSystemChanges']:
             if event['eventId'] == 'securityUpdated':
