@@ -3,11 +3,12 @@ import time
 from unittest import skip
 
 from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from tests.common_unit_test import UnitTestCase
+from tests.common_unit_test import RandomBug, UnitTestCase
 
 
 class TestSecurityUpdates(UnitTestCase):
 
+    @RandomBug('NXDRIVE-821', target='mac', mode='BYPASS')
     def test_synchronize_denying_read_access(self):
         """Test that denying Read access server side is impacted client side
 

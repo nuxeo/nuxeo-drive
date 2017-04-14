@@ -18,6 +18,7 @@ timestamps {
             }
             stage('Deploy') {
                 sh 'tools/deploy.sh'
+                archive 'prerelease.json'
 
                 def release = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
                 release = release.replace('release-', '').trim()

@@ -1,27 +1,31 @@
 """Common test utilities"""
-import sys
-from PyQt4 import QtCore
-from time import sleep
-
 import os
+import struct
+import sys
 import tempfile
 import unittest
+import zlib
 from functools import wraps
-from mock import Mock
 from os.path import dirname
 from threading import Thread
+from time import sleep
+
+from PyQt4 import QtCore
+from mock import Mock
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
+from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.translator import Translator
-from tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir, log
+from tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
 
 if 'DRIVE_YAPPI' in os.environ:
     import yappi
 
-DEFAULT_WAIT_SYNC_TIMEOUT = 20
+log = get_logger(__name__)
+DEFAULT_WAIT_SYNC_TIMEOUT = 30
 DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 
 FILE_CONTENT = """
@@ -115,11 +119,23 @@ class RandomBug(object):
                     if self._mode == 'STRICT':
                         raise e
                 finally:
-                    # In relax mode, if the test success one we don't fail
+                    # In RELAX mode, if the test succeeds once we don't fail
                     if self._mode == 'RELAX' and success:
                         return res
                 if SimpleUnitTestCase.getSingleton() is not None and i < self._repeat - 1:
                     SimpleUnitTestCase.getSingleton().reinit()
+            # In RELAX mode, if the test never succeeds we fail because it means that
+            # this is probably not a random bug but a systematic one
+            if self._mode == 'RELAX':
+                raise ValueError("No success after %d tries in %s mode."
+                                 " Either the %s issue is not random or you should increase the 'repeat' value." %
+                                 (self._repeat, self._mode, self._ticket))
+            # In STRICT mode, if the test never fails we fail because it means that
+            # this is probably not a random bug anymore
+            if self._mode == 'STRICT':
+                raise ValueError("No failure after %d tries in %s mode."
+                                 " Either the %s issue is fixed or you should increase the 'repeat' value." %
+                                 (self._repeat, self._mode, self._ticket))
             return res
 
         _callable._repeat = self._repeat
@@ -569,32 +585,28 @@ class UnitTestCase(SimpleUnitTestCase):
             pass
 
     def run(self, result=None):
-        repeat = 1
-        testMethod = getattr(self, self._testMethodName)
-        if hasattr(testMethod, '_repeat'):
-            repeat = testMethod._repeat
-        while repeat > 0:
-            self.app = StubQApplication([], self)
-            self.setUpApp()
-            self.result = result
+        self.app = StubQApplication([], self)
+        self.setUpApp()
+        self.result = result
 
-            # TODO Should use a specific application
-            def launch_test():
-                log.debug("UnitTest thread started")
-                sleep(1)
-                self.setup_profiler()
-                super(UnitTestCase, self).run(result)
-                self.teardown_profiler()
-                self.app.quit()
-                log.debug("UnitTest thread finished")
+        # TODO Should use a specific application
+        def launch_test():
+            self.remote_restapi_client_admin.log_on_server(
+                '----- Testing ' + self.id())
+            log.debug("UnitTest thread started")
+            sleep(1)
+            self.setup_profiler()
+            super(UnitTestCase, self).run(result)
+            self.teardown_profiler()
+            self.app.quit()
+            log.debug("UnitTest thread finished")
 
-            sync_thread = Thread(target=launch_test)
-            sync_thread.start()
-            self.app.exec_()
-            sync_thread.join(30)
-            self.tearDownApp()
-            del self.app
-            repeat -= 1
+        sync_thread = Thread(target=launch_test)
+        sync_thread.start()
+        self.app.exec_()
+        sync_thread.join(30)
+        self.tearDownApp()
+        del self.app
         log.debug("UnitTest run finished")
 
     def tearDown(self):
@@ -734,7 +746,6 @@ class UnitTestCase(SimpleUnitTestCase):
         self.manager_1.generate_report(report_path)
         log.debug("Report generated in '%s'", report_path)
 
-
     def _set_read_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path
         if grant:
@@ -746,18 +757,32 @@ class UnitTestCase(SimpleUnitTestCase):
         else:
             self.root_remote_client.block_inheritance(doc_path)
 
-    def generate_random_jpg(self, filename, size):
-        try:
-            import numpy
-            from PIL import Image
-        except ImportError:
-            # Create random file
-            with open(filename, 'wb') as f:
-                f.write(os.urandom(1024 * size))
-            return
-        a = numpy.random.rand(size, size, 3) * 255
-        im_out = Image.fromarray(a.astype('uint8')).convert('RGBA')
-        im_out.save(filename)
+    @staticmethod
+    def generate_random_png(filename=None, size=1):
+        """ Generate a random PNG file.
+
+        :param filename: The output file name. If None, returns picture content.
+        :param size: The number of black pixels of the picture.
+        :return mixed: None if given filename else bytes
+        """
+
+        pack = struct.pack
+
+        def chunk(header, data):
+            return (pack('>I', len(data)) + header + data
+                    + pack('>I', zlib.crc32(header + data) & 0xffffffff))
+
+        data = pack('>{}B'.format(size), *[0] * size)
+        png = (b'\x89PNG\r\n\x1A\n'
+               + chunk(b'IHDR', pack('>2I5B', size, size, 1, 0, 0, 0, 0))
+               + chunk(b'IDAT', zlib.compress(data))
+               + chunk(b'IEND', b''))
+
+        if not filename:
+            return png
+
+        with open(filename, 'wb') as f:
+            f.write(png)
 
     def assertNxPart(self, path, name=None, present=True):
         os_path = self.local_client_1.abspath(path)

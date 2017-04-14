@@ -1,7 +1,6 @@
 import time
 
 from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from tests.common import log
 from tests.common_unit_test import UnitTestCase
 
 

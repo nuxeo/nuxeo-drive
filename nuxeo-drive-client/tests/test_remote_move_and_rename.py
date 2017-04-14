@@ -61,7 +61,6 @@ class TestRemoteMoveAndRename(UnitTestCase):
             content=u'Some Content 3'.encode('utf-8')).uid
         self.wait_sync(wait_for_async=True)
 
-
     def _get_state(self, remote):
         return self.engine_1.get_dao().get_normal_state_from_remote(remote)
 
@@ -215,7 +214,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertTrue(local.exists('/Test folder renamed'))
         self.assertTrue(local.exists('/Test folder renamed/testFile.pdf'))
 
-    @RandomBug('NXDRIVE-757', target='linux')
+    @RandomBug('NXDRIVE-757', target='linux', mode='BYPASS')
     def test_synchronize_remote_move_while_download_file(self):
         if sys.platform != 'win32':
             with patch('nxdrive.client.base_automation_client.os.fstatvfs', return_value=False) as mock_os:
@@ -269,6 +268,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.assertFalse(local.exists('/Test folder/testFile.pdf'))
         self.assertTrue(local.exists('/Test folder/New folder/testFile.pdf'))
 
+    @RandomBug('NXDRIVE-808', target='linux', repeat=2)
     def test_synchronize_remote_rename_while_download_file(self):
         if sys.platform != 'win32':
             with patch('nxdrive.client.base_automation_client.os.fstatvfs', return_value=False) as mock_os:

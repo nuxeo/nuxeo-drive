@@ -7,9 +7,11 @@ from shutil import copyfile
 from unittest import skipIf
 
 from nxdrive.client import LocalClient
+from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
-from tests.common import log
-from tests.common_unit_test import UnitTestCase
+from tests.common_unit_test import RandomBug, UnitTestCase
+
+log = get_logger(__name__)
 
 
 class TestWatchers(UnitTestCase):
@@ -32,6 +34,7 @@ class TestWatchers(UnitTestCase):
         # With root
         self.assertEqual(len(res), folders + files + 1)
 
+    @RandomBug('NXDRIVE-808', target='windows', repeat=2)
     def test_reconcile_scan(self):
         files, folders = self.make_local_tree()
         self.make_server_tree()
@@ -70,6 +73,8 @@ class TestWatchers(UnitTestCase):
         # With root
         self.assertEqual(len(res), folders + files + 1)
 
+    @RandomBug('NXDRIVE-806', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-806', target='windows', repeat=2)
     def test_local_watchdog_creation(self):
         # Test the creation after first local scan
         self.queue_manager_1.suspend()
@@ -255,6 +260,7 @@ class TestWatchers(UnitTestCase):
         self.assertEqual(remote.get_info(u'/Accentue\u0301.odt').name,
                          u'Accentu\xe9 avec un \xea et un \xe9.odt')
 
+    @RandomBug('NXDRIVE-808', target='mac', repeat=2)
     def test_watchdog_encoding(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
@@ -313,6 +319,7 @@ class TestWatchers(UnitTestCase):
         self.assertFalse(
             remote.exists(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt'))
 
+    @RandomBug('NXDRIVE-808', target='windows', repeat=2)
     def test_watcher_remote_id_setter(self):
         local = self.local_client_1
         # As some user can rewrite same file for no reason

@@ -1,9 +1,11 @@
-from common_unit_test import UnitTestCase
-from tests.common_unit_test import log
-from tests.common_unit_test import FILE_CONTENT
 import os
-import sys
 import shutil
+import sys
+
+from nxdrive.logging_config import get_logger
+from tests.common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
+
+log = get_logger(__name__)
 
 
 class TestLocalCopyPaste(UnitTestCase):
@@ -103,6 +105,7 @@ class TestLocalCopyPaste(UnitTestCase):
         super(TestLocalCopyPaste, self).tearDown()
         log.debug('*** exit TestLocalCopyPaste.tearDown() ***')
 
+    @RandomBug('NXDRIVE-815', target='mac', repeat=5)
     def test_local_copy_paste_files(self):
         self._local_copy_paste_files(stopped=False)
 
