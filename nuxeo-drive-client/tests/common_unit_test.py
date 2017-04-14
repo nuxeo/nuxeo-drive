@@ -3,6 +3,7 @@ import os
 import struct
 import sys
 import tempfile
+import traceback
 import unittest
 import zlib
 from functools import wraps
@@ -57,6 +58,14 @@ FILE_CONTENT = """
     Donec orci odio, luctus ut sagittis nec, congue sit amet ex. Donec arcu diam, fermentum ac porttitor consectetur,
     blandit et diam. Vivamus efficitur erat nec justo vestibulum fringilla. Mauris quis dictum elit, eget tempus ex.
     """
+
+
+class RandomBugError(Exception):
+
+    def __init__(self, message, cause=None):
+        msg = message if cause is None else message + u'\nCaused by ' + repr(cause) + u'\n' + traceback.format_exc()
+        super(RandomBugError, self).__init__(msg)
+        self.cause = cause
 
 
 class RandomBug(object):
@@ -127,15 +136,15 @@ class RandomBug(object):
             # In RELAX mode, if the test never succeeds we fail because it means that
             # this is probably not a random bug but a systematic one
             if self._mode == 'RELAX':
-                raise ValueError("No success after %d tries in %s mode."
-                                 " Either the %s issue is not random or you should increase the 'repeat' value." %
-                                 (self._repeat, self._mode, self._ticket))
+                raise RandomBugError("No success after %d tries in %s mode."
+                                     " Either the %s issue is not random or you should increase the 'repeat' value." %
+                                     (self._repeat, self._mode, self._ticket), cause=e)
             # In STRICT mode, if the test never fails we fail because it means that
             # this is probably not a random bug anymore
             if self._mode == 'STRICT':
-                raise ValueError("No failure after %d tries in %s mode."
-                                 " Either the %s issue is fixed or you should increase the 'repeat' value." %
-                                 (self._repeat, self._mode, self._ticket))
+                raise RandomBugError("No failure after %d tries in %s mode."
+                                     " Either the %s issue is fixed or you should increase the 'repeat' value." %
+                                     (self._repeat, self._mode, self._ticket))
             return res
 
         _callable._repeat = self._repeat
