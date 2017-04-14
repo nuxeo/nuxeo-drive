@@ -146,7 +146,13 @@ class TestLocalMoveFolders(UnitTestCase):
         self.assertEqual(set(remote_children_1), set(['file%03d.jpg' % file_num
                                                       for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
 
-    def test_local_move_folder_both_sides(self):
+    def test_local_move_folder_both_sides_while_stopped(self):
+        self._test_local_move_folder_both_sides(False)
+
+    def test_local_move_folder_both_sides_while_unbinded(self):
+        self._test_local_move_folder_both_sides(True)
+
+    def _test_local_move_folder_both_sides(self, unbind):
         """ NXDRIVE-647: sync when a folder is renamed locally and remotely. """
 
         local = self.local_client_1
@@ -164,16 +170,25 @@ class TestLocalMoveFolders(UnitTestCase):
             '/' + self.workspace_title + '/Folder1')
         self.assertIsNotNone(folder_pair_state)
 
-        # Stop the client
-        self.engine_1.stop()
+        # Unbind or stop engine
+        if unbind:
+            self.send_unbind_engine(1)
+            self.wait_unbind_engine(1)
+        else:
+            self.engine_1.stop()
 
         # Make changes
         remote.update(folder, properties={'dc:title': 'Folder1_ServerName'})
         local.rename('/Folder1', 'Folder1_LocalRename')
 
-        # Restart clients and wait
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
+        # Bind or start engine and wait for sync
+        if unbind:
+            self.send_bind_engine(1)
+            self.wait_bind_engine(1)
+            self.wait_remote_scan()
+        else:
+            self.engine_1.start()
+            self.wait_sync(wait_for_async=True)
 
         # Check folder status
         folder_pair_state = self.engine_1.get_dao().get_state_from_id(
