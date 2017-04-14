@@ -449,7 +449,8 @@ class Processor(EngineWorker):
                     log.trace("Compare parents: %r | %r", info.parent_uid, parent_pair.remote_ref)
                     # Document exists on the server
                     if parent_pair.remote_ref is not None and parent_pair.remote_ref.endswith(info.parent_uid)\
-                            and local_client.is_equal_digests(doc_pair.local_digest, info.digest, doc_pair.local_path):
+                            and local_client.is_equal_digests(doc_pair.local_digest, info.digest, doc_pair.local_path)\
+                            and doc_pair.local_name == info.name:
                         log.warning("Document is already on the server should not create: %r | %r", doc_pair, info)
                         self._dao.synchronize_state(doc_pair)
                         return
