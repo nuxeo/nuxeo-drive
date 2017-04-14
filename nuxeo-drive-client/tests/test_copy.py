@@ -1,8 +1,9 @@
-from tests.common_unit_test import UnitTestCase
+from tests.common_unit_test import RandomBug, UnitTestCase
 
 
 class TestCopy(UnitTestCase):
 
+    @RandomBug('NXDRIVE-808', target='linux', repeat=5)
     def test_synchronize_remote_copy(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

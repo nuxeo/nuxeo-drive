@@ -73,4 +73,4 @@ class MacLocalClient(LocalClient):
     @staticmethod
     def _process_result(result):
         if not result[0]:
-            raise IOError(result[1])
+            raise IOError(result[1].decode('utf-8', 'ignore'))

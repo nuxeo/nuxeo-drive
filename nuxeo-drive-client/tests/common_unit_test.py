@@ -153,9 +153,14 @@ class RandomBug(object):
 
 class StubQApplication(QtCore.QCoreApplication):
 
+    bindEngine = QtCore.pyqtSignal(object, object)
+    unbindEngine = QtCore.pyqtSignal(object)
+
     def __init__(self, argv, test_case):
         super(StubQApplication, self).__init__(argv)
         self._test = test_case
+        self.bindEngine.connect(self.bind_engine)
+        self.unbindEngine.connect(self.unbind_engine)
 
     @QtCore.pyqtSlot()
     def sync_completed(self):
@@ -188,6 +193,14 @@ class StubQApplication(QtCore.QCoreApplication):
         uid = self.sender().get_engine().get_uid()
         log.trace("No remote changes slot for: %s", uid)
         self._test._no_remote_changes[uid] = True
+
+    @QtCore.pyqtSlot(object, object)
+    def bind_engine(self, number, start_engine):
+        self._test.bind_engine(number, start_engine=start_engine)
+
+    @QtCore.pyqtSlot(object)
+    def unbind_engine(self, number):
+        self._test.unbind_engine(number)
 
 
 class SimpleUnitTestCase(unittest.TestCase):
@@ -340,19 +353,15 @@ class UnitTestCase(SimpleUnitTestCase):
             self.nuxeo_url = url.split('#')[0]
         self.setUpServer(server_profile)
 
-        self.engine_1 = self.manager_1.bind_server(self.local_nxdrive_folder_1, url, self.user_1,
-                                                   self.password_1, start_engine=False)
-        self.engine_2 = self.manager_2.bind_server(self.local_nxdrive_folder_2, url, self.user_2,
-                                                   self.password_2, start_engine=False)
-        self.engine_1.syncCompleted.connect(self.app.sync_completed)
-        self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
-        self.engine_1.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
-        self.engine_1.get_remote_watcher().noChangesFound.connect(self.app.no_remote_changes_found)
-        self.engine_2.syncCompleted.connect(self.app.sync_completed)
-        self.engine_2.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
-        self.engine_2.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
-        self.engine_2.get_remote_watcher().noChangesFound.connect(self.app.no_remote_changes_found)
+        self._wait_sync = {}
+        self._wait_remote_scan = {}
+        self._remote_changes_count = {}
+        self._no_remote_changes = {}
+
+        # Set engine_1 and engine_2 attributes
+        self.bind_engine(1, start_engine=False)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
+        self.bind_engine(2, start_engine=False)
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
         self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1, self.workspace_title_1)
@@ -414,10 +423,57 @@ class UnitTestCase(SimpleUnitTestCase):
         self.remote_file_system_client_1 = remote_file_system_client_1
         self.remote_file_system_client_2 = remote_file_system_client_2
 
-        self._wait_sync = {self.engine_1.get_uid(): True, self.engine_2.get_uid(): True}
-        self._wait_remote_scan = {self.engine_1.get_uid(): True, self.engine_2.get_uid(): True}
-        self._remote_changes_count = {self.engine_1.get_uid(): 0, self.engine_2.get_uid(): 0}
-        self._no_remote_changes = {self.engine_1.get_uid(): False, self.engine_2.get_uid(): False}
+    def bind_engine(self, number, start_engine=True):
+        number_str = str(number)
+        manager = getattr(self, 'manager_' + number_str)
+        local_folder = getattr(self, 'local_nxdrive_folder_' + number_str)
+        user = getattr(self, 'user_' + number_str)
+        password = getattr(self, 'password_' + number_str)
+        engine = manager.bind_server(local_folder, self.nuxeo_url, user, password, start_engine=start_engine)
+
+        engine.syncCompleted.connect(self.app.sync_completed)
+        engine.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
+        engine.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
+        engine.get_remote_watcher().noChangesFound.connect(self.app.no_remote_changes_found)
+
+        engine_uid = engine.get_uid()
+        self._wait_sync[engine_uid] = True
+        self._wait_remote_scan[engine_uid] = True
+        self._remote_changes_count[engine_uid] = 0
+        self._no_remote_changes[engine_uid] = False
+
+        setattr(self, 'engine_' + number_str, engine)
+
+    def unbind_engine(self, number):
+        number_str = str(number)
+        engine = getattr(self, 'engine_' + number_str)
+        manager = getattr(self, 'manager_' + number_str)
+        manager.unbind_engine(engine.get_uid())
+        delattr(self, 'engine_' + number_str)
+
+    def send_bind_engine(self, number, start_engine=True):
+        self.app.bindEngine.emit(number, start_engine)
+
+    def send_unbind_engine(self, number):
+        self.app.unbindEngine.emit(number)
+
+    def wait_bind_engine(self, number, timeout=DEFAULT_WAIT_SYNC_TIMEOUT):
+        engine = 'engine_' + str(number)
+        while timeout > 0:
+            sleep(1)
+            timeout = timeout - 1
+            if hasattr(self, engine):
+                return
+        self.fail("Wait for bind engine expired")
+
+    def wait_unbind_engine(self, number, timeout=DEFAULT_WAIT_SYNC_TIMEOUT):
+        engine = 'engine_' + str(number)
+        while timeout > 0:
+            sleep(1)
+            timeout = timeout - 1
+            if not hasattr(self, engine):
+                return
+        self.fail("Wait for unbind engine expired")
 
     def wait_sync(self, wait_for_async=False, timeout=DEFAULT_WAIT_SYNC_TIMEOUT, fail_if_timeout=True,
                   wait_for_engine_1=True, wait_for_engine_2=False, wait_win=False, enforce_errors=True):
@@ -588,9 +644,11 @@ class UnitTestCase(SimpleUnitTestCase):
         clean_dir(self.local_test_folder_1)
         clean_dir(self.local_test_folder_2)
 
-        del self.engine_1
+        if hasattr(self, 'engine_1'):
+            del self.engine_1
         self.engine_1 = None
-        del self.engine_2
+        if hasattr(self, 'engine_2'):
+            del self.engine_2
         self.engine_2 = None
         del self.local_client_1
         self.local_client_1 = None
