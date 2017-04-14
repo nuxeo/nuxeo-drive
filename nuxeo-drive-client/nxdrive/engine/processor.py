@@ -285,14 +285,15 @@ class Processor(EngineWorker):
         self.increase_error(doc_pair, "SYNC_HANDLER_%s" % handler_name, exception=e)
 
     def _synchronize_conflicted(self, doc_pair, local_client, remote_client):
+        if (doc_pair.local_state == 'moved'
+                and (doc_pair.remote_state == 'moved' or doc_pair.remote_state == 'unknown')):
+            # Manual conflict resolution needed
+            self._dao.set_conflict_state(doc_pair)
         # Auto-resolve conflict
-        if not doc_pair.folderish:
+        elif not doc_pair.folderish:
             if local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path):
                 log.debug("Auto-resolve conflict has digest are the same")
                 self._dao.synchronize_state(doc_pair)
-        elif doc_pair.local_state == doc_pair.remote_state == 'moved':
-            # Manual conflict resolution needed
-            self._dao.set_conflict_state(doc_pair)
         elif local_client.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref:
             log.debug("Auto-resolve conflict has folder has same remote_id")
             self._dao.synchronize_state(doc_pair)

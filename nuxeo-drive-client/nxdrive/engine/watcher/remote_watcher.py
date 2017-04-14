@@ -370,7 +370,7 @@ class RemoteWatcher(EngineWorker):
                     # Local rename
                     if child_pair.local_path != local_path:
                         child_pair.local_state = 'moved'
-                        child_pair.remote_state = 'synchronized'
+                        child_pair.remote_state = 'unknown'
                         local_info = self._local_client.get_info(child_pair.local_path)
                         self._dao.update_local_state(child_pair, local_info)
                         self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)

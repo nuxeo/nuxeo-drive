@@ -39,6 +39,7 @@ PAIR_STATES = {
     ('modified', 'modified'): 'conflicted',
     ('created', 'created'): 'conflicted',
     ('created', 'modified'): 'conflicted',
+    ('moved', 'unknown'): 'conflicted',
     ('moved', 'moved'): 'conflicted',
 
     # conflict cases that have been manually resolved
