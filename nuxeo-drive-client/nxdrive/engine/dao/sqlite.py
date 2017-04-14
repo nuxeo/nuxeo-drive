@@ -786,8 +786,8 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
 
     def update_local_state(self, row, info, versionned=True, queue=True):
+        row.pair_state = self._get_pair_state(row)
         log.trace('Updating local state for row = %r with info = %r', row, info)
-        pair_state = self._get_pair_state(row)
         version = ''
         if versionned:
             version = ', version=version+1'
@@ -802,12 +802,12 @@ class EngineDAO(ConfigurationDAO):
                       + "local_state=?, size=?, remote_state=?, pair_state=?" + version +
                       " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, parent_path,
                                         os.path.basename(info.path), row.local_state, info.size, row.remote_state,
-                                        pair_state, row.id))
+                                        row.pair_state, row.id))
             if queue:
                 parent = c.execute("SELECT * FROM States WHERE local_path=?", (parent_path,)).fetchone()
                 # Dont queue if parent is not yet created
                 if (parent is None and parent_path == '') or (parent is not None and parent.pair_state != "locally_created"):
-                    self._queue_pair_state(row.id, info.folderish, pair_state, pair=row)
+                    self._queue_pair_state(row.id, info.folderish, row.pair_state, pair=row)
             if self.auto_commit:
                 con.commit()
         finally:
@@ -1235,7 +1235,7 @@ class EngineDAO(ConfigurationDAO):
         return result
 
     def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False, no_digest=False):
-        pair_state = self._get_pair_state(row)
+        row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
         version = ''
@@ -1246,7 +1246,7 @@ class EngineDAO(ConfigurationDAO):
             # It looks similar
             if info.digest == row.local_digest or info.digest == row.remote_digest:
                 row.remote_state = 'synchronized'
-                pair_state = self._get_pair_state(row)
+                row.pair_state = self._get_pair_state(row)
             if info.digest == row.remote_digest and not force_update:
                 log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
                 return
@@ -1270,7 +1270,7 @@ class EngineDAO(ConfigurationDAO):
                       (info.uid, info.parent_uid, remote_parent_path, info.name,
                        info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
                        info.can_create_child, info.last_contributor, row.local_state,
-                       row.remote_state, pair_state, row.id))
+                       row.remote_state, row.pair_state, row.id))
             if self.auto_commit:
                 con.commit()
             if queue:
@@ -1278,7 +1278,7 @@ class EngineDAO(ConfigurationDAO):
                 parent = c.execute("SELECT * FROM States WHERE remote_ref=?", (info.parent_uid,)).fetchone()
                 # Parent can be None if the parent is filtered
                 if (parent is not None and parent.pair_state != "remotely_created") or parent is None:
-                    self._queue_pair_state(row.id, info.folderish, pair_state)
+                    self._queue_pair_state(row.id, info.folderish, row.pair_state)
         finally:
             self._lock.release()
 
