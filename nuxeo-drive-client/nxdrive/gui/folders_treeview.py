@@ -165,7 +165,7 @@ class FsClient(Client):
         self.fsClient = fsClient
 
     def get_children(self, parent=None):
-        if (parent == None):
+        if not parent:
             return [FsRootFileInfo(root) for root
                     in self.fsClient.get_top_level_children()]
         return [FsFileInfo(file_info, parent) for file_info
@@ -191,7 +191,7 @@ class FilteredFsClient(FsClient):
         return QtCore.Qt.Checked
 
     def get_children(self, parent=None):
-        if (parent == None):
+        if not parent:
             return [FsRootFileInfo(root, self.get_item_state(root.get('path')))
                     for root in self.fsClient.get_top_level_children()]
         return [FsFileInfo(file_info, parent,
@@ -209,7 +209,7 @@ class DocClient(Client):
     def get_children(self, parent=None):
         time.sleep(4)
         result = []
-        if (parent == None):
+        if not parent:
             for root in self.docClient.get_roots():
                 result.append(DocRootFileInfo(root))
         else:
@@ -374,7 +374,7 @@ class FolderTreeview(QtGui.QTreeView):
 
     def loadChildrenThread(self, parent=None):
 
-        if (parent == None):
+        if not parent:
             parent = self.model().invisibleRootItem()
             parentItem = None
         else:

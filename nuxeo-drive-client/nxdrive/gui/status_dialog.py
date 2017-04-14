@@ -113,7 +113,7 @@ class StatusTreeview(QtGui.QTreeView):
             return
         self.setLoad(True)
         path = '/'
-        if (parent == None):
+        if not parent:
             parent = self.model().invisibleRootItem()
             parentItem = None
         else:
