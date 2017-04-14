@@ -463,6 +463,11 @@ class Processor(EngineWorker):
                                                               doc_pair.local_path):
                         if overwrite and info.folderish:  # NXDRIVE-647
                             self._synchronize_locally_moved(doc_pair, local_client, remote_client)
+                        elif not overwrite and not info.root:  # NXDRIVE-647
+                            doc_pair.remote_state = 'modified'
+                            doc_pair.pair_state = self._dao._get_pair_state(doc_pair)
+                            self._dao.set_conflict_state(doc_pair)
+                            return
                         else:
                             log.warning("Document is already on the server should not create: %r | %r",
                                         doc_pair,
