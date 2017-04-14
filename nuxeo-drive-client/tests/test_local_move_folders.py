@@ -169,6 +169,7 @@ class TestLocalMoveFolders(UnitTestCase):
         folder_pair_state = self.engine_1.get_dao().get_state_from_local(
             '/' + self.workspace_title + '/Folder1')
         self.assertIsNotNone(folder_pair_state)
+        folder_remote_ref = folder_pair_state.remote_ref
 
         # Unbind or stop engine
         if unbind:
@@ -190,7 +191,13 @@ class TestLocalMoveFolders(UnitTestCase):
             self.engine_1.start()
             self.wait_sync(wait_for_async=True)
 
+        # Check that nothing has changed
+        self.assertEqual(len(remote.get_children_info(self.workspace)), 1)
+        self.assertTrue(remote.exists(folder))
+        self.assertEqual(remote.get_info(folder).name, 'Folder1_ServerName')
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertTrue(local.exists('/Folder1_LocalRename'))
+
         # Check folder status
-        folder_pair_state = self.engine_1.get_dao().get_state_from_id(
-            folder_pair_state.id)
+        folder_pair_state = self.engine_1.get_dao().get_normal_state_from_remote(folder_remote_ref)
         self.assertEqual(folder_pair_state.pair_state, 'conflicted')

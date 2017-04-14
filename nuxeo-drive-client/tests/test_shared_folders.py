@@ -95,8 +95,9 @@ class TestSharedFolders(UnitTestCase):
         # Create initial folders and files as user_2
         folder = remote_2.make_folder('/', 'Folder01')
         subfolder_1 = remote_2.make_folder(folder, 'SubFolder01')
-        remote_2.make_file(subfolder_1, 'Image01.jpg', b'42')
-        fname = remote_2.make_file(folder, 'File01.txt', 'plaintext')
+        remote_2.make_file(subfolder_1, 'Image01.png',
+                           self.generate_random_png(size=42))
+        file_id = remote_2.make_file(folder, 'File01.txt', 'plaintext')
 
         # Grant Read permission for user_1 on the test folder and register
         self.root_remote_client.execute('Document.SetACE',
@@ -110,17 +111,21 @@ class TestSharedFolders(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # First checks
+        file_pair_state = self.engine_1.get_dao().get_state_from_local(
+           '/Folder01/File01.txt')
+        self.assertIsNotNone(file_pair_state)
+        file_remote_ref = file_pair_state.remote_ref
         self.assertTrue(remote_2.exists('/Folder01'))
         self.assertTrue(remote_2.exists('/Folder01/File01.txt'))
         self.assertTrue(remote_2.exists('/Folder01/SubFolder01'))
-        self.assertTrue(remote_2.exists('/Folder01/SubFolder01/Image01.jpg'))
+        self.assertTrue(remote_2.exists('/Folder01/SubFolder01/Image01.png'))
         self.assertTrue(local_1.exists('/Folder01'))
         self.assertTrue(local_1.exists('/Folder01/File01.txt'))
         self.assertTrue(local_1.exists('/Folder01/SubFolder01'))
-        self.assertTrue(local_1.exists('/Folder01/SubFolder01/Image01.jpg'))
+        self.assertTrue(local_1.exists('/Folder01/SubFolder01/Image01.png'))
 
         # Unbind or stop engine
-        if (unbind):
+        if unbind:
             self.send_unbind_engine(1)
             self.wait_unbind_engine(1)
         else:
@@ -135,10 +140,10 @@ class TestSharedFolders(UnitTestCase):
 
         # Make changes
         local_1.rename('/Folder01/File01.txt', 'File01_renamed.txt')
-        local_1.delete('/Folder01/SubFolder01/Image01.jpg')
+        local_1.delete('/Folder01/SubFolder01/Image01.png')
 
         # Bind or start engine and wait for sync
-        if (unbind):
+        if unbind:
             self.send_bind_engine(1)
             self.wait_bind_engine(1)
             self.wait_remote_scan()
@@ -152,21 +157,25 @@ class TestSharedFolders(UnitTestCase):
             # File has been renamed and deleted image has been recreated
             self.assertFalse(local_1.exists('/Folder01/File01.txt'))
             self.assertTrue(local_1.exists('/Folder01/File01_renamed.txt'))
-            self.assertTrue(local_1.exists('/Folder01/SubFolder01/Image01.jpg'))
+            self.assertTrue(local_1.exists('/Folder01/SubFolder01/Image01.png'))
         else:
             # File has been renamed and image deleted
             self.assertFalse(local_1.exists('/Folder01/File01.txt'))
             self.assertTrue(local_1.exists('/Folder01/File01_renamed.txt'))
-            self.assertFalse(local_1.exists('/Folder01/SubFolder01/Image01.jpg'))
+            self.assertFalse(local_1.exists('/Folder01/SubFolder01/Image01.png'))
 
         # Check server side
         children = remote_2.get_children_info(folder)
         self.assertEquals(len(children), 2)
+        file_info = remote_2.get_info(file_id)
         if unbind:
-            # File has been renamed and image not deleted
-            self.assertEqual(remote_2.get_info(fname).name, 'File01_renamed.txt')
-            self.assertTrue(remote_2.exists('/Folder01/SubFolder01/Image01.jpg'))
+            # File has not been renamed and image has not been deleted
+            self.assertEqual(file_info.name, 'File01.txt')
+            self.assertTrue(remote_2.exists('/Folder01/SubFolder01/Image01.png'))
+            # File is in conflict
+            file_pair_state = self.engine_1.get_dao().get_normal_state_from_remote(file_remote_ref)
+            self.assertEqual(file_pair_state.pair_state, 'conflicted')
         else:
             # File has been renamed and image deleted
-            self.assertEqual(remote_2.get_info(fname).name, 'File01_renamed.txt')
-            self.assertFalse(remote_2.exists('/Folder01/SubFolder01/Image01.jpg'))
+            self.assertEqual(file_info.name, 'File01_renamed.txt')
+            self.assertFalse(remote_2.exists('/Folder01/SubFolder01/Image01.png'))
