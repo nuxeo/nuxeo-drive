@@ -1,10 +1,14 @@
-import sqlite3
-import os
+# coding: utf-8
 import inspect
-from threading import RLock, local, current_thread
+import os
+import sqlite3
 from datetime import datetime
+from threading import RLock, current_thread, local
+
+from PyQt4.QtCore import QObject, pyqtSignal
+
 from nxdrive.logging_config import get_logger
-from PyQt4.QtCore import pyqtSignal, QObject
+
 log = get_logger(__name__)
 
 SCHEMA_VERSION = "schema_version"
