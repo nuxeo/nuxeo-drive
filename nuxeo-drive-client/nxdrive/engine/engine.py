@@ -1,3 +1,4 @@
+# coding: utf-8
 import datetime
 import os
 import urllib2
@@ -102,12 +103,10 @@ class EngineLogger(QObject):
     def logQueueItem(self, row_id):
         self._log_pair(row_id, "QueueItem on %r")
 
-'''
-' Used for threads interaction
-'''
-
 
 class Engine(QObject):
+    """ Used for threads interaction. """
+
     BATCH_MODE_UPLOAD = "upload"
     BATCH_MODE_FOLDER = "folder"
     BATCH_MODE_DOWNLOAD = "download"
@@ -299,13 +298,11 @@ class Engine(QObject):
         return remote_ref_segments[2]
 
     def get_metadata_url(self, remote_ref):
-        DRIVE_METADATA_VIEW = 'view_drive_metadata'
         metadata_url = self.get_server_url()
         remote_ref_segments = remote_ref.split("#", 2)
         repo = remote_ref_segments[1]
         doc_id = remote_ref_segments[2]
-        metadata_url += ("nxdoc/" + repo + "/" + doc_id +
-                                 "/" + DRIVE_METADATA_VIEW)
+        metadata_url += 'nxdoc/' + repo + '/' + doc_id + '/view_drive_metadata'
         return metadata_url
 
     def is_syncing(self):
@@ -461,13 +458,14 @@ class Engine(QObject):
         return self.get_local_client().abspath(path)
 
     def get_binder(self):
-        return ServerBindingSettings(server_url=self._server_url,
-                        web_authentication=self._web_authentication,
-                        server_version=None,
-                        username=self._remote_user,
-                        local_folder=self._local_folder,
-                        initialized=True,
-                        pwd_update_required=self.has_invalid_credentials())
+        return ServerBindingSettings(
+            server_url=self._server_url,
+            web_authentication=self._web_authentication,
+            server_version=None,
+            username=self._remote_user,
+            local_folder=self._local_folder,
+            initialized=True,
+            pwd_update_required=self.has_invalid_credentials())
 
     def get_local_folder(self):
         return self._local_folder
@@ -770,11 +768,11 @@ class Engine(QObject):
                     created_folder = True
                 self._check_fs(self._local_folder)
             except Exception as e:
-                try:
-                    if created_folder:
+                if created_folder:
+                    try:
                         os.rmdir(self._local_folder)
-                except:
-                    pass
+                    except:
+                        pass
                 raise e
         nxclient = None
         if check_credential:
@@ -919,7 +917,7 @@ class Engine(QObject):
             client = self.get_local_client()
             current_file = client.get_path(action.filepath)
         if (current_file is not None and self._folder_lock is not None
-             and current_file.startswith(self._folder_lock)):
+                and current_file.startswith(self._folder_lock)):
             log.debug("PairInterrupt '%s' because lock on '%s'",
                       current_file, self._folder_lock)
             raise PairInterrupt
@@ -1011,10 +1009,10 @@ class Engine(QObject):
                 response = rest_client.get_user_full_name(userid)
                 if response and 'properties' in response:
                     properties = response['properties']
-                    firstName = properties.get('firstName')
-                    lastName = properties.get('lastName')
-                    if firstName and lastName:
-                        fullname = " ".join([firstName, lastName]).strip()
+                    first_name = properties.get('firstName')
+                    last_name = properties.get('lastName')
+                    if first_name and last_name:
+                        fullname = " ".join([first_name, last_name]).strip()
                 self._user_cache[userid] = fullname
         except urllib2.URLError as e:
             log.exception(e)

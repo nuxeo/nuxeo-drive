@@ -1,27 +1,24 @@
-'''
-Created on 8 janv. 2015
-
-@author: Remi Cattiau
-'''
-from nxdrive.logging_config import get_logger
-from nxdrive.engine.workers import EngineWorker
-from nxdrive.utils import current_milli_time
-from nxdrive.client import NotFound
-from time import sleep
-from datetime import datetime
-from nxdrive.client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME
-from nxdrive.client.remote_file_system_client import RemoteFileInfo
-from nxdrive.engine.activity import Action
-from nxdrive.client.common import safe_filename
-from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.utils import path_join
-from httplib import BadStatusLine
-from urllib2 import HTTPError, URLError
+# coding: utf-8
 import os
 import socket
-log = get_logger(__name__)
+from datetime import datetime
+from httplib import BadStatusLine
+from time import sleep
+from urllib2 import HTTPError, URLError
+
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
-from nxdrive.engine.workers import ThreadInterrupt
+
+from nxdrive.client import NotFound
+from nxdrive.client.base_automation_client import Unauthorized
+from nxdrive.client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME, \
+    safe_filename
+from nxdrive.client.remote_file_system_client import RemoteFileInfo
+from nxdrive.engine.activity import Action
+from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
+from nxdrive.logging_config import get_logger
+from nxdrive.utils import current_milli_time, path_join
+
+log = get_logger(__name__)
 
 
 class RemoteWatcher(EngineWorker):
@@ -74,10 +71,9 @@ class RemoteWatcher(EngineWorker):
         first_pass = True
         try:
             self._init()
-            while (1):
+            while True:
                 self._interact()
                 if self._current_interval == 0:
-                    #
                     self._current_interval = self.server_interval * 100
                     if self._handle_changes(first_pass):
                         first_pass = False
@@ -166,16 +162,13 @@ class RemoteWatcher(EngineWorker):
             log.debug("Remote scan_pair: %s is not available, Do full scan", remote_path)
             self._scan_remote()
 
-    def _check_modified(self, child_pair, child_info):
-        if child_pair.remote_can_delete != child_info.can_delete:
-            return True
-        if child_pair.remote_can_rename != child_info.can_rename:
-            return True
-        if child_pair.remote_can_update != child_info.can_update:
-            return True
-        if child_pair.remote_can_create_child != child_info.can_create_child:
-            return True
-        if child_pair.remote_digest != child_info.digest:
+    @staticmethod
+    def _check_modified(child_pair, child_info):
+        if (child_pair.remote_can_delete != child_info.can_delete
+                or child_pair.remote_can_rename != child_info.can_rename
+                or child_pair.remote_can_update != child_info.can_update
+                or child_pair.remote_can_create_child != child_info.can_create_child
+                or child_pair.remote_digest != child_info.digest):
             return True
         return False
 
@@ -234,7 +227,6 @@ class RemoteWatcher(EngineWorker):
             # Handle descendants
             for descendant_info in descendants_info:
                 log.trace('Handling remote descendant: %r', descendant_info)
-                descendant_pair = None
                 if descendant_info.uid in descendants:
                     descendant_pair = descendants.pop(descendant_info.uid)
                     if self._check_modified(descendant_pair, descendant_info):
@@ -269,7 +261,8 @@ class RemoteWatcher(EngineWorker):
         for deleted in descendants.values():
             self._dao.delete_remote_state(deleted)
 
-    def _get_elapsed_time_milliseconds(self, t0, t1):
+    @staticmethod
+    def _get_elapsed_time_milliseconds(t0, t1):
         delta = t1 - t0
         return delta.seconds * 1000 + delta.microseconds / 1000
 
@@ -305,7 +298,6 @@ class RemoteWatcher(EngineWorker):
 
         for child_info in children_info:
             log.trace('Scanning remote child: %r', child_info)
-            child_pair = None
             new_pair = False
             if child_info.uid in children:
                 child_pair = children.pop(child_info.uid)
@@ -314,7 +306,7 @@ class RemoteWatcher(EngineWorker):
                 self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
             else:
                 child_pair, new_pair = self._find_remote_child_match_or_create(doc_pair, child_info)
-            if ((new_pair or force_recursion) and child_info.folderish):
+            if (new_pair or force_recursion) and child_info.folderish:
                     to_scan.append((child_pair, child_info))
         # Delete remaining
         for deleted in children.values():
@@ -362,7 +354,6 @@ class RemoteWatcher(EngineWorker):
         if child_pair is not None:
             if child_pair.remote_ref is not None and child_pair.remote_ref != child_info.uid:
                 log.debug("Got an existing pair with different id: %r | %r", child_pair, child_info)
-                child_pair = None
             else:
                 if (child_pair.folderish == child_info.folderish
                         and self._local_client.is_equal_digests(child_pair.local_digest, child_info.digest,
@@ -406,9 +397,10 @@ class RemoteWatcher(EngineWorker):
         child_pair = self._dao.get_state_from_id(row_id, from_write=True)
         return child_pair, True
 
-    def _handle_readonly(self, local_client, doc_pair):
+    @staticmethod
+    def _handle_readonly(local_client, doc_pair):
         # Don't use readonly on folder for win32 and on Locally Edited
-        if (doc_pair.folderish and os.sys.platform == 'win32'):
+        if doc_pair.folderish and os.sys.platform == 'win32':
             return
         if doc_pair.is_readonly():
             log.debug('Setting %r as readonly', doc_pair.local_path)
@@ -442,10 +434,11 @@ class RemoteWatcher(EngineWorker):
                                                      exception=e)
         except:
             pass
+
         if self._client is None:
             if not self._engine.is_offline():
                 self._engine.set_offline()
-            return None
+            return
         if self._engine.is_offline():
             try:
                 # Try to get the api
@@ -456,7 +449,7 @@ class RemoteWatcher(EngineWorker):
             except ThreadInterrupt as e:
                 raise e
             except:
-                return None
+                return
         return self._client
 
     def _handle_changes(self, first_pass=False):
@@ -550,6 +543,7 @@ class RemoteWatcher(EngineWorker):
             self._dao.add_path_to_scan(remote_path)
             self._dao.update_config('remote_need_full_scan', remote_path)
             return
+
         # Fetch all events and consider the most recent first
         sorted_changes = sorted(summary['fileSystemChanges'],
                                 key=lambda x: x['eventDate'], reverse=True)
@@ -572,7 +566,7 @@ class RemoteWatcher(EngineWorker):
             # TODO In case of pause or stop: save the last event id
             self._interact()
 
-            eventId = change.get('eventId')
+            event_id = change.get('eventId')
             remote_ref = change['fileSystemItemId']
             processed = False
             for refreshed_ref in refreshed:
@@ -601,7 +595,7 @@ class RemoteWatcher(EngineWorker):
             if doc_pairs:
                 for doc_pair in doc_pairs:
                     doc_pair_repr = doc_pair.local_path if doc_pair.local_path is not None else doc_pair.remote_name
-                    if eventId == 'deleted':
+                    if event_id == 'deleted':
                         if fs_item is None:
                             log.debug("Push doc_pair '%s' in delete queue",
                                       doc_pair_repr)
@@ -612,25 +606,25 @@ class RemoteWatcher(EngineWorker):
                             updated = True
                             break
                     elif fs_item is None:
-                        if eventId == 'securityUpdated':
+                        if event_id == 'securityUpdated':
                             log.debug("Security has been updated for"
                                       " doc_pair '%s' denying Read access,"
                                       " marking it as deleted",
                                       doc_pair_repr)
                             self._dao.delete_remote_state(doc_pair)
                         else:
-                            log.debug("Unknown event: '%s'", eventId)
+                            log.debug("Unknown event: '%s'", event_id)
                     else:
                         remote_parent_factory = doc_pair.remote_parent_ref.split('#', 1)[0]
                         new_info_parent_factory = new_info.parent_uid.split('#', 1)[0]
                         # Specific cases of a move on a locally edited doc
-                        if (eventId == 'documentMoved' and remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME):
-                                # If moved from a non sync root to a sync root, break to creation case
-                                # (updated is False).
-                                # If moved from a sync root to a non sync root, break to noop
-                                # (updated is True).
-                                break
-                        elif (eventId == 'documentMoved'
+                        if event_id == 'documentMoved' and remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME:
+                            # If moved from a non sync root to a sync root,
+                            # break to creation case (updated is False).
+                            # If moved from a sync root to a non sync root,
+                            # break to noop (updated is True).
+                            break
+                        elif (event_id == 'documentMoved'
                               and new_info_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME):
                             # If moved from a sync root to a non sync root, delete from local sync root
                             log.debug("Marking doc_pair '%s' as deleted", doc_pair_repr)
@@ -645,42 +639,42 @@ class RemoteWatcher(EngineWorker):
                             if remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME:
                                 new_info_parent_uid = doc_pair.remote_parent_ref
                                 new_info_path = (doc_pair.remote_parent_path + '/' + remote_ref)
-                                consistent_new_info = RemoteFileInfo(new_info.name, new_info.uid, new_info_parent_uid,
-                                                                     new_info_path, new_info.folderish,
-                                                                     new_info.last_modification_time,
-                                                                     new_info.last_contributor, new_info.digest,
-                                                                     new_info.digest_algorithm, new_info.download_url,
-                                                                     new_info.can_rename, new_info.can_delete,
-                                                                     new_info.can_update, new_info.can_create_child)
+                                consistent_new_info = RemoteFileInfo(
+                                    new_info.name, new_info.uid,
+                                    new_info_parent_uid,
+                                    new_info_path, new_info.folderish,
+                                    new_info.last_modification_time,
+                                    new_info.last_contributor, new_info.digest,
+                                    new_info.digest_algorithm, new_info.download_url,
+                                    new_info.can_rename, new_info.can_delete,
+                                    new_info.can_update, new_info.can_create_child)
                             # Perform a regular document update on a document
                             # that has been updated, renamed or moved
                             log.debug("Refreshing remote state info"
-                                      " for doc_pair '%s', eventId = %s (force_recursion:%d)", doc_pair_repr, eventId,
-                                      (eventId == "securityUpdated"))
-                            remote_parent_path = doc_pair.remote_parent_path
+                                      " for doc_pair '%s', eventId = %s (force_recursion:%d)", doc_pair_repr, event_id,
+                                      (event_id == "securityUpdated"))
                             # if (new_info.digest != doc_pair.local_digest or
                             #     safe_filename(new_info.name) != doc_pair.local_name
                             #     or new_info.parent_uid != doc_pair.remote_parent_ref):
                             # Force remote state update in case of a locked / unlocked event since lock info is not
                             # persisted, so not part of the dirty check
-                            lock_update = eventId == 'documentLocked' or eventId == 'documentUnlocked'
+                            lock_update = event_id == 'documentLocked' or event_id == 'documentUnlocked'
                             if doc_pair.remote_state != 'created':
-                                if (new_info.digest != doc_pair.remote_digest or \
-                                                safe_filename(new_info.name) != doc_pair.remote_name or \
-                                                new_info.parent_uid != doc_pair.remote_parent_ref or \
-                                                eventId == 'securityUpdated' or lock_update):
+                                if (new_info.digest != doc_pair.remote_digest
+                                        or safe_filename(new_info.name) != doc_pair.remote_name
+                                        or new_info.parent_uid != doc_pair.remote_parent_ref
+                                        or event_id == 'securityUpdated'
+                                        or lock_update):
                                     doc_pair.remote_state = 'modified'
-                                remote_parent_path = os.path.dirname(new_info.path)
-                            else:
-                                remote_parent_path = os.path.dirname(new_info.path)
-                                # TODO Add modify local_path and local_parent_path if needed
+                            remote_parent_path = os.path.dirname(new_info.path)
+                            # TODO Add modify local_path and local_parent_path if needed
                             self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path,
                                                           force_update=lock_update)
                             if doc_pair.folderish:
-                                log.trace("Force scan recursive on %r : %d", doc_pair, (eventId == "securityUpdated"))
+                                log.trace("Force scan recursive on %r : %d", doc_pair, (event_id == "securityUpdated"))
                                 self._force_remote_scan(doc_pair, consistent_new_info, remote_path=new_info.path,
-                                                        force_recursion=(eventId == "securityUpdated"),
-                                                        moved=(eventId == "documentMoved"))
+                                                        force_recursion=(event_id == "securityUpdated"),
+                                                        moved=(event_id == "documentMoved"))
                             if lock_update:
                                 doc_pair = self._dao.get_state_from_id(doc_pair.id)
                                 try:
