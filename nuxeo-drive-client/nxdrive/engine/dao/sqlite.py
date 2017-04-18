@@ -106,9 +106,8 @@ class StateRow(CustomRow):
     def is_readonly(self):
         if self.folderish:
             return self.remote_can_create_child == 0
-        else:
-            return (self.remote_can_delete & self.remote_can_rename
-                        & self.remote_can_update) == 0
+        return (self.remote_can_delete & self.remote_can_rename
+                & self.remote_can_update) == 0
 
     def update_state(self, local_state=None, remote_state=None):
         if local_state is not None:
@@ -148,14 +147,8 @@ class FakeLock(object):
 
 
 class ConfigurationDAO(QObject):
-    '''
-    classdocs
-    '''
 
     def __init__(self, db):
-        '''
-        Constructor
-        '''
         super(ConfigurationDAO, self).__init__()
         log.debug("Create DAO on %s", db)
         self._db = db
@@ -190,7 +183,7 @@ class ConfigurationDAO(QObject):
         self._conn.commit()
         self._conns = local()
         # FOR PYTHON 3.3...
-        #if log.getEffectiveLevel() < 6:
+        # if log.getEffectiveLevel() < 6:
         #    self._conn.set_trace_callback(self._log_trace)
 
     def get_schema_version(self):
@@ -905,8 +898,8 @@ class EngineDAO(ConfigurationDAO):
     def get_normal_state_from_remote(self, ref):
         # TODO Select the only states that is not a collection
         states = self.get_states_from_remote(ref)
-        if len(states) == 0:
-            return
+        if not states:
+            return None
         return states[0]
 
     def get_state_from_remote_with_path(self, ref, path):
@@ -1366,11 +1359,12 @@ class EngineDAO(ConfigurationDAO):
             mode_condition = "AND last_transfer='" + sync_mode + "' "
         state = self.get_normal_state_from_remote(ref)
         if state is None:
-            return
+            return None
         c = self._get_read_connection().cursor()
         return c.execute(u"SELECT * FROM States WHERE last_sync_date>? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date ASC LIMIT 1", (state.last_sync_date,)).fetchone()
 
-    def get_batch_sync_ignore(self):
+    @staticmethod
+    def get_batch_sync_ignore():
         return "AND ( pair_state != 'unsynchronized' AND pair_state != 'conflicted') AND folderish=0 "
 
     def get_next_sync_file(self, ref, sync_mode=None):
@@ -1379,7 +1373,7 @@ class EngineDAO(ConfigurationDAO):
             mode_condition = "AND last_transfer='" + sync_mode + "' "
         state = self.get_normal_state_from_remote(ref)
         if state is None:
-            return
+            return None
         c = self._get_read_connection().cursor()
         return c.execute(u"SELECT * FROM States WHERE last_sync_date<? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date DESC LIMIT 1", (state.last_sync_date,)).fetchone()
 

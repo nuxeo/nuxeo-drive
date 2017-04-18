@@ -64,7 +64,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
                     fs_item_id, self.server_url))
-            return
+            return None
         return self.file_to_info(fs_item)
 
     def get_filesystem_root_info(self):

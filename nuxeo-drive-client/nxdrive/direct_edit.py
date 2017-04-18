@@ -7,9 +7,11 @@ from time import sleep
 
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 
+from nxdrive.wui.application import SimpleApplication
+from nxdrive.wui.modal import WebModal
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
     DOWNLOAD_TMP_FILE_SUFFIX
-from nxdrive.client.common import NotFound
+from nxdrive.client.common import BaseClient, NotFound
 from nxdrive.client.local_client import LocalClient
 from nxdrive.engine.activity import Action
 from nxdrive.engine.blacklist_queue import BlacklistQueue
@@ -156,7 +158,7 @@ class DirectEdit(Worker):
 
     def _get_engine(self, url, user=None):
         if url is None:
-            return
+            return None
         if url.endswith('/'):
             url = url[:-1]
         # Simplify port if possible
@@ -173,7 +175,7 @@ class DirectEdit(Worker):
                 return engine
         # Some backend are case insensitive
         if user is None:
-            return
+            return None
         user = user.lower()
         for engine in self._manager.get_engines().values():
             bind = engine.get_binder()
@@ -187,6 +189,7 @@ class DirectEdit(Worker):
                 server_url = server_url[:-1]
             if server_url == url and user == bind.username.lower():
                 return engine
+        return None
 
     @staticmethod
     def _download_content(engine, remote_client, info, file_path, url=None):
@@ -203,7 +206,6 @@ class DirectEdit(Worker):
             shutil.copy(existing_file_path, file_out)
             if pair.is_readonly():
                 log.debug('Unsetting readonly flag on copied file %r', file_out)
-                from nxdrive.client.common import BaseClient
                 BaseClient.unset_path_readonly(file_out)
         else:
             log.debug('Downloading file %r', info.filename)
@@ -214,8 +216,6 @@ class DirectEdit(Worker):
         return file_out
 
     def _display_modal(self, message, values=None):
-        from nxdrive.wui.application import SimpleApplication
-        from nxdrive.wui.modal import WebModal
         app = SimpleApplication(self._manager, None, {})
         dialog = WebModal(app, app.translate(message, values))
         dialog.add_button("OK", app.translate("OK"))
@@ -234,7 +234,7 @@ class DirectEdit(Worker):
             values['server'] = server_url
             log.warn("No engine found for server_url=%s, user=%s, doc_id=%s", server_url, user, doc_id)
             self._display_modal("DIRECT_EDIT_CANT_FIND_ENGINE", values)
-            return
+            return None
         # Get document info
         remote_client = engine.get_remote_doc_client()
         # Avoid any link with the engine, remote_doc are not cached so we can do that
@@ -242,15 +242,15 @@ class DirectEdit(Worker):
         rest_client = engine.get_rest_api_client()
         doc = rest_client.fetch(doc_id, fetchDocument=['lock'], enrichers=['permissions'])
         info = remote_client.doc_to_info(doc, fetch_parent_uid=False)
-        if (info.lock_owner is not None and info.lock_owner != engine.get_remote_user()):
+        if info.lock_owner is not None and info.lock_owner != engine.get_remote_user():
             log.debug("Doc %s was locked by %s on %s, won't download it for edit", info.name, info.lock_owner,
                       info.lock_created)
             self.directEditLocked.emit(info.name, info.lock_owner, info.lock_created)
-            return
-        if (info.permissions is not None and 'Write' not in info.permissions):
+            return None
+        if info.permissions is not None and 'Write' not in info.permissions:
             log.debug("Doc %s is readonly for %s, won't download it for edit", info.name, user)
             self.directEditReadonly.emit(info.name)
-            return
+            return None
 
         filename = info.filename
 
@@ -272,7 +272,7 @@ class DirectEdit(Worker):
         tmp_file = self._download_content(engine, remote_client, info, file_path, url=url)
         if tmp_file is None:
             log.debug("Download failed")
-            return
+            return None
         # Set the remote_id
         dir_path = self._local_client.get_path(os.path.dirname(file_path))
         self._local_client.set_remote_id(dir_path, doc_id)

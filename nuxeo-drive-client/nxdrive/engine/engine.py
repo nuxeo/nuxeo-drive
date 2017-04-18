@@ -929,7 +929,7 @@ class Engine(QObject):
     def get_remote_client(self, filtered=True):
         """Return a client for the FileSystem abstraction."""
         if self._invalid_credentials:
-            return
+            return None
         cache = self._get_client_cache()
 
         cache_key = (self._manager.device_id, filtered)
@@ -960,7 +960,7 @@ class Engine(QObject):
 
     def get_remote_doc_client(self, repository=DEFAULT_REPOSITORY_NAME, base_folder=None):
         if self._invalid_credentials:
-            return
+            return None
         cache = self._get_client_cache()
         cache_key = (self._manager.device_id, 'remote_doc')
         remote_client = cache.get(cache_key)

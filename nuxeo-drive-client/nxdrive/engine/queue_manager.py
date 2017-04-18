@@ -280,44 +280,44 @@ class QueueManager(QObject):
 
     def _get_local_folder(self):
         if self._local_folder_queue.empty():
-            return
+            return None
         try:
             state = self._local_folder_queue.get(True, 3)
         except Empty:
-            return
+            return None
         if state is not None and self._is_on_error(state.id):
             return self._get_local_folder()
         return state
 
     def _get_local_file(self):
         if self._local_file_queue.empty():
-            return
+            return None
         try:
             state = self._local_file_queue.get(True, 3)
         except Empty:
-            return
+            return None
         if state is not None and self._is_on_error(state.id):
             return self._get_local_file()
         return state
 
     def _get_remote_folder(self):
         if self._remote_folder_queue.empty():
-            return
+            return None
         try:
             state = self._remote_folder_queue.get(True, 3)
         except Empty:
-            return
+            return None
         if state is not None and self._is_on_error(state.id):
             return self._get_remote_folder()
         return state
 
     def _get_remote_file(self):
         if self._remote_file_queue.empty():
-            return
+            return None
         try:
             state = self._remote_file_queue.get(True, 3)
         except Empty:
-            return
+            return None
         if state is not None and self._is_on_error(state.id):
             return self._get_remote_file()
         return state
@@ -326,7 +326,7 @@ class QueueManager(QObject):
         self._get_file_lock.acquire()
         if self._remote_file_queue.empty() and self._local_file_queue.empty():
             self._get_file_lock.release()
-            return
+            return None
         if self._remote_file_queue.qsize() > self._local_file_queue.qsize():
             state = self._get_remote_file()
         else:

@@ -143,7 +143,7 @@ class WebDriveApi(QtCore.QObject):
 
     def _export_state(self, state):
         if state is None:
-            return
+            return None
         result = dict()
         # Direction
         result["state"] = state.pair_state
@@ -214,7 +214,7 @@ class WebDriveApi(QtCore.QObject):
         uid = str(uid)
         engines = self._manager.get_engines()
         if not uid in engines:
-            return
+            return None
         return engines[uid]
 
     def set_last_url(self, url):
@@ -349,7 +349,8 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
         return ""
 
-    def _export_notification(self, notif):
+    @staticmethod
+    def _export_notification(notif):
         result = dict()
         result["level"] = notif.get_level()
         result["uid"] = notif.get_uid()

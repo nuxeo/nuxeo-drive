@@ -37,6 +37,7 @@ class WebMetadataApi(WebDriveApi):
             return self._engine.get_document_id(self._remote_ref)
         except Exception as e:
             log.debug(e)
+        return None
 
     @QtCore.pyqtSlot()
     def open_file(self):

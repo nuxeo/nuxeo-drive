@@ -229,3 +229,4 @@ class DarwinIntegration(AbstractOSIntegration):
         for item in LSSharedFileListCopySnapshot(lst, None)[0]:
             if name == LSSharedFileListItemCopyDisplayName(item):
                 return item
+        return None

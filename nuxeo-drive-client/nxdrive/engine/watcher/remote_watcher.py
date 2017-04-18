@@ -326,11 +326,11 @@ class RemoteWatcher(EngineWorker):
         if not remote_info.folderish:
             # No children to align, early stop.
             log.trace("Skip remote scan as it is not a folderish document: %r", remote_info)
-            return
+            return None
         remote_parent_path = doc_pair.remote_parent_path + '/' + remote_info.uid
         if self._dao.is_path_scanned(remote_parent_path):
             log.trace("Skip already remote scanned: %s", doc_pair.local_path)
-            return
+            return None
         if doc_pair.local_path is not None:
             self._action = Action("Remote scanning : " + doc_pair.local_path)
             log.debug("Remote scanning: %s", doc_pair.local_path)
@@ -438,7 +438,7 @@ class RemoteWatcher(EngineWorker):
         if self._client is None:
             if not self._engine.is_offline():
                 self._engine.set_offline()
-            return
+            return None
         if self._engine.is_offline():
             try:
                 # Try to get the api
@@ -449,7 +449,7 @@ class RemoteWatcher(EngineWorker):
             except ThreadInterrupt as e:
                 raise e
             except:
-                return
+                return None
         return self._client
 
     def _handle_changes(self, first_pass=False):
@@ -470,7 +470,7 @@ class RemoteWatcher(EngineWorker):
             full_scan = self._dao.get_config('remote_need_full_scan', None)
             if full_scan is not None:
                 self._partial_full_scan(full_scan)
-                return
+                return None
             else:
                 paths = self._dao.get_paths_to_scan()
                 while len(paths) > 0:
