@@ -641,11 +641,9 @@ class Processor(EngineWorker):
     @staticmethod
     def _get_temporary_file(file_path):
         file_dir = os.path.dirname(file_path)
-        file_name = '{}{}{}'.format(DOWNLOAD_TMP_FILE_PREFIX,
-                                    os.path.basename(file_path),
-                                    DOWNLOAD_TMP_FILE_SUFFIX)
-        file_out = os.path.join(file_dir,  file_name)
-        return file_out
+        file_name = os.path.basename(file_path)
+        return os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
+                            + DOWNLOAD_TMP_FILE_SUFFIX)
 
     def _download_content(self, local_client, remote_client, doc_pair, file_path):
         # Check if the file is already on the HD

@@ -1,17 +1,17 @@
-"""API to access a remote file system for synchronization."""
+# coding: utf-8
+""" API to access a remote file system for synchronization. """
 
+import os
 import unicodedata
 from collections import namedtuple
 from datetime import datetime
-import os
-from nxdrive.logging_config import get_logger
-from nxdrive.client.common import NotFound
-from nxdrive.client.base_automation_client import BaseAutomationClient
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
-from nxdrive.engine.activity import FileAction
 from threading import current_thread
 
+from nxdrive.client.base_automation_client import BaseAutomationClient, \
+    DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
+from nxdrive.client.common import NotFound
+from nxdrive.engine.activity import FileAction
+from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)
 
@@ -64,7 +64,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
                     fs_item_id, self.server_url))
-            return None
+            return
         return self.file_to_info(fs_item)
 
     def get_filesystem_root_info(self):
@@ -83,7 +83,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
         download_url = self.server_url + fs_item_info.download_url
         FileAction("Download", None,
                                         fs_item_info.name, 0)
-        content, _ = self.do_get(download_url, digest=fs_item_info.digest, digest_algorithm=fs_item_info.digest_algorithm)
+        content, _ = self.do_get(download_url, digest=fs_item_info.digest,
+                                 digest_algorithm=fs_item_info.digest_algorithm)
         self.end_action()
         return content
 
@@ -96,7 +97,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         """
         if fs_item_info is None:
             fs_item_info = self.get_info(fs_item_id,
-                                     parent_fs_item_id=parent_fs_item_id)
+                                         parent_fs_item_id=parent_fs_item_id)
         download_url = self.server_url + fs_item_info.download_url
         file_name = os.path.basename(file_path)
         if file_out is None:
@@ -105,7 +106,9 @@ class RemoteFileSystemClient(BaseAutomationClient):
                                                     + str(current_thread().ident) + DOWNLOAD_TMP_FILE_SUFFIX)
         FileAction("Download", file_out, file_name, 0)
         try:
-            _, tmp_file = self.do_get(download_url, file_out=file_out, digest=fs_item_info.digest, digest_algorithm=fs_item_info.digest_algorithm)
+            _, tmp_file = self.do_get(download_url, file_out=file_out,
+                                      digest=fs_item_info.digest,
+                                      digest_algorithm=fs_item_info.digest_algorithm)
         except Exception as e:
             if os.path.exists(file_out):
                 os.remove(file_out)
@@ -130,7 +133,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
     def make_folder(self, parent_id, name, overwrite=False):
         fs_item = self.execute("NuxeoDrive.CreateFolder",
-            parentId=parent_id, name=name, overwrite=overwrite)
+                               parentId=parent_id, name=name,
+                               overwrite=overwrite)
         return self.file_to_info(fs_item)
 
     def make_file(self, parent_id, name, content):
@@ -141,7 +145,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
         file_path = self.make_tmp_file(content)
         try:
             fs_item = self.execute_with_blob_streaming("NuxeoDrive.CreateFile",
-                file_path, filename=name, parentId=parent_id)
+                                                       file_path, filename=name,
+                                                       parentId=parent_id)
             return self.file_to_info(fs_item)
         finally:
             os.remove(file_path)
@@ -151,8 +156,11 @@ class RemoteFileSystemClient(BaseAutomationClient):
         :param overwrite Allows to overwrite an existing document with the same title on the server.
         """
         fs_item = self.execute_with_blob_streaming("NuxeoDrive.CreateFile",
-            file_path, filename=filename, mime_type=mime_type,
-            parentId=parent_id, overwrite=overwrite)
+                                                   file_path,
+                                                   filename=filename,
+                                                   mime_type=mime_type,
+                                                   parentId=parent_id,
+                                                   overwrite=overwrite)
         return self.file_to_info(fs_item)
 
     def update_content(self, fs_item_id, content, filename=None,
@@ -166,8 +174,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
             if filename is None:
                 filename = self.get_info(fs_item_id).name
             fs_item = self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
-                file_path, filename=filename, mime_type=mime_type,
-                id=fs_item_id)
+                                                       file_path,
+                                                       filename=filename,
+                                                       mime_type=mime_type,
+                                                       id=fs_item_id)
             return self.file_to_info(fs_item)
         finally:
             os.remove(file_path)
@@ -176,8 +186,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
                       filename=None):
         """Update a document by streaming the file with the given path"""
         fs_item = self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
-            file_path, filename=filename, id=fs_item_id,
-            parentId=parent_fs_item_id)
+                                                   file_path,
+                                                   filename=filename,
+                                                   id=fs_item_id,
+                                                   parentId=parent_fs_item_id)
         return self.file_to_info(fs_item)
 
     def delete(self, fs_item_id, parent_fs_item_id=None):
@@ -193,22 +205,24 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
     def rename(self, fs_item_id, new_name):
         return self.file_to_info(self.execute("NuxeoDrive.Rename",
-            id=fs_item_id, name=new_name))
+                                              id=fs_item_id, name=new_name))
 
     def move(self, fs_item_id, new_parent_id):
         return self.file_to_info(self.execute("NuxeoDrive.Move",
-            srcId=fs_item_id, destId=new_parent_id))
+                                              srcId=fs_item_id,
+                                              destId=new_parent_id))
 
     def can_move(self, fs_item_id, new_parent_id):
         return self.execute("NuxeoDrive.CanMove", srcId=fs_item_id,
-            destId=new_parent_id)
+                            destId=new_parent_id)
 
     def conflicted_name(self, original_name):
         """Generate a new name suitable for conflict deduplication."""
         return self.execute("NuxeoDrive.GenerateConflictedItemName",
-            name=original_name)
+                            name=original_name)
 
-    def file_to_info(self, fs_item):
+    @staticmethod
+    def file_to_info(fs_item):
         """Convert Automation file system item description to RemoteFileInfo"""
         folderish = fs_item['folder']
         milliseconds = fs_item['lastModificationDate']
@@ -254,11 +268,13 @@ class RemoteFileSystemClient(BaseAutomationClient):
         name = fs_item['name']
         if name is not None:
             name = unicodedata.normalize('NFC', name)
-        return RemoteFileInfo(
-            name, fs_item['id'], fs_item['parentId'],
-            fs_item['path'], folderish, last_update, last_contributor, digest, digest_algorithm,
-            download_url, fs_item['canRename'], fs_item['canDelete'],
-            can_update, can_create_child, lock_owner, lock_created, can_scroll_descendants)
+        return RemoteFileInfo(name, fs_item['id'], fs_item['parentId'],
+                              fs_item['path'], folderish, last_update,
+                              last_contributor, digest, digest_algorithm,
+                              download_url, fs_item['canRename'],
+                              fs_item['canDelete'],
+                              can_update, can_create_child, lock_owner,
+                              lock_created, can_scroll_descendants)
 
     #
     # API specific to the remote file system client
@@ -272,7 +288,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self.execute("NuxeoDrive.GetTopLevelChildren")
 
     def get_changes(self, last_root_definitions,
-                        log_id=None, last_sync_date=None):
+                    log_id=None, last_sync_date=None):
         if log_id:
             # If available, use last event log id as 'lowerBound' parameter
             # according to the new implementation of the audit change finder,
@@ -281,10 +297,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
                                 lowerBound=log_id,
                                 lastSyncActiveRootDefinitions=(
                                         last_root_definitions))
-        else:
-            # Use last sync date as 'lastSyncDate' parameter according to the
-            # old implementation of the audit change finder.
-            return self.execute('NuxeoDrive.GetChangeSummary',
-                                lastSyncDate=last_sync_date,
-                                lastSyncActiveRootDefinitions=(
-                                                last_root_definitions))
+        # Use last sync date as 'lastSyncDate' parameter according to the
+        # old implementation of the audit change finder.
+        return self.execute(
+            'NuxeoDrive.GetChangeSummary', lastSyncDate=last_sync_date,
+            lastSyncActiveRootDefinitions=last_root_definitions)

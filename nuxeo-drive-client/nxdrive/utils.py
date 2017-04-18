@@ -312,7 +312,7 @@ def find_resource_dir(directory, default_path):
     if not os.path.exists(dir_path):
         log.warning("Could not find the resource directory at: %s",
                     dir_path)
-        return None
+        return
 
     return dir_path
 
@@ -348,7 +348,7 @@ def decrypt(ciphertext, secret, lazy=True):
         encobj = AES.new(secret, AES.MODE_CFB, iv)
         return encobj.decrypt(ciphertext)
     except:
-        return None
+        return
 
 
 def _lazysecret(secret, blocksize=32, padding='}'):
@@ -370,9 +370,8 @@ def guess_mime_type(filename):
             mime_type = _patch_win32_mime_type(mime_type)
         log.trace("Guessed mime type '%s' for '%s'", mime_type, filename)
         return mime_type
-    else:
-        log.trace("Could not guess mime type for '%s', returing 'application/octet-stream'", filename)
-        return "application/octet-stream"
+    log.trace("Could not guess mime type for '%s', returing 'application/octet-stream'", filename)
+    return "application/octet-stream"
 
 
 def guess_digest_algorithm(digest):
@@ -381,8 +380,7 @@ def guess_digest_algorithm(digest):
         return 'md5'
     elif len(digest) == 40:
         return 'sha1'
-    else:
-        raise Exception('Unknown digest algorithm for %s' % digest)
+    raise Exception('Unknown digest algorithm for %s' % digest)
 
 
 def _patch_win32_mime_type(mime_type):
@@ -466,7 +464,6 @@ class PidLockFile(object):
             process_name = self.key
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
         if os.path.exists(pid_filepath):
-            pid = None
             with open(safe_long_path(pid_filepath), 'rb') as f:
                 pid = os.getpid()
                 try:
@@ -491,17 +488,16 @@ class PidLockFile(object):
                            " %d" % (pid_filepath, pid))
                 log.info(msg)
             except Exception, e:
-                if pid is None:
-                    msg = ("Failed to remove empty stalled pid file: %s:"
-                           " %r" % (pid_filepath, e))
-                else:
+                if pid is not None:
                     msg = ("Failed to remove stalled pid file: %s for"
                            " stopped process %d: %r"
                            % (pid_filepath, pid, e))
+                    log.warning(msg)
                     return pid
+                msg = "Failed to remove empty stalled pid file: %s: %r" % (
+                    pid_filepath, e)
                 log.warning(msg)
         self.locked = True
-        return None
 
     def lock(self):
         pid = self.check_running(process_name=self.key)
@@ -514,4 +510,3 @@ class PidLockFile(object):
         pid = os.getpid()
         with open(safe_long_path(pid_filepath), 'wb') as f:
             f.write(str(pid))
-        return None

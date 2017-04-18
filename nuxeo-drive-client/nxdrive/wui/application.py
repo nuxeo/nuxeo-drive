@@ -1,19 +1,20 @@
-"""Main Qt application handling OS events and system tray UI"""
+# coding: utf-8
+""" Main Qt application handling OS events and system tray UI. """
 
 import os
-import sys
 import subprocess
+import sys
+
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.osi import parse_protocol_url
-from nxdrive.logging_config import get_logger
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
-from nxdrive.utils import find_resource_dir
-from nxdrive.wui.translator import Translator
-from nxdrive.wui.systray import DriveSystrayIcon
-from nxdrive.osi import AbstractOSIntegration
+from nxdrive.logging_config import get_logger
 from nxdrive.notification import Notification
+from nxdrive.osi import AbstractOSIntegration, parse_protocol_url
+from nxdrive.utils import find_resource_dir
 from nxdrive.wui.modal import WebModal
+from nxdrive.wui.systray import DriveSystrayIcon
+from nxdrive.wui.translator import Translator
 
 log = get_logger(__name__)
 
@@ -97,7 +98,6 @@ class SimpleApplication(QApplication):
     def _get_unique_dialog(self, name):
         if name in self.uniqueDialogs:
             return self.uniqueDialogs[name]
-        return None
 
     def _destroy_dialog(self):
         sender = self.sender()
@@ -115,12 +115,12 @@ class SimpleApplication(QApplication):
         return self.manager.get_osi()
 
     def _init_translator(self):
-        if (self.options is not None):
+        if self.options is not None:
             default_locale = self.options.locale
         else:
             default_locale = 'en'
         Translator(self.manager, self.get_htmlpage('i18n.js'),
-                        self.manager.get_config("locale", default_locale))
+                   self.manager.get_config("locale", default_locale))
 
     def get_htmlpage(self, page):
         import nxdrive

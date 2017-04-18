@@ -549,7 +549,8 @@ class EngineDAO(ConfigurationDAO):
             return self._create_state_table(cursor, force)
         super(EngineDAO, self)._create_table(cursor, name, force)
 
-    def _create_state_table(self, cursor, force=False):
+    @staticmethod
+    def _create_state_table(cursor, force=False):
         if force:
             statement = ''
         else:
@@ -905,7 +906,7 @@ class EngineDAO(ConfigurationDAO):
         # TODO Select the only states that is not a collection
         states = self.get_states_from_remote(ref)
         if len(states) == 0:
-            return None
+            return
         return states[0]
 
     def get_state_from_remote_with_path(self, ref, path):
@@ -1365,7 +1366,7 @@ class EngineDAO(ConfigurationDAO):
             mode_condition = "AND last_transfer='" + sync_mode + "' "
         state = self.get_normal_state_from_remote(ref)
         if state is None:
-            return None
+            return
         c = self._get_read_connection().cursor()
         return c.execute(u"SELECT * FROM States WHERE last_sync_date>? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date ASC LIMIT 1", (state.last_sync_date,)).fetchone()
 
@@ -1378,7 +1379,7 @@ class EngineDAO(ConfigurationDAO):
             mode_condition = "AND last_transfer='" + sync_mode + "' "
         state = self.get_normal_state_from_remote(ref)
         if state is None:
-            return None
+            return
         c = self._get_read_connection().cursor()
         return c.execute(u"SELECT * FROM States WHERE last_sync_date<? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date DESC LIMIT 1", (state.last_sync_date,)).fetchone()
 
@@ -1396,8 +1397,7 @@ class EngineDAO(ConfigurationDAO):
         path = self._clean_filter_path(path)
         if any([path.startswith(filter_obj.path) for filter_obj in self._filters]):
             return True
-        else:
-            return False
+        return False
 
     def get_filters(self):
         c = self._get_read_connection().cursor()
@@ -1439,5 +1439,6 @@ class EngineDAO(ConfigurationDAO):
         finally:
             self._lock.release()
 
-    def _escape(self, _str):
+    @staticmethod
+    def _escape(_str):
         return _str.replace("'", "''")

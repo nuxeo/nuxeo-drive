@@ -1,10 +1,8 @@
-'''
-Created on 1 sept. 2015
-
-@author: Remi Cattiau
-'''
+# coding: utf-8
 from PyQt4.QtCore import QObject, pyqtSlot
+
 from nxdrive.logging_config import get_logger
+
 log = get_logger(__name__)
 
 
@@ -26,10 +24,9 @@ class DriveScript(QObject):
         return False
 
     def get_engine(self):
-        engine = None
         if self._engine_uid is None:
             if len(self._manager.get_engines()) == 0:
-                return None
+                return
             engine = self._manager.get_engines().itervalues().next()
         else:
             engine = self._manager.get_engines()[self._engine_uid]

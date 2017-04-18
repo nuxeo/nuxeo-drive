@@ -45,7 +45,7 @@ def mock_get_children_info(self, *args, **kwargs):
 
 def mock_file_to_info(self, fs_item):
     fs_item['canScrollDescendants'] = False
-    return original_file_to_info(self, fs_item)
+    return original_file_to_info(fs_item)
 
 
 class TestBulkRemoteChanges(UnitTestCase):

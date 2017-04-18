@@ -1,17 +1,18 @@
-"""API to access remote Nuxeo documents for synchronization."""
+# coding: utf-8
+""" API to access remote Nuxeo documents for synchronization. """
 
+import os
 import unicodedata
+import urllib2
 from collections import namedtuple
 from datetime import datetime
-from dateutil import parser
-import os
-import urllib2
-from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.client.common import safe_filename
-from nxdrive.logging_config import get_logger
-from nxdrive.client.common import NotFound
-from nxdrive.client.base_automation_client import BaseAutomationClient
 
+from dateutil import parser
+
+from nxdrive.client.base_automation_client import BaseAutomationClient
+from nxdrive.client.common import DEFAULT_REPOSITORY_NAME, NotFound, \
+    safe_filename
+from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)
 
@@ -105,7 +106,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
                     self._check_ref(ref), self.server_url))
-            return None
+            return
         return self._doc_to_info(self.fetch(self._check_ref(ref)),
                                  fetch_parent_uid=fetch_parent_uid)
 

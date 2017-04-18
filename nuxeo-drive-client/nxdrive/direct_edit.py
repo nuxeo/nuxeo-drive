@@ -1,23 +1,24 @@
-'''
-@author: Remi Cattiau
-'''
-from nxdrive.logging_config import get_logger
-from nxdrive.engine.workers import Worker, ThreadInterrupt
-from nxdrive.engine.blacklist_queue import BlacklistQueue
-from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler, normalize_event_filename
-from nxdrive.engine.activity import Action
-from nxdrive.client.local_client import LocalClient
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
-from nxdrive.client.common import NotFound
-from nxdrive.utils import guess_digest_algorithm, current_milli_time
-from nxdrive.osi import parse_protocol_url
+# coding: utf-8
 import os
-import sys
-from time import sleep
 import shutil
+import sys
+from Queue import Empty, Queue
+from time import sleep
+
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
-from Queue import Queue, Empty
+
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
+    DOWNLOAD_TMP_FILE_SUFFIX
+from nxdrive.client.common import NotFound
+from nxdrive.client.local_client import LocalClient
+from nxdrive.engine.activity import Action
+from nxdrive.engine.blacklist_queue import BlacklistQueue
+from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler, \
+    normalize_event_filename
+from nxdrive.engine.workers import ThreadInterrupt, Worker
+from nxdrive.logging_config import get_logger
+from nxdrive.osi import parse_protocol_url
+from nxdrive.utils import current_milli_time, guess_digest_algorithm
 
 try:
     from exceptions import WindowsError
@@ -155,7 +156,7 @@ class DirectEdit(Worker):
 
     def _get_engine(self, url, user=None):
         if url is None:
-            return None
+            return
         if url.endswith('/'):
             url = url[:-1]
         # Simplify port if possible
@@ -172,7 +173,7 @@ class DirectEdit(Worker):
                 return engine
         # Some backend are case insensitive
         if user is None:
-            return None
+            return
         user = user.lower()
         for engine in self._manager.get_engines().values():
             bind = engine.get_binder()
@@ -186,9 +187,9 @@ class DirectEdit(Worker):
                 server_url = server_url[:-1]
             if server_url == url and user == bind.username.lower():
                 return engine
-        return None
 
-    def _download_content(self, engine, remote_client, info, file_path, url=None):
+    @staticmethod
+    def _download_content(engine, remote_client, info, file_path, url=None):
         file_dir = os.path.dirname(file_path)
         file_name = os.path.basename(file_path)
         file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
@@ -245,11 +246,11 @@ class DirectEdit(Worker):
             log.debug("Doc %s was locked by %s on %s, won't download it for edit", info.name, info.lock_owner,
                       info.lock_created)
             self.directEditLocked.emit(info.name, info.lock_owner, info.lock_created)
-            return None
+            return
         if (info.permissions is not None and 'Write' not in info.permissions):
             log.debug("Doc %s is readonly for %s, won't download it for edit", info.name, user)
             self.directEditReadonly.emit(info.name)
-            return None
+            return
 
         filename = info.filename
 

@@ -1,12 +1,9 @@
-'''
-Created on 10 mars 2015
-
-@author: Remi Cattiau
-'''
-from nxdrive.logging_config import get_logger
-from nxdrive.wui.dialog import WebDialog, WebDriveApi, Promise
-from nxdrive.wui.translator import Translator
+# coding: utf-8
 from PyQt4 import QtCore
+
+from nxdrive.logging_config import get_logger
+from nxdrive.wui.dialog import Promise, WebDialog, WebDriveApi
+from nxdrive.wui.translator import Translator
 
 log = get_logger(__name__)
 
@@ -95,7 +92,7 @@ class WebConflictsApi(WebDriveApi):
 
     def _export_state(self, state):
         if state is None:
-            return None
+            return
         result = super(WebConflictsApi, self)._export_state(state)
         result["last_contributor"] = " " if state.last_remote_modifier is None \
             else self._engine.get_user_full_name(state.last_remote_modifier, cache_only=not self._retrieve_name)

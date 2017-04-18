@@ -1,12 +1,10 @@
-'''
-@author: Remi Cattiau
-'''
-from nxdrive.osi import AbstractOSIntegration
+# coding: utf-8
 import os
 import urllib2
+
 from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import normalized_path
-from nxdrive.manager import Manager
 
 log = get_logger(__name__)
 
@@ -28,7 +26,6 @@ class RightClickService(NSObject):
         log.trace("macRightClick has been called")
         try:
             types = pboard.types()
-            pboardString = None
             if NSURLPboardType in types:
                 pboardArray = pboard.propertyListForType_(NSURLPboardType)
                 log.error("Retrieve property list stuff %r", pboardArray)
@@ -46,7 +43,7 @@ class RightClickService(NSObject):
                     log.debug("Should open : %s", value)
                     from PyQt4.QtCore import QCoreApplication
                     QCoreApplication.instance().show_metadata(value)
-            return None
+            return
         except Exception as e:
             log.exception(e)
 
@@ -232,5 +229,3 @@ class DarwinIntegration(AbstractOSIntegration):
         for item in LSSharedFileListCopySnapshot(lst, None)[0]:
             if name == LSSharedFileListItemCopyDisplayName(item):
                 return item
-
-        return None

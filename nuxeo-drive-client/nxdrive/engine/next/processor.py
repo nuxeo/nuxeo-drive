@@ -1,10 +1,13 @@
-__author__ = 'loopingz'
+# coding: utf-8
+import os
+import shutil
+
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
+    DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.engine.processor import Processor as OldProcessor
 from nxdrive.logging_config import get_logger
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
+
 log = get_logger(__name__)
-import os
 
 
 class Processor(OldProcessor):
@@ -18,7 +21,7 @@ class Processor(OldProcessor):
             self._dao.release_processor(self._thread_id)
             # Postpone pair for watcher delay
             self._engine.get_queue_manager().postpone_pair(result, self._engine.get_local_watcher().get_scan_delay())
-            return None
+            return
         log.warn("Acquired: %r", result)
         return result
 
@@ -36,7 +39,6 @@ class Processor(OldProcessor):
         # Check if the file is already on the HD
         pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
         if pair:
-            import shutil
             shutil.copy(local_client.abspath(pair.local_path), file_out)
             return file_out
         tmp_file = remote_client.stream_content( doc_pair.remote_ref, file_path,

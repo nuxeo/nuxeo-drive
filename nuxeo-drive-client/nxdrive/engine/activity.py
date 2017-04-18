@@ -1,10 +1,7 @@
-'''
-Created on 17 sept. 2014
-
-@author: Remi Cattiau
-'''
+# coding: utf-8
 import os
 from threading import current_thread
+
 from nxdrive.utils import current_milli_time
 
 
@@ -14,12 +11,12 @@ class Action(object):
     finished = False
     suspend = False
 
-    def __init__(self, actionType, progress=None, threadId=None):
+    def __init__(self, action_type, progress=None, thread_id=None):
         self.progress = progress
-        self.type = actionType
-        if threadId is None:
-            threadId = current_thread().ident
-        Action.actions[threadId] = self
+        self.type = action_type
+        if thread_id is None:
+            thread_id = current_thread().ident
+        Action.actions[thread_id] = self
 
     def get_percent(self):
         return self.progress
@@ -34,7 +31,6 @@ class Action(object):
             thread_id = current_thread().ident
         if thread_id in Action.actions:
             return Action.actions[thread_id]
-        return None
 
     @staticmethod
     def get_last_file_action(thread_id=None):
@@ -42,12 +38,11 @@ class Action(object):
             thread_id = current_thread().ident
         if thread_id in Action.lastFileActions:
             return Action.lastFileActions[thread_id]
-        return None
 
     @staticmethod
     def finish_action():
         if (current_thread().ident in Action.actions and
-            Action.actions[current_thread().ident] is not None):
+                Action.actions[current_thread().ident] is not None):
             Action.actions[current_thread().ident].finished = True
             if isinstance(Action.actions[current_thread().ident], FileAction):
                 Action.actions[current_thread().ident].end_time = current_milli_time()
@@ -57,16 +52,18 @@ class Action(object):
 
     def __repr__(self):
         if self.progress is None:
-            return "%s" % (self.type)
+            return "%s" % self.type
         else:
             return "%s(%s%%)" % (self.type, self.progress)
+
 
 class IdleAction(Action):
     def __init__(self):
         self.type = "Idle"
 
     def get_percent(self):
-        return None
+        return
+
 
 class FileAction(Action):
     filepath = None
@@ -74,8 +71,8 @@ class FileAction(Action):
     size = None
     transfer_duration = None
 
-    def __init__(self, actionType, filepath, filename=None, size=None):
-        super(FileAction, self).__init__(actionType, 0)
+    def __init__(self, action_type, filepath, filename=None, size=None):
+        super(FileAction, self).__init__(action_type, 0)
         self.filepath = filepath
         if filename is None:
             self.filename = os.path.basename(filepath)
@@ -90,11 +87,10 @@ class FileAction(Action):
 
     def get_percent(self):
         if self.size <= 0:
-            return None
+            return
         if self.progress > self.size:
             return 100
-        else:
-            return self.progress * 100 / self.size
+        return self.progress * 100 / self.size
 
     def __repr__(self):
         # Size can be None if the file disapeared right on creation
@@ -103,8 +99,7 @@ class FileAction(Action):
         percent = self.get_percent()
         if percent is None:
             return "%s(%r[%d])" % (self.type, self.filename, self.size)
-        else:
-            return "%s(%r[%d]-%f%%)" % (self.type, self.filename, self.size, percent)
+        return "%s(%r[%d]-%f%%)" % (self.type, self.filename, self.size, percent)
 
 Action.actions = dict()
 Action.lastFileActions = dict()

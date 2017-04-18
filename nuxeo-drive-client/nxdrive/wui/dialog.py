@@ -1,30 +1,27 @@
-'''
-Created on 28 janv. 2015
-
-@author: Remi Cattiau
-
-TODO: Find a better way for the try/catch on slot
-'''
-from PyQt4 import QtGui, QtCore, QtWebKit, QtNetwork
-from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QSslCertificate
-from nxdrive.logging_config import get_logger
-from nxdrive.engine.activity import FileAction, Action
-from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.wui.translator import Translator
-from nxdrive.manager import FolderAlreadyUsed
-import uuid
-import urllib2
+# coding: utf-8
+import calendar
+import datetime
 import json
 import sys
 import time
-import datetime
-import calendar
+import urllib2
+import uuid
 from os.path import realpath
-from nxdrive.engine.engine import Engine
-from nxdrive.notification import Notification
-from nxdrive.engine.workers import Worker
-from nxdrive.engine.dao.sqlite import StateRow
+
+from PyQt4 import QtCore, QtGui, QtNetwork, QtWebKit
+from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QSslCertificate
 from dateutil.tz import tzlocal
+
+from nxdrive.client.base_automation_client import Unauthorized
+from nxdrive.engine.activity import Action, FileAction
+from nxdrive.engine.dao.sqlite import StateRow
+from nxdrive.engine.engine import Engine
+from nxdrive.engine.workers import Worker
+from nxdrive.logging_config import get_logger
+from nxdrive.manager import FolderAlreadyUsed
+from nxdrive.notification import Notification
+from nxdrive.wui.translator import Translator
+
 log = get_logger(__name__)
 
 
@@ -146,7 +143,7 @@ class WebDriveApi(QtCore.QObject):
 
     def _export_state(self, state):
         if state is None:
-            return None
+            return
         result = dict()
         # Direction
         result["state"] = state.pair_state
@@ -217,7 +214,7 @@ class WebDriveApi(QtCore.QObject):
         uid = str(uid)
         engines = self._manager.get_engines()
         if not uid in engines:
-            return None
+            return
         return engines[uid]
 
     def set_last_url(self, url):

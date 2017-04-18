@@ -1,6 +1,5 @@
 import os
 import shutil
-import random
 
 from tests.common_unit_test import UnitTestCase
 from tests.common_unit_test import log
@@ -31,7 +30,7 @@ class TestLocalMoveFolders(UnitTestCase):
         for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1):
             file_name = self.FILE_NAME_PATTERN % (file_num, 'png')
             file_path = os.path.join(abs_folder_path_1, file_name)
-            self.generate_random_png(file_path, random.randint(1, 42))
+            self.generate_random_png(file_path)
         log.debug('Local test files created in a1')
 
         # Add image files to a2
@@ -39,7 +38,7 @@ class TestLocalMoveFolders(UnitTestCase):
         for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1):
             file_name = self.FILE_NAME_PATTERN % (file_num, 'png')
             file_path = os.path.join(abs_folder_path_2, file_name)
-            self.generate_random_png(file_path, random.randint(1, 42))
+            self.generate_random_png(file_path)
         log.debug('Local test files created in a2')
 
         self.engine_1.start()

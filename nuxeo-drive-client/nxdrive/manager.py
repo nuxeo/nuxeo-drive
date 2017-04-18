@@ -1,3 +1,4 @@
+# coding: utf-8
 from urllib2 import URLError
 import subprocess
 import os
@@ -1195,11 +1196,12 @@ class Manager(QtCore.QObject):
             parent = os.path.dirname(file_path)
             # We can't find in any parent
             if parent == file_path or parent is None:
-                return None
+                return
             return self.get_root_id(parent)
         return ref
 
-    def get_cf_bundle_identifier(self):
+    @staticmethod
+    def get_cf_bundle_identifier():
         return "org.nuxeo.drive"
 
     def get_metadata_infos(self, file_path):
@@ -1216,7 +1218,7 @@ class Manager(QtCore.QObject):
             raise ValueError('Unknown engine %s for %s' %
                              (root_values[3], file_path))
         metadata_url = engine.get_metadata_url(remote_ref)
-        return (metadata_url, engine.get_remote_token(), engine, remote_ref)
+        return metadata_url, engine.get_remote_token(), engine, remote_ref
 
     def set_script_object(self, obj):
         # Used to enhance scripting with UI

@@ -1,5 +1,6 @@
 """Common test utilities"""
 import os
+import random
 import struct
 import sys
 import tempfile
@@ -767,7 +768,7 @@ class UnitTestCase(SimpleUnitTestCase):
             self.root_remote_client.block_inheritance(doc_path)
 
     @staticmethod
-    def generate_random_png(filename=None, size=1):
+    def generate_random_png(filename=None, size=None):
         """ Generate a random PNG file.
 
         :param filename: The output file name. If None, returns picture content.
@@ -775,16 +776,21 @@ class UnitTestCase(SimpleUnitTestCase):
         :return mixed: None if given filename else bytes
         """
 
+        if not size:
+            size = random.randint(1, 42)
+        else:
+            size = max(1, size)
+
         pack = struct.pack
 
         def chunk(header, data):
             return (pack('>I', len(data)) + header + data
                     + pack('>I', zlib.crc32(header + data) & 0xffffffff))
 
-        data = pack('>{}B'.format(size), *[0] * size)
+        content = pack('>{}B'.format(size), *[0] * size)
         png = (b'\x89PNG\r\n\x1A\n'
                + chunk(b'IHDR', pack('>2I5B', size, size, 1, 0, 0, 0, 0))
-               + chunk(b'IDAT', zlib.compress(data))
+               + chunk(b'IDAT', zlib.compress(content))
                + chunk(b'IEND', b''))
 
         if not filename:

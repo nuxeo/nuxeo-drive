@@ -1,8 +1,4 @@
-'''
-Created on 6 mai 2015
-
-@author: Remi Cattiau
-'''
+# conding: utfr-8
 import codecs
 import os
 from datetime import datetime
@@ -17,9 +13,11 @@ class Report(object):
 
     def __init__(self, manager, report_path=None):
         self._manager = manager
-        if report_path is None:
-            self._report_name = 'report_' + datetime.now().strftime('%y%m%d_%H%M%S')
-            folder = os.path.join(self._manager.get_configuration_folder(), 'reports')
+        if not report_path:
+            self._report_name = 'report_' \
+                                + datetime.now().strftime('%y%m%d_%H%M%S')
+            folder = os.path.join(self._manager.get_configuration_folder(),
+                                  'reports')
         else:
             self._report_name = os.path.basename(report_path)
             folder = os.path.dirname(report_path)
@@ -52,7 +50,7 @@ class Report(object):
     @staticmethod
     def _export_logs():
         logger = get_logger(None)
-        handler = get_handler(logger, "memory")
+        handler = get_handler(logger, 'memory')
         log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
         for record in log_buffer:
             try:
@@ -62,20 +60,21 @@ class Report(object):
                                             .decode('utf-8')
 
     def generate(self):
-        log.debug("Create report '%s'", self._report_name)
-        log.debug("Manager metrics: '%s'", self._manager.get_metrics())
-        with ZipFile(self._zipfile, mode='w', compression=ZIP_DEFLATED) as zip:
+        log.debug('Create report %r', self._report_name)
+        log.debug('Manager metrics: %r', self._manager.get_metrics())
+        with ZipFile(self._zipfile, mode='w', compression=ZIP_DEFLATED) as zip_:
             dao = self._manager.get_dao()
-            self.copy_db(zip, dao)
+            self.copy_db(zip_, dao)
             for engine in self._manager.get_engines().values():
-                log.debug("Engine metrics: '%s'", engine.get_metrics())
-                self.copy_db(zip, engine.get_dao())
+                log.debug('Engine metrics: %r', engine.get_metrics())
+                self.copy_db(zip_, engine.get_dao())
                 # Might want threads too here
-            self.copy_logs(zip)
+            self.copy_logs(zip_)
 
             # Memory efficient debug.log creation
             with codecs.open('debug.log', mode='wb', encoding='utf-8',
                              errors='replace') as output:
                 for line in self._export_logs():
                     output.write(line + '\n')
-            zip.write('debug.log')
+            zip_.write('debug.log')
+            os.unlink('debug.log')

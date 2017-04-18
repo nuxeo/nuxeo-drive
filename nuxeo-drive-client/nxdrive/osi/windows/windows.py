@@ -1,18 +1,19 @@
-'''
-@author: Remi Cattiau
-'''
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.logging_config import get_logger
+# coding: utf-8
 import os
 import sys
+from ctypes import windll
 
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = IOError
+import _winreg
+import pythoncom
+import win32api
+import win32file
+from exceptions import WindowsError
+from win32com.shell import shell, shellcon
+from win32con import LOGPIXELSX
 
-if AbstractOSIntegration.is_windows():
-    import _winreg
+from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.osi.windows.win32_handlers import WindowsProcessFileHandlerSniffer
 
 log = get_logger(__name__)
 
@@ -22,7 +23,6 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def __init__(self, manager):
         super(WindowsIntegration, self).__init__(manager)
-        from nxdrive.osi.windows.win32_handlers import WindowsProcessFileHandlerSniffer
         self._file_sniffer = WindowsProcessFileHandlerSniffer()
 
     def get_menu_parent_key(self):
@@ -31,14 +31,15 @@ class WindowsIntegration(AbstractOSIntegration):
     def get_menu_key(self):
         return self.get_menu_parent_key() + '\\command'
 
-    def _delete_reg_value(self, reg, path, value):
+    @staticmethod
+    def _delete_reg_value(reg, path, value):
         try:
             key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_ALL_ACCESS)
-        except Exception, e:
+        except:
             return False
         try:
             _winreg.DeleteValue(key, value)
-        except Exception, e:
+        except:
             return False
         _winreg.CloseKey(key)
         return True
@@ -46,7 +47,8 @@ class WindowsIntegration(AbstractOSIntegration):
     def get_open_files(self, pids=None):
         return self._file_sniffer.get_open_files(pids)
 
-    def _update_reg_key(self, reg, path, attributes=()):
+    @staticmethod
+    def _update_reg_key(reg, path, attributes=()):
         """Helper function to create / set a key with attribute values"""
         key = _winreg.CreateKey(reg, path)
         _winreg.CloseKey(key)
@@ -64,8 +66,6 @@ class WindowsIntegration(AbstractOSIntegration):
             if AbstractOSIntegration.os_version_below("6.0.6000"):
                 # API added on Vista
                 return 1.00
-            from ctypes import windll
-            from win32con import LOGPIXELSX
             # Enable DPI detection
             windll.user32.SetProcessDPIAware()
             # Get Desktop DC
@@ -188,18 +188,15 @@ class WindowsIntegration(AbstractOSIntegration):
         )
 
     def is_same_partition(self, folder1, folder2):
-        import win32file
         volume = win32file.GetVolumePathName(folder1)
         return volume == win32file.GetVolumePathName(folder2)
 
     def is_partition_supported(self, folder):
         if folder[-1] != os.path.sep:
             folder = folder + os.path.sep
-        import win32file
         if win32file.GetDriveType(folder) != win32file.DRIVE_FIXED:
             return False
         volume = win32file.GetVolumePathName(folder)
-        import win32api
         t = win32api.GetVolumeInformation(volume)
         return t[-1] == 'NTFS'
 
@@ -245,13 +242,9 @@ class WindowsIntegration(AbstractOSIntegration):
         return os.path.join(self._get_desktop_folder(), self._manager.get_appname() + ".lnk")
 
     def _get_desktop_folder(self):
-        from win32com.shell import shell, shellcon
         return shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
 
     def _create_shortcut(self, link, filepath, iconpath=None, description=None):
-        import pythoncom
-        from win32com.shell import shell, shellcon
-
         shortcut = pythoncom.CoCreateInstance(
           shell.CLSID_ShellLink,
           None,
@@ -285,5 +278,5 @@ class WindowsIntegration(AbstractOSIntegration):
         else:
             log.warning('Windows version %d.%d shortcuts are not supported',
                             win_version.major, win_version.minor)
-            return None
+            return
         return os.path.join(favorites, name + '.lnk')

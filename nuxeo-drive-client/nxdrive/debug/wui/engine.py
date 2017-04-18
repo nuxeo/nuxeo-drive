@@ -1,12 +1,11 @@
-'''
-@author: Remi Cattiau
-'''
-from PyQt4 import QtCore
-from nxdrive.wui.dialog import WebDialog
-from nxdrive.wui.dialog import WebDriveApi
-from nxdrive.logging_config import get_logger
-from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler
+# coding: utf-8
 import time
+
+from PyQt4 import QtCore
+
+from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler, get_logger
+from nxdrive.wui.dialog import WebDialog, WebDriveApi
+
 log = get_logger(__name__)
 
 
@@ -108,7 +107,6 @@ class DebugDriveApi(WebDriveApi):
             return str(handler.get_buffer(MAX_LOG_DISPLAYED))
         except Exception as e:
             log.exception(e)
-            return None
 
     @QtCore.pyqtSlot(str, result=str)
     def get_engine(self, uid):
@@ -118,7 +116,6 @@ class DebugDriveApi(WebDriveApi):
             return self._json(result)
         except Exception as e:
             log.exception(e)
-            return None
 
     @QtCore.pyqtSlot(str)
     def resume_remote_watcher(self, uid):

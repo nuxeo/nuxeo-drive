@@ -1,13 +1,15 @@
-"""API to access local resources for synchronization."""
-
-import unicodedata
-from datetime import datetime
+# coding: utf-8
+""" API to access local resources for synchronization. """
 
 import hashlib
 import os
 import re
 import shutil
+import sys
 import tempfile
+import unicodedata
+from datetime import datetime
+
 from send2trash import send2trash
 
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
@@ -24,6 +26,13 @@ try:
     from exceptions import WindowsError
 except ImportError:
     WindowsError = IOError
+
+if AbstractOSIntegration.is_windows():
+    import win32api
+    import win32con
+else:
+    import stat
+    import xattr
 
 log = get_logger(__name__)
 
@@ -79,7 +88,7 @@ class FileInfo(object):
     def get_digest(self, digest_func=None):
         """Lazy computation of the digest"""
         if self.folderish:
-            return None
+            return
         digest_func = digest_func if digest_func is not None else self._digest_func
         digester = getattr(hashlib, digest_func, None)
         if digester is None:
@@ -110,7 +119,8 @@ class LocalClient(BaseClient):
     CASE_RENAME_PREFIX = 'driveCaseRename_'
 
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
-                    ignored_suffixes=None, check_suspended=None, case_sensitive=None, disable_duplication=False):
+                 ignored_suffixes=None, check_suspended=None,
+                 case_sensitive=None, disable_duplication=False):
         self._case_sensitive = case_sensitive
         self._disable_duplication = disable_duplication
         # Function to check during long-running processing like digest
@@ -145,9 +155,10 @@ class LocalClient(BaseClient):
             self.lock_path(self.base_folder, lock)
         return self._case_sensitive
 
-    def is_temp_file(self, filename):
+    @staticmethod
+    def is_temp_file(filename):
         return (filename.startswith(DOWNLOAD_TMP_FILE_PREFIX) and
-                            filename.endswith(DOWNLOAD_TMP_FILE_SUFFIX))
+                filename.endswith(DOWNLOAD_TMP_FILE_SUFFIX))
 
     def set_readonly(self, ref):
         path = self.abspath(ref)
@@ -162,9 +173,7 @@ class LocalClient(BaseClient):
         self.unlock_ref(u'/', unlock_parent=False)
         try:
             self.remove_root_id()
-        except Exception:
-            pass
-        finally:
+        except IOError:
             pass
         self.clean_xattr_folder_recursive(u'/')
 
@@ -207,14 +216,13 @@ class LocalClient(BaseClient):
                 self.lock_path(path, locker)
         else:
             try:
-                import xattr
                 if AbstractOSIntegration.is_mac():
                     xattr.removexattr(path, name)
                 else:
                     xattr.removexattr(path, 'user.' + name)
             except IOError as e:
-                # Ignore IOError: [Errno 93] Attribute not found ( Mac )
-                # IOError: [Errno 61] No data available ( Linux )
+                # Ignore IOError: [Errno 93] Attribute not found (macOS)
+                # IOError: [Errno 61] No data available (GNU/Linux)
                 if e.errno == 93 or e.errno == 61:
                     pass
                 else:
@@ -223,12 +231,9 @@ class LocalClient(BaseClient):
                 self.lock_path(path, locker)
 
     def unset_folder_icon(self, ref):
-        '''
-            Unset the red icon
-        '''
-        if AbstractOSIntegration.is_windows():
-            # TODO Clean version
-            desktop_ini_file_path = os.path.join(self.abspath(ref), "desktop.ini")
+        """ Unset the red icon. """
+
+        desktop_ini_file_path = os.path.join(self.abspath(ref), "desktop.ini")
         if AbstractOSIntegration.is_mac():
             desktop_ini_file_path = os.path.join(self.abspath(ref), "Icon\r")
         if os.path.exists(desktop_ini_file_path):
@@ -253,11 +258,8 @@ class LocalClient(BaseClient):
             self.set_folder_icon_darwin(ref, icon)
 
     def set_folder_icon_win32(self, ref, icon):
-        import win32con
-        import win32api
-        '''
-            Configure red color icon for a folder Windows / Mac
-        '''
+        """ Configure red color icon for a folder Windows / Mac. """
+
         # Desktop.ini file content for Windows 7 and later.
         ini_file_content = """
         [.ShellClassInfo]
@@ -297,19 +299,22 @@ class LocalClient(BaseClient):
         # https://support.microsoft.com/en-us/kb/326549
         win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_READONLY)
 
-    def _read_data(self, file_path):
-        '''The data file contains the mac icons'''
+    @staticmethod
+    def _read_data(file_path):
+        """ The data file contains the mac icons. """
+
         dat = open(file_path, 'rb')
         info = dat.read()
         dat.close()
         return info
 
-    def _get_icon_xdata(self):
-        OSX_FINDER_INFO_ENTRY_SIZE = 32
-        OSX_FINDER_INFO_ICON_FLAG_INDEX = 8
-        OSX_FINDER_INFO_ICON_FLAG_VALUE = 4
-        result = (OSX_FINDER_INFO_ENTRY_SIZE)*[0]
-        result[OSX_FINDER_INFO_ICON_FLAG_INDEX] = OSX_FINDER_INFO_ICON_FLAG_VALUE
+    @staticmethod
+    def _get_icon_xdata():
+        entry_size = 32
+        icon_flag_index = 8
+        icon_flag_value = 4
+        result = [0] * entry_size
+        result[icon_flag_index] = icon_flag_value
         return result
 
     def set_folder_icon_darwin(self, ref, icon):
@@ -321,8 +326,6 @@ class LocalClient(BaseClient):
             5. Hide the icon file (name: Icon\r)
         '''
         try:
-            import xattr
-            import stat
             target_folder = self.abspath(ref)
             # Generate the value for 'com.apple.FinderInfo'
             has_icon_xdata = bytes(bytearray(self._get_icon_xdata()))
@@ -339,7 +342,6 @@ class LocalClient(BaseClient):
             info = self._read_data(icon)
             xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, info)
             os.chflags(meta_file, stat.UF_HIDDEN)
-
         except Exception as e:
             log.error("Exception when setting folder icon : %s", e)
 
@@ -373,7 +375,6 @@ class LocalClient(BaseClient):
                 self.lock_path(path, locker)
         else:
             try:
-                import xattr
                 stat = os.stat(path)
                 if AbstractOSIntegration.is_mac():
                     xattr.setxattr(path, name, remote_id)
@@ -396,9 +397,8 @@ class LocalClient(BaseClient):
                 with open(path, "r") as f:
                     return unicode(f.read(), 'utf-8')
             except:
-                return None
+                return
         else:
-            import xattr
             try:
                 if AbstractOSIntegration.is_mac():
                     value = xattr.getxattr(path, name)
@@ -406,7 +406,7 @@ class LocalClient(BaseClient):
                     value = xattr.getxattr(path, 'user.' + name)
                 return unicode(value, 'utf-8')
             except:
-                return None
+                return
 
     # Getters
     def get_info(self, ref, raise_if_missing=True):
@@ -417,7 +417,7 @@ class LocalClient(BaseClient):
             if raise_if_missing:
                 err = 'Could not find file into {!r}: ref={!r}, os_path={!r}'
                 raise NotFound(err.format(self.base_folder, ref, os_path))
-            return None
+            return
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
         if folderish:
@@ -447,8 +447,7 @@ class LocalClient(BaseClient):
             remote_digest_algorithm = guess_digest_algorithm(remote_digest)
         if remote_digest_algorithm == self._digest_func:
             return False
-        else:
-            return self.get_info(local_path).get_digest(digest_func=remote_digest_algorithm) == remote_digest
+        return self.get_info(local_path).get_digest(digest_func=remote_digest_algorithm) == remote_digest
 
     def get_content(self, ref):
         return open(self.abspath(ref), "rb").read()
@@ -459,7 +458,7 @@ class LocalClient(BaseClient):
         '''
         if not AbstractOSIntegration.is_mac():
             return False
-        if (os.path.isfile(self.abspath(ref))):
+        if os.path.isfile(self.abspath(ref)):
             return False
         # Dont want to synchornize app - when copy paste this file might not has been created yet
         if os.path.isfile(os.path.join(ref, "Contents", "Info.plist")):
@@ -496,15 +495,12 @@ class LocalClient(BaseClient):
             path = self.abspath(ref)
             if not os.path.exists(path):
                 return False
-            import win32con
-            import win32api
             attrs = win32api.GetFileAttributes(path)
             if attrs & win32con.FILE_ATTRIBUTE_SYSTEM == win32con.FILE_ATTRIBUTE_SYSTEM:
                 return True
             if attrs & win32con.FILE_ATTRIBUTE_HIDDEN == win32con.FILE_ATTRIBUTE_HIDDEN:
                 return True
-        # NXDRIVE-655
-        # Need to check every parent if they are ignored
+        # NXDRIVE-655: need to check every parent if they are ignored
         result = False
         path = parent_ref
         if path != '/':
@@ -517,8 +513,7 @@ class LocalClient(BaseClient):
     def get_children_ref(parent_ref, name):
         if parent_ref == u'/':
             return parent_ref + name
-        else:
-            return parent_ref + u'/' + name
+        return parent_ref + u'/' + name
 
     def get_children_info(self, ref):
         os_path = self.abspath(ref)
@@ -546,7 +541,7 @@ class LocalClient(BaseClient):
     @staticmethod
     def get_parent_ref(ref):
         if ref == '/':
-            return None
+            return
         parent = ref.rsplit(u'/', 1)[0]
         if parent is None:
             parent = '/'
@@ -578,11 +573,11 @@ class LocalClient(BaseClient):
         name = os.path.basename(ref)
         locker = self.unlock_ref(parent, False)
         os_path, name = self._abspath_deduped(parent, name)
+        if parent == u"/":
+            duplicated_file = u"/" + name
+        else:
+            duplicated_file = parent + u"/" + name
         try:
-            if parent == u"/":
-                duplicated_file = u"/" + name
-            else:
-                duplicated_file = parent + u"/" + name
             shutil.copy(self.abspath(ref), os_path)
             return duplicated_file
         except IOError as e:
@@ -612,7 +607,7 @@ class LocalClient(BaseClient):
             path = parent + u"/" + name
         return path, os_path, name
 
-    def update_content(self, ref, content, xattr_names=('ndrive')):
+    def update_content(self, ref, content, xattr_names=tuple('ndrive')):
         xattrs = {}
         for name in xattr_names:
             xattrs[name] = self.get_remote_id(ref, name=name)
@@ -627,32 +622,32 @@ class LocalClient(BaseClient):
         os_path = self.abspath(ref)
         if not self.exists(ref):
             return
-        # Remove the \\?\ for SHFileOperation on win
+
+        # Remove the \\?\ for SHFileOperation on Windows
         if os_path[:4] == '\\\\?\\':
             # http://msdn.microsoft.com/en-us/library/cc249520.aspx
             # SHFileOperation don't handle \\?\ paths
             if len(os_path) > 260:
                 # Rename to the drive root
                 info = self.move(ref, '/')
-                new_ref = info.path
-                try:
-                    send2trash(self.abspath(new_ref)[4:])
-                except:
-                    log.debug('Cant use trash for ' + os_path
-                                 + ', delete it')
-                    self.delete_final(new_ref)
-                return
+                ref = info.path
+                os_path = self.abspath(ref)[4:]
             else:
                 os_path = os_path[4:]
-        log.trace('Send ' + os_path + ' to trash')
+
+        log.trace('Sending to trash ' + os_path)
+
+        # Send2Trash needs bytes
+        if not isinstance(os_path, bytes):
+            os_path = os_path.encode(sys.getfilesystemencoding() or 'utf-8')
+
         try:
             send2trash(os_path)
-        except:
-            log.debug('Cant use trash for ' + os_path
-                                 + ', delete it')
+        except OSError:
+            log.debug('Cannot use trash, deleting ' + os_path)
             self.delete_final(ref)
         finally:
-            # Dont want to unlock the current deleted
+            # Don't want to unlock the current deleted
             self.lock_ref(ref, locker & 2)
 
     def delete_final(self, ref):
@@ -694,11 +689,13 @@ class LocalClient(BaseClient):
         locker = self.unlock_ref(ref)
         try:
             # Check if only case renaming
-            if (old_name != new_name and old_name.lower() == new_name.lower()
-                and not self.is_case_sensitive()):
+            if (old_name != new_name
+                    and old_name.lower() == new_name.lower()
+                    and not self.is_case_sensitive()):
                 # Must use a temp rename as FS is not case sensitive
                 temp_path = os.tempnam(self.abspath(parent),
-                                       LocalClient.CASE_RENAME_PREFIX + old_name + '_')
+                                       LocalClient.CASE_RENAME_PREFIX
+                                       + old_name + '_')
                 if AbstractOSIntegration.is_windows():
                     import ctypes
                     ctypes.windll.kernel32.SetFileAttributesW(
