@@ -95,6 +95,7 @@ class TestLocalFilter(UnitTestCase):
         self.assertEqual(len(children), 2)
         self.assertEqual(children[1].name, "2345BCDF")
 
+    @RandomBug('NXDRIVE-808', target='linux', mode='BYPASS')
     def test_synchronize_local_filter_with_move(self):
         # Bind the server and root workspace
         self.engine_1.start()
