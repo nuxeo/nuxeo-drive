@@ -3,8 +3,7 @@
   <taskdef resource="org/nuxeo/build/artifact/antlib.xml" uri="urn:nuxeo-artifact" />
   <taskdef resource="net/sf/antcontrib/antlib.xml" />
 
-  <osfamily property="suffix" />
-  <property name="out.dir" value="${maven.project.build.directory}-${suffix}" />
+  <property name="out.dir" value="${maven.project.build.directory}-${os.version}" />
 
   <unzip dest="${out.dir}/" overwrite="false">
     <artifact:resolveFile key="org.nuxeo:nuxeo-ftest::zip" />
