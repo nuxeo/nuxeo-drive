@@ -36,7 +36,7 @@ properties([
             description: '<i>Optional</i> SIP version to use (GNU/Linux and macOS only)'],
         [$class: 'ChoiceParameterDefinition',
             name: 'RANDOM_BUG_MODE',
-            choices: 'RELAX\nSTRICT\nBYPASS',
+            choices: 'None\nRELAX\nSTRICT\nBYPASS',
             description: 'Random bug mode'],
         [$class: 'StringParameterDefinition',
             name: 'ENGINE',
