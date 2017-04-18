@@ -1,13 +1,14 @@
-"""GUI prompt to manage metadata"""
-import os
-from nxdrive.logging_config import get_logger
-from PyQt4 import QtCore, QtGui
+# coding: utf-8
+""" GUI prompt to manage metadata. """
+
+from PyQt4 import QtCore
 from PyQt4.QtCore import Qt
-from nxdrive.gui.resources import find_icon
-from nxdrive.wui.dialog import WebDialog, WebDriveApi
+
+from nxdrive.logging_config import get_logger
 from nxdrive.utils import normalized_path
-from nxdrive.wui.modal import WebModal
 from nxdrive.wui.application import SimpleApplication
+from nxdrive.wui.dialog import WebDialog, WebDriveApi
+from nxdrive.wui.modal import WebModal
 
 log = get_logger(__name__)
 
@@ -36,7 +37,6 @@ class WebMetadataApi(WebDriveApi):
             return self._engine.get_document_id(self._remote_ref)
         except Exception as e:
             log.debug(e)
-            return None
 
     @QtCore.pyqtSlot()
     def open_file(self):
@@ -88,6 +88,7 @@ class MetadataErrorHandler(QtCore.QObject):
     def loadMetadataErrorPage(self, reply):
         self._api.set_last_error(reply)
         self.sender().load('network_error.html', api=self._api)
+
 
 def CreateMetadataWebDialog(manager, file_path, application=None):
     if application is None:

@@ -1,12 +1,14 @@
-__author__ = 'loopingz'
-
-# Based on https://code.google.com/p/winsys/source/browse/trunk/random/file_handles.py code
+# coding: utf-8
+""" Based on code from
+    https://code.google.com/p/winsys/source/browse/trunk/random/file_handles.py
+"""
 
 import os
-from ctypes import *
-from ctypes.wintypes import *
 import struct
 import threading
+from ctypes import *
+from ctypes.wintypes import *
+from time import sleep
 
 import ntsecuritycon
 import win32api
@@ -14,8 +16,8 @@ import win32con
 import win32file
 import win32security
 import winerror
+
 from nxdrive.logging_config import get_logger
-from time import sleep
 
 UCHAR = c_ubyte
 PVOID = c_void_p
@@ -33,12 +35,13 @@ CURRENT_PROCESS = win32api.GetCurrentProcess ()
 threads = 0
 log = get_logger(__name__)
 
+
 class x_file_handles(Exception):
     pass
 
 
-def signed_to_unsigned (signed):
-    unsigned, = struct.unpack ("L", struct.pack ("l", signed))
+def signed_to_unsigned(signed):
+    unsigned, = struct.unpack("L", struct.pack("l", signed))
     return unsigned
 
 
@@ -131,23 +134,22 @@ class GetObjectInfoThread(threading.Thread):
                 size = DWORD(size.value * 4)
                 resize(public_object_type_information, size.value)
             elif result == STATUS_INVALID_HANDLE:
-                return None
+                return
             elif result == 0xc0000005:
                 # Access denied
                 # Windows 10 result
-                return None
-            else:
-                raise x_file_handles ("NtQueryObject.2", hex (result))
+                return
+            raise x_file_handles ("NtQueryObject.2", hex (result))
 
     @staticmethod
     def get_name_info(handle):
         object_name_information = OBJECT_NAME_INFORMATION ()
         size = DWORD(sizeof(object_name_information))
         while True:
-            info = ntdll.NtQueryObject (
-                    handle, 1, byref (object_name_information), size, None
+            info = ntdll.NtQueryObject(
+                    handle, 1, byref(object_name_information), size, None
                 )
-            result = signed_to_unsigned (
+            result = signed_to_unsigned(
                 info
             )
             if result == STATUS_SUCCESS:
@@ -155,24 +157,21 @@ class GetObjectInfoThread(threading.Thread):
             elif result in (STATUS_BUFFER_OVERFLOW, STATUS_BUFFER_TOO_SMALL, STATUS_INFO_LENGTH_MISMATCH):
                 size = DWORD(size.value * 4)
                 resize(object_name_information, size.value)
-            else:
-                return None
 
     @staticmethod
     def get_object_info(pid, process_handle, handle, filter_type):
-        type = GetObjectInfoThread.get_type_info(handle)
-        if filter_type is not None and filter_type != type and type is not None:
-            return None
+        type_ = GetObjectInfoThread.get_type_info(handle)
+        if filter_type is not None and filter_type != type_ and type_ is not None:
+            return
         name = GetObjectInfoThread.get_name_info(handle)
-        if name is None:
-            return None
-        return (pid, type, name, handle)
+        if name:
+            return pid, type, name, handle
 
     @staticmethod
     def _get_object_info(obj, pid, handles, filter_type):
         try:
-            process_handler = win32api.OpenProcess (win32con.PROCESS_DUP_HANDLE, 0, pid)
-        except win32api.error, (errno, errctx, errmsg):
+            process_handler = win32api.OpenProcess(win32con.PROCESS_DUP_HANDLE, 0, pid)
+        except win32api.error:
             return
         for handle_obj in handles:
             obj.lastGrantedAccess = handle_obj[1]
@@ -205,9 +204,7 @@ class WindowsProcessFileHandlerSniffer():
                 device = win32file.QueryDosDevice(d + ":").strip("\x00").lower()
                 self.DEVICE_DRIVES[device] = d.upper() + ":"
             except win32file.error, (errno, errctx, errmsg):
-                if errno == 2:
-                    pass
-                else:
+                if errno != 2:
                     raise
         self._increase_privileges()
 
@@ -215,35 +212,34 @@ class WindowsProcessFileHandlerSniffer():
     def get_process_handle(hProcess, handle):
         try:
             return win32api.DuplicateHandle(hProcess, handle, CURRENT_PROCESS,
-                                                   0, 0, win32con.DUPLICATE_SAME_ACCESS)
+                                            0, 0, win32con.DUPLICATE_SAME_ACCESS)
         except win32api.error, (errno, errctx, errmsg):
-            if errno in (
-                winerror.ERROR_ACCESS_DENIED,
-                winerror.ERROR_INVALID_PARAMETER,
-                winerror.ERROR_INVALID_HANDLE,
-                winerror.ERROR_NOT_SUPPORTED
-            ):
-                return None
-            else:
+            if errno not in (winerror.ERROR_ACCESS_DENIED,
+                             winerror.ERROR_INVALID_PARAMETER,
+                             winerror.ERROR_INVALID_HANDLE,
+                             winerror.ERROR_NOT_SUPPORTED):
                 raise
 
-    def get_handles(self):
+    @staticmethod
+    def get_handles():
         system_handle_information = SYSTEM_HANDLE_INFORMATION ()
         size = DWORD(sizeof(system_handle_information))
         while True:
-            result = signed_to_unsigned(ntdll.NtQuerySystemInformation(SystemHandleInformation,
-                                byref(system_handle_information), size, byref(size)))
+            result = signed_to_unsigned(ntdll.NtQuerySystemInformation(
+                SystemHandleInformation, byref(system_handle_information),
+                size, byref(size)))
             if result == STATUS_SUCCESS:
                 break
             elif result == STATUS_INFO_LENGTH_MISMATCH:
-                size = DWORD (size.value * 4)
+                size = DWORD(size.value * 4)
                 resize(system_handle_information, size.value)
             else:
                 raise x_file_handles("NtQuerySystemInformation", hex(result))
 
         result = dict()
         pHandles = cast(system_handle_information.Handles,
-            POINTER(SYSTEM_HANDLE_TABLE_ENTRY_INFO * system_handle_information.NumberOfHandles))
+            POINTER(SYSTEM_HANDLE_TABLE_ENTRY_INFO
+                    * system_handle_information.NumberOfHandles))
         for handle in pHandles.contents:
             if handle.UniqueProcessId not in result:
                 result[handle.UniqueProcessId] = dict()
@@ -251,14 +247,16 @@ class WindowsProcessFileHandlerSniffer():
                 result[handle.UniqueProcessId]["risky_handles"] = []
 
             # Useless for now but keep for later use in case
-            if handle.GrantedAccess == 0x1a0089 or handle.GrantedAccess == 0x1a019f or handle.GrantedAccess == 0x12019f\
-                     or handle.GrantedAccess == 0x120189 or handle.GrantedAccess == 0x01f01ff\
-                     or handle.GrantedAccess == 0x100081:
-                # Some process like ssh-agent or chrome make NtQueryObject hang when queried
-                result[handle.UniqueProcessId]["risky_handles"].append((handle.HandleValue, handle.GrantedAccess))
+            if handle.GrantedAccess in (0x1a0089, 0x1a019f, 0x12019f, 0x120189,
+                                        0x01f01ff, 0x100081):
+                # Some process like ssh-agent or chrome make NtQueryObject hang
+                # when queried
+                result[handle.UniqueProcessId]["risky_handles"].append(
+                    (handle.HandleValue, handle.GrantedAccess))
                 continue
 
-            result[handle.UniqueProcessId]["risky_handles"].append((handle.HandleValue, handle.GrantedAccess))
+            result[handle.UniqueProcessId]["risky_handles"].append(
+                (handle.HandleValue, handle.GrantedAccess))
         return result
 
     def get_main_open_files(self, pids=None, filter_type='File'):
@@ -277,8 +275,8 @@ class WindowsProcessFileHandlerSniffer():
             if pid in self._pid_blacklist:
                 continue
             try:
-                process_handler = win32api.OpenProcess (win32con.PROCESS_DUP_HANDLE, 0, pid)
-            except win32api.error, (errno, errctx, errmsg):
+                process_handler = win32api.OpenProcess(win32con.PROCESS_DUP_HANDLE, 0, pid)
+            except win32api.error:
                 continue
             for handle_obj in handles[pid]['handles']:
                 handle = handle_obj[0]
@@ -306,21 +304,22 @@ class WindowsProcessFileHandlerSniffer():
                 # Should not be blacklist the pid
                 self._pid_blacklist[thread.get_pid()] = True
                 log.trace('Blacklisting process %d because of stuck thread (GrantedAccess: %d)',
-                            thread.get_pid(), thread.lastGrantedAccess)
+                          thread.get_pid(), thread.lastGrantedAccess)
             else:
                 for result in thread.get_results():
                     yield result
-        return
 
     def filepath_from_devicepath(self, devicepath):
-        if devicepath is None: return None
+        if devicepath is None:
+            return
         devicepath_lower = devicepath.lower()
         for device, drive in self.DEVICE_DRIVES.items():
             if devicepath_lower.startswith(device):
                 return drive + devicepath[len(device):]
         return devicepath
 
-    def _increase_privileges(self):
+    @staticmethod
+    def _increase_privileges():
         win32security.LookupPrivilegeValue(u"", win32security.SE_DEBUG_NAME)
         win32security.OpenProcessToken(CURRENT_PROCESS, ntsecuritycon.MAXIMUM_ALLOWED)
 

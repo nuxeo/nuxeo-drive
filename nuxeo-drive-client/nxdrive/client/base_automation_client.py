@@ -1,33 +1,29 @@
-"""Common Nuxeo Automation client utilities."""
+# coding: utf-8
+""" Common Nuxeo Automation client utilities. """
 
-import sys
 import base64
-import json
-import urllib2
-import random
-import time
-import os
 import hashlib
+import json
+import os
+import random
+import socket
+import sys
 import tempfile
+import time
+import urllib2
 from urllib import urlencode
-from poster.streaminghttp import get_handlers
-from nxdrive.logging_config import get_logger
-from nxdrive.client.common import BaseClient
-from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.client.common import FILE_BUFFER_SIZE
-from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
-from nxdrive.client.common import safe_filename
-from nxdrive.engine.activity import Action, FileAction
-from nxdrive.utils import DEVICE_DESCRIPTIONS
-from nxdrive.utils import TOKEN_PERMISSION
-from nxdrive.utils import guess_mime_type
-from nxdrive.utils import guess_digest_algorithm
-from nxdrive.utils import force_decode
 from urllib2 import ProxyHandler
 from urlparse import urlparse
-import socket
 
+from poster.streaminghttp import get_handlers
+
+from nxdrive.client.common import BaseClient, DEFAULT_IGNORED_PREFIXES, \
+    DEFAULT_IGNORED_SUFFIXES, DEFAULT_REPOSITORY_NAME, FILE_BUFFER_SIZE, \
+    safe_filename
+from nxdrive.engine.activity import Action, FileAction
+from nxdrive.logging_config import get_logger
+from nxdrive.utils import DEVICE_DESCRIPTIONS, TOKEN_PERMISSION, force_decode, \
+    guess_digest_algorithm, guess_mime_type
 
 log = None
 
@@ -44,7 +40,7 @@ socket.setdefaulttimeout(DEFAULT_NUXEO_TX_TIMEOUT)
 
 
 class InvalidBatchException(Exception):
-    if (log is not None):
+    if log:
         log.warning("Invalid batch exception")
 
 
@@ -60,15 +56,13 @@ def get_proxies_for_handler(proxy_settings):
     else:
         # Manual proxy settings, build proxy string and exceptions list
         if proxy_settings.authenticated:
-            proxy_string = ("%s:%s@%s:%s") % (
-                                proxy_settings.username,
-                                proxy_settings.password,
-                                proxy_settings.server,
-                                proxy_settings.port)
+            proxy_string = "%s:%s@%s:%s" % (proxy_settings.username,
+                                            proxy_settings.password,
+                                            proxy_settings.server,
+                                            proxy_settings.port)
         else:
-            proxy_string = ("%s:%s") % (
-                                proxy_settings.server,
-                                proxy_settings.port)
+            proxy_string = "%s:%s" % (proxy_settings.server,
+                                      proxy_settings.port)
         if proxy_settings.proxy_type is None:
             proxies = {'http': proxy_string, 'https': proxy_string}
         else:
@@ -111,7 +105,6 @@ def get_opener_proxies(opener):
     for handler in opener.handlers:
         if isinstance(handler, ProxyHandler):
             return handler.proxies
-    return None
 
 
 class AddonNotInstalled(Exception):
@@ -253,7 +246,7 @@ class BaseAutomationClient(BaseClient):
         headers = self._get_common_headers()
         cookies = self._get_cookies()
         log.trace("Calling %s with headers %r and cookies %r",
-            url, headers, cookies)
+                  url, headers, cookies)
         req = urllib2.Request(url, headers=headers)
         try:
             response = json.loads(self.opener.open(
@@ -264,7 +257,7 @@ class BaseAutomationClient(BaseClient):
             else:
                 msg = base_error_message + "\nHTTP error %d" % e.code
                 if hasattr(e, 'msg'):
-                    msg = msg + ": " + e.msg
+                    msg += ": " + e.msg
                 e.msg = msg
                 raise e
         except urllib2.URLError as e:
@@ -272,31 +265,29 @@ class BaseAutomationClient(BaseClient):
             if hasattr(e, 'message') and e.message:
                 e_msg = force_decode(": " + e.message)
                 if e_msg is not None:
-                    msg = msg + e_msg
+                    msg += e_msg
             elif hasattr(e, 'reason') and e.reason:
-                if (hasattr(e.reason, 'message')
-                    and e.reason.message):
+                if hasattr(e.reason, 'message') and e.reason.message:
                     e_msg = force_decode(": " + e.reason.message)
                     if e_msg is not None:
-                        msg = msg + e_msg
-                elif (hasattr(e.reason, 'strerror')
-                    and e.reason.strerror):
+                        msg += e_msg
+                elif hasattr(e.reason, 'strerror') and e.reason.strerror:
                     e_msg = force_decode(": " + e.reason.strerror)
                     if e_msg is not None:
-                        msg = msg + e_msg
+                        msg += e_msg
             if self.is_proxy:
-                msg = (msg + "\nPlease check your Internet connection,"
-                       + " make sure the Nuxeo server URL is valid"
-                       + " and check the proxy settings.")
+                msg += ("\nPlease check your Internet connection,"
+                        + " make sure the Nuxeo server URL is valid"
+                        + " and check the proxy settings.")
             else:
-                msg = (msg + "\nPlease check your Internet connection"
-                       + " and make sure the Nuxeo server URL is valid.")
+                msg += ("\nPlease check your Internet connection"
+                        + " and make sure the Nuxeo server URL is valid.")
             e.msg = msg
             raise e
         except Exception as e:
             msg = base_error_message
             if hasattr(e, 'msg'):
-                msg = msg + ": " + e.msg
+                msg += ": " + e.msg
             e.msg = msg
             raise e
         self.operations = {}
@@ -355,7 +346,7 @@ class BaseAutomationClient(BaseClient):
         cookies = self._get_cookies()
         log.trace("Calling %s with headers %r, cookies %r"
                   " and JSON payload %r",
-            url, headers, cookies,  data)
+                  url, headers, cookies,  data)
         req = urllib2.Request(url, data, headers)
         timeout = self.timeout if timeout == -1 else timeout
         try:
@@ -440,11 +431,11 @@ class BaseAutomationClient(BaseClient):
         finally:
             self.end_action()
 
-    def get_upload_buffer(self, input_file):
+    @staticmethod
+    def get_upload_buffer(input_file):
         if sys.platform != 'win32':
             return os.fstatvfs(input_file.fileno()).f_bsize
-        else:
-            return FILE_BUFFER_SIZE
+        return FILE_BUFFER_SIZE
 
     def init_upload(self):
         url = self.rest_api_url + self.batch_upload_path
@@ -513,7 +504,7 @@ class BaseAutomationClient(BaseClient):
         # Execute request
         cookies = self._get_cookies()
         log.trace("Calling %s with headers %r and cookies %r for file %s",
-            url, headers, cookies, file_path)
+                  url, headers, cookies, file_path)
         req = urllib2.Request(url, data, headers)
         try:
             resp = self.streaming_opener.open(req, timeout=self.blob_timeout)
@@ -529,7 +520,8 @@ class BaseAutomationClient(BaseClient):
         self.end_action()
         return self._read_response(resp, url)
 
-    def end_action(self):
+    @staticmethod
+    def end_action():
         Action.finish_action()
 
     def execute_batch(self, op_id, batch_id, file_idx, tx_timeout, **params):
@@ -582,7 +574,7 @@ class BaseAutomationClient(BaseClient):
         headers = self._get_common_headers()
         cookies = self._get_cookies()
         log.trace("Calling %s with headers %r and cookies %r",
-                url, headers, cookies)
+                  url, headers, cookies)
         req = urllib2.Request(url, headers=headers)
         try:
             token = self.opener.open(req, timeout=self.timeout).read()
@@ -591,7 +583,7 @@ class BaseAutomationClient(BaseClient):
                 raise Unauthorized(self.server_url, self.user_id, e.code)
             elif e.code == 404:
                 # Token based auth is not supported by this server
-                return None
+                return
             else:
                 e.msg = base_error_message + ": HTTP error %d" % e.code
                 raise e
@@ -626,7 +618,7 @@ class BaseAutomationClient(BaseClient):
         Make sure that you remove the temporary file with os.remove() when done with it.
         """
         fd, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
-                                   dir=self.upload_tmp_dir)
+                                    dir=self.upload_tmp_dir)
         with open(path, "wb") as f:
             f.write(content)
         os.close(fd)
@@ -699,10 +691,10 @@ class BaseAutomationClient(BaseClient):
                 other_params.append(param['name'])
 
         for param in params.keys():
-            if (not param in required_params
-                and not param in other_params):
-                log.trace("Unexpected param '%s' for operation '%s'", param,
-                            command)
+            if (param not in required_params
+                    and not param in other_params):
+                log.trace("Unexpected param '%s' for operation '%s'",
+                          param, command)
         for param in required_params:
             if not param in params:
                 raise ValueError(
@@ -718,14 +710,15 @@ class BaseAutomationClient(BaseClient):
         cookies = self._get_cookies()
         if content_type.startswith("application/json"):
             log.trace("Response for '%s' with cookies %r: %r",
-                url, cookies, s)
+                      url, cookies, s)
             return json.loads(s) if s else None
         else:
             log.trace("Response for '%s' with cookies %r has content-type %r",
-                url, cookies, content_type)
+                      url, cookies, content_type)
             return s
 
-    def _log_details(self, e):
+    @staticmethod
+    def _log_details(e):
         if hasattr(e, "fp"):
             detail = e.fp.read()
             try:
@@ -736,7 +729,8 @@ class BaseAutomationClient(BaseClient):
                 if message:
                     log.debug('Remote exception message: %s', message)
                 if stack:
-                    log.debug('Remote exception stack: %r', exc['stack'], exc_info=True)
+                    log.debug('Remote exception stack: %r', exc['stack'],
+                              exc_info=True)
                 else:
                     log.debug('Remote exception details: %r', detail)
                 return exc.get('status'), exc.get('code'), message, error
@@ -750,9 +744,9 @@ class BaseAutomationClient(BaseClient):
                 log.error(message)
                 if isinstance(e, urllib2.HTTPError):
                     return e.code, None, message, None
-        return None
 
-    def _generate_unique_id(self):
+    @staticmethod
+    def _generate_unique_id():
         """Generate a unique id based on a timestamp and a random integer"""
 
         return str(time.time()) + '_' + str(random.randint(0, 1000000000))
@@ -794,8 +788,9 @@ class BaseAutomationClient(BaseClient):
             response = self.opener.open(req, timeout=self.blob_timeout)
             current_action = Action.get_current_action()
             # Get the size file
-            if (current_action and response is not None
-                and response.info() is not None):
+            if (current_action
+                    and response is not None
+                    and response.info() is not None):
                 current_action.size = int(response.info().getheader(
                                                     'Content-Length', 0))
             if file_out is not None:
@@ -847,5 +842,6 @@ class BaseAutomationClient(BaseClient):
                 e.msg = base_error_message + ": " + e.msg
             raise
 
-    def get_download_buffer(self):
+    @staticmethod
+    def get_download_buffer():
         return FILE_BUFFER_SIZE

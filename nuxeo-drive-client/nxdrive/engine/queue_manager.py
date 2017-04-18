@@ -1,19 +1,21 @@
-from PyQt4.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
-from Queue import Queue, Empty
-from nxdrive.logging_config import get_logger
-from nxdrive.engine.processor import Processor
-from threading import Lock, local
-from copy import deepcopy
+# coding: utf-8
 import time
-log = get_logger(__name__)
+from Queue import Empty, Queue
+from copy import deepcopy
+from threading import Lock, local
 
-WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
+from PyQt4.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 
-WindowsError = None
+from nxdrive.engine.processor import Processor
+from nxdrive.logging_config import get_logger
+
 try:
     from exceptions import WindowsError
 except ImportError:
-    pass  # This will never be raised under Unix
+    WindowsError = OSError
+
+log = get_logger(__name__)
+WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
 
 
 class QueueItem(object):
@@ -38,13 +40,8 @@ class QueueManager(QObject):
     queueFinishedProcessing = pyqtSignal()
     # Only used by Unit Test
     _disable = False
-    '''
-    classdocs
-    '''
+
     def __init__(self, engine, dao, max_file_processors=5):
-        '''
-        Constructor
-        '''
         super(QueueManager, self).__init__()
         self._dao = dao
         self._engine = engine
@@ -71,13 +68,13 @@ class QueueManager(QObject):
         '''
         This error required to add a lock for inspecting threads, as the below Traceback shows the processor thread was ended while the method was running
         Traceback (most recent call last):
-           File "/Users/hudson/tmp/workspace/FT-nuxeo-drive-master-osx/nuxeo-drive-client/nxdrive/engine/watcher/local_watcher.py", line 845, in handle_watchdog_event
+           File "engine/watcher/local_watcher.py", line 845, in handle_watchdog_event
              self.scan_pair(rel_path)
-           File "/Users/hudson/tmp/workspace/FT-nuxeo-drive-master-osx/nuxeo-drive-client/nxdrive/engine/watcher/local_watcher.py", line 271, in scan_pair
+           File "engine/watcher/local_watcher.py", line 271, in scan_pair
              self._suspend_queue()
-           File "/Users/hudson/tmp/workspace/FT-nuxeo-drive-master-osx/nuxeo-drive-client/nxdrive/engine/watcher/local_watcher.py", line 265, in _suspend_queue
+           File "engine/watcher/local_watcher.py", line 265, in _suspend_queue
              for processor in self._engine.get_queue_manager().get_processors_on('/', exact_match=False):
-           File "/Users/hudson/tmp/workspace/FT-nuxeo-drive-master-osx/nuxeo-drive-client/nxdrive/engine/queue_manager.py", line 413, in get_processors_on
+           File "engine/queue_manager.py", line 413, in get_processors_on
              res.append(self._local_file_thread.worker)
          AttributeError: 'NoneType' object has no attribute 'worker'
         '''
@@ -111,7 +108,8 @@ class QueueManager(QObject):
         for item in queue:
             self.push(item)
 
-    def _copy_queue(self, queue):
+    @staticmethod
+    def _copy_queue(queue):
         result = deepcopy(queue.queue)
         result.reverse()
         return result
@@ -131,9 +129,9 @@ class QueueManager(QObject):
 
     def is_paused(self):
         return (not self._local_file_enable or
-                    not self._local_folder_enable or
-                    not self._remote_file_enable or
-                    not self._remote_folder_enable)
+                not self._local_folder_enable or
+                not self._remote_file_enable or
+                not self._remote_folder_enable)
 
     def suspend(self):
         log.debug("Suspending queue")
@@ -141,7 +139,6 @@ class QueueManager(QObject):
         self.enable_local_folder_queue(False)
         self.enable_remote_file_queue(False)
         self.enable_remote_folder_queue(False)
-
 
     def enable_local_file_queue(self, value=True, emit=True):
         self._local_file_enable = value
@@ -223,10 +220,10 @@ class QueueManager(QObject):
         try:
             for doc_pair in self._on_error_queue.values():
                 if doc_pair.error_next_try < cur_time:
-                    queueItem = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
+                    queue_item = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
                     del self._on_error_queue[doc_pair.id]
                     log.debug('End of blacklist period, pushing doc_pair: %r', doc_pair)
-                    self.push(queueItem)
+                    self.push(queue_item)
             if len(self._on_error_queue) == 0:
                 self._error_timer.stop()
         finally:
@@ -248,7 +245,8 @@ class QueueManager(QObject):
     def push_error(self, doc_pair, exception=None, interval=None):
         error_count = doc_pair.error_count
         if (exception is not None and type(exception) == WindowsError
-            and hasattr(exception, 'winerror') and exception.winerror == WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE):
+                and hasattr(exception, 'winerror')
+                and exception.winerror == WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE):
             log.debug("Detected WindowsError with code %d: '%s', won't increase next try interval",
                       WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE,
                       exception.strerror if hasattr(exception, 'strerror') else '')
@@ -282,44 +280,44 @@ class QueueManager(QObject):
 
     def _get_local_folder(self):
         if self._local_folder_queue.empty():
-            return None
+            return
         try:
             state = self._local_folder_queue.get(True, 3)
         except Empty:
-            return None
+            return
         if state is not None and self._is_on_error(state.id):
             return self._get_local_folder()
         return state
 
     def _get_local_file(self):
         if self._local_file_queue.empty():
-            return None
+            return
         try:
             state = self._local_file_queue.get(True, 3)
         except Empty:
-            return None
+            return
         if state is not None and self._is_on_error(state.id):
             return self._get_local_file()
         return state
 
     def _get_remote_folder(self):
         if self._remote_folder_queue.empty():
-            return None
+            return
         try:
             state = self._remote_folder_queue.get(True, 3)
         except Empty:
-            return None
+            return
         if state is not None and self._is_on_error(state.id):
             return self._get_remote_folder()
         return state
 
     def _get_remote_file(self):
         if self._remote_file_queue.empty():
-            return None
+            return
         try:
             state = self._remote_file_queue.get(True, 3)
         except Empty:
-            return None
+            return
         if state is not None and self._is_on_error(state.id):
             return self._get_remote_file()
         return state
@@ -328,9 +326,8 @@ class QueueManager(QObject):
         self._get_file_lock.acquire()
         if self._remote_file_queue.empty() and self._local_file_queue.empty():
             self._get_file_lock.release()
-            return None
-        state = None
-        if (self._remote_file_queue.qsize() > self._local_file_queue.qsize()):
+            return
+        if self._remote_file_queue.qsize() > self._local_file_queue.qsize():
             state = self._get_remote_file()
         else:
             state = self._get_local_file()
@@ -403,11 +400,12 @@ class QueueManager(QObject):
         return (self._local_folder_queue.qsize() + self._local_file_queue.qsize()
                 + self._remote_folder_queue.qsize() + self._remote_file_queue.qsize())
 
-    def is_processing_file(self, worker, path, exact_match=False):
+    @staticmethod
+    def is_processing_file(worker, path, exact_match=False):
         if not isinstance(worker, Processor):
             return False
         doc_pair = worker.get_current_pair()
-        if (doc_pair is None or doc_pair.local_path is None):
+        if doc_pair is None or doc_pair.local_path is None:
             return False
         if exact_match:
             result = doc_pair.local_path == path
@@ -463,8 +461,11 @@ class QueueManager(QObject):
 
     @pyqtSlot()
     def launch_processors(self):
-        if (self._disable or self.is_paused() or (self._local_folder_queue.empty() and self._local_file_queue.empty()
-                and self._remote_folder_queue.empty() and self._remote_file_queue.empty())):
+        if (self._disable or self.is_paused()
+            or (self._local_folder_queue.empty()
+                and self._local_file_queue.empty()
+                and self._remote_folder_queue.empty()
+                and self._remote_file_queue.empty())):
             self.queueEmpty.emit()
             if not self.is_active():
                 self.queueFinishedProcessing.emit()

@@ -1,6 +1,10 @@
+import os
+import platform
 import sys
 import urllib
-import platform
+
+import psutil
+
 from nxdrive.logging_config import get_logger
 from nxdrive.utils import version_compare
 
@@ -22,11 +26,11 @@ def parse_protocol_url(url_string):
     ValueError is the URL structure is invalid.
     """
     if "://" not in url_string:
-        return None
+        return
 
     protocol_name, data_string = url_string.split('://', 1)
     if protocol_name != 'nxdrive':
-        return None
+        return
 
     if '/' not in data_string:
         raise ValueError("Invalid nxdrive URL: " + url_string)
@@ -34,8 +38,7 @@ def parse_protocol_url(url_string):
     command, data_string = data_string.split('/', 1)
     if command == 'edit':
         return parse_edit_protocol(data_string)
-    else:
-        raise ValueError("Unsupported command '%s' in " + url_string)
+    raise ValueError("Unsupported command '%s' in " + url_string)
 
 
 def parse_edit_protocol(data_string):
@@ -64,21 +67,19 @@ def parse_edit_protocol(data_string):
                     download_url = None
                 return dict(command='download_edit', server_url=server_url, user=user, repo=repo,
                             doc_id=doc_id, filename=filename, download_url=download_url)
-            else:
-                # Compatibility with old URL that doesn't contain user name nor download URL
-                # TODO: https://jira.nuxeo.com/browse/NXDRIVE-237
-                server_part, doc_part = data_string.split('/repo/', 1)
-                server_url = "%s://%s" % (scheme, server_part)
-                repo, doc_part = doc_part.split('/nxdocid/', 1)
-                doc_id, filename = doc_part.split('/filename/', 1)
-                return dict(command='download_edit', server_url=server_url, user=None, repo=repo,
-                            doc_id=doc_id, filename=filename, download_url=None)
-
-        else:
-            server_part, item_id = data_string.split('/fsitem/', 1)
+            # Compatibility with old URL that doesn't contain user name nor download URL
+            # TODO: https://jira.nuxeo.com/browse/NXDRIVE-237
+            server_part, doc_part = data_string.split('/repo/', 1)
             server_url = "%s://%s" % (scheme, server_part)
-            item_id = urllib.unquote(item_id)  # unquote # sign
-            return dict(command='edit', server_url=server_url, item_id=item_id)
+            repo, doc_part = doc_part.split('/nxdocid/', 1)
+            doc_id, filename = doc_part.split('/filename/', 1)
+            return dict(command='download_edit', server_url=server_url, user=None, repo=repo,
+                        doc_id=doc_id, filename=filename, download_url=None)
+
+        server_part, item_id = data_string.split('/fsitem/', 1)
+        server_url = "%s://%s" % (scheme, server_part)
+        item_id = urllib.unquote(item_id)  # unquote # sign
+        return dict(command='edit', server_url=server_url, item_id=item_id)
     except:
         raise ValueError(invalid_msg)
 
@@ -131,7 +132,6 @@ class AbstractOSIntegration(object):
         pass
 
     def is_same_partition(self, folder1, folder2):
-        import os
         return os.stat(folder1).st_dev == os.stat(folder2).st_dev
 
     def get_system_configuration(self):
@@ -140,16 +140,13 @@ class AbstractOSIntegration(object):
     def get_open_files(self, pids=None):
         # Default implementation using psutil
         res = []
-        import psutil
         for p in psutil.process_iter():
             try:
                 if pids is not None and p._pid not in pids:
                     continue
                 for f in p.open_files():
                     res.append((p._pid, f[0]))
-            except psutil.AccessDenied:
-                pass
-            except psutil.ZombieProcess:
+            except (psutil.AccessDenied, psutil.ZombieProcess):
                 pass
         return res
 

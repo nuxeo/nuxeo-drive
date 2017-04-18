@@ -1,6 +1,5 @@
 import os
 import shutil
-import random
 from mock import patch
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 from tests.common_unit_test import UnitTestCase
@@ -10,6 +9,7 @@ wait_for_security_update = False
 src = None
 dst = None
 original_get_changes = RemoteWatcher._get_changes
+
 
 def mock_get_changes(self, *args, **kwargs):
     global wait_for_security_update 
@@ -47,7 +47,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1):
             file_name = self.FILE_NAME_PATTERN % (file_num, 'png')
             file_path = os.path.join(abs_folder_path_1, file_name)
-            self.generate_random_png(file_path, random.randint(1, 42))
+            self.generate_random_png(file_path)
         log.debug('Local test files created in a1')
 
         self.engine_1.start()

@@ -1,13 +1,8 @@
-'''
-@author: rcattiau
-'''
-
-from math import floor, log10
-
+# coding: utf-8
 import os
-import random
 import shutil
 from copy import copy
+from math import floor, log10
 from unittest import SkipTest, skipIf
 
 from common_unit_test import UnitTestCase
@@ -36,15 +31,15 @@ class VolumeTestCase(UnitTestCase):
             folderobj["childs"] = dict()
             abspath = self.local_client_1.abspath(folderobj["path"])
             parent["childs"][foldername] = folderobj
-            self.items = self.items + 1
+            self.items += 1
             self.create_tree(folders, files, depth-1, folderobj)
-            for file in range(1, files+1):
-                filename = self.get_name(False, self.depth-depth+1, file)
-                folderobj["childs"][filename]=dict()
-                folderobj["childs"][filename]["name"]=filename
+            for file_ in range(1, files + 1):
+                filename = self.get_name(False, self.depth-depth+1, file_)
+                folderobj["childs"][filename] = dict()
+                folderobj["childs"][filename]["name"] = filename
                 if not self.fake:
                     file_path = os.path.join(abspath, filename)
-                    self.generate_random_png(file_path, random.randint(1, 42))
+                    self.generate_random_png(file_path)
                 self.items = self.items + 1
 
     @skipIf('TEST_VOLUME' not in os.environ,

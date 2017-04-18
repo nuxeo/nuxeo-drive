@@ -326,11 +326,11 @@ class RemoteWatcher(EngineWorker):
         if not remote_info.folderish:
             # No children to align, early stop.
             log.trace("Skip remote scan as it is not a folderish document: %r", remote_info)
-            return None
+            return
         remote_parent_path = doc_pair.remote_parent_path + '/' + remote_info.uid
         if self._dao.is_path_scanned(remote_parent_path):
             log.trace("Skip already remote scanned: %s", doc_pair.local_path)
-            return None
+            return
         if doc_pair.local_path is not None:
             self._action = Action("Remote scanning : " + doc_pair.local_path)
             log.debug("Remote scanning: %s", doc_pair.local_path)

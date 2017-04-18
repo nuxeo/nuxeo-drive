@@ -1,10 +1,11 @@
-"""Utilities to log nxdrive operations and failures"""
+# coding: utf-8
+""" Utilities to log nxdrive operations and failures. """
 
 import logging
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler, BufferingHandler
 import os
 from copy import copy
-
+from logging.handlers import BufferingHandler, RotatingFileHandler, \
+    TimedRotatingFileHandler
 
 TRACE = 5
 logging.addLevelName(TRACE, 'TRACE')
@@ -134,7 +135,6 @@ def get_handler(logger, name):
     for handler in logger.handlers:
         if name == handler.get_name():
             return handler
-    return None
 
 
 def get_logger(name):

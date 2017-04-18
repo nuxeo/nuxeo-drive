@@ -1,11 +1,9 @@
-'''
-Created on 6 mai 2014
-
-@author: Remi Cattiau
-'''
-from PyQt4 import QtGui, QtCore
-from threading import Thread
+# coding: utf-8
 import time
+from threading import Thread
+
+from PyQt4 import QtCore, QtGui
+
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 
@@ -156,7 +154,7 @@ class DocRootFileInfo(FileInfo):
 
 class Client(object):
     def get_children(self, parent=None):
-        return None
+        return
 
 
 class FsClient(Client):
