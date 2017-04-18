@@ -1,3 +1,6 @@
+# coding: utf-8
+import os
+
 from nxdrive.client.remote_filtered_file_system_client import \
     RemoteFilteredFileSystemClient
 from tests import RemoteTestClient
@@ -7,7 +10,6 @@ from tests.common_unit_test import RandomBug, UnitTestCase
 class TestLocalStorageSpaceIssue(UnitTestCase):
 
     def test_local_invalid_timestamp(self):
-        import os
         # Synchronize root workspace
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -21,8 +23,9 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.assertEqual(len(children), 1)
         self.assertEqual(children[0].name, "Test.txt")
 
+    @RandomBug('NXDRIVE-818', target='windows', mode='BYPASS')
     @RandomBug('NXDRIVE-818', target='mac', mode='BYPASS')
-    @RandomBug('NXDRIVE-818', target='linux', repeat=2)
+    @RandomBug('NXDRIVE-818', target='linux', mode='BYPASS')
     def test_synchronize_no_space_left_on_device(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
