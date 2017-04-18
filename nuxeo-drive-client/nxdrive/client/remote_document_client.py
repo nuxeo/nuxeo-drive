@@ -106,7 +106,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
                     self._check_ref(ref), self.server_url))
-            return
+            return None
         return self._doc_to_info(self.fetch(self._check_ref(ref)),
                                  fetch_parent_uid=fetch_parent_uid)
 

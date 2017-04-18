@@ -21,7 +21,7 @@ class Processor(OldProcessor):
             self._dao.release_processor(self._thread_id)
             # Postpone pair for watcher delay
             self._engine.get_queue_manager().postpone_pair(result, self._engine.get_local_watcher().get_scan_delay())
-            return
+            return None
         log.warn("Acquired: %r", result)
         return result
 

@@ -88,7 +88,7 @@ class FileInfo(object):
     def get_digest(self, digest_func=None):
         """Lazy computation of the digest"""
         if self.folderish:
-            return
+            return None
         digest_func = digest_func if digest_func is not None else self._digest_func
         digester = getattr(hashlib, digest_func, None)
         if digester is None:
@@ -397,7 +397,7 @@ class LocalClient(BaseClient):
                 with open(path, "r") as f:
                     return unicode(f.read(), 'utf-8')
             except:
-                return
+                return None
         else:
             try:
                 if AbstractOSIntegration.is_mac():
@@ -406,7 +406,7 @@ class LocalClient(BaseClient):
                     value = xattr.getxattr(path, 'user.' + name)
                 return unicode(value, 'utf-8')
             except:
-                return
+                return None
 
     # Getters
     def get_info(self, ref, raise_if_missing=True):
@@ -417,7 +417,7 @@ class LocalClient(BaseClient):
             if raise_if_missing:
                 err = 'Could not find file into {!r}: ref={!r}, os_path={!r}'
                 raise NotFound(err.format(self.base_folder, ref, os_path))
-            return
+            return None
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
         if folderish:
@@ -541,7 +541,7 @@ class LocalClient(BaseClient):
     @staticmethod
     def get_parent_ref(ref):
         if ref == '/':
-            return
+            return None
         parent = ref.rsplit(u'/', 1)[0]
         if parent is None:
             parent = '/'

@@ -278,5 +278,5 @@ class WindowsIntegration(AbstractOSIntegration):
         else:
             log.warning('Windows version %d.%d shortcuts are not supported',
                             win_version.major, win_version.minor)
-            return
+            return None
         return os.path.join(favorites, name + '.lnk')

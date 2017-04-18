@@ -31,6 +31,7 @@ class Action(object):
             thread_id = current_thread().ident
         if thread_id in Action.actions:
             return Action.actions[thread_id]
+        return None
 
     @staticmethod
     def get_last_file_action(thread_id=None):
@@ -38,6 +39,7 @@ class Action(object):
             thread_id = current_thread().ident
         if thread_id in Action.lastFileActions:
             return Action.lastFileActions[thread_id]
+        return None
 
     @staticmethod
     def finish_action():
@@ -62,7 +64,7 @@ class IdleAction(Action):
         self.type = "Idle"
 
     def get_percent(self):
-        return
+        return None
 
 
 class FileAction(Action):
@@ -87,7 +89,7 @@ class FileAction(Action):
 
     def get_percent(self):
         if self.size <= 0:
-            return
+            return None
         if self.progress > self.size:
             return 100
         return self.progress * 100 / self.size

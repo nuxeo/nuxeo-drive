@@ -1,28 +1,27 @@
 # coding: utf-8
-from urllib2 import URLError
-import subprocess
-import os
-import uuid
-import platform
-import sys
 import logging
-from urlparse import urlparse
+import os
+import platform
+import subprocess
+import sys
 import urllib2
-import pypac
+import uuid
+from urllib2 import URLError
+from urlparse import urlparse
 
+import pypac
 from PyQt4 import QtCore
 from PyQt4.QtScript import QScriptEngine
 
-from nxdrive.utils import encrypt
-from nxdrive.utils import decrypt
-from nxdrive.logging_config import get_logger, FILE_HANDLER
-from nxdrive.client.base_automation_client import get_proxies_for_handler
-from nxdrive.utils import normalized_path
-from nxdrive.updater import AppUpdater, FakeUpdater
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive import __version__
-from nxdrive.utils import ENCODING, OSX_SUFFIX
+from nxdrive.client import LocalClient
+from nxdrive.client.base_automation_client import get_proxies_for_handler
+from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
+from nxdrive.logging_config import FILE_HANDLER, get_logger
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.updater import AppUpdater, FakeUpdater
+from nxdrive.utils import ENCODING, OSX_SUFFIX, decrypt, encrypt, \
+    normalized_path
 
 try:
     from exceptions import WindowsError
@@ -1185,18 +1184,16 @@ class Manager(QtCore.QObject):
         if syncing_engines:
             log.debug("Some engines are currently synchronizing: %s", syncing_engines)
             return True
-        else:
-            log.debug("No engine currently synchronizing")
-            return False
+        log.debug("No engine currently synchronizing")
+        return False
 
     def get_root_id(self, file_path):
-        from nxdrive.client import LocalClient
         ref = LocalClient.get_path_remote_id(file_path, 'ndriveroot')
         if ref is None:
             parent = os.path.dirname(file_path)
             # We can't find in any parent
             if parent == file_path or parent is None:
-                return
+                return None
             return self.get_root_id(parent)
         return ref
 
@@ -1205,7 +1202,6 @@ class Manager(QtCore.QObject):
         return "org.nuxeo.drive"
 
     def get_metadata_infos(self, file_path):
-        from nxdrive.client import LocalClient
         remote_ref = LocalClient.get_path_remote_id(file_path)
         if remote_ref is None:
             raise ValueError('Could not find file %s as Nuxeo Drive managed' % file_path)

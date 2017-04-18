@@ -135,6 +135,7 @@ def get_handler(logger, name):
     for handler in logger.handlers:
         if name == handler.get_name():
             return handler
+    return None
 
 
 def get_logger(name):

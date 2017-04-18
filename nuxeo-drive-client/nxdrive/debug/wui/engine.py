@@ -15,7 +15,7 @@ class DebugDriveApi(WebDriveApi):
 
     def _get_full_queue(self, queue, dao=None):
         result = []
-        while (len(queue) > 0):
+        while queue:
             result.append(self._export_state(dao.get_state_from_id(queue.pop().id)))
         return result
 
@@ -107,6 +107,7 @@ class DebugDriveApi(WebDriveApi):
             return str(handler.get_buffer(MAX_LOG_DISPLAYED))
         except Exception as e:
             log.exception(e)
+            return None
 
     @QtCore.pyqtSlot(str, result=str)
     def get_engine(self, uid):
@@ -116,6 +117,7 @@ class DebugDriveApi(WebDriveApi):
             return self._json(result)
         except Exception as e:
             log.exception(e)
+            return None
 
     @QtCore.pyqtSlot(str)
     def resume_remote_watcher(self, uid):

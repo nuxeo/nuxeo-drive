@@ -18,7 +18,7 @@ class FileInfo(object):
             parent.add_child(self)
         if checkstate is None and parent is not None:
             checkstate = parent.get_checkstate()
-        elif (parent is not None and parent.is_dirty()):
+        elif parent is not None and parent.is_dirty():
             self.checkstate = parent.get_checkstate()
             self.oldvalue = checkstate
             return
@@ -154,7 +154,7 @@ class DocRootFileInfo(FileInfo):
 
 class Client(object):
     def get_children(self, parent=None):
-        return
+        return None
 
 
 class FsClient(Client):

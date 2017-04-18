@@ -134,11 +134,11 @@ class GetObjectInfoThread(threading.Thread):
                 size = DWORD(size.value * 4)
                 resize(public_object_type_information, size.value)
             elif result == STATUS_INVALID_HANDLE:
-                return
+                return None
             elif result == 0xc0000005:
                 # Access denied
                 # Windows 10 result
-                return
+                return None
             raise x_file_handles ("NtQueryObject.2", hex (result))
 
     @staticmethod
@@ -219,6 +219,7 @@ class WindowsProcessFileHandlerSniffer():
                              winerror.ERROR_INVALID_HANDLE,
                              winerror.ERROR_NOT_SUPPORTED):
                 raise
+            return None
 
     @staticmethod
     def get_handles():
@@ -265,7 +266,7 @@ class WindowsProcessFileHandlerSniffer():
         # Remove stopped pids from blacklist
         remove_pids = []
         for pid in self._pid_blacklist:
-            if not pid in handles:
+            if pid not in handles:
                 remove_pids.append(pid)
         for pid in remove_pids:
             del self._pid_blacklist[pid]
@@ -311,7 +312,7 @@ class WindowsProcessFileHandlerSniffer():
 
     def filepath_from_devicepath(self, devicepath):
         if devicepath is None:
-            return
+            return None
         devicepath_lower = devicepath.lower()
         for device, drive in self.DEVICE_DRIVES.items():
             if devicepath_lower.startswith(device):

@@ -92,7 +92,7 @@ class WebConflictsApi(WebDriveApi):
 
     def _export_state(self, state):
         if state is None:
-            return
+            return None
         result = super(WebConflictsApi, self)._export_state(state)
         result["last_contributor"] = " " if state.last_remote_modifier is None \
             else self._engine.get_user_full_name(state.last_remote_modifier, cache_only=not self._retrieve_name)

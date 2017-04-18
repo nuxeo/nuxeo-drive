@@ -80,8 +80,7 @@ def get_proxy_config(proxies):
         return 'System'
     elif proxies == {}:
         return 'None'
-    else:
-        return 'Manual'
+    return 'Manual'
 
 
 def get_proxy_handler(proxies, proxy_exceptions=None, url=None):
@@ -105,6 +104,7 @@ def get_opener_proxies(opener):
     for handler in opener.handlers:
         if isinstance(handler, ProxyHandler):
             return handler.proxies
+    return None
 
 
 class AddonNotInstalled(Exception):
@@ -583,7 +583,7 @@ class BaseAutomationClient(BaseClient):
                 raise Unauthorized(self.server_url, self.user_id, e.code)
             elif e.code == 404:
                 # Token based auth is not supported by this server
-                return
+                return None
             else:
                 e.msg = base_error_message + ": HTTP error %d" % e.code
                 raise e
@@ -744,6 +744,7 @@ class BaseAutomationClient(BaseClient):
                 log.error(message)
                 if isinstance(e, urllib2.HTTPError):
                     return e.code, None, message, None
+        return None
 
     @staticmethod
     def _generate_unique_id():

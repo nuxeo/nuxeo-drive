@@ -1,3 +1,4 @@
+# coding: utf-8
 import os
 import platform
 import sys
@@ -26,11 +27,11 @@ def parse_protocol_url(url_string):
     ValueError is the URL structure is invalid.
     """
     if "://" not in url_string:
-        return
+        return None
 
     protocol_name, data_string = url_string.split('://', 1)
     if protocol_name != 'nxdrive':
-        return
+        return None
 
     if '/' not in data_string:
         raise ValueError("Invalid nxdrive URL: " + url_string)

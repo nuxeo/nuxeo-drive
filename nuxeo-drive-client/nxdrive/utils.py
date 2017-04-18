@@ -312,7 +312,7 @@ def find_resource_dir(directory, default_path):
     if not os.path.exists(dir_path):
         log.warning("Could not find the resource directory at: %s",
                     dir_path)
-        return
+        return None
 
     return dir_path
 

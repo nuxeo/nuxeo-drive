@@ -26,7 +26,7 @@ class DriveScript(QObject):
     def get_engine(self):
         if self._engine_uid is None:
             if len(self._manager.get_engines()) == 0:
-                return
+                return None
             engine = self._manager.get_engines().itervalues().next()
         else:
             engine = self._manager.get_engines()[self._engine_uid]
