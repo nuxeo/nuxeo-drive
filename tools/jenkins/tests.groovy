@@ -126,6 +126,7 @@ for (def x in slaves) {
                         def jdk = tool name: 'java-8-oracle'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                        def platform_opt = "-Dplatform=${slave.toLowerCase()}"
 
                         dir('sources') {
                             // Set up the report name folder
@@ -135,9 +136,9 @@ for (def x in slaves) {
                             // Do not launch tests if we are on a Work In Progress branch
                             if (!env.BRANCH_NAME.startsWith('wip-')) {
                                 if (osi == 'Windows') {
-                                    bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql/)
+                                    bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
                                 } else {
-                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql"
+                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
                                 }
                             }
                         }
