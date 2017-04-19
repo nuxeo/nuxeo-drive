@@ -80,10 +80,9 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
         root_logger.setLevel(min_level)
 
         # define the formatter
-        formatter = logging.Formatter(
-            "%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s"
-            " %(message)s"
-        )
+        formatter = logging.Formatter('%(asctime)s %(process)d %(thread)d '
+                                      '%(levelname)-8s %(name)-18s %(message)s',
+                                      datefmt='%Y-%m-%d %H:%M:%S')
 
         # define a Handler which writes INFO messages or higher to the
         # sys.stderr
