@@ -106,6 +106,7 @@ class TestLocalCopyPaste(UnitTestCase):
         log.debug('*** exit TestLocalCopyPaste.tearDown() ***')
 
     @RandomBug('NXDRIVE-815', target='mac', repeat=5)
+    @RandomBug('NXDRIVE-815', target='windows', repeat=5)
     def test_local_copy_paste_files(self):
         self._local_copy_paste_files(stopped=False)
 
