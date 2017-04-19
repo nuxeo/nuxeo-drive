@@ -166,7 +166,7 @@ for (def x in slaves) {
                         if (env.BRANCH_NAME == 'master') {
                             step([$class: 'JiraIssueUpdater',
                                 issueSelector: [$class: 'DefaultIssueSelector'],
-                                scm: scm])
+                                scm: scm, comment: osi])
                         }
                     }
                 }
