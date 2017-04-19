@@ -49,6 +49,12 @@ properties([
     ]]
 ])
 
+// Do not launch anything if we are on a Work In Progress branch
+if (env.BRANCH_NAME.startsWith('wip-')) {
+    echo 'Skipped due to WIP branch.'
+    return
+}
+
 // Jenkins slaves we will build on
 slaves = ['OSXSLAVE', 'SLAVE', 'WINSLAVE']
 labels = [
@@ -133,13 +139,10 @@ for (def x in slaves) {
                             env.REPORT_PATH = env.WORKSPACE + '/sources'
                             env.TEST_REMOTE_SCAN_VOLUME = 100
 
-                            // Do not launch tests if we are on a Work In Progress branch
-                            if (!env.BRANCH_NAME.startsWith('wip-')) {
-                                if (osi == 'Windows') {
-                                    bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
-                                } else {
-                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
-                                }
+                            if (osi == 'Windows') {
+                                bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
+                            } else {
+                                sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
                             }
                         }
 
