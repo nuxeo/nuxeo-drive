@@ -53,7 +53,7 @@ class MultipleFilesTestCase(UnitTestCase):
     def test_move_and_copy_paste_folder_original_location_from_child_stopped(self):
         self._move_and_copy_paste_folder_original_location_from_child()
 
-    @RandomBug('NXDRIVE-808', target='mac', mode='BYPASS')
+    @RandomBug('NXDRIVE-808', target='mac', repeat=2)
     def test_move_and_copy_paste_folder_original_location_from_child(self):
         self._move_and_copy_paste_folder_original_location_from_child(False)
 
