@@ -260,7 +260,7 @@ class TestWatchers(UnitTestCase):
         self.assertEqual(remote.get_info(u'/Accentue\u0301.odt').name,
                          u'Accentu\xe9 avec un \xea et un \xe9.odt')
 
-    @RandomBug('NXDRIVE-808', target='mac', repeat=2)
+    @RandomBug('NXDRIVE-808', target='mac', repeat=5)
     def test_watchdog_encoding(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
