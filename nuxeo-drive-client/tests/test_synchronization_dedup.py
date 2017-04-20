@@ -2,7 +2,7 @@ import os
 from unittest import skip, skipIf
 
 from nxdrive.osi import AbstractOSIntegration
-from tests.common_unit_test import UnitTestCase
+from tests.common_unit_test import RandomBug, UnitTestCase
 
 
 @skipIf(AbstractOSIntegration.is_linux(),
@@ -122,6 +122,7 @@ class TestDedupInsensitiveCaseSync(UnitTestCase):
         self.assertEqual(len(local.get_children_info(test_path)), 1)
         self.assertEqual(len(local.get_children_info(Test_path)), 1)
 
+    @RandomBug('NXDRIVE-831', target='windows', repeat=5)
     def test_dedup_folders(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
