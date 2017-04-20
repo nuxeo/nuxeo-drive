@@ -21,7 +21,7 @@ def timer(fname, delay=None):
 
     if not isfile(fname):
         print('Inexistant file or wrong rights on', fname)
-        return 2
+        return 3
 
     delay = delay or 2
 
