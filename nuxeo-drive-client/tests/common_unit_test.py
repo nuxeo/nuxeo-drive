@@ -23,7 +23,8 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.translator import Translator
 from tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
 
-if 'DRIVE_YAPPI' in os.environ:
+YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '')
+if YAPPI_PATH:
     import yappi
 
 log = get_logger(__name__)
@@ -557,31 +558,35 @@ class UnitTestCase(SimpleUnitTestCase):
             timeout -= 1
         self.fail("Wait for remote scan timeout expired")
 
-    def is_profiling(self):
-        return 'DRIVE_YAPPI' in os.environ and yappi is not None
+    @staticmethod
+    def is_profiling():
+        return YAPPI_PATH and yappi is not None
 
     def setup_profiler(self):
-        if not self.is_profiling():
-            return
-        yappi.start()
+        if self.is_profiling():
+            yappi.start()
 
     def teardown_profiler(self):
         if not self.is_profiling():
             return
-        path = os.environ["DRIVE_YAPPI"]
-        if not os.path.exists(path):
-            os.mkdir(path)
-        report_path = os.path.join(path, self.id() + '-yappi-threads')
+
+        if not os.path.exists(YAPPI_PATH):
+            os.mkdir(YAPPI_PATH)
+        report_path = os.path.join(YAPPI_PATH, self.id() + '-' + sys.platform
+                                   + '_yappi.txt')
         with open(report_path, 'w') as fd:
-            columns = {0: ("name", 80), 1: ("tid", 15), 2: ("ttot", 8), 3: ("scnt", 10)}
+            fd.write('Threads\n=======\n')
+            columns = {0: ('name', 80), 1: ('tid', 15), 2: ('ttot', 8),
+                       3: ('scnt', 10)}
             yappi.get_thread_stats().print_all(out=fd, columns=columns)
-        report_path = os.path.join(path, self.id() + '-yappi-fcts')
-        with open(report_path, 'w') as fd:
-            columns = {0: ("name", 80), 1: ("ncall", 5), 2: ("tsub", 8), 3: ("ttot", 8), 4: ("tavg", 8)}
+
+            fd.write('\n\n\nMethods\n=======\n')
+            columns = {0: ('name', 80), 1: ('ncall', 5), 2: ('tsub', 8),
+                       3: ('ttot', 8), 4: ('tavg', 8)}
             stats = yappi.get_func_stats()
             stats.strip_dirs()
             stats.print_all(out=fd, columns=columns)
-        log.debug("Profiler Report generated in '%s'", report_path)
+        log.debug('Profiler Report generated in %r', report_path)
 
     def reinit(self):
         self.tearDown()

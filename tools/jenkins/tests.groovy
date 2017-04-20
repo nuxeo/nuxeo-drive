@@ -45,7 +45,11 @@ properties([
         [$class: 'BooleanParameterDefinition',
             name: 'CLEAN_WORKSPACE',
             defaultValue: false,
-            description: 'Clean the entire workspace before doing anything.']
+            description: 'Clean the entire workspace before doing anything.'],
+        [$class: 'BooleanParameterDefinition',
+            name: 'ENABLE_PROFILER',
+            defaultValue: false,
+            description: 'Use yappi profiler.']
     ]]
 ])
 
@@ -108,6 +112,7 @@ for (def x in slaves) {
                     // Required envars
                     env.PYTHON_DRIVE_VERSION = params.PYTHON_DRIVE_VERSION ?: python_drive_version
                     env.PYQT_VERSION = params.PYQT_VERSION ?: pyqt_version
+                    env.DRIVE_YAPPI = params.ENABLE_PROFILER ? env.WORKSPACE : ''
 
                     stage(osi + ' Checkout') {
                         github_status('PENDING')
@@ -160,7 +165,7 @@ for (def x in slaves) {
                         // Update GitHub status whatever the result
                         github_status(currentBuild.result)
 
-                        archive 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip'
+                        archive 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt'
 
                         // Update revelant Jira issues only if we are working on the master branch
                         if (env.BRANCH_NAME == 'master') {
