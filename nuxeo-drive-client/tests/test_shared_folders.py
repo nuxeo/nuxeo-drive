@@ -146,10 +146,9 @@ class TestSharedFolders(UnitTestCase):
         if unbind:
             self.send_bind_engine(1)
             self.wait_bind_engine(1)
-            self.wait_remote_scan()
         else:
             self.engine_1.start()
-            self.wait_sync()
+        self.wait_sync()
 
         # Check client side
         self.assertTrue(local_1.exists('/Folder01'))
