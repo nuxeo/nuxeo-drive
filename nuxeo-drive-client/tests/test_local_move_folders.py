@@ -185,10 +185,9 @@ class TestLocalMoveFolders(UnitTestCase):
         if unbind:
             self.send_bind_engine(1)
             self.wait_bind_engine(1)
-            self.wait_remote_scan()
         else:
             self.engine_1.start()
-            self.wait_sync(wait_for_async=True)
+        self.wait_sync(wait_for_async=True)
 
         # Check that nothing has changed
         self.assertEqual(len(remote.get_children_info(self.workspace)), 1)
