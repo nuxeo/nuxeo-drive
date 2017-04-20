@@ -39,12 +39,11 @@ class CustomMemoryHandler(BufferingHandler):
 
     def get_buffer(self, size):
         adds = []
-        result = []
         self.acquire()
         try:
             result = copy(self.buffer)
             result.reverse()
-            if len(result) < size and self._old_buffer is not None:
+            if len(result) < size and self._old_buffer:
                 adds = copy(self._old_buffer[(size-len(result)-1):])
         finally:
             self.release()
@@ -55,8 +54,9 @@ class CustomMemoryHandler(BufferingHandler):
 
 
 def configure(use_file_handler=False, log_filename=None, file_level='INFO',
-              console_level='INFO', filter_inotify=True, command_name=None, log_rotate_keep=30,
-              log_rotate_max_bytes=None, log_rotate_when=None, force_configure=False):
+              console_level='INFO', filter_inotify=True, command_name=None,
+              log_rotate_keep=30, log_rotate_max_bytes=None,
+              log_rotate_when=None, force_configure=False):
 
     global is_logging_configured
     global FILE_HANDLER
@@ -80,10 +80,9 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
         root_logger.setLevel(min_level)
 
         # define the formatter
-        formatter = logging.Formatter(
-            "%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s"
-            " %(message)s"
-        )
+        formatter = logging.Formatter('%(asctime)s %(process)d %(thread)d '
+                                      '%(levelname)-8s %(name)-18s %(message)s',
+                                      datefmt='%Y-%m-%d %H:%M:%S')
 
         # define a Handler which writes INFO messages or higher to the
         # sys.stderr
@@ -108,12 +107,13 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
             if log_rotate_when is None and log_rotate_max_bytes is None:
                 log_rotate_when = 'midnight'
             if log_rotate_when is not None:
-                file_handler = TimedRotatingFileHandler(log_filename,
-                                    when=log_rotate_when, backupCount=log_rotate_keep)
+                file_handler = TimedRotatingFileHandler(
+                    log_filename, when=log_rotate_when,
+                    backupCount=log_rotate_keep)
             elif log_rotate_max_bytes is not None:
                 file_handler = RotatingFileHandler(
-                                    log_filename, mode='a', maxBytes=log_rotate_max_bytes,
-                                    backupCount=log_rotate_keep)
+                    log_filename, maxBytes=log_rotate_max_bytes,
+                    backupCount=log_rotate_keep)
             file_handler.set_name('file')
             file_handler.setLevel(file_level)
             file_handler.setFormatter(formatter)
@@ -124,11 +124,12 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
         memory_handler = CustomMemoryHandler()
         # Put in TRACE
         memory_handler.setLevel(5)
-        memory_handler.set_name("memory")
+        memory_handler.set_name('memory')
         memory_handler.setFormatter(formatter)
         root_logger.addHandler(memory_handler)
         if filter_inotify:
-            root_logger.addFilter(logging.Filter('watchdog.observers.inotify_buffer'))
+            root_logger.addFilter(
+                logging.Filter('watchdog.observers.inotify_buffer'))
 
 
 def get_handler(logger, name):
@@ -140,6 +141,9 @@ def get_handler(logger, name):
 
 def get_logger(name):
     logger = logging.getLogger(name)
-    trace = lambda *args, **kwargs: logger.log(TRACE, *args, **kwargs)
+
+    def trace(*args, **kwargs):
+        logger.log(TRACE, *args, **kwargs)
+
     setattr(logger, 'trace', trace)
     return logger

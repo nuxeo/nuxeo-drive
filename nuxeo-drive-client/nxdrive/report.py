@@ -53,11 +53,10 @@ class Report(object):
         handler = get_handler(logger, 'memory')
         log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
         for record in log_buffer:
-            try:
-                yield handler.format(record).decode('utf-8', errors='replace')
-            except UnicodeEncodeError:
-                yield handler.format(record).encode('utf-8', errors='replace')\
-                                            .decode('utf-8')
+            line = handler.format(record)
+            if isinstance(line, bytes):
+                line = line.decode('utf-8', errors='replace')
+            yield line
 
     def generate(self):
         log.debug('Create report %r', self._report_name)
