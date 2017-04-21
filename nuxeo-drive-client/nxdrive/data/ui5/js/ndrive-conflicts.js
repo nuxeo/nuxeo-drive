@@ -24,8 +24,8 @@ var ConflictsController = function($scope, $interval, $translate) {
 		self.resolveRemote(uid);
 		self.updateConflicts($scope);
 	}
-	$scope.unsynchronize_pair = function(uid) {
-		self.unsynchronizePair(uid);
+	$scope.unsynchronize_pair = function(uid, reason) {
+		self.unsynchronizePair(uid, reason);
 		self.updateErrors($scope);
 	}
 	$scope.retry_pair = function(uid) {
@@ -39,13 +39,23 @@ ConflictsController.prototype = Object.create(DriveController.prototype);
 ConflictsController.prototype.constructor = ConflictsController;
 
 ConflictsController.prototype.updateErrors = function($scope) {
-	$scope.errors = angular.fromJson(drive.get_errors());
+	var errors = angular.fromJson(drive.get_errors());
+	for (error in errors) {
+		if (errors[error].last_error !== "DEDUP") {
+			errors[error].error_reason = "ERROR_REASON_UNKNOWN";
+		} else {
+			errors[error].error_reason = "ERROR_REASON_" + errors[error].last_error;
+		}
+	}
+	$scope.errors = errors;
+
 	var ignoreds = angular.fromJson(drive.get_ignoreds());
 	for (ignore in ignoreds) {
 		if (ignoreds[ignore].last_error !== "READONLY" &&
 				ignoreds[ignore].last_error !== "PARENT_UNSYNC" &&
 				ignoreds[ignore].last_error !== "LOCKED" &&
-				ignoreds[ignore].last_error !== "MANUAL") {
+				ignoreds[ignore].last_error !== "MANUAL" &&
+				ignoreds[ignore].last_error !== "DEDUP") {
 			ignoreds[ignore].ignore_reason = "IGNORE_REASON_UNKNOWN";
 		} else {
 			ignoreds[ignore].ignore_reason = "IGNORE_REASON_" + ignoreds[ignore].last_error;
@@ -87,8 +97,8 @@ ConflictsController.prototype.openLocal = function(path) {
 ConflictsController.prototype.retryPair = function(uid) {
 	drive.retry_pair(uid);
 }
-ConflictsController.prototype.unsynchronizePair = function(uid) {
-	drive.unsynchronize_pair(uid);
+ConflictsController.prototype.unsynchronizePair = function(uid, reason) {
+	drive.unsynchronize_pair(uid, reason);
 }
 ConflictsController.prototype.resolveLocal = function(uid) {
 	drive.resolve_with_local(uid);

@@ -11,6 +11,7 @@ import os
 from unittest import skipIf
 
 from nxdrive.client import LocalClient, NotFound
+from nxdrive.client.common import DuplicationDisabledError
 from nxdrive.osi import AbstractOSIntegration
 from tests.common import EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from tests.common_unit_test import UnitTestCase
@@ -87,16 +88,20 @@ class StubLocalClient(object):
 
         # create another folder with the same title
         title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
-        folder_2 = self.local_client_1.make_folder('/', title_with_accents)
-        folder_2_info = self.local_client_1.get_info(folder_2)
-        self.assertEqual(folder_2_info.name, title_with_accents + u"__1")
-        self.assertNotEqual(folder_1, folder_2)
+        if self.local_client_1.duplication_enabled():
+            folder_2 = self.local_client_1.make_folder('/', title_with_accents)
+            folder_2_info = self.local_client_1.get_info(folder_2)
+            self.assertEqual(folder_2_info.name, title_with_accents + u"__1")
+            self.assertNotEqual(folder_1, folder_2)
 
-        title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
-        folder_3 = self.local_client_1.make_folder('/', title_with_accents)
-        folder_3_info = self.local_client_1.get_info(folder_3)
-        self.assertEqual(folder_3_info.name, title_with_accents + u"__2")
-        self.assertNotEqual(folder_1, folder_3)
+            title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
+            folder_3 = self.local_client_1.make_folder('/', title_with_accents)
+            folder_3_info = self.local_client_1.get_info(folder_3)
+            self.assertEqual(folder_3_info.name, title_with_accents + u"__2")
+            self.assertNotEqual(folder_1, folder_3)
+        else:
+            with self.assertRaises(DuplicationDisabledError):
+                self.local_client_1.make_folder('/', title_with_accents)
 
         # Create a long file name with weird chars
         long_filename = u"\xe9" * 50 + u"%$#!()[]{}+_-=';&^" + u".doc"
@@ -134,9 +139,14 @@ class StubLocalClient(object):
         self.local_client_1.make_file('/', 'File 2.txt~', content=data)
         self.local_client_1.make_file('/', 'File 2.txt.swp', content=data)
         self.local_client_1.make_file('/', 'File 2.txt.lock', content=data)
-        self.local_client_1.make_file('/', 'File 2.txt.LOCK', content=data)
         self.local_client_1.make_file('/', 'File 2.txt.part', content=data)
         self.local_client_1.make_file('/', '.File 2.txt.nxpart', content=data)
+        if self.local_client_1.is_case_sensitive():
+            self.local_client_1.make_file('/', 'File 2.txt.LOCK', content=data)
+        else:
+            with self.assertRaises(DuplicationDisabledError):
+                self.local_client_1.make_file('/', 'File 2.txt.LOCK',
+                                              content=data)
 
         workspace_children = self.local_client_1.get_children_info('/')
         self.assertEqual(len(workspace_children), 3)

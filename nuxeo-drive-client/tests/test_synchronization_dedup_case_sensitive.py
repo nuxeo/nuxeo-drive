@@ -1,4 +1,5 @@
 import os
+from unittest import SkipTest
 
 from tests.common_unit_test import RandomBug, UnitTestCase
 
@@ -18,6 +19,10 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
     def test_dedup_multiple_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
+
+        if not local.duplication_enabled():
+            raise SkipTest('De-duplication disabled.')
+
         # Create documents in the remote root workspace
         # then synchronize
         files = 10
@@ -48,6 +53,10 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
     def test_dedup_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
+
+        if not local.duplication_enabled():
+            raise SkipTest('De-duplication disabled.')
+
         # Create documents in the remote root workspace
         # then synchronize
         joe_uid = remote.make_file('/', 'joe.odt', 'Some content 1')
@@ -83,6 +92,10 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
     def test_dedup_folders(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
+
+        if not local.duplication_enabled():
+            raise SkipTest('De-duplication disabled.')
+
         # Create documents in the remote root workspace
         # then synchronize
         test_uid = remote.make_folder('/', 'test')
@@ -105,6 +118,10 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
     def test_dedup_move_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
+
+        if not local.duplication_enabled():
+            raise SkipTest('De-duplication disabled.')
+
         remote.make_folder('/', 'test')
         joe2_uid = remote.make_file('/', 'joe.odt', 'Some content')
         joe_uid = remote.make_file('/test', 'joe.odt', 'Some content')
@@ -147,6 +164,10 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
     def test_dedup_move_folders(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
+
+        if not local.duplication_enabled():
+            raise SkipTest('De-duplication disabled.')
+
         test_uid = remote.make_folder('/', 'test')
         test2_uid = remote.make_folder('/test', 'test')
         test2_dedup = self._dedup_name('test')

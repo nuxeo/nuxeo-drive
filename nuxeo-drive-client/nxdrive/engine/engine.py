@@ -525,7 +525,7 @@ class Engine(QObject):
         if state is None:
             return
         self._dao.unsynchronize_state(state, last_error=reason)
-        self._dao.reset_error(state)
+        self._dao.reset_error(state, last_error=reason)
 
     def resolve_with_local(self, row_id):
         row = self._dao.get_state_from_id(row_id)

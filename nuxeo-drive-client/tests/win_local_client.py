@@ -19,7 +19,7 @@ from tests.common import log
 class WindowsLocalClient(LocalClient):
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
                  ignored_suffixes=None, check_suspended=None,
-                 case_sensitive=None, disable_duplication=False):
+                 case_sensitive=None, disable_duplication=True):
         super(WindowsLocalClient, self).__init__(base_folder, digest_func,
                                                  ignored_prefixes,
                                                  ignored_suffixes,

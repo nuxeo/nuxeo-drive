@@ -15,8 +15,8 @@ from send2trash import send2trash
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
     DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import BaseClient, DEFAULT_IGNORED_PREFIXES, \
-    DEFAULT_IGNORED_SUFFIXES, FILE_BUFFER_SIZE, NotFound, UNACCESSIBLE_HASH, \
-    safe_filename
+    DEFAULT_IGNORED_SUFFIXES, DuplicationDisabledError, DuplicationError, \
+    FILE_BUFFER_SIZE, NotFound, UNACCESSIBLE_HASH, safe_filename
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import guess_digest_algorithm, normalized_path, \
@@ -120,7 +120,7 @@ class LocalClient(BaseClient):
 
     def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
                  ignored_suffixes=None, check_suspended=None,
-                 case_sensitive=None, disable_duplication=False):
+                 case_sensitive=None, disable_duplication=True):
         self._case_sensitive = case_sensitive
         self._disable_duplication = disable_duplication
         # Function to check during long-running processing like digest
@@ -141,6 +141,11 @@ class LocalClient(BaseClient):
             base_folder = base_folder[:-1]
         self.base_folder = base_folder
         self._digest_func = digest_func
+
+    def duplication_enabled(self):
+        """ Check if de-duplication is enable or not. """
+
+        return not self._disable_duplication
 
     def is_case_sensitive(self):
         if self._case_sensitive is None:
@@ -623,17 +628,8 @@ class LocalClient(BaseClient):
         if not self.exists(ref):
             return
 
-        # Remove the \\?\ for SHFileOperation on Windows
-        if os_path[:4] == '\\\\?\\':
-            # http://msdn.microsoft.com/en-us/library/cc249520.aspx
-            # SHFileOperation don't handle \\?\ paths
-            if len(os_path) > 260:
-                # Rename to the drive root
-                info = self.move(ref, '/')
-                ref = info.path
-                os_path = self.abspath(ref)[4:]
-            else:
-                os_path = os_path[4:]
+        # Remove the \\?\ prefix, specific to Windows
+        os_path = os_path.lstrip('\\\\?\\')
 
         log.trace('Sending to trash ' + os_path)
 
@@ -784,15 +780,15 @@ class LocalClient(BaseClient):
             if not os.path.exists(os_path):
                 return os_path, name + suffix
             if self._disable_duplication:
-                raise ValueError("De-duplication is disabled")
+                raise DuplicationDisabledError('De-duplication is disabled')
+
             # the is a duplicated file, try to come with a new name
-            log.trace("dedup: %s exist try next", os_path)
             m = re.match(DEDUPED_BASENAME_PATTERN, name)
             if m:
                 short_name, increment = m.groups()
                 name = u"%s__%d" % (short_name, int(increment) + 1)
             else:
                 name = name + u'__1'
-            log.trace("Deduplicate a name: %s", name)
-        raise ValueError("Failed to de-duplicate '%s' under '%s'" % (
-            orig_name, parent))
+            log.trace("De-duplicate %s to %s", os_path, name)
+        raise DuplicationError(
+            'Failed to de-duplicate "%s" under "%s"' % (orig_name, parent))

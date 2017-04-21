@@ -43,11 +43,12 @@ class TestSynchronization(UnitTestCase):
         # Cannot predict the resolution in advance
         self.assertTrue(remote.get_content(self._duplicate_file_1), "Some content.")
         self.assertTrue(remote.get_content(self._duplicate_file_2), "Other content.")
-        if local.get_content('/Folder 2/Duplicated File.txt') == "Some content.":
-            self.assertEqual(local.get_content('/Folder 2/Duplicated File__1.txt'), "Other content.")
-        else:
-            self.assertEqual(local.get_content('/Folder 2/Duplicated File.txt'), "Other content.")
-            self.assertEqual(local.get_content('/Folder 2/Duplicated File__1.txt'), "Some content.")
+        if local.duplication_enabled():
+            if local.get_content('/Folder 2/Duplicated File.txt') == "Some content.":
+                self.assertEqual(local.get_content('/Folder 2/Duplicated File__1.txt'), "Other content.")
+            else:
+                self.assertEqual(local.get_content('/Folder 2/Duplicated File.txt'), "Other content.")
+                self.assertEqual(local.get_content('/Folder 2/Duplicated File__1.txt'), "Some content.")
         self.assertEqual(local.get_content('/Folder 2/File 4.txt'), "ddd")
         self.assertEqual(local.get_content('/File 5.txt'), "eee")
 

@@ -68,10 +68,11 @@ class WebConflictsApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-    @QtCore.pyqtSlot(int)
-    def unsynchronize_pair(self, state_id):
+    @QtCore.pyqtSlot(int, str)
+    def unsynchronize_pair(self, state_id, reason):
         try:
-            self._engine.unsynchronize_pair(int(state_id), "MANUAL")
+            self._engine.unsynchronize_pair(int(state_id),
+                                            reason=str(reason) or 'UNKNOWN')
         except Exception as e:
             log.exception(e)
 
