@@ -17,6 +17,7 @@ from mock import Mock
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
+from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES, DEFAULT_IGNORED_SUFFIXES
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.osi import AbstractOSIntegration
@@ -339,6 +340,8 @@ class UnitTestCase(SimpleUnitTestCase):
         options.update_site_url = None
         options.beta_update_site_url = None
         options.autolock_interval = 30
+        options.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
+        options.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
         options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager(options)
         self.connected = False

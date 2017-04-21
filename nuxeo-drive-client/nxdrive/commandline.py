@@ -366,7 +366,7 @@ class CliHandler(object):
         user_ini = os.path.expanduser(os.path.join(self.default_home, config_name))
         if os.path.exists(user_ini):
             configs.append(user_ini)
-        if len(configs) > 0:
+        if configs:
             config.read(configs)
         if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
             env = config.get(ConfigParser.DEFAULTSECT, 'env')
@@ -374,8 +374,14 @@ class CliHandler(object):
             for item in config.items(env):
                 if item[0] == 'env':
                     continue
-                args[item[0].replace('-', '_')] = item[1]
-            if len(args):
+                value = item[1]
+                if value == '':
+                    continue
+                if '\n' in item[1]:
+                    # Treat multiline option as a set
+                    value = set(item[1].split())
+                args[item[0].replace('-', '_')] = value
+            if args:
                 parser.set_defaults(**args)
         else:
             parser.set_defaults(**AbstractOSIntegration.get(None).get_system_configuration())

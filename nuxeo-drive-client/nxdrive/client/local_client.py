@@ -123,19 +123,12 @@ class LocalClient(BaseClient):
                  case_sensitive=None, disable_duplication=False):
         self._case_sensitive = case_sensitive
         self._disable_duplication = disable_duplication
+        self.ignored_prefixes = ignored_prefixes or DEFAULT_IGNORED_PREFIXES
+        self.ignored_suffixes = ignored_suffixes or DEFAULT_IGNORED_SUFFIXES
+
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
-
-        if ignored_prefixes is not None:
-            self.ignored_prefixes = ignored_prefixes
-        else:
-            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
-
-        if ignored_suffixes is not None:
-            self.ignored_suffixes = ignored_suffixes
-        else:
-            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
 
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
@@ -470,25 +463,20 @@ class LocalClient(BaseClient):
 
     def is_ignored(self, parent_ref, file_name):
         # Add parent_ref to be able to filter on size if needed
-        ignore = False
         # Office temp file
         # http://support.microsoft.com/kb/211632
         if file_name.startswith("~") and file_name.endswith(".tmp"):
             return True
+
         # Emacs auto save file
         # http://www.emacswiki.org/emacs/AutoSave
         if file_name.startswith("#") and file_name.endswith("#") and len(file_name) > 2:
             return True
-        for suffix in self.ignored_suffixes:
-            if file_name.endswith(suffix):
-                ignore = True
-                break
-        for prefix in self.ignored_prefixes:
-            if file_name.startswith(prefix):
-                ignore = True
-                break
-        if ignore:
+
+        if (file_name.endswith(self.ignored_suffixes)
+                or file_name.startswith(self.ignored_prefixes)):
             return True
+
         if AbstractOSIntegration.is_windows():
             # NXDRIVE-465
             ref = self.get_children_ref(parent_ref, file_name)

@@ -59,7 +59,11 @@ class DirectEdit(Worker):
         if type(folder) == str:
             folder = unicode(folder)
         self._folder = folder
-        self._local_client = LocalClient(self._folder)
+        self._local_client = LocalClient(
+            self._folder,
+            ignored_prefixes=manager.ignored_prefixes,
+            ignored_suffixes=manager.ignored_suffixes,
+        )
         self._upload_queue = Queue()
         self._lock_queue = Queue()
         self._error_queue = BlacklistQueue()

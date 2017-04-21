@@ -837,7 +837,12 @@ class Engine(QObject):
                     thread.worker.quit()
 
     def get_local_client(self):
-        client = LocalClient(self._local_folder, case_sensitive=self._case_sensitive)
+        client = LocalClient(
+            self._local_folder,
+            case_sensitive=self._case_sensitive,
+            ignored_prefixes=self._manager.ignored_prefixes,
+            ignored_suffixes=self._manager.ignored_suffixes,
+        )
         if self._case_sensitive is None and os.path.exists(self._local_folder):
             self._case_sensitive = client.is_case_sensitive()
         return client

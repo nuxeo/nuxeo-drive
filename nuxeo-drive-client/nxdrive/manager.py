@@ -20,6 +20,7 @@ from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive.logging_config import FILE_HANDLER, get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.updater import AppUpdater, FakeUpdater
+from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, DEFAULT_IGNORED_PREFIXES
 from nxdrive.utils import ENCODING, OSX_SUFFIX, decrypt, encrypt, \
     normalized_path
 
@@ -295,6 +296,7 @@ class Manager(QtCore.QObject):
                 ssl._create_default_https_context = _create_unverified_https_context
         else:
             log.info("--consider-ssl-errors option is True, will verify HTTPS certificates")
+
         self._autolock_service = None
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
         self.nxdrive_home = os.path.realpath(self.nxdrive_home)
@@ -305,6 +307,7 @@ class Manager(QtCore.QObject):
         self._debug = options.debug
         self._engine_definitions = None
         self._engine_types = dict()
+
         from nxdrive.engine.next.engine_next import EngineNext
         from nxdrive.engine.engine import Engine
         self._engine_types["NXDRIVE"] = Engine
@@ -319,6 +322,7 @@ class Manager(QtCore.QObject):
             proxy = ProxySettings()
             proxy.from_url(options.proxy_server)
             proxy.save(self._dao)
+
         # Now we can update the logger if needed
         if options.log_level_file is not None:
             # Set the log_level_file option
@@ -330,23 +334,50 @@ class Manager(QtCore.QObject):
         else:
             # No log_level provide, use the one from db default is INFO
             self._update_logger(int(self._dao.get_config("log_level_file", "20")))
+
         # Add auto lock on edit
         res = self._dao.get_config("direct_edit_auto_lock")
         if res is None:
             self._dao.update_config("direct_edit_auto_lock", "1")
+
         # Persist update URL infos
         self._dao.update_config("update_url", options.update_site_url)
         self._dao.update_config("beta_update_url", options.beta_update_site_url)
         self.refresh_proxies()
         self._os = AbstractOSIntegration.get(self)
+
+        try:
+            self.ignored_prefixes = options.ignored_prefixes
+        except AttributeError:
+            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
+        else:
+            if not isinstance(self.ignored_prefixes, set):
+                self.ignored_prefixes = {self.ignored_prefixes}
+            if not isinstance(self.ignored_prefixes, tuple):
+                self.ignored_prefixes.update(DEFAULT_IGNORED_PREFIXES)
+                self.ignored_prefixes = tuple(self.ignored_prefixes)
+
+        try:
+            self.ignored_suffixes = options.ignored_suffixes
+        except AttributeError:
+            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
+        else:
+            if not isinstance(self.ignored_suffixes, set):
+                self.ignored_suffixes = {self.ignored_suffixes}
+            if not isinstance(self.ignored_suffixes, tuple):
+                self.ignored_suffixes.update(DEFAULT_IGNORED_SUFFIXES)
+                self.ignored_suffixes = tuple(self.ignored_suffixes)
+
         # Create DirectEdit
         self._create_autolock_service()
         self._create_direct_edit(options.protocol_url)
+
         # Create notification service
         self._script_engine = None
         self._script_object = None
         self._create_notification_service()
         self._started = False
+
         # Pause if in debug
         self._pause = self.is_debug()
         self.device_id = self._dao.get_config("device_id")
