@@ -1,23 +1,22 @@
-"""Utilities to operate Nuxeo Drive from the command line"""
+# coding: utf-8
+""" Utilities to operate Nuxeo Drive from the command line. """
+import argparse
 import os
 import sys
-import argparse
-from getpass import getpass
-import traceback
 import threading
+import traceback
+from getpass import getpass
+
+from nxdrive import __version__
+from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
+from nxdrive.logging_config import configure, get_logger
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
+
 try:
-    import ipdb
-    debugger = ipdb
+    import ipdb as pdb
 except ImportError:
     import pdb
-    debugger = pdb
-
-from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
-from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
-from nxdrive.logging_config import configure
-from nxdrive.logging_config import get_logger
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive import __version__
 
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
@@ -343,8 +342,7 @@ class CliHandler(object):
 
             def info(etype, value, tb):
                 traceback.print_exception(etype, value, tb)
-                print
-                debugger.pm()
+                pdb.pm()
 
             sys.excepthook = info
 
@@ -413,10 +411,10 @@ class CliHandler(object):
             self.manager.dispose_db()
             import shutil
             shutil.rmtree(self.manager.nxdrive_home)
-        except Exception, e:
+        except Exception as e:
             # Exit with 0 signal to not block the uninstall
-            print e
-            sys.exit(0)
+            print(e)
+            exit(0)
 
     def handle(self, argv):
         """Parse options, setup logs and manager and dispatch execution."""
@@ -426,7 +424,7 @@ class CliHandler(object):
         # 'launch' is the default command if None is provided
         command = options.command = getattr(options, 'command', 'launch')
 
-        if command != 'test' and command != 'uninstall':
+        if command != 'uninstall':
             # Configure the logging framework, except for the tests as they
             # configure their own.
             # Don't need uninstall logs either for now.
@@ -445,7 +443,7 @@ class CliHandler(object):
 
         # Find the command to execute based on the
         handler = getattr(self, command, None)
-        if handler is None:
+        if not handler:
             raise NotImplementedError(
                 'No handler implemented for command ' + options.command)
 
@@ -455,10 +453,9 @@ class CliHandler(object):
             if options.debug:
                 # Make it possible to use the postmortem debugger
                 raise
-            else:
-                msg = e.msg if hasattr(e, 'msg') else e
-                self.log.error("Error executing '%s': %s", command, msg,
-                          exc_info=True)
+            msg = e.msg if hasattr(e, 'msg') else e
+            self.log.error("Error executing '%s': %s", command, msg,
+                           exc_info=True)
 
     def get_manager(self, options):
         from nxdrive.manager import Manager
@@ -468,9 +465,8 @@ class CliHandler(object):
         if console:
             from nxdrive.console import ConsoleApplication
             return ConsoleApplication(self.manager, options)
-        else:
-            from nxdrive.wui.application import Application
-            return Application(self.manager, options)
+        from nxdrive.wui.application import Application
+        return Application(self.manager, options)
 
     def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
@@ -529,8 +525,8 @@ class CliHandler(object):
         if options.local_folder is None or options.local_folder == "":
             options.local_folder = DEFAULT_NX_DRIVE_FOLDER
         self.manager.bind_server(options.local_folder, options.nuxeo_url,
-                                    options.username, password, start_engine=False,
-                                    check_credentials=check_credentials)
+                                 options.username, password, start_engine=False,
+                                 check_credentials=check_credentials)
         return 0
 
     def unbind_server(self, options):
@@ -634,4 +630,4 @@ def main(argv=None):
     return CliHandler().handle(argv)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    exit(main())
