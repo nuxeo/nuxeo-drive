@@ -1,8 +1,8 @@
 # coding: utf-8
 import os
+import shutil
 from threading import Lock
 from time import sleep
-import shutil
 from urllib2 import HTTPError
 
 from PyQt4.QtCore import pyqtSignal

@@ -23,7 +23,6 @@ when = function(result) {
 			if (result && result['_promise_success'] !== undefined && result['_promise_error'] !== undefined) {
 				uid = result['_promise_uid']();
 				if (_promises[uid] == undefined) {
-					console.log("set the promises for " + uid);
 					_promises[uid] = self
 				}
 				_promises[uid]._success_callback = callback;

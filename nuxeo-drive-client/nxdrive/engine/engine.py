@@ -204,7 +204,7 @@ class Engine(QObject):
         self._dao.newConflict.connect(self.conflict_resolver)
         # Try to resolve conflict on startup
         for conflict in self._dao.get_conflicts():
-            self._conflict_resolver(conflict.id, emit=False)
+            self.conflict_resolver(conflict.id, emit=False)
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
         # Set the root icon
@@ -641,10 +641,7 @@ class Engine(QObject):
     def get_conflicts(self):
         return self._dao.get_conflicts()
 
-    def conflict_resolver(self, row_id):
-        self._conflict_resolver(row_id)
-
-    def _conflict_resolver(self, row_id, emit=True):
+    def conflict_resolver(self, row_id, emit=True):
         try:
             pair = self._dao.get_state_from_id(row_id)
             local_client = self.get_local_client()
@@ -666,7 +663,7 @@ class Engine(QObject):
             elif emit:
                 # Raise conflict only if not resolvable
                 self.newConflict.emit(row_id)
-        except Exception:
+        except:
             pass
 
     def get_errors(self):

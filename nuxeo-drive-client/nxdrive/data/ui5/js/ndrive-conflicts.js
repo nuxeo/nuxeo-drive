@@ -6,7 +6,6 @@ var ConflictsController = function($scope, $interval, $translate) {
 		self.openLocal(path);
 	}
 	$scope.open_remote = function(remote_ref, remote_name) {
-		console.log(remote_name + ' (' + remote_ref + ')')
 		self.openRemote(remote_ref, remote_name);
 	}
 	$scope.show_metadata = function(path) {
