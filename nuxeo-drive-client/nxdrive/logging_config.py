@@ -3,6 +3,7 @@
 
 import logging
 import os
+from zipfile import ZipFile, ZIP_DEFLATED
 from copy import copy
 from logging.handlers import BufferingHandler, RotatingFileHandler, \
     TimedRotatingFileHandler
@@ -51,6 +52,33 @@ class CustomMemoryHandler(BufferingHandler):
         for record in adds:
             result.append(record)
         return result
+
+
+class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
+    """
+    Extended version of TimedRotatingFileHandler that compress logs on rollover.
+    """
+
+    def find_last_rotated_file(self):
+        dir_name, base_name = os.path.split(self.baseFilename)
+        file_names = os.listdir(dir_name)
+        result = []
+        # we want to find a rotated file with eg filename.2017-12-12... name
+        prefix = '{}.20'.format(base_name)
+        for file_name in file_names:
+            if file_name.startswith(prefix) and not file_name.endswith('.zip'):
+                result.append(file_name)
+        result.sort()
+        return os.path.join(dir_name, result[0])
+
+    def doRollover(self):
+        super(TimedCompressedRotatingFileHandler, self).doRollover()
+
+        dfn = self.find_last_rotated_file()
+        dfn_zipped = '{}.zip'.format(dfn)
+        with open(dfn, 'rb') as reader, ZipFile(dfn_zipped, mode='w') as zip_:
+            zip_.writestr(os.path.basename(dfn), reader.read(), ZIP_DEFLATED)
+        os.remove(dfn)
 
 
 def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
@@ -107,7 +135,7 @@ def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
             if log_rotate_when is None and log_rotate_max_bytes is None:
                 log_rotate_when = 'midnight'
             if log_rotate_when is not None:
-                file_handler = TimedRotatingFileHandler(
+                file_handler = TimedCompressedRotatingFileHandler(
                     log_filename, when=log_rotate_when,
                     backupCount=log_rotate_keep)
             elif log_rotate_max_bytes is not None:
