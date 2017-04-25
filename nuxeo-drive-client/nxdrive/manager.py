@@ -419,16 +419,6 @@ class Manager(QtCore.QObject):
     def open_help(self):
         self.open_local_file("http://doc.nuxeo.com/display/USERDOC/Nuxeo+Drive")
 
-    def get_log_level(self):
-        handler = self._get_file_log_handler()
-        if handler:
-            return handler.level
-        return logging.getLogger().getEffectiveLevel()
-
-    def set_log_level(self, log_level):
-        self._dao.update_config("log_level_file", str(log_level))
-        self._update_logger(log_level)
-
     def _update_logger(self, log_level):
         logging.getLogger().setLevel(
                         min(log_level, logging.getLogger().getEffectiveLevel()))

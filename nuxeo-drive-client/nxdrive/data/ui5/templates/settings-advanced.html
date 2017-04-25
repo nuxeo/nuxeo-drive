@@ -1,20 +1,7 @@
 <div id="advanced-view">
 	<form class="form-horizontal">
-	<div class="form-group">
-	    <label for="logLevel" class="col-sm-2 control-label" translate>LOG_LEVEL</label>
-	    <div class="col-sm-8">
-	      <select class="form-control" id="logLevel" ng-model="log_level" ng-change="setLogLevel()">
-	      	<option value="50" translate>LOG_CRITICAL</option>
-	      	<option value="40" translate>LOG_ERROR</option>
-	      	<option value="30" translate>LOG_WARNING</option>
-	      	<option value="20" translate>LOG_INFO</option>
-	      	<option value="10" translate>LOG_DEBUG</option>
-	      	<option value="5" translate>LOG_TRACE</option>
-	      </select>
-	    </div>
-	  </div>
 	  <div class="form-group">
-	    <label for="logLevel" class="col-sm-2 control-label" translate>BUG_REPORT</label>
+	    <label class="col-sm-2 control-label" translate>BUG_REPORT</label>
 	    <div class="col-sm-8">
 			<a style="cursor: pointer;" ng-click="generateReport()" translate>CREATE_REPORT</a><br />
 			<span style="-webkit-user-select: text;" ng-show="lastReport != null" translate-values="{ path: lastReport }" translate>REPORT_GENERATED</span>

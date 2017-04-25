@@ -13,10 +13,6 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.beta_channel = drive.get_beta_channel();
 	$scope.tracking = drive.get_tracking();
 	$scope.proxy = angular.fromJson(drive.get_proxy_settings());
-	$scope.log_level = drive.get_log_level();
-	$scope.setLogLevel = function() {
-		drive.set_log_level($scope.log_level);
-	}
 	$scope.lastReport = null;
 	$scope.locale = drive.locale();
 	$scope.languages = angular.fromJson(drive.get_languages());

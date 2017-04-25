@@ -304,21 +304,6 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
-    @QtCore.pyqtSlot(result=int)
-    def get_log_level(self):
-        try:
-            return self._manager.get_log_level()
-        except Exception as e:
-            log.exception(e)
-            return 10
-
-    @QtCore.pyqtSlot(int)
-    def set_log_level(self, log_level):
-        try:
-            return self._manager.set_log_level(log_level)
-        except Exception as e:
-            log.exception(e)
-
     @QtCore.pyqtSlot(result=str)
     def get_appname(self):
         try:
