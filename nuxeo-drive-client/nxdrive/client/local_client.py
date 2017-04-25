@@ -123,19 +123,12 @@ class LocalClient(BaseClient):
                  case_sensitive=None, disable_duplication=False):
         self._case_sensitive = case_sensitive
         self._disable_duplication = disable_duplication
+        self.ignored_prefixes = ignored_prefixes or DEFAULT_IGNORED_PREFIXES
+        self.ignored_suffixes = ignored_suffixes or DEFAULT_IGNORED_SUFFIXES
+
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
-
-        if ignored_prefixes is not None:
-            self.ignored_prefixes = ignored_prefixes
-        else:
-            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
-
-        if ignored_suffixes is not None:
-            self.ignored_suffixes = ignored_suffixes
-        else:
-            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
 
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
@@ -147,10 +140,7 @@ class LocalClient(BaseClient):
             lock = self.unlock_path(self.base_folder, unlock_parent=False)
             path = tempfile.mkdtemp(prefix='.caseTest_',
                                     dir=safe_long_path(self.base_folder))
-            if os.path.exists(path.upper()):
-                self._case_sensitive = False
-            else:
-                self._case_sensitive = True
+            self._case_sensitive = not os.path.exists(path.upper())
             os.rmdir(path)
             self.lock_path(self.base_folder, lock)
         return self._case_sensitive
@@ -223,9 +213,7 @@ class LocalClient(BaseClient):
             except IOError as e:
                 # Ignore IOError: [Errno 93] Attribute not found (macOS)
                 # IOError: [Errno 61] No data available (GNU/Linux)
-                if e.errno == 93 or e.errno == 61:
-                    pass
-                else:
+                if e.errno not in (61, 93):
                     raise
             finally:
                 self.lock_path(path, locker)
@@ -303,10 +291,8 @@ class LocalClient(BaseClient):
     def _read_data(file_path):
         """ The data file contains the mac icons. """
 
-        dat = open(file_path, 'rb')
-        info = dat.read()
-        dat.close()
-        return info
+        with open(file_path, 'rb') as dat:
+            return dat.read()
 
     @staticmethod
     def _get_icon_xdata():
@@ -346,7 +332,7 @@ class LocalClient(BaseClient):
             log.error("Exception when setting folder icon : %s", e)
 
     def set_remote_id(self, ref, remote_id, name='ndrive'):
-        if type(remote_id).__name__ == "unicode":
+        if not isinstance(remote_id, bytes):
             remote_id = unicodedata.normalize('NFC', remote_id).encode('utf-8')
         # Can be move to another class
         path = self.abspath(ref)
@@ -410,7 +396,7 @@ class LocalClient(BaseClient):
 
     # Getters
     def get_info(self, ref, raise_if_missing=True):
-        if isinstance(ref, str):
+        if isinstance(ref, bytes):
             ref = unicode(ref)
         os_path = self.abspath(ref)
         if not os.path.exists(os_path):
@@ -420,10 +406,7 @@ class LocalClient(BaseClient):
             return None
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
-        if folderish:
-            size = 0
-        else:
-            size = stat_info.st_size
+        size = 0 if folderish else stat_info.st_size
         try:
             mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
         except ValueError, e:
@@ -470,25 +453,20 @@ class LocalClient(BaseClient):
 
     def is_ignored(self, parent_ref, file_name):
         # Add parent_ref to be able to filter on size if needed
-        ignore = False
         # Office temp file
         # http://support.microsoft.com/kb/211632
         if file_name.startswith("~") and file_name.endswith(".tmp"):
             return True
+
         # Emacs auto save file
         # http://www.emacswiki.org/emacs/AutoSave
         if file_name.startswith("#") and file_name.endswith("#") and len(file_name) > 2:
             return True
-        for suffix in self.ignored_suffixes:
-            if file_name.endswith(suffix):
-                ignore = True
-                break
-        for prefix in self.ignored_prefixes:
-            if file_name.startswith(prefix):
-                ignore = True
-                break
-        if ignore:
+
+        if (file_name.endswith(self.ignored_suffixes)
+                or file_name.startswith(self.ignored_prefixes)):
             return True
+
         if AbstractOSIntegration.is_windows():
             # NXDRIVE-465
             ref = self.get_children_ref(parent_ref, file_name)

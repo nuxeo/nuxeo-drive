@@ -40,13 +40,7 @@ class DirectEdit(Worker):
     directEditReadonly = pyqtSignal(object)
     directEditLocked = pyqtSignal(object, object, object)
 
-    '''
-    classdocs
-    '''
     def __init__(self, manager, folder, url):
-        '''
-        Constructor
-        '''
         super(DirectEdit, self).__init__()
         self._test = False
         self._manager = manager
@@ -56,10 +50,14 @@ class DirectEdit(Worker):
         self._metrics = dict()
         self._metrics['edit_files'] = 0
         self._observer = None
-        if type(folder) == str:
+        if isinstance(folder, bytes):
             folder = unicode(folder)
         self._folder = folder
-        self._local_client = LocalClient(self._folder)
+        self._local_client = LocalClient(
+            self._folder,
+            ignored_prefixes=manager.ignored_prefixes,
+            ignored_suffixes=manager.ignored_suffixes,
+        )
         self._upload_queue = Queue()
         self._lock_queue = Queue()
         self._error_queue = BlacklistQueue()
@@ -116,7 +114,8 @@ class DirectEdit(Worker):
         if info.get('item_id') is not None:
             self.edit(info['server_url'], info['item_id'])
         else:
-            self.edit(info['server_url'], info['doc_id'], user=info['user'], download_url=info['download_url'])
+            self.edit(info['server_url'], info['doc_id'], user=info['user'],
+                      download_url=info['download_url'])
 
     def _cleanup(self):
         log.debug("Cleanup DirectEdit folder")
@@ -129,22 +128,24 @@ class DirectEdit(Worker):
                 if len(children) > 1:
                     log.warn("Cannot clean this document: %s", child.path)
                     continue
-                if (len(children) == 0):
+                if not children:
                     # Cleaning the folder it is empty
-                    shutil.rmtree(self._local_client.abspath(child.path), ignore_errors=True)
+                    shutil.rmtree(self._local_client.abspath(child.path),
+                                  ignore_errors=True)
                     continue
                 ref = children[0].path
                 try:
                     _,  _, _, digest_algorithm, digest = self._extract_edit_info(ref)
                 except NotFound:
                     # Engine is not known anymore
-                    shutil.rmtree(self._local_client.abspath(child.path), ignore_errors=True)
+                    shutil.rmtree(self._local_client.abspath(child.path),
+                                  ignore_errors=True)
                     continue
                 try:
                     # Don't update if digest are the same
                     info = self._local_client.get_info(ref)
                     current_digest = info.get_digest(digest_func=digest_algorithm)
-                    if (current_digest != digest):
+                    if current_digest != digest:
                         log.warn("Document has been modified and not synchronized, readd to upload queue")
                         self._upload_queue.put(ref)
                         continue
@@ -152,7 +153,8 @@ class DirectEdit(Worker):
                     log.debug(e)
                     continue
                 # Place for handle reopened of interrupted Edit
-                shutil.rmtree(self._local_client.abspath(child.path), ignore_errors=True)
+                shutil.rmtree(self._local_client.abspath(child.path),
+                              ignore_errors=True)
         if not os.path.exists(self._folder):
             os.mkdir(self._folder)
 
@@ -210,7 +212,9 @@ class DirectEdit(Worker):
         else:
             log.debug('Downloading file %r', info.filename)
             if url is not None:
-                remote_client.do_get(url, file_out=file_out, digest=info.digest, digest_algorithm=info.digest_algorithm)
+                remote_client.do_get(url, file_out=file_out,
+                                     digest=info.digest,
+                                     digest_algorithm=info.digest_algorithm)
             else:
                 remote_client.get_blob(info, file_out=file_out)
         return file_out
@@ -227,10 +231,7 @@ class DirectEdit(Worker):
         engine = self._get_engine(server_url, user=user)
         if engine is None:
             values = dict()
-            if user is None:
-                values['user'] = 'None'
-            else:
-                values['user'] = user
+            values['user'] = str(user)
             values['server'] = server_url
             log.warn("No engine found for server_url=%s, user=%s, doc_id=%s", server_url, user, doc_id)
             self._display_modal("DIRECT_EDIT_CANT_FIND_ENGINE", values)
@@ -342,7 +343,7 @@ class DirectEdit(Worker):
     def _handle_queues(self):
         uploaded = False
         # Lock any documents
-        while (not self._lock_queue.empty()):
+        while not self._lock_queue.empty():
             try:
                 item = self._lock_queue.get_nowait()
                 ref = item[0]
@@ -377,11 +378,11 @@ class DirectEdit(Worker):
                 self.directEditLockError.emit(item[1], os.path.basename(ref), uid)
         # Unqueue any errors
         item = self._error_queue.get()
-        while (item is not None):
+        while item:
             self._upload_queue.put(item.get())
             item = self._error_queue.get()
         # Handle the upload queue
-        while (not self._upload_queue.empty()):
+        while not self._upload_queue.empty():
             try:
                 ref = self._upload_queue.get_nowait()
                 log.trace('Handling DirectEdit queue ref: %r', ref)
@@ -424,7 +425,7 @@ class DirectEdit(Worker):
         if uploaded:
             log.debug('Emitting directEditUploadCompleted')
             self.directEditUploadCompleted.emit()
-        while (not self._watchdog_queue.empty()):
+        while not self._watchdog_queue.empty():
             evt = self._watchdog_queue.get()
             self.handle_watchdog_event(evt)
 
@@ -445,7 +446,7 @@ class DirectEdit(Worker):
             self.handle_url()
             if self._test:
                 log.trace("DirectEdit Entering main loop: continue:%r pause:%r running:%r", self._continue, self._pause, self._running)
-            while (1):
+            while True:
                 self._interact()
                 if self._test:
                     log.trace("DirectEdit post interact: continue:%r pause:%r running:%r", self._continue, self._pause, self._running)
