@@ -53,7 +53,7 @@ class CustomMemoryHandler(BufferingHandler):
         return result
 
 
-def configure(use_file_handler=False, log_filename=None, file_level='INFO',
+def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
               console_level='INFO', filter_inotify=True, command_name=None,
               log_rotate_keep=30, log_rotate_max_bytes=None,
               log_rotate_when=None, force_configure=False):
@@ -66,8 +66,8 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
 
         _logging_context['command'] = command_name
 
-        if file_level is None:
-            file_level = 'INFO'
+        if not file_level:
+            file_level = 'TRACE'
         # convert string levels
         if hasattr(file_level, 'upper'):
             file_level = getattr(logging, file_level.upper())
