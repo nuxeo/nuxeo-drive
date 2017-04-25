@@ -262,6 +262,8 @@ class Manager(QtCore.QObject):
     suspended = QtCore.pyqtSignal()
     resumed = QtCore.pyqtSignal()
     _singleton = None
+    ignored_prefixes = DEFAULT_IGNORED_PREFIXES
+    ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
 
     @staticmethod
     def get():
@@ -345,22 +347,24 @@ class Manager(QtCore.QObject):
         except AttributeError:
             self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
         else:
-            if not isinstance(self.ignored_prefixes, set):
-                self.ignored_prefixes = {self.ignored_prefixes}
             if not isinstance(self.ignored_prefixes, tuple):
-                self.ignored_prefixes.update(DEFAULT_IGNORED_PREFIXES)
-                self.ignored_prefixes = tuple(self.ignored_prefixes)
+                # In case the given option is not a list of pattern
+                # but one string
+                self.ignored_prefixes = tuple([self.ignored_prefixes])
+            self.ignored_prefixes = \
+                tuple({fix for fix in self.ignored_prefixes
+                       + DEFAULT_IGNORED_PREFIXES})
 
         try:
             self.ignored_suffixes = options.ignored_suffixes
         except AttributeError:
             self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
         else:
-            if not isinstance(self.ignored_suffixes, set):
-                self.ignored_suffixes = {self.ignored_suffixes}
             if not isinstance(self.ignored_suffixes, tuple):
-                self.ignored_suffixes.update(DEFAULT_IGNORED_SUFFIXES)
-                self.ignored_suffixes = tuple(self.ignored_suffixes)
+                self.ignored_suffixes = tuple([self.ignored_suffixes])
+            self.ignored_suffixes = \
+                tuple({fix for fix in self.ignored_suffixes
+                       + DEFAULT_IGNORED_SUFFIXES})
 
         # Create DirectEdit
         self._create_autolock_service()

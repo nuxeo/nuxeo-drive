@@ -377,7 +377,7 @@ class CliHandler(object):
                     continue
                 if '\n' in item[1]:
                     # Treat multiline option as a set
-                    value = set(item[1].split())
+                    value = tuple(item[1].split())
                 args[item[0].replace('-', '_')] = value
             if args:
                 parser.set_defaults(**args)
