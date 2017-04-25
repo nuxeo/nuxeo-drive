@@ -155,7 +155,7 @@ class StubLocalClient(object):
         self.assertEqual(workspace_children[2].path, folder_2)
 
     def test_deep_folders(self):
-        # Check that local client can workaround the default >indows
+        # Check that local client can workaround the default Windows
         # MAX_PATH limit
         folder = '/'
         for _i in range(30):
@@ -169,7 +169,7 @@ class StubLocalClient(object):
         deep_file = self.local_client_1.make_file(folder, 'File.txt',
                                                   content=b'Some Content.')
 
-        # Check the consistency of  get_children_info and get_info
+        # Check the consistency of get_children_info and get_info
         deep_file_info = self.local_client_1.get_info(deep_file)
         deep_children = self.local_client_1.get_children_info(folder)
         self.assertEqual(len(deep_children), 1)

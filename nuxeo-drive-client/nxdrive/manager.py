@@ -20,6 +20,7 @@ from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive.logging_config import FILE_HANDLER, get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.updater import AppUpdater, FakeUpdater
+from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, DEFAULT_IGNORED_PREFIXES
 from nxdrive.utils import ENCODING, OSX_SUFFIX, decrypt, encrypt, \
     normalized_path
 
@@ -249,9 +250,6 @@ class ProxySettings(object):
 
 
 class Manager(QtCore.QObject):
-    '''
-    classdocs
-    '''
     proxyUpdated = QtCore.pyqtSignal(object)
     clientUpdated = QtCore.pyqtSignal(object, object)
     engineNotFound = QtCore.pyqtSignal(object)
@@ -264,15 +262,14 @@ class Manager(QtCore.QObject):
     suspended = QtCore.pyqtSignal()
     resumed = QtCore.pyqtSignal()
     _singleton = None
+    ignored_prefixes = DEFAULT_IGNORED_PREFIXES
+    ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
 
     @staticmethod
     def get():
         return Manager._singleton
 
     def __init__(self, options):
-        '''
-        Constructor
-        '''
         if Manager._singleton is not None:
             raise Exception("Only one instance of Manager can be create")
         Manager._singleton = self
@@ -295,6 +292,7 @@ class Manager(QtCore.QObject):
                 ssl._create_default_https_context = _create_unverified_https_context
         else:
             log.info("--consider-ssl-errors option is True, will verify HTTPS certificates")
+
         self._autolock_service = None
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
         self.nxdrive_home = os.path.realpath(self.nxdrive_home)
@@ -305,6 +303,7 @@ class Manager(QtCore.QObject):
         self._debug = options.debug
         self._engine_definitions = None
         self._engine_types = dict()
+
         from nxdrive.engine.next.engine_next import EngineNext
         from nxdrive.engine.engine import Engine
         self._engine_types["NXDRIVE"] = Engine
@@ -319,39 +318,69 @@ class Manager(QtCore.QObject):
             proxy = ProxySettings()
             proxy.from_url(options.proxy_server)
             proxy.save(self._dao)
+
         # Now we can update the logger if needed
         if options.log_level_file is not None:
             # Set the log_level_file option
             handler = self._get_file_log_handler()
-            if handler is not None:
+            if handler:
                 handler.setLevel(options.log_level_file)
                 # Store it in the database
                 self._dao.update_config("log_level_file", str(handler.level))
         else:
             # No log_level provide, use the one from db default is INFO
             self._update_logger(int(self._dao.get_config("log_level_file", "20")))
+
         # Add auto lock on edit
         res = self._dao.get_config("direct_edit_auto_lock")
-        if res is None:
+        if not res:
             self._dao.update_config("direct_edit_auto_lock", "1")
+
         # Persist update URL infos
         self._dao.update_config("update_url", options.update_site_url)
         self._dao.update_config("beta_update_url", options.beta_update_site_url)
         self.refresh_proxies()
         self._os = AbstractOSIntegration.get(self)
+
+        try:
+            self.ignored_prefixes = options.ignored_prefixes
+        except AttributeError:
+            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
+        else:
+            if not isinstance(self.ignored_prefixes, tuple):
+                # In case the given option is not a list of pattern
+                # but one string
+                self.ignored_prefixes = tuple([self.ignored_prefixes])
+            self.ignored_prefixes = \
+                tuple({fix for fix in self.ignored_prefixes
+                       + DEFAULT_IGNORED_PREFIXES})
+
+        try:
+            self.ignored_suffixes = options.ignored_suffixes
+        except AttributeError:
+            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
+        else:
+            if not isinstance(self.ignored_suffixes, tuple):
+                self.ignored_suffixes = tuple([self.ignored_suffixes])
+            self.ignored_suffixes = \
+                tuple({fix for fix in self.ignored_suffixes
+                       + DEFAULT_IGNORED_SUFFIXES})
+
         # Create DirectEdit
         self._create_autolock_service()
         self._create_direct_edit(options.protocol_url)
+
         # Create notification service
         self._script_engine = None
         self._script_object = None
         self._create_notification_service()
         self._started = False
+
         # Pause if in debug
         self._pause = self.is_debug()
         self.device_id = self._dao.get_config("device_id")
         self.updated = False  # self.update_version()
-        if self.device_id is None:
+        if not self.device_id:
             self.generate_device_id()
 
         self.load()
@@ -530,7 +559,7 @@ class Manager(QtCore.QObject):
         self._dao = ManagerDAO(self._get_db())
 
     def _create_updater(self, update_check_delay):
-        if (update_check_delay == 0):
+        if update_check_delay == 0:
             log.info("Update check delay is 0, disabling autoupdate")
             self._app_updater = FakeUpdater()
             return self._app_updater
@@ -672,9 +701,9 @@ class Manager(QtCore.QObject):
         in_error = dict()
         self._engines = dict()
         for engine in self._engine_definitions:
-            if not engine.engine in self._engine_types:
+            if engine.engine not in self._engine_types:
                 log.warn("Can't find engine %s anymore", engine.engine)
-                if not engine.engine in in_error:
+                if engine.engine not in in_error:
                     in_error[engine.engine] = True
                     self.engineNotFound.emit(engine)
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine,
@@ -686,7 +715,7 @@ class Manager(QtCore.QObject):
         return 'Nuxeo Drive'
 
     def _force_autoupdate(self):
-        if (self._app_updater.get_next_poll() > 60 and self._app_updater.get_last_poll() > 1800):
+        if self._app_updater.get_next_poll() > 60 and self._app_updater.get_last_poll() > 1800:
             self._app_updater.force_poll()
 
     def get_default_nuxeo_drive_folder(self):
@@ -746,9 +775,9 @@ class Manager(QtCore.QObject):
     def _increment_local_folder(self, basefolder, name):
         nuxeo_drive_folder = os.path.join(basefolder, name)
         num = 2
-        while (not self.check_local_folder_available(nuxeo_drive_folder)):
+        while not self.check_local_folder_available(nuxeo_drive_folder):
             nuxeo_drive_folder = os.path.join(basefolder, name + " " + str(num))
-            num = num + 1
+            num += 1
             if num > 10:
                 return ""
         return nuxeo_drive_folder
@@ -1068,7 +1097,7 @@ class Manager(QtCore.QObject):
             other = engine.local_folder
             if not other.endswith('/'):
                 other = other + '/'
-            if (other.startswith(local_folder) or local_folder.startswith(other)):
+            if other.startswith(local_folder) or local_folder.startswith(other):
                 return False
         return True
 
@@ -1091,7 +1120,7 @@ class Manager(QtCore.QObject):
                 log.debug("Engine type has been specified in the url: %s will be used", engine_type)
         if not self.check_local_folder_available(local_folder):
             raise FolderAlreadyUsed()
-        if not engine_type in self._engine_types:
+        if engine_type not in self._engine_types:
             raise EngineTypeMissing()
         if self._engines is None:
             self.load()

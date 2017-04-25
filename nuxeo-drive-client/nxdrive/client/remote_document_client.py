@@ -339,20 +339,12 @@ class RemoteDocumentClient(BaseAutomationClient):
         for info in [self._doc_to_info(d, fetch_parent_uid=fetch_parent_uid,
                                        parent_uid=parent_uid)
                      for d in entries]:
-            ignore = False
 
-            for suffix in self.ignored_suffixes:
-                if info.name.endswith(suffix):
-                    ignore = True
-                    break
+            if (info.name.endswith(self.ignored_suffixes)
+                    or info.name.startswith(self.ignored_prefixes)):
+                continue
 
-            for prefix in self.ignored_prefixes:
-                if info.name.startswith(prefix):
-                    ignore = True
-                    break
-
-            if not ignore:
-                filtered.append(info)
+            filtered.append(info)
 
         return filtered
 
