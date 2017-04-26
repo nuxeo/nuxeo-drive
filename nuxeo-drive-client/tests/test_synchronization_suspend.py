@@ -32,7 +32,7 @@ class TestSynchronizationSuspend(UnitTestCase):
         self.assertEqual(len(remote.get_children_info(self.workspace_1)), 4)
         self.assertTrue(self.engine_1.get_queue_manager().is_paused())
 
-    @RandomBug('NXDRIVE-812', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-812', target='linux', repeat=5)
     def test_synchronization_end_with_children_ignore_parent(self):
         """ NXDRIVE-655: children of ignored folder are not ignored. """
 

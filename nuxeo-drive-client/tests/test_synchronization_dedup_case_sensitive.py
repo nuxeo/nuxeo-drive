@@ -15,22 +15,23 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         name, suffix = os.path.splitext(name)
         return "%s__%d%s" % (name, idx, suffix)
 
+    @RandomBug('NXDRIVE-808', target='linux', repeat=2)
     def test_dedup_multiple_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
         # Create documents in the remote root workspace
         # then synchronize
         files = 10
-        joe_uid = remote.make_file('/', 'joe.odt', 'Some content')
-        joe2_uid = remote.make_file('/', 'joe.odt', 'Some content')
         remote.make_file('/', 'joe.odt', 'Some content')
         remote.make_file('/', 'joe.odt', 'Some content')
         remote.make_file('/', 'joe.odt', 'Some content')
-        joe3_uid = remote.make_file('/', 'joe__1.odt', 'Some content')
-        joe4_uid = remote.make_file('/', 'joe__2.odt', 'Some content')
-        joe5_uid = remote.make_file('/', 'joe__3.odt', 'Some content')
-        joe6_uid = remote.make_file('/', 'joe__4.odt', 'Some content')
-        joe6_uid = remote.make_file('/', 'joe__5.odt', 'Some content')
+        remote.make_file('/', 'joe.odt', 'Some content')
+        remote.make_file('/', 'joe.odt', 'Some content')
+        remote.make_file('/', 'joe__1.odt', 'Some content')
+        remote.make_file('/', 'joe__2.odt', 'Some content')
+        remote.make_file('/', 'joe__3.odt', 'Some content')
+        remote.make_file('/', 'joe__4.odt', 'Some content')
+        remote.make_file('/', 'joe__5.odt', 'Some content')
         self.wait_sync(wait_for_async=True)
         children = remote.get_children_info(self.workspace)
         self.assertEqual(len(children), files)
@@ -38,7 +39,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         self.assertEqual(len(local_children), files)
         names = []
         names.append("joe.odt")
-        for i in range(1,files):
+        for i in range(1, files):
             names.append(self._dedup_name("joe.odt", i))
         for child in local_children:
             if child.name in names:
@@ -101,7 +102,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         self.assertEqual(remote.get_info(test_uid).name, 'test')
         self.assertEqual(remote.get_info(test2_uid).name, 'test')
 
-    @RandomBug('NXDRIVE-819', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-819', target='linux', repeat=5)
     def test_dedup_move_files(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

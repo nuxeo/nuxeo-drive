@@ -71,11 +71,22 @@ class TestLocalMoveAndRename(UnitTestCase):
         remote_client = self.remote_document_client_1
         marker = False
 
-        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False,
-                                    no_digest=False):
+        def update_remote_state(row,
+                                info,
+                                remote_parent_path=None,
+                                versionned=True,
+                                queue=True,
+                                force_update=False,
+                                no_digest=False):
             global marker
-            EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path=remote_parent_path,
-                                    versionned=versionned, queue=queue, force_update=force_update, no_digest=no_digest)
+            EngineDAO.update_remote_state(self.engine_1._dao,
+                                          row,
+                                          info,
+                                          remote_parent_path=remote_parent_path,
+                                          versionned=versionned,
+                                          queue=queue,
+                                          force_update=force_update,
+                                          no_digest=no_digest)
             if row.local_name == 'New Folder' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed Folder')
                 marker = True
@@ -100,7 +111,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         marker = False
         client = None
 
-        def set_remote_id(ref,remote_id,name='ndrive'):
+        def set_remote_id(ref, remote_id, name='ndrive'):
             global marker, client
             LocalClient.set_remote_id(client, ref, remote_id, name)
             if 'File.txt' in ref and not marker:
@@ -126,7 +137,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(len(local_client.get_children_info(u'/')), 5)
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
 
-    @RandomBug('NXDRIVE-811', target='windows', mode='BYPASS')
+    @RandomBug('NXDRIVE-811', target='windows', repeat=5)
     def test_local_rename_file_while_creating_before_marker(self):
         global marker, client
         local_client = self.local_client_1
@@ -135,7 +146,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         marker = False
         client = None
 
-        def set_remote_id(ref,remote_id,name='ndrive'):
+        def set_remote_id(ref, remote_id, name='ndrive'):
             global marker, client
             if 'File.txt' in ref and not marker:
                 root_local_client.rename(ref, 'Renamed File.txt')
@@ -171,8 +182,14 @@ class TestLocalMoveAndRename(UnitTestCase):
         def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True,
                                 force_update=False, no_digest=False):
             global marker
-            EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path=remote_parent_path,
-                                versionned=versionned, queue=queue, force_update=force_update, no_digest=no_digest)
+            EngineDAO.update_remote_state(self.engine_1._dao,
+                                          row,
+                                          info,
+                                          remote_parent_path=remote_parent_path,
+                                          versionned=versionned,
+                                          queue=queue,
+                                          force_update=force_update,
+                                          no_digest=no_digest)
             if row.local_name == 'File.txt' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed File.txt')
                 marker = True
@@ -252,8 +269,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         # of the test workspace, hence set fetch_parent_uid=False
         parent_of_file_1_remote_info = remote_client.get_info(
             file_1_remote_info.parent_uid, fetch_parent_uid=False)
-        self.assertEqual(parent_of_file_1_remote_info.name,
-                          self.workspace_title)
+        self.assertEqual(parent_of_file_1_remote_info.name, self.workspace_title)
 
         file_1_1_remote_info = remote_client.get_info(original_1_1_uid)
         self.assertEqual(file_1_1_remote_info.name,
@@ -349,8 +365,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(file_1_remote_info.name, u'Original File 1.txt')
         parent_of_file_1_remote_info = remote_client.get_info(
             file_1_remote_info.parent_uid)
-        self.assertEqual(parent_of_file_1_remote_info.name,
-                          u'Original Folder 1')
+        self.assertEqual(parent_of_file_1_remote_info.name, u'Original Folder 1')
         self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 4)
         self.assertEqual(len(remote_client.get_children_info(file_1_remote_info.parent_uid)), 4)
         self.assertEqual(len(local_client.get_children_info(u'/')), 3)
@@ -378,8 +393,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(file_1_remote_info.name, u'Renamed File 1 \xe9.txt')
         parent_of_file_1_remote_info = remote_client.get_info(
             file_1_remote_info.parent_uid)
-        self.assertEqual(parent_of_file_1_remote_info.name,
-                          u'Original Folder 1')
+        self.assertEqual(parent_of_file_1_remote_info.name, u'Original Folder 1')
         self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 4)
         self.assertEqual(len(remote_client.get_children_info(file_1_remote_info.parent_uid)), 4)
         self.assertEqual(len(local_client.get_children_info(u'/')), 3)
@@ -446,8 +460,9 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         local_client.rename(u'/Renamed Folder 1 \xe9/Sub-Folder 1.1', u'Sub-Folder 2.1')
         self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9/Sub-Folder 2.1'))
-        local_client.make_file(u'/Renamed Folder 1 \xe9', u'Test.txt',
-                                      content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
+        local_client.make_file(u'/Renamed Folder 1 \xe9',
+                               u'Test.txt',
+                               content=u'Some Content 1'.encode('utf-8'))  # Same content as OF1
         children_count += 1
         self.engine_1.resume()
         # Synchronize: only the folder renaming is detected: all
@@ -771,7 +786,6 @@ class TestLocalMoveAndRename(UnitTestCase):
     @skip('Need expectation on this test')
     def test_local_move_folder_to_readonly(self):
         local_client = self.local_client_1
-        remote_client = self.remote_document_client_1
 
         # Check local folder
         self.assertTrue(local_client.exists(u'/Original Folder 1'))
