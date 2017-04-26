@@ -33,9 +33,9 @@ class CommandLineTestCase(unittest.TestCase):
             inifile.writelines(['[DEFAULT]\n',
                             'env=' + env + '\n',
                             '[PROD]\n',
-                            'log-level-console=PROD\n',
+                            'log-level-console=TRACE\n',
                             '[DEV]\n',
-                            'log-level-console=DEV\n'])
+                            'log-level-console=ERROR\n'])
 
     def clean_ini(self, filename='config.ini'):
         if os.path.exists(filename):
@@ -58,15 +58,15 @@ class CommandLineTestCase(unittest.TestCase):
         self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
         try:
             self.clean_ini()
-            argv = ["ndrive", "console", "--log-level-console", "DEBUG_TEST"]
+            argv = ["ndrive", "console", "--log-level-console", "WARNING"]
             # Default value
             options = self.cmd.parse_cli([])
             self.assertEqual(options.log_level_console, "SYSTEM_TEST",
                                 "The system default is SYSTEM_TEST")
-             # Normal arg
+            # Normal arg
             options = self.cmd.parse_cli(argv)
-            self.assertEqual(options.log_level_console, "DEBUG_TEST",
-                                "Should be debug test")
+            self.assertEqual(options.log_level_console, 'WARNING',
+                             'Should be WARNING')
         finally:
             clean_dir(self.cmd.default_home)
             AbstractOSIntegration.get = staticmethod(original)
@@ -75,38 +75,38 @@ class CommandLineTestCase(unittest.TestCase):
         self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
         try:
             self.clean_ini()
-            argv = ["ndrive", "console", "--log-level-console", "DEBUG_TEST"]
+            argv = ["ndrive", "console", "--log-level-console", "WARNING"]
             # Default value
             options = self.cmd.parse_cli([])
             self.assertEqual(options.log_level_console, "INFO",
                                 "The official default is INFO")
             # Normal arg
             options = self.cmd.parse_cli(argv)
-            self.assertEqual(options.log_level_console, "DEBUG_TEST",
-                                "Should be debug test")
+            self.assertEqual(options.log_level_console, 'WARNING',
+                             'Should be WARNING')
             # config.ini override
             self.create_ini()
             options = self.cmd.parse_cli([])
-            self.assertEqual(options.log_level_console, "PROD",
+            self.assertEqual(options.log_level_console, 'TRACE',
                                 "The config.ini shoud link to PROD")
             # config.ini override, but arg specified
             options = self.cmd.parse_cli(argv)
-            self.assertEqual(options.log_level_console, "DEBUG_TEST",
-                                "Should be debug test")
+            self.assertEqual(options.log_level_console, 'WARNING',
+                             'Should be WARNING')
             # other usage section
             self.create_ini(env='DEV')
             options = self.cmd.parse_cli([])
-            self.assertEqual(options.log_level_console, "DEV",
+            self.assertEqual(options.log_level_console, 'ERROR',
                                 "The config.ini shoud link to DEV")
             # user config.ini override
             conf = os.path.join(self.cmd.default_home, 'config.ini')
             self.create_ini(conf, "PROD")
             options = self.cmd.parse_cli([])
-            self.assertEqual(options.log_level_console, "PROD",
+            self.assertEqual(options.log_level_console, 'TRACE',
                                 "The config.ini shoud link to PROD")
             self.clean_ini(conf)
             options = self.cmd.parse_cli([])
-            self.assertEqual(options.log_level_console, "DEV",
+            self.assertEqual(options.log_level_console, 'ERROR',
                                 "The config.ini shoud link to DEV")
             self.clean_ini()
         finally:

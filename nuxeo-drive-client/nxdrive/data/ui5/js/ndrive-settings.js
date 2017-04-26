@@ -13,10 +13,6 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.beta_channel = drive.get_beta_channel();
 	$scope.tracking = drive.get_tracking();
 	$scope.proxy = angular.fromJson(drive.get_proxy_settings());
-	$scope.log_level = drive.get_log_level();
-	$scope.setLogLevel = function() {
-		drive.set_log_level($scope.log_level);
-	}
 	$scope.lastReport = null;
 	$scope.locale = drive.locale();
 	$scope.languages = angular.fromJson(drive.get_languages());
@@ -24,7 +20,6 @@ var SettingsController = function($scope, $interval, $translate) {
 		$scope.lastReport = drive.generate_report();
 	}
 	$scope.setLocale = function() {
-		console.log("setLocale " + $scope.locale);
 		drive.set_language($scope.locale);
 		$translate.use($scope.locale);
 	}
@@ -111,7 +106,6 @@ var SettingsController = function($scope, $interval, $translate) {
 		$scope.setMessage(msg, 'danger');
 	}
 	$scope.setMessage = function(msg, type) {
-		console.log("Message " + type + " : " + msg);
 		$scope.message = msg;
 		$scope.message_type = type;
 	}
@@ -125,7 +119,6 @@ var SettingsController = function($scope, $interval, $translate) {
 		$scope.currentConfirm = button;
 		if (button.hasClass("btn-danger")) {
 			button.html('<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span>&nbsp;' + $translate.instant("DISCONNECTING"))
-			console.log($scope.currentAccount);
 			when (drive.unbind_server_async($scope.currentAccount.uid)).then( function() {
 				button.html($translate.instant("DISCONNECT"));
 				button.removeClass("btn-danger");
@@ -144,14 +137,11 @@ var SettingsController = function($scope, $interval, $translate) {
 		}
 	}
 	$scope.changeSection = function(section) {
-		console.log("Changing section to " + section);
 		if (section.length > 9 &&
 				section.substr(0,8) == "Accounts") {
 			uid = section.substr(9, section.length);
-			console.log("Changing section to " + section);
 			for (i = 0; i < $scope.engines.length; i++) {
 				if ($scope.engines[i].uid == uid) {
-					console.log("Find account of " + uid);
 					$scope.changeAccount($scope.engines[i]);
 				}
 			}
