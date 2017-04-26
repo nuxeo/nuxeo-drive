@@ -168,3 +168,14 @@ class TestReadOnly(UnitTestCase):
         self.remote_document_client_2.unlock('/Test locking/myDoc.odt')
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.touch(user1_file_path))
+
+    def test_local_readonly_modify(self):
+        self.local_root_client_1.make_folder('/', 'Test')
+        self.local_root_client_1.make_file('/Test', 'Test.txt', 'Some content')
+        self.wait_sync()
+        self.engine_1.stop()
+        self.local_root_client_1.update_content('/Test/Test.txt', 'Another content')
+        self.engine_1.start()
+        self.wait_sync()
+        self.assertEqual(len(self.engine_1.get_dao().get_errors()), 0)
+
