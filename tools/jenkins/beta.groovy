@@ -31,7 +31,7 @@ timestamps {
                 // Trigger the Drive packages job to build executables and have artifacts
                 release = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
                 release = release.trim()
-                build job: '/Drive/Drive-packages', parameters: [
+                build job: 'Drive-packages', parameters: [
                     [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: 'refs/tags/' + release],
                     [$class: 'BooleanParameterValue', name: 'CLEAN_WORKSPACE', value: true]]
             }
