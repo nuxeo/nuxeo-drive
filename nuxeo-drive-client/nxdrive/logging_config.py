@@ -6,6 +6,7 @@ import os
 from copy import copy
 from logging.handlers import BufferingHandler, RotatingFileHandler, \
     TimedRotatingFileHandler
+from zipfile import ZIP_DEFLATED, ZipFile
 
 TRACE = 5
 logging.addLevelName(TRACE, 'TRACE')
@@ -53,7 +54,34 @@ class CustomMemoryHandler(BufferingHandler):
         return result
 
 
-def configure(use_file_handler=False, log_filename=None, file_level='INFO',
+class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
+    """
+    Extended version of TimedRotatingFileHandler that compress logs on rollover.
+    """
+
+    def find_last_rotated_file(self):
+        dir_name, base_name = os.path.split(self.baseFilename)
+        file_names = os.listdir(dir_name)
+        result = []
+        # We want to find a rotated file with eg filename.2017-04-26... name
+        prefix = '{}.20'.format(base_name)
+        for file_name in file_names:
+            if file_name.startswith(prefix) and not file_name.endswith('.zip'):
+                result.append(file_name)
+        result.sort()
+        return os.path.join(dir_name, result[0])
+
+    def doRollover(self):
+        super(TimedCompressedRotatingFileHandler, self).doRollover()
+
+        dfn = self.find_last_rotated_file()
+        dfn_zipped = '{}.zip'.format(dfn)
+        with open(dfn, 'rb') as reader, ZipFile(dfn_zipped, mode='w') as zip_:
+            zip_.writestr(os.path.basename(dfn), reader.read(), ZIP_DEFLATED)
+        os.remove(dfn)
+
+
+def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
               console_level='INFO', filter_inotify=True, command_name=None,
               log_rotate_keep=30, log_rotate_max_bytes=None,
               log_rotate_when=None, force_configure=False):
@@ -66,51 +94,52 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
 
         _logging_context['command'] = command_name
 
-        if file_level is None:
-            file_level = 'INFO'
-        # convert string levels
+        if not file_level:
+            file_level = 'TRACE'
+
+        # Convert string levels
         if hasattr(file_level, 'upper'):
             file_level = getattr(logging, file_level.upper())
         if hasattr(console_level, 'upper'):
             console_level = getattr(logging, console_level.upper())
 
-        # find the minimum level to avoid filtering by the root logger itself:
+        # Find the minimum level to avoid filtering by the root logger itself
         root_logger = logging.getLogger()
         min_level = min(file_level, console_level)
         root_logger.setLevel(min_level)
 
-        # define the formatter
+        # Define the formatter
         formatter = logging.Formatter('%(asctime)s %(process)d %(thread)d '
                                       '%(levelname)-8s %(name)-18s %(message)s',
                                       datefmt='%Y-%m-%d %H:%M:%S')
 
-        # define a Handler which writes INFO messages or higher to the
+        # Define a Handler which writes INFO messages or higher to the
         # sys.stderr
         console_handler_name = 'console'
         console_handler = get_handler(root_logger, console_handler_name)
-        if console_handler is None:
+        if not console_handler:
             console_handler = logging.StreamHandler()
             console_handler.set_name(console_handler_name)
             # tell the console handler to use this format
             console_handler.setFormatter(formatter)
         console_handler.setLevel(console_level)
 
-        # add the console handler to the root logger and all descendants
+        # Add the console handler to the root logger and all descendants
         root_logger.addHandler(console_handler)
 
-        # define a Handler for file based log with rotation if needed
-        if use_file_handler and log_filename is not None:
+        # Define a Handler for file based log with rotation if needed
+        if use_file_handler and log_filename:
             log_filename = os.path.expanduser(log_filename)
             log_folder = os.path.dirname(log_filename)
             if not os.path.exists(log_folder):
                 os.makedirs(log_folder)
-            if log_rotate_when is None and log_rotate_max_bytes is None:
+            if not log_rotate_when and not log_rotate_max_bytes:
                 log_rotate_when = 'midnight'
-            if log_rotate_when is not None:
-                file_handler = TimedRotatingFileHandler(
+            if log_rotate_when:
+                file_handler = TimedCompressedRotatingFileHandler(
                     log_filename, when=log_rotate_when,
                     backupCount=log_rotate_keep)
-            elif log_rotate_max_bytes is not None:
+            elif log_rotate_max_bytes:
                 file_handler = RotatingFileHandler(
                     log_filename, maxBytes=log_rotate_max_bytes,
                     backupCount=log_rotate_keep)
@@ -122,8 +151,7 @@ def configure(use_file_handler=False, log_filename=None, file_level='INFO',
 
         # Add memory logger to allow instant report
         memory_handler = CustomMemoryHandler()
-        # Put in TRACE
-        memory_handler.setLevel(5)
+        memory_handler.setLevel(TRACE)
         memory_handler.set_name('memory')
         memory_handler.setFormatter(formatter)
         root_logger.addHandler(memory_handler)
