@@ -68,7 +68,7 @@ class NotFound(Exception):
 class DuplicationDisabledError(ValueError):
     """
     Exception raised when de-duplication is disabled and there is a
-    file colision.
+    file collision.
     """
     pass
 
