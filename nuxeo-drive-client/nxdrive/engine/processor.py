@@ -359,8 +359,8 @@ class Processor(EngineWorker):
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
                     log.debug("Set pair unsynchronized: %r", doc_pair)
-                    info = remote_client.get_info(doc_pair.remote_ref)
-                    if info.lock_owner is None:
+                    info = remote_client.get_info(doc_pair.remote_ref, raise_if_missing=False)
+                    if info is None or info.lock_owner is None:
                         self._dao.unsynchronize_state(doc_pair, 'READONLY')
                         self._engine.newReadonly.emit(doc_pair.local_name, None)
                     else:
