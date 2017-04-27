@@ -75,7 +75,9 @@ for (x in slaves) {
         node(slave) {
             withEnv(["WORKSPACE=${pwd()}"]) {
                 if (params.CLEAN_WORKSPACE) {
-                    deleteDir()
+                    dir('deploy-dir') {
+                        deleteDir()
+                    }
                 }
 
                 stage(osi + ' Checkout') {
