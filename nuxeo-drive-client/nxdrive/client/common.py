@@ -64,6 +64,20 @@ class BaseClient(object):
 class NotFound(Exception):
     pass
 
+
+class DuplicationDisabledError(ValueError):
+    """
+    Exception raised when de-duplication is disabled and there is a
+    file collision.
+    """
+    pass
+
+
+class DuplicationError(IOError):
+    """ Exception raised when a de-duplication fails. """
+    pass
+
+
 DEFAULT_REPOSITORY_NAME = 'default'
 
 DEFAULT_IGNORED_PREFIXES = tuple({

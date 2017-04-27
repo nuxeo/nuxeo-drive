@@ -5,7 +5,7 @@ from tests.common import OS_STAT_MTIME_RESOLUTION
 from tests.common_unit_test import UnitTestCase
 from tests.common_unit_test import RandomBug
 # from nxdrive.osi import AbstractOSIntegration
-from unittest import skip
+from unittest import SkipTest, skip
 
 
 class TestConflicts(UnitTestCase):
@@ -99,6 +99,9 @@ class TestConflicts(UnitTestCase):
         self.assertEqual(self.local_client_1.get_content('/test.txt'), 'Remote update 2')
 
     def test_resolve_duplicate(self):
+        if not self.local_client_1.duplication_enabled():
+            raise SkipTest('De-duplication disabled.')
+
         self.test_real_conflict()
         # Resolve to local file
         pair = self.engine_1.get_dao().get_normal_state_from_remote(self.file_id)

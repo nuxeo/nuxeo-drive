@@ -1,15 +1,16 @@
 # coding: utf-8
 import os
+import shutil
 from threading import Lock
 from time import sleep
-import shutil
 from urllib2 import HTTPError
 
 from PyQt4.QtCore import pyqtSignal
 
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
     DOWNLOAD_TMP_FILE_SUFFIX
-from nxdrive.client.common import NotFound, UNACCESSIBLE_HASH, safe_filename
+from nxdrive.client.common import DuplicationDisabledError, NotFound, \
+    UNACCESSIBLE_HASH, safe_filename
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, PairInterrupt, ThreadInterrupt
 from nxdrive.logging_config import get_logger
@@ -249,6 +250,10 @@ class Processor(EngineWorker):
                         log.debug("PairInterrupt wait 1s and requeue on %r", doc_pair)
                         sleep(1)
                         self._engine.get_queue_manager().push(doc_pair)
+                        continue
+                    except DuplicationDisabledError:
+                        self.giveup_error(doc_pair, 'DEDUP')
+                        self._current_item = self._get_item()
                         continue
                     except Exception as e:
                         self._handle_pair_handler_exception(doc_pair, handler_name, e)
@@ -799,8 +804,8 @@ class Processor(EngineWorker):
                 return
             elif remote_ref is not None:
                 # Case of several documents with same name or case insensitive hard drive
-                # TODO dedup
-                path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
+                path = self._create_remotely(local_client, remote_client,
+                                             doc_pair, parent_pair, name)
         local_client.set_remote_id(path, doc_pair.remote_ref)
         if path != doc_pair.local_path and doc_pair.folderish:
             # Update childs

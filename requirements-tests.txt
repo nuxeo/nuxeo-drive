@@ -1,5 +1,4 @@
 mock==2.0.0;python_version=='2.7'
 pytest==3.0.7;python_version=='2.7'
 pytest-sugar==0.8.0;python_version=='2.7' and sys_platform!='win32'
-pytest-cov==2.4.0;python_version=='2.7'
 yappi==0.98;python_version=='2.7'

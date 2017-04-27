@@ -17,6 +17,7 @@ Where `$OSI` is one of: `linux`, `osx`.
 Possible `ARG`:
 
     --build: freeze the client into self-hosted binary package
+    --start: start Nuxeo Drive
     --tests: launch the tests suite
 
 Notes:
@@ -50,6 +51,7 @@ You will also need to install the Qt4 qmake tool:
 Possible `ARG`:
 
     -build: freeze the client into self-hosted binary package
+    -start: start Nuxeo Drive
     -tests: launch the tests suite
 
 Notes:

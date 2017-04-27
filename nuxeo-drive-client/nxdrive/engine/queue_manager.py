@@ -128,10 +128,10 @@ class QueueManager(QObject):
         self.queueProcessing.emit()
 
     def is_paused(self):
-        return (not self._local_file_enable or
-                not self._local_folder_enable or
-                not self._remote_file_enable or
-                not self._remote_folder_enable)
+        return (not self._local_file_enable
+                or not self._local_folder_enable
+                or not self._remote_file_enable
+                or not self._remote_folder_enable)
 
     def suspend(self):
         log.debug("Suspending queue")
@@ -244,7 +244,8 @@ class QueueManager(QObject):
 
     def push_error(self, doc_pair, exception=None, interval=None):
         error_count = doc_pair.error_count
-        if (exception is not None and type(exception) == WindowsError
+        if (exception is not None
+                and isinstance(exception, WindowsError)
                 and hasattr(exception, 'winerror')
                 and exception.winerror == WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE):
             log.debug("Detected WindowsError with code %d: '%s', won't increase next try interval",

@@ -34,9 +34,3 @@ class EngineNext(Engine):
     def _create_local_watcher(self):
         from nxdrive.engine.next.simple_watcher import SimpleWatcher
         return SimpleWatcher(self, self._dao)
-
-    def get_local_client(self):
-        # Disable auto deduplication / user shoud take the decision and it will be renamed on server
-        result = super(EngineNext, self).get_local_client()
-        result._disable_duplication = False
-        return result

@@ -551,13 +551,13 @@ class LocalWatcher(EngineWorker):
         self._observer.schedule(self._event_handler, self.client.base_folder, recursive=True)
         self._observer.start()
         self._check_watchdog()
-
         self._root_observer = Observer()
         self._root_observer.schedule(self._root_event_handler, os.path.dirname(self.client.base_folder), recursive=False)
         self._root_observer.start()
 
     def _check_watchdog(self):
-        # Be sure to have at least one watchdog event
+        """" Be sure to have at least one watchdog event. """
+
         timeout = 30
         lock = self.client.unlock_ref('/', False)
         try:
@@ -803,7 +803,7 @@ class LocalWatcher(EngineWorker):
         try:
             src_path = normalize_event_filename(evt.src_path)
             rel_path = self.client.get_path(src_path)
-            if len(rel_path) == 0 or rel_path == '/':
+            if not rel_path or rel_path == '/':
                 self.handle_watchdog_root_event(evt)
                 return
             file_name = os.path.basename(src_path)
@@ -811,7 +811,7 @@ class LocalWatcher(EngineWorker):
             parent_rel_path = self.client.get_path(parent_path)
             doc_pair = self._dao.get_state_from_local(rel_path)
             # Dont care about ignored file, unless it is moved
-            if (self.client.is_ignored(parent_rel_path, file_name) and evt.event_type != 'moved'):
+            if self.client.is_ignored(parent_rel_path, file_name) and evt.event_type != 'moved':
                 return
             if self.client.is_temp_file(file_name):
                 return
@@ -828,9 +828,9 @@ class LocalWatcher(EngineWorker):
             if evt.event_type == 'deleted':
                 log.debug('Unknown pair deleted: %s', rel_path)
                 return
-            if (evt.event_type == 'moved'):
+            if evt.event_type == 'moved':
                 dest_filename = os.path.basename(evt.dest_path)
-                if (self.client.is_ignored(parent_rel_path, dest_filename)):
+                if self.client.is_ignored(parent_rel_path, dest_filename):
                     return
                 src_path = normalize_event_filename(evt.dest_path)
                 rel_path = self.client.get_path(src_path)
@@ -940,7 +940,7 @@ class LocalWatcher(EngineWorker):
                     self._schedule_win_folder_scan(doc_pair)
                 return
             log.debug('Unhandled case: %r %s %s', evt, rel_path, file_name)
-        except Exception:
+        except:
             log.error('Watchdog exception', exc_info=True)
         finally:
             self._end_action()

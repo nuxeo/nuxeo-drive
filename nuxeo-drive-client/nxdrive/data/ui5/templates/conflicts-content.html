@@ -38,21 +38,25 @@
 			{{ pair.name }}
 		</div>
 		<div class="panel-body">
+			{{ pair.error_reason | translate }}
+		</div>
+		<div class="panel-body">
 			<span style="color: #999; margin-bottom: 10px;cursor: pointer;" ng-click="open_local(pair.local_parent_path)" translate translate-values="{ path:'{{ pair.local_parent_path }}'}">FILE_PATH</span><br />
-			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_sync_date }}'}">LAST_SYNCHRONIZED</span>
-  			<div class="pull-right btn-group">
-				  <button type="button" class="btn btn-danger" ng-click="retry_pair(pair.id)" translate>
-				    CONFLICT_RETRY
-				  </button>
-				  <button type="button" style="height: 34px;" class="btn btn-danger dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-					  <span class="caret"></span>
-					  <span class="sr-only">Toggle dropdown</span>
-				  </button>
-				  <ul class="dropdown-menu" role="menu">
-				    <li><a href="#" ng-click="unsynchronize_pair(pair.id)"><span class="glyphicon glyphicon-eye-close">&nbsp;</span><span translate>IGNORE_PAIR</span></a></li>
-				  </ul>
-  			</div>
-  		</div>
+			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ contributor:'{{ pair.last_sync_date ? pair.last_sync_date : pair.last_contributor }}'}">LAST_CONTRIBUTOR</span><br />
+			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_remote_update }}'}">LAST_SYNCHRONIZED</span>
+			<div class="pull-right btn-group">
+				<button type="button" class="btn btn-danger" ng-click="retry_pair(pair.id)" translate>
+					CONFLICT_RETRY
+				</button>
+				<button type="button" style="height: 34px;" class="btn btn-danger dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					<span class="caret"></span>
+					<span class="sr-only">Toggle dropdown</span>
+				</button>
+				<ul class="dropdown-menu" role="menu">
+					<li><a href="#" ng-click="unsynchronize_pair(pair.id, pair.last_error)"><span class="glyphicon glyphicon-eye-close">&nbsp;</span><span translate>IGNORE_PAIR</span></a></li>
+				</ul>
+			</div>
+		</div>
 	</div>
 	<div>
 		<hr />

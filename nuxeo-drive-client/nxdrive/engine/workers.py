@@ -18,12 +18,10 @@ class ThreadInterrupt(Exception):
 class PairInterrupt(Exception):
     pass
 
-'''
-' Utility class that handle one thread
-'''
-
 
 class Worker(QObject):
+    """" Utility class that handle one thread. """
+
     _thread = None
     _continue = False
     _action = None
@@ -60,10 +58,11 @@ class Worker(QObject):
 
     def stop(self):
         """
-        Stop the thread
-        Wait 5s before trying to terminate it
-        Return when thread is stopped or 5s max after the termination of the thread is sent
+        Stop the thread, wait 5s before trying to terminate it.
+        Return when thread is stopped or 5s max after the termination of
+        the thread is sent.
         """
+
         self._continue = False
         if not self._thread.wait(5000):
             log.warn("Thread %d is not responding - terminate it", self._thread_id, exc_info=True)
@@ -72,16 +71,16 @@ class Worker(QObject):
             self._thread.wait(5000)
 
     def resume(self):
-        """
-        Resume the thread
-        """
+        """ Resume the thread. """
+
         self._pause = False
 
     def suspend(self):
         """
-        Ask for thread to suspend
-        It will be truly paused only when the thread call _interact
+        Ask for thread to suspend.
+        It will be truly paused only when the thread call _interact.
         """
+
         self._pause = True
 
     def _end_action(self):
@@ -89,34 +88,32 @@ class Worker(QObject):
         self._action = None
 
     def get_thread(self):
-        """
-        Return worker internal thread
-        """
+        """ Return worker internal thread. """
+
         return self._thread
 
     def quit(self):
-        """
-        Order the stop of the thread
-        Return before thread is stopped
-        """
+        """ Order the stop of the thread. Return before thread is stopped. """
+
         self._continue = False
 
     def get_thread_id(self):
-        """
-        Get the thread id
-        """
+        """ Get the thread ID. """
+
         return self._thread_id
 
     def _interact(self):
         """
-        Interact for signal/slot on Qt
-        Also handle the pause/resume of the thread and interruption
-        Return after QT events are processed or thread has been resumed
-        Throw a ThreadInterrupt if the stopping of the thread has been order either by stop or quit
+        Interact for signal/slot on Qt.
+        Also handle the pause/resume of the thread and interruption.
+        Return after QT events are processed or thread has been resumed.
+        Throw a ThreadInterrupt if the stopping of the thread has been
+        order either by stop or quit.
         """
+
         QCoreApplication.processEvents()
         # Handle thread pause
-        while (self._pause and self._continue):
+        while self._pause and self._continue:
             QCoreApplication.processEvents()
             sleep(0.01)
         # Handle thread interruption
@@ -125,9 +122,10 @@ class Worker(QObject):
 
     def _execute(self):
         """
-        Empty execute method, override this method to add your worker logic
+        Empty execute method, override this method to add your worker logic.
         """
-        while (1):
+
+        while True:
             self._interact()
             sleep(0.01)
 
@@ -147,9 +145,11 @@ class Worker(QObject):
 
     def get_metrics(self):
         """
-        Get the Worker metrics
-        :return a dict with differents variables that represent the worker activity
+        Get the Worker metrics.
+        :return a dict with differents variables that represent the worker
+                activity
         """
+
         metrics = dict()
         metrics['name'] = self._name
         metrics['thread_id'] = self._thread_id
@@ -162,9 +162,10 @@ class Worker(QObject):
     @pyqtSlot()
     def run(self):
         """
-        Handle the infinite loop runned by the worker thread
-        It handles exception and logging
+        Handle the infinite loop runned by the worker thread.
+        It handles exception and logging.
         """
+
         if self._running:
             return
         self._running = True
@@ -249,8 +250,7 @@ class PollWorker(Worker):
     def get_last_poll(self):
         if self._metrics['last_poll'] > 0:
             return int(time()) - self._metrics['last_poll']
-        else:
-            return -1
+        return -1
 
     def get_next_poll(self):
         return self._next_check - int(time())
@@ -260,7 +260,7 @@ class PollWorker(Worker):
         self._next_check = 0
 
     def _execute(self):
-        while (self._enable):
+        while self._enable:
             self._interact()
             if self.get_next_poll() <= 0:
                 if self._poll():
@@ -271,43 +271,35 @@ class PollWorker(Worker):
     def _poll(self):
         return True
 
-'''
-' Just a DummyWorker with infinite loop
-'''
-
 
 class DummyWorker(Worker):
+    """ Just a DummyWorker with infinite loop. """
+
     def _execute(self):
-        while (1):
+        while True:
             self._interact()
             sleep(0.01)
-
-
-'''
-' Just a CrazyWorker with infinite loop - no control
-'''
 
 
 class CrazyWorker(Worker):
-    def _execute(self):
-        while (1):
-            sleep(0.01)
+    """ Just a CrazyWorker with infinite loop - no control. """
 
-'''
-' Just a DummyWorker with progression from 0 to 100
-'''
+    def _execute(self):
+        while True:
+            sleep(0.01)
 
 
 class ProgressWorker(Worker):
+    """ Just a DummyWorker with progression from 0 to 100. """
+
     def _execute(self):
         self._progress = 0
-        while (self._progress < 100):
+        while self._progress < 100:
             self._interact()
-            self._progress = self._progress + 1
+            self._progress += 1
             sleep(1)
 
     def get_metrics(self):
         metrics = super(ProgressWorker, self).get_metrics()
         metrics['progress'] = self._progress
         return metrics
-

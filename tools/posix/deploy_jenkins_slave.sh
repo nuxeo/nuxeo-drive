@@ -5,6 +5,7 @@
 #
 # Possible ARG:
 #     --build: build the package
+#     --start: start Nuxeo Drive
 #     --tests: launch the tests suite
 #
 # See /docs/deployment.md for more informations.
@@ -288,6 +289,13 @@ launch_tests() {
         -r Efx
 }
 
+start_nxdrive() {
+    echo ">>> Starting Nuxeo Drive"
+
+    export PYTHONPATH="${WORKSPACE_DRIVE}/nuxeo-drive-client"
+    python nuxeo-drive-client/nxdrive/commandline.py
+}
+
 verify_python() {
     local version="$1"
     local cur_version=$(python --version 2>&1 | awk '{print $2}')
@@ -337,6 +345,7 @@ main() {
     if [ $# -eq 1 ]; then
         case "$1" in
             "--build") build_esky ;;
+            "--start") start_nxdrive ;;
             "--tests") launch_tests ;;
         esac
     fi

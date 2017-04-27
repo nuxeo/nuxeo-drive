@@ -1103,13 +1103,18 @@ class EngineDAO(ConfigurationDAO):
         row.error_count = row.error_count + incr
         row.last_sync_error_date = error_date
 
-    def reset_error(self, row):
+    def reset_error(self, row, last_error=None):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET last_error=NULL, last_error_details=NULL, last_sync_error_date=NULL, error_count = 0" +
-                      " WHERE id=?", (row.id,))
+            c.execute('UPDATE States'
+                      '   SET last_error=?,'
+                      '       last_error_details=NULL,'
+                      '       last_sync_error_date=NULL,'
+                      '       error_count=0'
+                      ' WHERE id=?',
+                      (last_error, row.id))
             if self.auto_commit:
                 con.commit()
             self._queue_pair_state(row.id, row.folderish, row.pair_state)

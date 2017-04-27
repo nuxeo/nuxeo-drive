@@ -1,12 +1,10 @@
 import os
-from unittest import skip, skipIf
+from unittest import skip
 
-from nxdrive.osi import AbstractOSIntegration
 from tests.common_unit_test import RandomBug, UnitTestCase
 
 
-@skipIf(AbstractOSIntegration.is_linux(),
-        'Case insensitive test')
+@skip('As of NXDRIVE-822, de-duplication disabled by default.')
 class TestDedupInsensitiveCaseSync(UnitTestCase):
 
     def setUp(self):

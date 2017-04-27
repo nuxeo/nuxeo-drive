@@ -2,6 +2,7 @@
 #
 # Possible ARG:
 #     -build: build the MSI package
+#     -start: start Nuxeo Drive
 #     -tests: launch the tests suite
 #
 # See /docs/deployment.md for more informations.
@@ -261,6 +262,12 @@ function sign_msi {
 	}
 }
 
+function start_nxdrive {
+	# Start Nuxeo Drive
+	$Env:PYTHONPATH = "$Env:WORKSPACE_DRIVE\nuxeo-drive-client"
+	& $Env:PYTHON_DIR\python nuxeo-drive-client/nxdrive/commandline.py
+}
+
 function main {
 	# Launch operations
 	check_vars
@@ -277,6 +284,8 @@ function main {
 	if ($build) {
 		build_msi
 		# sign_msi
+	} elseif ($start) {
+		start_nxdrive
 	} elseif ($tests) {
 		launch_tests
 	}
