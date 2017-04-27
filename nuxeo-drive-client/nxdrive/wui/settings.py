@@ -1,30 +1,25 @@
-'''
-Created on 27 janv. 2015
-
-@author: Remi Cattiau
-'''
-from PyQt4 import QtCore, QtGui
-from nxdrive.logging_config import get_logger
-from nxdrive.client.common import NotFound
-log = get_logger(__name__)
-
-from nxdrive.wui.dialog import WebDialog, WebDriveApi, Promise
-from nxdrive.wui.authentication import WebAuthenticationApi
-from nxdrive.wui.authentication import WebAuthenticationDialog
-from nxdrive.manager import ProxySettings, FolderAlreadyUsed
-from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.client.base_automation_client import get_proxy_handler
-from nxdrive.client.base_automation_client import get_opener_proxies
-from nxdrive.client.base_automation_client import AddonNotInstalled
-from nxdrive.engine.engine import RootAlreadyBindWithDifferentAccount
-from nxdrive.engine.engine import InvalidDriveException
-from nxdrive.wui.translator import Translator
-from nxdrive.utils import DEVICE_DESCRIPTIONS
-from nxdrive.utils import TOKEN_PERMISSION
+# coding: utf-8
 import sys
 import urllib2
+from collections import namedtuple
 from urllib import urlencode
 
+from PyQt4 import QtCore, QtGui
+
+from nxdrive.client.base_automation_client import AddonNotInstalled, \
+    Unauthorized, get_opener_proxies, get_proxy_handler
+from nxdrive.client.common import NotFound
+from nxdrive.engine.engine import InvalidDriveException, \
+    RootAlreadyBindWithDifferentAccount
+from nxdrive.logging_config import get_logger
+from nxdrive.manager import FolderAlreadyUsed, ProxySettings
+from nxdrive.utils import DEVICE_DESCRIPTIONS, TOKEN_PERMISSION
+from nxdrive.wui.authentication import WebAuthenticationApi, \
+    WebAuthenticationDialog
+from nxdrive.wui.dialog import Promise, WebDialog, WebDriveApi
+from nxdrive.wui.translator import Translator
+
+log = get_logger(__name__)
 DRIVE_STARTUP_PAGE = 'drive_login.jsp'
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30
 
@@ -86,7 +81,6 @@ class WebSettingsApi(WebDriveApi):
         return ""
 
     def _bind_server(self, local_folder, url, username, password, name, start_engine=True, check_fs=True, token=None):
-        from collections import namedtuple
         if isinstance(local_folder, QtCore.QString):
             local_folder = str(local_folder.toUtf8()).decode('utf-8')
         url = str(url)
@@ -146,7 +140,7 @@ class WebSettingsApi(WebDriveApi):
         except FolderAlreadyUsed:
             return "FOLDER_USED"
         except urllib2.HTTPError as e:
-            if (isinstance(url, QtCore.QString)):
+            if isinstance(url, QtCore.QString):
                 url = str(url)
             if e.code == 404 and not url.endswith("nuxeo/"):
                 if not url.endswith("/"):
@@ -374,19 +368,14 @@ class WebSettingsApi(WebDriveApi):
 
 
 class WebSettingsDialog(WebDialog):
-    '''
-    classdocs
-    '''
     def __init__(self, application, section, api=None):
-        '''
-        Constructor
-        '''
         self._section = section
-        if api is None:
+        if not api:
             api = WebSettingsApi(application)
-        super(WebSettingsDialog, self).__init__(application, "settings.html",
-                                                api=api,
-                                                title=Translator.get("SETTINGS_WINDOW_TITLE"))
+
+        super(WebSettingsDialog, self).__init__(
+            application, "settings.html", api=api,
+            title=Translator.get("SETTINGS_WINDOW_TITLE"))
 
     def set_section(self, section):
         self._section = section
