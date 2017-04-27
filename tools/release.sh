@@ -53,7 +53,7 @@ create_beta() {
     changelog "${drive_version}"
 
     echo ">>> [beta ${drive_version}] Creating the tag"
-    git tag "release-${drive_version}"
+    git tag -a "release-${drive_version}" -m "Release ${drive_version}"
     git push origin --tags
 }
 
