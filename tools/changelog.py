@@ -12,7 +12,7 @@ from sys import stderr
 
 from requests import HTTPError, get
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 
 
 def backtick(cmd):
@@ -244,6 +244,8 @@ def main():
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('--examples', action='store_true',
                         help='show usage examples')
+    parser.add_argument('--drive-version', action='store_true',
+                        help='show Nuxeo Drive version')
     parser.add_argument('--format', default='txt',
                         choices=('md', 'rst', 'txt'),
                         help='report output format (default: %(default)s)')
@@ -255,6 +257,9 @@ def main():
 
     if args.examples:
         examples()
+        return
+    elif args.drive_version:
+        print(get_version())
         return
 
     # Get commits and print out formatted interesting informations

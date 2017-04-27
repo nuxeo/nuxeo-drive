@@ -45,11 +45,9 @@ EOF
 }
 
 create_beta() {
-    local version
     local drive_version
 
-    version="$(grep -Eo "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
-    drive_version="${version}.$(date +%-m%d)"
+    drive_version="$(python tools/changelog.py --drive-version)"
 
     echo ">>> [beta ${drive_version}] Generating the changelog"
     changelog "${drive_version}"
@@ -60,12 +58,10 @@ create_beta() {
 }
 
 publish_beta() {
-    local version
     local drive_version
     local artifacts
 
-    version="$(grep -Eo "[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
-    drive_version="$(grep -Eo "[0-9]+.[0-9]+.[0-9]+" nuxeo-drive-client/nxdrive/__init__.py | tr '\n' '\0')"
+    drive_version="$(python tools/changelog.py --drive-version)"
     artifacts="https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/lastSuccessfulBuild/artifact/dist/*zip*/dist.zip"
 
     echo ">>> [beta ${drive_version}] Retrieving artifacts"
