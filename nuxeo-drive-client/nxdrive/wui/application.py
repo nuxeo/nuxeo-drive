@@ -191,7 +191,6 @@ class Application(SimpleApplication):
         try:
             log.trace('Entering _direct_edit_conflict for %r / %r', filename, ref)
             filename = unicode(filename)
-            log.trace('Unicode filename: %r', filename)
             if filename in self._conflicts_modals:
                 log.trace('Filename already in _conflicts_modals: %r', filename)
                 return
@@ -283,7 +282,6 @@ class Application(SimpleApplication):
             new_state = 'stopping'
         elif syncing:
             new_state = 'transferring'
-        log.trace("Should change icon to %s", new_state)
         self.set_icon_state(new_state)
 
     def _get_settings_dialog(self, section):
@@ -498,12 +496,8 @@ class Application(SimpleApplication):
         else:
             self.icon_spin_timer.stop()
             icon = find_icon('nuxeo_drive_systray_icon_%s_18.png' % state)
-            if icon is not None:
-                self._tray_icon.setIcon(QtGui.QIcon(icon))
-            else:
-                log.warning('Icon not found: %s', icon)
+            self._tray_icon.setIcon(QtGui.QIcon(icon))
         self._icon_state = state
-        log.debug('Updated icon state to: %s', state)
         return True
 
     def get_icon_state(self):
@@ -607,10 +601,9 @@ class Application(SimpleApplication):
         """Handle URL scheme events under OSX"""
         if hasattr(event, 'url'):
             url = str(event.url().toString())
-            log.debug("Event URL: %s", url)
             try:
                 info = parse_protocol_url(url)
-                log.debug("URL info: %r", info)
+                log.debug("Event url=%s, info=%r", url, info)
                 if info is not None:
                     log.debug("Received nxdrive URL scheme event: %s", url)
                     if info.get('command') == 'download_edit':
