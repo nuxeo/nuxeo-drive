@@ -5,6 +5,7 @@ import os
 import sys
 import threading
 import traceback
+from datetime import datetime
 from getpass import getpass
 
 from nxdrive import __version__
@@ -556,18 +557,22 @@ class CliHandler(object):
         return 1
 
     def _install_faulthandler(self, options):
-        """Utility to help debug segfaults"""
+        """ Utility to help debug segfaults. """
+
         try:
             # Use faulthandler to print python tracebacks in case of segfaults
             import faulthandler
-            segfault_filename = os.path.expanduser(os.path.join(
-                options.nxdrive_home, 'logs', 'segfault.log'))
-            segfault_file = open(segfault_filename, 'w')
-            self.log.debug("Enabling faulthandler to trace segfaults in %s",
-                           segfault_filename)
-            faulthandler.enable(file=segfault_file)
         except ImportError:
-            self.log.debug("faulthandler is not available: skipped")
+            self.log.debug('faulthandler not available.')
+            return
+
+        segfault_filename = os.path.expanduser(os.path.join(
+            options.nxdrive_home, 'logs', 'segfault.log'))
+        self.log.debug('Enabling faulthandler in %s', segfault_filename)
+
+        segfault_file = open(segfault_filename, 'a')
+        segfault_file.write('\n\n\n>>> {}\n'.format(datetime.now()))
+        faulthandler.enable(file=segfault_file)
 
 
 def dumpstacks(signal, frame):
