@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import shutil
+import sqlite3
 from threading import Lock
 from time import sleep
 from urllib2 import HTTPError
@@ -161,44 +162,56 @@ class Processor(EngineWorker):
             local_client = self._engine.get_local_client()
             remote_client = self._engine.get_remote_client()
             try:
-                doc_pair = self._dao.acquire_state(self._thread_id, self._current_item.id)
-            except:
+                doc_pair = self._dao.acquire_state(self._thread_id,
+                                                   self._current_item.id)
+            except sqlite3.OperationalError:
                 log.trace("Cannot acquire state for: %r", self._current_item)
-                self._postpone_pair(self._current_item, 'Pair in use', interval=3)
+                self._postpone_pair(self._current_item, 'Pair in use',
+                                    interval=3)
                 self._current_item = self._get_item()
                 continue
             try:
                 if doc_pair is None:
-                    log.trace("Didn't acquire state, dropping %r", self._current_item)
+                    log.trace("Didn't acquire state, dropping %r",
+                              self._current_item)
                     self._current_item = self._get_item()
                     continue
-                log.debug('Executing processor on %r(%d)', doc_pair, doc_pair.version)
+                log.debug('Executing processor on %r(%d)', doc_pair,
+                          doc_pair.version)
                 self._current_doc_pair = doc_pair
                 self._current_temp_file = None
                 if not self.check_pair_state(doc_pair):
                     self._current_item = self._get_item()
                     continue
-                if AbstractOSIntegration.is_mac() and local_client.exists(doc_pair.local_path):
+                if (AbstractOSIntegration.is_mac()
+                        and local_client.exists(doc_pair.local_path)):
                     try:
-                        finder_info = local_client.get_remote_id(doc_pair.local_path, "com.apple.FinderInfo")
-                        if finder_info is not None and 'brokMACS' in finder_info:
-                            log.trace("Skip as pair is in use by Finder: %r", doc_pair)
-                            self._postpone_pair(doc_pair, 'Finder using file', interval=3)
+                        finder_info = local_client.get_remote_id(
+                            doc_pair.local_path, "com.apple.FinderInfo")
+                        if (finder_info is not None
+                                and 'brokMACS' in finder_info):
+                            log.trace("Skip as pair is in use by Finder: %r",
+                                      doc_pair)
+                            self._postpone_pair(doc_pair, 'Finder using file',
+                                                interval=3)
                             self._current_item = self._get_item()
                             continue
                     except IOError:
                         pass
                 # TODO Update as the server dont take hash to avoid conflict yet
-                if (doc_pair.pair_state.startswith("locally")
+                if (doc_pair.pair_state.startswith('locally')
                         and doc_pair.remote_ref is not None):
                     try:
-                        remote_info = remote_client.get_info(doc_pair.remote_ref)
-                        if remote_info.digest != doc_pair.remote_digest and doc_pair.remote_digest is not None:
+                        remote_info = remote_client.get_info(
+                            doc_pair.remote_ref)
+                        if (remote_info.digest != doc_pair.remote_digest
+                                and doc_pair.remote_digest is not None):
                             doc_pair.remote_state = 'modified'
-                        if doc_pair.folderish and \
-                                remote_info.name != doc_pair.remote_name:
+                        if (doc_pair.folderish
+                                and remote_info.name != doc_pair.remote_name):
                             doc_pair.remote_state = 'moved'
-                        self._refresh_remote(doc_pair, remote_client, remote_info)
+                        self._refresh_remote(doc_pair, remote_client,
+                                             remote_info)
                         # Can run into conflict
                         if doc_pair.pair_state == 'conflicted':
                             self._current_item = self._get_item()
@@ -216,7 +229,8 @@ class Processor(EngineWorker):
                     if doc_pair.remote_state == "deleted":
                         self._dao.remove_state(doc_pair)
                         continue
-                    self._handle_no_parent(doc_pair, local_client, remote_client)
+                    self._handle_no_parent(doc_pair, local_client,
+                                           remote_client)
                     self._current_item = self._get_item()
                     continue
 
@@ -225,7 +239,7 @@ class Processor(EngineWorker):
                 self._action = Action(handler_name)
                 sync_handler = getattr(self, handler_name, None)
                 if sync_handler is None:
-                    log.debug("Unhandled pair_state: %r for %r",
+                    log.debug('Unhandled pair_state: %r for %r',
                               doc_pair.pair_state, doc_pair)
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
                     self._current_item = self._get_item()
@@ -234,20 +248,20 @@ class Processor(EngineWorker):
                     self._current_metrics = dict()
                     self._current_metrics["handler"] = doc_pair.pair_state
                     self._current_metrics["start_time"] = current_milli_time()
-                    log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
+                    log.trace('Calling %s on doc pair %r', sync_handler,
+                              doc_pair)
                     try:
                         soft_lock = self._lock_soft_path(doc_pair.local_path)
                         sync_handler(doc_pair, local_client, remote_client)
                         self._current_metrics["end_time"] = current_milli_time()
                         self.pairSync.emit(doc_pair, self._current_metrics)
-                        # TO_REVIEW May have a call to reset_error
-                        log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
                     except ThreadInterrupt:
                         raise
                     except PairInterrupt:
                         # Wait one second to avoid retrying to quickly
                         self._current_doc_pair = None
-                        log.debug("PairInterrupt wait 1s and requeue on %r", doc_pair)
+                        log.debug('PairInterrupt wait 1s and requeue on %r',
+                                  doc_pair)
                         sleep(1)
                         self._engine.get_queue_manager().push(doc_pair)
                         continue
@@ -256,7 +270,8 @@ class Processor(EngineWorker):
                         self._current_item = self._get_item()
                         continue
                     except Exception as e:
-                        self._handle_pair_handler_exception(doc_pair, handler_name, e)
+                        self._handle_pair_handler_exception(doc_pair,
+                                                            handler_name, e)
                         self._current_item = self._get_item()
                         continue
             except ThreadInterrupt:
