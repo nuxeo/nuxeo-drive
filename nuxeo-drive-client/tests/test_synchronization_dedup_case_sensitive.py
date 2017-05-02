@@ -6,7 +6,7 @@ from tests.common_unit_test import RandomBug, UnitTestCase
 
 class TestDedupSensitiveCaseSync(UnitTestCase):
 
-    def setUp(self):
+    def _setup(self):
         super(TestDedupSensitiveCaseSync, self).setUp()
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -22,6 +22,8 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
 
         if not local.duplication_enabled():
             raise SkipTest('De-duplication disabled.')
+
+        self._setup()
 
         # Create documents in the remote root workspace
         # then synchronize
@@ -56,6 +58,8 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
 
         if not local.duplication_enabled():
             raise SkipTest('De-duplication disabled.')
+
+        self._setup()
 
         # Create documents in the remote root workspace
         # then synchronize
@@ -96,6 +100,8 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         if not local.duplication_enabled():
             raise SkipTest('De-duplication disabled.')
 
+        self._setup()
+
         # Create documents in the remote root workspace
         # then synchronize
         test_uid = remote.make_folder('/', 'test')
@@ -121,6 +127,8 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
 
         if not local.duplication_enabled():
             raise SkipTest('De-duplication disabled.')
+
+        self._setup()
 
         remote.make_folder('/', 'test')
         joe2_uid = remote.make_file('/', 'joe.odt', 'Some content')
@@ -168,6 +176,8 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         if not local.duplication_enabled():
             raise SkipTest('De-duplication disabled.')
 
+        self._setup()
+
         test_uid = remote.make_folder('/', 'test')
         test2_uid = remote.make_folder('/test', 'test')
         test2_dedup = self._dedup_name('test')
@@ -204,3 +214,41 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         # Might want go back to the original name
         self.assertTrue(local.exists('/test/' + test2_dedup))
         self.assertFalse(local.exists('/' + test2_dedup))
+
+    def test_file_sync_under_dedup_shared_folders(self):
+        """ NXDRIVE-842: do not sync duplicate conflicted folder content. """
+
+        local = self.local_root_client_1
+        remote = self.remote_document_client_1
+
+        # Make documents in the 1st future root folder
+        remote.make_folder('/', 'citrus')
+        folder1 = remote.make_folder('/citrus', 'fruits')
+        remote.make_file(folder1, 'lemon.txt', content='lemon')
+        remote.make_file(folder1, 'orange.txt', content='orange')
+
+        # Make documents in the 2nd future root folder
+        folder2 = remote.make_folder('/', 'fruits')
+        remote.make_file(folder2, 'cherries.txt', content='cherries')
+        remote.make_file(folder2, 'mango.txt', content='mango')
+        remote.make_file(folder2, 'papaya.txt', content='papaya')
+
+        # Register new roots
+        remote.unregister_as_root(self.workspace)
+        remote.register_as_root(folder1)
+        remote.register_as_root(folder2)
+
+        # Start and wait
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Checks
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertEqual(len(local.get_children_info('/fruits')), 3)
+
+        # Fix the dupicate error
+        new_folder = 'fruits-renamed-remotely'
+        remote.update(folder1, properties={'dc:title': new_folder})
+        self.wait_sync(wait_for_async=True)
+        self.assertEqual(len(local.get_children_info('/')), 2)
+        self.assertEqual(len(local.get_children_info('/' + new_folder)), 2)

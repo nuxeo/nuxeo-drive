@@ -165,7 +165,7 @@ class TestSharedFolders(UnitTestCase):
 
         # Check server side
         children = remote_2.get_children_info(folder)
-        self.assertEquals(len(children), 2)
+        self.assertEqual(len(children), 2)
         file_info = remote_2.get_info(file_id)
         if unbind:
             # File has not been renamed and image has not been deleted
