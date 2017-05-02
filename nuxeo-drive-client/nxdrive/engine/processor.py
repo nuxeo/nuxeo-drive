@@ -103,7 +103,6 @@ class Processor(EngineWorker):
             Processor.path_locker.release()
 
     def _lock_path(self, path):
-        log.trace("Get lock for '%s'", path)
         Processor.path_locker.acquire()
         if self._engine.get_uid() not in Processor.path_locks:
             Processor.path_locks[self._engine.get_uid()] = dict()
@@ -222,6 +221,14 @@ class Processor(EngineWorker):
                             continue
                     except NotFound:
                         doc_pair.remote_ref = None
+
+                # NXDRIVE-842: parent is in disabled duplication error
+                state = self._get_normal_state_from_remote_ref(
+                    doc_pair.remote_parent_ref)
+                if state and state.last_error == 'DEDUP':
+                    self._current_item = self._get_item()
+                    continue
+
                 parent_path = doc_pair.local_parent_path
                 if parent_path == '':
                     parent_path = "/"
@@ -393,7 +400,8 @@ class Processor(EngineWorker):
         return self._dao.get_normal_state_from_remote(ref)
 
     def _postpone_pair(self, doc_pair, reason='', interval=None):
-        # Wait 60s for it
+        """ Wait 60 sec for it. """
+
         log.trace("Postpone creation of local file(%s): %r", reason, doc_pair)
         doc_pair.error_count = 1
         self._engine.get_queue_manager().push_error(doc_pair, exception=None, interval=interval)
@@ -800,13 +808,23 @@ class Processor(EngineWorker):
             raise ValueError(
                 "Parent folder of doc %r (%r) is not bound to a local"
                 " folder" % (name, doc_pair.remote_ref))
+
         path = doc_pair.remote_parent_path + '/' + doc_pair.remote_ref
         if remote_client.is_filtered(path):
             # It is filtered so skip and remove from the LastKnownState
             self._dao.remove_state(doc_pair)
             return
+
         if not local_client.exists(doc_pair.local_path):
-            path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
+            # NXDRIVE-842: check the parent's UID. A file cannot be created
+            # if the parent's name is equal but not the UID.
+            remote_parent_ref = local_client.get_remote_id(
+                parent_pair.local_path)
+            if remote_parent_ref != parent_pair.remote_ref:
+                self._dao.remove_state(doc_pair)
+                return
+            path = self._create_remotely(local_client, remote_client, doc_pair,
+                                         parent_pair, name)
         else:
             path = doc_pair.local_path
             remote_ref = local_client.get_remote_id(doc_pair.local_path)
