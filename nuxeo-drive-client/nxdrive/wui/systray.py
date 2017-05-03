@@ -84,7 +84,6 @@ class WebSystrayApi(WebDriveApi):
         except Exception as e:
             log.exception(e)
 
-
     @QtCore.pyqtSlot(str)
     def trigger_notification(self, id_):
         try:
@@ -159,13 +158,8 @@ class WebSystrayApi(WebDriveApi):
 class WebSystrayView(WebDialog):
     DEFAULT_WIDTH = 300
     DEFAULT_HEIGHT = 370
-    '''
-    classdocs
-    '''
+
     def __init__(self, application, icon):
-        '''
-        Constructor
-        '''
         super(WebSystrayView, self).__init__(application, "systray.html", api=WebSystrayApi(application, self))
         self._icon = icon
         self._icon_geometry = None
@@ -174,17 +168,12 @@ class WebSystrayView(WebDialog):
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Popup | QtCore.Qt.Dialog);
 
     def replace(self):
-        log.trace("Icon is %r", self._icon)
         self._icon_geometry = rect = self._icon.geometry()
-        log.trace("IconRect is : %s,%s | %s,%s",rect.x(), rect.y(), rect.width(), rect.height())
         from PyQt4.QtGui import QApplication, QCursor
         from PyQt4.QtCore import QRect
         desktop = QApplication.desktop()
-        log.trace("Screen id is %d", desktop.screenNumber(rect.topLeft()))
         desk = desktop.screenGeometry(desktop.screenNumber(rect.topLeft()))
-        log.trace("ScreenRect is : %s,%s | %s,%s",desk.x(), desk.y(), desk.width(), desk.height())
         pos = QCursor.pos()
-        log.trace("Cursor is : %s,%s",pos.x(), pos.y())
         # Make our calculation on a offset screen to 0/0
         rect = QRect(rect.x()-desk.x(), rect.y()-desk.y(), rect.width(), rect.height())
         pos.setX(pos.x()-desk.x())
@@ -195,10 +184,8 @@ class WebSystrayView(WebDialog):
                 rect = QRect(pos.x(), pos.y(), rect.width(), rect.height())
             else:
                 rect = QRect(pos.x()-pos.x()%rect.width(), pos.y()-pos.y()%rect.height(), rect.width(), rect.height())
-            log.trace("Adjusting X/Y to %d/%d", rect.x(), rect.y())
             pos = rect
             self._icon_geometry = QRect(rect.x()+desk.x(), rect.y()+desk.y(), rect.width(), rect.height())
-            log.trace("New rect is : %s,%s | %s,%s",pos.x(), pos.y(), pos.width(), pos.height())
         x = rect.x() + rect.width() - self.width()
         y = rect.y() - self.height()
         # Prevent the systray to be hidden
@@ -209,7 +196,6 @@ class WebSystrayView(WebDialog):
         # Use the offset again
         x += desk.x()
         y += desk.y()
-        log.trace("Move systray menu to %d/%d", x, y)
         self.move(x, y)
 
     def show(self):
@@ -225,13 +211,8 @@ class WebSystrayView(WebDialog):
         return self.geometry().contains(QtGui.QCursor.pos())
 
     def shouldHide(self):
-        log.trace("Geometry: %r", self.geometry())
-        log.trace("Cursor is: %r", QtGui.QCursor.pos())
-        log.trace("Icon: %r", self._icon)
-        log.trace("Icon geometry: %r", self._icon_geometry)
         if not (self.underMouse() or (self._icon and self._icon.geometry().contains(QtGui.QCursor.pos()))
                 or (self._icon_geometry and self._icon_geometry.contains(QtGui.QCursor.pos()))):
-            log.trace('will close menu')
             self.close()
 
     def focusOutEvent(self, event):
