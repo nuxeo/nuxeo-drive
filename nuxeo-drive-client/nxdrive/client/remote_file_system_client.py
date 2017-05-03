@@ -81,15 +81,14 @@ class RemoteFileSystemClient(BaseAutomationClient):
         """
         fs_item_info = self.get_info(fs_item_id)
         download_url = self.server_url + fs_item_info.download_url
-        FileAction("Download", None,
-                                        fs_item_info.name, 0)
+        FileAction("Download", None, fs_item_info.name, 0)
         content, _ = self.do_get(download_url, digest=fs_item_info.digest,
                                  digest_algorithm=fs_item_info.digest_algorithm)
         self.end_action()
         return content
 
     def stream_content(self, fs_item_id, file_path, parent_fs_item_id=None,
-                                    fs_item_info=None, file_out=None):
+                       fs_item_info=None, file_out=None):
         """Stream the binary content of a file system item to a tmp file
 
         Raises NotFound if file system item with id fs_item_id
