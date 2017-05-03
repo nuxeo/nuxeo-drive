@@ -30,6 +30,7 @@ except ImportError:
 if AbstractOSIntegration.is_windows():
     import win32api
     import win32con
+    import win32file
 else:
     import stat
     import xattr
@@ -476,9 +477,10 @@ class LocalClient(BaseClient):
             # NXDRIVE-465
             ref = self.get_children_ref(parent_ref, file_name)
             path = self.abspath(ref)
-            if not os.path.exists(path):
+            try:
+                attrs = win32api.GetFileAttributes(path)
+            except win32file.error, (errno, errctx, errmsg):
                 return False
-            attrs = win32api.GetFileAttributes(path)
             if attrs & win32con.FILE_ATTRIBUTE_SYSTEM == win32con.FILE_ATTRIBUTE_SYSTEM:
                 return True
             if attrs & win32con.FILE_ATTRIBUTE_HIDDEN == win32con.FILE_ATTRIBUTE_HIDDEN:
