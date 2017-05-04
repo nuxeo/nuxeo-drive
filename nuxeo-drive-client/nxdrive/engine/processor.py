@@ -459,7 +459,8 @@ class Processor(EngineWorker):
                 if parent_pair.remote_ref is not None and parent_pair.remote_ref == fs_item_info.parent_uid\
                         and local_client.is_equal_digests(doc_pair.local_digest,
                                                           fs_item_info.digest,
-                                                          doc_pair.local_path):
+                                                          doc_pair.local_path)\
+                        and doc_pair.local_name == info.name:
                     if overwrite and info.folderish:
                         self._synchronize_locally_moved(doc_pair,
                                                         local_client,
