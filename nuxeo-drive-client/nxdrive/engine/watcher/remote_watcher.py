@@ -551,9 +551,7 @@ class RemoteWatcher(EngineWorker):
 
         # Fetch all events and consider the most recent folder first
         sorted_changes = sorted(summary['fileSystemChanges'],
-                                key=lambda x: (x['fileSystemItem']['folder'],
-                                               x['eventDate']),
-                                reverse=True)
+                                key=lambda x: x['eventDate'], reverse=True)
         n_changes = len(sorted_changes)
         self._metrics['last_changes'] = n_changes
         self._metrics['empty_polls'] = 0
