@@ -663,9 +663,9 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             update = "UPDATE States SET remote_state='deleted', pair_state=?"
-            c.execute(update + " WHERE id=?", ('remotely_deleted',doc_pair.id))
+            c.execute(update + " WHERE id=?", ('remotely_deleted', doc_pair.id))
             if doc_pair.folderish:
-                c.execute(update + self._get_recursive_condition(doc_pair), ('parent_remotely_deleted',))
+                c.execute(update + self._get_recursive_remote_condition(doc_pair), ('parent_remotely_deleted',))
             # Only queue parent
             self._queue_pair_state(doc_pair.id, doc_pair.folderish, 'remotely_deleted')
             if self.auto_commit:
@@ -778,6 +778,22 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("UPDATE States SET last_transfer=? WHERE id=?", (transfer, row_id))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def get_dedupe_pair(self, name, parent, row_id):
+        c = self._get_read_connection(factory=self._state_factory).cursor()
+        return c.execute("SELECT * FROM States WHERE id != ? AND local_name=? AND remote_parent_ref=?",
+                                    (row_id, name, parent)).fetchone()
+
+    def remove_local_path(self, row_id):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET local_path='' WHERE id=?", (row_id,))
             if self.auto_commit:
                 con.commit()
         finally:
@@ -930,8 +946,16 @@ class EngineDAO(ConfigurationDAO):
         return state
 
     def _get_recursive_condition(self, doc_pair):
-        return (" WHERE local_parent_path LIKE '" + self._escape(doc_pair.local_path) + "/%'"
-                    + " OR local_parent_path = '" + self._escape(doc_pair.local_path) + "'")
+        res = (" WHERE (local_parent_path LIKE '" + self._escape(doc_pair.local_path) + "/%'"
+                    + " OR local_parent_path = '" + self._escape(doc_pair.local_path) + "')")
+        if doc_pair.remote_ref is not None:
+            res += " AND remote_parent_path LIKE '" + self._escape(doc_pair.remote_parent_path +
+                    '/' + doc_pair.remote_ref) + "%'"
+        return res
+
+    def _get_recursive_remote_condition(self, doc_pair):
+        remote_path = self._escape(doc_pair.remote_parent_path) + '/' + self._escape(doc_pair.remote_name)
+        return (" WHERE remote_parent_path LIKE '" +  remote_path + "/%' OR remote_parent_path = '" + remote_path + "'")
 
     def update_remote_parent_path(self, doc_pair, new_path):
         self._lock.acquire()
@@ -942,7 +966,7 @@ class EngineDAO(ConfigurationDAO):
                 remote_path = doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
                 query = "UPDATE States SET remote_parent_path='%s/%s' || substr(remote_parent_path,%d)" % (
                     self._escape(new_path), self._escape(doc_pair.remote_ref), len(remote_path) + 1)
-                query = query + self._get_recursive_condition(doc_pair)
+                query = query + self._get_recursive_remote_condition(doc_pair)
                 log.trace("Update remote_parent_path: " + query)
                 c.execute(query)
             c.execute("UPDATE States SET remote_parent_path=? WHERE id=?", (new_path, doc_pair.id))
@@ -1029,14 +1053,17 @@ class EngineDAO(ConfigurationDAO):
         finally:
             self._lock.release()
 
-    def remove_state(self, doc_pair):
+    def remove_state(self, doc_pair, remote_recursion=False):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("DELETE FROM States WHERE id=?", (doc_pair.id,))
             if doc_pair.folderish:
-                c.execute("DELETE FROM States" + self._get_recursive_condition(doc_pair))
+                if remote_recursion:
+                    c.execute("DELETE FROM States" + self._get_recursive_remote_condition(doc_pair))
+                else:
+                    c.execute("DELETE FROM States" + self._get_recursive_condition(doc_pair))
             if self.auto_commit:
                 con.commit()
         finally:

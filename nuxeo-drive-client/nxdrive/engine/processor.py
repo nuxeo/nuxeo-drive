@@ -175,6 +175,10 @@ class Processor(EngineWorker):
                               self._current_item)
                     self._current_item = self._get_item()
                     continue
+                # In case of duplicate we remove the local_path as it has conflict
+                if doc_pair.local_path == '':
+                    doc_pair.local_path = doc_pair.local_parent_path + doc_pair.remote_name
+                    log.trace('re-guess local_path from duplicate: %r', doc_pair)
                 log.debug('Executing processor on %r(%d)', doc_pair,
                           doc_pair.version)
                 self._current_doc_pair = doc_pair
@@ -274,6 +278,8 @@ class Processor(EngineWorker):
                         continue
                     except DuplicationDisabledError:
                         self.giveup_error(doc_pair, 'DEDUP')
+                        self._dao.remove_local_path(doc_pair.id)
+                        log.trace('Removing local_path on %r', doc_pair)
                         self._current_item = self._get_item()
                         continue
                     except Exception as e:
@@ -575,6 +581,7 @@ class Processor(EngineWorker):
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):
         if not doc_pair.remote_ref:
             self._dao.remove_state(doc_pair)
+            self._search_for_dedup(doc_pair)
             return
 
         if doc_pair.remote_can_delete:
@@ -592,6 +599,7 @@ class Processor(EngineWorker):
                 self._dao.remove_state(doc_pair)
                 self._dao.add_filter(doc_pair.remote_parent_path + '/' + doc_pair.remote_ref)
                 self._engine.deleteReadonly.emit(doc_pair.local_name)
+        self._search_for_dedup(doc_pair)
 
     def _synchronize_locally_moved_remotely_modified(self, doc_pair, local_client, remote_client):
         self._synchronize_locally_moved(doc_pair, local_client, remote_client, update=False)
@@ -605,6 +613,7 @@ class Processor(EngineWorker):
         # A file has been moved locally, and an error occurs when tried to
         # move on the server
         remote_info = None
+        self._search_for_dedup(doc_pair, doc_pair.remote_name)
         if doc_pair.local_name != doc_pair.remote_name:
             try:
                 if doc_pair.remote_can_rename:
@@ -710,6 +719,16 @@ class Processor(EngineWorker):
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
 
+    def _search_for_dedup(self, doc_pair, name=None):
+        if name is None:
+            name = doc_pair.local_name
+        # Auto resolve duplicate
+        log.debug('Search for dupe pair with %s %s', name, doc_pair.remote_parent_ref)
+        dupe_pair = self._dao.get_dedupe_pair(name, doc_pair.remote_parent_ref, doc_pair.id)
+        if dupe_pair is not None:
+            log.debug('Dupe pair found %r', dupe_pair)
+            self._dao.reset_error(dupe_pair)
+
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
         self.tmp_file = None
         try:
@@ -767,6 +786,7 @@ class Processor(EngineWorker):
                         if updated_info:
                             new_path = os.path.dirname(updated_info.path)
                             self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path), new_path)
+                            self._search_for_dedup(doc_pair)
                             self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
@@ -818,10 +838,8 @@ class Processor(EngineWorker):
         if not local_client.exists(doc_pair.local_path):
             # NXDRIVE-842: check the parent's UID. A file cannot be created
             # if the parent's name is equal but not the UID.
-            remote_parent_ref = local_client.get_remote_id(
-                parent_pair.local_path)
+            remote_parent_ref = local_client.get_remote_id(parent_pair.local_path)
             if remote_parent_ref != parent_pair.remote_ref:
-                self._dao.remove_state(doc_pair)
                 return
             path = self._create_remotely(local_client, remote_client, doc_pair,
                                          parent_pair, name)
@@ -903,6 +921,7 @@ class Processor(EngineWorker):
                 else:
                     local_client.delete_final(doc_pair.local_path)
             self._dao.remove_state(doc_pair)
+            self._search_for_dedup(doc_pair)
         except (IOError, WindowsError) as e:
             # Under Windows deletion can be impossible while another
             # process is accessing the same file (e.g. word processor)

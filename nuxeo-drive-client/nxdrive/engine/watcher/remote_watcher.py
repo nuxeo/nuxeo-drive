@@ -597,8 +597,11 @@ class RemoteWatcher(EngineWorker):
                     doc_pair_repr = doc_pair.local_path if doc_pair.local_path is not None else doc_pair.remote_name
                     if event_id == 'deleted':
                         if fs_item is None:
-                            log.debug("Push doc_pair '%s' in delete queue",
-                                      doc_pair_repr)
+                            if doc_pair.local_path == '':
+                                log.debug("Delete pair from duplicate: %r", doc_pair)
+                                self._dao.remove_state(doc_pair, remote_recursion=True)
+                                continue
+                            log.debug("Push doc_pair '%s' in delete queue", doc_pair_repr)
                             delete_queue.append(doc_pair)
                         else:
                             log.debug("Ignore delete on doc_pair '%s' as a fsItem is attached", doc_pair_repr)
