@@ -3,7 +3,6 @@
 
 import logging
 import os
-from copy import copy
 from logging.handlers import BufferingHandler, RotatingFileHandler, \
     TimedRotatingFileHandler
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -21,36 +20,29 @@ FILE_HANDLER = None
 _logging_context = dict()
 
 is_logging_configured = False
-MAX_LOG_DISPLAYED = 5000
+MAX_LOG_DISPLAYED = 50000
 
 
 class CustomMemoryHandler(BufferingHandler):
     def __init__(self, capacity=MAX_LOG_DISPLAYED):
         super(CustomMemoryHandler, self).__init__(capacity)
-        self._old_buffer = None
+        self.old_buffer_ = None
 
     def flush(self):
-        # Flush
         self.acquire()
         try:
-            self._old_buffer = copy(self.buffer)
-            self.buffer = []
+            self.old_buffer_, self.buffer = self.buffer[:], []
         finally:
             self.release()
 
     def get_buffer(self, size):
-        adds = []
         self.acquire()
         try:
-            result = copy(self.buffer)
-            result.reverse()
-            if len(result) < size and self._old_buffer:
-                adds = copy(self._old_buffer[(size-len(result)-1):])
+            result = self.buffer[:]
+            if len(result) < size and self.old_buffer_:
+                result += self.old_buffer_[size - len(result) - 1:]
         finally:
             self.release()
-        adds.reverse()
-        for record in adds:
-            result.append(record)
         return result
 
 
