@@ -704,6 +704,10 @@ class WebDriveApi(QtCore.QObject):
             log.exception(e)
             return ""
 
+    @QtCore.pyqtSlot(result=str)
+    def get_update_url(self):
+        return self._manager.get_version_finder(refresh_engines=True)
+
     @QtCore.pyqtSlot(str, str)
     def resize(self, width, height):
         try:
