@@ -285,7 +285,7 @@ class TestDedupSensitiveCaseSync(UnitTestCase):
         self.assertEqual(len(local.get_children_info('/')), 1)
         self.assertEqual(len(local.get_children_info('/fruits')), 3)
 
-        # Fix the dupicate error
+        # Fix the duplicate error
         new_folder = 'fruits-renamed-remotely'
         remote.update(folder2, properties={'dc:title': new_folder})
         self.wait_sync(wait_for_async=True)
