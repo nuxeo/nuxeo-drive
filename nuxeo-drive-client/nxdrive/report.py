@@ -2,7 +2,7 @@
 import codecs
 import os
 from datetime import datetime
-from zipfile import ZipFile, ZIP_DEFLATED
+from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
 
 from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler, get_logger
 
@@ -30,17 +30,42 @@ class Report(object):
         if not os.path.isdir(folder):
             return
 
-        for filename in os.listdir(folder):
-            path = os.path.join(folder, filename)
-            if os.path.isfile(path):
-                myzip.write(path, os.path.join('logs', filename))
+        def compress(path_, filename):
+            """ Zip a log file. """
+
+            zpath = path + '.zip'
+            fmt = 'Zipping report {} ({:,} ko)'
+            fmt_zipped = 'Zipped report  {}: {:,} ko -> {:,} ko'
+
+            log.debug(fmt.format(filename, os.stat(path_).st_size / 1024))
+
+            with ZipFile(zpath, mode='w', compression=ZIP_DEFLATED) as zip_:
+                zip_.write(path_, filename)
+                log.trace(fmt_zipped.format(filename,
+                                            os.stat(path_).st_size / 1024,
+                                            os.stat(zpath).st_size / 1024))
+                os.unlink(path_)
+
+            return zpath, filename + '.zip'
+
+        for fname in os.listdir(folder):
+            path = os.path.join(folder, fname)
+            if not os.path.isfile(path):
+                continue
+
+            comp = ZIP_DEFLATED if fname.endswith('.log') else ZIP_STORED
+            if fname.startswith('nxdrive.log.') and not fname.endswith('.zip'):
+                path, fname = compress(path, fname)
+            rel_path = os.path.join('logs', fname)
+            myzip.write(path, rel_path, compress_type=comp)
 
     @staticmethod
     def copy_db(myzip, dao):
         # Lock to avoid inconsistence
         dao._lock.acquire()
         try:
-            myzip.write(dao._db, os.path.basename(dao._db))
+            myzip.write(dao._db, os.path.basename(dao._db),
+                        compress_type=ZIP_DEFLATED)
         finally:
             dao._lock.release()
 
@@ -65,7 +90,7 @@ class Report(object):
     def generate(self):
         log.debug('Create report %r', self._report_name)
         log.debug('Manager metrics: %r', self._manager.get_metrics())
-        with ZipFile(self._zipfile, mode='w', compression=ZIP_DEFLATED) as zip_:
+        with ZipFile(self._zipfile, mode='w') as zip_:
             dao = self._manager.get_dao()
             self.copy_db(zip_, dao)
             for engine in self._manager.get_engines().values():
@@ -79,5 +104,5 @@ class Report(object):
                              errors='replace') as output:
                 for line in self._export_logs():
                     output.write(line + '\n')
-            zip_.write('debug.log')
+            zip_.write('debug.log', compress_type=ZIP_DEFLATED)
             os.unlink('debug.log')

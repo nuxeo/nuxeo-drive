@@ -57,6 +57,10 @@ var SettingsController = function($scope, $interval, $translate) {
 		$scope.reinitMsgs();
 		drive.open_local('', path);
 	}
+	$scope.open_report = function(path) {
+		$scope.reinitMsgs();
+		drive.open_report(path);
+	}
 	$scope.getSectionClass = function(section) {
 		if ($scope.section == section) {
 			return "active";
