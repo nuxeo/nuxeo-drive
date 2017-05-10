@@ -50,8 +50,6 @@ class Packages(object):
         package_name = dir_name.replace('/', '.')[1:]
         return package_name
 
-        return root
-
     def _isNonTrivialPythonFile(self, afile):
         if afile.endswith('/__init__.py'):
             return False

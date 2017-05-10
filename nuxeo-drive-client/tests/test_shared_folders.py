@@ -178,3 +178,50 @@ class TestSharedFolders(UnitTestCase):
             # File has been renamed and image deleted
             self.assertEqual(file_info.name, 'File01_renamed.txt')
             self.assertFalse(remote_2.exists('/Folder01/SubFolder01/Image01.png'))
+
+    def test_conflict_resolution_with_renaming(self):
+        """ NXDRIVE-645: shared Folders conflict resolution with renaming. """
+
+        local_1 = self.local_client_1
+        remote_2 = self.remote_document_client_2
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Create initial folder and file
+        folder = remote_2.make_folder('/', 'Final')
+        remote_2.make_file('/Final', 'Aerial04.jpg', b'42')
+
+        # First checks, everything should be online for every one
+        self.wait_sync(wait_for_async=True)
+        self.assertTrue(remote_2.exists('/Final'))
+        self.assertTrue(remote_2.exists('/Final/Aerial04.jpg'))
+        self.assertTrue(local_1.exists('/Final'))
+        self.assertTrue(local_1.exists('/Final/Aerial04.jpg'))
+        folder_pair_state = self.engine_1.get_dao().get_state_from_local(
+            '/' + self.workspace_title + '/Final')
+        self.assertIsNotNone(folder_pair_state)
+
+        # Stop clients
+        self.engine_1.stop()
+
+        # Make changes
+        folder_conflicted = local_1.make_folder('/', 'Finished')
+        local_1.make_file(folder_conflicted, 'Aerial04.jpg', b'42.42')
+        remote_2.update(folder, properties={'dc:title': 'Finished'})
+
+        # Restart clients and wait
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Check remote 2
+        self.assertTrue(remote_2.exists('/Finished'))
+        self.assertTrue(remote_2.exists('/Finished/Aerial04.jpg'))
+
+        # Check client 1
+        self.assertTrue(local_1.exists('/Finished'))
+        self.assertTrue(local_1.exists('/Finished/Aerial04.jpg'))
+
+        # Check folder status
+        folder_pair_state = self.engine_1.get_dao().get_state_from_id(
+            folder_pair_state.id)
+        self.assertEqual(folder_pair_state.last_error, 'DEDUP')
