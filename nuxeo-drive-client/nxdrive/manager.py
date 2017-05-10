@@ -31,6 +31,7 @@ except ImportError:
 
 if AbstractOSIntegration.is_windows():
     import _winreg
+    import win32api
 elif AbstractOSIntegration.is_mac():
     import SystemConfiguration
 
@@ -781,14 +782,31 @@ class Manager(QtCore.QObject):
     def get_configuration_folder(self):
         return self.nxdrive_home
 
-    def open_local_file(self, file_path):
-        """Launch the local OS program on the given file / folder."""
+    def open_local_file(self, file_path, select=False):
+        """
+        Launch the local OS program on the given file / folder.
+
+        :param file_path: The file URL to open.
+        :param select: Hightlight the given file_path. Useful when
+                       opening a folder and to select a file.
+        """
+        file_path = str(file_path)
         log.debug('Launching editor on %s', file_path)
         if sys.platform == 'win32':
-            os.startfile(file_path)
+            if select:
+                win32api.ShellExecute(None, 'open', 'explorer.exe',
+                                      '/select,' + file_path, None, 1)
+            else:
+                os.startfile(file_path)
         elif sys.platform == 'darwin':
-            subprocess.Popen(['open', file_path])
+            args = ['open']
+            if select:
+                args += ['-R']
+            args += [file_path]
+            subprocess.Popen(args)
         else:
+            # TODO NXDRIVE-848: Select feature not yet implemented
+            # TODO See https://bugs.freedesktop.org/show_bug.cgi?id=49552
             try:
                 subprocess.Popen(['xdg-open', file_path])
             except OSError:

@@ -211,11 +211,11 @@ class WebDriveApi(QtCore.QObject):
         return result
 
     def _get_engine(self, uid):
-        uid = str(uid)
         engines = self._manager.get_engines()
-        if not uid in engines:
+        try:
+            return engines[str(uid)]
+        except KeyError:
             return None
-        return engines[uid]
 
     def set_last_url(self, url):
         self._last_url = url
@@ -607,6 +607,10 @@ class WebDriveApi(QtCore.QObject):
         except Exception as e:
             log.exception(e)
             return ""
+
+    @QtCore.pyqtSlot(str)
+    def open_report(self, path):
+        self._manager.open_local_file(path, select=True)
 
     @QtCore.pyqtSlot(str, str, result=str)
     def open_local(self, uid, path):

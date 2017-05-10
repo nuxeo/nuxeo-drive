@@ -4,7 +4,8 @@
 	    <label class="col-sm-2 control-label" translate>BUG_REPORT</label>
 	    <div class="col-sm-8">
 			<a style="cursor: pointer;" ng-click="generateReport()" translate>CREATE_REPORT</a><br />
-			<span style="-webkit-user-select: text;" ng-show="lastReport != null" translate-values="{ path: lastReport }" translate>REPORT_GENERATED</span>
+			<span style="-webkit-user-select: text;" ng-show="lastReport != null" translate>REPORT_GENERATED</span><br />
+			<a href="" ng-show="lastReport != null" ng-click="open_report(lastReport)">{{ lastReport }}</a>
 	  	</div>
 	  </div>
 	  <div class="form-group">
