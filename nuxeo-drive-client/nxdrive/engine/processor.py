@@ -177,8 +177,9 @@ class Processor(EngineWorker):
                     continue
                 # In case of duplicate we remove the local_path as it has conflict
                 if doc_pair.local_path == '':
-                    doc_pair.local_path = doc_pair.local_parent_path + doc_pair.remote_name
-                    log.trace('re-guess local_path from duplicate: %r', doc_pair)
+                    doc_pair.local_path = os.path.join(
+                        doc_pair.local_parent_path, doc_pair.remote_name)
+                    log.trace('Re-guess local_path from duplicate: %r', doc_pair)
                 log.debug('Executing processor on %r(%d)', doc_pair,
                           doc_pair.version)
                 self._current_doc_pair = doc_pair
@@ -818,7 +819,7 @@ class Processor(EngineWorker):
                             self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
-        except (IOError, WindowsError) as e:
+        except WindowsError as e:
             log.warning(
                 "Delaying local update of remotely modified content %r due to"
                 " concurrent file access (probably opened by another"
