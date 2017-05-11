@@ -492,15 +492,9 @@ class ManagerDAO(ConfigurationDAO):
 
 
 class EngineDAO(ConfigurationDAO):
-    '''
-    classdocs
-    '''
     newConflict = pyqtSignal(object)
 
     def __init__(self, db, state_factory=StateRow):
-        '''
-        Constructor
-        '''
         self._filters = None
         self._queue_manager = None
         super(EngineDAO, self).__init__(db)

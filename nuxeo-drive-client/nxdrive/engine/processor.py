@@ -279,8 +279,8 @@ class Processor(EngineWorker):
                         continue
                     except DuplicationDisabledError:
                         self.giveup_error(doc_pair, 'DEDUP')
-                        self._dao.remove_local_path(doc_pair.id)
                         log.trace('Removing local_path on %r', doc_pair)
+                        self._dao.remove_local_path(doc_pair.id)
                         self._current_item = self._get_item()
                         continue
                     except Exception as e:
@@ -865,7 +865,7 @@ class Processor(EngineWorker):
             return
 
         if not local_client.exists(doc_pair.local_path):
-            # NXDRIVE-842: check the parent's UID. A file cannot be created
+            # Check the parent's UID. A file cannot be created
             # if the parent's name is equal but not the UID.
             remote_parent_ref = local_client.get_remote_id(parent_pair.local_path)
             if remote_parent_ref != parent_pair.remote_ref:
@@ -951,7 +951,7 @@ class Processor(EngineWorker):
                     local_client.delete_final(doc_pair.local_path)
             self._dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
-        except (IOError, WindowsError) as e:
+        except WindowsError as e:
             # Under Windows deletion can be impossible while another
             # process is accessing the same file (e.g. word processor)
             # TODO: be more specific as detecting this case:
