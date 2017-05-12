@@ -136,6 +136,16 @@ class LocalClient(BaseClient):
         self.base_folder = base_folder
         self._digest_func = digest_func
 
+    def __repr__(self):
+        return ('<{name}'
+                ' base_folder={cls.base_folder!r},'
+                ' duplication_enabled={cls._disable_duplication!r},'
+                ' is_case_sensitive={cls._case_sensitive!r},'
+                ' ignored_prefixes={cls.ignored_prefixes!r},'
+                ' ignored_suffixes={cls.ignored_suffixes!r}'
+                '>'
+                ).format(name=type(self).__name__, cls=self)
+
     def duplication_enabled(self):
         """ Check if de-duplication is enable or not. """
 

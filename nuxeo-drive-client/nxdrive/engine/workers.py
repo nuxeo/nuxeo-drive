@@ -44,6 +44,9 @@ class Worker(QObject):
         self._running = False
         self._thread.terminated.connect(self._terminated)
 
+    def __repr__(self):
+        return '<{} ID={}>'.format(type(self).__name__, self._thread_id)
+
     def is_started(self):
         return self._continue
 

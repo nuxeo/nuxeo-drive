@@ -500,9 +500,9 @@ class Manager(QtCore.QObject):
         old_db = os.path.join(normalized_path(self.nxdrive_home), "nxdrive.db")
         if os.path.exists(old_db):
             import sqlite3
-            from nxdrive.engine.dao.sqlite import CustomRow
+            from nxdrive.engine.dao.sqlite import StateRow
             conn = sqlite3.connect(old_db)
-            conn.row_factory = CustomRow
+            conn.row_factory = StateRow
             c = conn.cursor()
             cfg = c.execute("SELECT * FROM device_config LIMIT 1").fetchone()
             if cfg is not None:
