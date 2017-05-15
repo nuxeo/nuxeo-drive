@@ -83,6 +83,8 @@ class Report(object):
             except UnicodeEncodeError:
                 log.error('Log record encoding error: %r', record.__dict__)
                 line = record.getMessage()
+                if isinstance(line, Exception):
+                    line = str(line)
             if isinstance(line, bytes):
                 line = line.decode('utf-8', errors='replace')
             yield line
