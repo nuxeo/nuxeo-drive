@@ -449,7 +449,6 @@ class ManagerDAO(ConfigurationDAO):
             self._lock.release()
 
     def add_engine(self, engine, path, key, name):
-        result = None
         self._lock.acquire()
         try:
             con = self._get_write_connection()

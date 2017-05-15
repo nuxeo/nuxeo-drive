@@ -112,7 +112,7 @@ class AppUpdater(PollWorker):
                 executable = sys.executable
                 log.debug("Application is frozen, building Esky instance from"
                           " executable %s and version finder %s",
-                          executable, version_finder)
+                          executable.decode('utf-8'), version_finder)
                 self.esky_app = Esky(executable, version_finder=version_finder)
                 self._enable = True
             except UpdateError as e:
