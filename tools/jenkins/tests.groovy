@@ -115,6 +115,9 @@ for (def x in slaves) {
                     env.DRIVE_YAPPI = params.ENABLE_PROFILER ? env.WORKSPACE : ''
 
                     stage(osi + ' Checkout') {
+                        dir('sources') {
+                            deleteDir()
+                        }
                         github_status('PENDING')
                         checkout_custom()
                     }
