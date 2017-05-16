@@ -18,11 +18,6 @@ from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import current_milli_time, is_office_temp_file
 
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = IOError
-
 log = get_logger(__name__)
 
 
@@ -819,7 +814,7 @@ class Processor(EngineWorker):
                             self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
-        except WindowsError as e:
+        except (IOError, OSError) as e:
             log.warning(
                 "Delaying local update of remotely modified content %r due to"
                 " concurrent file access (probably opened by another"
@@ -830,7 +825,7 @@ class Processor(EngineWorker):
             if self.tmp_file is not None and os.path.exists(self.tmp_file):
                 try:
                     os.remove(self.tmp_file)
-                except (IOError, WindowsError):
+                except (IOError, OSError):
                     pass
             if doc_pair.folderish:
                 # Release folder lock in any case
@@ -951,7 +946,7 @@ class Processor(EngineWorker):
                     local_client.delete_final(doc_pair.local_path)
             self._dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
-        except WindowsError as e:
+        except (IOError, OSError) as e:
             # Under Windows deletion can be impossible while another
             # process is accessing the same file (e.g. word processor)
             # TODO: be more specific as detecting this case:

@@ -22,11 +22,6 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import guess_digest_algorithm, normalized_path, \
     safe_long_path
 
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = IOError
-
 if AbstractOSIntegration.is_windows():
     import win32api
     import win32con
@@ -211,7 +206,7 @@ class LocalClient(BaseClient):
             try:
                 if os.path.exists(pathAlt):
                     os.remove(pathAlt)
-            except WindowsError as e:
+            except OSError as e:
                 if e.errno == os.errno.EACCES:
                     self.unset_path_readonly(path)
                     os.remove(pathAlt)

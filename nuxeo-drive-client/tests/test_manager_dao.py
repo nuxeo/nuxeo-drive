@@ -10,12 +10,6 @@ from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.manager import Manager
 from tests.common import clean_dir
 
-WindowsError = None
-try:
-    from exceptions import WindowsError
-except ImportError:
-    pass  # This will never be raised under Unix
-
 
 class ManagerDAOTest(unittest.TestCase):
 

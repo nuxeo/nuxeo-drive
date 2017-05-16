@@ -22,11 +22,6 @@ from nxdrive.logging_config import get_logger
 from nxdrive.osi import parse_protocol_url
 from nxdrive.utils import current_milli_time, guess_digest_algorithm
 
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = IOError
-
 log = get_logger(__name__)
 
 
@@ -313,7 +308,7 @@ class DirectEdit(Worker):
                 # Launch it
                 if file_path is not None:
                     self._manager.open_local_file(file_path)
-        except WindowsError as e:
+        except OSError as e:
             if e.errno == 13:
                 # open file anyway
                 if e.filename is not None:
