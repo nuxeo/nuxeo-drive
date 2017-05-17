@@ -32,32 +32,15 @@ class Report(object):
         if not os.path.isdir(folder):
             return
 
-        def compress(path_, filename):
-            """ Zip a log file. """
-
-            zpath = path + '.zip'
-            fmt = 'Zipping report {} ({:,} ko)'
-            fmt_zipped = 'Zipped report  {}: {:,} ko -> {:,} ko'
-
-            log.debug(fmt.format(filename, os.stat(path_).st_size / 1024))
-
-            with ZipFile(zpath, mode='w', compression=ZIP_DEFLATED) as zip_:
-                zip_.write(path_, filename)
-                log.trace(fmt_zipped.format(filename,
-                                            os.stat(path_).st_size / 1024,
-                                            os.stat(zpath).st_size / 1024))
-                os.unlink(path_)
-
-            return zpath, filename + '.zip'
-
         for fname in os.listdir(folder):
             path = os.path.join(folder, fname)
             if not os.path.isfile(path):
                 continue
+            if (fname not in ('nxdrive.log', 'segfault.log')
+                    and not fname.endswith('.zip')):
+                continue
 
             comp = ZIP_DEFLATED if fname.endswith('.log') else ZIP_STORED
-            if fname.startswith('nxdrive.log.') and not fname.endswith('.zip'):
-                path, fname = compress(path, fname)
             rel_path = os.path.join('logs', fname)
             myzip.write(path, rel_path, compress_type=comp)
 

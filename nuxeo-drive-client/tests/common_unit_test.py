@@ -795,17 +795,20 @@ class UnitTestCase(SimpleUnitTestCase):
             return (pack('>I', len(data)) + header + data
                     + pack('>I', zlib.crc32(header + data) & 0xffffffff))
 
-        content = pack('>{}B'.format(size), *[0] * size)
-        png = (b'\x89PNG\r\n\x1A\n'
-               + chunk(b'IHDR', pack('>2I5B', size, size, 1, 0, 0, 0, 0))
-               + chunk(b'IDAT', zlib.compress(content))
+        magic = pack('>8B', 137, 80, 78, 71, 13, 10, 26, 10)
+        png_filter = pack('>B', 0)
+        scanline = pack('>{}B'.format(size * 3), *[0] * (size * 3))
+        content = [png_filter + scanline for _ in range(size)]
+        png = (magic
+               + chunk(b'IHDR', pack('>2I5B', size, size, 8, 2, 0, 0, 0))
+               + chunk(b'IDAT', zlib.compress(b''.join(content)))
                + chunk(b'IEND', b''))
 
         if not filename:
             return png
 
-        with open(filename, 'wb') as f:
-            f.write(png)
+        with open(filename, 'wb') as fileo:
+            fileo.write(png)
 
     def assertNxPart(self, path, name=None, present=True):
         os_path = self.local_client_1.abspath(path)
