@@ -127,7 +127,7 @@ class LocalWatcher(EngineWorker):
                     self._end_action()
                 while (not self._watchdog_queue.empty()):
                     # Dont retest if already local scan
-                    if not trigger_local_scan and self._watchdog_queue.qsize() > self._windows_queue_threshold:
+                    if AbstractOSIntegration.is_windows() and not trigger_local_scan and self._watchdog_queue.qsize() > self._windows_queue_threshold:
                         log.debug('Windows queue threshold exceeded, will trigger local scan: %d events', self._watchdog_queue.qsize())
                         trigger_local_scan = True
                         self._delete_events.clear()
