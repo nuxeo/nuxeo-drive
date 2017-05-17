@@ -11,12 +11,8 @@ import nxdrive
 from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
 from nxdrive.client.common import BaseClient
 from nxdrive.logging_config import configure, get_logger
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import safe_long_path
-
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = IOError
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
@@ -85,7 +81,7 @@ def clean_dir(_dir):
                     BaseClient.unset_path_readonly(os.path.join(dirpath, filename))
             shutil.rmtree(to_remove)
         except Exception as e:
-            if type(e) == WindowsError:
+            if isinstance(e, OSError) and AbstractOSIntegration.is_windows():
                 os.system('rmdir /S /Q %s' % to_remove)
 
 

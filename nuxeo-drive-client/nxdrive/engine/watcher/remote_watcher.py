@@ -223,7 +223,7 @@ class RemoteWatcher(EngineWorker):
                       remote_info.name, remote_info.uid, elapsed)
             scroll_id = scroll_res['scroll_id']
             # Results are not necessarily sorted
-            descendants_info = sorted(descendants_info, key=lambda x: x.path, reverse=False)
+            descendants_info = sorted(descendants_info, key=lambda x: x.path)
             # Handle descendants
             for descendant_info in descendants_info:
                 log.trace('Handling remote descendant: %r', descendant_info)
@@ -245,7 +245,7 @@ class RemoteWatcher(EngineWorker):
 
         if to_process:
             t0 = datetime.now()
-            to_process = sorted(to_process, key=lambda x: x.path, reverse=False)
+            to_process = sorted(to_process, key=lambda x: x.path)
             log.trace('Processing [%d] postponed descendants of %s (%s)', len(to_process), remote_info.name,
                       remote_info.uid)
             for descendant_info in to_process:
@@ -544,18 +544,18 @@ class RemoteWatcher(EngineWorker):
             self._dao.update_config('remote_need_full_scan', remote_path)
             return
 
-        # Fetch all events and consider the most recent first
+        if not summary['fileSystemChanges']:
+            self._metrics['empty_polls'] += 1
+            self.noChangesFound.emit()
+            return
+
+        # Fetch all events and consider the most recent folder first
         sorted_changes = sorted(summary['fileSystemChanges'],
                                 key=lambda x: x['eventDate'], reverse=True)
         n_changes = len(sorted_changes)
-        if n_changes > 0:
-            log.debug("%d remote changes detected", n_changes)
-            self._metrics['last_changes'] = n_changes
-            self._metrics['empty_polls'] = 0
-            self.changesFound.emit(n_changes)
-        else:
-            self._metrics['empty_polls'] = self._metrics['empty_polls'] + 1
-            self.noChangesFound.emit()
+        self._metrics['last_changes'] = n_changes
+        self._metrics['empty_polls'] = 0
+        self.changesFound.emit(n_changes)
 
         # Scan events and update the related pair states
         refreshed = set()
@@ -597,8 +597,11 @@ class RemoteWatcher(EngineWorker):
                     doc_pair_repr = doc_pair.local_path if doc_pair.local_path is not None else doc_pair.remote_name
                     if event_id == 'deleted':
                         if fs_item is None:
-                            log.debug("Push doc_pair '%s' in delete queue",
-                                      doc_pair_repr)
+                            if doc_pair.local_path == '':
+                                log.debug("Delete pair from duplicate: %r", doc_pair)
+                                self._dao.remove_state(doc_pair, remote_recursion=True)
+                                continue
+                            log.debug("Push doc_pair '%s' in delete queue", doc_pair_repr)
                             delete_queue.append(doc_pair)
                         else:
                             log.debug("Ignore delete on doc_pair '%s' as a fsItem is attached", doc_pair_repr)
@@ -650,15 +653,15 @@ class RemoteWatcher(EngineWorker):
                                     new_info.can_update, new_info.can_create_child)
                             # Perform a regular document update on a document
                             # that has been updated, renamed or moved
-                            log.debug("Refreshing remote state info"
-                                      " for doc_pair '%s', eventId = %s (force_recursion:%d)", doc_pair_repr, event_id,
-                                      (event_id == "securityUpdated"))
-                            # if (new_info.digest != doc_pair.local_digest or
-                            #     safe_filename(new_info.name) != doc_pair.local_name
-                            #     or new_info.parent_uid != doc_pair.remote_parent_ref):
+                            log.debug('Refreshing remote state info for '
+                                      'doc_pair=%r, event_id=%r '
+                                      '(force_recursion=%d)', doc_pair_repr,
+                                      event_id, event_id == 'securityUpdated')
+
                             # Force remote state update in case of a locked / unlocked event since lock info is not
                             # persisted, so not part of the dirty check
-                            lock_update = event_id == 'documentLocked' or event_id == 'documentUnlocked'
+                            lock_update = event_id in ('documentLocked',
+                                                       'documentUnlocked')
                             if doc_pair.remote_state != 'created':
                                 if (new_info.digest != doc_pair.remote_digest
                                         or safe_filename(new_info.name) != doc_pair.remote_name
@@ -710,8 +713,7 @@ class RemoteWatcher(EngineWorker):
                     log.debug("Could not match changed document to a bound local folder: %r", new_info)
 
         # Sort by path the deletion to only mark parent
-        sorted_deleted = sorted(delete_queue,
-                                key=lambda x: x.local_path, reverse=False)
+        sorted_deleted = sorted(delete_queue, key=lambda x: x.local_path)
         delete_processed = []
         for delete_pair in sorted_deleted:
             # Mark as deleted

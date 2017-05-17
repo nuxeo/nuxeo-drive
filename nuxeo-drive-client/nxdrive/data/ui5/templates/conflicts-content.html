@@ -9,41 +9,41 @@
 	</div>
 	<div class="panel panel-default" ng-repeat="pair in conflicts">
 		<div class="panel-heading">
-			{{ pair.name }}
+			{{ pair.name }}{{ pair.folderish ? '/' : '' }}
 		</div>
 		<div class="panel-body">
 			<span style="color: #999; margin-bottom: 10px;cursor: pointer;" ng-click="open_local(pair.local_parent_path)" translate translate-values="{ path:'{{ pair.local_parent_path }}'}">FILE_PATH</span><br />
-			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_sync_date }}'}">LAST_SYNCHRONIZED</span><br />
 			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ contributor:'{{ pair.last_contributor }}'}">LAST_CONTRIBUTOR</span><br />
+			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_sync_date ? pair.last_sync_date : pair.last_remote_update }}'}">LAST_SYNCHRONIZED</span><br />
   			<div class="btn-group" role="group" aria-label="...">
  				<button type="button" ng-click="open_local(pair.local_path)" class="btn btn-default"><span class="glyphicon glyphicon-file">&nbsp;</span><span translate>OPEN_LOCAL</span></button>
  				<button ng-hide="pair.folderish" type="button" ng-click="open_remote(pair.remote_ref, pair.remote_name)" class="btn btn-default"><span class="glyphicon glyphicon-globe">&nbsp;</span><span translate>OPEN_REMOTE</span></button>
   			</div>
   			<div class="pull-right btn-group">
-				  <button type="button" class="btn btn-warning dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+				  <button ng-show="pair.duplication_enabled" type="button" class="btn btn-warning dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
 				    <span ng-show="pair.last_error != 'DUPLICATING'" translate>RESOLVE</span><span ng-show="pair.last_error == 'DUPLICATING'" translate>DUPLICATING</span> <span class="caret"></span>
 				  </button>
 				  <ul class="dropdown-menu" role="menu">
 				    <li ng-show="pair.remote_can_update || (pair.folderish && pair.remote_can_rename)"><a href="#" ng-click="resolve_with_local(pair.id)"><span class="glyphicon glyphicon-file">&nbsp;</span><span translate>CONFLICT_USE_LOCAL</span></a></li>
 				    <li ng-show="pair.remote_can_update || (pair.folderish && pair.remote_can_rename)" class="divider"></li>
 				    <li><a href="#" ng-click="resolve_with_remote(pair.id)"><span class="glyphicon glyphicon-globe">&nbsp;</span><span translate>CONFLICT_USE_REMOTE</span></a></li>
-				    <li ng-show="!pair.folderish" class="divider"></li>
-				    <li ng-show="!pair.folderish"><a href="#" ng-click="resolve_with_duplicate(pair.id)"><span class="glyphicon glyphicon-duplicate">&nbsp;</span><span translate>CONFLICT_USE_DUPLICATE</span></a></li>
+				    <li ng-show="!pair.folderish && pair.duplication_enabled" class="divider"></li>
+				    <li ng-show="!pair.folderish && pair.duplication_enabled"><a href="#" ng-click="resolve_with_duplicate(pair.id)"><span class="glyphicon glyphicon-duplicate">&nbsp;</span><span translate>CONFLICT_USE_DUPLICATE</span></a></li>
 				  </ul>
   			</div>
   		</div>
 	</div>
 	<div class="panel panel-default" ng-repeat="pair in errors">
 		<div class="panel-heading">
-			{{ pair.name }}
+			{{ pair.name }}{{ pair.folderish ? '/' : '' }}
 		</div>
 		<div class="panel-body">
 			{{ pair.error_reason | translate }}
 		</div>
 		<div class="panel-body">
 			<span style="color: #999; margin-bottom: 10px;cursor: pointer;" ng-click="open_local(pair.local_parent_path)" translate translate-values="{ path:'{{ pair.local_parent_path }}'}">FILE_PATH</span><br />
-			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ contributor:'{{ pair.last_sync_date ? pair.last_sync_date : pair.last_contributor }}'}">LAST_CONTRIBUTOR</span><br />
-			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_remote_update }}'}">LAST_SYNCHRONIZED</span>
+			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ contributor:'{{ pair.last_contributor }}'}">LAST_CONTRIBUTOR</span><br />
+			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_sync_date ? pair.last_sync_date : pair.last_remote_update }}'}">LAST_SYNCHRONIZED</span>
 			<div class="pull-right btn-group">
 				<button type="button" class="btn btn-danger" ng-click="retry_pair(pair.id)" translate>
 					CONFLICT_RETRY
@@ -63,7 +63,7 @@
 		<h4>Ignored files</h4>
 		<div class="panel panel-default" ng-repeat="pair in ignoreds">
 			<div class="panel-heading">
-			{{ pair.name }}
+			{{ pair.name }}{{ pair.folderish ? '/' : '' }}
 			</div>
 			<div class="panel-body">
 				{{ pair.ignore_reason | translate }}<br />

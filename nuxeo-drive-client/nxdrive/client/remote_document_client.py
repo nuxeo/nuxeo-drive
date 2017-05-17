@@ -107,8 +107,8 @@ class RemoteDocumentClient(BaseAutomationClient):
                 raise NotFound("Could not find '%s' on '%s'" % (
                     self._check_ref(ref), self.server_url))
             return None
-        return self._doc_to_info(self.fetch(self._check_ref(ref)),
-                                 fetch_parent_uid=fetch_parent_uid)
+        return self.doc_to_info(self.fetch(self._check_ref(ref)),
+                                fetch_parent_uid=fetch_parent_uid)
 
     def get_content(self, ref):
         """Download and return the binary content of a document
@@ -248,9 +248,6 @@ class RemoteDocumentClient(BaseAutomationClient):
                     ref = self._base_folder_path + ref
         return ref
 
-    def _doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
-        return self.doc_to_info(doc, fetch_parent_uid, parent_uid)
-
     def doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
         """Convert Automation document description to NuxeoDocumentInfo"""
         props = doc['properties']
@@ -336,8 +333,8 @@ class RemoteDocumentClient(BaseAutomationClient):
         # Filter out filenames that would be ignored by the file system client
         # so as to be consistent.
         filtered = []
-        for info in [self._doc_to_info(d, fetch_parent_uid=fetch_parent_uid,
-                                       parent_uid=parent_uid)
+        for info in [self.doc_to_info(d, fetch_parent_uid=fetch_parent_uid,
+                                      parent_uid=parent_uid)
                      for d in entries]:
 
             if (info.name.endswith(self.ignored_suffixes)

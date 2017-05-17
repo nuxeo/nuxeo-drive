@@ -28,11 +28,6 @@ from nxdrive.manager import ServerBindingSettings
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import normalized_path
 
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = IOError
-
 log = get_logger(__name__)
 
 
@@ -379,7 +374,7 @@ class Engine(QObject):
         log.debug("Remove DB file %s", self._get_db_file())
         try:
             os.remove(self._get_db_file())
-        except (IOError, OSError, WindowsError) as ioe:
+        except (IOError, OSError) as ioe:
             log.exception(ioe)
         return
 

@@ -7,7 +7,6 @@ import _winreg
 import pythoncom
 import win32api
 import win32file
-from exceptions import WindowsError
 from win32com.shell import shell, shellcon
 from win32con import LOGPIXELSX
 
@@ -209,7 +208,7 @@ class WindowsIntegration(AbstractOSIntegration):
                 subkey = _winreg.EnumValue(key, i)
                 result[subkey[0].replace('-', '_')] = subkey[1]
             _winreg.CloseKey(key)
-        except WindowsError:
+        except OSError:
             pass
         return result
 

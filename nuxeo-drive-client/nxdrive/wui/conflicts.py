@@ -102,6 +102,8 @@ class WebConflictsApi(WebDriveApi):
         result["last_local_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
         result["remote_can_update"] = state.remote_can_update
         result['remote_can_rename'] = state.remote_can_rename
+        result['duplication_enabled'] = (self._engine.get_local_client()
+                                             .duplication_enabled())
         return result
 
 

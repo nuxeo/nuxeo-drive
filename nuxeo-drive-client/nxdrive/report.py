@@ -23,7 +23,9 @@ class Report(object):
             folder = os.path.dirname(report_path)
         if not os.path.exists(folder):
             os.mkdir(folder)
-        self._zipfile = os.path.join(folder, self._report_name + '.zip')
+        if not self._report_name.endswith('.zip'):
+            self._report_name += '.zip'
+        self._zipfile = os.path.join(folder, self._report_name)
 
     def copy_logs(self, myzip):
         folder = os.path.join(self._manager.get_configuration_folder(), 'logs')
@@ -77,12 +79,15 @@ class Report(object):
         logger = get_logger(None)
         handler = get_handler(logger, 'memory')
         log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
+
         for record in log_buffer:
             try:
                 line = handler.format(record)
             except UnicodeEncodeError:
                 log.error('Log record encoding error: %r', record.__dict__)
                 line = record.getMessage()
+                if isinstance(line, Exception):
+                    line = line.message.encode('utf-8', errors='replace')
             if isinstance(line, bytes):
                 line = line.decode('utf-8', errors='replace')
             yield line
@@ -93,10 +98,11 @@ class Report(object):
         with ZipFile(self._zipfile, mode='w') as zip_:
             dao = self._manager.get_dao()
             self.copy_db(zip_, dao)
+
             for engine in self._manager.get_engines().values():
                 log.debug('Engine metrics: %r', engine.get_metrics())
                 self.copy_db(zip_, engine.get_dao())
-                # Might want threads too here
+
             self.copy_logs(zip_)
 
             # Memory efficient debug.log creation

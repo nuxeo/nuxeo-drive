@@ -9,11 +9,6 @@ from PyQt4.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 from nxdrive.engine.processor import Processor
 from nxdrive.logging_config import get_logger
 
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = OSError
-
 log = get_logger(__name__)
 WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
 
@@ -244,8 +239,7 @@ class QueueManager(QObject):
 
     def push_error(self, doc_pair, exception=None, interval=None):
         error_count = doc_pair.error_count
-        if (exception is not None
-                and isinstance(exception, WindowsError)
+        if (isinstance(exception, OSError)
                 and hasattr(exception, 'winerror')
                 and exception.winerror == WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE):
             log.debug("Detected WindowsError with code %d: '%s', won't increase next try interval",

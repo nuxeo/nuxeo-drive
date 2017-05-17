@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import shutil
+import sqlite3
 from threading import Lock
 from time import sleep
 from urllib2 import HTTPError
@@ -16,11 +17,6 @@ from nxdrive.engine.workers import EngineWorker, PairInterrupt, ThreadInterrupt
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import current_milli_time, is_office_temp_file
-
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = IOError
 
 log = get_logger(__name__)
 
@@ -102,7 +98,6 @@ class Processor(EngineWorker):
             Processor.path_locker.release()
 
     def _lock_path(self, path):
-        log.trace("Get lock for '%s'", path)
         Processor.path_locker.acquire()
         if self._engine.get_uid() not in Processor.path_locks:
             Processor.path_locks[self._engine.get_uid()] = dict()
@@ -161,44 +156,61 @@ class Processor(EngineWorker):
             local_client = self._engine.get_local_client()
             remote_client = self._engine.get_remote_client()
             try:
-                doc_pair = self._dao.acquire_state(self._thread_id, self._current_item.id)
-            except:
+                doc_pair = self._dao.acquire_state(self._thread_id,
+                                                   self._current_item.id)
+            except sqlite3.OperationalError:
                 log.trace("Cannot acquire state for: %r", self._current_item)
-                self._postpone_pair(self._current_item, 'Pair in use', interval=3)
+                self._postpone_pair(self._current_item, 'Pair in use',
+                                    interval=3)
                 self._current_item = self._get_item()
                 continue
             try:
                 if doc_pair is None:
-                    log.trace("Didn't acquire state, dropping %r", self._current_item)
+                    log.trace("Didn't acquire state, dropping %r",
+                              self._current_item)
                     self._current_item = self._get_item()
                     continue
-                log.debug('Executing processor on %r(%d)', doc_pair, doc_pair.version)
+                # In case of duplicate we remove the local_path as it has conflict
+                if doc_pair.local_path == '':
+                    doc_pair.local_path = os.path.join(
+                        doc_pair.local_parent_path, doc_pair.remote_name)
+                    log.trace('Re-guess local_path from duplicate: %r', doc_pair)
+                log.debug('Executing processor on %r(%d)', doc_pair,
+                          doc_pair.version)
                 self._current_doc_pair = doc_pair
                 self._current_temp_file = None
                 if not self.check_pair_state(doc_pair):
                     self._current_item = self._get_item()
                     continue
-                if AbstractOSIntegration.is_mac() and local_client.exists(doc_pair.local_path):
+                if (AbstractOSIntegration.is_mac()
+                        and local_client.exists(doc_pair.local_path)):
                     try:
-                        finder_info = local_client.get_remote_id(doc_pair.local_path, "com.apple.FinderInfo")
-                        if finder_info is not None and 'brokMACS' in finder_info:
-                            log.trace("Skip as pair is in use by Finder: %r", doc_pair)
-                            self._postpone_pair(doc_pair, 'Finder using file', interval=3)
+                        finder_info = local_client.get_remote_id(
+                            doc_pair.local_path, "com.apple.FinderInfo")
+                        if (finder_info is not None
+                                and 'brokMACS' in finder_info):
+                            log.trace("Skip as pair is in use by Finder: %r",
+                                      doc_pair)
+                            self._postpone_pair(doc_pair, 'Finder using file',
+                                                interval=3)
                             self._current_item = self._get_item()
                             continue
                     except IOError:
                         pass
                 # TODO Update as the server dont take hash to avoid conflict yet
-                if (doc_pair.pair_state.startswith("locally")
+                if (doc_pair.pair_state.startswith('locally')
                         and doc_pair.remote_ref is not None):
                     try:
-                        remote_info = remote_client.get_info(doc_pair.remote_ref)
-                        if remote_info.digest != doc_pair.remote_digest and doc_pair.remote_digest is not None:
+                        remote_info = remote_client.get_info(
+                            doc_pair.remote_ref)
+                        if (remote_info.digest != doc_pair.remote_digest
+                                and doc_pair.remote_digest is not None):
                             doc_pair.remote_state = 'modified'
-                        if doc_pair.folderish and \
-                                remote_info.name != doc_pair.remote_name:
+                        if (doc_pair.folderish
+                                and remote_info.name != doc_pair.remote_name):
                             doc_pair.remote_state = 'moved'
-                        self._refresh_remote(doc_pair, remote_client, remote_info)
+                        self._refresh_remote(doc_pair, remote_client,
+                                             remote_info)
                         # Can run into conflict
                         if doc_pair.pair_state == 'conflicted':
                             self._current_item = self._get_item()
@@ -209,6 +221,14 @@ class Processor(EngineWorker):
                             continue
                     except NotFound:
                         doc_pair.remote_ref = None
+
+                # NXDRIVE-842: parent is in disabled duplication error
+                state = self._get_normal_state_from_remote_ref(
+                    doc_pair.remote_parent_ref)
+                if state and state.last_error == 'DEDUP':
+                    self._current_item = self._get_item()
+                    continue
+
                 parent_path = doc_pair.local_parent_path
                 if parent_path == '':
                     parent_path = "/"
@@ -216,7 +236,8 @@ class Processor(EngineWorker):
                     if doc_pair.remote_state == "deleted":
                         self._dao.remove_state(doc_pair)
                         continue
-                    self._handle_no_parent(doc_pair, local_client, remote_client)
+                    self._handle_no_parent(doc_pair, local_client,
+                                           remote_client)
                     self._current_item = self._get_item()
                     continue
 
@@ -225,7 +246,7 @@ class Processor(EngineWorker):
                 self._action = Action(handler_name)
                 sync_handler = getattr(self, handler_name, None)
                 if sync_handler is None:
-                    log.debug("Unhandled pair_state: %r for %r",
+                    log.debug('Unhandled pair_state: %r for %r',
                               doc_pair.pair_state, doc_pair)
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
                     self._current_item = self._get_item()
@@ -234,29 +255,32 @@ class Processor(EngineWorker):
                     self._current_metrics = dict()
                     self._current_metrics["handler"] = doc_pair.pair_state
                     self._current_metrics["start_time"] = current_milli_time()
-                    log.trace("Calling %s on doc pair %r", sync_handler, doc_pair)
+                    log.trace('Calling %s on doc pair %r', sync_handler,
+                              doc_pair)
                     try:
                         soft_lock = self._lock_soft_path(doc_pair.local_path)
                         sync_handler(doc_pair, local_client, remote_client)
                         self._current_metrics["end_time"] = current_milli_time()
                         self.pairSync.emit(doc_pair, self._current_metrics)
-                        # TO_REVIEW May have a call to reset_error
-                        log.trace("Finish %s on doc pair %r", sync_handler, doc_pair)
                     except ThreadInterrupt:
                         raise
                     except PairInterrupt:
                         # Wait one second to avoid retrying to quickly
                         self._current_doc_pair = None
-                        log.debug("PairInterrupt wait 1s and requeue on %r", doc_pair)
+                        log.debug('PairInterrupt wait 1s and requeue on %r',
+                                  doc_pair)
                         sleep(1)
                         self._engine.get_queue_manager().push(doc_pair)
                         continue
                     except DuplicationDisabledError:
                         self.giveup_error(doc_pair, 'DEDUP')
+                        log.trace('Removing local_path on %r', doc_pair)
+                        self._dao.remove_local_path(doc_pair.id)
                         self._current_item = self._get_item()
                         continue
                     except Exception as e:
-                        self._handle_pair_handler_exception(doc_pair, handler_name, e)
+                        self._handle_pair_handler_exception(doc_pair,
+                                                            handler_name, e)
                         self._current_item = self._get_item()
                         continue
             except ThreadInterrupt:
@@ -378,7 +402,8 @@ class Processor(EngineWorker):
         return self._dao.get_normal_state_from_remote(ref)
 
     def _postpone_pair(self, doc_pair, reason='', interval=None):
-        # Wait 60s for it
+        """ Wait 60 sec for it. """
+
         log.trace("Postpone creation of local file(%s): %r", reason, doc_pair)
         doc_pair.error_count = 1
         self._engine.get_queue_manager().push_error(doc_pair, exception=None, interval=interval)
@@ -580,6 +605,7 @@ class Processor(EngineWorker):
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):
         if not doc_pair.remote_ref:
             self._dao.remove_state(doc_pair)
+            self._search_for_dedup(doc_pair)
             return
 
         if doc_pair.remote_can_delete:
@@ -597,6 +623,7 @@ class Processor(EngineWorker):
                 self._dao.remove_state(doc_pair)
                 self._dao.add_filter(doc_pair.remote_parent_path + '/' + doc_pair.remote_ref)
                 self._engine.deleteReadonly.emit(doc_pair.local_name)
+        self._search_for_dedup(doc_pair)
 
     def _synchronize_locally_moved_remotely_modified(self, doc_pair, local_client, remote_client):
         self._synchronize_locally_moved(doc_pair, local_client, remote_client, update=False)
@@ -610,6 +637,7 @@ class Processor(EngineWorker):
         # A file has been moved locally, and an error occurs when tried to
         # move on the server
         remote_info = None
+        self._search_for_dedup(doc_pair, doc_pair.remote_name)
         if doc_pair.local_name != doc_pair.remote_name:
             try:
                 if doc_pair.remote_can_rename:
@@ -715,6 +743,16 @@ class Processor(EngineWorker):
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
 
+    def _search_for_dedup(self, doc_pair, name=None):
+        if name is None:
+            name = doc_pair.local_name
+        # Auto resolve duplicate
+        log.debug('Search for dupe pair with %s %s', name, doc_pair.remote_parent_ref)
+        dupe_pair = self._dao.get_dedupe_pair(name, doc_pair.remote_parent_ref, doc_pair.id)
+        if dupe_pair is not None:
+            log.debug('Dupe pair found %r', dupe_pair)
+            self._dao.reset_error(dupe_pair)
+
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
         self.tmp_file = None
         try:
@@ -772,10 +810,11 @@ class Processor(EngineWorker):
                         if updated_info:
                             new_path = os.path.dirname(updated_info.path)
                             self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path), new_path)
+                            self._search_for_dedup(doc_pair)
                             self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
-        except (IOError, WindowsError) as e:
+        except (IOError, OSError) as e:
             log.warning(
                 "Delaying local update of remotely modified content %r due to"
                 " concurrent file access (probably opened by another"
@@ -786,7 +825,7 @@ class Processor(EngineWorker):
             if self.tmp_file is not None and os.path.exists(self.tmp_file):
                 try:
                     os.remove(self.tmp_file)
-                except (IOError, WindowsError):
+                except (IOError, OSError):
                     pass
             if doc_pair.folderish:
                 # Release folder lock in any case
@@ -813,13 +852,21 @@ class Processor(EngineWorker):
             raise ValueError(
                 "Parent folder of doc %r (%r) is not bound to a local"
                 " folder" % (name, doc_pair.remote_ref))
+
         path = doc_pair.remote_parent_path + '/' + doc_pair.remote_ref
         if remote_client.is_filtered(path):
             # It is filtered so skip and remove from the LastKnownState
             self._dao.remove_state(doc_pair)
             return
+
         if not local_client.exists(doc_pair.local_path):
-            path = self._create_remotely(local_client, remote_client, doc_pair, parent_pair, name)
+            # Check the parent's UID. A file cannot be created
+            # if the parent's name is equal but not the UID.
+            remote_parent_ref = local_client.get_remote_id(parent_pair.local_path)
+            if remote_parent_ref != parent_pair.remote_ref:
+                return
+            path = self._create_remotely(local_client, remote_client, doc_pair,
+                                         parent_pair, name)
         else:
             path = doc_pair.local_path
             remote_ref = local_client.get_remote_id(doc_pair.local_path)
@@ -898,7 +945,8 @@ class Processor(EngineWorker):
                 else:
                     local_client.delete_final(doc_pair.local_path)
             self._dao.remove_state(doc_pair)
-        except (IOError, WindowsError) as e:
+            self._search_for_dedup(doc_pair)
+        except (IOError, OSError) as e:
             # Under Windows deletion can be impossible while another
             # process is accessing the same file (e.g. word processor)
             # TODO: be more specific as detecting this case:

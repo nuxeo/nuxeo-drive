@@ -24,11 +24,6 @@ from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, DEFAULT_IGNORED_PREF
 from nxdrive.utils import ENCODING, OSX_SUFFIX, decrypt, encrypt, \
     normalized_path
 
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = IOError
-
 if AbstractOSIntegration.is_windows():
     import _winreg
     import win32api
@@ -500,9 +495,9 @@ class Manager(QtCore.QObject):
         old_db = os.path.join(normalized_path(self.nxdrive_home), "nxdrive.db")
         if os.path.exists(old_db):
             import sqlite3
-            from nxdrive.engine.dao.sqlite import CustomRow
+            from nxdrive.engine.dao.sqlite import StateRow
             conn = sqlite3.connect(old_db)
-            conn.row_factory = CustomRow
+            conn.row_factory = StateRow
             c = conn.cursor()
             cfg = c.execute("SELECT * FROM device_config LIMIT 1").fetchone()
             if cfg is not None:
@@ -1005,7 +1000,7 @@ class Manager(QtCore.QObject):
             settings = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, regkey)
             try:
                 return str(_winreg.QueryValueEx(settings, 'AutoConfigURL')[0])
-            except WindowsError as e:
+            except OSError as e:
                 if e.errno not in (2,):
                     log.error('Error retrieving PAC URL', exc_info=True)
             finally:

@@ -16,12 +16,6 @@ from nxdrive.osi import AbstractOSIntegration
 from tests.common import EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from tests.common_unit_test import UnitTestCase
 
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = IOError
-
-
 class StubLocalClient(object):
     """
     All tests goes here. If you need to implement a special behavior for
@@ -312,7 +306,8 @@ class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
 
         if AbstractOSIntegration.is_windows():
             # WindowsError: [Error 206] The filename or extension is too long
-            with self.assertRaises(WindowsError):
+            with self.assertRaises(OSError) as ex:
                 super(TestLocalClientSimulation, self).test_deep_folders()
+                self.assertEqual(ex.errno, 206)
         else:
             super(TestLocalClientSimulation, self).test_deep_folders()

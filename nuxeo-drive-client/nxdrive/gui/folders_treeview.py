@@ -72,8 +72,8 @@ class FileInfo(object):
     def get_path(self):
         path = ""
         if self.parent is not None:
-            path = path + self.parent.get_path()
-        path = path + "/" + self.get_id()
+            path += self.parent.get_path()
+        path += '/' + self.get_id()
         return path
 
     def get_checkstate(self):
@@ -180,7 +180,7 @@ class FilteredFsClient(FsClient):
 
     def get_item_state(self, path):
         if not path.endswith("/"):
-            path = path + "/"
+            path += '/'
         if any([path.startswith(filter_path) for filter_path in self.filters]):
             return QtCore.Qt.Unchecked
         # Find partial checked
@@ -215,7 +215,7 @@ class DocClient(Client):
             docList = docList.get('entries')
             for doc in docList:
                 doc_info = DocFileInfo(doc)
-                if (not doc_info.is_hidden()):
+                if not doc_info.is_hidden():
                     result.append(doc_info)
         return result
 
@@ -251,16 +251,10 @@ class Overlay(QtGui.QWidget):
 
 
 class FolderTreeview(QtGui.QTreeView):
-    '''
-    classdocs
-    '''
 
     showHideLoadingOverlay = QtCore.pyqtSignal(bool)
 
     def __init__(self, parent, client):
-        '''
-        Constructor
-        '''
         super(FolderTreeview, self).__init__(parent)
         self.client = client
         self.cache = []
@@ -287,8 +281,8 @@ class FolderTreeview(QtGui.QTreeView):
         sum_states = 0
         while i < item.rowCount():
             if item.child(i).checkState() == QtCore.Qt.Checked:
-                sum_states = sum_states + 1
-            i = i + 1
+                sum_states += 1
+            i += 1
         if sum_states == 0:
             item.setCheckState(QtCore.Qt.PartiallyChecked)
         elif sum_states == item.rowCount():
@@ -328,7 +322,7 @@ class FolderTreeview(QtGui.QTreeView):
         while i < item.rowCount():
             item.child(i).setCheckState(item.checkState())
             self.resolveItemDownChanged(item.child(i))
-            i = i + 1
+            i += 1
 
     def itemChanged(self, item):
         # Disconnect from signal to update the tree has we want
@@ -358,7 +352,7 @@ class FolderTreeview(QtGui.QTreeView):
         return self.dirtyItems
 
     def loadChildren(self, item=None):
-        if (self.client is None):
+        if self.client is None:
             self.setLoad(False)
             return
         self.setLoad(True)
@@ -400,7 +394,7 @@ class FolderTreeview(QtGui.QTreeView):
             subitem.setEditable(False)
             subitem.setData(QtCore.QVariant(child), QtCore.Qt.UserRole)
             # Create a fake loading item for now
-            if (child.has_children()):
+            if child.has_children():
                 loaditem = QtGui.QStandardItem("")
                 loaditem.setSelectable(False)
                 subitem.appendRow(loaditem)
@@ -413,7 +407,7 @@ class FolderTreeview(QtGui.QTreeView):
 
     @QtCore.pyqtSlot(bool)
     def setLoad(self, value):
-        if (value):
+        if value:
             self.overlay.show()
         else:
             self.overlay.hide()

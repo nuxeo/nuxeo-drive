@@ -115,6 +115,9 @@ for (def x in slaves) {
                     env.DRIVE_YAPPI = params.ENABLE_PROFILER ? env.WORKSPACE : ''
 
                     stage(osi + ' Checkout') {
+                        dir('sources') {
+                            deleteDir()
+                        }
                         github_status('PENDING')
                         checkout_custom()
                     }
@@ -144,10 +147,18 @@ for (def x in slaves) {
                             env.REPORT_PATH = env.WORKSPACE + '/sources'
                             env.TEST_REMOTE_SCAN_VOLUME = 100
 
-                            if (osi == 'Windows') {
-                                bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
-                            } else {
+                            if (osi == 'macOS') {
+                                // Adjust the PATH
+                                def env_vars = [
+                                    'PATH+LOCALBIN=/usr/local/bin',
+                                ]
+                                withEnv(env_vars) {
+                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                }
+                            } else if (osi == 'GNU/Linux') {
                                 sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                            } else {
+                                bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
                             }
                         }
 
@@ -180,7 +191,7 @@ for (def x in slaves) {
     }
 }
 
-timeout(180) {
+timeout(240) {
     timestamps {
         parallel builders
     }

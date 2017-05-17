@@ -44,6 +44,9 @@ class Worker(QObject):
         self._running = False
         self._thread.terminated.connect(self._terminated)
 
+    def __repr__(self):
+        return '<{} ID={}>'.format(type(self).__name__, self._thread_id)
+
     def is_started(self):
         return self._continue
 
@@ -208,11 +211,11 @@ class EngineWorker(Worker):
         pass
 
     def _clean(self, reason, e=None):
-        if e is not None and type(e) == HTTPError:
-            if e.code == 401:
-                self._engine.set_invalid_credentials(reason="got HTTPError %d while cleaning EngineWorker '%s'"
-                                                     % (e.code, self._name), exception=e)
-                self._reset_clients()
+        if isinstance(e, HTTPError) and e.code == 401:
+            reason = 'got HTTPError %d while cleaning EngineWorker "%s"' % \
+                     (e.code, self._name)
+            self._engine.set_invalid_credentials(reason=reason, exception=e)
+            self._reset_clients()
         self._engine.get_dao().dispose_thread()
 
     def giveup_error(self, doc_pair, error, exception=None):

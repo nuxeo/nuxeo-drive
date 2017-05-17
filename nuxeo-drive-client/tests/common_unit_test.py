@@ -610,7 +610,7 @@ class UnitTestCase(SimpleUnitTestCase):
         # TODO Should use a specific application
         def launch_test():
             self.remote_restapi_client_admin.log_on_server(
-                '----- Testing ' + self.id())
+                '>>> testing: ' + self.id())
             log.debug("UnitTest thread started")
             sleep(1)
             self.setup_profiler()

@@ -22,11 +22,6 @@ from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import guess_digest_algorithm, normalized_path, \
     safe_long_path
 
-try:
-    from exceptions import WindowsError
-except ImportError:
-    WindowsError = IOError
-
 if AbstractOSIntegration.is_windows():
     import win32api
     import win32con
@@ -136,6 +131,16 @@ class LocalClient(BaseClient):
         self.base_folder = base_folder
         self._digest_func = digest_func
 
+    def __repr__(self):
+        return ('<{name}'
+                ' base_folder={cls.base_folder!r},'
+                ' duplication_enabled={cls._disable_duplication!r},'
+                ' is_case_sensitive={cls._case_sensitive!r},'
+                ' ignored_prefixes={cls.ignored_prefixes!r},'
+                ' ignored_suffixes={cls.ignored_suffixes!r}'
+                '>'
+                ).format(name=type(self).__name__, cls=self)
+
     def duplication_enabled(self):
         """ Check if de-duplication is enable or not. """
 
@@ -201,7 +206,7 @@ class LocalClient(BaseClient):
             try:
                 if os.path.exists(pathAlt):
                     os.remove(pathAlt)
-            except WindowsError as e:
+            except OSError as e:
                 if e.errno == os.errno.EACCES:
                     self.unset_path_readonly(path)
                     os.remove(pathAlt)

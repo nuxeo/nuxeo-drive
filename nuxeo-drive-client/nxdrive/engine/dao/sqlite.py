@@ -76,32 +76,23 @@ class AutoRetryConnection(sqlite3.Connection):
         return super(AutoRetryConnection, self).cursor(AutoRetryCursor)
 
 
-class CustomRow(sqlite3.Row):
+class StateRow(sqlite3.Row):
 
     def __init__(self, arg1, arg2):
-        super(CustomRow, self).__init__(arg1, arg2)
-        self._custom = dict()
+        super(StateRow, self).__init__(arg1, arg2)
+
+    def __repr__(self):
+        return ('<{name}[{cls.id!r}]'
+                ' local_path={cls.local_path!r},'
+                ' remote_ref={cls.remote_ref!r},'
+                ' local_state={cls.local_state!r},'
+                ' remote_state={cls.remote_state!r},'
+                ' pair_state={cls.pair_state!r}'
+                '>'
+                ).format(name=type(self).__name__, cls=self)
 
     def __getattr__(self, name):
-        if name in self._custom:
-            return self._custom[name]
         return self[name]
-
-    def __setattr__(self, name, value):
-        if name.startswith('_'):
-            super(CustomRow, self).__setattr__(name,value)
-        else:
-            self._custom[name] = value
-
-    def __delattr__(self, name):
-        if name.startswith('_'):
-            super(CustomRow, self).__detattr__(name)
-        else:
-            del self._custom[name]
-
-
-class StateRow(CustomRow):
-    _custom = None
 
     def is_readonly(self):
         if self.folderish:
@@ -114,14 +105,6 @@ class StateRow(CustomRow):
             self.local_state = local_state
         if remote_state is not None:
             self.remote_state = remote_state
-
-    def __repr__(self):
-        return self.__unicode__().encode('ascii', 'ignore')
-
-    def __unicode__(self):
-        return u"%s[%d](Local: %r, Remote: %s, Local state: %s, Remote state: %s, State: %s)" % (
-            self.__class__.__name__, self.id, self.local_path, self.remote_ref, self.local_state, self.remote_state,
-            self.pair_state)
 
 
 class LogLock(object):
@@ -167,7 +150,7 @@ class ConfigurationDAO(QObject):
         # Use to clean
         self._connections = []
         self._create_main_conn()
-        self._conn.row_factory = CustomRow
+        self._conn.row_factory = StateRow
         c = self._conn.cursor()
         self._init_db(c)
         if migrate:
@@ -256,7 +239,7 @@ class ConfigurationDAO(QObject):
             self._connections.remove(self._conns._conn)
         self._conns._conn = None
 
-    def _get_write_connection(self, factory=CustomRow):
+    def _get_write_connection(self, factory=StateRow):
         if self.share_connection or self.in_tx:
             if self._conn is None:
                 self._create_main_conn()
@@ -264,7 +247,7 @@ class ConfigurationDAO(QObject):
             return self._conn
         return self._get_read_connection(factory)
 
-    def _get_read_connection(self, factory=CustomRow):
+    def _get_read_connection(self, factory=StateRow):
         # If in transaction
         if self.in_tx is not None:
             if current_thread().ident != self.in_tx:
@@ -466,7 +449,6 @@ class ManagerDAO(ConfigurationDAO):
             self._lock.release()
 
     def add_engine(self, engine, path, key, name):
-        result = None
         self._lock.acquire()
         try:
             con = self._get_write_connection()
@@ -492,15 +474,9 @@ class ManagerDAO(ConfigurationDAO):
 
 
 class EngineDAO(ConfigurationDAO):
-    '''
-    classdocs
-    '''
     newConflict = pyqtSignal(object)
 
     def __init__(self, db, state_factory=StateRow):
-        '''
-        Constructor
-        '''
         self._filters = None
         self._queue_manager = None
         super(EngineDAO, self).__init__(db)
@@ -663,9 +639,9 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             update = "UPDATE States SET remote_state='deleted', pair_state=?"
-            c.execute(update + " WHERE id=?", ('remotely_deleted',doc_pair.id))
+            c.execute(update + " WHERE id=?", ('remotely_deleted', doc_pair.id))
             if doc_pair.folderish:
-                c.execute(update + self._get_recursive_condition(doc_pair), ('parent_remotely_deleted',))
+                c.execute(update + self._get_recursive_remote_condition(doc_pair), ('parent_remotely_deleted',))
             # Only queue parent
             self._queue_pair_state(doc_pair.id, doc_pair.folderish, 'remotely_deleted')
             if self.auto_commit:
@@ -778,6 +754,22 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("UPDATE States SET last_transfer=? WHERE id=?", (transfer, row_id))
+            if self.auto_commit:
+                con.commit()
+        finally:
+            self._lock.release()
+
+    def get_dedupe_pair(self, name, parent, row_id):
+        c = self._get_read_connection(factory=self._state_factory).cursor()
+        return c.execute("SELECT * FROM States WHERE id != ? AND local_name=? AND remote_parent_ref=?",
+                                    (row_id, name, parent)).fetchone()
+
+    def remove_local_path(self, row_id):
+        self._lock.acquire()
+        try:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute("UPDATE States SET local_path='' WHERE id=?", (row_id,))
             if self.auto_commit:
                 con.commit()
         finally:
@@ -930,8 +922,16 @@ class EngineDAO(ConfigurationDAO):
         return state
 
     def _get_recursive_condition(self, doc_pair):
-        return (" WHERE local_parent_path LIKE '" + self._escape(doc_pair.local_path) + "/%'"
-                    + " OR local_parent_path = '" + self._escape(doc_pair.local_path) + "'")
+        res = (" WHERE (local_parent_path LIKE '" + self._escape(doc_pair.local_path) + "/%'"
+                    + " OR local_parent_path = '" + self._escape(doc_pair.local_path) + "')")
+        if doc_pair.remote_ref is not None:
+            res += " AND remote_parent_path LIKE '" + self._escape(doc_pair.remote_parent_path +
+                    '/' + doc_pair.remote_ref) + "%'"
+        return res
+
+    def _get_recursive_remote_condition(self, doc_pair):
+        remote_path = self._escape(doc_pair.remote_parent_path) + '/' + self._escape(doc_pair.remote_name)
+        return (" WHERE remote_parent_path LIKE '" +  remote_path + "/%' OR remote_parent_path = '" + remote_path + "'")
 
     def update_remote_parent_path(self, doc_pair, new_path):
         self._lock.acquire()
@@ -942,7 +942,7 @@ class EngineDAO(ConfigurationDAO):
                 remote_path = doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
                 query = "UPDATE States SET remote_parent_path='%s/%s' || substr(remote_parent_path,%d)" % (
                     self._escape(new_path), self._escape(doc_pair.remote_ref), len(remote_path) + 1)
-                query = query + self._get_recursive_condition(doc_pair)
+                query = query + self._get_recursive_remote_condition(doc_pair)
                 log.trace("Update remote_parent_path: " + query)
                 c.execute(query)
             c.execute("UPDATE States SET remote_parent_path=? WHERE id=?", (new_path, doc_pair.id))
@@ -1029,14 +1029,17 @@ class EngineDAO(ConfigurationDAO):
         finally:
             self._lock.release()
 
-    def remove_state(self, doc_pair):
+    def remove_state(self, doc_pair, remote_recursion=False):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute("DELETE FROM States WHERE id=?", (doc_pair.id,))
             if doc_pair.folderish:
-                c.execute("DELETE FROM States" + self._get_recursive_condition(doc_pair))
+                if remote_recursion:
+                    c.execute("DELETE FROM States" + self._get_recursive_remote_condition(doc_pair))
+                else:
+                    c.execute("DELETE FROM States" + self._get_recursive_condition(doc_pair))
             if self.auto_commit:
                 con.commit()
         finally:
