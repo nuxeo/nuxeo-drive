@@ -570,10 +570,7 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
-        res = c.rowcount > 0
-        if not res:
-            log.trace('No processor to release with id %d', processor_id)
-        return res
+        return c.rowcount > 0
 
     def acquire_processor(self, thread_id, row_id):
         self._lock.acquire()

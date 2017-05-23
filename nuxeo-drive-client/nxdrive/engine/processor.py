@@ -159,9 +159,10 @@ class Processor(EngineWorker):
                 doc_pair = self._dao.acquire_state(self._thread_id,
                                                    self._current_item.id)
             except sqlite3.OperationalError:
-                log.trace("Cannot acquire state for: %r", self._current_item)
                 state = self._dao.get_state_from_id(self._current_item.id)
                 if state:
+                    log.trace('Cannot acquire state for: %r',
+                              self._current_item)
                     self._postpone_pair(self._current_item, 'Pair in use',
                                         interval=3)
                 self._current_item = self._get_item()
