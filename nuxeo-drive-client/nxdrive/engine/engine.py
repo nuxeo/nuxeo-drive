@@ -969,8 +969,8 @@ class Engine(QObject):
             cache[cache_key] = remote_client
         return remote_client
 
-    def create_processor(self, item_getter, name=None):
-        return Processor(self, item_getter, name=name)
+    def create_processor(self, item_getter, **kwargs):
+        return Processor(self, item_getter, **kwargs)
 
     def dispose_db(self):
         if self._dao is not None:

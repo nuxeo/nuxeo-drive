@@ -362,8 +362,9 @@ class QueueManager(QObject):
                 or self._remote_folder_thread is not None
                 or len(self._processors_pool) > 0)
 
-    def _create_thread(self, item_getter, name=None):
-        processor = self._engine.create_processor(item_getter, name=name)
+    def _create_thread(self, item_getter, **kwargs):
+        log.debug('Creating %s', kwargs.get('name'))
+        processor = self._engine.create_processor(item_getter, **kwargs)
         thread = self._engine.create_thread(worker=processor)
         thread.finished.connect(self._thread_finished)
         thread.terminated.connect(self._thread_finished)

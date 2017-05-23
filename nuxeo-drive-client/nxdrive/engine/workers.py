@@ -31,16 +31,14 @@ class Worker(QObject):
     _pause = False
     actionUpdate = pyqtSignal(object)
 
-    def __init__(self, thread=None, name=None):
+    def __init__(self, thread=None, **kwargs):
         super(Worker, self).__init__()
         if thread is None:
             thread = QThread()
         self.moveToThread(thread)
         thread.worker = self
         self._thread = thread
-        if name is None:
-            name = type(self).__name__
-        self._name = name
+        self._name = kwargs.get('name', type(self).__name__)
         self._running = False
         self._thread.terminated.connect(self._terminated)
 
@@ -200,8 +198,8 @@ class Worker(QObject):
 
 
 class EngineWorker(Worker):
-    def __init__(self, engine, dao, thread=None, name=None):
-        super(EngineWorker, self).__init__(thread, name)
+    def __init__(self, engine, dao, thread=None, **kwargs):
+        super(EngineWorker, self).__init__(thread=thread, **kwargs)
         self._engine = engine
         self._engine.invalidClientsCache.connect(self._reset_clients)
         self._dao = dao
@@ -226,15 +224,15 @@ class EngineWorker(Worker):
         self._engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
     def increase_error(self, doc_pair, error, exception=None):
-        details = repr(exception) if exception else None
+        details = str(exception) if exception else None
         log.debug('Increasing error [%s] (%r) for %r', error, details, doc_pair)
         self._dao.increase_error(doc_pair, error, details=details)
         self._engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
 
 class PollWorker(Worker):
-    def __init__(self, check_interval, thread=None, name=None):
-        super(PollWorker, self).__init__(thread, name)
+    def __init__(self, check_interval, thread=None, **kwargs):
+        super(PollWorker, self).__init__(thread=thread, **kwargs)
         # Be sure to run on start
         self._thread.started.connect(self.run)
         self._check_interval = check_interval

@@ -29,8 +29,8 @@ class Processor(EngineWorker):
     readonly_locks = dict()
     readonly_locker = Lock()
 
-    def __init__(self, engine, item_getter, name=None):
-        super(Processor, self).__init__(engine, engine.get_dao(), name=name)
+    def __init__(self, engine, item_getter, **kwargs):
+        super(Processor, self).__init__(engine, engine.get_dao(), **kwargs)
         self._current_item = None
         self._current_doc_pair = None
         self._get_item = item_getter
