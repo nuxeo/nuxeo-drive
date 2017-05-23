@@ -1,7 +1,4 @@
-
-'''
-@author: Remi Cattiau
-'''
+# coding: utf-8
 import unicodedata
 from time import mktime, sleep, time
 
@@ -46,13 +43,8 @@ class LocalWatcher(EngineWorker):
     localScanFinished = pyqtSignal()
     rootMoved = pyqtSignal(str)
     rootDeleted = pyqtSignal()
-    '''
-    classdocs
-    '''
+
     def __init__(self, engine, dao):
-        '''
-        Constructor
-        '''
         super(LocalWatcher, self).__init__(engine, dao)
         self.unhandle_fs_event = False
         self._event_handler = None
@@ -118,7 +110,7 @@ class LocalWatcher(EngineWorker):
             current_time_millis = int(round(time() * 1000))
             self._win_delete_interval = current_time_millis
             self._win_folder_scan_interval = current_time_millis
-            while (1):
+            while True:
                 self._interact()
                 sleep(0.01)
                 if trigger_local_scan:
@@ -126,8 +118,8 @@ class LocalWatcher(EngineWorker):
                     self._scan()
                     trigger_local_scan = False
                     self._end_action()
-                while (not self._watchdog_queue.empty()):
-                    # Dont retest if already local scan
+                while not self._watchdog_queue.empty():
+                    # Don't retest if already local scan
                     if not trigger_local_scan and self._watchdog_queue.qsize() > self._windows_queue_threshold:
                         log.debug('Windows queue threshold exceeded, will trigger local scan: %d events', self._watchdog_queue.qsize())
                         trigger_local_scan = True
@@ -288,7 +280,7 @@ class LocalWatcher(EngineWorker):
             self._engine.get_queue_manager().resume()
 
     def empty_events(self):
-        return self._watchdog_queue.empty() and ( not AbstractOSIntegration.is_windows() or
+        return self._watchdog_queue.empty() and (not AbstractOSIntegration.is_windows() or
                     self.win_queue_empty() and self.win_folder_scan_empty())
 
     def get_watchdog_queue_size(self):
@@ -433,9 +425,10 @@ class LocalWatcher(EngineWorker):
                                 self._protected_files[doc_pair.remote_ref] = True
                     if child_info.folderish:
                         to_scan_new.append(child_info)
-                except Exception as e:
-                    log.error('Error during recursive scan of %r, ignoring until next full scan', child_info.path,
-                              exc_info=True)
+                except:
+                    log.exception('Error during recursive scan of %r,'
+                                  ' ignoring until next full scan',
+                                  child_info.path)
                     continue
             else:
                 child_pair = children.pop(child_name)

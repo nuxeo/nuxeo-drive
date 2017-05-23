@@ -1,23 +1,15 @@
-'''
-@author: Remi Cattiau
-'''
-from nxdrive.engine.workers import Worker
-from PyQt4 import QtCore
-from nxdrive.logging_config import get_logger
-import platform
+# coding: utf-8
 import os
-log = get_logger(__name__)
+import platform
+
+from PyQt4 import QtCore
+
+from nxdrive.engine.workers import Worker
 
 
 class Tracker(Worker):
-    '''
-    classdocs
-    '''
 
     def __init__(self, manager, uid="UA-81135-23"):
-        '''
-        Constructor
-        '''
         super(Tracker, self).__init__()
         from UniversalAnalytics import Tracker as UATracker
         self._manager = manager

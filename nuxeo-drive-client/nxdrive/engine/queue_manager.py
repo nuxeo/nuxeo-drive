@@ -465,21 +465,35 @@ class QueueManager(QObject):
             if not self.is_active():
                 self.queueFinishedProcessing.emit()
             return
-        log.trace("Launching processors")
-        if self._local_folder_thread is None and not self._local_folder_queue.empty() and self._local_folder_enable:
-            log.debug("creating local folder processor")
-            self._local_folder_thread = self._create_thread(self._get_local_folder, name="LocalFolderProcessor")
-        if self._local_file_thread is None and not self._local_file_queue.empty() and self._local_file_enable:
-            log.debug("creating local file processor")
-            self._local_file_thread = self._create_thread(self._get_local_file, name="LocalFileProcessor")
-        if self._remote_folder_thread is None and not self._remote_folder_queue.empty() and self._remote_folder_enable:
-            log.debug("creating remote folder processor")
-            self._remote_folder_thread = self._create_thread(self._get_remote_folder, name="RemoteFolderProcessor")
-        if self._remote_file_thread is None and not self._remote_file_queue.empty() and self._remote_file_enable:
-            log.debug("creating remote file processor")
-            self._remote_file_thread = self._create_thread(self._get_remote_file, name="RemoteFileProcessor")
-        if self._remote_file_queue.qsize() + self._local_file_queue.qsize() == 0:
-            return
+
+        if (self._local_folder_thread is None
+                and not self._local_folder_queue.empty()
+                and self._local_folder_enable):
+            self._local_folder_thread = self._create_thread(
+                self._get_local_folder, name='LocalFolderProcessor')
+
+        if (self._local_file_thread is None
+                and not self._local_file_queue.empty()
+                and self._local_file_enable):
+            self._local_file_thread = self._create_thread(
+                self._get_local_file, name='LocalFileProcessor')
+
+        if (self._remote_folder_thread is None
+                and not self._remote_folder_queue.empty()
+                and self._remote_folder_enable):
+            self._remote_folder_thread = self._create_thread(
+                self._get_remote_folder, name='RemoteFolderProcessor')
+
+        if (self._remote_file_thread is None
+                and not self._remote_file_queue.empty()
+                and self._remote_file_enable):
+            self._remote_file_thread = self._create_thread(
+                self._get_remote_file, name='RemoteFileProcessor')
+
+        if self._remote_file_queue.qsize() == 0:
+            if self._local_file_queue.qsize() == 0:
+                return
+
         while len(self._processors_pool) < self._max_processors:
-            log.debug("creating additional file processor")
-            self._processors_pool.append(self._create_thread(self._get_file, name="GenericProcessor"))
+            self._processors_pool.append(self._create_thread(
+                self._get_file, name='GenericProcessor'))

@@ -498,15 +498,15 @@ class EngineDAO(ConfigurationDAO):
             self._reinit_states(cursor)
 
     def _migrate_db(self, cursor, version):
-        if (version < 1):
+        if version < 1:
             self._migrate_state(cursor)
             cursor.execute(u"UPDATE States SET last_transfer = 'upload' WHERE last_local_updated < last_remote_updated AND folderish=0;")
             cursor.execute(u"UPDATE States SET last_transfer = 'download' WHERE last_local_updated > last_remote_updated AND folderish=0;")
             self.update_config(SCHEMA_VERSION, 1)
-        if (version < 2):
+        if version < 2:
             cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
             self.update_config(SCHEMA_VERSION, 2)
-        if (version < 3):
+        if version < 3:
             self._migrate_state(cursor)
             self.update_config(SCHEMA_VERSION, 3)
 
@@ -734,7 +734,7 @@ class EngineDAO(ConfigurationDAO):
 
     def _queue_pair_state(self, row_id, folderish, pair_state, pair=None):
         if (self._queue_manager is not None
-             and pair_state != 'synchronized' and pair_state != 'unsynchronized'):
+                and pair_state not in ('synchronized', 'unsynchronized')):
             if pair_state == 'conflicted':
                 log.trace("Emit newConflict with: %r, pair=%r", row_id, pair)
                 self.newConflict.emit(row_id)
@@ -743,7 +743,6 @@ class EngineDAO(ConfigurationDAO):
                 self._queue_manager.push_ref(row_id, folderish, pair_state)
         else:
             log.trace("Will not push pair: %s, pair=%r", pair_state, pair)
-        return
 
     def _get_pair_state(self, row):
         return PAIR_STATES.get((row.local_state, row.remote_state))
