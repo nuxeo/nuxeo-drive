@@ -114,7 +114,6 @@ class LogLock(object):
     def acquire(self):
         log.trace("lock acquire: %s", inspect.stack()[1][3])
         self._lock.acquire()
-        log.trace("lock acquired")
 
     def release(self):
         log.trace("lock release: %s", inspect.stack()[1][3])
@@ -572,9 +571,7 @@ class EngineDAO(ConfigurationDAO):
         finally:
             self._lock.release()
         res = c.rowcount > 0
-        if res:
-            log.trace('Released processor %d', processor_id)
-        else:
+        if not res:
             log.trace('No processor to release with id %d', processor_id)
         return res
 
@@ -588,13 +585,7 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
-        res = c.rowcount == 1
-        if res:
-            log.trace('Acquired processor %d for row %d', thread_id, row_id)
-        else:
-            log.trace("Couldn't acquire processor %d for row %d: either row does't exist or it is being processed",
-                      thread_id, row_id)
-        return res
+        return c.rowcount == 1
 
     def _reinit_states(self, cursor):
         cursor.execute("DROP TABLE States")
@@ -614,7 +605,6 @@ class EngineDAO(ConfigurationDAO):
             con.commit()
             log.trace("Vacuum sqlite")
             con.execute("VACUUM")
-            log.trace("Vacuum sqlite finished")
         finally:
             self._lock.release()
 
@@ -629,7 +619,6 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
             log.trace("Vacuum sqlite")
             con.execute("VACUUM")
-            log.trace("Vacuum sqlite finished")
         finally:
             self._lock.release()
 
@@ -739,9 +728,8 @@ class EngineDAO(ConfigurationDAO):
                 log.trace("Emit newConflict with: %r, pair=%r", row_id, pair)
                 self.newConflict.emit(row_id)
             else:
-                log.trace("Push to queue: %s, pair=%r", pair_state, pair)
                 self._queue_manager.push_ref(row_id, folderish, pair_state)
-        else:
+        elif pair:
             log.trace("Will not push pair: %s, pair=%r", pair_state, pair)
 
     def _get_pair_state(self, row):

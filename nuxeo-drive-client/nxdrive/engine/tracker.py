@@ -63,7 +63,6 @@ class Tracker(Worker):
         if extension is None:
             extension = 'unknown'
         timing = self._manager.get_direct_edit().get_metrics()['last_action_timing']
-        log.trace("Send DirectEdit(Open) OverallTime: %d extension: %s", timing, extension)
         self._tracker.send('event', category='DirectEdit', action="Open", label=extension, value=timing)
 
     @QtCore.pyqtSlot(object, object)
@@ -72,7 +71,6 @@ class Tracker(Worker):
         if extension is None:
             extension = 'unknown'
         timing = self._manager.get_direct_edit().get_metrics()['last_action_timing']
-        log.trace("Send DirectEdit(Edit) OverallTime: %d extension: %s", timing, extension)
         self._tracker.send('event', category='DirectEdit', action="Edit", label=extension, value=timing)
 
     @QtCore.pyqtSlot(object, object)
@@ -84,11 +82,9 @@ class Tracker(Worker):
         if "speed" in metrics:
             speed = metrics["speed"]
         if timing is not None:
-            log.trace("Send TransferOperation(%s) OverallTime: %d", metrics["handler"], timing)
             self._tracker.send('event', category='TransferOperation', action=metrics["handler"], label="OverallTime",
                                value=timing)
         if speed is not None:
-            log.trace("Send TransferOperation(%s) Speed: %d", metrics["handler"], speed)
             self._tracker.send('event', category='TransferOperation', action=metrics["handler"], label="Speed",
                                value=speed)
 
@@ -98,6 +94,5 @@ class Tracker(Worker):
         for _, engine in engines.iteritems():
             stats = engine.get_metrics()
             for key, value in stats.iteritems():
-                log.trace("Send Statistics(Engine) %s:%d", key, value)
                 self._tracker.send('event', category='Statistics', action='Engine', label=key, value=value)
         self._stat_timer.start(60 * 60 * 1000)

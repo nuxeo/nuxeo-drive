@@ -182,27 +182,22 @@ class QueueManager(QObject):
         if state.pair_state is None:
             log.trace("Don't push an empty pair_state: %r", state)
             return
-        log.trace("Pushing %r", state)
         row_id = state.id
         if state.pair_state.startswith('locally'):
             if state.folderish:
                 self._local_folder_queue.put(state)
-                log.trace('Pushed to _local_folder_queue, now of size: %d', self._local_folder_queue.qsize())
             else:
                 if "deleted" in state.pair_state:
                     self._engine.cancel_action_on(state.id)
                 self._local_file_queue.put(state)
-                log.trace('Pushed to _local_file_queue, now of size: %d', self._local_file_queue.qsize())
             self.newItem.emit(row_id)
         elif state.pair_state.startswith('remotely'):
             if state.folderish:
                 self._remote_folder_queue.put(state)
-                log.trace('Pushed to _remote_folder_queue, now of size: %d', self._remote_folder_queue.qsize())
             else:
                 if "deleted" in state.pair_state:
                     self._engine.cancel_action_on(state.id)
                 self._remote_file_queue.put(state)
-                log.trace('Pushed to _remote_file_queue, now of size: %d', self._remote_file_queue.qsize())
             self.newItem.emit(row_id)
         else:
             # deleted and conflicted
