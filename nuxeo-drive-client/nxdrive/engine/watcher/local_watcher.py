@@ -11,9 +11,10 @@ import sqlite3
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from Queue import Queue
 from threading import Lock
-from watchdog.events import FileSystemEventHandler
+from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
 
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.local_client import LocalClient
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
@@ -545,8 +546,12 @@ class LocalWatcher(EngineWorker):
                 log.warn('Cannot import read_directory_changes, probably under Windows XP'
                          ', watchdog will fall back on polling')
         log.debug("Watching FS modification on : %s", self.client.base_folder)
-        self._event_handler = DriveFSEventHandler(self)
-        self._root_event_handler = DriveFSRootEventHandler(self, os.path.basename(self.client.base_folder))
+        ignore_patterns = ['*' + DOWNLOAD_TMP_FILE_SUFFIX]
+        self._event_handler = DriveFSEventHandler(
+            self, ignore_patterns=ignore_patterns)
+        self._root_event_handler = DriveFSRootEventHandler(
+            self, os.path.basename(self.client.base_folder),
+            ignore_patterns=ignore_patterns)
         self._observer = Observer()
         self._observer.schedule(self._event_handler, self.client.base_folder, recursive=True)
         self._observer.start()
@@ -788,7 +793,15 @@ class LocalWatcher(EngineWorker):
             self.rootDeleted.emit()
 
     def handle_watchdog_event(self, evt):
-        log.trace("watchdog event: %r", evt)
+        # Ignore *.nxpart
+        if evt.src_path.endswith(DOWNLOAD_TMP_FILE_SUFFIX):
+            return
+        try:
+            if evt.dest_path.endswith(DOWNLOAD_TMP_FILE_SUFFIX):
+                return
+        except AttributeError:
+            pass
+
         self._metrics['last_event'] = current_milli_time()
         self._action = Action("Handle watchdog event")
         if evt.event_type == 'moved':
@@ -862,7 +875,6 @@ class LocalWatcher(EngineWorker):
                 # If doc_pair is not None mean
                 # the creation has been catched by scan
                 # As Windows send a delete / create event for reparent
-                # Ignore .*.nxpart ?
                 '''
                 for deleted in deleted_files:
                     if deleted.local_digest == digest:
@@ -960,11 +972,20 @@ class LocalWatcher(EngineWorker):
                 self._win_lock.release()
 
 
-class DriveFSEventHandler(FileSystemEventHandler):
-    def __init__(self, watcher):
-        super(DriveFSEventHandler, self).__init__()
+class DriveFSEventHandler(PatternMatchingEventHandler):
+    def __init__(self, watcher, **kwargs):
+        super(DriveFSEventHandler, self).__init__(**kwargs)
         self.counter = 0
         self.watcher = watcher
+
+    def __repr__(self):
+        return ('<{name}'
+                ' patterns={cls.patterns!r},'
+                ' ignore_patterns={cls.ignore_patterns!r},'
+                ' ignore_directories={cls.ignore_directories!s},'
+                ' case_sensitive={cls.case_sensitive!s}'
+                '>'
+                ).format(name=type(self).__name__, cls=self)
 
     def on_any_event(self, event):
         self.counter += 1
@@ -972,12 +993,21 @@ class DriveFSEventHandler(FileSystemEventHandler):
         self.watcher._watchdog_queue.put(event)
 
 
-class DriveFSRootEventHandler(FileSystemEventHandler):
-    def __init__(self, watcher, name):
-        super(DriveFSRootEventHandler, self).__init__()
+class DriveFSRootEventHandler(PatternMatchingEventHandler):
+    def __init__(self, watcher, name, **kwargs):
+        super(DriveFSRootEventHandler, self).__init__(**kwargs)
         self.name = name
         self.counter = 0
         self.watcher = watcher
+
+    def __repr__(self):
+        return ('<{name}'
+                ' patterns={cls.patterns!r},'
+                ' ignore_patterns={cls.ignore_patterns!r},'
+                ' ignore_directories={cls.ignore_directories!s},'
+                ' case_sensitive={cls.case_sensitive!s}'
+                '>'
+                ).format(name=type(self).__name__, cls=self)
 
     def on_any_event(self, event):
         if os.path.basename(event.src_path) != self.name:

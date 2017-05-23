@@ -160,8 +160,10 @@ class Processor(EngineWorker):
                                                    self._current_item.id)
             except sqlite3.OperationalError:
                 log.trace("Cannot acquire state for: %r", self._current_item)
-                self._postpone_pair(self._current_item, 'Pair in use',
-                                    interval=3)
+                state = self._dao.get_state_from_id(self._current_item.id)
+                if state:
+                    self._postpone_pair(self._current_item, 'Pair in use',
+                                        interval=3)
                 self._current_item = self._get_item()
                 continue
             try:
@@ -233,11 +235,7 @@ class Processor(EngineWorker):
                 if parent_path == '':
                     parent_path = "/"
                 if not local_client.exists(parent_path):
-                    if doc_pair.remote_state == "deleted":
-                        self._dao.remove_state(doc_pair)
-                        continue
-                    self._handle_no_parent(doc_pair, local_client,
-                                           remote_client)
+                    self._dao.remove_state(doc_pair)
                     self._current_item = self._get_item()
                     continue
 
@@ -316,16 +314,6 @@ class Processor(EngineWorker):
         elif local_client.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref:
             log.debug("Auto-resolve conflict has folder has same remote_id")
             self._dao.synchronize_state(doc_pair)
-
-    def _handle_no_parent(self, doc_pair, local_client, remote_client):
-        log.trace("Republish as parent doesn't exist : %r", doc_pair)
-        parent_pair = self._dao.get_normal_state_from_remote(doc_pair.remote_parent_ref)
-        if parent_pair is not None and not doc_pair.local_parent_path == parent_pair.local_path:
-            # Need to update the pair
-            self._dao.update_local_parent_path(doc_pair, doc_pair.local_name, parent_pair.local_path)
-            # Retry with updated path
-            raise PairInterrupt
-        self.increase_error(doc_pair, "NO_PARENT")
 
     def _update_speed_metrics(self):
         action = Action.get_last_file_action()
