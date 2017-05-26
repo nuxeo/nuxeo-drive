@@ -255,6 +255,7 @@ class WebSystray(QtGui.QMenu):
 
     @QtCore.pyqtSlot()
     def onShow(self):
+        log.trace("Show systray menu")
         if self.dlg is None:
             self.dlg = WebSystrayView(self._application, self._systray_icon)
             # Close systray when app is quitting

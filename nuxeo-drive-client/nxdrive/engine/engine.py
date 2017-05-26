@@ -572,14 +572,18 @@ class Engine(QObject):
                   ', local watcher empty events = %d, blacklist = %d, %s',
                   'active' if qm_active else 'inactive', qm_size, empty_polls,
                     empty_events, blacklist_size, win_info)
+        local_metrics = self._local_watcher.get_metrics()
         if (qm_size == 0 and not qm_active and empty_polls > 0
                 and empty_events):
             if blacklist_size != 0:
                 self.syncPartialCompleted.emit()
                 return
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
+            if local_metrics['last_event'] == 0:
+                log.trace('No watchdog event detected but sync is completed')
             if self._sync_started:
                 self._sync_started = False
+            log.trace('Emitting syncCompleted for engine %s', self.get_uid())
             self.syncCompleted.emit()
 
     def _thread_finished(self):
@@ -665,11 +669,11 @@ class Engine(QObject):
 
     def stop(self):
         self._stopped = True
-        log.debug("Engine %s stopping", self._uid)
+        log.trace('Engine %s stopping', self._uid)
         self._stop.emit()
         for thread in self._threads:
             if not thread.wait(5000):
-                log.warn("Thread is not responding - terminate it")
+                log.warn('Thread is not responding - terminate it')
                 thread.terminate()
         if not self._local_watcher.get_thread().wait(5000):
             self._local_watcher.get_thread().terminate()
@@ -684,6 +688,7 @@ class Engine(QObject):
             self._local_watcher.get_thread().wait(5000)
         # Soft locks needs to be reinit in case of threads termination
         Processor.soft_locks = dict()
+        log.trace('Engine %s stopped', self._uid)
 
     def _get_client_cache(self):
         return self._remote_clients
@@ -987,8 +992,9 @@ class Engine(QObject):
         return rest_client
 
     def get_user_full_name(self, userid, cache_only=False):
-        """ Get the last contributor full name. """
-
+        """
+            Get the last contributor full name
+        """
         fullname = userid
         try:
             if userid in self._user_cache:

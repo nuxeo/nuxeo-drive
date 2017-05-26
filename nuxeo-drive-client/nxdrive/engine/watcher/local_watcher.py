@@ -299,14 +299,15 @@ class LocalWatcher(EngineWorker):
             return 0
 
     def _scan_recursive(self, info, recursive=True):
-        log.debug('Recursive local scan of %r', info.path)
+        log.trace('Starting to get DB local children for %r', info.path)
         if recursive:
             # Don't interact if only one level
             self._interact()
 
         # Load all children from DB
-        log.trace('DB local children for %r', info.path)
+        log.trace('Starting to get DB local children for %r', info.path)
         db_children = self._dao.get_local_children(info.path)
+        log.trace('Fetched DB local children for %r', info.path)
 
         # Create a list of all children by their name
         children = dict()
@@ -317,12 +318,13 @@ class LocalWatcher(EngineWorker):
 
         # Load all children from FS
         # detect recently deleted children
-        log.trace('FS children info for %r', info.path)
+        log.trace('Starting to get FS children info for %r', info.path)
         try:
             fs_children_info = self.client.get_children_info(info.path)
         except OSError:
             # The folder has been deleted in the mean time
             return
+        log.trace('Fetched FS children info for %r', info.path)
 
         # Get remote children to be able to check if a local child found during the scan is really a new item
         # or if it is just the result of a remote creation performed on the file system but not yet updated in the DB
@@ -512,10 +514,13 @@ class LocalWatcher(EngineWorker):
             self._push_to_scan(child_info)
 
         if not recursive:
+            log.trace('Ended recursive local scan of %r', info.path)
             return
 
         for child_info in to_scan:
             self._push_to_scan(child_info)
+
+        log.trace('Ended recursive local scan of %r', info.path)
 
     def _push_to_scan(self, info):
         self._scan_recursive(info)
@@ -954,6 +959,7 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
 
     def on_any_event(self, event):
         self.counter += 1
+        log.trace("Queueing watchdog: %r", event)
         self.watcher._watchdog_queue.put(event)
 
 
