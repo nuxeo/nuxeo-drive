@@ -1,29 +1,40 @@
 # coding: utf-8
+import ctypes
+import locale
 import os
 import platform
+import sys
 
 from PyQt4 import QtCore
+from UniversalAnalytics import Tracker as UATracker
 
 from nxdrive.engine.workers import Worker
+from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
+
+log = get_logger(__name__)
 
 
 class Tracker(Worker):
 
-    def __init__(self, manager, uid="UA-81135-23"):
+    def __init__(self, manager, uid='UA-81135-23'):
         super(Tracker, self).__init__()
-        from UniversalAnalytics import Tracker as UATracker
         self._manager = manager
         self._thread.started.connect(self.run)
         self._user_agent = self.get_user_agent(self._manager.get_version())
         self.uid = uid
         self._tracker = UATracker.create(uid, client_id=self._manager.get_device_id(),
-                                        user_agent=self._user_agent)
-        self._tracker.set("appName", "NuxeoDrive")
-        self._tracker.set("appVersion", self._manager.get_version())
+                                         user_agent=self._user_agent)
+        self._tracker.set('appName', 'NuxeoDrive')
+        self._tracker.set('appVersion', self._manager.get_version())
+        self._tracker.set('language', self.current_locale)
+        self._tracker.set('encoding', sys.getfilesystemencoding())
         self._manager.started.connect(self._send_stats)
+
         # Send stat every hour
         self._stat_timer = QtCore.QTimer()
         self._stat_timer.timeout.connect(self._send_stats)
+
         # Connect engines
         for _, engine in self._manager.get_engines().iteritems():
             self.connect_engine(engine)
@@ -38,24 +49,42 @@ class Tracker(Worker):
     def connect_engine(self, engine):
         engine.newSync.connect(self._send_sync_event)
 
-    @staticmethod
-    def get_user_agent(version):
-        user_agent = "NuxeoDrive/" + version
-        user_agent = user_agent + " ("
-        if platform.system() == "Windows":
-            user_agent = user_agent + " Windows " + platform.release()
-        if platform.system() == "Darwin":
-            user_agent = user_agent + "Macintosh; Intel Mac OS X "
-            user_agent = user_agent + platform.mac_ver()[0].replace(".", "_")
-        if platform.system() == "Linux":
-            user_agent = user_agent + "Linux)"
-        user_agent = user_agent + ")"
-        return user_agent
+    @property
+    def current_locale(self):
+        """ Detect the OS default language. """
+
+        if AbstractOSIntegration.is_windows():
+            l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+            l10n = locale.windows_locale[l10n_code]
+        else:
+            l10n = locale.getdefaultlocale()[0]
+
+        return '.'.join([l10n, locale.getdefaultlocale()[1]])
+
+    @property
+    def current_os(self):
+        """ Detect the OS. """
+
+        system = platform.system()
+        if system == 'Darwin':
+            name, version = 'Macintosh Intel', platform.mac_ver()[0]
+        elif system == 'Linux':
+            name = system
+            version = ' '.join(platform.linux_distribution()).title()
+        elif system == 'Windows':
+            name, version = system, platform.release()
+        else:
+            name, version = system, platform.release()
+
+        return '{} {}'.format(name, version.strip())
+
+    def get_user_agent(self, version):
+        return 'NuxeoDrive/{} ({})'.format(version, self.current_os)
 
     @QtCore.pyqtSlot(object)
     def _send_app_update_event(self, version):
-        self._tracker.send('event', category='AppUpdate', action='Update', label="Version",
-                               value=version)
+        self._tracker.send('event', category='AppUpdate', action='Update',
+                           label='Version', value=version)
 
     @QtCore.pyqtSlot(object, object)
     def _send_directedit_open(self, remote_info):
