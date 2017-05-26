@@ -526,19 +526,23 @@ class LocalWatcher(EngineWorker):
         self._scan_recursive(info)
 
     def _setup_watchdog(self):
-        # Monkey-patch Watchdog to
-        # - Set the Windows hack delay to 0 in WindowsApiEmitter, otherwise we might miss some events
-        # - Increase the ReadDirectoryChangesW buffer size for Windows
+        """
+        Monkey-patch Watchdog to:
+            - Set the Windows hack delay to 0 in WindowsApiEmitter,
+              otherwise we might miss some events
+            - Increase the ReadDirectoryChangesW buffer size for Windows
+        """
+
         if self._windows:
             try:
-                import watchdog.observers
-                watchdog.observers.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
-                watchdog.observers.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
-            except:
+                import watchdog.observers as ob
+                ob.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
+                ob.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
+            except ImportError:
                 log.trace('read_directory_changes import error', exc_info=True)
-                log.warn('Cannot import read_directory_changes, probably under Windows XP'
-                         ', watchdog will fall back on polling')
-        log.debug("Watching FS modification on : %s", self.client.base_folder)
+                log.warn('Cannot import read_directory_changes, probably under'
+                         ' Windows XP, watchdog will fall back on polling')
+        log.debug('Watching FS modification on : %s', self.client.base_folder)
         ignore_patterns = ['*' + DOWNLOAD_TMP_FILE_SUFFIX]
         self._event_handler = DriveFSEventHandler(
             self, ignore_patterns=ignore_patterns)
@@ -546,37 +550,45 @@ class LocalWatcher(EngineWorker):
             self, os.path.basename(self.client.base_folder),
             ignore_patterns=ignore_patterns)
         self._observer = Observer()
-        self._observer.schedule(self._event_handler, self.client.base_folder, recursive=True)
+        self._observer.schedule(self._event_handler, self.client.base_folder, 
+                                recursive=True)
         self._observer.start()
         self._root_observer = Observer()
-        self._root_observer.schedule(self._root_event_handler, os.path.dirname(self.client.base_folder), recursive=False)
+        self._root_observer.schedule(self._root_event_handler, 
+                                     os.path.dirname(self.client.base_folder), 
+                                     recursive=False)
         self._root_observer.start()
 
     def _stop_watchdog(self):
         if self._observer is not None:
-            log.info("Stopping FS Observer thread")
+            log.info('Stopping FS Observer thread')
             try:
                 self._observer.stop()
             except Exception as e:
-                log.warn("Can't stop FS observer : %r", e)
+                log.warn('Cannot stop FS observer : %r', e)
+
             # Wait for all observers to stop
             try:
                 self._observer.join()
             except Exception as e:
-                log.warn("Can't join FS observer : %r", e)
+                log.warn('Cannot join FS observer : %r', e)
+
             # Delete all observers
             self._observer = None
+
         if self._root_observer is not None:
-            log.info("Stopping FS root Observer thread")
+            log.info('Stopping FS root Observer thread')
             try:
                 self._root_observer.stop()
             except Exception as e:
-                log.warn("Can't stop FS root observer : %r", e)
+                log.warn('Cannot stop FS root observer : %r', e)
+
             # Wait for all observers to stop
             try:
                 self._root_observer.join()
             except Exception as e:
-                log.warn("Can't join FS root observer : %r", e)
+                log.warn('Cannot join FS root observer : %r', e)
+
             # Delete all observers
             self._root_observer = None
 
