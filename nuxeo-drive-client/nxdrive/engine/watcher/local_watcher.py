@@ -1,7 +1,4 @@
-
-'''
-@author: Remi Cattiau
-'''
+# coding: utf-8
 import unicodedata
 from time import mktime, sleep, time
 
@@ -11,9 +8,10 @@ import sqlite3
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from Queue import Queue
 from threading import Lock
-from watchdog.events import FileSystemEventHandler
+from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
 
+from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.local_client import LocalClient
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
@@ -45,13 +43,8 @@ class LocalWatcher(EngineWorker):
     localScanFinished = pyqtSignal()
     rootMoved = pyqtSignal(str)
     rootDeleted = pyqtSignal()
-    '''
-    classdocs
-    '''
+
     def __init__(self, engine, dao):
-        '''
-        Constructor
-        '''
         super(LocalWatcher, self).__init__(engine, dao)
         self.unhandle_fs_event = False
         self._event_handler = None
@@ -117,7 +110,7 @@ class LocalWatcher(EngineWorker):
             current_time_millis = int(round(time() * 1000))
             self._win_delete_interval = current_time_millis
             self._win_folder_scan_interval = current_time_millis
-            while (1):
+            while True:
                 self._interact()
                 sleep(0.01)
                 if trigger_local_scan:
@@ -125,8 +118,8 @@ class LocalWatcher(EngineWorker):
                     self._scan()
                     trigger_local_scan = False
                     self._end_action()
-                while (not self._watchdog_queue.empty()):
-                    # Dont retest if already local scan
+                while not self._watchdog_queue.empty():
+                    # Don't retest if already local scan
                     if not trigger_local_scan and self._watchdog_queue.qsize() > self._windows_queue_threshold:
                         log.debug('Windows queue threshold exceeded, will trigger local scan: %d events', self._watchdog_queue.qsize())
                         trigger_local_scan = True
@@ -287,7 +280,7 @@ class LocalWatcher(EngineWorker):
             self._engine.get_queue_manager().resume()
 
     def empty_events(self):
-        return self._watchdog_queue.empty() and ( not AbstractOSIntegration.is_windows() or
+        return self._watchdog_queue.empty() and (not AbstractOSIntegration.is_windows() or
                     self.win_queue_empty() and self.win_folder_scan_empty())
 
     def get_watchdog_queue_size(self):
@@ -306,7 +299,7 @@ class LocalWatcher(EngineWorker):
             return 0
 
     def _scan_recursive(self, info, recursive=True):
-        log.debug('Starting recursive local scan of %r', info.path)
+        log.trace('Starting to get DB local children for %r', info.path)
         if recursive:
             # Don't interact if only one level
             self._interact()
@@ -432,9 +425,10 @@ class LocalWatcher(EngineWorker):
                                 self._protected_files[doc_pair.remote_ref] = True
                     if child_info.folderish:
                         to_scan_new.append(child_info)
-                except Exception as e:
-                    log.error('Error during recursive scan of %r, ignoring until next full scan', child_info.path,
-                              exc_info=True)
+                except:
+                    log.exception('Error during recursive scan of %r,'
+                                  ' ignoring until next full scan',
+                                  child_info.path)
                     continue
             else:
                 child_pair = children.pop(child_name)
@@ -520,88 +514,81 @@ class LocalWatcher(EngineWorker):
             self._push_to_scan(child_info)
 
         if not recursive:
-            log.debug('Ended recursive local scan of %r', info.path)
+            log.trace('Ended recursive local scan of %r', info.path)
             return
 
         for child_info in to_scan:
             self._push_to_scan(child_info)
 
-        log.debug('Ended recursive local scan of %r', info.path)
+        log.trace('Ended recursive local scan of %r', info.path)
 
     def _push_to_scan(self, info):
         self._scan_recursive(info)
 
     def _setup_watchdog(self):
-        # Monkey-patch Watchdog to
-        # - Set the Windows hack delay to 0 in WindowsApiEmitter, otherwise we might miss some events
-        # - Increase the ReadDirectoryChangesW buffer size for Windows
+        """
+        Monkey-patch Watchdog to:
+            - Set the Windows hack delay to 0 in WindowsApiEmitter,
+              otherwise we might miss some events
+            - Increase the ReadDirectoryChangesW buffer size for Windows
+        """
+
         if self._windows:
             try:
-                import watchdog.observers
-                watchdog.observers.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
-                watchdog.observers.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
-            except:
+                import watchdog.observers as ob
+                ob.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
+                ob.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
+            except ImportError:
                 log.trace('read_directory_changes import error', exc_info=True)
-                log.warn('Cannot import read_directory_changes, probably under Windows XP'
-                         ', watchdog will fall back on polling')
-        log.debug("Watching FS modification on : %s", self.client.base_folder)
-        self._event_handler = DriveFSEventHandler(self)
-        self._root_event_handler = DriveFSRootEventHandler(self, os.path.basename(self.client.base_folder))
+                log.warn('Cannot import read_directory_changes, probably under'
+                         ' Windows XP, watchdog will fall back on polling')
+        log.debug('Watching FS modification on : %s', self.client.base_folder)
+        ignore_patterns = ['*' + DOWNLOAD_TMP_FILE_SUFFIX]
+        self._event_handler = DriveFSEventHandler(
+            self, ignore_patterns=ignore_patterns)
+        self._root_event_handler = DriveFSRootEventHandler(
+            self, os.path.basename(self.client.base_folder),
+            ignore_patterns=ignore_patterns)
         self._observer = Observer()
-        self._observer.schedule(self._event_handler, self.client.base_folder, recursive=True)
+        self._observer.schedule(self._event_handler, self.client.base_folder, 
+                                recursive=True)
         self._observer.start()
-        self._check_watchdog()
         self._root_observer = Observer()
-        self._root_observer.schedule(self._root_event_handler, os.path.dirname(self.client.base_folder), recursive=False)
+        self._root_observer.schedule(self._root_event_handler, 
+                                     os.path.dirname(self.client.base_folder), 
+                                     recursive=False)
         self._root_observer.start()
-
-    def _check_watchdog(self):
-        """" Be sure to have at least one watchdog event. """
-
-        timeout = 30
-        lock = self.client.unlock_ref('/', False)
-        try:
-            fname = self.client.abspath('/.watchdog_setup')
-            while self._watchdog_queue.empty():
-                with open(fname, 'a'):
-                    os.utime(fname, None)
-                sleep(1)
-                timeout -= 1
-                if timeout < 0:
-                    log.debug("Can't have watchdog setup. Fallback to full scan mode ?")
-                    os.remove(fname)
-                    raise Exception
-                os.remove(fname)
-            if os.path.exists(fname):
-                os.remove(fname)
-        finally:
-            self.client.lock_ref('/', lock)
 
     def _stop_watchdog(self):
         if self._observer is not None:
-            log.info("Stopping FS Observer thread")
+            log.info('Stopping FS Observer thread')
             try:
                 self._observer.stop()
             except Exception as e:
-                log.warn("Can't stop FS observer : %r", e)
+                log.warn('Cannot stop FS observer : %r', e)
+
             # Wait for all observers to stop
             try:
                 self._observer.join()
             except Exception as e:
-                log.warn("Can't join FS observer : %r", e)
+                log.warn('Cannot join FS observer : %r', e)
+
             # Delete all observers
             self._observer = None
+
         if self._root_observer is not None:
-            log.info("Stopping FS root Observer thread")
+            log.info('Stopping FS root Observer thread')
             try:
                 self._root_observer.stop()
             except Exception as e:
-                log.warn("Can't stop FS root observer : %r", e)
+                log.warn('Cannot stop FS root observer : %r', e)
+
             # Wait for all observers to stop
             try:
                 self._root_observer.join()
             except Exception as e:
-                log.warn("Can't join FS root observer : %r", e)
+                log.warn('Cannot join FS root observer : %r', e)
+
             # Delete all observers
             self._root_observer = None
 
@@ -788,7 +775,15 @@ class LocalWatcher(EngineWorker):
             self.rootDeleted.emit()
 
     def handle_watchdog_event(self, evt):
-        log.trace("watchdog event: %r", evt)
+        # Ignore *.nxpart
+        if evt.src_path.endswith(DOWNLOAD_TMP_FILE_SUFFIX):
+            return
+        try:
+            if evt.dest_path.endswith(DOWNLOAD_TMP_FILE_SUFFIX):
+                return
+        except AttributeError:
+            pass
+
         self._metrics['last_event'] = current_milli_time()
         self._action = Action("Handle watchdog event")
         if evt.event_type == 'moved':
@@ -862,7 +857,6 @@ class LocalWatcher(EngineWorker):
                 # If doc_pair is not None mean
                 # the creation has been catched by scan
                 # As Windows send a delete / create event for reparent
-                # Ignore .*.nxpart ?
                 '''
                 for deleted in deleted_files:
                     if deleted.local_digest == digest:
@@ -960,11 +954,20 @@ class LocalWatcher(EngineWorker):
                 self._win_lock.release()
 
 
-class DriveFSEventHandler(FileSystemEventHandler):
-    def __init__(self, watcher):
-        super(DriveFSEventHandler, self).__init__()
+class DriveFSEventHandler(PatternMatchingEventHandler):
+    def __init__(self, watcher, **kwargs):
+        super(DriveFSEventHandler, self).__init__(**kwargs)
         self.counter = 0
         self.watcher = watcher
+
+    def __repr__(self):
+        return ('<{name}'
+                ' patterns={cls.patterns!r},'
+                ' ignore_patterns={cls.ignore_patterns!r},'
+                ' ignore_directories={cls.ignore_directories!s},'
+                ' case_sensitive={cls.case_sensitive!s}'
+                '>'
+                ).format(name=type(self).__name__, cls=self)
 
     def on_any_event(self, event):
         self.counter += 1
@@ -972,12 +975,21 @@ class DriveFSEventHandler(FileSystemEventHandler):
         self.watcher._watchdog_queue.put(event)
 
 
-class DriveFSRootEventHandler(FileSystemEventHandler):
-    def __init__(self, watcher, name):
-        super(DriveFSRootEventHandler, self).__init__()
+class DriveFSRootEventHandler(PatternMatchingEventHandler):
+    def __init__(self, watcher, name, **kwargs):
+        super(DriveFSRootEventHandler, self).__init__(**kwargs)
         self.name = name
         self.counter = 0
         self.watcher = watcher
+
+    def __repr__(self):
+        return ('<{name}'
+                ' patterns={cls.patterns!r},'
+                ' ignore_patterns={cls.ignore_patterns!r},'
+                ' ignore_directories={cls.ignore_directories!s},'
+                ' case_sensitive={cls.case_sensitive!s}'
+                '>'
+                ).format(name=type(self).__name__, cls=self)
 
     def on_any_event(self, event):
         if os.path.basename(event.src_path) != self.name:

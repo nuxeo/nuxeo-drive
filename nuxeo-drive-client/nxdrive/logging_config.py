@@ -73,7 +73,7 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         os.remove(dfn)
 
 
-def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
+def configure(use_file_handler=False, log_filename=None, file_level='DEBUG',
               console_level='INFO', filter_inotify=True, command_name=None,
               log_rotate_keep=30, log_rotate_max_bytes=None,
               log_rotate_when=None, force_configure=False):
@@ -87,7 +87,7 @@ def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
         _logging_context['command'] = command_name
 
         if not file_level:
-            file_level = 'TRACE'
+            file_level = 'DEBUG'
 
         # Convert string levels
         if hasattr(file_level, 'upper'):

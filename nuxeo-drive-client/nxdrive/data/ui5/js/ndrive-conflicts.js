@@ -38,9 +38,18 @@ ConflictsController.prototype = Object.create(DriveController.prototype);
 ConflictsController.prototype.constructor = ConflictsController;
 
 ConflictsController.prototype.updateErrors = function($scope) {
-	var errors = angular.fromJson(drive.get_errors());
+	var errors = angular.fromJson(drive.get_errors()),
+	    ignoreds = angular.fromJson(drive.get_ignoreds()),
+	    reasons = [
+	        'READONLY',
+	        'PARENT_UNSYNC',
+	        'LOCKED',
+	        'MANUAL',
+	        'DEDUP',
+	    ];
+
 	for (error in errors) {
-		if (errors[error].last_error !== "DEDUP") {
+		if (reasons.indexOf(errors[error].last_error) < 0) {
 			errors[error].error_reason = "ERROR_REASON_UNKNOWN";
 		} else {
 			errors[error].error_reason = "ERROR_REASON_" + errors[error].last_error;
@@ -48,13 +57,8 @@ ConflictsController.prototype.updateErrors = function($scope) {
 	}
 	$scope.errors = errors;
 
-	var ignoreds = angular.fromJson(drive.get_ignoreds());
 	for (ignore in ignoreds) {
-		if (ignoreds[ignore].last_error !== "READONLY" &&
-				ignoreds[ignore].last_error !== "PARENT_UNSYNC" &&
-				ignoreds[ignore].last_error !== "LOCKED" &&
-				ignoreds[ignore].last_error !== "MANUAL" &&
-				ignoreds[ignore].last_error !== "DEDUP") {
+		if (reasons.indexOf(ignoreds[ignore].last_error) < 0) {
 			ignoreds[ignore].ignore_reason = "IGNORE_REASON_UNKNOWN";
 		} else {
 			ignoreds[ignore].ignore_reason = "IGNORE_REASON_" + ignoreds[ignore].last_error;

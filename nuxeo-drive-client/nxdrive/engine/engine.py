@@ -580,10 +580,10 @@ class Engine(QObject):
                 return
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
             if local_metrics['last_event'] == 0:
-                log.warn("No watchdog event detected but sync is completed")
+                log.trace('No watchdog event detected but sync is completed')
             if self._sync_started:
                 self._sync_started = False
-            log.debug('Emitting syncCompleted for engine %s', self.get_uid())
+            log.trace('Emitting syncCompleted for engine %s', self.get_uid())
             self.syncCompleted.emit()
 
     def _thread_finished(self):
@@ -669,11 +669,11 @@ class Engine(QObject):
 
     def stop(self):
         self._stopped = True
-        log.debug("Engine %s stopping", self._uid)
+        log.trace('Engine %s stopping', self._uid)
         self._stop.emit()
         for thread in self._threads:
             if not thread.wait(5000):
-                log.warn("Thread is not responding - terminate it")
+                log.warn('Thread is not responding - terminate it')
                 thread.terminate()
         if not self._local_watcher.get_thread().wait(5000):
             self._local_watcher.get_thread().terminate()
@@ -688,7 +688,7 @@ class Engine(QObject):
             self._local_watcher.get_thread().wait(5000)
         # Soft locks needs to be reinit in case of threads termination
         Processor.soft_locks = dict()
-        log.debug("Engine %s stopped", self._uid)
+        log.trace('Engine %s stopped', self._uid)
 
     def _get_client_cache(self):
         return self._remote_clients
@@ -974,8 +974,8 @@ class Engine(QObject):
             cache[cache_key] = remote_client
         return remote_client
 
-    def create_processor(self, item_getter, name=None):
-        return Processor(self, item_getter, name=name)
+    def create_processor(self, item_getter, **kwargs):
+        return Processor(self, item_getter, **kwargs)
 
     def dispose_db(self):
         if self._dao is not None:

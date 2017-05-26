@@ -12,7 +12,7 @@ from sys import stderr
 
 from requests import HTTPError, get
 
-__version__ = '1.2.0'
+__version__ = '1.2.1'
 
 
 def backtick(cmd):
@@ -154,22 +154,22 @@ def get_issues(args):
 
     debug('>>> Retrieving commits {}'.format(
         ' '.join(arg.decode('utf-8') for arg in args.GIT_OPTIONS)))
-    cmd = ['git', 'log', '--pretty=oneline'] + args.GIT_OPTIONS
+    cmd = ['git', 'log', '--pretty=format:%B'] + args.GIT_OPTIONS
     all_commits = backtick(cmd)
 
     debug('>>> Retrieving issues')
-    commits = []
-    reverts = []
-    for commit in sorted(all_commits.splitlines(), reverse=True):
-        parts = commit.split()
+    commits, reverts = [], []
+    for commit in all_commits.splitlines():
+        if not commit:
+            continue
+        issue = commit.split()[0]
         for issue_type in args.types:
-            if parts[1] == 'Revert':
-                issue = parts[2].lstrip('"').rstrip(':')
+            if issue == 'Revert':
+                issue = commit.split()[1].lstrip('"').rstrip(':')
                 reverts.append(issue)
                 break
-            elif parts[1].startswith(issue_type):
-                issue = parts[1].split(':')[0]
-                commits.append(issue)
+            elif issue.startswith(issue_type):
+                commits.append(issue.rstrip(':'))
                 break
 
     for commit in set(set(commits) - set(reverts)):

@@ -184,7 +184,6 @@ class WebSystrayView(WebDialog):
                 rect = QRect(pos.x(), pos.y(), rect.width(), rect.height())
             else:
                 rect = QRect(pos.x()-pos.x()%rect.width(), pos.y()-pos.y()%rect.height(), rect.width(), rect.height())
-            pos = rect
             self._icon_geometry = QRect(rect.x()+desk.x(), rect.y()+desk.y(), rect.width(), rect.height())
         x = rect.x() + rect.width() - self.width()
         y = rect.y() - self.height()
@@ -237,13 +236,7 @@ class WebSystrayView(WebDialog):
 
 
 class WebSystray(QtGui.QMenu):
-    '''
-    classdocs
-    '''
     def __init__(self, application, systray_icon):
-        '''
-        Constructor
-        '''
         super(WebSystray, self).__init__()
         self.aboutToShow.connect(self.onShow)
         self.aboutToHide.connect(self.onHide)

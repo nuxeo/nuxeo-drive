@@ -23,6 +23,7 @@ from nxdrive.utils import guess_digest_algorithm, normalized_path, \
     safe_long_path
 
 if AbstractOSIntegration.is_windows():
+    import ctypes
     import win32api
     import win32con
     import win32file
@@ -678,23 +679,21 @@ class LocalClient(BaseClient):
                                        LocalClient.CASE_RENAME_PREFIX
                                        + old_name + '_')
                 if AbstractOSIntegration.is_windows():
-                    import ctypes
                     ctypes.windll.kernel32.SetFileAttributesW(
-                                                unicode(temp_path), 2)
+                        unicode(temp_path), 2)
                 os.rename(source_os_path, temp_path)
                 source_os_path = temp_path
                 # Try the os rename part
                 target_os_path = self.abspath(os.path.join(parent, new_name))
             else:
-                target_os_path, new_name = self._abspath_deduped(parent,
-                                                                new_name, old_name)
+                target_os_path, new_name = self._abspath_deduped(
+                    parent, new_name, old_name)
             if old_name != new_name:
                 os.rename(source_os_path, target_os_path)
             if AbstractOSIntegration.is_windows():
-                import ctypes
                 # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
                 ctypes.windll.kernel32.SetFileAttributesW(
-                                            unicode(target_os_path), 128)
+                    unicode(target_os_path), 128)
             new_ref = self.get_children_ref(parent, new_name)
             return self.get_info(new_ref)
         finally:

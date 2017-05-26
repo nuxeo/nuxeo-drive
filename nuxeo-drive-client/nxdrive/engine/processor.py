@@ -29,8 +29,8 @@ class Processor(EngineWorker):
     readonly_locks = dict()
     readonly_locker = Lock()
 
-    def __init__(self, engine, item_getter, name=None):
-        super(Processor, self).__init__(engine, engine.get_dao(), name=name)
+    def __init__(self, engine, item_getter, **kwargs):
+        super(Processor, self).__init__(engine, engine.get_dao(), **kwargs)
         self._current_item = None
         self._current_doc_pair = None
         self._get_item = item_getter
@@ -159,9 +159,12 @@ class Processor(EngineWorker):
                 doc_pair = self._dao.acquire_state(self._thread_id,
                                                    self._current_item.id)
             except sqlite3.OperationalError:
-                log.trace("Cannot acquire state for: %r", self._current_item)
-                self._postpone_pair(self._current_item, 'Pair in use',
-                                    interval=3)
+                state = self._dao.get_state_from_id(self._current_item.id)
+                if state:
+                    log.trace('Cannot acquire state for: %r',
+                              self._current_item)
+                    self._postpone_pair(self._current_item, 'Pair in use',
+                                        interval=3)
                 self._current_item = self._get_item()
                 continue
             try:
@@ -233,11 +236,7 @@ class Processor(EngineWorker):
                 if parent_path == '':
                     parent_path = "/"
                 if not local_client.exists(parent_path):
-                    if doc_pair.remote_state == "deleted":
-                        self._dao.remove_state(doc_pair)
-                        continue
-                    self._handle_no_parent(doc_pair, local_client,
-                                           remote_client)
+                    self._dao.remove_state(doc_pair)
                     self._current_item = self._get_item()
                     continue
 
@@ -300,7 +299,7 @@ class Processor(EngineWorker):
     def _handle_pair_handler_exception(self, doc_pair, handler_name, e):
         if isinstance(e, IOError) and e.errno == 28:
             self._engine.noSpaceLeftOnDevice.emit()
-        log.exception(e)
+        log.exception(str(e))
         self.increase_error(doc_pair, "SYNC_HANDLER_%s" % handler_name, exception=e)
 
     def _synchronize_conflicted(self, doc_pair, local_client, remote_client):
@@ -316,16 +315,6 @@ class Processor(EngineWorker):
         elif local_client.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref:
             log.debug("Auto-resolve conflict has folder has same remote_id")
             self._dao.synchronize_state(doc_pair)
-
-    def _handle_no_parent(self, doc_pair, local_client, remote_client):
-        log.trace("Republish as parent doesn't exist : %r", doc_pair)
-        parent_pair = self._dao.get_normal_state_from_remote(doc_pair.remote_parent_ref)
-        if parent_pair is not None and not doc_pair.local_parent_path == parent_pair.local_path:
-            # Need to update the pair
-            self._dao.update_local_parent_path(doc_pair, doc_pair.local_name, parent_pair.local_path)
-            # Retry with updated path
-            raise PairInterrupt
-        self.increase_error(doc_pair, "NO_PARENT")
 
     def _update_speed_metrics(self):
         action = Action.get_last_file_action()
@@ -784,7 +773,7 @@ class Processor(EngineWorker):
                         new_path = new_parent_pair.local_path + '/' + moved_name
                         if old_path == new_path:
                             log.debug("WRONG GUESS FOR MOVE: %r", doc_pair)
-                            self._is_remote_move(doc_pair, debug=True)
+                            self._is_remote_move(doc_pair)
                             self._dao.synchronize_state(doc_pair)
                         log.debug("DOC_PAIR(%r): old_path[%d][%r]: %s, new_path[%d][%r]: %s",
                             doc_pair, local_client.exists(old_path), local_client.get_remote_id(old_path), old_path,
@@ -799,10 +788,10 @@ class Processor(EngineWorker):
                         new_parent_path = new_parent_pair.remote_parent_path + "/" + new_parent_pair.remote_ref
                         self._dao.update_remote_parent_path(doc_pair, new_parent_path)
                     elif is_renaming:
-                        # renaming
-                        log.debug("Renaming local %s '%s' to '%s'.",
-                            file_or_folder, local_client.abspath(doc_pair.local_path),
-                            doc_pair.remote_name)
+                        log.debug('Renaming local %s %r to %r',
+                                  file_or_folder,
+                                  local_client.abspath(doc_pair.local_path),
+                                  doc_pair.remote_name)
                         updated_info = local_client.rename(
                             doc_pair.local_path, doc_pair.remote_name)
                     if is_move or is_renaming:
@@ -995,11 +984,11 @@ class Processor(EngineWorker):
         doc_pair.local_name = os.path.basename(local_info.path)
         doc_pair.last_local_updated = local_info.last_modification_time
 
-    def _is_remote_move(self, doc_pair, debug=False):
+    def _is_remote_move(self, doc_pair):
         local_parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
         remote_parent_pair = self._get_normal_state_from_remote_ref(doc_pair.remote_parent_ref)
-        if debug:
-            log.debug("is_remote_move: local:%r remote:%r", local_parent_pair, remote_parent_pair)
+        log.debug('is_remote_move: local:%r remote:%r', local_parent_pair,
+                  remote_parent_pair)
         return (local_parent_pair is not None
                 and remote_parent_pair is not None
                 and local_parent_pair.id != remote_parent_pair.id,

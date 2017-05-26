@@ -1,85 +1,78 @@
-'''
-@author: Remi Cattiau
-'''
+# coding: utf-8
+import codecs
 import json
 import re
 
 
 class Translator(object):
-    '''
-    classdocs
-    '''
 
     _singleton = None
 
     def __init__(self, manager, filepath, lang=None):
-        '''
-        Constructor
-        '''
         self._labels = None
         self._manager = manager
+
         # Load from JSON
-        with open(filepath, "r") as fp:
-            json_raw = fp.read()
-        # Remove the setter for use in Angular
-        json_raw = json_raw.replace("LABELS=", "")
-        self._labels = json.loads(json_raw, 'utf-8')
+        with codecs.open(filepath, encoding='utf-8') as fp:
+            self._labels = json.loads(fp.read().lstrip('LABELS='))
+
         # List language
         self._langs = dict()
         for key in self._labels:
-            if not "LANGUAGE" in self._labels[key]:
-                continue
-            self._langs[key] = (key, self._labels[key]["LANGUAGE"])
+            try:
+                self._langs[key] = (key, self._labels[key]['LANGUAGE'])
+            except KeyError:
+                pass
+
         # Select one
-        if lang is None or not lang in self._langs:
-            if "en" in self._labels:
-                self._set("en")
-                self._fallback = self._labels["en"]
-            else:
-                self._set(iter(self._labels).next())
-                self._fallback = dict()
-        else:
+        try:
             self._set(lang)
-            if "en" in self._langs:
-                self._fallback = self._labels["en"]
+        except ValueError:
+            self._set('en')
+        self._fallback = self._labels['en']
         Translator._singleton = self
 
-    def _tokenize(self, label, values=None):
-        if values is None:
+    @staticmethod
+    def _tokenize(label, values=None):
+        if not values:
             return label
+
         result = label
-        for token in re.findall(r'\{\{[^\}]+\}\}', label):
+        for token in re.findall(r'{{[^}]+}}', label):
             attr = token[2:-2].strip()
-            value = ""
-            if attr in values:
+            try:
                 value = values[attr]
+            except KeyError:
+                value = ''
             result = result.replace(token, value)
         return result
 
     def _get(self, label, values=None):
-        if not label in self._current:
-            if not label in self._fallback:
+        if label not in self._current:
+            if label not in self._fallback:
                 return label
             return self._tokenize(self._fallback[label], values)
         return self._tokenize(self._current[label], values)
 
     def _set(self, lang):
-        if not lang in self._langs:
-            raise Exception("Unkown language")
-        self._current_lang = lang
-        self._current = self._labels[lang]
-        self._manager.set_config('locale', lang)
+        try:
+            self._current = self._labels[lang]
+        except KeyError:
+            raise ValueError('Unknown language {!r}'.format(lang))
+        else:
+            self._current_lang = lang
+            self._manager.set_config('locale', lang)
 
     def _locale(self):
         return self._current_lang
 
     def _languages(self):
-        return self._langs.values()
+        return sorted(self._langs.values())
 
     @staticmethod
     def set(lang):
         if Translator._singleton is None:
-            raise Exception("Translator not initialized")
+            raise RuntimeError('Translator not initialized')
         return Translator._singleton._set(lang)
 
     @staticmethod
@@ -93,17 +86,17 @@ class Translator(object):
     @staticmethod
     def locale():
         if Translator._singleton is None:
-            raise Exception("Translator not initialized")
+            raise RuntimeError('Translator not initialized')
         return Translator._singleton._locale()
 
     @staticmethod
     def get(label, values=None):
         if Translator._singleton is None:
-            raise Exception("Translator not initialized")
+            raise RuntimeError('Translator not initialized')
         return Translator._singleton._get(label, values)
 
     @staticmethod
     def languages():
         if Translator._singleton is None:
-            raise Exception("Translator not initialized")
+            raise RuntimeError('Translator not initialized')
         return Translator._singleton._languages()

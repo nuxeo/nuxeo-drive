@@ -1,10 +1,8 @@
-'''
-@author: Remi Cattiau
-'''
-import unittest
-from nxdrive.wui.translator import Translator
-import nxdrive
+# coding: utf-8
 import os
+import unittest
+
+from nxdrive.wui.translator import Translator
 
 
 class MockManager(object):
@@ -18,15 +16,13 @@ class MockManager(object):
 
 class TranslatorTest(unittest.TestCase):
 
-    def getFolder(self, file=None):
-        return os.path.join(os.path.dirname(__file__), 'resources', file)
+    def test_non_existing_file(self):
+        self.assertRaises(IOError, Translator, MockManager(),
+                          get_folder('imagine.js'))
 
-    def testNonExistingFile(self):
-        self.assertRaises(IOError,Translator, MockManager(), self.getFolder('imagine.js'))
-
-    def testLoadFile(self):
+    def test_load_file(self):
         manager = MockManager()
-        Translator(manager, self.getFolder('i18n.js'))
+        Translator(manager, get_folder('i18n.js'))
         # Verify the call to save
         self.assertTrue(manager.called)
         self.assertEqual("en", Translator.locale())
@@ -41,10 +37,7 @@ class TranslatorTest(unittest.TestCase):
         self.assertEqual("Fallback", Translator.get("FALLBACK"))
         manager.called = False
         # Try to switch to bad language
-        self.assertRaises(Exception, Translator.set, "de")
-        self.assertEqual("fr", Translator.locale())
-        self.assertFalse(manager.called)
-        self.assertRaises(Exception, Translator.set, "es")
+        self.assertRaises(ValueError, Translator.set, "abcd")
         self.assertEqual("fr", Translator.locale())
         # Nothing should be saved
         self.assertFalse(manager.called)
@@ -54,25 +47,21 @@ class TranslatorTest(unittest.TestCase):
         self.assertEqual("en", Translator.locale())
         self.assertEqual("BOUZOUF", Translator.get("BOUZOUF"))
 
-    def testNonIniialized(self):
+    def test_non_iniialized(self):
         Translator._singleton = None
-        self.assertRaises(Exception, Translator.get, "TEST")
+        self.assertRaises(RuntimeError, Translator.get, "TEST")
 
-    def testLoadBadFile(self):
-        self.assertRaises(ValueError, Translator, MockManager(), self.getFolder('i18n-bad.js'))
+    def test_load_bad_file(self):
+        self.assertRaises(ValueError, Translator, MockManager(),
+                          get_folder('i18n-bad.js'))
 
-    def testLoadBadLanguage(self):
-        Translator(MockManager(),  self.getFolder('i18n.js'), "de")
+    def test_load_bad_language(self):
+        Translator(MockManager(),  get_folder('i18n.js'), "zzzzzz")
         # Should fallback on en
         self.assertEqual("en", Translator.locale())
 
-    def testLoadNonExistingLanguage(self):
-        Translator(MockManager(),  self.getFolder('i18n.js'), "es")
-        # Should fallback on en
-        self.assertEqual("en", Translator.locale())
-
-    def testLoadExistingLanguage(self):
-        Translator(MockManager(),  self.getFolder('i18n.js'), "fr")
+    def test_load_existing_language(self):
+        Translator(MockManager(),  get_folder('i18n.js'), "fr")
         # Should not fallback on en
         self.assertEqual("fr", Translator.locale())
         # Test the key fallback
@@ -80,11 +69,11 @@ class TranslatorTest(unittest.TestCase):
         self.assertEqual(u"Fran\xe7ais", Translator.get("LANGUAGE"))
         self.assertEqual("BOUZOUF", Translator.get("BOUZOUF"))
 
-    def testToken(self):
+    def test_token(self):
         options = dict()
         options["token_1"] = "First Token"
         options["token_2"] = "Another One"
-        Translator(MockManager(), self.getFolder('i18n.js'))
+        Translator(MockManager(), get_folder('i18n.js'))
         '''
         "TOKEN_NORMAL": "Language {{ token_1 }}",
         "TOKEN_DOUBLE": "{{ token_1 }} Language {{ token_2 }}",
@@ -97,3 +86,7 @@ class TranslatorTest(unittest.TestCase):
         self.assertEqual(" TOKEN", Translator.get("TOKEN_UNKNOWN", options))
         self.assertEqual("First Token TOKEN", Translator.get("TOKEN_WITH_NO_SPACE", options))
         self.assertEqual("First Token TOKEN First Token", Translator.get("TOKEN_REPEAT", options))
+
+
+def get_folder(fname=None):
+    return os.path.join(os.path.dirname(__file__), 'resources', fname)

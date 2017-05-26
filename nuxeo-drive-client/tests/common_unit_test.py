@@ -90,9 +90,11 @@ class RandomBug(object):
         BYPASS: skip the test
         """
         if target not in self.OS:
-            raise ValueError('Random bug, invalid OS: {} not in ({})'.format(target, ', '.join(self.OS)))
+            raise ValueError('Random bug, invalid OS: {} not in ({})'.format(
+                target, ', '.join(self.OS)))
         if mode not in self.MODES:
-            raise ValueError('Random bug, invalid mode: {} not in ({})'.format(mode, ', '.join(self.MODES)))
+            raise ValueError('Random bug, invalid mode: {} not in ({})'.format(
+                mode, ', '.join(self.MODES)))
 
         self._repeat = max(1, repeat)
         # Enforce a ticket reference
@@ -108,46 +110,52 @@ class RandomBug(object):
         @wraps(func)
         def _callable(*args, **kwargs):
             # Handle specific OS
-            if self._os == 'linux' and not AbstractOSIntegration.is_linux():
-                return func(*args, **kwargs)
-            elif self._os == 'windows' and not AbstractOSIntegration.is_windows():
-                return func(*args, **kwargs)
-            elif self._os == 'mac' and not AbstractOSIntegration.is_mac():
+            if not getattr(AbstractOSIntegration, 'is_' + self._os)():
                 return func(*args, **kwargs)
 
-            # Skip if BYPASS mode
+            # Skip if in BYPASS mode
             if self._mode == 'BYPASS':
-                raise unittest.SkipTest('RandomTest is in ' + self._mode)
+                raise unittest.SkipTest('RandomTest is in BYPASS mode')
 
             res = None
-            for i in range(self._repeat):
-                log.debug('Repeating test %s %d/%d', func.func_name, i + 1, self._repeat)
-                success = False
+            for retry in range(1, self._repeat + 1):
+                log.debug('Repeating test %s %d/%d',
+                          func.func_name, retry, self._repeat)
                 try:
                     res = func(*args, **kwargs)
-                    success = True
                 except Exception as e:
-                    # In strict mode we propagate Exception
+                    success = False
+                    # In strict mode we propagate the exception
                     if self._mode == 'STRICT':
                         raise e
+                else:
+                    success = True
                 finally:
                     # In RELAX mode, if the test succeeds once we don't fail
                     if self._mode == 'RELAX' and success:
                         return res
-                if SimpleUnitTestCase.getSingleton() is not None and i < self._repeat - 1:
+                if SimpleUnitTestCase.getSingleton() and retry <= self._repeat:
                     SimpleUnitTestCase.getSingleton().reinit()
-            # In RELAX mode, if the test never succeeds we fail because it means that
-            # this is probably not a random bug but a systematic one
+
+            # In RELAX mode, if the test never succeeds we fail because
+            # it means that this is probably not a random bug but a
+            # systematic one
             if self._mode == 'RELAX':
-                raise RandomBugError("No success after %d tries in %s mode."
-                                     " Either the %s issue is not random or you should increase the 'repeat' value." %
-                                     (self._repeat, self._mode, self._ticket), cause=e)
-            # In STRICT mode, if the test never fails we fail because it means that
-            # this is probably not a random bug anymore
+                raise RandomBugError(
+                    'No success after %d tries in %s mode.'
+                    ' Either the %s issue is not random or '
+                    'you should increase the `repeat` value.' %
+                    (self._repeat, self._mode, self._ticket),
+                    cause=e)
+
+            # In STRICT mode, if the test never fails we fail because
+            # it means that this is probably not a random bug anymore
             if self._mode == 'STRICT':
-                raise RandomBugError("No failure after %d tries in %s mode."
-                                     " Either the %s issue is fixed or you should increase the 'repeat' value." %
-                                     (self._repeat, self._mode, self._ticket))
+                raise RandomBugError(
+                    'No failure after %d tries in %s mode.'
+                    ' Either the %s issue is fixed or you should'
+                    ' increase the `repeat` value.' %
+                    (self._repeat, self._mode, self._ticket))
             return res
 
         _callable._repeat = self._repeat

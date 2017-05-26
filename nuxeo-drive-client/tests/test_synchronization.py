@@ -640,17 +640,16 @@ class TestSynchronization(UnitTestCase):
         self.assertEqual(file_names, [u'file with chars- - - - - - - - - 2.txt'])
 
     def test_synchronize_error_remote(self):
-        from urllib2 import HTTPError
         path = '/' + self.workspace_title + '/test.odt'
         remote = self.remote_document_client_1
 
-        self.engine_1.start()
         self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
         self.engine_1.invalidate_client_cache()
-        self.engine_1.get_remote_client().make_download_raise(HTTPError('', 400, '', {}, None))
+        self.engine_1.get_remote_client().make_download_raise(
+            urllib2.HTTPError('', 400, '', {}, None))
         remote.make_file('/', 'test.odt', 'Some content.')
+        self.engine_1.start()
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-        pair = self.engine_1.get_dao().get_state_from_local(u'/test.odt')
         self.engine_1.stop()
         pair = self.engine_1.get_dao().get_state_from_local(path)
         self.assertEqual(pair.error_count, 4)
@@ -667,7 +666,6 @@ class TestSynchronization(UnitTestCase):
         pair = self.engine_1.get_dao().get_state_from_local(path)
         self.assertEqual(pair.error_count, 0)
         self.assertEqual(pair.pair_state, 'synchronized')
-
 
     def test_synchronize_deleted_blob(self):
         local = self.local_client_1
