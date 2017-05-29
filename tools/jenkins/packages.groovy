@@ -106,7 +106,7 @@ for (x in slaves) {
                             bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
                             archive 'dist/*.msi, dist/*.zip'
                         }
-                        currentBuild.description = "Python ${params.PYTHON_DRIVE_VERSION}<br/>${params.BRANCH_NAME}"
+                        currentBuild.description = "Python ${params.PYTHON_DRIVE_VERSION}, Qt ${params.PYQT_VERSION}<br/>${params.BRANCH_NAME}"
                     }
                 }
             }

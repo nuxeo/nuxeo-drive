@@ -912,7 +912,12 @@ class Manager(QtCore.QObject):
         self.refresh_update_status()
 
     def get_tracking(self):
-        return self._dao.get_config("tracking", "1") == "1"
+        """
+        Avoid sending statistics when testing or if the user does not allow it.
+        """
+
+        return (self._dao.get_config('tracking', '1') == '1'
+                and not os.environ.get('WORKSPACE'))
 
     def set_tracking(self, value):
         self._dao.update_config("tracking", value)
