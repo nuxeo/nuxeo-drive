@@ -27,8 +27,13 @@ class Tracker(Worker):
                                          user_agent=self._user_agent)
         self._tracker.set('appName', 'NuxeoDrive')
         self._tracker.set('appVersion', self._manager.get_version())
-        self._tracker.set('language', self.current_locale)
         self._tracker.set('encoding', sys.getfilesystemencoding())
+        try:
+            self._tracker.set('language', self.current_locale)
+        except TypeError:
+            # TODO: On macOS, locale.getdefaultlocale() returns (None, None)
+            # TODO: when built with Esky.
+            pass
         self._manager.started.connect(self._send_stats)
 
         # Send stat every hour
