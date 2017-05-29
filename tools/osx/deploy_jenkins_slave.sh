@@ -70,7 +70,8 @@ create_package() {
     rm -rf "${src_folder_tmp}" "${dmg_tmp}"
 
     echo ">>> [DMG ${app_version}] Zipping application bundle to make it available as an update"
-    zip -r "${output_dir}/${update_pkg_name}.zip" "${pkg_path}"
+    cd "${output_dir}"
+    zip -r "${update_pkg_name}.zip" "${bundle_name}"
 }
 
 fix_version() {
