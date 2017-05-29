@@ -100,11 +100,14 @@ class CliHandler(object):
                   "NXDRIVE_HOME/logs/nxaudit.logs")
         )
         common_parser.add_argument(
-            "--locale",
+            '--locale',
+            default='en',
+            choices=('de', 'en', 'es', 'fr', 'jp'),
             help="Select the default language"
         )
         common_parser.add_argument(
-            "--force-locale",
+            '--force-locale',
+            choices=('de', 'en', 'es', 'fr', 'jp'),
             help="Force the language"
         )
         common_parser.add_argument(
