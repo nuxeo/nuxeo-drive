@@ -480,17 +480,20 @@ class LocalClient(BaseClient):
             return True
 
         if AbstractOSIntegration.is_windows():
-            # NXDRIVE-465
+            # NXDRIVE-465: ignore hidden files on Windows
             ref = self.get_children_ref(parent_ref, file_name)
             path = self.abspath(ref)
+            is_system = win32con.FILE_ATTRIBUTE_SYSTEM
+            is_hidden = win32con.FILE_ATTRIBUTE_HIDDEN
             try:
                 attrs = win32api.GetFileAttributes(path)
             except win32file.error, (errno, errctx, errmsg):
                 return False
-            if attrs & win32con.FILE_ATTRIBUTE_SYSTEM == win32con.FILE_ATTRIBUTE_SYSTEM:
+            if attrs & is_system == is_system:
                 return True
-            if attrs & win32con.FILE_ATTRIBUTE_HIDDEN == win32con.FILE_ATTRIBUTE_HIDDEN:
+            if attrs & is_hidden == is_hidden:
                 return True
+
         # NXDRIVE-655: need to check every parent if they are ignored
         result = False
         path = parent_ref
