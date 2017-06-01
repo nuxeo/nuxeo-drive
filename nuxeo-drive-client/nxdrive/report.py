@@ -1,5 +1,4 @@
 # conding: utfr-8
-import codecs
 import os
 from datetime import datetime
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
@@ -10,12 +9,27 @@ log = get_logger(__name__)
 
 
 class Report(object):
+    """
+    Class to create a complete report useful for bug reports.
+
+    Usage:
+
+        report = Report(manager, output_dir)
+        report.generate()
+        final_path = report.get_path()
+
+    TODO: More pythonic class
+
+        with Report(manager, output_dir) as report:
+            report.generate()
+            final_path = report.path
+    """
 
     def __init__(self, manager, report_path=None):
         self._manager = manager
         if not report_path:
-            self._report_name = 'report_' \
-                                + datetime.now().strftime('%y%m%d_%H%M%S')
+            self._report_name = ('report_'
+                                 + datetime.now().strftime('%y%m%d_%H%M%S'))
             folder = os.path.join(self._manager.get_configuration_folder(),
                                   'reports')
         else:
@@ -28,6 +42,11 @@ class Report(object):
         self._zipfile = os.path.join(folder, self._report_name)
 
     def copy_logs(self, myzip):
+        """
+        Copy all log files to the ZIP report.
+        If one log file fails, we just try the next one.
+        """
+
         folder = os.path.join(self._manager.get_configuration_folder(), 'logs')
         if not os.path.isdir(folder):
             return
@@ -42,15 +61,26 @@ class Report(object):
 
             comp = ZIP_DEFLATED if fname.endswith('.log') else ZIP_STORED
             rel_path = os.path.join('logs', fname)
-            myzip.write(path, rel_path, compress_type=comp)
+            try:
+                myzip.write(path, rel_path, compress_type=comp)
+            except:
+                log.exception('Impossible to copy the log %s', rel_path)
 
     @staticmethod
     def copy_db(myzip, dao):
+        """
+        Copy a databse file to the ZIP report.
+        If it fails, we just try ignore the file.
+        """
+
         # Lock to avoid inconsistence
         dao._lock.acquire()
         try:
             myzip.write(dao._db, os.path.basename(dao._db),
                         compress_type=ZIP_DEFLATED)
+        except:
+            log.exception('Impossible to copy the database %s',
+                          os.path.basename(dao._db))
         finally:
             dao._lock.release()
 
@@ -59,39 +89,41 @@ class Report(object):
 
     @staticmethod
     def _export_logs():
+        """
+        Export all lines from the memory logger.
+
+        :return bytes: bytes needed by zipfile.writestr()
+        """
+
         logger = get_logger(None)
         handler = get_handler(logger, 'memory')
         log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
 
         for record in log_buffer:
-            try:
-                line = handler.format(record)
-            except UnicodeEncodeError:
-                log.error('Log record encoding error: %r', record.__dict__)
-                line = record.getMessage()
-                if isinstance(line, Exception):
-                    line = line.message.encode('utf-8', errors='replace')
-            if isinstance(line, bytes):
-                line = line.decode('utf-8', errors='replace')
+            line = handler.format(record)
+            if not isinstance(line, bytes):
+                line = line.encode('utf-8', errors='replace')
             yield line
 
     def generate(self):
+        """ Create the ZIP report with all interesting files. """
+
         log.debug('Create report %r', self._report_name)
         log.debug('Manager metrics: %r', self._manager.get_metrics())
+        dao = self._manager.get_dao()
         with ZipFile(self._zipfile, mode='w') as zip_:
-            dao = self._manager.get_dao()
+            # Databases
             self.copy_db(zip_, dao)
-
             for engine in self._manager.get_engines().values():
                 log.debug('Engine metrics: %r', engine.get_metrics())
                 self.copy_db(zip_, engine.get_dao())
 
+            # Logs
             self.copy_logs(zip_)
 
-            # Memory efficient debug.log creation
-            with codecs.open('debug.log', mode='wb', encoding='utf-8',
-                             errors='replace') as output:
-                for line in self._export_logs():
-                    output.write(line + '\n')
-            zip_.write('debug.log', compress_type=ZIP_DEFLATED)
-            os.unlink('debug.log')
+            # Memory logger -> debug.log
+            try:
+                lines = b'\n'.join(list(self._export_logs()))
+                zip_.writestr('debug.log', lines, compress_type=ZIP_DEFLATED)
+            except:
+                log.exception('Impossible to get lines from the memory logger')
