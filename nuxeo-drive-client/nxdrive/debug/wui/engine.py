@@ -71,176 +71,133 @@ class DebugDriveApi(WebDriveApi):
             result["metrics"]["action"] = self._export_action(result["metrics"]["action"])
         return result
 
-    @QtCore.pyqtSlot(str, str, str, str, str, str, str, result=str)
+    @QtCore.pyqtSlot(str, str, str, str, str, int, str)
     def send_notification(self, notification_type, engine_uid, level, title, description, flags, action):
         from nxdrive.notification import Notification
         try:
-            if engine_uid is not None:
-                engine_uid = str(engine_uid)
-            if level is not None:
-                level = str(level)
-            if action is not None:
-                action = str(action)
-            if title is not None:
-                title = str(title)
-            if description is not None:
-                description = str(description)
-            if notification_type is not None:
-                notification_type = str(notification_type)
-            if flags is None:
-                flags = 0
-            else:
-                flags = int(flags)
-            if engine_uid == '':
-                engine_uid = None
-            notification = Notification(uid=notification_type, engine_uid=engine_uid, flags=flags, level=level, action=action, description=description, title=title)
-            self._manager.get_notification_service().send_notification(notification)
-            return ""
-        except Exception as e:
-            log.exception(e)
-            return "ERROR"
-
-    @QtCore.pyqtSlot(result=str)
-    def get_logs(self):
-        try:
-            handler = get_handler(get_logger(None), "memory")
-            return str(handler.get_buffer(MAX_LOG_DISPLAYED))
-        except Exception as e:
-            log.exception(e)
-            return None
+            notification = Notification(
+                uid=str(notification_type),
+                engine_uid=str(engine_uid) or None,
+                flags=flags,
+                level=str(level),
+                action=str(action),
+                description=str(description),
+                title=str(title)
+            )
+        except RuntimeError:
+            log.exception('Notification error')
+        else:
+            center = self._manager.get_notification_service()
+            center.send_notification(notification)
 
     @QtCore.pyqtSlot(str, result=str)
     def get_engine(self, uid):
-        try:
-            engine = self._get_engine(uid)
+        result = []
+        engine = self._get_engine(str(uid))
+        if engine:
             result = self._export_engine(engine)
-            return self._json(result)
-        except Exception as e:
-            log.exception(e)
-            return None
+        return self._json(result)
 
     @QtCore.pyqtSlot(str)
     def resume_remote_watcher(self, uid):
-        try:
-            engine = self._get_engine(uid)
+        engine = self._get_engine(str(uid))
+        if engine:
             engine._remote_watcher.resume()
-        except Exception as e:
-            log.exception(e)
 
     @QtCore.pyqtSlot(str)
     def resume_local_watcher(self, uid):
-        try:
-            engine = self._get_engine(uid)
+        engine = self._get_engine(str(uid))
+        if engine:
             engine._local_watcher.resume()
-        except Exception as e:
-            log.exception(e)
 
     @QtCore.pyqtSlot(str)
     def suspend_remote_watcher(self, uid):
-        try:
-            engine = self._get_engine(uid)
+        engine = self._get_engine(str(uid))
+        if engine:
             engine._remote_watcher.suspend()
-        except Exception as e:
-            log.exception(e)
 
     @QtCore.pyqtSlot(str)
     def suspend_local_watcher(self, uid):
-        try:
-            engine = self._get_engine(uid)
+        engine = self._get_engine(str(uid))
+        if engine:
             engine._local_watcher.suspend()
-        except Exception as e:
-            log.exception(e)
 
     @QtCore.pyqtSlot(str)
     def resume_engine(self, uid):
-        try:
-            engine = self._get_engine(uid)
+        engine = self._get_engine(str(uid))
+        if engine:
             engine.resume()
-        except Exception as e:
-            log.exception(e)
 
     @QtCore.pyqtSlot(str)
     def suspend_engine(self, uid):
-        try:
-            engine = self._get_engine(uid)
+        engine = self._get_engine(str(uid))
+        if engine:
             engine.suspend()
-        except Exception as e:
-            log.exception(e)
 
     @QtCore.pyqtSlot(str)
     def direct_edit(self, url):
         try:
             self._manager.get_direct_edit().handle_url(str(url))
-        except Exception as e:
-            log.exception(e)
+        except OSError as e:
+            log.exception(repr(e))
 
     @QtCore.pyqtSlot(str, str)
     def set_app_update(self, status, version):
-        try:
-            self._manager.get_updater().force_status(str(status), str(version))
-        except Exception as e:
-            log.exception(e)
+        updater = self._manager.get_updater()
+        if updater:
+            updater.force_status(str(status), str(version))
 
     @QtCore.pyqtSlot(str, str)
     def resume_queue(self, uid, queue):
-        try:
-            engine = self._get_engine(uid)
-            if queue == "local_file_queue":
+        engine = self._get_engine(str(uid))
+        queue = str(queue)
+        if engine:
+            if queue == 'local_file_queue':
                 engine.get_queue_manager().enable_local_file_queue(value=True)
-            elif queue == "local_folder_queue":
+            elif queue == 'local_folder_queue':
                 engine.get_queue_manager().enable_local_folder_queue(value=True)
-            elif queue == "remote_folder_queue":
+            elif queue == 'remote_folder_queue':
                 engine.get_queue_manager().enable_remote_folder_queue(value=True)
-            elif queue == "remote_file_queue":
+            elif queue == 'remote_file_queue':
                 engine.get_queue_manager().enable_remote_file_queue(value=True)
-        except Exception as e:
-            log.exception(e)
 
     @QtCore.pyqtSlot(str, str)
     def suspend_queue(self, uid, queue):
-        try:
-            engine = self._get_engine(uid)
-            if queue == "local_file_queue":
+        engine = self._get_engine(str(uid))
+        queue = str(queue)
+        if engine:
+            if queue == 'local_file_queue':
                 engine.get_queue_manager().enable_local_file_queue(value=False)
-            elif queue == "local_folder_queue":
+            elif queue == 'local_folder_queue':
                 engine.get_queue_manager().enable_local_folder_queue(value=False)
-            elif queue == "remote_folder_queue":
+            elif queue == 'remote_folder_queue':
                 engine.get_queue_manager().enable_remote_folder_queue(value=False)
-            elif queue == "remote_file_queue":
+            elif queue == 'remote_file_queue':
                 engine.get_queue_manager().enable_remote_file_queue(value=False)
-        except Exception as e:
-            log.exception(e)
 
     @QtCore.pyqtSlot(str, str)
     def get_queue(self, uid, queue):
-        try:
-            engine = self._get_engine(uid)
+        engine = self._get_engine(str(uid))
+        queue = str(queue)
+        if engine:
             res = None
-            if queue == "local_file_queue":
+            if queue == 'local_file_queue':
                 res = engine.get_queue_manager().get_local_file_queue()
-            elif queue == "local_folder_queue":
+            elif queue == 'local_folder_queue':
                 res = engine.get_queue_manager().get_local_folder_queue()
-            elif queue == "remote_folder_queue":
+            elif queue == 'remote_folder_queue':
                 res = engine.get_queue_manager().get_remote_folder_queue()
-            elif queue == "remote_file_queue":
+            elif queue == 'remote_file_queue':
                 res = engine.get_queue_manager().get_remote_file_queue()
-            if res is None:
-                return ""
-            queue = self._get_full_queue(res, engine.get_dao())
-            return self._json(queue)
-        except Exception as e:
-            log.exception(e)
-            return ""
+            if res:
+                queue = self._get_full_queue(res, engine.get_dao())
+                return self._json(queue)
+        return ''
 
 
 class EngineDialog(WebDialog):
-    '''
-    classdocs
-    '''
 
     def __init__(self, application):
-        '''
-        Constructor
-        '''
-        super(EngineDialog, self).__init__(application, "debug.html",
-                                                 api=DebugDriveApi(application, self), title="Nuxeo Drive - Engines")
+        api = DebugDriveApi(application, self)
+        super(EngineDialog, self).__init__(application, 'debug.html', api=api,
+                                           title='Nuxeo Drive - Engines')

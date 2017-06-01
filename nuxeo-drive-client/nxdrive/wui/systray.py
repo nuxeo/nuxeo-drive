@@ -1,13 +1,11 @@
-'''
-Created on 27 janv. 2015
+# coding: utf-8
+from PyQt4 import QtCore, QtGui
 
-@author: Remi Cattiau
-'''
-from PyQt4 import QtGui, QtCore
 from nxdrive.logging_config import get_logger
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
-from nxdrive.osi import AbstractOSIntegration
+
 log = get_logger(__name__)
 
 
@@ -34,125 +32,87 @@ class WebSystrayApi(WebDriveApi):
 
     @QtCore.pyqtSlot(str)
     def show_settings(self, page):
-        try:
-            super(WebSystrayApi, self).show_settings(page)
-            self._dialog.close()
-        except Exception as e:
-            log.exception(e)
+        self._dialog.close()
+        super(WebSystrayApi, self).show_settings(str(page))
 
     @QtCore.pyqtSlot(str)
     def show_conflicts_resolution(self, uid):
-        try:
-            super(WebSystrayApi, self).show_conflicts_resolution(uid)
-            self._dialog.close()
-        except Exception as e:
-            log.exception(e)
+        self._dialog.close()
+        super(WebSystrayApi, self).show_conflicts_resolution(str(uid))
 
     @QtCore.pyqtSlot(str, str)
     def show_metadata(self, uid, ref):
-        try:
-            super(WebSystrayApi, self).show_metadata(uid, ref)
-            self._dialog.close()
-        except Exception as e:
-            log.exception(e)
+        self._dialog.close()
+        super(WebSystrayApi, self).show_metadata(str(uid), str(ref))
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.pyqtSlot(str)
     def open_remote(self, uid):
-        try:
-            res = super(WebSystrayApi, self).open_remote(uid)
-            self._dialog.close()
-            return res
-        except Exception as e:
-            log.exception(e)
-            return ""
+        self._dialog.close()
+        super(WebSystrayApi, self).open_remote(str(uid))
 
-    @QtCore.pyqtSlot(str, str, result=str)
+    @QtCore.pyqtSlot(str, str)
     def open_local(self, uid, path):
-        try:
-            res = super(WebSystrayApi, self).open_local(uid, path)
-            self._dialog.close()
-            return res
-        except Exception as e:
-            log.exception(e)
-            return ""
+        self._dialog.close()
+        super(WebSystrayApi, self).open_local(str(uid), str(path))
 
     @QtCore.pyqtSlot()
     def open_help(self):
-        try:
-            self._manager.open_help()
-            self._dialog.close()
-        except Exception as e:
-            log.exception(e)
+        self._dialog.close()
+        self._manager.open_help()
 
     @QtCore.pyqtSlot(str)
     def trigger_notification(self, id_):
-        try:
-            super(WebSystrayApi, self).trigger_notification(id_)
-            self._dialog.close()
-        except Exception as e:
-            log.exception(e)
+        self._dialog.close()
+        super(WebSystrayApi, self).trigger_notification(str(id_))
 
     @QtCore.pyqtSlot()
     def open_about(self):
-        try:
-            self._application.show_settings(section="About")
-            self._dialog.close()
-        except Exception as e:
-            log.exception(e)
+        self._dialog.close()
+        self._application.show_settings(section='About')
 
     @QtCore.pyqtSlot()
     def suspend(self):
-        try:
-            self._manager.suspend()
-            self._dialog.close()
-        except Exception as e:
-            log.exception(e)
+        self._dialog.close()
+        self._manager.suspend()
 
     @QtCore.pyqtSlot(str, result=int)
     def get_syncing_items(self, uid):
-        try:
-            engine = self._get_engine(uid)
-            return engine.get_dao().get_syncing_count()
-        except Exception as e:
-            log.exception(e)
-            return 0
+        count = 0
+        engine = self._get_engine(str(uid))
+        if engine:
+            count = engine.get_dao().get_syncing_count()
+        return count
 
     @QtCore.pyqtSlot()
     def resume(self):
-        try:
-            self._manager.resume()
-            self._dialog.close()
-        except Exception as e:
-            log.exception(e)
+        self._dialog.close()
+        self._manager.resume()
 
     def _create_advanced_menu(self):
         menu = QtGui.QMenu()
         menu.setFocusProxy(self._dialog)
         if self._manager.is_paused():
-            menu.addAction(Translator.get("RESUME"), self.resume)
+            menu.addAction(Translator.get('RESUME'), self.resume)
         else:
-            menu.addAction(Translator.get("SUSPEND"), self.suspend)
+            menu.addAction(Translator.get('SUSPEND'), self.suspend)
         menu.addSeparator()
-        menu.addAction(Translator.get("SETTINGS"), self._application.show_settings)
+        menu.addAction(Translator.get('SETTINGS'), self._application.show_settings)
         menu.addSeparator()
-        menu.addAction(Translator.get("HELP"), self.open_help)
+        menu.addAction(Translator.get('HELP'), self.open_help)
         if self._manager.is_debug():
             menu.addSeparator()
             menuDebug = self._application.create_debug_menu(menu)
-            debugAction = QtGui.QAction(Translator.get("DEBUG"), self)
+            debugAction = QtGui.QAction(Translator.get('DEBUG'), self)
             debugAction.setMenu(menuDebug)
             menu.addAction(debugAction)
         menu.addSeparator()
-        menu.addAction(Translator.get("QUIT"), self._application.quit)
+        menu.addAction(Translator.get('QUIT'), self._application.quit)
         return menu
 
     @QtCore.pyqtSlot()
     def advanced_systray(self):
-        try:
-            menu = self._create_advanced_menu()
-            menu.exec_(QtGui.QCursor.pos())
-        except Exception as e:
-            log.exception(e)
+        menu = self._create_advanced_menu()
+        menu.exec_(QtGui.QCursor.pos())
 
 
 class WebSystrayView(WebDialog):
@@ -160,7 +120,7 @@ class WebSystrayView(WebDialog):
     DEFAULT_HEIGHT = 370
 
     def __init__(self, application, icon):
-        super(WebSystrayView, self).__init__(application, "systray.html", api=WebSystrayApi(application, self))
+        super(WebSystrayView, self).__init__(application, 'systray.html', api=WebSystrayApi(application, self))
         self._icon = icon
         self._icon_geometry = None
         self._view.setFocusProxy(self)
@@ -255,7 +215,7 @@ class WebSystray(QtGui.QMenu):
 
     @QtCore.pyqtSlot()
     def onShow(self):
-        log.trace("Show systray menu")
+        log.trace('Show systray menu')
         if self.dlg is None:
             self.dlg = WebSystrayView(self._application, self._systray_icon)
             # Close systray when app is quitting

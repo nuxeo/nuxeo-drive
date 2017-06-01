@@ -42,53 +42,40 @@ class WebConflictsApi(WebDriveApi):
 
     @QtCore.pyqtSlot(int)
     def resolve_with_local(self, state_id):
-        try:
-            self._engine.resolve_with_local(state_id)
-        except Exception as e:
-            log.exception(e)
+        self._engine.resolve_with_local(state_id)
 
     @QtCore.pyqtSlot(int)
     def resolve_with_remote(self, state_id):
-        try:
-            self._engine.resolve_with_remote(state_id)
-        except Exception as e:
-            log.exception(e)
+        self._engine.resolve_with_remote(state_id)
 
     @QtCore.pyqtSlot(int)
     def resolve_with_duplicate(self, state_id):
         try:
             self._engine.resolve_with_duplicate(state_id)
-        except Exception as e:
-            log.exception(e)
+        except IOError:
+            log.exception('Duplicate resolution error')
 
     @QtCore.pyqtSlot(int)
     def retry_pair(self, state_id):
-        try:
-            self._engine.retry_pair(int(state_id))
-        except Exception as e:
-            log.exception(e)
+        self._engine.retry_pair(state_id)
 
     @QtCore.pyqtSlot(int, str)
     def unsynchronize_pair(self, state_id, reason='UNKNOWN'):
-        try:
-            self._engine.unsynchronize_pair(int(state_id), reason=str(reason))
-        except Exception as e:
-            log.exception(e)
+        self._engine.unsynchronize_pair(state_id, reason=str(reason))
 
     @QtCore.pyqtSlot(str, result=str)
     def open_local(self, path):
         return super(WebConflictsApi, self).open_local(self._engine._uid, path)
 
-    @QtCore.pyqtSlot(str, str, result=str)
+    @QtCore.pyqtSlot(str, str)
     def open_remote(self, remote_ref, remote_name):
         remote_ref = str(remote_ref)
         remote_name = unicode(remote_name)
         log.debug("Should open this : %s (%s)", remote_name, remote_ref)
         try:
             self._engine.open_edit(remote_ref, remote_name)
-        except Exception as e:
-            log.exception(e)
-        return ""
+        except OSError:
+            log.exception('Remote open error')
 
     def _export_state(self, state):
         if state is None:

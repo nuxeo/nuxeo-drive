@@ -523,10 +523,9 @@ class LocalClient(BaseClient):
             child_ref = self.get_children_ref(ref, child_name)
             try:
                 info = self.get_info(child_ref)
-            except (OSError, NotFound) as ex:
-                # the child file has been deleted in the mean time or while
-                # reading some of its attributes
-                log.exception(ex)
+            except (OSError, NotFound):
+                log.exception('The child file has been deleted in the mean time'
+                              ' or while reading some of its attributes')
                 continue
             result.append(info)
 

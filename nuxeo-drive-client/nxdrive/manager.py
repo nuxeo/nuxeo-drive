@@ -214,8 +214,8 @@ class ProxySettings(object):
                 response.read()
             response.close()
             return True, proxy_setting
-        except Exception as ex:
-            log.warn('Invalid proxy server: %s', ex)
+        except urllib2.HTTPError:
+            log.exception('Invalid proxy server')
         return False, proxy_setting
 
     def get_proxies_automatic(self, url):
@@ -233,26 +233,32 @@ class ProxySettings(object):
         if self.config != 'Automatic':
             return default
 
-        response = None
-        pac_script = None
         try:
             response = urllib2.urlopen(self.pac_url)
-            if response:
-                pac_script = response.read()
+        except urllib2.HTTPError:
+            log.exception('Network error')
+            return default
+        else:
+            pac_script = response.read()
+            response.close()
+
+        try:
             pac_data = pypac.parser.PACFile(pac_script)
             resolver = pypac.resolver.ProxyResolver(pac_data)
+        except (pypac.parser.MalformedPacError,
+                pypac.resolver.ProxyConfigExhaustedError):
+            log.exception('PAC error')
+            return default
+        else:
             proxy_list = resolver.get_proxies(url)
-            for item in proxy_list:
-                proxy_server = item.lstrip('PROXY ')
-                working, proxy_setting = self.validate_proxy(
-                    proxy_server=proxy_server, target_url=url)
-                if working:
-                    return proxy_setting
-        except Exception as e:
-            log.exception(e)
-        finally:
-            if response:
-                response.close()
+
+        for item in proxy_list:
+            proxy_server = item.lstrip('PROXY ')
+            working, proxy_setting = self.validate_proxy(
+                proxy_server=proxy_server, target_url=url)
+            if working:
+                return proxy_setting
+
         return default
 
 
@@ -309,12 +315,10 @@ class Manager(QtCore.QObject):
         self._nofscheck = options.nofscheck
         self._debug = options.debug
         self._engine_definitions = None
-        self._engine_types = dict()
 
         from nxdrive.engine.next.engine_next import EngineNext
         from nxdrive.engine.engine import Engine
-        self._engine_types["NXDRIVE"] = Engine
-        self._engine_types["NXDRIVENEXT"] = EngineNext
+        self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
         self._engines = None
         self.proxies = dict()
         self.proxy_exceptions = None
@@ -543,11 +547,8 @@ class Manager(QtCore.QObject):
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import ManagerDAO
         if not os.path.exists(self._get_db()):
-            try:
-                self._migrate()
-                return
-            except Exception as e:
-                log.exception(e)
+            self._migrate()
+            return
         self._dao = ManagerDAO(self._get_db())
 
     def _create_updater(self, update_check_delay):
@@ -589,7 +590,8 @@ class Manager(QtCore.QObject):
                     log.debug('Update site URL has not been overridden in config.ini nor through the command line,'
                               ' using configuration from first engine [%s]: %s', first_engine._name, update_url)
             except URLError:
-                log.error('Cannot refresh engine update infos, using default update site URL', exc_info=True)
+                log.exception('Cannot refresh engine update infos,'
+                              ' using default update site URL')
         return update_url
 
     def _get_beta_update_url(self, refresh_engines):
@@ -607,7 +609,8 @@ class Manager(QtCore.QObject):
                                       ' line, using configuration from engine [%s]: %s', engine._name, beta_update_url)
                             return beta_update_url
             except URLError:
-                log.exception('Cannot refresh engine update infos, not using beta update site URL')
+                log.exception('Cannot refresh engine update infos,'
+                              ' not using beta update site URL')
         return beta_update_url
 
     def is_beta_channel_available(self):
@@ -1007,7 +1010,7 @@ class Manager(QtCore.QObject):
                 return str(_winreg.QueryValueEx(settings, 'AutoConfigURL')[0])
             except OSError as e:
                 if e.errno not in (2,):
-                    log.error('Error retrieving PAC URL', exc_info=True)
+                    log.exception('Error retrieving PAC URL')
             finally:
                 _winreg.CloseKey(settings)
         elif AbstractOSIntegration.is_mac():
@@ -1136,40 +1139,47 @@ class Manager(QtCore.QObject):
                 # Last part of the url is the engine type
                 engine_type = url.split('#')[1]
                 binder.url = url.split('#')[0]
-                log.debug("Engine type has been specified in the url: %s will be used", engine_type)
+                log.debug('Engine type has been specified in the'
+                          ' url: %s will be used', engine_type)
+
         if not self.check_local_folder_available(local_folder):
             raise FolderAlreadyUsed()
+
         if engine_type not in self._engine_types:
             raise EngineTypeMissing()
+
         if self._engines is None:
             self.load()
+
         local_folder = normalized_path(local_folder)
         if local_folder == self.get_configuration_folder():
             # Prevent from binding in the configuration folder
             raise FolderAlreadyUsed()
         uid = uuid.uuid1().hex
+
         # TODO Check that engine is not inside another or same position
         engine_def = self._dao.add_engine(engine_type, local_folder, uid, name)
         try:
-            self._engines[uid] = self._engine_types[engine_type](self, engine_def, binder=binder,
-                                                                 remote_watcher_delay=self.remote_watcher_delay)
-            self._engine_definitions.append(engine_def)
+            self._engines[uid] = self._engine_types[engine_type](
+                self, engine_def, binder=binder,
+                remote_watcher_delay=self.remote_watcher_delay)
         except Exception as e:
-            log.exception(e)
-            if uid in self._engines:
+            log.exception('Engine error')
+            try:
                 del self._engines[uid]
+            except KeyError:
+                pass
             self._dao.delete_engine(uid)
-            # TODO Remove the db ?
+            # TODO Remove the DB?
             raise e
+
+        self._engine_definitions.append(engine_def)
         # As new engine was just bound, refresh application update status
         self.refresh_update_status()
         if starts:
             self._engines[uid].start()
         self.newEngine.emit(self._engines[uid])
         return self._engines[uid]
-        #server_url, username, password
-        # check the connection to the server by issuing an authentication
-        # request
 
     def unbind_engine(self, uid):
         if self._engines is None:

@@ -1,6 +1,5 @@
 from PyQt4 import QtCore
 from nxdrive.logging_config import get_logger
-from nxdrive.manager import FolderAlreadyUsed
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
 import urllib2
@@ -51,7 +50,7 @@ class WebAuthenticationApi(WebDriveApi):
                       engine.get_local_folder(), engine.get_server_url(), engine.get_remote_user())
             self._settings_api.update_token(engine, token)
         except urllib2.URLError as e:
-            log.exception(e)
+            log.exception('HTTP Error')
             if e.errno == 61:
                 error = 'CONNECTION_REFUSED'
             else:

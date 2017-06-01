@@ -75,8 +75,9 @@ class FakeUpdater(QtCore.QObject):
 
     @staticmethod
     def get_active_version():
-        from nxedge import __version__
+        from nxdrive import __version__
         return __version__
+
 
 class AppUpdater(PollWorker):
     """Class for updating a frozen application.
@@ -115,11 +116,10 @@ class AppUpdater(PollWorker):
                           executable.decode('utf-8'), version_finder)
                 self.esky_app = Esky(executable, version_finder=version_finder)
                 self._enable = True
-            except UpdateError as e:
-                log.error(e, exc_info=True)
-                log.debug("Error initializing Esky instance, as a"
-                                       " consequence update features won't be"
-                                       " available")
+            except UpdateError:
+                log.exception('Error initializing Esky instance, as a'
+                              ' consequence update features will not'
+                              ' be available')
         self.local_update_site = local_update_site
         if self._enable:
             self.update_site = self.esky_app.version_finder.download_url
@@ -196,10 +196,10 @@ class AppUpdater(PollWorker):
                 try:
                     self._update(update_version)
                 except UpdateError:
-                    log.error("An error occurred while trying to automatically"
-                              "update Nuxeo Drive to version %s,"
-                              " setting 'Auto update' to False",
-                              update_version, exc_info=True)
+                    log.exception('An error occurred while trying to '
+                                  'automatically update Nuxeo Drive to '
+                                  'version %s, disaling auto-update.',
+                                  update_version)
                     self._manager.set_auto_update(False)
             elif update_status == UPDATE_STATUS_UPDATE_AVAILABLE and \
                     not self._manager.get_auto_update():
@@ -234,8 +234,8 @@ class AppUpdater(PollWorker):
             self._handle_URL_error(e)
         except socket.timeout as e:
             self._handle_timeout_error(e)
-        except Exception as e:
-            log.exception(e)
+        except:
+            log.exception('Impossible to find versions')
 
         return sorted(versions, cmp=version_compare_client)
 
@@ -255,16 +255,15 @@ class AppUpdater(PollWorker):
             log.debug("Fetched server minimum version for client version %s"
                       " from %s: %s", client_version, url, version)
             return version
-        except HTTPError as e:
+        except HTTPError:
             version = DEFAULT_SERVER_MIN_VERSION
-            log.debug(missing_msg + ", using default one: %s",
-                      DEFAULT_SERVER_MIN_VERSION)
+            log.debug(missing_msg + ', using default one: %s', version)
         except URLError as e:
             self._handle_URL_error(e)
         except socket.timeout as e:
             self._handle_timeout_error(e)
-        except Exception as e:
-            log.error(e, exc_info=True)
+        except:
+            log.exception(missing_msg)
             raise MissingUpdateSiteInfo(missing_msg)
 
     def _get_client_min_version(self, server_version):
@@ -283,15 +282,15 @@ class AppUpdater(PollWorker):
             log.debug("Fetched client minimum version for server version %s"
                       " from %s: %s", server_version, url, version)
             return version
-        except HTTPError as e:
-            log.error(e, exc_info=True)
+        except HTTPError:
+            log.exception('Network error')
             raise MissingUpdateSiteInfo(missing_msg)
         except URLError as e:
             self._handle_URL_error(e)
         except socket.timeout as e:
             self._handle_timeout_error(e)
-        except Exception as e:
-            log.error(e, exc_info=True)
+        except:
+            log.exception(missing_msg)
             raise MissingUpdateSiteInfo(missing_msg)
 
     def compute_common_versions(self):
@@ -391,7 +390,7 @@ class AppUpdater(PollWorker):
                 self.appUpdated.emit(version)
                 return
             except:
-                log.exception("Updater issue, will try to get root")
+                log.exception('Updater issue, will try to get root')
             try:
                 self.esky_app.get_root()
                 self._do_update(version)
@@ -401,14 +400,14 @@ class AppUpdater(PollWorker):
                     # Under Windows, this means that the sudo popup was
                     # rejected
                     self.esky_app.sudo_proxy = None
-                    log.warn("RootPrivilegeRequired", exc_info=True)
+                    log.exception('RootPrivilegeRequired')
                     return
                 # Other EnvironmentError, probably not related to permissions
-                log.warn("UpdateError", exc_info=True)
+                log.exception('UpdateError')
                 return
             except UpdateError:
                 # Error during update process, not related to permissions
-                log.error("UpdateError", exc_info=True)
+                log.exception('UpdateError')
                 return
             finally:
                 self.last_status = self._get_update_status()
@@ -416,7 +415,7 @@ class AppUpdater(PollWorker):
             try:
                 self._do_update(version)
             except UpdateError:
-                log.error("UpdateError", exc_info=True)
+                log.exception('UpdateError')
                 return
             finally:
                 self.last_status = self._get_update_status()
@@ -460,11 +459,11 @@ class AppUpdater(PollWorker):
         return self.update_site
 
     def _handle_URL_error(self, e):
-        log.error(e, exc_info=True)
+        log.exception(repr(e))
         raise UnavailableUpdateSite(
             "Cannot connect to update site '%s'" % self.update_site)
 
     def _handle_timeout_error(self, e):
-        log.error(e, exc_info=True)
+        log.exception(repr(e))
         raise UnavailableUpdateSite(
             "Connection to update site '%s' timed out" % self.update_site)

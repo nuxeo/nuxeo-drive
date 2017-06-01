@@ -286,7 +286,7 @@ class Processor(EngineWorker):
                 self._engine.get_queue_manager().push(doc_pair)
                 raise
             except Exception as e:
-                log.exception(e)
+                log.exception('Pair error')
                 self.increase_error(doc_pair, "EXCEPTION", exception=e)
                 raise e
             finally:
@@ -299,7 +299,7 @@ class Processor(EngineWorker):
     def _handle_pair_handler_exception(self, doc_pair, handler_name, e):
         if isinstance(e, IOError) and e.errno == 28:
             self._engine.noSpaceLeftOnDevice.emit()
-        log.exception(str(e))
+        log.exception(repr(e))
         self.increase_error(doc_pair, "SYNC_HANDLER_%s" % handler_name, exception=e)
 
     def _synchronize_conflicted(self, doc_pair, local_client, remote_client):
@@ -810,11 +810,10 @@ class Processor(EngineWorker):
                 doc_pair)
             raise e
         finally:
-            if self.tmp_file is not None and os.path.exists(self.tmp_file):
-                try:
-                    os.remove(self.tmp_file)
-                except (IOError, OSError):
-                    pass
+            try:
+                os.remove(self.tmp_file)
+            except (TypeError, OSError):
+                pass
             if doc_pair.folderish:
                 # Release folder lock in any case
                 self._engine.release_folder_lock()

@@ -176,8 +176,8 @@ class LocalWatcher(EngineWorker):
                 del self._delete_events[evt_pair.remote_ref]
         except ThreadInterrupt:
             raise
-        except Exception as e:
-            log.exception(e)
+        except:
+            log.exception('Win: dequeuing deletion error')
         finally:
             self._win_lock.release()
 
@@ -229,8 +229,8 @@ class LocalWatcher(EngineWorker):
                     del self._folder_scan_events[local_path]
         except ThreadInterrupt:
             raise
-        except Exception as e:
-            log.exception(e)
+        except:
+            log.exception('Win: dequeuing folder scan error')
         finally:
             self._win_lock.release()
 
@@ -495,7 +495,8 @@ class LocalWatcher(EngineWorker):
                     if child_info.folderish:
                         to_scan.append(child_info)
                 except Exception as e:
-                    log.exception(e)
+                    log.exception('Error with pair %r, increasing error',
+                                  child_pair)
                     self.increase_error(child_pair, "SCAN RECURSIVE", exception=e)
                     continue
 
@@ -940,7 +941,7 @@ class LocalWatcher(EngineWorker):
                 return
             log.debug('Unhandled case: %r %s %s', evt, rel_path, file_name)
         except:
-            log.error('Watchdog exception', exc_info=True)
+            log.exception('Watchdog exception')
         finally:
             self._end_action()
 
