@@ -183,10 +183,8 @@ class Worker(QObject):
             except ThreadInterrupt:
                 log.debug("Thread %s(%d) interrupted", self._name, self._thread_id)
                 reason = 'interrupt'
-            except Exception as ex:
-                log.warn("Thread %s(%d) ended with exception : %r", self._name, self._thread_id, ex)
-                log.exception(ex)
-                e = ex
+            except Exception as e:
+                log.exception('Thread %s(%d) exception', self._name, self._thread_id)
                 reason = 'exception'
             self._clean(reason, e)
         finally:

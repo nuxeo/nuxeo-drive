@@ -52,30 +52,18 @@ class WebMetadataApi(WebDriveApi):
 
     @QtCore.pyqtSlot(result=str)
     def get_current_file(self):
-        try:
-            return self._json(self._engine.get_dao()
-                        .get_normal_state_from_remote(self._remote_ref))
-        except Exception as e:
-            log.exception(e)
-            return ""
+        dao = self._engine.get_dao()
+        return self._json(dao.get_normal_state_from_remote(self._remote_ref))
 
     @QtCore.pyqtSlot(str, result=str)
     def get_next_file(self, mode):
-        try:
-            mode = str(mode)
-            return self._json(self._engine.get_next_file(self._remote_ref, mode))
-        except Exception as e:
-            log.exception(e)
-            return ""
+        mode = str(mode)
+        return self._json(self._engine.get_next_file(self._remote_ref, mode))
 
     @QtCore.pyqtSlot(str, result=str)
     def get_previous_file(self, mode):
-        try:
-            mode = str(mode)
-            return self._json(self._engine.get_previous_file(self._remote_ref, mode))
-        except Exception as e:
-            log.exception(e)
-            return ""
+        mode = str(mode)
+        return self._json(self._engine.get_previous_file(self._remote_ref, mode))
 
 
 class MetadataErrorHandler(QtCore.QObject):

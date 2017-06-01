@@ -12,7 +12,7 @@ from sys import stderr
 
 from requests import HTTPError, get
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 
 
 def backtick(cmd):
@@ -165,11 +165,11 @@ def get_issues(args):
         issue = commit.split()[0]
         for issue_type in args.types:
             if issue == 'Revert':
-                issue = commit.split()[1].lstrip('"').rstrip(':')
+                issue = commit.split()[1].split(':')[0].lstrip('"')
                 reverts.append(issue)
                 break
             elif issue.startswith(issue_type):
-                commits.append(issue.rstrip(':'))
+                commits.append(issue.split(':')[0])
                 break
 
     for commit in set(set(commits) - set(reverts)):

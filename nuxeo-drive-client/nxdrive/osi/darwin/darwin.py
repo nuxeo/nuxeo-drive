@@ -2,16 +2,16 @@
 import os
 import urllib2
 
+import AppKit
+import objc
+from AppKit import NSRegisterServicesProvider, NSURLPboardType
+from Foundation import NSObject, NSURL
+
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import normalized_path
 
 log = get_logger(__name__)
-
-import objc
-from Foundation import NSObject, NSURL
-import AppKit
-from AppKit import NSURLPboardType, NSRegisterServicesProvider
 
 
 def serviceSelector(fn):
@@ -43,9 +43,8 @@ class RightClickService(NSObject):
                     log.debug("Should open : %s", value)
                     from PyQt4.QtCore import QCoreApplication
                     QCoreApplication.instance().show_metadata(value)
-            return
-        except Exception as e:
-            log.exception(e)
+        except:
+            log.exception('Right click service error')
 
 
 class DarwinIntegration(AbstractOSIntegration):

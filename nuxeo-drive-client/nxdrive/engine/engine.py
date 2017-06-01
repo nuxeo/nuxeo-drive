@@ -367,8 +367,8 @@ class Engine(QObject):
             # Dont fail if not possible to remove token
             doc_client = self.get_remote_doc_client()
             doc_client.revoke_token()
-        except Exception as e:
-            log.exception(e)
+        except:
+            log.exception('Unbind error')
         self.dispose_db()
         # Remove DB
         log.debug("Remove DB file %s", self._get_db_file())
@@ -1009,6 +1009,6 @@ class Engine(QObject):
                     if first_name and last_name:
                         fullname = " ".join([first_name, last_name]).strip()
                 self._user_cache[userid] = fullname
-        except urllib2.URLError as e:
-            log.exception(e)
+        except urllib2.URLError:
+            log.exception('Network error')
         return fullname

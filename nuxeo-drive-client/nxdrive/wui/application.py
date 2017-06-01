@@ -615,5 +615,5 @@ class Application(SimpleApplication):
                         self.manager.get_direct_edit().edit(
                             info['server_url'], info['item_id'])
             except:
-                log.error("Error handling URL event: %s", url, exc_info=True)
+                log.exception('Error handling URL event: %s', url)
         return super(Application, self).event(event)

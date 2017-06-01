@@ -487,20 +487,20 @@ class RemoteWatcher(EngineWorker):
                 self.updated.emit()
             return True
         except HTTPError as e:
-            if e.code == 401 or e.code == 403:
-                self._engine.set_invalid_credentials(reason='got HTTPError %d while trying to handle remote changes'
-                                                     % e.code, exception=e)
+            err = 'HTTP error %d while trying to handle remote changes' % e.code
+            if e.code in (401, 403):
+                self._engine.set_invalid_credentials(reason=err, exception=e)
             else:
-                log.exception(e)
+                log.exception(err)
             self._engine.set_offline()
-        except (BadStatusLine, URLError, socket.error) as e:
+        except (BadStatusLine, URLError, socket.error):
             # Pause the rest of the engine
-            log.exception(e)
+            log.exception('Network error')
             self._engine.set_offline()
-        except ThreadInterrupt as e:
-            raise e
-        except Exception as e:
-            log.exception(e)
+        except ThreadInterrupt:
+            raise
+        except:
+            log.exception('Unexpected error')
         finally:
             self._end_action()
         return False

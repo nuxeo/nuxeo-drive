@@ -193,8 +193,7 @@ class NotificationService(QtCore.QObject):
         self.newNotification.emit(notification)
 
     def trigger_notification(self, uid):
-        print "Trigger notification " + uid
-        if not uid in self._notifications:
+        if uid not in self._notifications:
             return
         notification = self._notifications[uid]
         if notification.is_actionable():

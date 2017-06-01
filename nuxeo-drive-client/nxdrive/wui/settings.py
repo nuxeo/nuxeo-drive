@@ -44,41 +44,27 @@ class WebSettingsApi(WebDriveApi):
     def get_default_section(self):
         try:
             return self._dialog._section
-        except Exception as e:
-            log.exception(e)
-            return ""
+        except AttributeError:
+            log.exception('Section not reachable')
+            return ''
 
     @QtCore.pyqtSlot(result=str)
     def get_default_nuxeo_drive_folder(self):
-        try:
-            folder = self._manager.get_default_nuxeo_drive_folder()
-            return folder
-        except Exception as e:
-            log.exception(e)
-            return ""
+        return self._manager.get_default_nuxeo_drive_folder()
 
     @QtCore.pyqtSlot(str, result=QtCore.QObject)
     def unbind_server_async(self, uid):
         return Promise(self.unbind_server, uid)
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.pyqtSlot(str)
     def unbind_server(self, uid):
-        try:
-            self._manager.unbind_engine(str(uid))
-        except Exception as e:
-            log.exception(e)
-        return ""
+        self._manager.unbind_engine(str(uid))
 
-    @QtCore.pyqtSlot(str, result=str)
+    @QtCore.pyqtSlot(str)
     def filters_dialog(self, uid):
-        try:
-            engine = self._get_engine(uid)
-            if engine is None:
-                return "ERROR"
+        engine = self._get_engine(str(uid))
+        if engine:
             self._application.show_filters(engine)
-        except Exception as e:
-            log.exception(e)
-        return ""
 
     def _bind_server(self, local_folder, url, username, password, name, start_engine=True, check_fs=True, token=None):
         if isinstance(local_folder, QtCore.QString):
@@ -126,7 +112,7 @@ class WebSettingsApi(WebDriveApi):
             msgbox.addButton(Translator.get("ROOT_USED_CONTINUE"), QtGui.QMessageBox.AcceptRole)
             cancel = msgbox.addButton(Translator.get("ROOT_USED_CANCEL"), QtGui.QMessageBox.RejectRole)
             msgbox.exec_()
-            if (msgbox.clickedButton() == cancel):
+            if msgbox.clickedButton() == cancel:
                 return "FOLDER_USED"
             return self.bind_server(local_folder, url, username, password, name, check_fs=False, token=token)
         except NotFound:
@@ -151,8 +137,8 @@ class WebSettingsApi(WebDriveApi):
             if e.errno == 61:
                 return "CONNECTION_REFUSED"
             return "CONNECTION_ERROR"
-        except Exception as e:
-            log.exception(e)
+        except:
+            log.exception('Unexpected error')
             # Map error here
             return "CONNECTION_UNKNOWN"
 
@@ -211,7 +197,8 @@ class WebSettingsApi(WebDriveApi):
         except StartupPageConnectionError:
             return 'CONNECTION_ERROR'
         except:
-            log.exception('Unexpected error while trying to open web authentication window')
+            log.exception('Unexpected error while trying to open'
+                          ' web authentication window')
             return 'CONNECTION_UNKNOWN'
 
     def _check_local_folder(self, local_folder):
@@ -237,7 +224,8 @@ class WebSettingsApi(WebDriveApi):
         except urllib2.HTTPError as e:
             status = e.code
         except:
-            log.exception('Error while trying to connect to Nuxeo Drive startup page with URL %s', url)
+            log.exception('Error while trying to connect to Nuxeo Drive'
+                          ' startup page with URL %s', url)
             raise StartupPageConnectionError()
         log.debug('Status code for %s = %d', url, status)
         return status
@@ -248,7 +236,7 @@ class WebSettingsApi(WebDriveApi):
     @QtCore.pyqtSlot(str, result=str)
     def web_update_token(self, uid):
         try:
-            engine = self._get_engine(uid)
+            engine = self._get_engine(str(uid))
             if engine is None:
                 return 'CONNECTION_UNKNOWN'
             server_url = engine.get_server_url()
@@ -260,7 +248,8 @@ class WebSettingsApi(WebDriveApi):
             self._open_authentication_dialog(url, callback_params)
             return ''
         except:
-            log.exception('Unexpected error while trying to open web authentication window for token update')
+            log.exception('Unexpected error while trying to open web'
+                          ' authentication window for token update')
             return 'CONNECTION_UNKNOWN'
 
     @QtCore.pyqtSlot(str, object)
@@ -285,86 +274,61 @@ class WebSettingsApi(WebDriveApi):
 
     @QtCore.pyqtSlot(result=str)
     def get_new_local_folder(self):
-        try:
-            return self._new_local_folder
-        except Exception as e:
-            log.exception(e)
+        return self._new_local_folder
 
     @QtCore.pyqtSlot(str)
     def set_new_local_folder(self, local_folder):
-        try:
-            self._new_local_folder = local_folder
-        except Exception as e:
-            log.exception(e)
+        self._new_local_folder = str(local_folder)
 
     @QtCore.pyqtSlot(result=str)
     def get_account_creation_error(self):
-        try:
-            return self._account_creation_error
-        except Exception as e:
-            log.exception(e)
+        return self._account_creation_error
 
     @QtCore.pyqtSlot(str)
     def set_account_creation_error(self, error):
-        try:
-            self._account_creation_error = error
-        except Exception as e:
-            log.exception(e)
+        self._account_creation_error = str(error)
 
     @QtCore.pyqtSlot(result=str)
     def get_token_update_error(self):
-        try:
-            return self._token_update_error
-        except Exception as e:
-            log.exception(e)
+        return self._token_update_error
 
     @QtCore.pyqtSlot(str)
     def set_token_update_error(self, error):
-        try:
-            self._token_update_error = error
-        except Exception as e:
-            log.exception(e)
+        self._token_update_error = str(error)
 
     @QtCore.pyqtSlot(result=str)
     def get_proxy_settings(self):
-        try:
-            result = dict()
-            settings = self._manager.get_proxy_settings()
-            result["url"] = settings.to_url(with_credentials=False)
-            result["config"] = settings.config
-            result["type"] = settings.proxy_type
-            result["server"] = settings.server
-            result["username"] = settings.username
-            result["authenticated"] = (settings.authenticated == 1)
-            result["password"] = settings.password
-            result["port"] = settings.port
-            result["pac_url"] = settings.pac_url
-            return self._json(result)
-        except Exception as e:
-            log.exception(e)
-            return ""
+        settings = self._manager.get_proxy_settings()
+        result = {
+            'url': settings.to_url(with_credentials=False),
+            'config': settings.config,
+            'type': settings.proxy_type,
+            'server': settings.server,
+            'username': settings.username,
+            'authenticated': settings.authenticated == 1,
+            'password': settings.password,
+            'port': settings.port,
+            'pac_url': settings.pac_url,
+            }
+        return self._json(result)
 
-    @QtCore.pyqtSlot(str, str, str, str, str, str, result=QtCore.QObject)
-    def set_proxy_settings_async(self, config='System', server=None, authenticated=False, username=None, password=None, pac_url=None):
+    @QtCore.pyqtSlot(str, str, bool, str, str, str, result=QtCore.QObject)
+    def set_proxy_settings_async(self, config, server, authenticated, username, password, pac_url):
         return Promise(self.set_proxy_settings, config, server, authenticated, username, password, pac_url)
 
-    @QtCore.pyqtSlot(str, str, str, str, str, str, result=str)
-    def set_proxy_settings(self, config='System', server=None, authenticated=False, username=None, password=None, pac_url=None):
-        try:
-            config = str(config)
-            url = str(server)
-            settings = ProxySettings(config=config)
-            if config == "Manual":
-                settings.from_url(url)
-            elif config == "Automatic":
-                settings.pac_url = str(pac_url)
-            settings.authenticated = "true" == authenticated
-            settings.username = str(username)
-            settings.password = str(password)
-            return self._manager.set_proxy_settings(settings)
-        except Exception as e:
-            log.exception(e)
-        return ""
+    @QtCore.pyqtSlot(str, str, bool, str, str, str, result=str)
+    def set_proxy_settings(self, config, server, authenticated, username, password, pac_url):
+        config = str(config) or 'System'
+        url = str(server)
+        settings = ProxySettings(config=config)
+        if config == 'Manual':
+            settings.from_url(url)
+        elif config == 'Automatic':
+            settings.pac_url = str(pac_url)
+        settings.authenticated = authenticated
+        settings.username = str(username)
+        settings.password = str(password)
+        return self._manager.set_proxy_settings(settings)
 
 
 class WebSettingsDialog(WebDialog):

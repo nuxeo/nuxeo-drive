@@ -36,8 +36,18 @@ class ReportTest(TestCase):
         # Crafted problematic logRecord
         try:
             raise ValueError(u'[tests] folder/\xeatre ou ne pas \xeatre.odt')
-        except ValueError:
+        except ValueError as e:
             log.exception('Oups!')
+            log.exception(repr(e))
+            log.exception(unicode(e))  # Works but not recommended
+
+            with self.assertRaises(UnicodeEncodeError):
+                log.exception(str(e))
+
+                # Using the syntax below will raise the same UnicodeEncodeError
+                # but the logging module takes care of it and just prints out
+                # the exception without raising it.  So I let it there FI.
+                # log.exception(e)
 
         report = Report(self.manager, os.path.join(self.folder, 'report'))
         report.generate()
