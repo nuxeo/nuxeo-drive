@@ -543,7 +543,11 @@ class LocalWatcher(EngineWorker):
                 log.warn('Cannot import read_directory_changes, probably under'
                          ' Windows XP, watchdog will fall back on polling')
         log.debug('Watching FS modification on : %s', self.client.base_folder)
-        ignore_patterns = ['*' + DOWNLOAD_TMP_FILE_SUFFIX]
+
+        # Filter out all ignored suffixes. It will handle custom ones too.
+        ignore_patterns = list(['*' + DOWNLOAD_TMP_FILE_SUFFIX])
+        ignore_patterns.extend('*' + p for p in self.client.ignored_suffixes)
+
         self._event_handler = DriveFSEventHandler(
             self, ignore_patterns=ignore_patterns)
         self._root_event_handler = DriveFSRootEventHandler(
@@ -555,8 +559,7 @@ class LocalWatcher(EngineWorker):
         self._observer.start()
         self._root_observer = Observer()
         self._root_observer.schedule(self._root_event_handler, 
-                                     os.path.dirname(self.client.base_folder), 
-                                     recursive=False)
+                                     os.path.dirname(self.client.base_folder))
         self._root_observer.start()
 
     def _stop_watchdog(self):
@@ -801,15 +804,17 @@ class LocalWatcher(EngineWorker):
             if not rel_path or rel_path == '/':
                 self.handle_watchdog_root_event(evt)
                 return
+
             file_name = os.path.basename(src_path)
             parent_path = os.path.dirname(src_path)
             parent_rel_path = self.client.get_path(parent_path)
-            doc_pair = self._dao.get_state_from_local(rel_path)
-            # Dont care about ignored file, unless it is moved
+            # Don't care about ignored file, unless it is moved
             if self.client.is_ignored(parent_rel_path, file_name) and evt.event_type != 'moved':
                 return
             if self.client.is_temp_file(file_name):
                 return
+
+            doc_pair = self._dao.get_state_from_local(rel_path)
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
                     log.debug("Ignoring %s as marked unsynchronized", doc_pair.local_path)

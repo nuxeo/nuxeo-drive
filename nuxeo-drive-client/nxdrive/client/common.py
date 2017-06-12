@@ -82,20 +82,21 @@ DEFAULT_REPOSITORY_NAME = 'default'
 
 DEFAULT_IGNORED_PREFIXES = tuple({
     '.',  # hidden Unix files
+    'Icon\r',  # macOS icon
+    'Thumbs.db',  # Windows Thumbnails files
+    'desktop.ini',  # Windows icon
     '~$',  # Windows lock files
-    'Thumbs.db',  # Thumbnails files
-    'Icon\r',  # Mac Icon
-    'desktop.ini',  # Icon for windows
 })
 
 DEFAULT_IGNORED_SUFFIXES = tuple({
-    '~',  # editor buffers
-    '.swp',  # vim swap files
-    '.lock',  # some process use file locks
     '.LOCK',  # other locks
-    '.part',  # partially downloaded files by browsers
     '.crdownload',  # partially downloaded files by browsers
+    '.lock',  # some process use file locks
+    '.part',  # partially downloaded files by browsers
     '.partial',  # partially downloaded files by browsers
+    '.swp',  # vim swap files
+    '.tmp',  # temporary files (MS Office and others)
+    '~',  # editor buffers
 })
 
 # Default buffer size for file upload / download and digest computation
