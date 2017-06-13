@@ -949,6 +949,9 @@ class LocalWatcher(EngineWorker):
             self._end_action()
 
     def _schedule_win_folder_scan(self, doc_pair):
+        if not doc_pair:
+            return
+
         # On Windows schedule another recursive scan to make sure I/O is completed,
         # ex: copy/paste, move
         if self._windows and self._win_folder_scan_interval > 0 and self._windows_folder_scan_delay > 0:

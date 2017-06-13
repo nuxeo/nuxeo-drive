@@ -1,13 +1,8 @@
-from nxdrive.client import LocalClient
+# coding: utf-8
 from tests.common_unit_test import RandomBug, UnitTestCase
 
 
 class TestSynchronizationSuspend(UnitTestCase):
-    def get_local_client(self, path):
-        if self._testMethodName == 'test_synchronize_deep_folders':
-            return LocalClient(path)
-        return super(TestSynchronizationSuspend, self).get_local_client(path)
-
     @RandomBug('NXDRIVE-805', target='windows', repeat=2)
     def test_basic_synchronization_suspend(self):
         local = self.local_client_1
