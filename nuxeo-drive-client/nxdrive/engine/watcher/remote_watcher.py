@@ -172,16 +172,21 @@ class RemoteWatcher(EngineWorker):
             return True
         return False
 
-    def _do_scan_remote(self, doc_pair, remote_info, force_recursion=True, mark_unknown=True,
-                        moved=False):
+    def _do_scan_remote(self, doc_pair, remote_info, force_recursion=True, moved=False):
+        # NXDRIVE-881: check the folder was not remotely renamed.
+        if doc_pair.local_name and doc_pair.local_name != remote_info.name:
+            doc_pair.remote_state = 'modified'
+            self._dao.update_remote_state(doc_pair, remote_info, queue=False,
+                                          versionned=False, force_update=True)
+            self._dao.add_path_to_scan(remote_info.path)
+
         if remote_info.can_scroll_descendants:
             log.debug('Performing scroll remote scan for %s (%s)', remote_info.name, remote_info.uid)
             self._scan_remote_scroll(doc_pair, remote_info, moved=moved)
         else:
             log.debug('Scroll scan not available, performing recursive remote scan for %s (%s)', remote_info.name,
                       remote_info.uid)
-            self._scan_remote_recursive(doc_pair, remote_info, force_recursion=force_recursion,
-                                        mark_unknown=mark_unknown)
+            self._scan_remote_recursive(doc_pair, remote_info, force_recursion=force_recursion)
 
     def _scan_remote_scroll(self, doc_pair, remote_info, moved=False):
         """Perform a scroll scan of the bound remote folder looking for updates"""
@@ -267,7 +272,7 @@ class RemoteWatcher(EngineWorker):
         return delta.seconds * 1000 + delta.microseconds / 1000
 
     def _scan_remote_recursive(self, doc_pair, remote_info,
-                               force_recursion=True, mark_unknown=True):
+                               force_recursion=True):
         """Recursively scan the bound remote folder looking for updates
 
         If force_recursion is True, recursion is done even on
@@ -279,14 +284,6 @@ class RemoteWatcher(EngineWorker):
 
         # Check if synchronization thread was suspended
         self._interact()
-
-        # If a folderish pair state has been remotely updated,
-        # recursively unmark its local descendants as 'unsynchronized'
-        # by marking them as 'unknown'.
-        # This is needed to synchronize unsynchronized items back.
-        if mark_unknown:
-            # TODO Should be DAO method
-            log.trace("Skip remote scan as mark_unknown: %r", doc_pair)
 
         # Detect recently deleted children
         db_children = self._dao.get_remote_children(doc_pair.remote_ref)
@@ -316,7 +313,7 @@ class RemoteWatcher(EngineWorker):
 
         for folder in to_scan:
             # TODO Optimize by multithreading this too ?
-            self._do_scan_remote(folder[0], folder[1], force_recursion=force_recursion, mark_unknown=False)
+            self._do_scan_remote(folder[0], folder[1], force_recursion=force_recursion)
         self._dao.add_path_scanned(remote_parent_path)
 
     def _init_scan_remote(self, doc_pair, remote_info):
