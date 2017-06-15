@@ -1003,7 +1003,7 @@ class Processor(EngineWorker):
             try:
                 local_client = self._engine.get_local_client()
                 info = local_client.rename(target_pair.local_path,
-                                            target_pair.remote_name)
+                                           target_pair.remote_name)
                 self._dao.update_local_state(source_pair, info, queue=False)
                 if source_pair != target_pair:
                     if target_pair.folderish:
@@ -1018,13 +1018,10 @@ class Processor(EngineWorker):
                             self._dao.synchronize_state(pair)
                     else:
                         self._dao.remove_state(target_pair)
-                    # Mark all local as unknown
-                    # self._mark_unknown_local_recursive(session, source_pair)
                 self._dao.synchronize_state(source_pair)
                 return True
-            except Exception, e:
-                log.error("Can't rollback local modification")
-                log.debug(e)
+            except:
+                log.exception('Cannot rollback local modification')
         return False
 
     def _handle_unsynchronized(self, local_client, doc_pair):

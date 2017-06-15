@@ -164,13 +164,13 @@ class RemoteWatcher(EngineWorker):
 
     @staticmethod
     def _check_modified(child_pair, child_info):
-        if (child_pair.remote_can_delete != child_info.can_delete
-                or child_pair.remote_can_rename != child_info.can_rename
-                or child_pair.remote_can_update != child_info.can_update
-                or child_pair.remote_can_create_child != child_info.can_create_child
-                or child_pair.remote_digest != child_info.digest):
-            return True
-        return False
+        return any([
+            child_pair.remote_can_delete != child_info.can_delete,
+            child_pair.remote_can_rename != child_info.can_rename,
+            child_pair.remote_can_update != child_info.can_update,
+            child_pair.remote_can_create_child != child_info.can_create_child,
+            child_pair.remote_digest != child_info.digest,
+        ])
 
     def _do_scan_remote(self, doc_pair, remote_info, force_recursion=True, moved=False):
         # NXDRIVE-881: check the folder was not remotely renamed.
@@ -181,12 +181,15 @@ class RemoteWatcher(EngineWorker):
             self._dao.add_path_to_scan(remote_info.path)
 
         if remote_info.can_scroll_descendants:
-            log.debug('Performing scroll remote scan for %s (%s)', remote_info.name, remote_info.uid)
+            log.debug('Performing scroll remote scan for %s (%s)',
+                      remote_info.name, remote_info.uid)
             self._scan_remote_scroll(doc_pair, remote_info, moved=moved)
         else:
-            log.debug('Scroll scan not available, performing recursive remote scan for %s (%s)', remote_info.name,
+            log.debug('Scroll scan not available, performing recursive'
+                      ' remote scan for %s (%s)', remote_info.name,
                       remote_info.uid)
-            self._scan_remote_recursive(doc_pair, remote_info, force_recursion=force_recursion)
+            self._scan_remote_recursive(doc_pair, remote_info,
+                                        force_recursion=force_recursion)
 
     def _scan_remote_scroll(self, doc_pair, remote_info, moved=False):
         """Perform a scroll scan of the bound remote folder looking for updates"""
@@ -313,7 +316,8 @@ class RemoteWatcher(EngineWorker):
 
         for folder in to_scan:
             # TODO Optimize by multithreading this too ?
-            self._do_scan_remote(folder[0], folder[1], force_recursion=force_recursion)
+            self._do_scan_remote(folder[0], folder[1],
+                                 force_recursion=force_recursion)
         self._dao.add_path_scanned(remote_parent_path)
 
     def _init_scan_remote(self, doc_pair, remote_info):
