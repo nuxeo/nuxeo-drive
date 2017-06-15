@@ -34,9 +34,9 @@
 							<span translate>CONFLICT_USE_LOCAL</span>
 						</a>
 					</li>
-
 					<li ng-show="pair.remote_can_update || (pair.folderish && pair.remote_can_rename)" class="divider"></li>
-					<li ng-show="pair.remote_can_update || (pair.folderish && pair.remote_can_rename)">
+
+					<li>
 						<a href="#" ng-click="resolve_with_remote(pair.id)">
 							<span class="glyphicon glyphicon-globe">&nbsp;</span>
 							<span translate>CONFLICT_USE_REMOTE</span>
