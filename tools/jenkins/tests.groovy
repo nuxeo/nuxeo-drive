@@ -108,30 +108,41 @@ for (def x in slaves) {
                 if (params.CLEAN_WORKSPACE) {
                     deleteDir()
                 }
-                try {
-                    // Required envars
-                    env.PYTHON_DRIVE_VERSION = params.PYTHON_DRIVE_VERSION ?: python_drive_version
-                    env.PYQT_VERSION = params.PYQT_VERSION ?: pyqt_version
-                    env.DRIVE_YAPPI = params.ENABLE_PROFILER ? env.WORKSPACE : ''
 
+                // Required envars
+                env.PYTHON_DRIVE_VERSION = params.PYTHON_DRIVE_VERSION ?: python_drive_version
+                env.PYQT_VERSION = params.PYQT_VERSION ?: pyqt_version
+                env.DRIVE_YAPPI = params.ENABLE_PROFILER ? env.WORKSPACE : ''
+
+                try {
                     stage(osi + ' Checkout') {
-                        dir('sources') {
-                            deleteDir()
+                        try {
+                            dir('sources') {
+                                deleteDir()
+                            }
+                            github_status('PENDING')
+                            checkout_custom()
+                        } catch(e) {
+                            currentBuild.result = 'UNSTABLE'
+                            throw e
                         }
-                        github_status('PENDING')
-                        checkout_custom()
                     }
 
                     stage(osi + ' Setup') {
                         // Set up a complete isolated environment
-                        dir('sources') {
-                            if (osi == 'macOS') {
-                                sh 'tools/osx/deploy_jenkins_slave.sh'
-                            } else if (osi == 'GNU/Linux') {
-                                sh 'tools/linux/deploy_jenkins_slave.sh'
-                            } else {
-                                bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1"'
+                        try {
+                            dir('sources') {
+                                if (osi == 'macOS') {
+                                    sh 'tools/osx/deploy_jenkins_slave.sh'
+                                } else if (osi == 'GNU/Linux') {
+                                    sh 'tools/linux/deploy_jenkins_slave.sh'
+                                } else {
+                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1"'
+                                }
                             }
+                        } catch(e) {
+                            currentBuild.result = 'UNSTABLE'
+                            throw e
                         }
                     }
 
@@ -147,18 +158,23 @@ for (def x in slaves) {
                             env.REPORT_PATH = env.WORKSPACE + '/sources'
                             env.TEST_REMOTE_SCAN_VOLUME = 100
 
-                            if (osi == 'macOS') {
-                                // Adjust the PATH
-                                def env_vars = [
-                                    'PATH+LOCALBIN=/usr/local/bin',
-                                ]
-                                withEnv(env_vars) {
+                            try {
+                                if (osi == 'macOS') {
+                                    // Adjust the PATH
+                                    def env_vars = [
+                                        'PATH+LOCALBIN=/usr/local/bin',
+                                    ]
+                                    withEnv(env_vars) {
+                                        sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                    }
+                                } else if (osi == 'GNU/Linux') {
                                     sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                } else {
+                                    bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
                                 }
-                            } else if (osi == 'GNU/Linux') {
-                                sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
-                            } else {
-                                bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
+                            } catch(e) {
+                                currentBuild.result = 'FAILURE'
+                                throw e
                             }
                         }
 
@@ -167,9 +183,6 @@ for (def x in slaves) {
 
                         currentBuild.result = 'SUCCESS'
                     }
-                } catch(e) {
-                    currentBuild.result = 'FAILURE'
-                    throw e
                 } finally {
                     // We use catchError to not let notifiers and recorders change the current build status
                     catchError {

@@ -531,6 +531,10 @@ class Engine(QObject):
         self._dao.force_remote(row)
 
     def resolve_with_duplicate(self, row_id):
+        if not self.get_local_client().duplication_enabled():
+            log.error('De-duplication is disabled')
+            return
+
         row = self._dao.get_state_from_id(row_id)
         self._dao.increase_error(row, "DUPLICATING")
 
