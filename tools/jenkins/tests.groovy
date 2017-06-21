@@ -60,9 +60,9 @@ if (env.BRANCH_NAME.startsWith('wip-')) {
 }
 
 // Jenkins slaves we will build on
-slaves = ['OSXSLAVE', 'SLAVE', 'WINSLAVE']
+slaves = ['OSXSLAVE-DRIVE', 'SLAVE', 'WINSLAVE']
 labels = [
-    'OSXSLAVE': 'macOS',
+    'OSXSLAVE-DRIVE': 'macOS',
     'SLAVE': 'GNU/Linux',
     'WINSLAVE': 'Windows'
 ]
