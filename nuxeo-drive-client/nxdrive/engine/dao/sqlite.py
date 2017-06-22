@@ -92,7 +92,10 @@ class StateRow(sqlite3.Row):
                 ).format(name=type(self).__name__, cls=self)
 
     def __getattr__(self, name):
-        return self[name]
+        try:
+            return self[name]
+        except IndexError:
+            raise IndexError('No item with that key', locals())
 
     def is_readonly(self):
         if self.folderish:
@@ -1076,14 +1079,14 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
         return row_id
 
-    def queue_children(self, row):
+    def queue_children(self, row, old_parent=None):
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
             children = c.execute("SELECT * FROM States WHERE remote_parent_ref=? or local_parent_path=? AND " +
-                                    self._get_to_sync_condition(), (row.remote_ref, row.local_path)).fetchall()
-            log.debug("Queuing %d children of '%r'", len(children), row)
+                                    self._get_to_sync_condition(), (old_parent or row.remote_ref, row.local_path)).fetchall()
+            log.debug('Queuing %d children of %r', len(children), row)
             for child in children:
                 self._queue_pair_state(child.id, child.folderish, child.pair_state)
         finally:
@@ -1192,7 +1195,7 @@ class EngineDAO(ConfigurationDAO):
         finally:
             self._lock.release()
 
-    def synchronize_state(self, row, version=None):
+    def synchronize_state(self, row, version=None, old_parent=None):
         if version is None:
             version = row.version
         log.trace('Try to synchronize state for [local_path=%s, remote_name=%s, version=%s] with version=%s',
@@ -1236,7 +1239,7 @@ class EngineDAO(ConfigurationDAO):
                 log.trace("The current row was: %r (version=%r)", row2, row2.version)
             log.trace("The previous row was: %r (version=%r)", row, row.version)
         elif row.folderish:
-            self.queue_children(row)
+            self.queue_children(row, old_parent=old_parent)
         return result
 
     def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False, no_digest=False):
@@ -1255,6 +1258,17 @@ class EngineDAO(ConfigurationDAO):
             if info.digest == row.remote_digest and not force_update:
                 log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
                 return
+
+        # """
+        if (row.pair_state != 'conflicted'
+                and row.folderish
+                and row.local_name
+                and row.local_name != info.name):
+            # We check the current pair_state to not interfer with conflicted
+            # documents, for instance a move on both sides.
+            row.remote_state = 'modified'
+            row.pair_state = self._get_pair_state(row)
+        # """
         log.trace('Updating remote state for row = %r with info = %r (force: %r)', row, info, force_update)
         if versionned:
             version = ', version=version+1'

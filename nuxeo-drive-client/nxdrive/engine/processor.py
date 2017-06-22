@@ -743,6 +743,7 @@ class Processor(EngineWorker):
 
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
         self.tmp_file = None
+        old_parent = None
         try:
             is_renaming = safe_filename(doc_pair.remote_name) != doc_pair.local_name
             if (not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path)
@@ -787,12 +788,14 @@ class Processor(EngineWorker):
                         new_parent_path = new_parent_pair.remote_parent_path + "/" + new_parent_pair.remote_ref
                         self._dao.update_remote_parent_path(doc_pair, new_parent_path)
                     elif is_renaming:
+                        old_parent = doc_pair.remote_ref
                         log.debug('Renaming local %s %r to %r',
                                   file_or_folder,
                                   local_client.abspath(doc_pair.local_path),
                                   doc_pair.remote_name)
                         updated_info = local_client.rename(
                             doc_pair.local_path, doc_pair.remote_name)
+                        log.info('\nCHECK\n%r\n%r', doc_pair, updated_info)
                     if is_move or is_renaming:
                         # Should call a DAO method
                         if updated_info:
@@ -801,7 +804,7 @@ class Processor(EngineWorker):
                             self._search_for_dedup(doc_pair)
                             self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(local_client, doc_pair)
-            self._dao.synchronize_state(doc_pair)
+            self._dao.synchronize_state(doc_pair, old_parent=old_parent)
         except (IOError, OSError) as e:
             log.warning(
                 "Delaying local update of remotely modified content %r due to"
