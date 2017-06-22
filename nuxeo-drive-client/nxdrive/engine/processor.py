@@ -226,9 +226,9 @@ class Processor(EngineWorker):
                         doc_pair.remote_ref = None
 
                 # NXDRIVE-842: parent is in disabled duplication error
-                state = self._get_normal_state_from_remote_ref(
+                parent_pair = self._get_normal_state_from_remote_ref(
                     doc_pair.remote_parent_ref)
-                if state and state.last_error == 'DEDUP':
+                if parent_pair and parent_pair.last_error == 'DEDUP':
                     self._current_item = self._get_item()
                     continue
 
@@ -236,9 +236,14 @@ class Processor(EngineWorker):
                 if parent_path == '':
                     parent_path = "/"
                 if not local_client.exists(parent_path):
-                    self._dao.remove_state(doc_pair)
-                    self._current_item = self._get_item()
-                    continue
+                    if doc_pair.local_parent_path != parent_pair.local_path:
+                        # The parent folder has been renamed sooner
+                        # in the current synchronization
+                        doc_pair.local_parent_path = parent_pair.local_path
+                    else:
+                        self._dao.remove_state(doc_pair)
+                        self._current_item = self._get_item()
+                        continue
 
                 self._current_metrics = dict()
                 handler_name = '_synchronize_' + doc_pair.pair_state
@@ -1018,8 +1023,6 @@ class Processor(EngineWorker):
                             self._dao.synchronize_state(pair)
                     else:
                         self._dao.remove_state(target_pair)
-                    # Mark all local as unknown
-                    # self._mark_unknown_local_recursive(session, source_pair)
                 self._dao.synchronize_state(source_pair)
                 return True
             except Exception, e:
