@@ -1,4 +1,5 @@
 # coding: utf-8
+from nxdrive.osi import AbstractOSIntegration
 from tests.common_unit_test import RandomBug, UnitTestCase
 
 
@@ -49,7 +50,7 @@ class TestSynchronizationSuspend(UnitTestCase):
 
         # Create a bunch of files locally
         local.make_folder('/', 'files')
-        for num in range(20):
+        for num in range(60 if AbstractOSIntegration.is_windows() else 20):
             local.make_file('/files',
                             'file-' + str(num) + '.txt',
                             content=b'Content of file-' + str(num))
