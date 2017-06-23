@@ -632,7 +632,7 @@ class RemoteWatcher(EngineWorker):
                             consistent_new_info = new_info
                             if remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME:
                                 new_info_parent_uid = doc_pair.remote_parent_ref
-                                new_info_path = (doc_pair.remote_parent_path + '/' + remote_ref)
+                                new_info_path = doc_pair.remote_parent_path + '/' + remote_ref
                                 consistent_new_info = RemoteFileInfo(
                                     new_info.name, new_info.uid,
                                     new_info_parent_uid,
@@ -665,17 +665,16 @@ class RemoteWatcher(EngineWorker):
                             self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path,
                                                           force_update=lock_update)
                             if doc_pair.folderish:
-                                log.trace("Force scan recursive on %r : %d", doc_pair, (event_id == "securityUpdated"))
+                                log.trace('Force scan recursive on %r : %d', doc_pair, event_id == 'securityUpdated')
                                 self._force_remote_scan(doc_pair, consistent_new_info, remote_path=new_info.path,
-                                                        force_recursion=(event_id == "securityUpdated"),
-                                                        moved=(event_id == "documentMoved"))
+                                                        force_recursion=event_id == 'securityUpdated',
+                                                        moved=event_id == 'documentMoved')
                             if lock_update:
                                 doc_pair = self._dao.get_state_from_id(doc_pair.id)
                                 try:
                                     self._handle_readonly(self._local_client, doc_pair)
                                 except (OSError, IOError) as ex:
-                                    log.trace("Can't handle readonly for %r (%r)", doc_pair, ex)
-                                    pass
+                                    log.trace('Cannot handle readonly for %r (%r)', doc_pair, ex)
                     updated = True
                     refreshed.add(remote_ref)
 
@@ -685,7 +684,7 @@ class RemoteWatcher(EngineWorker):
                 parent_pairs = self._dao.get_states_from_remote(new_info.parent_uid)
                 for parent_pair in parent_pairs:
 
-                    child_pair, new_pair = (self._find_remote_child_match_or_create(parent_pair, new_info))
+                    child_pair, new_pair = self._find_remote_child_match_or_create(parent_pair, new_info)
                     if new_pair:
                         log.debug("Marked doc_pair '%s' as remote creation",
                                   child_pair.remote_name)

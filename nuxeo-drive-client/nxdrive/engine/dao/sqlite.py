@@ -92,7 +92,10 @@ class StateRow(sqlite3.Row):
                 ).format(name=type(self).__name__, cls=self)
 
     def __getattr__(self, name):
-        return self[name]
+        try:
+            return self[name]
+        except IndexError:
+            raise IndexError('No key with that name.', locals())
 
     def is_readonly(self):
         if self.folderish:

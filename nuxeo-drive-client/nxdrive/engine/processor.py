@@ -50,7 +50,6 @@ class Processor(EngineWorker):
             Processor.path_locker.release()
 
     def _unlock_readonly(self, local_client, path):
-        # dict[path]=(count, lock)
         Processor.readonly_locker.acquire()
         if self._engine.get_uid() not in Processor.readonly_locks:
             Processor.readonly_locks[self._engine.get_uid()] = dict()
@@ -129,10 +128,9 @@ class Processor(EngineWorker):
 
     def _clean(self, reason, e=None):
         super(Processor, self)._clean(reason, e)
-        if reason == 'exception':
+        if reason == 'exception' and self._current_doc_pair is not None:
             # Add it back to the queue ? Add the error delay
-            if self._current_doc_pair is not None:
-                self.increase_error(self._current_doc_pair, "EXCEPTION", exception=e)
+            self.increase_error(self._current_doc_pair, 'EXCEPTION', exception=e)
 
     @staticmethod
     def check_pair_state(doc_pair):
@@ -798,13 +796,12 @@ class Processor(EngineWorker):
                                   doc_pair.remote_name)
                         updated_info = local_client.rename(
                             doc_pair.local_path, doc_pair.remote_name)
-                    if is_move or is_renaming:
+                    if any([is_move, is_renaming]) and updated_info:
                         # Should call a DAO method
-                        if updated_info:
-                            new_path = os.path.dirname(updated_info.path)
-                            self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path), new_path)
-                            self._search_for_dedup(doc_pair)
-                            self._refresh_local_state(doc_pair, updated_info)
+                        new_path = os.path.dirname(updated_info.path)
+                        self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path), new_path)
+                        self._search_for_dedup(doc_pair)
+                        self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
         except (IOError, OSError) as e:
