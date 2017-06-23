@@ -364,9 +364,10 @@ class Engine(QObject):
     def unbind(self):
         self.stop()
         try:
-            # Dont fail if not possible to remove token
+            # Don't fail if not possible to remove token
             doc_client = self.get_remote_doc_client()
-            doc_client.revoke_token()
+            if doc_client:
+                doc_client.revoke_token()
         except:
             log.exception('Unbind error')
         self.dispose_db()

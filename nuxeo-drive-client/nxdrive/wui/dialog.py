@@ -372,11 +372,8 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, result=str)
     def get_threads(self, uid):
-        result = []
         engine = self._get_engine(str(uid))
-        if not engine:
-            return result
-        return self._json(self._get_threads(engine))
+        return self._json(self._get_threads(engine) if engine else [])
 
     @QtCore.pyqtSlot(str, result=str)
     def get_errors(self, uid):

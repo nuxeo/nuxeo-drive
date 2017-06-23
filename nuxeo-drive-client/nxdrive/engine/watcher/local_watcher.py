@@ -237,7 +237,9 @@ class LocalWatcher(EngineWorker):
     def _scan(self):
         log.debug("Full scan started")
         start_ms = current_milli_time()
-        self._suspend_queue()
+        to_pause = not self._engine.get_queue_manager().is_paused()
+        if to_pause:
+            self._suspend_queue()
         self._delete_files = dict()
         self._protected_files = dict()
 
@@ -247,7 +249,8 @@ class LocalWatcher(EngineWorker):
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
         log.debug("Full scan finished in %dms", self._metrics['last_local_scan_time'])
         self._local_scan_finished = True
-        self._engine.get_queue_manager().resume()
+        if to_pause:
+            self._engine.get_queue_manager().resume()
         self.localScanFinished.emit()
 
     def _scan_handle_deleted_files(self):
@@ -946,6 +949,9 @@ class LocalWatcher(EngineWorker):
             self._end_action()
 
     def _schedule_win_folder_scan(self, doc_pair):
+        if not doc_pair:
+            return
+
         # On Windows schedule another recursive scan to make sure I/O is completed,
         # ex: copy/paste, move
         if self._windows and self._win_folder_scan_interval > 0 and self._windows_folder_scan_delay > 0:
