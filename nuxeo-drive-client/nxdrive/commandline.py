@@ -83,7 +83,7 @@ class CliHandler(object):
         )
         common_parser.add_argument(
             '--log-level-file',
-            default='DEBUG',
+            default='TRACE',
             choices=('TRACE', 'DEBUG', 'INFO', 'WARNING', 'ERROR'),
             help='Minimum log level for the file log'
                  ' (under NXDRIVE_HOME/logs).'
