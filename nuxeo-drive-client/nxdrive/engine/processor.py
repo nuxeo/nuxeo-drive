@@ -234,7 +234,7 @@ class Processor(EngineWorker):
                 if parent_path == '':
                     parent_path = "/"
                 if not local_client.exists(parent_path):
-                    if doc_pair.local_parent_path != parent_pair.local_path:
+                    if parent_pair and doc_pair.local_parent_path != parent_pair.local_path:
                         # The parent folder has been renamed sooner
                         # in the current synchronization
                         doc_pair.local_parent_path = parent_pair.local_path
