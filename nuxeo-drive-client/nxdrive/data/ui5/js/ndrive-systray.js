@@ -72,8 +72,8 @@ var SystrayController = function($scope, $timeout, $translate) {
 		$scope.engine = engine;
 		$scope.engine.syncing_count = drive.get_syncing_items($scope.engine.uid);
 		$scope.sync = drive.is_syncing($scope.engine.uid);
-		notifications = [];
-		notifs = angular.fromJson(drive.get_notifications($scope.engine.uid));
+		var notifications = [],
+		    notifs = angular.fromJson(drive.get_notifications($scope.engine.uid));
 		for ( var i in notifs ) {
 			if (notifs[i].systray && !notifs[i].discard) {
 				notifications.push(notifs[i]);
@@ -112,11 +112,8 @@ SystrayController.prototype.advancedSystray = function() {
 	drive.advanced_systray();
 }
 SystrayController.prototype.getLastFiles = function($scope) {
-	if ($scope.current_actions.length < 5) {
-		$scope.last_files = angular.fromJson(drive.get_last_files($scope.engine.uid, 5-$scope.current_actions.length, null)); 
-	} else {
-		$scope.last_files = [];	
-	}
+	$scope.last_files = angular.fromJson(drive.get_last_files(
+	    $scope.engine.uid, 4 - $scope.current_actions.length, null));
 }
 
 /**

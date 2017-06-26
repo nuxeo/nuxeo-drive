@@ -101,10 +101,10 @@ class WebSystrayApi(WebDriveApi):
         menu.addAction(Translator.get('HELP'), self.open_help)
         if self._manager.is_debug():
             menu.addSeparator()
-            menuDebug = self._application.create_debug_menu(menu)
-            debugAction = QtGui.QAction(Translator.get('DEBUG'), self)
-            debugAction.setMenu(menuDebug)
-            menu.addAction(debugAction)
+            debug_menu = self._application.create_debug_menu(menu)
+            debug_action = QtGui.QAction(Translator.get('DEBUG'), self)
+            debug_action.setMenu(debug_menu)
+            menu.addAction(debug_action)
         menu.addSeparator()
         menu.addAction(Translator.get('QUIT'), self._application.quit)
         return menu

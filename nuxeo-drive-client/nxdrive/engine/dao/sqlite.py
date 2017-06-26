@@ -701,14 +701,20 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
         return row_id
 
-    def get_last_files(self, number, direction=""):
+    def get_last_files(self, number, direction=''):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        condition = ""
-        if direction == "remote":
-            condition = " AND last_transfer = 'upload'"
-        elif direction == "local":
-            condition = " AND last_transfer = 'download'"
-        return c.execute("SELECT * FROM States WHERE pair_state='synchronized' AND folderish=0" + condition + " ORDER BY last_sync_date DESC LIMIT " + str(number)).fetchall()
+        condition = ''
+        if direction == 'remote':
+            condition = 'AND last_transfer = "upload"'
+        elif direction == 'local':
+            condition = 'AND last_transfer = "download"'
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE pair_state = "synchronized"'
+                         '   AND folderish = 0'
+                         '       {}'
+                         ' ORDER BY last_sync_date DESC'
+                         ' LIMIT {}'.format(condition, number)).fetchall()
 
     def _get_to_sync_condition(self):
         return "pair_state != 'synchronized' AND pair_state != 'unsynchronized'"
