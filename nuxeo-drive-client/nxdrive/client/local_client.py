@@ -1,6 +1,7 @@
 # coding: utf-8
 """ API to access local resources for synchronization. """
 
+import errno
 import hashlib
 import os
 import re
@@ -559,6 +560,21 @@ class LocalClient(BaseClient):
             return parent + u"/" + name
         finally:
             self.lock_ref(parent, locker)
+
+    @staticmethod
+    def make_tree(path):
+        """
+        Recursive directory creation.
+
+        :param str path: The absolute path to create.
+        """
+
+        try:
+            os.makedirs(path)
+        except os.error as exc:
+            # Filter out already existant path
+            if exc.errno != errno.EEXIST:
+                raise exc
 
     def duplicate_file(self, ref):
         parent = os.path.dirname(ref)

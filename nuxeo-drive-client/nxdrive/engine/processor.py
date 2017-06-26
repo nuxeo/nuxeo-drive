@@ -762,6 +762,12 @@ class Processor(EngineWorker):
                     # A move to a filtered parent (treat it as deletion)
                     self._synchronize_remotely_deleted(doc_pair, local_client, remote_client)
                     return
+
+                if not new_parent_pair:
+                    # A move to a folder that has not yet been processed
+                    self._postpone_pair(doc_pair, reason='PARENT_UNSYNC')
+                    return
+
                 if not is_move and not is_renaming:
                     log.debug('No local impact of metadata update on'
                               ' document %r.', doc_pair.remote_name)
@@ -795,6 +801,10 @@ class Processor(EngineWorker):
                         new_path_abs = local_client.abspath(new_path)
                         log.debug('Moving local %s %r to %r',
                                   file_or_folder, old_path_abs, new_path_abs)
+
+                        # Create the parent(s) folder(s), if necessary.
+                        # This happens when a move is handled before a creation
+                        local_client.make_tree(os.path.dirname(new_path_abs))
 
                         # May need to add a lock for move
                         updated_info = local_client.move(
