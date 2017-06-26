@@ -798,3 +798,33 @@ class TestRemoteMoveAndRename(UnitTestCase):
         finally:
             # Clean the non synchronized folder
             remote_client.delete(unsync_folder, use_trash=False)
+
+
+class TestRemoteMove(UnitTestCase):
+
+    def test_remote_create_and_move(self):
+        """
+        NXDRIVE-880: folder created and moved on the server does
+        not sync properly.
+        """
+
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+        engine = self.engine_1
+
+        # Create a folder with some stuff inside, and sync
+        a1 = remote.make_folder('/', 'a1')
+        for idx in range(5):
+            fname = 'file-{}.txt'.format(idx)
+            remote.make_file(a1, fname, content='Content of ' + fname)
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Create another folder and move a1 inside it, and sync
+        a3 = remote.make_folder('/', 'a3')
+        remote.move(a1, a3)
+        self.wait_sync(wait_for_async=True)
+
+        # Checks
+        self.assertFalse(local.exists('/a1'))
+        self.assertEqual(len(local.get_children_info('/a3/a1')), 5)
