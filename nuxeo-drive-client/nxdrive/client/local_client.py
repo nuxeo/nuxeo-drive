@@ -203,14 +203,14 @@ class LocalClient(BaseClient):
         log.trace('Removing xattr %s from %s', name, path)
         locker = self.unlock_path(path, False)
         if AbstractOSIntegration.is_windows():
-            pathAlt = path + ":" + name
+            path_alt = path + ':' + name
             try:
-                if os.path.exists(pathAlt):
-                    os.remove(pathAlt)
+                if os.path.exists(path_alt):
+                    os.remove(path_alt)
             except OSError as e:
                 if e.errno == os.errno.EACCES:
                     self.unset_path_readonly(path)
-                    os.remove(pathAlt)
+                    os.remove(path_alt)
                     self.set_path_readonly(path)
                 else:
                     raise e
@@ -351,12 +351,12 @@ class LocalClient(BaseClient):
         log.trace('Setting xattr %s with value %r on %r', name, remote_id, path)
         locker = self.unlock_path(path, False)
         if AbstractOSIntegration.is_windows():
-            pathAlt = path + ":" + name
+            path_alt = path + ':' + name
             try:
                 if not os.path.exists(path):
                     raise NotFound()
                 stat = os.stat(path)
-                with open(pathAlt, "w") as f:
+                with open(path_alt, 'w') as f:
                     f.write(remote_id)
                 # Avoid time modified change
                 os.utime(path, (stat.st_atime, stat.st_mtime))
@@ -364,7 +364,7 @@ class LocalClient(BaseClient):
                 # Should not happen
                 if e.errno == os.errno.EACCES:
                     self.unset_path_readonly(path)
-                    with open(pathAlt, "w") as f:
+                    with open(path_alt, 'w') as f:
                         f.write(remote_id)
                     self.set_path_readonly(path)
                 else:
@@ -515,9 +515,8 @@ class LocalClient(BaseClient):
         children = os.listdir(os_path)
 
         for child_name in sorted(children):
-            if self.is_ignored(ref, child_name):
-                continue
-            elif self.is_temp_file(child_name):
+            if (self.is_ignored(ref, child_name)
+                    or self.is_temp_file(child_name)):
                 continue
 
             child_ref = self.get_children_ref(ref, child_name)
@@ -736,7 +735,8 @@ class LocalClient(BaseClient):
     def abspath(self, ref):
         """Absolute path on the operating system"""
         if not ref.startswith(u'/'):
-            raise ValueError("LocalClient expects ref starting with '/'")
+            raise ValueError(
+                'LocalClient expects ref starting with "/"', locals())
         path_suffix = ref[1:].replace('/', os.path.sep)
         path = normalized_path(os.path.join(self.base_folder, path_suffix))
         return safe_long_path(path)

@@ -92,7 +92,10 @@ class StateRow(sqlite3.Row):
                 ).format(name=type(self).__name__, cls=self)
 
     def __getattr__(self, name):
-        return self[name]
+        try:
+            return self[name]
+        except IndexError:
+            raise IndexError('No key with that name.', locals())
 
     def is_readonly(self):
         if self.folderish:
@@ -1256,6 +1259,17 @@ class EngineDAO(ConfigurationDAO):
                 log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
                 return
         log.trace('Updating remote state for row = %r with info = %r (force: %r)', row, info, force_update)
+
+        if (row.pair_state not in ('conflicted', 'remotely_created')
+                and row.folderish
+                and row.local_name
+                and row.local_name != info.name):
+            # We check the current pair_state to not interfer with conflicted
+            # documents (a move on both sides) nor with newly remotely
+            # created ones.
+            row.remote_state = 'modified'
+            row.pair_state = self._get_pair_state(row)
+
         if versionned:
             version = ', version=version+1'
             log.trace('Increasing version to %d for pair %r', row.version + 1, row)
