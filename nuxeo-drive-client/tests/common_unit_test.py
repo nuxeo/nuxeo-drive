@@ -89,19 +89,19 @@ class RandomBug(object):
         STRICT: will repeat it until it fails or hits the repeat limit
         BYPASS: skip the test
         """
-        if target not in self.OS:
+        self._os = target.lower()
+        self._mode = mode.upper()
+        if self._os not in self.OS:
             raise ValueError('Random bug, invalid OS: {} not in ({})'.format(
-                target, ', '.join(self.OS)))
-        if mode not in self.MODES:
+                    self._os, ', '.join(self.OS)))
+        if self._mode not in self.MODES:
             raise ValueError('Random bug, invalid mode: {} not in ({})'.format(
-                mode, ', '.join(self.MODES)))
+                    self._mode, ', '.join(self.MODES)))
 
         self._repeat = max(1, repeat)
         # Enforce a ticket reference
         self._ticket = ticket
         self._iteration = 0
-        self._mode = mode.upper()
-        self._os = target.lower()
 
         if os.environ.get('RANDOM_BUG_MODE', '') in self.MODES:
             self._mode = os.environ['RANDOM_BUG_MODE']
