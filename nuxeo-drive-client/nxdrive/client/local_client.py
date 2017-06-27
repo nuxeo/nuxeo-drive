@@ -488,7 +488,7 @@ class LocalClient(BaseClient):
             is_hidden = win32con.FILE_ATTRIBUTE_HIDDEN
             try:
                 attrs = win32api.GetFileAttributes(path)
-            except win32file.error, (errno, errctx, errmsg):
+            except win32file.error:
                 return False
             if attrs & is_system == is_system:
                 return True

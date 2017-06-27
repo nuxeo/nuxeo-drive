@@ -773,7 +773,7 @@ class LocalWatcher(EngineWorker):
 
     def handle_watchdog_root_event(self, evt):
         if evt.event_type == 'moved':
-            log.warn('Root has been moved to %r' % evt.dest_path)
+            log.warn('Root has been moved to %r', evt.dest_path)
             self.rootMoved.emit(evt.dest_path)
         elif evt.event_type == 'deleted':
             log.warn('Root has been deleted')
