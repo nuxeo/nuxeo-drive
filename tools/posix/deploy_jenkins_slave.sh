@@ -83,9 +83,6 @@ check_vars() {
         echo "Please do not call this script directly. Use the good one from 'tools/OS/deploy_jenkins_slave.sh'."
         exit 1
     fi
-    export STORAGE_DIR="${WORKSPACE}/deploy-dir"
-
-    # Check optional variables
     if [ "${WORKSPACE_DRIVE:=unset}" = "unset" ]; then
         if [ -d "${WORKSPACE}/sources" ]; then
             export WORKSPACE_DRIVE="${WORKSPACE}/sources"
@@ -95,13 +92,19 @@ check_vars() {
             export WORKSPACE_DRIVE="${WORKSPACE}"
         fi
     fi
-    cd "${WORKSPACE_DRIVE}"
+    export SIP_VERSION=${SIP_VERSION:=4.19.3}  # XXX: SIP_VERSION
+    export CXFREEZE_VERSION=${CXFREEZE_VERSION:=4.3.3}  # XXX: CXFREEZE_VERSION
+    export STORAGE_DIR="${WORKSPACE}/deploy-dir"
 
     echo "    PYTHON_DRIVE_VERSION = ${PYTHON_DRIVE_VERSION}"
     echo "    PYQT_VERSION         = ${PYQT_VERSION}"
+    echo "    SIP_VERSION          = ${SIP_VERSION}"
+    echo "    CXFREEZE_VERSION     = ${CXFREEZE_VERSION}"
     echo "    WORKSPACE            = ${WORKSPACE}"
     echo "    WORKSPACE_DRIVE      = ${WORKSPACE_DRIVE}"
     echo "    STORAGE_DIR          = ${STORAGE_DIR}"
+
+    cd "${WORKSPACE_DRIVE}"
 
     if [ "${SPECIFIC_TEST:=unset}" = "unset" ] ||
        [ "${SPECIFIC_TEST}" = "" ] ||
@@ -150,12 +153,12 @@ extract() {
 
 install_cxfreeze() {
     # Install cx_Freeze manually as pip does not work for this package
-    local version="${CXFREEZE_VERSION:=4.3.3}"
+    local version="$1"
     local url="https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/cx_Freeze-${version}.tar.gz"
     local path="${STORAGE_DIR}/cx_Freeze-${version}"
     local output="${path}.tar.gz"
 
-    # Not used on Mac
+    # Not used on macOS
     [ "${OSI}" = "osx" ] && return
 
     check_import "import cx_Freeze" && return
@@ -252,7 +255,7 @@ install_python() {
 }
 
 install_sip() {
-    local version="${SIP_VERSION:=4.19}"
+    local version="$1"
     local url="https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/sip-${version}.tar.gz"
     local path="${STORAGE_DIR}/sip-${version}"
     local output="${path}.tar.gz"
@@ -266,7 +269,7 @@ install_sip() {
     cd "$path"
 
     echo ">>> [SIP ${version}] Configuring"
-    ${PYTHON} configure.py
+    ${PYTHON} configure.py --no-stubs
 
     echo ">>> [SIP ${version}] Compiling"
     make --quiet -j 4
@@ -332,9 +335,9 @@ main() {
         exit 1
     fi
 
-    install_sip
+    install_sip "${SIP_VERSION}"
     install_pyqt "${PYQT_VERSION}"
-    install_cxfreeze
+    install_cxfreeze "${CXFREEZE_VERSION}"
     install_deps
 
     if ! check_import "import PyQt4.QtWebKit" >/dev/null; then
