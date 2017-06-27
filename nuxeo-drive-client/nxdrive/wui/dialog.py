@@ -235,14 +235,6 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_state(state))
         return self._json(result)
 
-    def _test_promise(self):
-        time.sleep(3)
-        return 'OK'
-
-    @QtCore.pyqtSlot(result=QtCore.QObject)
-    def test_promise(self):
-        return Promise(self._test_promise)
-
     @QtCore.pyqtSlot(str, str, result=QtCore.QObject)
     def update_password_async(self, uid, password):
         return Promise(self._update_password, uid, password)
