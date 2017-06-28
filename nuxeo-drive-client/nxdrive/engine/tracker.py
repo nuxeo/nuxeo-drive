@@ -74,7 +74,7 @@ class Tracker(Worker):
 
         system = platform.system()
         if system == 'Darwin':
-            name, version = 'MacOS', platform.mac_ver()[0]
+            name, version = 'Macintosh Intel', platform.mac_ver()[0]
         elif system == 'Linux':
             name = 'GNU/Linux'
             version = ' '.join(platform.linux_distribution()).title().strip()

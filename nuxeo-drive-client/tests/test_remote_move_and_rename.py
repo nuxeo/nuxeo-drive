@@ -134,6 +134,14 @@ class TestRemoteMoveAndRename(UnitTestCase):
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
             self.assertTrue(local.exists('/Test folder/testFile.pdf'))
             self.assertFalse(local.exists('/Test folder/testFile2.pdf'))
+
+        # The source file is accessed by another processor, so we cannot do anything
+        states_in_error = self.engine_1.get_dao().get_errors()
+        self.assertEqual(len(states_in_error), 1)
+        # Reset the error and wait'n see!
+        for state in states_in_error:
+            self.engine_1.get_dao().reset_error(state)
+
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
         self.assertTrue(local.exists('/Test folder/testFile2.pdf'))
         self.assertFalse(local.exists('/Test folder/testFile.pdf'))
@@ -164,6 +172,14 @@ class TestRemoteMoveAndRename(UnitTestCase):
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
             self.assertTrue(local.exists('/Test folder/testFile.pdf'))
             self.assertFalse(local.exists('/testFile.pdf'))
+
+        # The source file is accessed by another processor, so we cannot do anything
+        states_in_error = self.engine_1.get_dao().get_errors()
+        self.assertEqual(len(states_in_error), 1)
+        # Reset the error and wait'n see!
+        for state in states_in_error:
+            self.engine_1.get_dao().reset_error(state)
+
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
         self.assertTrue(local.exists('/testFile.pdf'))
         self.assertFalse(local.exists('/Test folder/testFile.pdf'))

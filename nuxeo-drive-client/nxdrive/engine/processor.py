@@ -806,12 +806,10 @@ class Processor(EngineWorker):
                         # This happens when a move is handled before a creation
                         local_client.make_tree(os.path.dirname(new_path_abs))
 
-                        log.info('CHECK 1')
                         # May need to add a lock for move
                         updated_info = local_client.move(
                             doc_pair.local_path, new_parent_pair.local_path,
                             name=moved_name)
-                        log.info('CHECK 2')
                         new_parent_path = (new_parent_pair.remote_parent_path
                                            + '/' + new_parent_pair.remote_ref)
                         self._dao.update_remote_parent_path(doc_pair,
