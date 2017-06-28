@@ -1,6 +1,6 @@
 # 2.4.6
 
-Release date: 2017-06-xx
+Release date: `2017-06-xx`
 
 ## Core
 
