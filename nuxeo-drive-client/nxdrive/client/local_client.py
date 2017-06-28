@@ -572,8 +572,9 @@ class LocalClient(BaseClient):
         try:
             os.makedirs(path)
         except os.error as exc:
-            # Filter out already existant path
-            if exc.errno != errno.EEXIST:
+            # EEXIST: path already exists
+            # EPIPE: path accessed by another processor, skip it
+            if exc.errno not in (errno.EEXIST, errno.EPIPE):
                 raise exc
 
     def duplicate_file(self, ref):
