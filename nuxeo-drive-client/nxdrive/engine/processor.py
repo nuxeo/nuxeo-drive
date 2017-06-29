@@ -234,7 +234,7 @@ class Processor(EngineWorker):
                 if parent_path == '':
                     parent_path = "/"
                 if not local_client.exists(parent_path):
-                    if doc_pair.local_parent_path != parent_pair.local_path:
+                    if parent_pair and doc_pair.local_parent_path != parent_pair.local_path:
                         # The parent folder has been renamed sooner
                         # in the current synchronization
                         doc_pair.local_parent_path = parent_pair.local_path
@@ -676,26 +676,27 @@ class Processor(EngineWorker):
             else:
                 self._synchronize_locally_modified(doc_pair, local_client, remote_client)
 
-    def _synchronize_deleted_unknown(self, doc_pair, local_client, remote_client):
-        # Somehow a pair can get to an inconsistent state:
-        # <local_state=u'deleted', remote_state=u'unknown',
-        # pair_state=u'unknown'>
-        # Even though we are not able to figure out how this can happen we
-        # need to handle this case to put the database back to a consistent
-        # state.
-        # This is tracked by https://jira.nuxeo.com/browse/NXP-14039
-        log.debug("Inconsistency should not happens anymore")
-        log.debug("Detected inconsistent doc pair %r, deleting it hoping the"
-                  " synchronizer will fix this case at next iteration",
+    def _synchronize_deleted_unknown(self, doc_pair, *_):
+        """
+        Somehow a pair can get to an inconsistent state:
+        <local_state=u'deleted', remote_state=u'unknown', pair_state=u'unknown'>
+        Even though we are not able to figure out how this can happen we
+        need to handle this case to put the database back to a consistent
+        state.
+        This is tracked by https://jira.nuxeo.com/browse/NXP-14039
+        """
+        log.debug('Inconsistency should not happens anymore')
+        log.debug('Detected inconsistent doc pair %r, deleting it hoping the'
+                  ' synchronizer will fix this case at next iteration',
                   doc_pair)
         self._dao.remove_state(doc_pair)
 
     @staticmethod
     def _get_temporary_file(file_path):
-        file_dir = os.path.dirname(file_path)
-        file_name = os.path.basename(file_path)
-        return os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
-                            + DOWNLOAD_TMP_FILE_SUFFIX)
+        return os.path.join(os.path.dirname(file_path),
+                            (DOWNLOAD_TMP_FILE_PREFIX
+                             + os.path.basename(file_path)
+                             + DOWNLOAD_TMP_FILE_SUFFIX))
 
     def _download_content(self, local_client, remote_client, doc_pair, file_path):
         # Check if the file is already on the HD
@@ -746,71 +747,98 @@ class Processor(EngineWorker):
 
     def _synchronize_remotely_modified(self, doc_pair, local_client, remote_client):
         self.tmp_file = None
+        is_renaming = safe_filename(doc_pair.remote_name) != doc_pair.local_name
         try:
-            is_renaming = safe_filename(doc_pair.remote_name) != doc_pair.local_name
-            if (not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path)
+            if (not local_client.is_equal_digests(doc_pair.local_digest,
+                                                  doc_pair.remote_digest,
+                                                  doc_pair.local_path)
                     and doc_pair.local_digest is not None):
                 self._update_remotely(doc_pair, local_client, remote_client, is_renaming)
             else:
-                # digest agree so this might be a renaming and/or a move,
+                # Digest agree so this might be a renaming and/or a move,
                 # and no need to transfer additional bytes over the network
                 is_move, new_parent_pair = self._is_remote_move(doc_pair)
                 if remote_client.is_filtered(doc_pair.remote_parent_path):
-                    # A move to a filtered parent ( treat it as deletion )
+                    # A move to a filtered parent (treat it as deletion)
                     self._synchronize_remotely_deleted(doc_pair, local_client, remote_client)
                     return
+
+                if not new_parent_pair:
+                    # A move to a folder that has not yet been processed
+                    self._postpone_pair(doc_pair, reason='PARENT_UNSYNC')
+                    return
+
                 if not is_move and not is_renaming:
-                    log.debug("No local impact of metadata update on"
-                              " document '%s'.", doc_pair.remote_name)
+                    log.debug('No local impact of metadata update on'
+                              ' document %r.', doc_pair.remote_name)
                 else:
                     updated_info = None
                     file_or_folder = 'folder' if doc_pair.folderish else 'file'
-                    if (is_move or is_renaming) and doc_pair.folderish:
+                    if doc_pair.folderish:
                         self._engine.set_local_folder_lock(doc_pair.local_path)
                     if is_move:
-                        # move and potential rename
-                        moved_name = doc_pair.remote_name if is_renaming else doc_pair.local_name
-                        # NXDRIVE-471: log
+                        # Move and potential rename
+                        moved_name = (doc_pair.remote_name
+                                      if is_renaming
+                                      else doc_pair.local_name)
                         old_path = doc_pair.local_path
                         new_path = new_parent_pair.local_path + '/' + moved_name
                         if old_path == new_path:
-                            log.debug("WRONG GUESS FOR MOVE: %r", doc_pair)
+                            log.debug('WRONG GUESS FOR MOVE: %r', doc_pair)
                             self._is_remote_move(doc_pair)
                             self._dao.synchronize_state(doc_pair)
-                        log.debug("DOC_PAIR(%r): old_path[%d][%r]: %s, new_path[%d][%r]: %s",
-                            doc_pair, local_client.exists(old_path), local_client.get_remote_id(old_path), old_path,
-                            local_client.exists(new_path), local_client.get_remote_id(new_path), new_path)
-                        # end of add log
-                        log.debug("Moving local %s '%s' to '%s'.",
-                            file_or_folder, local_client.abspath(doc_pair.local_path),
-                            local_client.abspath(new_parent_pair.local_path + '/' + moved_name))
+
+                        log.debug('DOC_PAIR(%r):'
+                                  ' old_path[exists=%r, id=%r]: %s,'
+                                  ' new_path[exists=%r, id=%r]: %s',
+                                  doc_pair, local_client.exists(old_path),
+                                  local_client.get_remote_id(old_path),
+                                  old_path, local_client.exists(new_path),
+                                  local_client.get_remote_id(new_path),
+                                  new_path)
+
+                        old_path_abs = local_client.abspath(old_path)
+                        new_path_abs = local_client.abspath(new_path)
+                        log.debug('Moving local %s %r to %r',
+                                  file_or_folder, old_path_abs, new_path_abs)
+
+                        # Create the parent(s) folder(s), if necessary.
+                        # This happens when a move is handled before a creation
+                        local_client.make_tree(os.path.dirname(new_path_abs))
+
                         # May need to add a lock for move
-                        updated_info = local_client.move(doc_pair.local_path,
-                                          new_parent_pair.local_path, name=moved_name)
-                        new_parent_path = new_parent_pair.remote_parent_path + "/" + new_parent_pair.remote_ref
-                        self._dao.update_remote_parent_path(doc_pair, new_parent_path)
-                    elif is_renaming:
+                        updated_info = local_client.move(
+                            doc_pair.local_path, new_parent_pair.local_path,
+                            name=moved_name)
+                        new_parent_path = (new_parent_pair.remote_parent_path
+                                           + '/' + new_parent_pair.remote_ref)
+                        self._dao.update_remote_parent_path(doc_pair,
+                                                            new_parent_path)
+                    else:
                         log.debug('Renaming local %s %r to %r',
                                   file_or_folder,
                                   local_client.abspath(doc_pair.local_path),
                                   doc_pair.remote_name)
                         updated_info = local_client.rename(
                             doc_pair.local_path, doc_pair.remote_name)
-                    if any([is_move, is_renaming]) and updated_info:
+
+                    if updated_info:
                         # Should call a DAO method
                         new_path = os.path.dirname(updated_info.path)
-                        self._dao.update_local_parent_path(doc_pair, os.path.basename(updated_info.path), new_path)
+                        self._dao.update_local_parent_path(
+                            doc_pair, os.path.basename(updated_info.path),
+                            new_path)
                         self._search_for_dedup(doc_pair)
                         self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
         except (IOError, OSError) as e:
             log.warning(
-                "Delaying local update of remotely modified content %r due to"
-                " concurrent file access (probably opened by another"
-                " process).",
+                'Delaying local update of remotely modified content %r due to'
+                'concurrent file access (probably opened by another'
+                ' process).',
                 doc_pair)
-            raise e
+            raise OSError(repr(e), locals())
         finally:
             try:
                 os.remove(self.tmp_file)

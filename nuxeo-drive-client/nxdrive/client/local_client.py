@@ -1,6 +1,7 @@
 # coding: utf-8
 """ API to access local resources for synchronization. """
 
+import errno
 import hashlib
 import os
 import re
@@ -487,7 +488,7 @@ class LocalClient(BaseClient):
             is_hidden = win32con.FILE_ATTRIBUTE_HIDDEN
             try:
                 attrs = win32api.GetFileAttributes(path)
-            except win32file.error, (errno, errctx, errmsg):
+            except win32file.error:
                 return False
             if attrs & is_system == is_system:
                 return True
@@ -559,6 +560,21 @@ class LocalClient(BaseClient):
             return parent + u"/" + name
         finally:
             self.lock_ref(parent, locker)
+
+    @staticmethod
+    def make_tree(path):
+        """
+        Recursive directory creation.
+
+        :param str path: The absolute path to create.
+        """
+
+        try:
+            os.makedirs(path)
+        except os.error as exc:
+            # EEXIST: path already exists
+            if exc.errno != errno.EEXIST:
+                raise exc
 
     def duplicate_file(self, ref):
         parent = os.path.dirname(ref)

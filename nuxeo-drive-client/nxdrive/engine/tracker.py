@@ -12,6 +12,9 @@ from nxdrive.engine.workers import Worker
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 
+if AbstractOSIntegration.is_mac():
+    from Foundation import NSLocale
+
 log = get_logger(__name__)
 
 
@@ -21,19 +24,13 @@ class Tracker(Worker):
         super(Tracker, self).__init__()
         self._manager = manager
         self._thread.started.connect(self.run)
-        self._user_agent = self.get_user_agent(self._manager.get_version())
         self.uid = uid
         self._tracker = UATracker.create(uid, client_id=self._manager.get_device_id(),
-                                         user_agent=self._user_agent)
+                                         user_agent=self.user_agent)
         self._tracker.set('appName', 'NuxeoDrive')
         self._tracker.set('appVersion', self._manager.get_version())
         self._tracker.set('encoding', sys.getfilesystemencoding())
-        try:
-            self._tracker.set('language', self.current_locale)
-        except TypeError:
-            # TODO: On macOS, locale.getdefaultlocale() returns (None, None)
-            # TODO: when built with Esky.
-            pass
+        self._tracker.set('language', self.current_locale)
         self._manager.started.connect(self._send_stats)
 
         # Send stat every hour
@@ -58,13 +55,18 @@ class Tracker(Worker):
     def current_locale(self):
         """ Detect the OS default language. """
 
+        encoding = locale.getdefaultlocale()[1]
         if AbstractOSIntegration.is_windows():
             l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
             l10n = locale.windows_locale[l10n_code]
+        elif AbstractOSIntegration.is_mac():
+            l10n_code = NSLocale.currentLocale()
+            l10n = NSLocale.localeIdentifier(l10n_code)
+            encoding = 'UTF-8'
         else:
             l10n = locale.getdefaultlocale()[0]
 
-        return '.'.join([l10n, locale.getdefaultlocale()[1]])
+        return '.'.join([l10n, encoding])
 
     @property
     def current_os(self):
@@ -74,17 +76,21 @@ class Tracker(Worker):
         if system == 'Darwin':
             name, version = 'Macintosh Intel', platform.mac_ver()[0]
         elif system == 'Linux':
-            name = system
-            version = ' '.join(platform.linux_distribution()).title()
+            name = 'GNU/Linux'
+            version = ' '.join(platform.linux_distribution()).title().strip()
         elif system == 'Windows':
-            name, version = system, platform.release()
+            name, version = 'Microsoft Windows', platform.release()
         else:
             name, version = system, platform.release()
 
         return '{} {}'.format(name, version.strip())
 
-    def get_user_agent(self, version):
-        return 'NuxeoDrive/{} ({})'.format(version, self.current_os)
+    @property
+    def user_agent(self):
+        """ Format a custom user agent. """
+
+        return 'NuxeoDrive/{} ({})'.format(self._manager.get_version(),
+                                           self.current_os)
 
     @QtCore.pyqtSlot(object)
     def _send_app_update_event(self, version):

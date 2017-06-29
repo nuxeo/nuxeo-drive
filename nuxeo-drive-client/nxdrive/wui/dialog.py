@@ -228,22 +228,12 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, int, str, result=str)
     def get_last_files(self, uid, number, direction):
-        uid = str(uid)
-        direction = str(direction)
         engine = self._get_engine(str(uid))
         result = []
         if engine is not None:
-            for state in engine.get_last_files(number, direction):
+            for state in engine.get_last_files(number, str(direction)):
                 result.append(self._export_state(state))
         return self._json(result)
-
-    def _test_promise(self):
-        time.sleep(3)
-        return 'OK'
-
-    @QtCore.pyqtSlot(result=QtCore.QObject)
-    def test_promise(self):
-        return Promise(self._test_promise)
 
     @QtCore.pyqtSlot(str, str, result=QtCore.QObject)
     def update_password_async(self, uid, password):
@@ -344,8 +334,12 @@ class WebDriveApi(QtCore.QObject):
             log.exception(repr(e))
             return ''
 
-    @QtCore.pyqtSlot(result=str)
+    @QtCore.pyqtSlot(result=QtCore.QObject)
     def get_update_status(self):
+        return Promise(self._get_update_status)
+
+    @QtCore.pyqtSlot(result=str)
+    def _get_update_status(self):
         status = UPDATE_STATUS_UNAVAILABLE_SITE, None
         updater = self._manager.get_updater()
         if updater:
@@ -363,11 +357,13 @@ class WebDriveApi(QtCore.QObject):
         engine = self._get_engine(str(uid))
         result = []
         if engine is not None:
-            for thread in engine.get_threads():
+            for count, thread in enumerate(engine.get_threads(), 1):
                 action = thread.worker.get_action()
                 # The filter should be configurable
                 if isinstance(action, FileAction):
                     result.append(self._export_action(action))
+                if count == 4:
+                    break
         return self._json(result)
 
     @QtCore.pyqtSlot(str, result=str)
@@ -599,7 +595,6 @@ class WebDialog(QtGui.QDialog):
         self._page = DriveWebPage()
         self._token = None
         self._request = None
-        #self._application = application
         self._zoomFactor = application.get_osi().get_zoom_factor()
         if application.manager.is_debug():
             QtWebKit.QWebSettings.globalSettings().setAttribute(QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)

@@ -772,13 +772,11 @@ class LocalWatcher(EngineWorker):
             self._dao.update_local_state(doc_pair, local_info)
 
     def handle_watchdog_root_event(self, evt):
-        if evt.event_type == 'modified' or evt.event_type == 'created':
-            pass
         if evt.event_type == 'moved':
-            log.warn("Root has been moved to ")
+            log.warn('Root has been moved to %r', evt.dest_path)
             self.rootMoved.emit(evt.dest_path)
-        if evt.event_type == 'deleted':
-            log.warn("Root has been deleted")
+        elif evt.event_type == 'deleted':
+            log.warn('Root has been deleted')
             self.rootDeleted.emit()
 
     def handle_watchdog_event(self, evt):
@@ -866,16 +864,6 @@ class LocalWatcher(EngineWorker):
                 # If doc_pair is not None mean
                 # the creation has been catched by scan
                 # As Windows send a delete / create event for reparent
-                '''
-                for deleted in deleted_files:
-                    if deleted.local_digest == digest:
-                        # Move detected
-                        log.info('Detected a file movement %r', deleted)
-                        deleted.update_state('moved', deleted.remote_state)
-                        deleted.update_local(self.client.get_info(
-                                                                rel_path))
-                        continue
-                '''
                 local_info = self.client.get_info(rel_path, raise_if_missing=False)
                 if local_info is None:
                     log.trace("Event on a disappeared file: %r %s %s", evt, rel_path, file_name)
@@ -908,7 +896,7 @@ class LocalWatcher(EngineWorker):
                             #   it is moved to the new location earlier then copied back (what else can it be?)
                             if (not from_pair_creation_time <= doc_pair_creation_time) and evt.event_type == 'created':
                                 log.trace("Found moved file: from_pair: %f doc_pair:%f for %s", from_pair_creation_time, doc_pair_creation_time, doc_pair_full_path)
-                                log.trace("Creation time are: from: %f | new: %f : boolean: %d", from_pair_creation_time, doc_pair_creation_time,(not from_pair_creation_time < doc_pair_creation_time) )
+                                log.trace("Creation time are: from: %f | new: %f : boolean: %d", from_pair_creation_time, doc_pair_creation_time, from_pair_creation_time >= doc_pair_creation_time)
                                 from_pair.local_state = 'moved'
                                 self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
                                 self._dao.insert_local_state(self.client.get_info(from_pair.local_path), os.path.dirname(from_pair.local_path))
@@ -1024,13 +1012,14 @@ def normalize_event_filename(filename, action=True):
     if AbstractOSIntegration.is_windows():
         # Windows does not allow files/folders ending with space(s)
         filename = stripped
-    elif filename != stripped and os.path.exists(filename):
+    elif (action
+            and filename != stripped
+            and os.path.exists(filename)
+            and not os.path.isdir(filename)):
         # We can have folders ending with spaces
-        if action and not os.path.isdir(filename):
-            log.debug('Forcing space normalization: %r -> %r',
-                      filename, stripped)
-            os.rename(filename, stripped)
-            filename = stripped
+        log.debug('Forcing space normalization: %r -> %r', filename, stripped)
+        os.rename(filename, stripped)
+        filename = stripped
 
     # NXDRIVE-188: Normalize name on the file system, if needed
     try:
