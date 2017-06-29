@@ -900,7 +900,7 @@ class TestSynchronization(UnitTestCase):
         children = remote.get_children_info(folder)
         self.assertEqual(len(children), 3)
         self.assertEqual(children[0].name, 'File01.txt')
-        self.assertEqual(remote.get_content('/Folder01/File01.txt'), b'42.42')
+        self.assertEqual(remote.get_content(children[0]), b'42.42')
         self.assertEqual(children[1].name, 'File02.txt')
         self.assertEqual(remote.get_content(children[1]), b'42')
         self.assertEqual(children[2].name, 'File03.txt')
