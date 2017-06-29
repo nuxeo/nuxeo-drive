@@ -111,11 +111,13 @@ class RemoteDocumentClient(BaseAutomationClient):
                                 fetch_parent_uid=fetch_parent_uid)
 
     def get_content(self, ref):
-        """Download and return the binary content of a document
-
+        """
+        Download and return the binary content of a document
         Beware that the content is loaded in memory.
         """
-        ref = self._check_ref(ref)
+
+        if not isinstance(ref, NuxeoDocumentInfo):
+            ref = self._check_ref(ref)
         return self.get_blob(ref)
 
     # TODO: allow getting content by streaming the response to an output file
