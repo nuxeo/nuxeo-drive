@@ -1,6 +1,6 @@
 # 2.4.6
 
-Release date: `2017-06-xx`
+Release date: `2017-06-29`
 
 ## Core
 
@@ -17,4 +17,4 @@ Release date: `2017-06-xx`
 
 - GUI: Removed "version" from Settings > About
 - Jenkins: Set job to UNSTABLE if it fails outside FT
-- Jenkins: Use TWANG slave for macOS packaging
+- Jenkins: Use the TWANG slave for macOS packaging
