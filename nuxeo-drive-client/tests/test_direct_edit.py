@@ -42,8 +42,8 @@ class TestDirectEdit(UnitTestCase):
         super(TestDirectEdit, self).tearDownApp()
 
     def test_url_resolver(self):
-        self.assertIsNotNone(self.direct_edit._get_engine("http://localhost:8080/nuxeo", self.user_1))
-        self.assertIsNone(self.direct_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
+        self.assertIsNotNone(self.direct_edit._get_engine(self.nuxeo_url, self.user_1))
+        self.assertIsNone(self.direct_edit._get_engine(self.nuxeo_url, u'Administrator'))
         self.manager_1._engine_types['NXDRIVETESTURL'] = MockUrlTestEngine
         # HTTP EXPLICIT
         self.manager_1._engines['0'] = MockUrlTestEngine('http://localhost:80/nuxeo')
