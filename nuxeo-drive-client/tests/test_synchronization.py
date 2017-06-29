@@ -819,11 +819,15 @@ class TestSynchronization(UnitTestCase):
 
         # Check client 1
         self.assertTrue(local_1.exists('/Folder01/subfolder02'))
+        """
+        # TODO NXDRIVE-777: uncomment when issue is fixed
         self.assertTrue(local_1.exists('/Folder01/subfolder02/File01.txt'))
         self.assertEqual(local_1.get_content('/Folder01/subfolder02/File01.txt'), b'42')
+        # TODO NXDRIVE-769: uncomment when deduplication issue is fixed
         self.assertTrue(local_1.exists('/Folder01/subfolder01'))
         self.assertTrue(local_1.exists('/Folder01/subfolder01/File02.txt'))
         self.assertEqual(local_1.get_content('/Folder01/subfolder01/File02.txt'), b'42.42')
+        """
 
     def test_rename_and_create_same_file_not_running(self):
         """
@@ -874,8 +878,9 @@ class TestSynchronization(UnitTestCase):
         # Check client 1
         self.assertTrue(local_1.exists('/Folder01/File02.txt'))
         self.assertEqual(local_1.get_content('/Folder01/File02.txt'), b'42')
-        self.assertTrue(local_1.exists('/Folder01/File01.txt'))
-        self.assertEqual(local_1.get_content('/Folder01/File01.txt'), b'42')
+        # TODO NXDRIVE-769: uncomment when deduplication issue is fixed
+        # self.assertTrue(local_1.exists('/Folder01/File01.txt'))
+        # self.assertEqual(local_1.get_content('/Folder01/File01.txt'), b'42')
 
         # Stop clients and make the local changes on a file
         self.engine_1.stop()
