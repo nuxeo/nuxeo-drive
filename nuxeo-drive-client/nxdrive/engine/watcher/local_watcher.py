@@ -1029,11 +1029,33 @@ def normalize_event_filename(filename, action=True):
 
     if AbstractOSIntegration.is_mac():
         return normalized
-    elif AbstractOSIntegration.is_windows() and os.path.exists(filename):
+    elif AbstractOSIntegration.is_windows():
+        """
+        [1] If filename exists, and as Windows is case insensitive,
+        the result of GetLongPathName() could be unexpected because
+        it will return filename.
+
+        Check this simplified code session (the file "ABC.txt" exists):
+
+            >>> win32api.GetLongPathName('abc.txt')
+            'ABC.txt'
+            >>> win32api.GetLongPathName('ABC.TXT')
+            'ABC.txt'
+            >>> win32api.GetLongPathName('ABC.txt')
+            'ABC.txt'
+
+        So, to counter that behavior, we save the actual file name
+        and restore it in the full path.
+        """
+        original_file_name = os.path.basename(filename)
         try:
-            filename = win32api.GetLongPathName(filename)
-        except (win32api.error, UnicodeEncodeError) as e:
-            log.exception('Long path conversion error for %r', filename)
+            full_path = win32api.GetLongPathName(filename)
+        except (win32api.error, UnicodeEncodeError):
+            if action:
+                log.exception('Long path conversion error for %r', filename)
+        else:
+            filename = os.path.join(os.path.dirname(full_path),
+                                    original_file_name)
 
     if action and filename != normalized and os.path.exists(filename):
         log.debug('Forcing normalization: %r -> %r', filename, normalized)
