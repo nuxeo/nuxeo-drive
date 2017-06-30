@@ -138,7 +138,7 @@ class AbstractOSIntegration(object):
     def is_same_partition(folder1, folder2):
         return os.stat(folder1).st_dev == os.stat(folder2).st_dev
 
-    def get_system_configuration(self, ):
+    def get_system_configuration(self):
         return dict()
 
     def get_open_files(self, pids=None):

@@ -75,7 +75,7 @@ class WindowsIntegration(AbstractOSIntegration):
             # Based on https://technet.microsoft.com/en-us/library/dn528846.aspx
             return dpi / 96.0
         except:
-            log.debug('Cannot get zoom factor', exc_infp=True)
+            log.debug('Cannot get zoom factor', exc_info=True)
         return 1.00
 
     def register_startup(self):
@@ -106,8 +106,8 @@ class WindowsIntegration(AbstractOSIntegration):
         exe_path = self._manager.find_exe_path()
         app_name = self._manager.get_appname()
         if exe_path is None:
-            log.warning('Not a frozen windows exe: '
-                     'skipping protocol handler registration')
+            log.warning('Not a frozen Windows executable: '
+                        'skipping protocol handler registration')
             return
 
         log.debug("Registering 'nxdrive' protocol handler to: %s", exe_path)
