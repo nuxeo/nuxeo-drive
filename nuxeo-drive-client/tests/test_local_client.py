@@ -4,17 +4,20 @@ See win_local_client.py and mac_local_client.py for more informations.
 
 See NXDRIVE-742.
 """
-from time import sleep
-
 import hashlib
 import os
+from time import sleep
 from unittest import skipIf
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.common import DuplicationDisabledError
+from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from tests.common import EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from tests.common_unit_test import UnitTestCase
+
+log = get_logger(__name__)
+
 
 class StubLocalClient(object):
     """

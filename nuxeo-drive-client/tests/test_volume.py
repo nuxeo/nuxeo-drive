@@ -6,8 +6,10 @@ from math import floor, log10
 from unittest import SkipTest, skipIf
 
 from common_unit_test import UnitTestCase
+from nxdrive.logging_config import get_logger
 from tests.common import TEST_WORKSPACE_PATH
-from tests.common_unit_test import log
+
+log = get_logger(__name__)
 
 
 class VolumeTestCase(UnitTestCase):

@@ -1,9 +1,12 @@
-from common_unit_test import UnitTestCase
-from tests.common_unit_test import log
-from tests.common_unit_test import FILE_CONTENT
 import os
-import sys
 import shutil
+import sys
+
+from common_unit_test import UnitTestCase
+from nxdrive.logging_config import get_logger
+from tests.common_unit_test import FILE_CONTENT
+
+log = get_logger(__name__)
 
 
 class TestLocalCreateFolders(UnitTestCase):

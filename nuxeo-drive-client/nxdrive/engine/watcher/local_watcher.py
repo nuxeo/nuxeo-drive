@@ -359,9 +359,9 @@ class LocalWatcher(EngineWorker):
                         log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
                         if doc_pair is not None and self.client.exists(doc_pair.local_path):
-                            if (not self.client.is_case_sensitive() and\
-                                            doc_pair.local_path.lower() == child_info.path.lower()):
-                                log.debug("Case renaming on a case insensitive filesystem, update info and ignore: %r",
+                            if (not self.client.is_case_sensitive()
+                                    and doc_pair.local_path.lower() == child_info.path.lower()):
+                                log.debug('Case renaming on a case insensitive filesystem, update info and ignore: %r',
                                                 doc_pair)
                                 if doc_pair.local_name in children:
                                     del children[doc_pair.local_name]
@@ -811,7 +811,7 @@ class LocalWatcher(EngineWorker):
             parent_path = os.path.dirname(src_path)
             parent_rel_path = self.client.get_path(parent_path)
             # Don't care about ignored file, unless it is moved
-            if self.client.is_ignored(parent_rel_path, file_name) and evt.event_type != 'moved':
+            if evt.event_type != 'moved' and self.client.is_ignored(parent_rel_path, file_name):
                 return
             if self.client.is_temp_file(file_name):
                 return
@@ -971,7 +971,7 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
 
     def on_any_event(self, event):
         self.counter += 1
-        log.trace("Queueing watchdog: %r", event)
+        log.trace('Queueing watchdog: %r', event)
         self.watcher._watchdog_queue.put(event)
 
 
@@ -1033,7 +1033,7 @@ def normalize_event_filename(filename, action=True):
         try:
             filename = win32api.GetLongPathName(filename)
         except (win32api.error, UnicodeEncodeError) as e:
-            log.error('Long path conversion error: %s for %r', e, filename)
+            log.exception('Long path conversion error for %r', filename)
 
     if action and filename != normalized and os.path.exists(filename):
         log.debug('Forcing normalization: %r -> %r', filename, normalized)

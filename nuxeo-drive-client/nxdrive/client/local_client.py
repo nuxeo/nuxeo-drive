@@ -43,35 +43,36 @@ DEDUPED_BASENAME_PATTERN = ur'^(.*)__(\d{1,3})$'
 class FileInfo(object):
     """Data Transfer Object for file info on the Local FS"""
 
-    def __init__(self, root, path, folderish, last_modification_time, size=0,
-                 digest_func='md5', check_suspended=None, remote_ref=None):
-
+    def __init__(self, root, path, folderish, last_modification_time, **kwargs):
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.check_suspended = check_suspended
-        self.size = size
+        self.check_suspended = kwargs.pop('check_suspended', None)
+        self.size = kwargs.pop('size', 0)
         filepath = os.path.join(root, path[1:].replace(u'/', os.path.sep))
         root = unicodedata.normalize('NFC', root)
         path = unicodedata.normalize('NFC', path)
-        normalized_filepath = os.path.join(root, path[1:].replace(u'/', os.path.sep))
+        normalized_filepath = os.path.join(
+            root, path[1:].replace(u'/', os.path.sep))
         self.filepath = normalized_filepath
 
-        # Normalize name on the file system if not normalized
-        # See https://jira.nuxeo.com/browse/NXDRIVE-188
-        if os.path.exists(filepath) and normalized_filepath != filepath and not AbstractOSIntegration.is_mac():
-            log.debug('Forcing normalization of %r to %r', filepath, normalized_filepath)
+        # NXDRIVE-188: normalize name on the file system if not normalized
+        if (os.path.exists(filepath)
+                and normalized_filepath != filepath
+                and not AbstractOSIntegration.is_mac()):
+            log.debug('Forcing normalization of %r to %r',
+                      filepath, normalized_filepath)
             os.rename(filepath, normalized_filepath)
 
         self.root = root  # the sync root folder local path
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
-        self.remote_ref = remote_ref
+        self.remote_ref = kwargs.pop('remote_ref', None)
 
         # Last OS modification date of the file
         self.last_modification_time = last_modification_time
 
         # Function to use
-        self._digest_func = digest_func.lower()
+        self._digest_func = kwargs.pop('digest_func', 'MD5').lower()
 
         # Precompute base name once and for all are it's often useful in
         # practice
@@ -81,7 +82,7 @@ class FileInfo(object):
         return self.__unicode__().encode('ascii', 'ignore')
 
     def __unicode__(self):
-        return u"FileInfo[%s, remote_ref=%s]" % (self.filepath, self.remote_ref)
+        return u'FileInfo[%s, remote_ref=%s]' % (self.filepath, self.remote_ref)
 
     def get_digest(self, digest_func=None):
         """Lazy computation of the digest"""
@@ -112,26 +113,24 @@ class FileInfo(object):
 class LocalClient(BaseClient):
     """Client API implementation for the local file system"""
 
-    # TODO: initialize the prefixes and suffix with a dedicated Nuxeo
-    # Automation operations fetched at manager init time.
     CASE_RENAME_PREFIX = 'driveCaseRename_'
 
-    def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
-                 ignored_suffixes=None, check_suspended=None,
-                 case_sensitive=None, disable_duplication=True):
-        self._case_sensitive = case_sensitive
-        self._disable_duplication = disable_duplication
-        self.ignored_prefixes = ignored_prefixes or DEFAULT_IGNORED_PREFIXES
-        self.ignored_suffixes = ignored_suffixes or DEFAULT_IGNORED_SUFFIXES
+    def __init__(self, base_folder, **kwargs):
+        self._case_sensitive = kwargs.pop('case_sensitive', None)
+        self._disable_duplication = kwargs.pop('disable_duplication', True)
+        self.ignored_prefixes = (kwargs.pop('ignored_prefixes', None)
+                                 or DEFAULT_IGNORED_PREFIXES)
+        self.ignored_suffixes = (kwargs.pop('ignored_suffixes', None)
+                                 or DEFAULT_IGNORED_SUFFIXES)
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.check_suspended = check_suspended
+        self.check_suspended = kwargs.pop('check_suspended', None)
 
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
         self.base_folder = base_folder
-        self._digest_func = digest_func
+        self._digest_func = kwargs.pop('digest_func', 'md5')
 
     def __repr__(self):
         return ('<{name}'
@@ -196,40 +195,45 @@ class LocalClient(BaseClient):
         self.set_remote_id('/', value, name="ndriveroot")
 
     def get_root_id(self):
-        return self.get_remote_id('/', name="ndriveroot")
+        return self.get_remote_id('/', name='ndriveroot')
+
+    def _remove_remote_id_windows(self, path, name='ndrive'):
+        path_alt = path + ':' + name
+        try:
+            os.remove(path_alt)
+        except OSError as e:
+            if e.errno != errno.EACCES:
+                raise e
+            self.unset_path_readonly(path)
+            try:
+                os.remove(path_alt)
+            finally:
+                self.set_path_readonly(path)
+
+    @staticmethod
+    def _remove_remote_id_unix(path, name='ndrive'):
+        try:
+            if AbstractOSIntegration.is_mac():
+                xattr.removexattr(path, name)
+            else:
+                xattr.removexattr(path, 'user.' + name)
+        except IOError as exc:
+            # errno.EPROTONOSUPPORT: protocol not supported (xattr)
+            # errno.ENODATA: no data available
+            if exc.errno not in (errno.ENODATA, errno.EPROTONOSUPPORT):
+                raise exc
 
     def remove_remote_id(self, ref, name='ndrive'):
-        # Can be move to another class
         path = self.abspath(ref)
         log.trace('Removing xattr %s from %s', name, path)
         locker = self.unlock_path(path, False)
-        if AbstractOSIntegration.is_windows():
-            path_alt = path + ':' + name
-            try:
-                if os.path.exists(path_alt):
-                    os.remove(path_alt)
-            except OSError as e:
-                if e.errno == os.errno.EACCES:
-                    self.unset_path_readonly(path)
-                    os.remove(path_alt)
-                    self.set_path_readonly(path)
-                else:
-                    raise e
-            finally:
-                self.lock_path(path, locker)
-        else:
-            try:
-                if AbstractOSIntegration.is_mac():
-                    xattr.removexattr(path, name)
-                else:
-                    xattr.removexattr(path, 'user.' + name)
-            except IOError as e:
-                # Ignore IOError: [Errno 93] Attribute not found (macOS)
-                # IOError: [Errno 61] No data available (GNU/Linux)
-                if e.errno not in (61, 93):
-                    raise
-            finally:
-                self.lock_path(path, locker)
+        func = (self._remove_remote_id_windows
+                if AbstractOSIntegration.is_windows()
+                else self._remove_remote_id_unix)
+        try:
+            func(path, name=name)
+        finally:
+            self.lock_path(path, locker)
 
     def unset_folder_icon(self, ref):
         """ Unset the red icon. """
