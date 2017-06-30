@@ -120,6 +120,15 @@ class StubLocalClient(object):
         with self.assertRaises(NotFound):
             self.local_client_1.get_info('/Something Missing')
 
+    def test_case_sensitivity(self):
+        local = self.local_client_1
+        sensitive = local.is_case_sensitive()
+        log.debug('OS is case sensitive: %r', sensitive)
+
+        local.make_file('/', 'abc.txt')
+        local.make_file('/', 'ABC.txt')
+        self.assertEqual(len(local.get_children_info('/')), sensitive + 1)
+
     def test_get_children_info(self):
         folder_1 = self.local_client_1.make_folder('/', 'Folder 1')
         folder_2 = self.local_client_1.make_folder('/', 'Folder 2')

@@ -844,3 +844,41 @@ class TestRemoteMove(UnitTestCase):
         # Checks
         self.assertFalse(local.exists('/a1'))
         self.assertEqual(len(local.get_children_info('/a3/a1')), 5)
+
+
+class TestRemoteFiles(UnitTestCase):
+
+    def test_remote_create_files_upper_lower_cases(self):
+        """
+        Check that remote (lower|upper)case renaming is taken
+        into account locally.
+        """
+
+        remote = self.remote_document_client_1
+        local = self.local_client_1
+        engine = self.engine_1
+
+        # Create an innocent file, lower case
+        filename = 'abc.txt'
+        doc = remote.make_file('/', filename, content=b'case')
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Check
+        self.assertTrue(remote.exists('/' + filename))
+        self.assertTrue(local.exists('/' + filename))
+
+        # Remotely rename to upper case
+        filename_upper = filename.upper()
+        remote.update_content(doc, b'CASE', filename=filename_upper)
+        self.wait_sync(wait_for_async=True)
+
+        # Check - server
+        children = remote.get_children_info(self.workspace_1)
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0].filename, filename_upper)
+
+        # Check - client
+        children = local.get_children_info('/')
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0].name, filename_upper)
