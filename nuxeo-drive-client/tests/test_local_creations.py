@@ -2,6 +2,8 @@ import os
 import shutil
 import sys
 
+import pytest
+
 from common_unit_test import UnitTestCase
 from nxdrive.logging_config import get_logger
 from tests.common_unit_test import FILE_CONTENT
@@ -170,3 +172,43 @@ class TestLocalCreateFolders(UnitTestCase):
             return test_resources_path
         except Exception as e:
             log.error('path error: ', e)
+
+
+class TestLocalCreateFiles(UnitTestCase):
+
+    @pytest.mark.timeout(20)
+    def test_local_create_files_upper_lower_cases(self):
+        """
+        NXDRIVE-862: infinite loop when renaming a folder from lower case
+        to upper case on Windows (or more specifically case insensitive OSes).
+
+        We use a special timeout to prevent infinite loops when this test
+        fails.  And it should until fixed, but keep it to detect regression.
+        """
+
+        remote = self.remote_document_client_1
+        local = self.local_client_1
+        engine = self.engine_1
+
+        # Create an innocent file, lower case
+        filename = 'abc.txt'
+        remote.make_file('/', filename, content=b'cAsE')
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Check
+        self.assertTrue(remote.exists('/' + filename))
+        self.assertTrue(local.exists('/' + filename))
+
+        # Locally rename to upper case.  A possible infinite loop can occur.
+        filename_upper = filename.upper()
+        local.rename('/' + filename, filename_upper)
+        self.wait_sync()
+
+        # Checks
+        children = remote.get_children_info(self.workspace_1)
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0].name, filename_upper)
+        children = local.get_children_info('/')
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0].name, filename_upper)
