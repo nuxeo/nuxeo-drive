@@ -48,23 +48,20 @@ class RightClickService(NSObject):
 
 
 class DarwinIntegration(AbstractOSIntegration):
-    '''
-    classdocs
-    '''
     NXDRIVE_SCHEME = 'nxdrive'
     NDRIVE_AGENT_TEMPLATE = """\
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-    <plist version="1.0">
-    <dict>
-      <key>Label</key>
-      <string>org.nuxeo.drive.agentlauncher</string>
-      <key>RunAtLoad</key>
-      <true/>
-      <key>Program</key>
-      <string>%s</string>
-    </dict>
-    </plist>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>org.nuxeo.drive.agentlauncher</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>Program</key>
+  <string>%s</string>
+</dict>
+</plist>
     """
 
     def _get_agent_file(self):
@@ -134,7 +131,8 @@ class DarwinIntegration(AbstractOSIntegration):
         # Dont unregister, should be removed when Bundle removed
         pass
 
-    def is_partition_supported(self, folder):
+    @staticmethod
+    def is_partition_supported(folder):
         if folder is None:
             return False
         result = False
@@ -144,20 +142,20 @@ class DarwinIntegration(AbstractOSIntegration):
                 os.mkdir(folder)
             if not os.access(folder, os.W_OK):
                 import stat
-                os.chmod(folder, stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
-                                stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
+                os.chmod(folder, stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
+                         |stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
             import xattr
-            attr = "drive-test"
+            attr = 'drive-test'
             xattr.setxattr(folder, attr, attr)
             if xattr.getxattr(folder, attr) == attr:
                 result = True
             xattr.removexattr(folder, attr)
         finally:
-            try:
-                if to_delete:
+            if to_delete:
+                try:
                     os.rmdir(folder)
-            except:
-                pass
+                except:
+                    pass
         return result
 
     def register_folder_link(self, folder_path, name=None):
@@ -178,11 +176,11 @@ class DarwinIntegration(AbstractOSIntegration):
             log.warning("Could not fetch the Finder favorite list.")
             return
 
-        url = CFURLCreateWithString(None, "file://"
+        url = CFURLCreateWithString(None, 'file://'
                                     + urllib2.quote(folder_path), None)
         if url is None:
-            log.warning("Could not generate valid favorite URL for: %s",
-                folder_path)
+            log.warning('Could not generate valid favorite URL for: %s',
+                        folder_path)
             return
 
         # Register the folder as favorite if not already there
@@ -215,13 +213,17 @@ class DarwinIntegration(AbstractOSIntegration):
 
         LSSharedFileListItemRemove(lst, item)
 
-    def _get_favorite_list(self):
+    @staticmethod
+    def _get_favorite_list():
         from LaunchServices import LSSharedFileListCreate
         from LaunchServices import kLSSharedFileListFavoriteItems
 
-        return LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems, None)
+        return LSSharedFileListCreate(None,
+                                      kLSSharedFileListFavoriteItems,
+                                      None)
 
-    def _find_item_in_list(self, lst, name):
+    @staticmethod
+    def _find_item_in_list(lst, name):
         from LaunchServices import LSSharedFileListCopySnapshot
         from LaunchServices import LSSharedFileListItemCopyDisplayName
 

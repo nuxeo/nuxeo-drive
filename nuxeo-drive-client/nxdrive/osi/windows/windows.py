@@ -60,26 +60,24 @@ class WindowsIntegration(AbstractOSIntegration):
             _winreg.SetValueEx(key, attribute, 0, type_, value)
         _winreg.CloseKey(key)
 
-    def get_zoom_factor(self):
+    @staticmethod
+    def get_zoom_factor():
         try:
-            if AbstractOSIntegration.os_version_below("6.0.6000"):
+            if AbstractOSIntegration.os_version_below('6.0.6000'):
                 # API added on Vista
                 return 1.00
             # Enable DPI detection
             windll.user32.SetProcessDPIAware()
             # Get Desktop DC
-            hDC = windll.user32.GetDC(None)
-            dpiX = windll.gdi32.GetDeviceCaps( hDC, LOGPIXELSX)
-            windll.user32.ReleaseDC(None, hDC)
+            display = windll.user32.GetDC(None)
+            dpi = windll.gdi32.GetDeviceCaps(display, LOGPIXELSX)
+            windll.user32.ReleaseDC(None, display)
             # Based on https://technet.microsoft.com/en-us/library/dn528846.aspx
-            return dpiX / 96.0
-        except Exception as e:
-            log.debug("Can't get zoom factor: %r", e)
+            return dpi / 96.0
+        except:
+            log.debug('Cannot get zoom factor', exc_infp=True)
         return 1.00
 
-    '''
-    classdocs
-    '''
     def register_startup(self):
         """Register ndrive as a startup application in the Registry"""
 
@@ -150,12 +148,12 @@ class WindowsIntegration(AbstractOSIntegration):
         )
 
     def _recursive_delete(self, reg, start_path, end_path):
-        try:
-            while (len(start_path) < len(end_path)):
+        while len(start_path) < len(end_path):
+            try:
                 _winreg.DeleteKey(reg, end_path)
                 end_path = end_path[0:end_path.rfind('\\')]
-        except Exception, e:
-            pass
+            except:
+                pass
 
     def unregister_protocol_handlers(self):
         app_name = self._manager.get_appname()
@@ -186,11 +184,13 @@ class WindowsIntegration(AbstractOSIntegration):
             [("Icon", _winreg.REG_SZ, icon_path)],
         )
 
-    def is_same_partition(self, folder1, folder2):
+    @staticmethod
+    def is_same_partition(folder1, folder2):
         volume = win32file.GetVolumePathName(folder1)
         return volume == win32file.GetVolumePathName(folder2)
 
-    def is_partition_supported(self, folder):
+    @staticmethod
+    def is_partition_supported(folder):
         if folder[-1] != os.path.sep:
             folder = folder + os.path.sep
         if win32file.GetDriveType(folder) != win32file.DRIVE_FIXED:
@@ -240,7 +240,8 @@ class WindowsIntegration(AbstractOSIntegration):
     def _get_desktop_link(self):
         return os.path.join(self._get_desktop_folder(), self._manager.get_appname() + ".lnk")
 
-    def _get_desktop_folder(self):
+    @staticmethod
+    def _get_desktop_folder():
         return shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
 
     def _create_shortcut(self, link, filepath, iconpath=None, description=None):
