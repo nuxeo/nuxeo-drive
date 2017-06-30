@@ -263,23 +263,14 @@ class LocalClient(BaseClient):
 
         # Desktop.ini file content for Windows 7 and later.
         ini_file_content = """
-        [.ShellClassInfo]
-        IconResource=icon_file_path,0
-        [ViewState]
-        Mode=
-        Vid=
-        FolderType=Generic
+[.ShellClassInfo]
+IconResource=icon_file_path,0
+[ViewState]
+Mode=
+Vid=
+FolderType=Generic
         """
-        # Desktop.ini file content for Windows XP.
-        ini_file_content_xp = """
-        [.ShellClassInfo]
-        IconFile=icon_file_path
-        IconIndex=0
-        """
-        if AbstractOSIntegration.os_version_below("5.2"):
-            desktop_ini_content = ini_file_content_xp.replace("icon_file_path", icon)
-        else:
-            desktop_ini_content = ini_file_content.replace("icon_file_path", icon)
+        desktop_ini_content = ini_file_content.replace('icon_file_path', icon)
 
         # Create the desktop.ini file inside the ReadOnly shared folder.
         created_ini_file_path = os.path.join(self.abspath(ref), 'desktop.ini')
