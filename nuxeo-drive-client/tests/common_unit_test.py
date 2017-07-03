@@ -322,8 +322,8 @@ class UnitTestCase(SimpleUnitTestCase):
         # Correct the casing of the temp folders for windows
         if sys.platform == 'win32':
             import win32api
-            self.local_test_folder_1 = win32api.GetLongPathName(self.local_test_folder_1)
-            self.local_test_folder_2 = win32api.GetLongPathName(self.local_test_folder_2)
+            self.local_test_folder_1 = win32api.GetFullPathName(self.local_test_folder_1)
+            self.local_test_folder_2 = win32api.GetFullPathName(self.local_test_folder_2)
 
         self.local_nxdrive_folder_1 = os.path.join(
             self.local_test_folder_1, u'Nuxeo Drive')
