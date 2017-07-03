@@ -239,7 +239,7 @@ class WebDriveApi(QtCore.QObject):
     def update_password_async(self, uid, password):
         return Promise(self._update_password, uid, password)
 
-    def _update_password(self, uid, password):
+    def _update_password(self, uid, password, result=str):
         """
         Convert password from unicode to string to support utf-8 character
         """
@@ -334,12 +334,8 @@ class WebDriveApi(QtCore.QObject):
             log.exception(repr(e))
             return ''
 
-    @QtCore.pyqtSlot(result=QtCore.QObject)
-    def get_update_status(self):
-        return Promise(self._get_update_status)
-
     @QtCore.pyqtSlot(result=str)
-    def _get_update_status(self):
+    def get_update_status(self):
         status = UPDATE_STATUS_UNAVAILABLE_SITE, None
         updater = self._manager.get_updater()
         if updater:

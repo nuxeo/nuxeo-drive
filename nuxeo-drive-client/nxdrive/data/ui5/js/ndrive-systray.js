@@ -13,7 +13,7 @@ var SystrayController = function($scope, $timeout, $translate) {
 	$scope.confirmAppUpdateDialog = null;
 	$scope.confirmAppUpdate = function(version) {
 		$scope.updateChannel = $scope.betaChannel ? 'beta ' : '';
-		$scope.confirmAppUpdateDialog = version;	
+		$scope.confirmAppUpdateDialog = version;
 	}
 	$scope.interval = null;
 
@@ -28,7 +28,7 @@ var SystrayController = function($scope, $timeout, $translate) {
 		self.showMetadata($scope.engine.uid, path);
 	}
 	$scope.advanced_systray = this.advancedSystray;
-	
+
 	$scope.appUpdate = function() {
 		self.appUpdate($scope.confirmAppUpdateDialog);
 		$scope.app_update = ['updating', $scope.confirmAppUpdateDialog, 0];
