@@ -232,6 +232,9 @@ class LocalClient(BaseClient):
                 else self._remove_remote_id_unix)
         try:
             func(path, name=name)
+        except OSError as exc:
+            if exc.errno != errno.ENOENT:
+                raise exc
         finally:
             self.lock_path(path, locker)
 

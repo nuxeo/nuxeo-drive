@@ -9,6 +9,8 @@ import os
 from time import sleep
 from unittest import skipIf
 
+import pytest
+
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.common import DuplicationDisabledError
 from nxdrive.logging_config import get_logger
@@ -120,13 +122,18 @@ class StubLocalClient(object):
         with self.assertRaises(NotFound):
             self.local_client_1.get_info('/Something Missing')
 
+    @pytest.mark.timeout(20)
     def test_case_sensitivity(self):
         local = self.local_client_1
         sensitive = local.is_case_sensitive()
-        log.debug('OS is case sensitive: %r', sensitive)
+        log.info('OS is case sensitive: %r', sensitive)
 
         local.make_file('/', 'abc.txt')
-        local.make_file('/', 'ABC.txt')
+        if sensitive:
+            local.make_file('/', 'ABC.txt')
+        else:
+            with self.assertRaises(DuplicationDisabledError):
+                local.make_file('/', 'ABC.txt')
         self.assertEqual(len(local.get_children_info('/')), sensitive + 1)
 
     def test_get_children_info(self):

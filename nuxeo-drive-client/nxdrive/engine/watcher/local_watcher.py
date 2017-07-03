@@ -1,13 +1,14 @@
 # coding: utf-8
-import unicodedata
-from time import mktime, sleep, time
-
+import errno
 import os
 import re
 import sqlite3
-from PyQt4.QtCore import pyqtSignal, pyqtSlot
+import unicodedata
 from Queue import Queue
 from threading import Lock
+from time import mktime, sleep, time
+
+from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
 
@@ -1050,8 +1051,8 @@ def normalize_event_filename(filename, action=True):
         original_file_name = os.path.basename(filename)
         try:
             full_path = win32api.GetLongPathName(filename)
-        except (win32api.error, UnicodeEncodeError):
-            if action:
+        except win32api.error as (code, _, _):
+            if code != errno.ENOENT:
                 log.exception('Long path conversion error for %r', filename)
         else:
             filename = os.path.join(os.path.dirname(full_path),
