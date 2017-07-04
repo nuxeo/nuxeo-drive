@@ -266,46 +266,41 @@ class LocalClient(BaseClient):
             self.set_folder_icon_darwin(ref, icon)
 
     def set_folder_icon_win32(self, ref, icon):
-        """ Configure red color icon for a folder Windows / Mac. """
+        """ Configure red color icon for a folder Windows / macOS. """
 
-        # Desktop.ini file content for Windows 7 and later.
+        # Desktop.ini file content for Windows 7+.
         ini_file_content = """
-        [.ShellClassInfo]
-        IconResource=icon_file_path,0
-        [ViewState]
-        Mode=
-        Vid=
-        FolderType=Generic
-        """
-        # Desktop.ini file content for Windows XP.
-        ini_file_content_xp = """
-        [.ShellClassInfo]
-        IconFile=icon_file_path
-        IconIndex=0
-        """
-        if AbstractOSIntegration.os_version_below("5.2"):
-            desktop_ini_content = ini_file_content_xp.replace("icon_file_path", icon)
-        else:
-            desktop_ini_content = ini_file_content.replace("icon_file_path", icon)
+[.ShellClassInfo]
+IconResource={icon},0
+[ViewState]
+Mode=
+Vid=
+FolderType=Generic
+"""
+        desktop_ini_content = ini_file_content.format(icon=icon)
 
         # Create the desktop.ini file inside the ReadOnly shared folder.
         created_ini_file_path = os.path.join(self.abspath(ref), 'desktop.ini')
         attrib_command_path = self.abspath(ref)
         if not os.path.exists(created_ini_file_path):
             try:
-                create_file = open(created_ini_file_path,'w')
-                create_file.write(desktop_ini_content)
-                create_file.close()
-                win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
-                win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
-            except Exception as e:
-                log.error("Exception when setting folder icon : %r", e)
+                with open(created_ini_file_path, 'w') as create_file:
+                    create_file.write(desktop_ini_content)
+                win32api.SetFileAttributes(created_ini_file_path,
+                                           win32con.FILE_ATTRIBUTE_SYSTEM)
+                win32api.SetFileAttributes(created_ini_file_path,
+                                           win32con.FILE_ATTRIBUTE_HIDDEN)
+            except:
+                log.exception('Icon folder cannot be set')
         else:
-            win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
-            win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
+            win32api.SetFileAttributes(created_ini_file_path,
+                                       win32con.FILE_ATTRIBUTE_SYSTEM)
+            win32api.SetFileAttributes(created_ini_file_path,
+                                       win32con.FILE_ATTRIBUTE_HIDDEN)
         # Windows folder use READ_ONLY flag as a customization flag ...
         # https://support.microsoft.com/en-us/kb/326549
-        win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_READONLY)
+        win32api.SetFileAttributes(attrib_command_path,
+                                   win32con.FILE_ATTRIBUTE_READONLY)
 
     @staticmethod
     def _read_data(file_path):
@@ -324,13 +319,14 @@ class LocalClient(BaseClient):
         return result
 
     def set_folder_icon_darwin(self, ref, icon):
-        ''' Mac: Configure a folder with a given custom icon
+        """
+        macOS: configure a folder with a given custom icon
             1. Read the com.apple.ResourceFork extended attribute from the icon file
             2. Set the com.apple.FinderInfo extended attribute with folder icon flag
             3. Create a Icon file (name: Icon\r) inside the target folder
             4. Set extended attributes com.apple.FinderInfo & com.apple.ResourceFork for icon file (name: Icon\r)
             5. Hide the icon file (name: Icon\r)
-        '''
+        """
         try:
             target_folder = self.abspath(ref)
             # Generate the value for 'com.apple.FinderInfo'

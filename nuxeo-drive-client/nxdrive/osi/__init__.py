@@ -92,10 +92,12 @@ class AbstractOSIntegration(object):
     def register_startup(self):
         pass
 
-    def is_partition_supported(self, folder):
+    @staticmethod
+    def is_partition_supported(folder):
         return True
 
-    def get_zoom_factor(self):
+    @staticmethod
+    def get_zoom_factor():
         return 1.00
 
     def uninstall(self):
@@ -132,7 +134,8 @@ class AbstractOSIntegration(object):
     def unregister_desktop_link(self):
         pass
 
-    def is_same_partition(self, folder1, folder2):
+    @staticmethod
+    def is_same_partition(folder1, folder2):
         return os.stat(folder1).st_dev == os.stat(folder2).st_dev
 
     def get_system_configuration(self):
@@ -164,43 +167,54 @@ class AbstractOSIntegration(object):
         if AbstractOSIntegration.is_mac():
             return platform.mac_ver()[0]
         if AbstractOSIntegration.is_windows():
-            # 5.0.2195    Windows 2000
-            # 5.1.2600    Windows XP or Windows XP 64-Bit Edition Version 2002 (Itanium)
-            # 5.2.3790    Windows Server 2003 or Windows XP x64 Edition (AMD64/EM64T) or Windows XP 64-Bit Edition Version 2003 (Itanium)
-            # 6.0.6000    Windows Vista
-            # 6.0.6001    Windows Vista with Service Pack 1 or Windows Server 2008
-            # 6.1.7600    Windows 7 or Windows Server 2008 R2
-            # 6.1.7601    Windows 7 with Service Pack 1 or Windows Server 2008 R2 with Service Pack 1
-            # 6.2.9200    Windows 8 or Windows Server 2012
-            # 6.3.9200    Windows 8.1 or Windows Server 2012 R2
-            # 6.3.9600    Windows 8.1 with Update 1
-            # 6.4.        Windows 10
+            """
+            5.0.2195    Windows 2000
+            5.1.2600    Windows XP
+                        Windows XP 64-Bit Edition Version 2002 (Itanium)
+            5.2.3790    Windows Server 2003
+                        Windows XP x64 Edition (AMD64/EM64T)
+                        Windows XP 64-Bit Edition Version 2003 (Itanium)
+            6.0.6000    Windows Vista
+            6.0.6001    Windows Vista SP1
+                        Windows Server 2008
+            6.1.7600    Windows 7
+                        Windows Server 2008 R2
+            6.1.7601    Windows 7 SP1
+                        Windows Server 2008 R2 SP1
+            6.2.9200    Windows 8
+                        Windows Server 2012
+            6.3.9200    Windows 8.1
+                        Windows Server 2012 R2
+            6.3.9600    Windows 8.1 with Update 1
+            6.4.        Windows 10
+            """
             return platform.win32_ver()[1]
-        else:
-            raise RuntimeError("Can't determine Linux versions")
+
+        raise RuntimeError('Cannot determine GNU/Linux version')
 
     @staticmethod
     def is_mac():
-        return sys.platform == "darwin"
+        return sys.platform == 'darwin'
 
     @staticmethod
     def is_windows():
-        return sys.platform == "win32"
+        return sys.platform == 'win32'
 
     @staticmethod
     def is_linux():
-        return not (AbstractOSIntegration.is_mac() or AbstractOSIntegration.is_windows())
+        return not (AbstractOSIntegration.is_mac()
+                    or AbstractOSIntegration.is_windows())
 
     @staticmethod
     def get(manager):
-        if sys.platform == "darwin":
+        if AbstractOSIntegration.is_mac():
             from nxdrive.osi.darwin.darwin import DarwinIntegration
-            log.debug("Using Darwin OS integration")
+            log.debug('Using macOS integration')
             return DarwinIntegration(manager)
-        elif sys.platform == "win32":
+        elif AbstractOSIntegration.is_windows():
             from nxdrive.osi.windows.windows import WindowsIntegration
-            log.debug("Using Windows OS integration")
+            log.debug('Using Windows OS integration')
             return WindowsIntegration(manager)
-        else:
-            log.debug("Not using any OS integration")
-            return AbstractOSIntegration(manager)
+
+        log.debug('Not using any OS integration')
+        return AbstractOSIntegration(manager)

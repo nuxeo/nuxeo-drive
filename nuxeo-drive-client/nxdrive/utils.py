@@ -273,10 +273,6 @@ def default_nuxeo_drive_folder():
                       " falling back on manual detection of My Documents")
             my_documents = os.path.expanduser(r'~\Documents')
             my_documents = unicode(my_documents.decode(ENCODING))
-            if not os.path.exists(my_documents):
-                # Compatibility for Windows XP
-                my_documents = os.path.expanduser(r'~\My Documents')
-                my_documents = unicode(my_documents.decode(ENCODING))
 
         if os.path.exists(my_documents):
             nuxeo_drive_folder = os.path.join(my_documents,
