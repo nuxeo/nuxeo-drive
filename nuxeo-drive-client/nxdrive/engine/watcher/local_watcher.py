@@ -32,7 +32,7 @@ if AbstractOSIntegration.is_windows():
 
 
 def is_office_file(_):
-    # Dont filter for now
+    # Don't filter for now
     return True
 
 
@@ -1001,9 +1001,9 @@ def normalize_event_filename(filename, action=True):
     """
     Normalize a file name.
 
-    :param filename The file name to normalize.
-    :param action Apply changes on the file system.
-    :return The normalized file name.
+    :param unicode filename: The file name to normalize.
+    :param bool action: Apply changes on the file system.
+    :return unicode: The normalized file name.
     """
 
     # NXDRIVE-688: Ensure the name is stripped for a file
@@ -1036,19 +1036,19 @@ def normalize_event_filename(filename, action=True):
 
         Check this simplified code session (the file "ABC.txt" exists):
 
-            >>> win32api.GetFullPathName('abc.txt')
+            >>> win32api.GetLongPathName('abc.txt')
             'ABC.txt'
-            >>> win32api.GetFullPathName('ABC.TXT')
+            >>> win32api.GetLongPathName('ABC.TXT')
             'ABC.txt'
-            >>> win32api.GetFullPathName('ABC.txt')
+            >>> win32api.GetLongPathName('ABC.txt')
             'ABC.txt'
 
         So, to counter that behavior, we save the actual file name
         and restore it in the full path.
         """
-        filename = os.path.join(
-            os.path.dirname(win32api.GetFullPathName(filename)),
-            os.path.basename(filename))
+        long_path = win32api.GetLongPathNameW(filename)
+        filename = os.path.join(os.path.dirname(long_path),
+                                os.path.basename(filename))
 
     if action and filename != normalized and os.path.exists(filename):
         log.debug('Forcing normalization: %r -> %r', filename, normalized)
