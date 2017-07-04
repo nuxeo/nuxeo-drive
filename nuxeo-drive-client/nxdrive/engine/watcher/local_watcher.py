@@ -543,9 +543,7 @@ class LocalWatcher(EngineWorker):
                 ob.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
                 ob.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
             except ImportError:
-                log.trace('read_directory_changes import error', exc_info=True)
-                log.warn('Cannot import read_directory_changes, probably under'
-                         ' Windows XP, watchdog will fall back on polling')
+                log.warn('Cannot import read_directory_changes', exc_info=True)
         log.debug('Watching FS modification on : %s', self.client.base_folder)
 
         # Filter out all ignored suffixes. It will handle custom ones too.
