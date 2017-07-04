@@ -1,3 +1,4 @@
+# coding: utf-8
 import os
 import shutil
 
@@ -124,7 +125,7 @@ class TestLocalCreations(UnitTestCase):
         self.assertTrue(postcondition3, postcondition3_error)
         self.assertTrue(postcondition4, postcondition4_error)
 
-    @pytest.mark.timeout(20)
+    @pytest.mark.timeout(40)
     def test_local_create_folders_upper_lower_cases(self):
         """
         Infinite loop when renaming a folder from lower case to upper case
@@ -161,7 +162,7 @@ class TestLocalCreations(UnitTestCase):
         self.assertEqual(len(children), 1)
         self.assertEqual(children[0].name, folder_upper)
 
-    @pytest.mark.timeout(20)
+    @pytest.mark.timeout(40)
     def test_local_create_files_upper_lower_cases(self):
         """
         Infinite loop when renaming a file from lower case to upper case

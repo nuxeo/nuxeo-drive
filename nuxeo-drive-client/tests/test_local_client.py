@@ -122,7 +122,7 @@ class StubLocalClient(object):
         with self.assertRaises(NotFound):
             self.local_client_1.get_info('/Something Missing')
 
-    @pytest.mark.timeout(20)
+    @pytest.mark.timeout(30)
     def test_case_sensitivity(self):
         local = self.local_client_1
         sensitive = local.is_case_sensitive()
