@@ -148,6 +148,10 @@ for (def x in slaves) {
 
                     stage(osi + ' Tests') {
                         // Launch the tests suite
+                        if (currentBuild.result == 'UNSTABLE' || currentBuild.result == 'FAILURE') {
+                            error('Stopping early: apparently another slave did not try its best ...')
+                        }
+
                         def jdk = tool name: 'java-8-oracle'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
