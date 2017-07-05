@@ -10,7 +10,7 @@
   <groupId>org.nuxeo.ecm</groupId>
   <artifactId>nuxeo-drive-ftest</artifactId>
   <packaging>pom</packaging>
-  <name>Nuxeo Drive Functional Tests on Nuxeo 8.10</name>
+  <name>Nuxeo Drive Functional Tests on Nuxeo</name>
   <description>
     This POM uses tools-nuxeo-ftest to run Nuxeo Drive
     functional tests in multiple environments (OS, DB)
