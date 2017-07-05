@@ -1,3 +1,13 @@
+# dev
+Release date: `2017-??-??`
+
+#### Minor changes
+- Packaging: Set required versions for `appdirs` (1.4.3) and `setuptools` (36.0.1)
+- Jenkins: Removed packages job timeout
+- Jenkins: Fail early if the build is unstable on functional tests job
+- Tests: Fix `test_direct_edit.py` that uses hard coded Nuxeo URL
+
+
 # 2.4.7
 Release date: `2017-07-05`
 

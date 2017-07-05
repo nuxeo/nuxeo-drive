@@ -1,3 +1,9 @@
+# dev
+- Removed `size`, `digest_func`, `check_suspended` and `remote_ref` arguments from `FileInfo` class. Use `kwargs.get(arg, default)` instead.
+- Removed `digest_func`, `ignored_prefixe`, `ignored_suffixes`, `check_suspended`, `case_sensitive` and `disable_duplication` arguments from `LocalClient` class. Use `kwargs.get(arg, default)` instead.
+- Added `_remove_remote_id_windows()` method to `LocalClient` class
+- Added `_remove_remote_id_unix()` method to `LocalClient` class
+
 # 2.4.7
 - Changed `get_zoom_factor()` method to `static` in `AbstractOSIntegration` class
 - Changed `is_partition_supported()` method to `static` in `AbstractOSIntegration` class
