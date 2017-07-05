@@ -119,8 +119,8 @@ class RandomBug(object):
 
             res = None
             for retry in range(1, self._repeat + 1):
-                log.debug('Repeating test %s %d/%d',
-                          func.func_name, retry, self._repeat)
+                log.info('Repeating test %s %d/%d',
+                         func.func_name, retry, self._repeat)
                 try:
                     res = func(*args, **kwargs)
                 except Exception as e:

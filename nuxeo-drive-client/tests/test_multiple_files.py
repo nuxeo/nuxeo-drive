@@ -21,34 +21,30 @@ class MultipleFilesTestCase(UnitTestCase):
     NUMBER_OF_LOCAL_FILES = 10
     SYNC_TIMEOUT = 200  # in seconds
 
-    '''
+    def setUp(self):
+        """
         1. create folder 'Nuxeo Drive Test Workspace/a1' with 100 files in it
         2. create folder 'Nuxeo Drive Test Workspace/a2'
         2. create folder 'Nuxeo Drive Test Workspace/a3'
-    '''
-    def setUp(self):
+        """
         super(MultipleFilesTestCase, self).setUp()
 
-        log.debug('*** enter MultipleFilesTestCase.setUp()')
-        log.debug('*** engine1 starting')
         self.engine_1.start()
         self.wait_sync()
-        log.debug('*** engine 1 synced')
-        log.debug("full local root path %s", self.local_client_1.get_info("/"))
 
         # create  folder a1
         self.local_client_1.make_folder("/", ur'a1')
         self.folder_path_1 = os.path.join("/", 'a1')
         # add 100 files in folder 'Nuxeo Drive Test Workspace/a1'
         for file_num in range(1, self.NUMBER_OF_LOCAL_FILES + 1):
-            self.local_client_1.make_file(self.folder_path_1, 'local%04d.txt' % file_num, FILE_CONTENT)
-        log.debug('local test files created')
+            self.local_client_1.make_file(self.folder_path_1,
+                                          'local%04d.txt' % file_num,
+                                          FILE_CONTENT)
         # create  folder a2
         self.local_client_1.make_folder("/", ur'a2')
         self.folder_path_2 = os.path.join("/", 'a2')
         self.folder_path_3 = os.path.join("/", 'a3')
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
-        log.debug('*** exit MultipleFilesTestCase.setUp()')
 
     def test_move_and_copy_paste_folder_original_location_from_child_stopped(self):
         self._move_and_copy_paste_folder_original_location_from_child()
@@ -146,16 +142,20 @@ class MultipleFilesTestCase(UnitTestCase):
                          'file names are different')
         log.debug('*** exit MultipleFilesTestCase._move_and_copy_paste_folder')
 
-    @RandomBug('NXDRIVE-720', target='linux', mode='BYPASS')
+    @RandomBug('NXDRIVE-720', target='linux')
     @RandomBug('NXDRIVE-813', target='mac')
     def test_move_and_copy_paste_folder_original_location(self):
-        self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2, os.path.dirname(self.folder_path_1),
+        self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2,
+                                         os.path.dirname(self.folder_path_1),
                                          stopped=False)
 
     @skipIf(AbstractOSIntegration.is_linux(),
-            'NXDRIVE-471: Not handled under Linux as creation time is not stored')
+            'NXDRIVE-471: Not handled under GNU/Linux as'
+            ' creation time is not stored')
     def test_move_and_copy_paste_folder_original_location_stopped(self):
-        self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2, os.path.dirname(self.folder_path_1))
+        self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2,
+                                         os.path.dirname(self.folder_path_1))
 
     def test_move_and_copy_paste_folder_new_location(self):
-        self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2, self.folder_path_3)
+        self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2,
+                                         self.folder_path_3)
