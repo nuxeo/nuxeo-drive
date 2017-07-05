@@ -1,13 +1,14 @@
 # coding: utf-8
-import unicodedata
-from time import mktime, sleep, time
-
+import errno
 import os
 import re
 import sqlite3
-from PyQt4.QtCore import pyqtSignal, pyqtSlot
+import unicodedata
 from Queue import Queue
 from threading import Lock
+from time import mktime, sleep, time
+
+from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
 
@@ -31,7 +32,7 @@ if AbstractOSIntegration.is_windows():
 
 
 def is_office_file(_):
-    # Dont filter for now
+    # Don't filter for now
     return True
 
 
@@ -359,9 +360,9 @@ class LocalWatcher(EngineWorker):
                         log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
                         if doc_pair is not None and self.client.exists(doc_pair.local_path):
-                            if (not self.client.is_case_sensitive() and\
-                                            doc_pair.local_path.lower() == child_info.path.lower()):
-                                log.debug("Case renaming on a case insensitive filesystem, update info and ignore: %r",
+                            if (not self.client.is_case_sensitive()
+                                    and doc_pair.local_path.lower() == child_info.path.lower()):
+                                log.debug('Case renaming on a case insensitive filesystem, update info and ignore: %r',
                                                 doc_pair)
                                 if doc_pair.local_name in children:
                                     del children[doc_pair.local_name]
@@ -809,7 +810,7 @@ class LocalWatcher(EngineWorker):
             parent_path = os.path.dirname(src_path)
             parent_rel_path = self.client.get_path(parent_path)
             # Don't care about ignored file, unless it is moved
-            if self.client.is_ignored(parent_rel_path, file_name) and evt.event_type != 'moved':
+            if evt.event_type != 'moved' and self.client.is_ignored(parent_rel_path, file_name):
                 return
             if self.client.is_temp_file(file_name):
                 return
@@ -969,7 +970,7 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
 
     def on_any_event(self, event):
         self.counter += 1
-        log.trace("Queueing watchdog: %r", event)
+        log.trace('Queueing watchdog: %r', event)
         self.watcher._watchdog_queue.put(event)
 
 
@@ -1000,9 +1001,9 @@ def normalize_event_filename(filename, action=True):
     """
     Normalize a file name.
 
-    :param filename The file name to normalize.
-    :param action Apply changes on the file system.
-    :return The normalized file name.
+    :param unicode filename: The file name to normalize.
+    :param bool action: Apply changes on the file system.
+    :return unicode: The normalized file name.
     """
 
     # NXDRIVE-688: Ensure the name is stripped for a file
@@ -1028,10 +1029,26 @@ def normalize_event_filename(filename, action=True):
     if AbstractOSIntegration.is_mac():
         return normalized
     elif AbstractOSIntegration.is_windows() and os.path.exists(filename):
-        try:
-            filename = win32api.GetLongPathName(filename)
-        except (win32api.error, UnicodeEncodeError) as e:
-            log.error('Long path conversion error: %s for %r', e, filename)
+        """
+        If `filename` exists, and as Windows is case insensitive,
+        the result of Get(Full|Long|Short)PathName() could be unexpected
+        because it will return the path of the existant `filename`.
+
+        Check this simplified code session (the file "ABC.txt" exists):
+
+            >>> win32api.GetLongPathName('abc.txt')
+            'ABC.txt'
+            >>> win32api.GetLongPathName('ABC.TXT')
+            'ABC.txt'
+            >>> win32api.GetLongPathName('ABC.txt')
+            'ABC.txt'
+
+        So, to counter that behavior, we save the actual file name
+        and restore it in the full path.
+        """
+        long_path = win32api.GetLongPathNameW(filename)
+        filename = os.path.join(os.path.dirname(long_path),
+                                os.path.basename(filename))
 
     if action and filename != normalized and os.path.exists(filename):
         log.debug('Forcing normalization: %r -> %r', filename, normalized)

@@ -1,10 +1,13 @@
 import os
 import shutil
-from mock import patch
-from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-from tests.common_unit_test import UnitTestCase
-from tests.common_unit_test import log
 
+from mock import patch
+
+from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
+from nxdrive.logging_config import get_logger
+from tests.common_unit_test import UnitTestCase
+
+log = get_logger(__name__)
 wait_for_security_update = False
 src = None
 dst = None

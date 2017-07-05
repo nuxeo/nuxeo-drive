@@ -114,8 +114,6 @@ for (x in slaves) {
     }
 }
 
-timeout(120) {
-    timestamps {
-        parallel builders
-    }
+timestamps {
+    parallel builders
 }

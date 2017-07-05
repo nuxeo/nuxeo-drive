@@ -1,3 +1,24 @@
+# dev
+Release date: `2017-??-??`
+
+#### Minor changes
+- Packaging: Set required versions for `appdirs` (1.4.3) and `setuptools` (36.0.1)
+- Jenkins: Removed packages job timeout
+- Jenkins: Fail early if the build is unstable on functional tests job
+- Tests: Fix `test_direct_edit.py` that uses hard coded Nuxeo URL
+
+
+# 2.4.7
+Release date: `2017-07-05`
+
+### Core
+- [NXDRIVE-890](https://jira.nuxeo.com/browse/NXDRIVE-890): Cleanup Windows XP specific code
+- Revert [NXDRIVE-895](https://jira.nuxeo.com/browse/NXDRIVE-895) that caused troubles when displaying update progress bar
+
+#### Minor changes
+- Jenkins: Update the Nuxeo snapshot to 9.3
+
+
 # 2.4.6
 Release date: `2017-06-29`
 

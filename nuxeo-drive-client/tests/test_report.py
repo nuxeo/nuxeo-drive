@@ -1,12 +1,17 @@
 # coding: utf-8
 import os
 import tempfile
-from mock import Mock
 from unittest import TestCase
 
+from mock import Mock
+
+from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.report import Report
-from tests.common import clean_dir, log
+from tests.common import clean_dir
+
+
+log = get_logger(__name__)
 
 
 class ReportTest(TestCase):

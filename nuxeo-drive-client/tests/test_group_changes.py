@@ -1,6 +1,8 @@
-from tests.common import log
-from tests.common_unit_test import UnitTestCase
 from nxdrive.client import RemoteDocumentClient
+from nxdrive.logging_config import get_logger
+from tests.common_unit_test import UnitTestCase
+
+log = get_logger(__name__)
 
 
 class TestGroupChanges(UnitTestCase):

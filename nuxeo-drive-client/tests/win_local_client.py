@@ -17,22 +17,15 @@ from tests.common import log
 
 
 class WindowsLocalClient(LocalClient):
-    def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
-                 ignored_suffixes=None, check_suspended=None,
-                 case_sensitive=None, disable_duplication=True):
-        super(WindowsLocalClient, self).__init__(base_folder, digest_func,
-                                                 ignored_prefixes,
-                                                 ignored_suffixes,
-                                                 check_suspended,
-                                                 case_sensitive,
-                                                 disable_duplication)
+    def __init__(self, base_folder, **kwargs):
+        super(WindowsLocalClient, self).__init__(base_folder, **kwargs)
 
     def delete_final(self, ref):
         path = self.abspath(ref)
         res = shell.SHFileOperation((0, shellcon.FO_DELETE, path, None,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
         if res[0] != 0:
-            raise IOError(res)
+            raise IOError(res, locals())
 
     def move(self, ref, new_parent_ref, name=None):
         path = self.abspath(ref)
@@ -42,10 +35,9 @@ class WindowsLocalClient(LocalClient):
         res = shell.SHFileOperation((0, shellcon.FO_MOVE, path, new_path,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
         if res[0] != 0:
-            raise IOError(res)
+            raise IOError(res, locals())
 
     def duplicate_file(self, ref):
-        # return super(WindowsLocalClient, self).duplicate_file(ref)
         parent = os.path.dirname(ref)
         name = os.path.basename(ref)
         locker = self.unlock_ref(parent, False)
@@ -56,7 +48,7 @@ class WindowsLocalClient(LocalClient):
                                          shellcon.FOF_NOCONFIRMATION, None,
                                          None))
             if res[0] != 0:
-                raise IOError(res)
+                raise IOError(res, locals())
             if parent == u"/":
                 return u"/" + name
             return parent + u"/" + name
@@ -78,7 +70,7 @@ class WindowsLocalClient(LocalClient):
         res = shell.SHFileOperation((0, shellcon.FO_RENAME, path, new_path,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
         if res[0] != 0:
-            raise IOError(res)
+            raise IOError(res, locals())
 
     def delete(self, ref):
         path = self.abspath(ref)
@@ -87,4 +79,4 @@ class WindowsLocalClient(LocalClient):
                                      shellcon.FOF_NOCONFIRMATION | shellcon.FOF_ALLOWUNDO,
                                      None, None))
         if res[0] != 0:
-            raise IOError(res)
+            raise IOError(res, locals())

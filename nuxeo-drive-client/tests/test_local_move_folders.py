@@ -1,8 +1,10 @@
 import os
 import shutil
 
+from nxdrive.logging_config import get_logger
 from tests.common_unit_test import UnitTestCase
-from tests.common_unit_test import log
+
+log = get_logger(__name__)
 
 
 class TestLocalMoveFolders(UnitTestCase):
