@@ -218,8 +218,8 @@ class LocalClient(BaseClient):
             else:
                 xattr.removexattr(path, 'user.' + name)
         except IOError as exc:
-            # errno.EPROTONOSUPPORT: protocol not supported (xattr)
-            # errno.ENODATA: no data available
+            # EPROTONOSUPPORT: protocol not supported (xattr)
+            # ENODATA: no data available
             if exc.errno not in (errno.ENODATA, errno.EPROTONOSUPPORT):
                 raise exc
 
@@ -233,8 +233,8 @@ class LocalClient(BaseClient):
         try:
             func(path, name=name)
         except (IOError, OSError) as exc:
-            # errno.ENOENT: file does not exist
-            # 93 (not yet officially in errno): IOError: Attribute not found
+            # ENOENT: file does not exist
+            # IOError [Errno 93]: Attribute not found
             if exc.errno not in (errno.ENOENT, 93):
                 raise exc
         finally:

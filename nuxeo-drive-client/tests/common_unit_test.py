@@ -600,10 +600,10 @@ class UnitTestCase(SimpleUnitTestCase):
         log.debug('Profiler Report generated in %r', report_path)
 
     def reinit(self):
-        self.tearDown()
-        self.tearDownApp()
-        self.setUpApp()
         try:
+            self.tearDown()
+            self.tearDownApp()
+            self.setUpApp()
             self.setUp()
         except:
             # We can end on a wait timeout. Just ignore it, the test should
@@ -636,9 +636,12 @@ class UnitTestCase(SimpleUnitTestCase):
         log.debug("UnitTest run finished")
 
     def tearDown(self):
-        unittest.TestCase.tearDown(self)
-        if not self.tearedDown:
-            self.tearDownApp()
+        try:
+            unittest.TestCase.tearDown(self)
+            if not self.tearedDown:
+                self.tearDownApp()
+        except:
+            pass
 
     def tearDownApp(self, server_profile=None):
         if self.tearedDown:
