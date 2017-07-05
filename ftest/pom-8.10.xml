@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.nuxeo.ecm.distribution</groupId>
     <artifactId>nuxeo-distribution</artifactId>
-    <version>8.10-HF10-SNAPSHOT</version>
+    <version>8.10</version>
   </parent>
 
   <groupId>org.nuxeo.ecm</groupId>
@@ -22,12 +22,24 @@
     <nuxeo.drive.mp.url>https://qa2.nuxeo.org/jenkins/job/8.10/job/packages_marketplace-drive-1.6_8.10/lastSuccessfulBuild/artifact/marketplace/target/</nuxeo.drive.mp.url>
   </properties>
 
+  <properties>
+    <nuxeo.tested.version>[8.10,9.0)</nuxeo.tested.version>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.nuxeo.ecm.distribution</groupId>
       <artifactId>nuxeo-server-tomcat</artifactId>
+      <version>${nuxeo.tested.version}</version>
       <type>zip</type>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.nuxeo.ecm.distribution</groupId>
+      <artifactId>nuxeo-marketplace-jsf-ui</artifactId>
+      <version>${nuxeo.tested.version}</version>
+      <type>zip</type>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
