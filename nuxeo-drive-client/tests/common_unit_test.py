@@ -600,12 +600,12 @@ class UnitTestCase(SimpleUnitTestCase):
         log.debug('Profiler Report generated in %r', report_path)
 
     def reinit(self):
+        self.tearDown()
+        self.tearDownApp()
+        self.setUpApp()
         try:
-            self.tearDown()
-            self.tearDownApp()
-            self.setUpApp()
             self.setUp()
-        except:
+        except StandardError:
             # We can end on a wait timeout. Just ignore it, the test should
             # fail and will be launched again.
             pass
@@ -615,17 +615,16 @@ class UnitTestCase(SimpleUnitTestCase):
         self.setUpApp()
         self.result = result
 
-        # TODO Should use a specific application
         def launch_test():
             self.remote_restapi_client_admin.log_on_server(
                 '>>> testing: ' + self.id())
-            log.debug("UnitTest thread started")
+            log.debug('UnitTest thread started')
             sleep(1)
             self.setup_profiler()
             super(UnitTestCase, self).run(result)
             self.teardown_profiler()
             self.app.quit()
-            log.debug("UnitTest thread finished")
+            log.debug('UnitTest thread finished')
 
         sync_thread = Thread(target=launch_test)
         sync_thread.start()
@@ -633,25 +632,26 @@ class UnitTestCase(SimpleUnitTestCase):
         sync_thread.join(30)
         self.tearDownApp()
         del self.app
-        log.debug("UnitTest run finished")
+        log.debug('UnitTest run finished')
 
     def tearDown(self):
         try:
             unittest.TestCase.tearDown(self)
-            if not self.tearedDown:
-                self.tearDownApp()
-        except:
+        except StandardError:
             pass
+        if not self.tearedDown:
+            try:
+                self.tearDownApp()
+            except StandardError:
+                pass
 
     def tearDownApp(self, server_profile=None):
         if self.tearedDown:
             return
-        if sys.exc_info() != (None, None, None):
-            self.generate_report()
-        elif self.result is not None:
-            if hasattr(self.result, "wasSuccessful") and not self.result.wasSuccessful():
+        if (hasattr(self.result, 'wasSuccessful')
+                and not self.result.wasSuccessful()):
                 self.generate_report()
-        log.debug("TearDown unit test")
+        log.debug('TearDown unit test')
         # Unbind all
         self.manager_1.unbind_all()
         self.manager_1.dispose_db()
