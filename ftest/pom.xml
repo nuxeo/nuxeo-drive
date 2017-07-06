@@ -20,8 +20,8 @@
   <properties>
     <!-- URL of the last archived artifacts of the nuxeo-drive marketplace
       package on Jenkins -->
-    <nuxeo.drive.mp.url>http://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/
-    </nuxeo.drive.mp.url>
+    <nuxeo.drive.mp.url>http://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/</nuxeo.drive.mp.url>
+    <nuxeo.tested.version>[9.0, 10.0)</nuxeo.tested.version>
   </properties>
 
   <dependencies>
@@ -30,6 +30,13 @@
       <artifactId>nuxeo-server-tomcat</artifactId>
       <type>zip</type>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.nuxeo.ecm.distribution</groupId>
+      <artifactId>nuxeo-marketplace-jsf-ui</artifactId>
+      <version>${nuxeo.tested.version}</version>
+      <type>zip</type>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
