@@ -17,7 +17,7 @@
   <property name="nuxeo.drive.mp.filename" value="nuxeo-drive.zip" />
   <!-- nuxeo-jsf-ui is needed to test the Document (un)lock -->
   <!-- nuxeo-platform-importer is needed to test mass import -->
-  <property name="mp.install" value="nuxeo-jsf-ui,${out.dir}/${nuxeo.drive.mp.filename},nuxeo-platform-importer" />
+  <property name="mp.install" value="file:${out.dir}/nuxeo-marketplace-jsf-ui.zip,${out.dir}/${nuxeo.drive.mp.filename},nuxeo-platform-importer" />
 
   <target name="fetch-nuxeo-drive-mp">
     <exec executable="python" failonerror="true">
@@ -28,6 +28,12 @@
       <arg value="--url=${nuxeo.drive.mp.url}" />
       <arg value="--marketplace-filename=${nuxeo.drive.mp.filename}" />
     </exec>
+  </target>
+
+  <target name="prepare-environment" depends="_init,prepare-db,prepare-tomcat">
+    <copy tofile="${out.dir}/nuxeo-marketplace-jsf-ui.zip">
+      <artifact:file key="org.nuxeo.ecm.distribution:nuxeo-marketplace-jsf-ui::zip" />
+    </copy>
   </target>
 
   <target name="run-drive-tests">
