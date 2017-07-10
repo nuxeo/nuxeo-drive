@@ -1,6 +1,7 @@
 # coding: utf-8
 import sys
 import urllib2
+import urlparse
 from collections import namedtuple
 from urllib import urlencode
 
@@ -68,10 +69,14 @@ class WebSettingsApi(WebDriveApi):
             self._application.show_filters(engine)
 
     def _bind_server(self, local_folder, url, username, password, name, start_engine=True, check_fs=True, token=None):
+        # Remove any parameters from the original URL
+        parts = urlparse.urlsplit(str(url))
+        url = urlparse.urlunsplit(
+            (parts.scheme, parts.netloc, parts.path, '', parts.fragment))
+
+        # On first time login convert QString(having special characters) to str
         if isinstance(local_folder, QtCore.QString):
             local_folder = str(local_folder.toUtf8()).decode('utf-8')
-        url = str(url)
-        # On first time login convert QString(having special characters) to str
         if username and isinstance(username, QtCore.QString):
             username = unicode(username).encode('utf-8')
         if password and isinstance(password, QtCore.QString):
@@ -149,27 +154,22 @@ class WebSettingsApi(WebDriveApi):
 
     @QtCore.pyqtSlot(str, str, str, result=str)
     def web_authentication(self, local_folder, server_url, engine_name):
+        # Handle the server URL
+        parts = urlparse.urlsplit(str(server_url))
+        path = parts.path.rstrip('/') + '/'
+        server_url = urlparse.urlunsplit(
+            (parts.scheme, parts.netloc, path, parts.query, parts.fragment))
+
+        # Handle the engine
+        engine_type = parts.fragment or self._manager._get_default_server_type()
+
         try:
             # Handle local folder
             local_folder = str(local_folder.toUtf8()).decode('utf-8')
             self._check_local_folder(local_folder)
 
-            # Handle server URL
-            server_url = str(server_url)
-            engine_type = self._manager._get_default_server_type()
-            if '#' in server_url:
-                info = server_url.split('#')
-                server_url = info[0]
-                engine_type = info[1]
-            if not server_url.endswith('/'):
-                server_url += '/'
-
             # Connect to startup page
             status = self._connect_startup_page(server_url)
-            if status == 404 and not server_url.endswith("nuxeo/"):
-                status = self._connect_startup_page(server_url + "nuxeo/")
-                if status < 400 or status in (401, 500, 503):
-                    server_url = server_url + "nuxeo/"
             # Server will send a 401 in case of anonymous user configuration
             # Should maybe only check for 404
             if status < 400 or status in (401, 500, 503):
@@ -207,7 +207,18 @@ class WebSettingsApi(WebDriveApi):
             raise FolderAlreadyUsed()
 
     def _connect_startup_page(self, server_url):
-        url = server_url + DRIVE_STARTUP_PAGE
+        # Take into account URL parameters
+        parts = urlparse.urlsplit(server_url)
+        url = urlparse.urlunsplit((parts.scheme,
+                                   parts.netloc,
+                                   parts.path + DRIVE_STARTUP_PAGE,
+                                   parts.query,
+                                   parts.fragment))
+
+        # Remove any parameters from the original URL
+        server_url = urlparse.urlunsplit(
+            (parts.scheme, parts.netloc, parts.path, '', parts.fragment))
+
         try:
             proxy_handler = get_proxy_handler(self._manager.get_proxies(server_url))
             opener = urllib2.build_opener(proxy_handler)
@@ -271,7 +282,17 @@ class WebSettingsApi(WebDriveApi):
             token_params['deviceDescription'] = device_description
         # Force login in case of anonymous user configuration
         token_params['forceAnonymousLogin'] = 'true'
-        return server_url + DRIVE_STARTUP_PAGE + '?' + urlencode(token_params)
+
+        # Handle URL parameters
+        parts = urlparse.urlsplit(server_url)
+        path = parts.path + DRIVE_STARTUP_PAGE
+        params = (parts.query + '&' + urlencode(token_params)
+                  if parts.query
+                  else urlencode(token_params))
+        url = urlparse.urlunsplit(
+            (parts.scheme, parts.netloc, path, params, parts.fragment))
+
+        return url
 
     @QtCore.pyqtSlot(result=str)
     def get_new_local_folder(self):
