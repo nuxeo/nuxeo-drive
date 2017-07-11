@@ -78,6 +78,7 @@ class DuplicationError(IOError):
     pass
 
 
+DEFAULT_BETA_SITE_URL = 'http://community.nuxeo.com/static/drive-tests/'
 DEFAULT_REPOSITORY_NAME = 'default'
 
 DEFAULT_IGNORED_PREFIXES = tuple({

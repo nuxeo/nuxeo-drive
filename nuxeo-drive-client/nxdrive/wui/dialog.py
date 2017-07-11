@@ -13,12 +13,13 @@ from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QSslCertificate
 from dateutil.tz import tzlocal
 
 from nxdrive.client.base_automation_client import Unauthorized
+from nxdrive.client.common import DEFAULT_BETA_SITE_URL
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.engine.dao.sqlite import StateRow
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.workers import Worker
 from nxdrive.logging_config import get_logger
-from nxdrive.manager import FolderAlreadyUsed
+from nxdrive.manager import DEFAULT_UPDATE_SITE_URL, FolderAlreadyUsed
 from nxdrive.notification import Notification
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.wui.translator import Translator
@@ -545,7 +546,9 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(result=str)
     def get_update_url(self):
-        return self._manager.get_version_finder(refresh_engines=True)
+        if self._manager.get_beta_channel():
+            return self._manager._dao.get_config('beta_update_url', DEFAULT_BETA_SITE_URL)
+        return self._manager._dao.get_config('update_url', DEFAULT_UPDATE_SITE_URL)
 
     @QtCore.pyqtSlot(int, int)
     def resize(self, width, height):
