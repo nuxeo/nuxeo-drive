@@ -5,6 +5,7 @@ import os
 import sys
 import threading
 import traceback
+import signal
 from datetime import datetime
 from getpass import getpass
 
@@ -589,7 +590,7 @@ def dumpstacks(signal, frame):
                         % (filename, lineno, name))
             if line:
                 code.append("  %s" % (line.strip()))
-    print "\n".join(code)
+    print('\n'.join(code))
 
 
 def win32_unicode_argv():
@@ -626,11 +627,10 @@ def win32_unicode_argv():
 
 def main(argv=None):
     if sys.version_info[0] != 2 or sys.version_info[1] != 7:
-        print "Nuxeo Drive requires Python 2.7.x"
-        return 1
+        raise RuntimeError('Nuxeo Drive requires Python 2.7+')
+
     # Print thread dump when receiving SIGUSR1,
     # except under Windows (no SIGUSR1)
-    import signal
     # Get the Ctrl+C to interrupt application
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     if sys.platform != 'win32':
