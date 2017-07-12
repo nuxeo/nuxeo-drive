@@ -784,7 +784,7 @@ class Manager(QtCore.QObject):
         :param select: Hightlight the given file_path. Useful when
                        opening a folder and to select a file.
         """
-        file_path = str(file_path)
+        file_path = unicode(file_path)
         log.debug('Launching editor on %s', file_path)
         if sys.platform == 'win32':
             if select:
