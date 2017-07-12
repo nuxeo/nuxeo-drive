@@ -293,7 +293,8 @@ class Manager(QtCore.QObject):
         # See https://www.python.org/dev/peps/pep-0476/
         # and https://jira.nuxeo.com/browse/NXDRIVE-506
         if not options.consider_ssl_errors:
-            log.warn("--consider-ssl-errors option is False, won't verify HTTPS certificates")
+            log.warning('--consider-ssl-errors option is False, '
+                        'will not verify HTTPS certificates')
             import ssl
             try:
                 _create_unverified_https_context = ssl._create_unverified_context
@@ -697,7 +698,7 @@ class Manager(QtCore.QObject):
         self._engines = dict()
         for engine in self._engine_definitions:
             if engine.engine not in self._engine_types:
-                log.warn("Can't find engine %s anymore", engine.engine)
+                log.warning('Cannot find engine %s anymore', engine.engine)
                 if engine.engine not in in_error:
                     in_error[engine.engine] = True
                     self.engineNotFound.emit(engine)
@@ -1073,7 +1074,9 @@ class Manager(QtCore.QObject):
 
         doc_pair = engine.get_dao().get_normal_state_from_remote(remote_ref)
         if doc_pair is None:
-            log.warning('Could not find local file for engine %s and remote_ref %s', engine.get_uid(), remote_ref)
+            log.warning(
+                'Could not find local file for engine %s and remote_ref %s',
+                engine.get_uid(), remote_ref)
             return
 
         # TODO: check synchronization of this state first

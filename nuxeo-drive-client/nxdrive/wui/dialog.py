@@ -679,7 +679,7 @@ class WebDialog(QtGui.QDialog):
         super(WebDialog, self).resize(width * self._zoomFactor, height * self._zoomFactor)
 
     def _sslErrorHandler(self, reply, errorList):
-        log.warn('--- Bypassing SSL errors listed below ---')
+        log.warning('--- Bypassing SSL errors listed below ---')
         for error in errorList:
             certificate = error.certificate()
             o = str(certificate.issuerInfo(QSslCertificate.Organization))
@@ -688,8 +688,9 @@ class WebDialog(QtGui.QDialog):
             ou = str(certificate.issuerInfo(QSslCertificate.OrganizationalUnitName))
             c = str(certificate.issuerInfo(QSslCertificate.CountryName))
             st = str(certificate.issuerInfo(QSslCertificate.StateOrProvinceName))
-            log.warn('%s, certificate: [o=%s, cn=%s, l=%s, ou=%s, c=%s, st=%s]', str(error.errorString()),
-                     o, cn, l, ou, c, st)
+            log.warning(
+                '%s, certificate: [o=%s, cn=%s, l=%s, ou=%s, c=%s, st=%s]',
+                str(error.errorString()), o, cn, l, ou, c, st)
         reply.ignoreSslErrors()
 
     def _set_proxy(self, manager, server_url=None):

@@ -66,7 +66,8 @@ class Worker(QObject):
 
         self._continue = False
         if not self._thread.wait(5000):
-            log.warn("Thread %d is not responding - terminate it", self._thread_id, exc_info=True)
+            log.exception('Thread %d is not responding - terminate it',
+                          self._thread_id)
             self._thread.terminate()
         if self._thread.isRunning():
             self._thread.wait(5000)
