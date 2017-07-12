@@ -1,7 +1,8 @@
 # coding: utf-8
-import re
 import os
+import re
 import sys
+import warnings
 
 try:
     import nx_esky
@@ -494,22 +495,26 @@ class NuxeoDriveSetup(object):
                     )
                 )
             )
-        setup(
-            name=name,
-            version=drive_version,
-            description=attribs.get_description(),
-            author=attribs.get_author(),
-            author_email=attribs.get_author_email(),
-            url=attribs.get_url(),
-            packages=packages,
-            package_dir=attribs.get_package_dir(),
-            package_data=package_data,
-            scripts=scripts,
-            long_description=attribs.get_long_description(),
-            data_files=data_files,
-            ext_modules=ext_modules,
-            **freeze_options
-        )
+
+        with warnings.catch_warnings():
+            # Hide Windows "Unknown distribution option: 'attribs'"
+            warnings.simplefilter('ignore', category=UserWarning)
+            setup(
+                name=name,
+                version=drive_version,
+                description=attribs.get_description(),
+                author=attribs.get_author(),
+                author_email=attribs.get_author_email(),
+                url=attribs.get_url(),
+                packages=packages,
+                package_dir=attribs.get_package_dir(),
+                package_data=package_data,
+                scripts=scripts,
+                long_description=attribs.get_long_description(),
+                data_files=data_files,
+                ext_modules=ext_modules,
+                **freeze_options
+            )
 
 
 def main():
