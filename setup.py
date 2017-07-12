@@ -1,17 +1,16 @@
-#! /usr/bin/env python
-#
-# Copyright (C) 2012 Nuxeo
-#
-
+# coding: utf-8
 import re
 import os
 import sys
 
 try:
     import nx_esky
-except Exception as e:
-    print e
-from esky.bdist_esky import Executable as es_Executable
+except ImportError as e:
+    print(e)
+try:
+    from esky.bdist_esky import Executable as es_Executable
+except ImportError:
+    pass
 
 OUTPUT_DIR = 'dist'
 SERVER_MIN_VERSION = '5.6'
@@ -300,7 +299,7 @@ class NuxeoDriveSetup(object):
         ext_modules = []
 
         script = attribs.get_script()
-        scripts = attribs.get_scripts()
+        scripts = []
         name = attribs.get_name()
         packages = Packages(attribs.get_package_dirs()).load()
 
@@ -335,7 +334,7 @@ class NuxeoDriveSetup(object):
 
         # Create JSON metadata file for the frozen application
         json_file = create_json_metadata(drive_version, SERVER_MIN_VERSION)
-        print "Created JSON metadata file for frozen app: " + json_file
+        print('Created JSON metadata file for frozen app: ' + json_file)
 
         includes = [
             "PyQt4",
@@ -366,7 +365,8 @@ class NuxeoDriveSetup(object):
         attribs.append_includes(includes)
 
         if '--freeze' in sys.argv:
-            print "Building standalone executable..."
+            scripts = attribs.get_scripts()
+            print('Building standalone executable...')
             sys.argv.remove('--freeze')
             from nx_cx_Freeze import setup
             from cx_Freeze import Executable as cx_Executable
@@ -446,6 +446,7 @@ class NuxeoDriveSetup(object):
             # - argv_emulation=True for nxdrive:// URL scheme handling
             # - easy Info.plist customization
             name = attribs.get_CFBundleName()
+            scripts = attribs.get_scripts()
             py2app_options = dict(
                 iconfile=icon,
                 qt_plugins='imageformats',

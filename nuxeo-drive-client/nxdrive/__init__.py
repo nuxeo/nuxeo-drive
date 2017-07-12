@@ -7,4 +7,4 @@ To declare a beta, use this schema:
     - X.Y.ZbN i.e. "2.4.5b1"
 """
 
-__version__ = '2.4.8'
+__version__ = '2.4.9'
