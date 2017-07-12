@@ -183,7 +183,10 @@ class RemoteWatcher(EngineWorker):
                                         force_recursion=force_recursion)
 
     def _scan_remote_scroll(self, doc_pair, remote_info, moved=False):
-        """Perform a scroll scan of the bound remote folder looking for updates"""
+        """
+        Perform a scroll scan of the bound remote folder looking for updates.
+        """
+
         remote_parent_path = self._init_scan_remote(doc_pair, remote_info)
         if remote_parent_path is None:
             return
@@ -193,16 +196,13 @@ class RemoteWatcher(EngineWorker):
             db_descendants = self._dao.get_remote_descendants_from_ref(doc_pair.remote_ref)
         else:
             db_descendants = self._dao.get_remote_descendants(remote_parent_path)
-        descendants = dict()
-        for descendant in db_descendants:
-            descendants[descendant.remote_ref] = descendant
+        descendants = {desc.remote_ref: desc for desc in db_descendants}
 
         to_process = []
         scroll_id = None
-        # TODO: configurable?
         batch_size = 100
         t1 = None
-        while True:
+        while 'Scrolling':
             t0 = datetime.now()
             if t1 is not None:
                 log.trace('Local processing of descendants of %s (%s) took %s ms', remote_info.name, remote_info.uid,
@@ -218,11 +218,14 @@ class RemoteWatcher(EngineWorker):
                 log.trace('Remote scroll request retrieved no descendants of %s (%s), took %s ms', remote_info.name,
                           remote_info.uid, elapsed)
                 break
+
             log.trace('Remote scroll request retrieved %d descendants of %s (%s), took %s ms', len(descendants_info),
                       remote_info.name, remote_info.uid, elapsed)
             scroll_id = scroll_res['scroll_id']
+
             # Results are not necessarily sorted
             descendants_info = sorted(descendants_info, key=lambda x: x.path)
+
             # Handle descendants
             for descendant_info in descendants_info:
                 log.trace('Handling remote descendant: %r', descendant_info)
@@ -234,11 +237,12 @@ class RemoteWatcher(EngineWorker):
                 else:
                     parent_pair = self._dao.get_normal_state_from_remote(descendant_info.parent_uid)
                     if parent_pair is None:
-                        log.trace('Cannot find parent pair of remote descendant, postponing processing of %s',
+                        log.trace('Cannot find parent pair of remote descendant, postponing processing of %r',
                                   descendant_info)
                         to_process.append(descendant_info)
                         continue
                     descendant_pair, _ = self._find_remote_child_match_or_create(parent_pair, descendant_info)
+
             # Check if synchronization thread was suspended
             self._interact()
 
@@ -265,13 +269,14 @@ class RemoteWatcher(EngineWorker):
         delta = t1 - t0
         return delta.seconds * 1000 + delta.microseconds / 1000
 
-    def _scan_remote_recursive(self, doc_pair, remote_info,
-                               force_recursion=True):
-        """Recursively scan the bound remote folder looking for updates
+    def _scan_remote_recursive(self, doc_pair, remote_info, force_recursion=True):
+        """
+        Recursively scan the bound remote folder looking for updates
 
         If force_recursion is True, recursion is done even on
         non newly created children.
         """
+
         remote_parent_path = self._init_scan_remote(doc_pair, remote_info)
         if remote_parent_path is None:
             return
@@ -281,12 +286,10 @@ class RemoteWatcher(EngineWorker):
 
         # Detect recently deleted children
         db_children = self._dao.get_remote_children(doc_pair.remote_ref)
+        children = {child.remote_ref: child for child in db_children}
         children_info = self._client.get_children_info(remote_info.uid)
-        children = dict()
-        to_scan = []
-        for child in db_children:
-            children[child.remote_ref] = child
 
+        to_scan = []
         for child_info in children_info:
             log.trace('Scanning remote child: %r', child_info)
             new_pair = False

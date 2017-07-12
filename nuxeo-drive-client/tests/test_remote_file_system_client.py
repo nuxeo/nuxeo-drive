@@ -1,15 +1,17 @@
 import hashlib
+import operator
 import os
 from shutil import copyfile
 from threading import current_thread
-from unittest import skip
+from unittest import SkipTest
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.base_automation_client import CorruptedFile
-from tests.common import FS_ITEM_ID_PREFIX, IntegrationTestCase
+from tests.common import FS_ITEM_ID_PREFIX
+from tests.common_unit_test import UnitTestCase
 
 
-class TestRemoteFileSystemClient(IntegrationTestCase):
+class TestRemoteFileSystemClient(UnitTestCase):
 
     def setUp(self):
         super(TestRemoteFileSystemClient, self).setUp()
@@ -165,36 +167,46 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertEqual(folder_1_children[0].uid, file_2_id)
         self.assertEqual(folder_1_children[0].name, 'File 2')
 
-    @skip('Not ready yet')
     def test_scroll_descendants(self):
-        remote_client = self.remote_file_system_client_1
+        remote = self.remote_file_system_client_1
+
+        if 'NuxeoDrive.ScrollDescendants' not in remote.operations:
+            raise SkipTest('Scroll descendants not available.')
 
         # Create documents
-        folder_1_id = remote_client.make_folder(self.workspace_id, 'Folder 1').uid
-        folder_2_id = remote_client.make_folder(self.workspace_id, 'Folder 2').uid
-        file_1_id = remote_client.make_file(self.workspace_id, 'File 1', "Content of file 1.").uid
-        file_2_id = remote_client.make_file(folder_1_id, 'File 2', "Content of file 2.").uid
+        folder_1 = remote.make_folder(self.workspace_id, 'Folder 1').uid
+        folder_2 = remote.make_folder(self.workspace_id, 'Folder 2').uid
+        file_1 = remote.make_file(self.workspace_id, 'File 1.txt',
+                                  content='Content of file 1.').uid
+        file_2 = remote.make_file(folder_1, 'File 2.txt',
+                                  content='Content of file 2.').uid
 
         # Wait for ES completion
         self.wait()
 
         # Check workspace descendants in one breath, ordered by remote path
-        scroll_res = remote_client.scroll_descendants(self.workspace_id, None)
+        scroll_res = remote.scroll_descendants(self.workspace_id, None)
         self.assertIsNotNone(scroll_res)
         self.assertIsNotNone(scroll_res.get('scroll_id'))
-        descendants = scroll_res.get('descendants')
+        descendants = sorted(scroll_res.get('descendants'),
+                             key=operator.attrgetter('name'))
         self.assertIsNotNone(descendants)
         self.assertEqual(len(descendants), 4)
-        self.assertEqual(descendants[0].uid, file_1_id)
-        self.assertEqual(descendants[0].name, 'File 1')
+
+        # File 1.txt
+        self.assertEqual(descendants[0].uid, file_1)
+        self.assertEqual(descendants[0].name, 'File 1.txt')
         self.assertFalse(descendants[0].folderish)
-        self.assertEqual(descendants[1].uid, folder_1_id)
-        self.assertEqual(descendants[1].name, 'Folder 1')
-        self.assertTrue(descendants[1].folderish)
-        self.assertEqual(descendants[2].uid, file_2_id)
-        self.assertEqual(descendants[2].name, 'File 2')
-        self.assertFalse(descendants[2].folderish)
-        self.assertEqual(descendants[3].uid, folder_2_id)
+        # File 2.txt
+        self.assertEqual(descendants[1].name, 'File 2.txt')
+        self.assertFalse(descendants[1].folderish)
+        self.assertEqual(descendants[1].uid, file_2)
+        # Folder 1
+        self.assertEqual(descendants[2].uid, folder_1)
+        self.assertEqual(descendants[2].name, 'Folder 1')
+        self.assertTrue(descendants[2].folderish)
+        # Folder 2
+        self.assertEqual(descendants[3].uid, folder_2)
         self.assertEqual(descendants[3].name, 'Folder 2')
         self.assertTrue(descendants[3].folderish)
 
@@ -202,7 +214,8 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         descendants = []
         scroll_id = None
         while True:
-            scroll_res = remote_client.scroll_descendants(self.workspace_id, scroll_id=scroll_id, batch_size=2)
+            scroll_res = remote.scroll_descendants(
+                self.workspace_id, scroll_id=scroll_id, batch_size=2)
             self.assertIsNotNone(scroll_res)
             scroll_id = scroll_res.get('scroll_id')
             self.assertIsNotNone(scroll_id)
@@ -211,17 +224,23 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
             if not partial_descendants:
                 break
             descendants.extend(partial_descendants)
+        descendants = sorted(descendants, key=operator.attrgetter('name'))
         self.assertEqual(len(descendants), 4)
-        self.assertEqual(descendants[0].uid, file_1_id)
-        self.assertEqual(descendants[0].name, 'File 1')
+
+        # File 1.txt
+        self.assertEqual(descendants[0].uid, file_1)
+        self.assertEqual(descendants[0].name, 'File 1.txt')
         self.assertFalse(descendants[0].folderish)
-        self.assertEqual(descendants[1].uid, folder_1_id)
-        self.assertEqual(descendants[1].name, 'Folder 1')
-        self.assertTrue(descendants[1].folderish)
-        self.assertEqual(descendants[2].uid, file_2_id)
-        self.assertEqual(descendants[2].name, 'File 2')
-        self.assertFalse(descendants[2].folderish)
-        self.assertEqual(descendants[3].uid, folder_2_id)
+        # File 2.txt
+        self.assertEqual(descendants[1].name, 'File 2.txt')
+        self.assertFalse(descendants[1].folderish)
+        self.assertEqual(descendants[1].uid, file_2)
+        # Folder 1
+        self.assertEqual(descendants[2].uid, folder_1)
+        self.assertEqual(descendants[2].name, 'Folder 1')
+        self.assertTrue(descendants[2].folderish)
+        # Folder 2
+        self.assertEqual(descendants[3].uid, folder_2)
         self.assertEqual(descendants[3].name, 'Folder 2')
         self.assertTrue(descendants[3].folderish)
 
@@ -332,8 +351,8 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
         self.assertFalse(remote_client.exists(fs_item_id))
 
-    # TODO
     def test_check_writable(self):
+        # TODO Write test_check_writable content
         pass
 
     #
@@ -529,9 +548,9 @@ class TestRemoteFileSystemClient(IntegrationTestCase):
         self.assertIsNone(info.lock_owner)
         self.assertIsNone(info.lock_created)
 
-    def _get_digest(self, digest_algorithm, content):
-        hasher = getattr(hashlib, digest_algorithm)
+    @staticmethod
+    def _get_digest(algorithm, content):
+        hasher = getattr(hashlib, algorithm)
         if hasher is None:
-            raise RuntimeError('Unknown digest algorithm: %s'
-                % digest_algorithm)
+            raise RuntimeError('Unknown digest algorithm: %s' % algorithm)
         return hasher(content).hexdigest()
