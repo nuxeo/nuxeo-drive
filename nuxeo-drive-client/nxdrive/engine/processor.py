@@ -447,7 +447,8 @@ class Processor(EngineWorker):
 
         if remote_ref is not None and '#' in remote_ref:
             # TODO Decide what to do
-            log.warn("This document %r has remote_ref %s", doc_pair, remote_ref)
+            log.warning('This document %r has remote_ref %s',
+                        doc_pair, remote_ref)
             # Get the remote doc
             # Verify it is not already synced elsewhere ( a missed move ? )
             # If same hash dont do anything and reconcile
@@ -497,9 +498,9 @@ class Processor(EngineWorker):
                                                         local_client,
                                                         remote_client)
                     else:
-                        log.warning('Document is already on the server'
-                                    ' should not create: %r | %r',
-                                    doc_pair, fs_item_info)
+                        log.warning(
+                            'Document is already on the server should not create: %r | %r',
+                            doc_pair, fs_item_info)
                     self._dao.synchronize_state(doc_pair)
                     return
             except HTTPError as e:
@@ -578,16 +579,16 @@ class Processor(EngineWorker):
                                                     remote_info=fs_item_info)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
-            log.warning("Won't synchronize %s '%s' created in"
-                        " local folder '%s' since it is readonly",
-                child_type, doc_pair.local_name, parent_pair.local_name)
+            log.warning('Will not synchronize %s %r created in'
+                        ' local folder %r since it is readonly',
+                        child_type, doc_pair.local_name, parent_pair.local_name)
             if doc_pair.folderish:
                 doc_pair.remote_can_create_child = False
             if self._engine.local_rollback():
                 local_client.delete(doc_pair.local_path)
                 self._dao.remove_state(doc_pair)
             else:
-                log.debug("Set pair unsynchronized: %r", doc_pair)
+                log.debug('Set pair unsynchronized: %r', doc_pair)
                 self._dao.unsynchronize_state(doc_pair, 'READONLY')
                 self._engine.newReadonly.emit(doc_pair.local_name,
                                               parent_pair.remote_name)
@@ -835,8 +836,7 @@ class Processor(EngineWorker):
         except (IOError, OSError) as e:
             log.warning(
                 'Delaying local update of remotely modified content %r due to'
-                'concurrent file access (probably opened by another'
-                ' process).',
+                'concurrent file access (probably opened by another process).',
                 doc_pair)
             raise OSError(repr(e), locals())
         finally:
@@ -969,9 +969,9 @@ class Processor(EngineWorker):
             # TODO: be more specific as detecting this case:
             # shall we restrict to the case e.errno == 13 ?
             log.warning(
-                "Delaying local deletion of remotely deleted item %r due to"
-                " concurrent file access (probably opened by another"
-                " process).", doc_pair)
+                'Delaying local deletion of remotely deleted item %r due to'
+                ' concurrent file access (probably opened by another process).',
+                doc_pair)
             raise e
         finally:
             if doc_pair.folderish:

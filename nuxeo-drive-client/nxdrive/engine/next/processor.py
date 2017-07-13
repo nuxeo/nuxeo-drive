@@ -15,14 +15,14 @@ class Processor(OldProcessor):
         super(Processor, self).__init__(engine, item_getter, name)
 
     def acquire_state(self, row_id):
-        log.warn("acquire...")
+        log.warning("acquire...")
         result = super(Processor, self).acquire_state(row_id)
         if result is not None and self._engine.get_local_watcher().is_pending_scan(result.local_parent_path):
             self._dao.release_processor(self._thread_id)
             # Postpone pair for watcher delay
             self._engine.get_queue_manager().postpone_pair(result, self._engine.get_local_watcher().get_scan_delay())
             return None
-        log.warn("Acquired: %r", result)
+        log.warning("Acquired: %r", result)
         return result
 
     def _get_partial_folders(self):
@@ -47,7 +47,7 @@ class Processor(OldProcessor):
         return tmp_file
 
     def _update_remotely(self, doc_pair, local_client, remote_client, is_renaming):
-        log.warn("_update_remotely")
+        log.warning("_update_remotely")
         os_path = local_client.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os.path.join(os.path.dirname(os_path), doc_pair.remote_name)
