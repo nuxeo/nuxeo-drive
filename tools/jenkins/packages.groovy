@@ -45,9 +45,9 @@ properties([
 ])
 
 // Jenkins slaves we will build on
-slaves = ['OSXSLAVE-DRIVE', 'SLAVE', 'WINSLAVE']
+slaves = ['OSXSLAVE', 'SLAVE', 'WINSLAVE']
 labels = [
-    'OSXSLAVE-DRIVE': 'macOS',
+    'OSXSLAVE': 'macOS',
     'SLAVE': 'GNU/Linux',
     'WINSLAVE': 'Windows'
 ]
@@ -114,8 +114,6 @@ for (x in slaves) {
     }
 }
 
-timeout(120) {
-    timestamps {
-        parallel builders
-    }
+timestamps {
+    parallel builders
 }

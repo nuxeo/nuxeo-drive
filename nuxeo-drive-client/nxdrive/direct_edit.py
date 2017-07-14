@@ -121,7 +121,7 @@ class DirectEdit(Worker):
                     continue
                 children = self._local_client.get_children_info(child.path)
                 if len(children) > 1:
-                    log.warn("Cannot clean this document: %s", child.path)
+                    log.warning('Cannot clean this document: %s', child.path)
                     continue
                 if not children:
                     # Cleaning the folder it is empty
@@ -141,7 +141,8 @@ class DirectEdit(Worker):
                     info = self._local_client.get_info(ref)
                     current_digest = info.get_digest(digest_func=digest_algorithm)
                     if current_digest != digest:
-                        log.warn("Document has been modified and not synchronized, readd to upload queue")
+                        log.warning('Document has been modified and '
+                                    'not synchronized, readd to upload queue')
                         self._upload_queue.put(ref)
                         continue
                 except Exception as e:
@@ -228,8 +229,9 @@ class DirectEdit(Worker):
             values = dict()
             values['user'] = str(user)
             values['server'] = server_url
-            log.warn("No engine found for server_url=%s, user=%s, doc_id=%s", server_url, user, doc_id)
-            self._display_modal("DIRECT_EDIT_CANT_FIND_ENGINE", values)
+            log.warning('No engine found for server_url=%s, user=%s, doc_id=%s',
+                        server_url, user, doc_id)
+            self._display_modal('DIRECT_EDIT_CANT_FIND_ENGINE', values)
             return None
         # Get document info
         remote_client = engine.get_remote_doc_client()
@@ -299,7 +301,9 @@ class DirectEdit(Worker):
             if '#' in doc_id:
                 engine = self._get_engine(server_url)
                 if engine is None:
-                    log.warn("No engine found for %s, cannot edit file with remote ref %s", server_url, doc_id)
+                    log.warning(
+                        'No engine found for %s, cannot edit file with remote ref %s',
+                        server_url, doc_id)
                     return
                 self._manager.edit(engine, doc_id)
             else:
@@ -480,13 +484,13 @@ class DirectEdit(Worker):
         log.info("Stopping FS Observer thread")
         try:
             self._observer.stop()
-        except Exception as e:
-            log.warn("Can't stop FS observer : %r", e)
+        except StandardError as e:
+            log.warning('Cannot stop the FS observer: %r', e)
         # Wait for all observers to stop
         try:
             self._observer.join()
-        except Exception as e:
-            log.warn("Can't join FS observer : %r", e)
+        except StandardError as e:
+            log.warning('Cannot join the FS observer: %r', e)
         # Delete all observers
         self._observer = None
 
@@ -535,7 +539,7 @@ class DirectEdit(Worker):
                 return
         except ThreadInterrupt:
             raise
-        except Exception as e:
-            log.warn("Watchdog exception : %r", e, exc_info=True)
+        except StandardError:
+            log.exception('Watchdog error')
         finally:
             self._end_action()

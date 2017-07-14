@@ -13,13 +13,8 @@ if sys.platform == 'darwin':
 
 
 class MacLocalClient(LocalClient):
-    def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
-                 ignored_suffixes=None, check_suspended=None,
-                 case_sensitive=None, disable_duplication=True):
-        super(MacLocalClient, self).__init__(base_folder, digest_func,
-                                             ignored_prefixes, ignored_suffixes,
-                                             check_suspended, case_sensitive,
-                                             disable_duplication)
+    def __init__(self, base_folder, **kwargs):
+        super(MacLocalClient, self).__init__(base_folder, **kwargs)
         self.fm = Cocoa.NSFileManager.defaultManager()
 
     def copy(self, srcref, dstref):
@@ -73,4 +68,4 @@ class MacLocalClient(LocalClient):
     @staticmethod
     def _process_result(result):
         if not result[0]:
-            raise IOError(result[1].decode('utf-8', 'ignore'))
+            raise IOError(result[1].decode('utf-8', 'ignore'), locals())

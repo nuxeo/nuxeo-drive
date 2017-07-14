@@ -6,7 +6,6 @@ Created on 31 mars 2015
 import unittest
 import os
 import sys
-import nxdrive
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
 import tempfile

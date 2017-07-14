@@ -1,6 +1,7 @@
 # coding: utf-8
 """ API to access local resources for synchronization. """
 
+import errno
 import hashlib
 import os
 import re
@@ -42,35 +43,36 @@ DEDUPED_BASENAME_PATTERN = ur'^(.*)__(\d{1,3})$'
 class FileInfo(object):
     """Data Transfer Object for file info on the Local FS"""
 
-    def __init__(self, root, path, folderish, last_modification_time, size=0,
-                 digest_func='md5', check_suspended=None, remote_ref=None):
-
+    def __init__(self, root, path, folderish, last_modification_time, **kwargs):
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.check_suspended = check_suspended
-        self.size = size
+        self.check_suspended = kwargs.pop('check_suspended', None)
+        self.size = kwargs.pop('size', 0)
         filepath = os.path.join(root, path[1:].replace(u'/', os.path.sep))
         root = unicodedata.normalize('NFC', root)
         path = unicodedata.normalize('NFC', path)
-        normalized_filepath = os.path.join(root, path[1:].replace(u'/', os.path.sep))
+        normalized_filepath = os.path.join(
+            root, path[1:].replace(u'/', os.path.sep))
         self.filepath = normalized_filepath
 
-        # Normalize name on the file system if not normalized
-        # See https://jira.nuxeo.com/browse/NXDRIVE-188
-        if os.path.exists(filepath) and normalized_filepath != filepath and not AbstractOSIntegration.is_mac():
-            log.debug('Forcing normalization of %r to %r', filepath, normalized_filepath)
+        # NXDRIVE-188: normalize name on the file system if not normalized
+        if (os.path.exists(filepath)
+                and normalized_filepath != filepath
+                and not AbstractOSIntegration.is_mac()):
+            log.debug('Forcing normalization of %r to %r',
+                      filepath, normalized_filepath)
             os.rename(filepath, normalized_filepath)
 
         self.root = root  # the sync root folder local path
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
-        self.remote_ref = remote_ref
+        self.remote_ref = kwargs.pop('remote_ref', None)
 
         # Last OS modification date of the file
         self.last_modification_time = last_modification_time
 
         # Function to use
-        self._digest_func = digest_func.lower()
+        self._digest_func = kwargs.pop('digest_func', 'MD5').lower()
 
         # Precompute base name once and for all are it's often useful in
         # practice
@@ -80,7 +82,7 @@ class FileInfo(object):
         return self.__unicode__().encode('ascii', 'ignore')
 
     def __unicode__(self):
-        return u"FileInfo[%s, remote_ref=%s]" % (self.filepath, self.remote_ref)
+        return u'FileInfo[%s, remote_ref=%s]' % (self.filepath, self.remote_ref)
 
     def get_digest(self, digest_func=None):
         """Lazy computation of the digest"""
@@ -111,26 +113,24 @@ class FileInfo(object):
 class LocalClient(BaseClient):
     """Client API implementation for the local file system"""
 
-    # TODO: initialize the prefixes and suffix with a dedicated Nuxeo
-    # Automation operations fetched at manager init time.
     CASE_RENAME_PREFIX = 'driveCaseRename_'
 
-    def __init__(self, base_folder, digest_func='md5', ignored_prefixes=None,
-                 ignored_suffixes=None, check_suspended=None,
-                 case_sensitive=None, disable_duplication=True):
-        self._case_sensitive = case_sensitive
-        self._disable_duplication = disable_duplication
-        self.ignored_prefixes = ignored_prefixes or DEFAULT_IGNORED_PREFIXES
-        self.ignored_suffixes = ignored_suffixes or DEFAULT_IGNORED_SUFFIXES
+    def __init__(self, base_folder, **kwargs):
+        self._case_sensitive = kwargs.pop('case_sensitive', None)
+        self._disable_duplication = kwargs.pop('disable_duplication', True)
+        self.ignored_prefixes = (kwargs.pop('ignored_prefixes', None)
+                                 or DEFAULT_IGNORED_PREFIXES)
+        self.ignored_suffixes = (kwargs.pop('ignored_suffixes', None)
+                                 or DEFAULT_IGNORED_SUFFIXES)
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.check_suspended = check_suspended
+        self.check_suspended = kwargs.pop('check_suspended', None)
 
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
         self.base_folder = base_folder
-        self._digest_func = digest_func
+        self._digest_func = kwargs.pop('digest_func', 'md5')
 
     def __repr__(self):
         return ('<{name}'
@@ -195,40 +195,50 @@ class LocalClient(BaseClient):
         self.set_remote_id('/', value, name="ndriveroot")
 
     def get_root_id(self):
-        return self.get_remote_id('/', name="ndriveroot")
+        return self.get_remote_id('/', name='ndriveroot')
+
+    def _remove_remote_id_windows(self, path, name='ndrive'):
+        path_alt = path + ':' + name
+        try:
+            os.remove(path_alt)
+        except OSError as e:
+            if e.errno != errno.EACCES:
+                raise e
+            self.unset_path_readonly(path)
+            try:
+                os.remove(path_alt)
+            finally:
+                self.set_path_readonly(path)
+
+    @staticmethod
+    def _remove_remote_id_unix(path, name='ndrive'):
+        try:
+            if AbstractOSIntegration.is_mac():
+                xattr.removexattr(path, name)
+            else:
+                xattr.removexattr(path, 'user.' + name)
+        except IOError as exc:
+            # EPROTONOSUPPORT: protocol not supported (xattr)
+            # ENODATA: no data available
+            if exc.errno not in (errno.ENODATA, errno.EPROTONOSUPPORT):
+                raise exc
 
     def remove_remote_id(self, ref, name='ndrive'):
-        # Can be move to another class
         path = self.abspath(ref)
         log.trace('Removing xattr %s from %s', name, path)
         locker = self.unlock_path(path, False)
-        if AbstractOSIntegration.is_windows():
-            pathAlt = path + ":" + name
-            try:
-                if os.path.exists(pathAlt):
-                    os.remove(pathAlt)
-            except OSError as e:
-                if e.errno == os.errno.EACCES:
-                    self.unset_path_readonly(path)
-                    os.remove(pathAlt)
-                    self.set_path_readonly(path)
-                else:
-                    raise e
-            finally:
-                self.lock_path(path, locker)
-        else:
-            try:
-                if AbstractOSIntegration.is_mac():
-                    xattr.removexattr(path, name)
-                else:
-                    xattr.removexattr(path, 'user.' + name)
-            except IOError as e:
-                # Ignore IOError: [Errno 93] Attribute not found (macOS)
-                # IOError: [Errno 61] No data available (GNU/Linux)
-                if e.errno not in (61, 93):
-                    raise
-            finally:
-                self.lock_path(path, locker)
+        func = (self._remove_remote_id_windows
+                if AbstractOSIntegration.is_windows()
+                else self._remove_remote_id_unix)
+        try:
+            func(path, name=name)
+        except (IOError, OSError) as exc:
+            # ENOENT: file does not exist
+            # IOError [Errno 93]: Attribute not found
+            if exc.errno not in (errno.ENOENT, 93):
+                raise exc
+        finally:
+            self.lock_path(path, locker)
 
     def unset_folder_icon(self, ref):
         """ Unset the red icon. """
@@ -258,46 +268,41 @@ class LocalClient(BaseClient):
             self.set_folder_icon_darwin(ref, icon)
 
     def set_folder_icon_win32(self, ref, icon):
-        """ Configure red color icon for a folder Windows / Mac. """
+        """ Configure red color icon for a folder Windows / macOS. """
 
-        # Desktop.ini file content for Windows 7 and later.
+        # Desktop.ini file content for Windows 7+.
         ini_file_content = """
-        [.ShellClassInfo]
-        IconResource=icon_file_path,0
-        [ViewState]
-        Mode=
-        Vid=
-        FolderType=Generic
-        """
-        # Desktop.ini file content for Windows XP.
-        ini_file_content_xp = """
-        [.ShellClassInfo]
-        IconFile=icon_file_path
-        IconIndex=0
-        """
-        if AbstractOSIntegration.os_version_below("5.2"):
-            desktop_ini_content = ini_file_content_xp.replace("icon_file_path", icon)
-        else:
-            desktop_ini_content = ini_file_content.replace("icon_file_path", icon)
+[.ShellClassInfo]
+IconResource={icon},0
+[ViewState]
+Mode=
+Vid=
+FolderType=Generic
+"""
+        desktop_ini_content = ini_file_content.format(icon=icon)
 
         # Create the desktop.ini file inside the ReadOnly shared folder.
         created_ini_file_path = os.path.join(self.abspath(ref), 'desktop.ini')
         attrib_command_path = self.abspath(ref)
         if not os.path.exists(created_ini_file_path):
             try:
-                create_file = open(created_ini_file_path,'w')
-                create_file.write(desktop_ini_content)
-                create_file.close()
-                win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
-                win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
-            except Exception as e:
-                log.error("Exception when setting folder icon : %r", e)
+                with open(created_ini_file_path, 'w') as create_file:
+                    create_file.write(desktop_ini_content)
+                win32api.SetFileAttributes(created_ini_file_path,
+                                           win32con.FILE_ATTRIBUTE_SYSTEM)
+                win32api.SetFileAttributes(created_ini_file_path,
+                                           win32con.FILE_ATTRIBUTE_HIDDEN)
+            except:
+                log.exception('Icon folder cannot be set')
         else:
-            win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM)
-            win32api.SetFileAttributes(created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
+            win32api.SetFileAttributes(created_ini_file_path,
+                                       win32con.FILE_ATTRIBUTE_SYSTEM)
+            win32api.SetFileAttributes(created_ini_file_path,
+                                       win32con.FILE_ATTRIBUTE_HIDDEN)
         # Windows folder use READ_ONLY flag as a customization flag ...
         # https://support.microsoft.com/en-us/kb/326549
-        win32api.SetFileAttributes(attrib_command_path, win32con.FILE_ATTRIBUTE_READONLY)
+        win32api.SetFileAttributes(attrib_command_path,
+                                   win32con.FILE_ATTRIBUTE_READONLY)
 
     @staticmethod
     def _read_data(file_path):
@@ -316,13 +321,14 @@ class LocalClient(BaseClient):
         return result
 
     def set_folder_icon_darwin(self, ref, icon):
-        ''' Mac: Configure a folder with a given custom icon
+        """
+        macOS: configure a folder with a given custom icon
             1. Read the com.apple.ResourceFork extended attribute from the icon file
             2. Set the com.apple.FinderInfo extended attribute with folder icon flag
             3. Create a Icon file (name: Icon\r) inside the target folder
             4. Set extended attributes com.apple.FinderInfo & com.apple.ResourceFork for icon file (name: Icon\r)
             5. Hide the icon file (name: Icon\r)
-        '''
+        """
         try:
             target_folder = self.abspath(ref)
             # Generate the value for 'com.apple.FinderInfo'
@@ -351,12 +357,12 @@ class LocalClient(BaseClient):
         log.trace('Setting xattr %s with value %r on %r', name, remote_id, path)
         locker = self.unlock_path(path, False)
         if AbstractOSIntegration.is_windows():
-            pathAlt = path + ":" + name
+            path_alt = path + ':' + name
             try:
                 if not os.path.exists(path):
                     raise NotFound()
                 stat = os.stat(path)
-                with open(pathAlt, "w") as f:
+                with open(path_alt, 'w') as f:
                     f.write(remote_id)
                 # Avoid time modified change
                 os.utime(path, (stat.st_atime, stat.st_mtime))
@@ -364,7 +370,7 @@ class LocalClient(BaseClient):
                 # Should not happen
                 if e.errno == os.errno.EACCES:
                     self.unset_path_readonly(path)
-                    with open(pathAlt, "w") as f:
+                    with open(path_alt, 'w') as f:
                         f.write(remote_id)
                     self.set_path_readonly(path)
                 else:
@@ -487,7 +493,7 @@ class LocalClient(BaseClient):
             is_hidden = win32con.FILE_ATTRIBUTE_HIDDEN
             try:
                 attrs = win32api.GetFileAttributes(path)
-            except win32file.error, (errno, errctx, errmsg):
+            except win32file.error:
                 return False
             if attrs & is_system == is_system:
                 return True
@@ -515,9 +521,8 @@ class LocalClient(BaseClient):
         children = os.listdir(os_path)
 
         for child_name in sorted(children):
-            if self.is_ignored(ref, child_name):
-                continue
-            elif self.is_temp_file(child_name):
+            if (self.is_ignored(ref, child_name)
+                    or self.is_temp_file(child_name)):
                 continue
 
             child_ref = self.get_children_ref(ref, child_name)
@@ -560,6 +565,21 @@ class LocalClient(BaseClient):
             return parent + u"/" + name
         finally:
             self.lock_ref(parent, locker)
+
+    @staticmethod
+    def make_tree(path):
+        """
+        Recursive directory creation.
+
+        :param str path: The absolute path to create.
+        """
+
+        try:
+            os.makedirs(path)
+        except os.error as exc:
+            # EEXIST: path already exists
+            if exc.errno != errno.EEXIST:
+                raise exc
 
     def duplicate_file(self, ref):
         parent = os.path.dirname(ref)
@@ -736,7 +756,8 @@ class LocalClient(BaseClient):
     def abspath(self, ref):
         """Absolute path on the operating system"""
         if not ref.startswith(u'/'):
-            raise ValueError("LocalClient expects ref starting with '/'")
+            raise ValueError(
+                'LocalClient expects ref starting with "/"', locals())
         path_suffix = ref[1:].replace('/', os.path.sep)
         path = normalized_path(os.path.join(self.base_folder, path_suffix))
         return safe_long_path(path)

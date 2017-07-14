@@ -1,5 +1,4 @@
-appdirs
-setuptools
+appdirs==1.4.3;python_version=='2.7'
 argparse==1.4.0;python_version=='2.7'
 esky==0.9.9;python_version=='2.7'
 faulthandler==2.4;python_version=='2.7'

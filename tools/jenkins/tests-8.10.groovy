@@ -2,15 +2,15 @@
 // Script to launch Nuxeo Drive tests on every supported platform.
 
 // Default values for required envars
-python_drive_version = '2.7.13'  // XXX: PYTHON_DRIVE_VERSION
-pyqt_version = '4.12.1'  // XXX: PYQT_VERSION
-sip_version = '4.19.3'  // XXX: SIP_VERSION
-cxfreeze_version = '4.3.3'  // XXX: CXFREEZE_VERSION
+python_drive_version = '2.7.13'
+pyqt_version = '4.12'
+cxfreeze_version = '4.3.3'
+sip_version = '4.19'
 
 // Pipeline properties
 properties([
     disableConcurrentBuilds(),
-    pipelineTriggers([[$class: 'GitHubPushTrigger']]),
+    pipelineTriggers([[$class: 'TimerTrigger', spec: '@midnight']]),
     [$class: 'SchedulerPreference', preferEvenload: true],
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
     [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
@@ -60,10 +60,10 @@ if (env.BRANCH_NAME.startsWith('wip-')) {
 }
 
 // Jenkins slaves we will build on
-slaves = ['OSXSLAVE-DRIVE', 'SLAVE', 'WINSLAVE']
+slaves = ['OSXSLAVE-DRIVE', 'SLAVE810', 'WINSLAVE']
 labels = [
     'OSXSLAVE-DRIVE': 'macOS',
-    'SLAVE': 'GNU/Linux',
+    'SLAVE810': 'GNU/Linux',
     'WINSLAVE': 'Windows'
 ]
 builders = [:]
@@ -148,10 +148,6 @@ for (def x in slaves) {
 
                     stage(osi + ' Tests') {
                         // Launch the tests suite
-                        if (currentBuild.result == 'UNSTABLE' || currentBuild.result == 'FAILURE') {
-                            error('Stopping early: apparently another slave did not try its best ...')
-                        }
-
                         def jdk = tool name: 'java-8-oracle'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
@@ -169,12 +165,12 @@ for (def x in slaves) {
                                         'PATH+LOCALBIN=/usr/local/bin',
                                     ]
                                     withEnv(env_vars) {
-                                        sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                        sh "${mvnHome}/bin/mvn -f ftest/pom-8.10.xml clean verify -Pqa,pgsql ${platform_opt}"
                                     }
                                 } else if (osi == 'GNU/Linux') {
-                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                    sh "${mvnHome}/bin/mvn -f ftest/pom-8.10.xml clean verify -Pqa,pgsql ${platform_opt}"
                                 } else {
-                                    bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
+                                    bat(/"${mvnHome}\bin\mvn" -f ftest\pom-8.10.xml clean verify -Pqa,pgsql ${platform_opt}/)
                                 }
                             } catch(e) {
                                 currentBuild.result = 'FAILURE'

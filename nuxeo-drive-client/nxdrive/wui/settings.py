@@ -56,9 +56,10 @@ class WebSettingsApi(WebDriveApi):
     def unbind_server_async(self, uid):
         return Promise(self.unbind_server, uid)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.pyqtSlot(str, result=str)
     def unbind_server(self, uid):
         self._manager.unbind_engine(str(uid))
+        return ''
 
     @QtCore.pyqtSlot(str)
     def filters_dialog(self, uid):

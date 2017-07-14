@@ -66,7 +66,8 @@ class Worker(QObject):
 
         self._continue = False
         if not self._thread.wait(5000):
-            log.warn("Thread %d is not responding - terminate it", self._thread_id, exc_info=True)
+            log.exception('Thread %d is not responding - terminate it',
+                          self._thread_id)
             self._thread.terminate()
         if self._thread.isRunning():
             self._thread.wait(5000)
@@ -222,7 +223,7 @@ class EngineWorker(Worker):
         self._engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
     def increase_error(self, doc_pair, error, exception=None):
-        details = str(exception) if exception else None
+        details = repr(exception) if exception else None
         log.debug('Increasing error [%s] (%r) for %r', error, details, doc_pair)
         self._dao.increase_error(doc_pair, error, details=details)
         self._engine.get_queue_manager().push_error(doc_pair, exception=exception)

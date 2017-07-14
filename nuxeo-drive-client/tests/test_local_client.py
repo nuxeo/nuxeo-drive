@@ -4,17 +4,26 @@ See win_local_client.py and mac_local_client.py for more informations.
 
 See NXDRIVE-742.
 """
-from time import sleep
-
 import hashlib
 import os
+from time import sleep
 from unittest import skipIf
+
+import pytest
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.common import DuplicationDisabledError
+from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from tests.common import EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from tests.common_unit_test import UnitTestCase
+
+if AbstractOSIntegration.is_windows():
+    import win32api
+
+
+log = get_logger(__name__)
+
 
 class StubLocalClient(object):
     """
@@ -116,6 +125,50 @@ class StubLocalClient(object):
     def test_missing_file(self):
         with self.assertRaises(NotFound):
             self.local_client_1.get_info('/Something Missing')
+
+    @pytest.mark.timeout(30)
+    def test_case_sensitivity(self):
+        local = self.local_client_1
+        sensitive = local.is_case_sensitive()
+        log.info('OS is case sensitive: %r', sensitive)
+
+        local.make_file('/', 'abc.txt')
+        if sensitive:
+            local.make_file('/', 'ABC.txt')
+        else:
+            with self.assertRaises(DuplicationDisabledError):
+                local.make_file('/', 'ABC.txt')
+        self.assertEqual(len(local.get_children_info('/')), sensitive + 1)
+
+    @skipIf(not AbstractOSIntegration.is_windows(),
+            'Not relevant on GNU/Linux nor macOS')
+    def test_windows_short_names(self):
+        """
+        Test 8.3 file name convention:
+        https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
+        """
+
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+        long_name = 'a' * 32
+        short_name = 'AAAAAA~1'
+
+        # Create the folder
+        folder = local.make_file('/', long_name)
+        with self.assertRaises(DuplicationDisabledError):
+            local.make_file('/', short_name)
+        path = local.abspath(folder)
+        self.assertEqual(os.path.basename(path), long_name)
+
+        # Get the short name
+        short = win32api.GetShortPathName(path)
+        self.assertEqual(os.path.basename(short), short_name)
+
+        # Sync and check the short name is nowhere
+        self.wait_sync()
+        children = remote.get_children_info(self.workspace)
+        self.assertTrue(len(children), 1)
+        self.assertEqual(children[0].name, long_name)
 
     def test_get_children_info(self):
         folder_1 = self.local_client_1.make_folder('/', 'Folder 1')

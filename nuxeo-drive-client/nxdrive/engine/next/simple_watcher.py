@@ -30,7 +30,7 @@ class SimpleWatcher(LocalWatcher):
             return
         else:
             ref = info
-        log.warn("should scan: %s", ref)
+        log.warning("should scan: %s", ref)
         self._to_scan[ref] = current_milli_time()
 
     def empty_events(self):
@@ -47,7 +47,7 @@ class SimpleWatcher(LocalWatcher):
         dst_path = normalize_event_filename(evt.dest_path)
         if self.client.is_temp_file(os.path.basename(dst_path)):
             return
-        log.warn("handle watchdog move: %r", evt)
+        log.warning("handle watchdog move: %r", evt)
         dst_rel_path = self.client.get_path(dst_path)
         doc_pair = self._dao.get_state_from_local(rel_path)
         # Add for security src_path and dest_path parent - not sure it is needed
@@ -57,17 +57,17 @@ class SimpleWatcher(LocalWatcher):
             self._push_to_scan(os.path.dirname(dst_rel_path))
         if (doc_pair is None):
             # Scan new parent
-            log.warn("NO PAIR")
+            log.warning("NO PAIR")
             return
         # It is not yet created no need to move it
         if doc_pair.local_state != 'created':
             doc_pair.local_state = 'moved'
         local_info = self.client.get_info(dst_rel_path, raise_if_missing=False)
         if local_info is None:
-            log.warn("Should not disapear")
+            log.warning("Should not disapear")
             return
         self._dao.update_local_state(doc_pair, local_info, versionned=True)
-        log.warn("has update with moved status")
+        log.warning("has update with moved status")
 
     def handle_watchdog_event(self, evt):
         self._metrics['last_event'] = current_milli_time()
@@ -83,13 +83,13 @@ class SimpleWatcher(LocalWatcher):
         # Dont care about ignored file, unless it is moved
         if self.client.is_ignored(os.path.dirname(rel_path), file_name):
             return
-        log.warn("Got evt: %r", evt)
+        log.warning("Got evt: %r", evt)
         if len(rel_path) == 0 or rel_path == '/':
             self._push_to_scan('/')
             return
         # If not modified then we will scan the parent folder later
         if evt.event_type != 'modified':
-            log.warn(rel_path)
+            log.warning(rel_path)
             parent_rel_path = os.path.dirname(rel_path)
             if parent_rel_path == "":
                 parent_rel_path = '/'
@@ -98,10 +98,10 @@ class SimpleWatcher(LocalWatcher):
         file_name = os.path.basename(src_path)
         doc_pair = self._dao.get_state_from_local(rel_path)
         if not os.path.exists(src_path):
-            log.warn("Event on a disappeared file: %r %s %s", evt, rel_path, file_name)
+            log.warning("Event on a disappeared file: %r %s %s", evt, rel_path, file_name)
             return
         if doc_pair is not None and doc_pair.processor > 0:
-            log.warn("Don't update as in process %r", doc_pair)
+            log.warning("Don't update as in process %r", doc_pair)
             return
         if isinstance(evt, DirModifiedEvent):
             self._push_to_scan(rel_path)
@@ -115,7 +115,7 @@ class SimpleWatcher(LocalWatcher):
                 if doc_pair.local_digest != digest:
                     doc_pair.local_state = 'modified'
             doc_pair.local_digest = digest
-            log.warn("file is updated: %r", doc_pair)
+            log.warning("file is updated: %r", doc_pair)
             self._dao.update_local_state(doc_pair, local_info, versionned=True)
 
     def _execute(self):
@@ -168,7 +168,7 @@ class SimpleWatcher(LocalWatcher):
             self._stop_watchdog()
 
     def _scan_handle_deleted_files(self):
-        log.warn("delete files are: %r", self._delete_files)
+        log.warning("delete files are: %r", self._delete_files)
         # Need to check for the current file
         to_deletes = copy.copy(self._delete_files)
         # Enforce the scan of all folders to check if the file hasnt moved there
@@ -186,10 +186,10 @@ class SimpleWatcher(LocalWatcher):
 
     def _scan_path(self, path):
         if self.client.exists(path):
-            log.warn("Scan delayed folder: %s:%d", path, len(self.client.get_children_info(path)))
+            log.warning("Scan delayed folder: %s:%d", path, len(self.client.get_children_info(path)))
             local_info = self.client.get_info(path, raise_if_missing=False)
             if local_info is not None:
                 self._scan_recursive(local_info, False)
-                log.warn("scan delayed done")
+                log.warning("scan delayed done")
         else:
-            log.warn("Cannot scan delayed deleted folder: %s", path)
+            log.warning("Cannot scan delayed deleted folder: %s", path)

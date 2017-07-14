@@ -1,12 +1,9 @@
 # coding: utf-8
 from PyQt4 import QtCore, QtGui
 
-from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
-
-log = get_logger(__name__)
 
 
 class DriveSystrayIcon(QtGui.QSystemTrayIcon):
@@ -16,11 +13,10 @@ class DriveSystrayIcon(QtGui.QSystemTrayIcon):
         self.activated.connect(self._show_popup)
 
     def showMessage(self, title, message, icon=QtGui.QSystemTrayIcon.Information, timeout = 10000):
-        if AbstractOSIntegration.is_mac():
-            if AbstractOSIntegration.os_version_above("10.8"):
-                from nxdrive.osi.darwin.pyNotificationCenter import notify
-                # Use notification center
-                return notify(title, None, message)
+        if (AbstractOSIntegration.is_mac()
+                and AbstractOSIntegration.os_version_above('10.8')):
+            from nxdrive.osi.darwin.pyNotificationCenter import notify
+            return notify(title, None, message)
         return QtGui.QSystemTrayIcon.showMessage(self, title, message, icon, timeout)
 
     def _show_popup(self, reason):
@@ -101,10 +97,10 @@ class WebSystrayApi(WebDriveApi):
         menu.addAction(Translator.get('HELP'), self.open_help)
         if self._manager.is_debug():
             menu.addSeparator()
-            menuDebug = self._application.create_debug_menu(menu)
-            debugAction = QtGui.QAction(Translator.get('DEBUG'), self)
-            debugAction.setMenu(menuDebug)
-            menu.addAction(debugAction)
+            debug_menu = self._application.create_debug_menu(menu)
+            debug_action = QtGui.QAction(Translator.get('DEBUG'), self)
+            debug_action.setMenu(debug_menu)
+            menu.addAction(debug_action)
         menu.addSeparator()
         menu.addAction(Translator.get('QUIT'), self._application.quit)
         return menu
@@ -215,7 +211,6 @@ class WebSystray(QtGui.QMenu):
 
     @QtCore.pyqtSlot()
     def onShow(self):
-        log.trace('Show systray menu')
         if self.dlg is None:
             self.dlg = WebSystrayView(self._application, self._systray_icon)
             # Close systray when app is quitting

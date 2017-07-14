@@ -351,7 +351,6 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         local_client = LocalClient(self.upload_tmp_dir)
         doc_info = remote_client.get_info(doc_ref)
         self.assertEqual(doc_info.name, 'Streamed binary file')
-        print doc_info.digest_algorithm
         self.assertEqual(doc_info.digest,
                          local_client.get_info('/testFile.pdf').get_digest(digest_func=doc_info.digest_algorithm))
 

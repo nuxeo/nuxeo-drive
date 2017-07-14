@@ -172,19 +172,21 @@ class RemoteWatcher(EngineWorker):
             return True
         return False
 
-    def _do_scan_remote(self, doc_pair, remote_info, force_recursion=True, mark_unknown=True,
-                        moved=False):
+    def _do_scan_remote(self, doc_pair, remote_info, force_recursion=True, moved=False):
         if remote_info.can_scroll_descendants:
             log.debug('Performing scroll remote scan for %s (%s)', remote_info.name, remote_info.uid)
             self._scan_remote_scroll(doc_pair, remote_info, moved=moved)
         else:
             log.debug('Scroll scan not available, performing recursive remote scan for %s (%s)', remote_info.name,
                       remote_info.uid)
-            self._scan_remote_recursive(doc_pair, remote_info, force_recursion=force_recursion,
-                                        mark_unknown=mark_unknown)
+            self._scan_remote_recursive(doc_pair, remote_info,
+                                        force_recursion=force_recursion)
 
     def _scan_remote_scroll(self, doc_pair, remote_info, moved=False):
-        """Perform a scroll scan of the bound remote folder looking for updates"""
+        """
+        Perform a scroll scan of the bound remote folder looking for updates.
+        """
+
         remote_parent_path = self._init_scan_remote(doc_pair, remote_info)
         if remote_parent_path is None:
             return
@@ -194,16 +196,13 @@ class RemoteWatcher(EngineWorker):
             db_descendants = self._dao.get_remote_descendants_from_ref(doc_pair.remote_ref)
         else:
             db_descendants = self._dao.get_remote_descendants(remote_parent_path)
-        descendants = dict()
-        for descendant in db_descendants:
-            descendants[descendant.remote_ref] = descendant
+        descendants = {desc.remote_ref: desc for desc in db_descendants}
 
         to_process = []
         scroll_id = None
-        # TODO: configurable?
         batch_size = 100
         t1 = None
-        while True:
+        while 'Scrolling':
             t0 = datetime.now()
             if t1 is not None:
                 log.trace('Local processing of descendants of %s (%s) took %s ms', remote_info.name, remote_info.uid,
@@ -219,11 +218,14 @@ class RemoteWatcher(EngineWorker):
                 log.trace('Remote scroll request retrieved no descendants of %s (%s), took %s ms', remote_info.name,
                           remote_info.uid, elapsed)
                 break
+
             log.trace('Remote scroll request retrieved %d descendants of %s (%s), took %s ms', len(descendants_info),
                       remote_info.name, remote_info.uid, elapsed)
             scroll_id = scroll_res['scroll_id']
+
             # Results are not necessarily sorted
             descendants_info = sorted(descendants_info, key=lambda x: x.path)
+
             # Handle descendants
             for descendant_info in descendants_info:
                 log.trace('Handling remote descendant: %r', descendant_info)
@@ -235,11 +237,12 @@ class RemoteWatcher(EngineWorker):
                 else:
                     parent_pair = self._dao.get_normal_state_from_remote(descendant_info.parent_uid)
                     if parent_pair is None:
-                        log.trace('Cannot find parent pair of remote descendant, postponing processing of %s',
+                        log.trace('Cannot find parent pair of remote descendant, postponing processing of %r',
                                   descendant_info)
                         to_process.append(descendant_info)
                         continue
                     descendant_pair, _ = self._find_remote_child_match_or_create(parent_pair, descendant_info)
+
             # Check if synchronization thread was suspended
             self._interact()
 
@@ -266,13 +269,14 @@ class RemoteWatcher(EngineWorker):
         delta = t1 - t0
         return delta.seconds * 1000 + delta.microseconds / 1000
 
-    def _scan_remote_recursive(self, doc_pair, remote_info,
-                               force_recursion=True, mark_unknown=True):
-        """Recursively scan the bound remote folder looking for updates
+    def _scan_remote_recursive(self, doc_pair, remote_info, force_recursion=True):
+        """
+        Recursively scan the bound remote folder looking for updates
 
         If force_recursion is True, recursion is done even on
         non newly created children.
         """
+
         remote_parent_path = self._init_scan_remote(doc_pair, remote_info)
         if remote_parent_path is None:
             return
@@ -280,22 +284,12 @@ class RemoteWatcher(EngineWorker):
         # Check if synchronization thread was suspended
         self._interact()
 
-        # If a folderish pair state has been remotely updated,
-        # recursively unmark its local descendants as 'unsynchronized'
-        # by marking them as 'unknown'.
-        # This is needed to synchronize unsynchronized items back.
-        if mark_unknown:
-            # TODO Should be DAO method
-            log.trace("Skip remote scan as mark_unknown: %r", doc_pair)
-
         # Detect recently deleted children
         db_children = self._dao.get_remote_children(doc_pair.remote_ref)
+        children = {child.remote_ref: child for child in db_children}
         children_info = self._client.get_children_info(remote_info.uid)
-        children = dict()
-        to_scan = []
-        for child in db_children:
-            children[child.remote_ref] = child
 
+        to_scan = []
         for child_info in children_info:
             log.trace('Scanning remote child: %r', child_info)
             new_pair = False
@@ -316,7 +310,7 @@ class RemoteWatcher(EngineWorker):
 
         for folder in to_scan:
             # TODO Optimize by multithreading this too ?
-            self._do_scan_remote(folder[0], folder[1], force_recursion=force_recursion, mark_unknown=False)
+            self._do_scan_remote(folder[0], folder[1], force_recursion=force_recursion)
         self._dao.add_path_scanned(remote_parent_path)
 
     def _init_scan_remote(self, doc_pair, remote_info):
@@ -641,7 +635,7 @@ class RemoteWatcher(EngineWorker):
                             consistent_new_info = new_info
                             if remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME:
                                 new_info_parent_uid = doc_pair.remote_parent_ref
-                                new_info_path = (doc_pair.remote_parent_path + '/' + remote_ref)
+                                new_info_path = doc_pair.remote_parent_path + '/' + remote_ref
                                 consistent_new_info = RemoteFileInfo(
                                     new_info.name, new_info.uid,
                                     new_info_parent_uid,
@@ -674,17 +668,16 @@ class RemoteWatcher(EngineWorker):
                             self._dao.update_remote_state(doc_pair, new_info, remote_parent_path=remote_parent_path,
                                                           force_update=lock_update)
                             if doc_pair.folderish:
-                                log.trace("Force scan recursive on %r : %d", doc_pair, (event_id == "securityUpdated"))
+                                log.trace('Force scan recursive on %r : %d', doc_pair, event_id == 'securityUpdated')
                                 self._force_remote_scan(doc_pair, consistent_new_info, remote_path=new_info.path,
-                                                        force_recursion=(event_id == "securityUpdated"),
-                                                        moved=(event_id == "documentMoved"))
+                                                        force_recursion=event_id == 'securityUpdated',
+                                                        moved=event_id == 'documentMoved')
                             if lock_update:
                                 doc_pair = self._dao.get_state_from_id(doc_pair.id)
                                 try:
                                     self._handle_readonly(self._local_client, doc_pair)
                                 except (OSError, IOError) as ex:
-                                    log.trace("Can't handle readonly for %r (%r)", doc_pair, ex)
-                                    pass
+                                    log.trace('Cannot handle readonly for %r (%r)', doc_pair, ex)
                     updated = True
                     refreshed.add(remote_ref)
 
@@ -694,7 +687,7 @@ class RemoteWatcher(EngineWorker):
                 parent_pairs = self._dao.get_states_from_remote(new_info.parent_uid)
                 for parent_pair in parent_pairs:
 
-                    child_pair, new_pair = (self._find_remote_child_match_or_create(parent_pair, new_info))
+                    child_pair, new_pair = self._find_remote_child_match_or_create(parent_pair, new_info)
                     if new_pair:
                         log.debug("Marked doc_pair '%s' as remote creation",
                                   child_pair.remote_name)

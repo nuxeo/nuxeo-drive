@@ -13,12 +13,13 @@ from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QSslCertificate
 from dateutil.tz import tzlocal
 
 from nxdrive.client.base_automation_client import Unauthorized
+from nxdrive.client.common import DEFAULT_BETA_SITE_URL
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.engine.dao.sqlite import StateRow
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.workers import Worker
 from nxdrive.logging_config import get_logger
-from nxdrive.manager import FolderAlreadyUsed
+from nxdrive.manager import DEFAULT_UPDATE_SITE_URL, FolderAlreadyUsed
 from nxdrive.notification import Notification
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.wui.translator import Translator
@@ -228,28 +229,18 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, int, str, result=str)
     def get_last_files(self, uid, number, direction):
-        uid = str(uid)
-        direction = str(direction)
         engine = self._get_engine(str(uid))
         result = []
         if engine is not None:
-            for state in engine.get_last_files(number, direction):
+            for state in engine.get_last_files(number, str(direction)):
                 result.append(self._export_state(state))
         return self._json(result)
-
-    def _test_promise(self):
-        time.sleep(3)
-        return 'OK'
-
-    @QtCore.pyqtSlot(result=QtCore.QObject)
-    def test_promise(self):
-        return Promise(self._test_promise)
 
     @QtCore.pyqtSlot(str, str, result=QtCore.QObject)
     def update_password_async(self, uid, password):
         return Promise(self._update_password, uid, password)
 
-    def _update_password(self, uid, password):
+    def _update_password(self, uid, password, result=str):
         """
         Convert password from unicode to string to support utf-8 character
         """
@@ -363,20 +354,19 @@ class WebDriveApi(QtCore.QObject):
         engine = self._get_engine(str(uid))
         result = []
         if engine is not None:
-            for thread in engine.get_threads():
+            for count, thread in enumerate(engine.get_threads(), 1):
                 action = thread.worker.get_action()
                 # The filter should be configurable
                 if isinstance(action, FileAction):
                     result.append(self._export_action(action))
+                if count == 4:
+                    break
         return self._json(result)
 
     @QtCore.pyqtSlot(str, result=str)
     def get_threads(self, uid):
-        result = []
         engine = self._get_engine(str(uid))
-        if not engine:
-            return result
-        return self._json(self._get_threads(engine))
+        return self._json(self._get_threads(engine) if engine else [])
 
     @QtCore.pyqtSlot(str, result=str)
     def get_errors(self, uid):
@@ -556,7 +546,9 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(result=str)
     def get_update_url(self):
-        return self._manager.get_version_finder(refresh_engines=True)
+        if self._manager.get_beta_channel():
+            return self._manager._dao.get_config('beta_update_url', DEFAULT_BETA_SITE_URL)
+        return self._manager._dao.get_config('update_url', DEFAULT_UPDATE_SITE_URL)
 
     @QtCore.pyqtSlot(int, int)
     def resize(self, width, height):
@@ -602,7 +594,6 @@ class WebDialog(QtGui.QDialog):
         self._page = DriveWebPage()
         self._token = None
         self._request = None
-        #self._application = application
         self._zoomFactor = application.get_osi().get_zoom_factor()
         if application.manager.is_debug():
             QtWebKit.QWebSettings.globalSettings().setAttribute(QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
@@ -688,7 +679,7 @@ class WebDialog(QtGui.QDialog):
         super(WebDialog, self).resize(width * self._zoomFactor, height * self._zoomFactor)
 
     def _sslErrorHandler(self, reply, errorList):
-        log.warn('--- Bypassing SSL errors listed below ---')
+        log.warning('--- Bypassing SSL errors listed below ---')
         for error in errorList:
             certificate = error.certificate()
             o = str(certificate.issuerInfo(QSslCertificate.Organization))
@@ -697,8 +688,9 @@ class WebDialog(QtGui.QDialog):
             ou = str(certificate.issuerInfo(QSslCertificate.OrganizationalUnitName))
             c = str(certificate.issuerInfo(QSslCertificate.CountryName))
             st = str(certificate.issuerInfo(QSslCertificate.StateOrProvinceName))
-            log.warn('%s, certificate: [o=%s, cn=%s, l=%s, ou=%s, c=%s, st=%s]', str(error.errorString()),
-                     o, cn, l, ou, c, st)
+            log.warning(
+                '%s, certificate: [o=%s, cn=%s, l=%s, ou=%s, c=%s, st=%s]',
+                str(error.errorString()), o, cn, l, ou, c, st)
         reply.ignoreSslErrors()
 
     def _set_proxy(self, manager, server_url=None):

@@ -12,7 +12,24 @@ from sys import stderr
 
 from requests import HTTPError, get
 
-__version__ = '1.2.2'
+__version__ = '1.2.3'
+
+
+# Available formatters
+FORMAT_ISSUE = {
+    'md': {'header': '# {title}',
+           'subheader': '### {title}',
+           'regular': '- [{name}]({url}): {title}',
+           'important': '- **[{name}]({url})**: {title}'},
+    'rst': {'header': '{title}\n{separator:{separator}>{length}}',
+            'subheader': '{title}\n{separator:{separator}>{length}}',
+            'regular': '- `{name} <{url}>`_: {title}',
+            'important': '- **[SupCom]** `{name} <{url}>`_: {title}'},
+    'txt': {'header': '{title}',
+            'subheader': '{title}:',
+            'regular': '- {name}: {title}',
+            'important': '- [SupCom] {name}: {title}'}
+}
 
 
 def backtick(cmd):
@@ -25,53 +42,7 @@ def backtick(cmd):
 def changelog(issues, formatter='txt', func=None):
     """ Generate the changelog. """
 
-    # def report_simple(issues_list):
-    #     """ A simple report. """
-    #
-    #     print('Bug fixes / improvements:')
-    #     for issue in issues_list:
-    #         print(formatter[issue['sla']].format(**issue))
-
-    def report_categorized(issues_list):
-        """ A more sophisticated report using primary components. """
-
-        components = {'Core': [], 'GUI': [], 'Packaging / Build': [],
-                      'Tests': [], 'Doc': []}
-
-        for issue in issues_list:
-            for component in components:
-                if component in issue['components']:
-                    components[component].append(
-                        formatter[issue['sla']].format(**issue))
-                    break
-            else:
-                components['Core'].append(
-                    formatter[issue['sla']].format(**issue))
-
-        for component in components:
-            if components[component]:
-                subheader = {'title': component,
-                             'separator': '-',
-                             'length': len(component)}
-                print(formatter['subheader'].format(**subheader))
-                print('\n'.join(components[component]))
-
-    # Available formatters
-    format_issue = {
-        'md': {'header': '# {title}',
-               'subheader': '### {title}',
-               'regular': '- [{name}]({url}): {title}',
-               'important': '- **[{name}]({url})**: {title}'},
-        'rst': {'header': '{title}\n{separator:{separator}>{length}}',
-                'subheader': '{title}\n{separator:{separator}>{length}}',
-                'regular': '- `{name} <{url}>`_: {title}',
-                'important': '- **[SupCom]** `{name} <{url}>`_: {title}'},
-        'txt': {'header': '{title}',
-                'subheader': '{title}:',
-                'regular': '- {name}: {title}',
-                'important': '- [SupCom] {name}: {title}'}
-    }
-    formatter = format_issue[formatter]
+    fmt = FORMAT_ISSUE[formatter]
 
     # Important issues first, then regular ones sorted by type, priority, name
     issues = sorted(issues, key=itemgetter('sla', 'type', 'priority', 'name'))
@@ -81,12 +52,12 @@ def changelog(issues, formatter='txt', func=None):
     header = {'title': version,
               'separator': '=',
               'length': len(version)}
-    print(formatter['header'].format(**header))
+    print(fmt['header'].format(**header))
 
     # Print the report
     if not callable(func):
         func = report_categorized
-    func(issues)
+    func(issues, fmt)
 
 
 def debug(*args, **kwargs):
@@ -235,6 +206,35 @@ def get_version():
         for line in handler.readlines():
             if line.startswith('__version__'):
                 return findall(r"'(.+)'", line)[0]
+
+
+def report_categorized(issues_list, fmt):
+    """ A report using primary components. """
+
+    components = {'Core': [], 'GUI': [], 'Packaging / Build': [],
+                  'Tests': [], 'Doc': [], 'Release': []}
+
+    for issue in issues_list:
+        for component in components:
+            if component in issue['components']:
+                components[component].append(
+                        fmt[issue['sla']].format(**issue))
+                break
+        else:
+            components['Core'].append(fmt[issue['sla']].format(**issue))
+
+    for component in components:
+        if component == 'Release':
+            # Release issues are not revelant as they are used
+            # to plan new beta or official release
+            continue
+
+        if components[component]:
+            subheader = {'title': component,
+                         'separator': '-',
+                         'length': len(component)}
+            print(fmt['subheader'].format(**subheader))
+            print('\n'.join(components[component]))
 
 
 def main():

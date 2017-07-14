@@ -92,7 +92,10 @@ class StateRow(sqlite3.Row):
                 ).format(name=type(self).__name__, cls=self)
 
     def __getattr__(self, name):
-        return self[name]
+        try:
+            return self[name]
+        except IndexError:
+            raise IndexError('No key with that name.', locals())
 
     def is_readonly(self):
         if self.folderish:
@@ -698,14 +701,20 @@ class EngineDAO(ConfigurationDAO):
             self._lock.release()
         return row_id
 
-    def get_last_files(self, number, direction=""):
+    def get_last_files(self, number, direction=''):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        condition = ""
-        if direction == "remote":
-            condition = " AND last_transfer = 'upload'"
-        elif direction == "local":
-            condition = " AND last_transfer = 'download'"
-        return c.execute("SELECT * FROM States WHERE pair_state='synchronized' AND folderish=0" + condition + " ORDER BY last_sync_date DESC LIMIT " + str(number)).fetchall()
+        condition = ''
+        if direction == 'remote':
+            condition = 'AND last_transfer = "upload"'
+        elif direction == 'local':
+            condition = 'AND last_transfer = "download"'
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE pair_state = "synchronized"'
+                         '   AND folderish = 0'
+                         '       {}'
+                         ' ORDER BY last_sync_date DESC'
+                         ' LIMIT {}'.format(condition, number)).fetchall()
 
     def _get_to_sync_condition(self):
         return "pair_state != 'synchronized' AND pair_state != 'unsynchronized'"
@@ -1256,6 +1265,17 @@ class EngineDAO(ConfigurationDAO):
                 log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
                 return
         log.trace('Updating remote state for row = %r with info = %r (force: %r)', row, info, force_update)
+
+        if (row.pair_state not in ('conflicted', 'remotely_created')
+                and row.folderish
+                and row.local_name
+                and row.local_name != info.name):
+            # We check the current pair_state to not interfer with conflicted
+            # documents (a move on both sides) nor with newly remotely
+            # created ones.
+            row.remote_state = 'modified'
+            row.pair_state = self._get_pair_state(row)
+
         if versionned:
             version = ', version=version+1'
             log.trace('Increasing version to %d for pair %r', row.version + 1, row)

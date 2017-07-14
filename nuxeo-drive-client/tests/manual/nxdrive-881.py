@@ -40,15 +40,17 @@ import uuid
 from nuxeo.nuxeo import Nuxeo
 
 
-nuxeo = Nuxeo(base_url='http://127.0.0.1:8080/nuxeo/',
-              auth={'username': 'Administrator', 'password': 'Administrator'})
+nuxeo = Nuxeo(base_url=os.environ.get('NXDRIVE_TEST_NUXEO_URL',
+                                      'http://localhost:8080/nuxeo'),
+              auth={'username': 'Administrator',
+                    'password': 'Administrator'})
 
 
 def actions(workspace):
     """ Real actions to reproduce the issue. """
 
     num_fol = 10
-    num_fil = 250
+    num_fil = 100
     wspace_path = os.path.join(os.path.expanduser('~/Nuxeo Drive'),
                                workspace.title)
 
@@ -57,10 +59,10 @@ def actions(workspace):
     start_drive(msg='sync local folders and quit')
     children = get_children(workspace.title)
 
-    start_drive(msg='files locally created and folders remotely renamed',
+    create_files_remotely(workspace, files=range(num_fil), folders=folders)
+    time.sleep(5)
+    start_drive(msg='files remotely created and folders remotely renamed',
                 background=True)
-    time.sleep(3)
-    create_files_locally(wspace_path, files=range(num_fil), folders=folders)
     for folder in children:
         rename(folder)
     pause()
@@ -91,7 +93,36 @@ def create_files_locally(path, files=None, folders=None, random=True):
             create(document, path)
 
 
-def create_folders_locally(path, folders=None):
+def create_files_remotely(workspace, files=None, folders=None, random=True):
+    """ Create several files remotely. """
+
+    if not files:
+        return
+
+    def create(doc, parent):
+        if random:
+            doc = 'doc_' + str(uuid.uuid1()).split('-')[0] + '.txt'
+        elif isinstance(doc, int):
+            doc = 'doc_' + str(doc) + '.txt'
+
+        doc_infos = {'name': doc,
+                     'type': 'Note',
+                     'properties': {'dc:title': doc,
+                                    'note:note': 'Content ' + doc}}
+        nuxeo.repository().create(
+            '/default-domain/workspaces/' + parent, doc_infos)
+        debug('Created remote file {!r} in {!r}'.format(doc, parent))
+
+    if folders:
+        for folder in folders:
+            for document in files:
+                create(document, os.path.join(workspace.title, folder))
+    else:
+        for document in files:
+            create(document, workspace.title)
+
+
+def create_folders_locally(parent, folders=None):
     """ Create several folders locally. """
 
     if not folders:
@@ -102,10 +133,10 @@ def create_folders_locally(path, folders=None):
         if isinstance(folder, int):
             folder = 'test_folder_' + str(folder)
 
-        full_path = os.path.join(path, folder)
+        full_path = os.path.join(parent, folder)
         os.mkdir(full_path)
-        ret.append(full_path)
-        debug('Created local folder {!r}'.format(full_path))
+        ret.append(folder)
+        debug('Created local folder {!r} in {!r}'.format(folder, parent))
 
     return ret
 
@@ -141,10 +172,12 @@ def get_children(path):
 def rename(document):
     """ Rename a document. """
 
+    new_name = document.title + '_renamed'
     document.properties.update({
-        'dc:title': document.title + '_renamed',
+        'dc:title': new_name,
         'dc:description': 'Document renamed'})
     nuxeo.repository().update(document)
+    debug('Renamed {!r} -> {!r}'.format(document.title, new_name))
 
 
 # ---
@@ -167,11 +200,13 @@ def start_drive(tag=None, reset=False, msg='', **kwargs):
 
     if reset:
         debug('Resetting Drive ... ')
-        shutil.rmtree(os.path.expanduser('~/.nuxeo-drive'))
+        shutil.rmtree(os.path.expanduser('~/.nuxeo-drive/logs'))
+        """
         system(('ndrive bind-server'
                 ' Administrator'
                 ' http://127.0.0.1:8080/nuxeo'
                 ' --password Administrator'))
+        """
 
     if tag:
         debug('Switching to git branch ' + tag)
@@ -181,7 +216,7 @@ def start_drive(tag=None, reset=False, msg='', **kwargs):
         msg = '[' + msg + ']'
 
     debug('Starting Drive ... ' + msg)
-    system('ndrive --log-level-console=ERROR --log-level-file=DEBUG', **kwargs)
+    system('ndrive --log-level-console=ERROR --log-level-file=TRACE', **kwargs)
 
 
 def system(cmd, **kwargs):

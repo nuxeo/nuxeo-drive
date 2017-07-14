@@ -364,9 +364,10 @@ class Engine(QObject):
     def unbind(self):
         self.stop()
         try:
-            # Dont fail if not possible to remove token
+            # Don't fail if not possible to remove token
             doc_client = self.get_remote_doc_client()
-            doc_client.revoke_token()
+            if doc_client:
+                doc_client.revoke_token()
         except:
             log.exception('Unbind error')
         self.dispose_db()
@@ -645,16 +646,18 @@ class Engine(QObject):
             pair = self._dao.get_state_from_id(row_id)
             local_client = self.get_local_client()
             parent_ref = local_client.get_remote_id(pair.local_parent_path)
-            log.warn("conflict_resolver: name: %d digest: %d(%s/%s) parents: %d(%s/%s)",
-                     pair.remote_name == pair.local_name,
-                     local_client.is_equal_digests(pair.local_digest,
-                                                   pair.remote_digest,
-                                                   pair.local_path),
-                     pair.local_digest, pair.remote_digest,
-                     pair.remote_parent_ref == parent_ref,
-                     pair.remote_parent_ref, parent_ref)
+            log.warning(
+                'conflict_resolver: name: %d digest: %d(%s/%s) parents: %d(%s/%s)',
+                pair.remote_name == pair.local_name,
+                local_client.is_equal_digests(
+                    pair.local_digest, pair.remote_digest, pair.local_path),
+                pair.local_digest,
+                pair.remote_digest,
+                pair.remote_parent_ref == parent_ref,
+                pair.remote_parent_ref,
+                parent_ref)
             if (safe_filename(pair.remote_name) == pair.local_name
-                and local_client.is_equal_digests(pair.local_digest,
+                    and local_client.is_equal_digests(pair.local_digest,
                                                   pair.remote_digest,
                                                   pair.local_path)
                     and pair.remote_parent_ref == parent_ref):
@@ -677,7 +680,7 @@ class Engine(QObject):
         self._stop.emit()
         for thread in self._threads:
             if not thread.wait(5000):
-                log.warn('Thread is not responding - terminate it')
+                log.warning('Thread is not responding - terminate it')
                 thread.terminate()
         if not self._local_watcher.get_thread().wait(5000):
             self._local_watcher.get_thread().terminate()

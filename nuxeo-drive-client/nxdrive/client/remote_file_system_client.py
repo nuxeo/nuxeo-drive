@@ -281,7 +281,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
     def get_fs_item(self, fs_item_id, parent_fs_item_id=None):
         if fs_item_id is None:
-            log.warn('get_fs_item called without fs_item_id')
+            log.warning('get_fs_item() called without fs_item_id')
             return None
         return self.execute("NuxeoDrive.GetFileSystemItem", id=fs_item_id,
                             parentId=parent_fs_item_id)

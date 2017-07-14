@@ -1,13 +1,14 @@
 # coding: utf-8
-import unicodedata
-from time import mktime, sleep, time
-
+import errno
 import os
 import re
 import sqlite3
-from PyQt4.QtCore import pyqtSignal, pyqtSlot
+import unicodedata
 from Queue import Queue
 from threading import Lock
+from time import mktime, sleep, time
+
+from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
 
@@ -31,7 +32,7 @@ if AbstractOSIntegration.is_windows():
 
 
 def is_office_file(_):
-    # Dont filter for now
+    # Don't filter for now
     return True
 
 
@@ -237,7 +238,9 @@ class LocalWatcher(EngineWorker):
     def _scan(self):
         log.debug("Full scan started")
         start_ms = current_milli_time()
-        self._suspend_queue()
+        to_pause = not self._engine.get_queue_manager().is_paused()
+        if to_pause:
+            self._suspend_queue()
         self._delete_files = dict()
         self._protected_files = dict()
 
@@ -247,7 +250,8 @@ class LocalWatcher(EngineWorker):
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
         log.debug("Full scan finished in %dms", self._metrics['last_local_scan_time'])
         self._local_scan_finished = True
-        self._engine.get_queue_manager().resume()
+        if to_pause:
+            self._engine.get_queue_manager().resume()
         self.localScanFinished.emit()
 
     def _scan_handle_deleted_files(self):
@@ -356,9 +360,9 @@ class LocalWatcher(EngineWorker):
                         log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
                         if doc_pair is not None and self.client.exists(doc_pair.local_path):
-                            if (not self.client.is_case_sensitive() and\
-                                            doc_pair.local_path.lower() == child_info.path.lower()):
-                                log.debug("Case renaming on a case insensitive filesystem, update info and ignore: %r",
+                            if (not self.client.is_case_sensitive()
+                                    and doc_pair.local_path.lower() == child_info.path.lower()):
+                                log.debug('Case renaming on a case insensitive filesystem, update info and ignore: %r',
                                                 doc_pair)
                                 if doc_pair.local_name in children:
                                     del children[doc_pair.local_name]
@@ -450,8 +454,9 @@ class LocalWatcher(EngineWorker):
                         if remote_ref != child_pair.remote_ref:
                             # TO_REVIEW
                             # Load correct doc_pair | Put the others one back to children
-                            log.warn("Detected file substitution: %s (%s/%s)", child_pair.local_path, remote_ref,
-                                     child_pair.remote_ref)
+                            log.warning(
+                                'Detected file substitution: %s (%s/%s)',
+                                child_pair.local_path, remote_ref, child_pair.remote_ref)
                             if remote_ref is None:
                                 if not child_info.folderish:
                                     # Alternative stream or xattr can have been removed by external software or user
@@ -540,9 +545,7 @@ class LocalWatcher(EngineWorker):
                 ob.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
                 ob.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
             except ImportError:
-                log.trace('read_directory_changes import error', exc_info=True)
-                log.warn('Cannot import read_directory_changes, probably under'
-                         ' Windows XP, watchdog will fall back on polling')
+                log.exception('Cannot import read_directory_changes')
         log.debug('Watching FS modification on : %s', self.client.base_folder)
 
         # Filter out all ignored suffixes. It will handle custom ones too.
@@ -568,14 +571,14 @@ class LocalWatcher(EngineWorker):
             log.info('Stopping FS Observer thread')
             try:
                 self._observer.stop()
-            except Exception as e:
-                log.warn('Cannot stop FS observer : %r', e)
+            except StandardError as e:
+                log.warning('Cannot stop FS observer : %r', e)
 
             # Wait for all observers to stop
             try:
                 self._observer.join()
-            except Exception as e:
-                log.warn('Cannot join FS observer : %r', e)
+            except StandardError as e:
+                log.warning('Cannot join FS observer : %r', e)
 
             # Delete all observers
             self._observer = None
@@ -584,14 +587,14 @@ class LocalWatcher(EngineWorker):
             log.info('Stopping FS root Observer thread')
             try:
                 self._root_observer.stop()
-            except Exception as e:
-                log.warn('Cannot stop FS root observer : %r', e)
+            except StandardError as e:
+                log.warning('Cannot stop FS root observer : %r', e)
 
             # Wait for all observers to stop
             try:
                 self._root_observer.join()
-            except Exception as e:
-                log.warn('Cannot join FS root observer : %r', e)
+            except StandardError as e:
+                log.warning('Cannot join FS root observer : %r', e)
 
             # Delete all observers
             self._root_observer = None
@@ -769,13 +772,11 @@ class LocalWatcher(EngineWorker):
             self._dao.update_local_state(doc_pair, local_info)
 
     def handle_watchdog_root_event(self, evt):
-        if evt.event_type == 'modified' or evt.event_type == 'created':
-            pass
         if evt.event_type == 'moved':
-            log.warn("Root has been moved to ")
+            log.warning('Root has been moved to %r', evt.dest_path)
             self.rootMoved.emit(evt.dest_path)
-        if evt.event_type == 'deleted':
-            log.warn("Root has been deleted")
+        elif evt.event_type == 'deleted':
+            log.warning('Root has been deleted')
             self.rootDeleted.emit()
 
     def handle_watchdog_event(self, evt):
@@ -810,7 +811,7 @@ class LocalWatcher(EngineWorker):
             parent_path = os.path.dirname(src_path)
             parent_rel_path = self.client.get_path(parent_path)
             # Don't care about ignored file, unless it is moved
-            if self.client.is_ignored(parent_rel_path, file_name) and evt.event_type != 'moved':
+            if evt.event_type != 'moved' and self.client.is_ignored(parent_rel_path, file_name):
                 return
             if self.client.is_temp_file(file_name):
                 return
@@ -863,16 +864,6 @@ class LocalWatcher(EngineWorker):
                 # If doc_pair is not None mean
                 # the creation has been catched by scan
                 # As Windows send a delete / create event for reparent
-                '''
-                for deleted in deleted_files:
-                    if deleted.local_digest == digest:
-                        # Move detected
-                        log.info('Detected a file movement %r', deleted)
-                        deleted.update_state('moved', deleted.remote_state)
-                        deleted.update_local(self.client.get_info(
-                                                                rel_path))
-                        continue
-                '''
                 local_info = self.client.get_info(rel_path, raise_if_missing=False)
                 if local_info is None:
                     log.trace("Event on a disappeared file: %r %s %s", evt, rel_path, file_name)
@@ -905,7 +896,7 @@ class LocalWatcher(EngineWorker):
                             #   it is moved to the new location earlier then copied back (what else can it be?)
                             if (not from_pair_creation_time <= doc_pair_creation_time) and evt.event_type == 'created':
                                 log.trace("Found moved file: from_pair: %f doc_pair:%f for %s", from_pair_creation_time, doc_pair_creation_time, doc_pair_full_path)
-                                log.trace("Creation time are: from: %f | new: %f : boolean: %d", from_pair_creation_time, doc_pair_creation_time,(not from_pair_creation_time < doc_pair_creation_time) )
+                                log.trace("Creation time are: from: %f | new: %f : boolean: %d", from_pair_creation_time, doc_pair_creation_time, from_pair_creation_time >= doc_pair_creation_time)
                                 from_pair.local_state = 'moved'
                                 self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
                                 self._dao.insert_local_state(self.client.get_info(from_pair.local_path), os.path.dirname(from_pair.local_path))
@@ -946,6 +937,9 @@ class LocalWatcher(EngineWorker):
             self._end_action()
 
     def _schedule_win_folder_scan(self, doc_pair):
+        if not doc_pair:
+            return
+
         # On Windows schedule another recursive scan to make sure I/O is completed,
         # ex: copy/paste, move
         if self._windows and self._win_folder_scan_interval > 0 and self._windows_folder_scan_delay > 0:
@@ -977,7 +971,7 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
 
     def on_any_event(self, event):
         self.counter += 1
-        log.trace("Queueing watchdog: %r", event)
+        log.trace('Queueing watchdog: %r', event)
         self.watcher._watchdog_queue.put(event)
 
 
@@ -1008,9 +1002,9 @@ def normalize_event_filename(filename, action=True):
     """
     Normalize a file name.
 
-    :param filename The file name to normalize.
-    :param action Apply changes on the file system.
-    :return The normalized file name.
+    :param unicode filename: The file name to normalize.
+    :param bool action: Apply changes on the file system.
+    :return unicode: The normalized file name.
     """
 
     # NXDRIVE-688: Ensure the name is stripped for a file
@@ -1018,13 +1012,14 @@ def normalize_event_filename(filename, action=True):
     if AbstractOSIntegration.is_windows():
         # Windows does not allow files/folders ending with space(s)
         filename = stripped
-    elif filename != stripped and os.path.exists(filename):
+    elif (action
+            and filename != stripped
+            and os.path.exists(filename)
+            and not os.path.isdir(filename)):
         # We can have folders ending with spaces
-        if action and not os.path.isdir(filename):
-            log.debug('Forcing space normalization: %r -> %r',
-                      filename, stripped)
-            os.rename(filename, stripped)
-            filename = stripped
+        log.debug('Forcing space normalization: %r -> %r', filename, stripped)
+        os.rename(filename, stripped)
+        filename = stripped
 
     # NXDRIVE-188: Normalize name on the file system, if needed
     try:
@@ -1035,10 +1030,26 @@ def normalize_event_filename(filename, action=True):
     if AbstractOSIntegration.is_mac():
         return normalized
     elif AbstractOSIntegration.is_windows() and os.path.exists(filename):
-        try:
-            filename = win32api.GetLongPathName(filename)
-        except (win32api.error, UnicodeEncodeError) as e:
-            log.error('Long path conversion error: %s for %r', e, filename)
+        """
+        If `filename` exists, and as Windows is case insensitive,
+        the result of Get(Full|Long|Short)PathName() could be unexpected
+        because it will return the path of the existant `filename`.
+
+        Check this simplified code session (the file "ABC.txt" exists):
+
+            >>> win32api.GetLongPathName('abc.txt')
+            'ABC.txt'
+            >>> win32api.GetLongPathName('ABC.TXT')
+            'ABC.txt'
+            >>> win32api.GetLongPathName('ABC.txt')
+            'ABC.txt'
+
+        So, to counter that behavior, we save the actual file name
+        and restore it in the full path.
+        """
+        long_path = win32api.GetLongPathNameW(filename)
+        filename = os.path.join(os.path.dirname(long_path),
+                                os.path.basename(filename))
 
     if action and filename != normalized and os.path.exists(filename):
         log.debug('Forcing normalization: %r -> %r', filename, normalized)
