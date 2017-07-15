@@ -6,7 +6,7 @@
 #     -tests: launch the tests suite
 #
 # See /docs/deployment.md for more informations.
-param ([switch]$build = $false, [switch]$tests = $false)
+param ([switch]$build = $false, [switch]$start = $false, [switch]$tests = $false)
 
 # Stop the execution on the first error
 $ErrorActionPreference = "Stop"
@@ -24,7 +24,7 @@ function check_import($import) {
 	# Check module import to know if it must be installed
 	# i.e: check_import "from PyQt4 import QtWebKit"
 	#  or: check_import "import cx_Freeze"
-	& $Env:PYTHON_DIR\python -E -c "$import"
+	& $Env:PYTHON_DIR\python -E -c $import
 	if ($lastExitCode -eq 0) {
 		return 1
 	}
@@ -33,14 +33,11 @@ function check_import($import) {
 
 function check_sum($file) {
 	# Calculate the MD5 sum of the file to check its integrity
-	$filename = (Get-Item "$file").Name
+	$filename = (Get-Item $file).Name
 	$checksums = "$Env:WORKSPACE_DRIVE\tools\checksums.txt"
 	$md5 = (Get-FileHash "$file" -Algorithm MD5).Hash.ToLower()
 
-	# Ignore this package as it evolves every day
-	if ("$filename" -eq "get-pip.py") {
-		return 1
-	} elseif ((Select-String "$md5  $filename" "$checksums" -ca).count -eq 1) {
+	if ((Select-String "$md5  $filename" $checksums -ca).count -eq 1) {
 		return 1
 	}
 	return 0
@@ -51,9 +48,9 @@ function check_vars {
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
 		echo "PYTHON_DRIVE_VERSION not defined. Aborting."
 		exit 1
-	#} elseif (-Not ($Env:PYQT_VERSION)) {
-	#	echo "PYQT_VERSION not defined. Aborting."
-	#	exit 1
+	} elseif (-Not ($Env:PYQT_VERSION)) {
+		echo "PYQT_VERSION not defined. Aborting."
+		exit 1
 	} elseif (-Not ($Env:WORKSPACE)) {
 		echo "WORKSPACE not defined. Aborting."
 		exit 1
@@ -67,18 +64,19 @@ function check_vars {
 			$Env:WORKSPACE_DRIVE = $Env:WORKSPACE
 		}
 	}
-	if (-Not ($Env:CXFREEZE_VERSION)) {
-		$Env:CXFREEZE_VERSION = "4.3.3"
+	if (-Not ($Env:SIP_VERSION)) {
+		$Env:SIP_VERSION = "4.19.3"  # XXX: SIP_VERSION
 	}
-
-	# For now, we cannot use other PyQt version than this one
-	# Later we will need to add a check on this envar like for WORKSPACE and PYTHON_DRIVE_VERSION
-	$Env:PYQT_VERSION = "4.11.4"
+	if (-Not ($Env:CXFREEZE_VERSION)) {
+		$Env:CXFREEZE_VERSION = "4.3.3"  # XXX: CXFREEZE_VERSION
+	}
 	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir").FullName
 	$Env:PYTHON_DIR = "$Env:STORAGE_DIR\drive-$Env:PYTHON_DRIVE_VERSION-python"
 
 	echo "    PYTHON_DRIVE_VERSION = $Env:PYTHON_DRIVE_VERSION"
 	echo "    PYQT_VERSION         = $Env:PYQT_VERSION"
+	echo "    SIP_VERSION          = $Env:SIP_VERSION"
+	echo "    CXFREEZE_VERSION     = $Env:CXFREEZE_VERSION"
 	echo "    WORKSPACE            = $Env:WORKSPACE"
 	echo "    WORKSPACE_DRIVE      = $Env:WORKSPACE_DRIVE"
 	echo "    STORAGE_DIR          = $Env:STORAGE_DIR"
@@ -94,12 +92,15 @@ function check_vars {
 	}
 }
 
-function download($url, $output) {
+function download($url, $output, [bool]$check=$true) {
 	# Download one file and save its content to a given file name
+	# $output must be an absolute path.
 	$try = 1
 	while ($try -lt 6) {
 		if (Test-Path "$output") {
-			if (check_sum "$output") {
+			if ($check -eq $false) {
+				return
+			} elseif (check_sum "$output") {
 				return
 			}
 			Remove-Item -Force "$output"
@@ -114,7 +115,7 @@ function download($url, $output) {
 		Start-Sleep -s 5
 	}
 
-	echo ">>> Impossible to download and verify $url"
+	echo ">>> Impossible to download $url (MD5 verification set to $check)"
 	ExitWithCode 1
 }
 
@@ -125,25 +126,41 @@ function ExitWithCode($retCode) {
 
 function install_cxfreeze {
 	# Install cx_Freeze manually as pip does not work for this package
-	$output = "$Env:STORAGE_DIR\cx_Freeze-$Env:CXFREEZE_VERSION.win32-py2.7.msi"
-	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/cx_Freeze-$Env:CXFREEZE_VERSION.win32-py2.7.msi"
+	$fname = "cx_Freeze-$Env:CXFREEZE_VERSION"
+	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/$fname.zip"
+	$output = "$Env:STORAGE_DIR\$fname.zip"
+
 
 	if (check_import "import cx_Freeze") {
 		return
 	}
 
+	echo ">>> Installing cx_Freeze $Env:CXFREEZE_VERSION"
+
 	download $url $output
-	echo ">>> Installing cx_Freeze"
-	Start-Process msiexec -ArgumentList "/a `"$output`" /passive TARGETDIR=`"$Env:PYTHON_DIR`"" -wait
+	unzip "$fname.zip" $Env:STORAGE_DIR
+	Set-Location "$Env:STORAGE_DIR\$fname"
+
+	if (-Not (Test-Path "cxfreeze-postinstall")) {
+		echo ">>> [cx_Freeze $Env:CXFREEZE_VERSION] Fixing installation process"
+		$missing_file = "cxfreeze-postinstall"
+		$missing_url = "https://raw.githubusercontent.com/anthony-tuininga/cx_Freeze/$Env:CXFREEZE_VERSION/$missing_file"
+		download $missing_url "$pwd\$missing_file" -check $false
+	}
+
+	echo ">>> [cx_Freeze $Env:CXFREEZE_VERSION] Installing"
+	& $Env:PYTHON_DIR\python -E -s setup.py install
+
+	Set-Location $Env:WORKSPACE_DRIVE
 }
 
 function install_deps {
 	echo ">>> Installing requirements"
-	& $Env:PYTHON_DIR\python -E -m pip install -q -t "$Env:PYTHON_DIR" -r requirements.txt
+	& $Env:PYTHON_DIR\python -E -m pip install -q -t $Env:PYTHON_DIR -r requirements.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python -E -m pip install -q -t "$Env:PYTHON_DIR" -r requirements-windows.txt
+	& $Env:PYTHON_DIR\python -E -m pip install -q -t $Env:PYTHON_DIR -r requirements-windows.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -158,12 +175,12 @@ function install_pip {
 	}
 
 	echo ">>> Installing pip"
-	download $url $output
-	& $Env:PYTHON_DIR\python -E "$output" -q -t "$Env:PYTHON_DIR"
+	download $url $output -check $false
+	& $Env:PYTHON_DIR\python -E $output -q -t $Env:PYTHON_DIR
 	$ret = $lastExitCode
 
 	# Cleanup
-	Remove-Item -Force "$output"
+	Remove-Item -Force $output
 
 	if ($ret -ne 0) {
 		ExitWithCode $ret
@@ -171,12 +188,9 @@ function install_pip {
 }
 
 function install_pyqt {
-	$output = "$Env:STORAGE_DIR\PyQt4-$Env:PYQT_VERSION-gpl-Py2.7-Qt4.8.7-x32.exe"
-	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/PyQt4-$Env:PYQT_VERSION-gpl-Py2.7-Qt4.8.7-x32.exe"
-	$packages = "$Env:PYTHON_DIR\Lib\site-packages"
-	$packages_pyqt = "$packages\PyQt4"
-	$source = "Lib\site-packages"
-	$source_pyqt = "Lib\site-packages\PyQt4"
+	$fname = "PyQt4_gpl_win-$Env:PYQT_VERSION"
+	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/$fname.zip"
+	$output = "$Env:STORAGE_DIR\$fname.zip"
 
 	if (check_import "import PyQt4.QtWebKit") {
 		return
@@ -185,35 +199,37 @@ function install_pyqt {
 	echo ">>> Installing PyQt $Env:PYQT_VERSION"
 
 	download $url $output
-	Set-Location "$Env:STORAGE_DIR"
+	unzip "$fname.zip" $Env:STORAGE_DIR
+	Set-Location "$Env:STORAGE_DIR\$fname"
 
-	& 7z x "$output" "Lib" "`$_OUTDIR" -xr"!doc" -xr"!examples" -xr"!mkspecs" -xr"!sip" -y
+	echo ">>> [PyQt $Env:PYQT_VERSION] Configuring"
+	& $Env:PYTHON_DIR\python -E -s configure-ng.py `
+		--confirm-license `
+		--no-designer-plugin `
+		--no-docstrings `
+		--no-python-dbus `
+		--no-qsci-api `
+		--no-tools `
+		--sip="$Env:PYTHON_DIR\sip.exe" `
+		--spec="win32-g++"
+
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	Copy-Item -Force "$source\sip.pyd" -Destination "$packages"
-	Copy-Item -Recurse -Force "$source_pyqt\imports" -Destination "$packages_pyqt"
-	Copy-Item -Recurse -Force "$source_pyqt\plugins" -Destination "$packages_pyqt"
-	Copy-Item -Force "$source_pyqt\__init__.py" -Destination "$packages_pyqt"
-	Copy-Item -Force "$source_pyqt\*.dll" -Destination "$packages_pyqt"
-	Copy-Item -Force "`$_OUTDIR\*.pyd" -Destination "$packages_pyqt"
 
-	# Delete useless modules
-	Remove-Item -Recurse -Force "$packages_pyqt\plugins\designer"
-	Remove-Item -Recurse -Force "$packages_pyqt\plugins\phonon_backend"
-	Remove-Item -Force "$packages_pyqt\phonon*"
-	Remove-Item -Force "$packages_pyqt\Qsci*"
-	Remove-Item -Force "$packages_pyqt\QtDeclarative*"
-	Remove-Item -Force "$packages_pyqt\QtDesigner*"
-	Remove-Item -Force "$packages_pyqt\QtHelp*"
-	Remove-Item -Force "$packages_pyqt\QtOpenGL*"
-	Remove-Item -Force "$packages_pyqt\QtTest*"
+	echo ">>> [PyQt $Env:PYQT_VERSION] Compiling"
+	& mingw32-make --quiet -j 2
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
 
-	# Cleanup
-	Remove-Item -Recurse -Force "Lib"
-	Remove-Item -Recurse -Force "`$_OUTDIR"
+	echo ">>> [PyQt $Env:PYQT_VERSION] Installing"
+	& mingw32-make --quiet install
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
 
-	Set-Location "$Env:WORKSPACE_DRIVE"
+	Set-Location $Env:WORKSPACE_DRIVE
 }
 
 function install_python {
@@ -229,13 +245,57 @@ function install_python {
 	Start-Process msiexec -ArgumentList "/a `"$output`" /passive TARGETDIR=`"$Env:PYTHON_DIR`"" -wait
 }
 
-function launch_tests {
-	# Launch the tests suite
-	& $Env:PYTHON_DIR\python -E -m pip install -q -t "$Env:PYTHON_DIR" -r requirements-tests.txt
+function install_sip {
+	$fname = "sip-$Env:SIP_VERSION"
+	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/$fname.zip"
+	$output = "$Env:STORAGE_DIR\$fname.zip"
+
+	if (check_import "import sipconfig") {
+		return
+	}
+
+	echo ">>> Installing SIP $Env:SIP_VERSION"
+
+	download $url $output
+	unzip "$fname.zip" $Env:STORAGE_DIR
+	Set-Location "$Env:STORAGE_DIR\$fname"
+
+	echo ">>> [SIP $Env:SIP_VERSION] Configuring"
+	& $Env:PYTHON_DIR\python -E -s configure.py `
+		--no-stubs `
+		--platform="win32-g++"
+
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python -E -m pytest --showlocals --exitfirst --strict --failed-first -r Efx --full-trace "$Env:SPECIFIC_TEST"
+
+	echo ">>> [SIP $Env:SIP_VERSION] Compiling"
+	& mingw32-make --quiet -j 2
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+
+	echo ">>> [SIP $Env:SIP_VERSION] Installing"
+	& mingw32-make --quiet install
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+
+	Set-Location $Env:WORKSPACE_DRIVE
+}
+
+function launch_tests {
+	# Launch the tests suite
+	& $Env:PYTHON_DIR\python -E -m pip install -q -t $Env:PYTHON_DIR -r requirements-tests.txt
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+	& $Env:PYTHON_DIR\python -E -m pytest $Env:SPECIFIC_TEST `
+		--showlocals `
+		--exitfirst `
+		--strict `
+		--failed-first `
+		-r Efx
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -250,7 +310,7 @@ function sign_msi {
 	$timestamp_url =  "http://timestamp.verisign.com/scripts/timstamp.dll"
 
 	echo ">>> Signing the MSI"
-	& signtool sign /v /f "$certificate" /p "$password" /d "$msi" /t "$timstamp"
+	& signtool sign /v /f $certificate /p $password /d $msi /t $timestamp_url
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -268,12 +328,26 @@ function start_nxdrive {
 	& $Env:PYTHON_DIR\python nuxeo-drive-client/nxdrive/commandline.py
 }
 
+function unzip($filename, $dest_dir) {
+	# Uncompress a Zip file into a given directory.
+	echo ">>> Uncompressing $filename into $dest_dir"
+	$options = 0x14  # overwrite and hide the dialog
+	$shell = New-Object -com shell.application
+	$src = $shell.NameSpace((Join-Path $dest_dir $filename))
+	$dst = $shell.NameSpace((Join-Path $dest_dir ""))
+	$dst.CopyHere($src.items(), $options)
+}
+
 function main {
+	# Adjust the PATH for compilation tools
+	$env:Path = "C:\Qt\4.8.7\bin;C:\mingw32\bin"
+
 	# Launch operations
 	check_vars
 	install_python
 	install_pip
 	install_deps
+	install_sip
 	install_pyqt
 	install_cxfreeze
 	if ((check_import "import PyQt4.QtWebKit") -ne 1) {

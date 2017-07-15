@@ -1,26 +1,20 @@
-# Keep files sorted
+# Note 1: Keep lists sorted.
+# Note 2: Obsolete checksums can be safely removed from this file.
+# Note 3: Obsolete files should _not_ be removed from the server (for reproductibility reasons).
+# Note 4: Always use ZIP files on Windows to avoid any external dependency (7-Zip'n co)
 
-# GNU/Linux and macOS
-
-## cx_Freeze
+# cx_Freeze
 c729d5663320f6afc23682634c7f4cc2  cx_Freeze-4.3.3.tar.gz
+f1962bfd4b668d42e12d5ed87b500788  cx_Freeze-4.3.3.zip
 
-## PyQt
-a96bba07188767d92deb01decd0d890f  PyQt4_gpl_mac-4.12.tar.gz
-eb8c338f2d8842aa7655e8e1aa840bed  PyQt4_gpl_x11-4.12.tar.gz
+# PyQt
+56177e8d5c38a5922d66f4e104825792  PyQt4_gpl_mac-4.12.1.tar.gz
+88cde389b151572aa22dd0147cd325b6  PyQt4_gpl_win-4.12.1.zip
+0112e15858cd7d318a09e7366922f874  PyQt4_gpl_x11-4.12.1.tar.gz
 
-## SIP
-be51a05065c9323b98a2ec2966c64e6a  sip-4.19.tar.gz
-
----
-
-# Windows
-
-## cx_Freeze
-6b63c90e839dbc0345d462096e7f7734  cx_Freeze-4.3.3.win32-py2.7.msi
-
-## Python
+# Python
 0f057ab4490e63e528eaa4a70df711d9  python-2.7.13.msi
 
-## PyQt
-2b4be3c2b351a87ed09f265eb2f5e4cc  PyQt4-4.11.4-gpl-Py2.7-Qt4.8.7-x32.exe
+# SIP
+4708187f74a4188cb4e294060707106f  sip-4.19.3.tar.gz
+1098da9ee1915354fedf38fd6fbe22ce  sip-4.19.3.zip

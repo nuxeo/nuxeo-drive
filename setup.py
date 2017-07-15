@@ -338,19 +338,10 @@ class NuxeoDriveSetup(object):
         print('Created JSON metadata file for frozen app: ' + json_file)
 
         includes = [
-            "PyQt4",
-            "PyQt4.QtCore",
-            "PyQt4.QtNetwork",
-            "PyQt4.QtGui",
-            "sip",
             "atexit",  # implicitly required by PyQt4
             "js2py.pyjs"
         ]
         excludes = [
-            "PyQt4.QtDesigner",
-            "PyQt4.QtOpenGL",
-            "PyQt4.QtTest",
-            "PyQt4.phonon",
             "ipdb",
             "clf",
             "IronPython",
