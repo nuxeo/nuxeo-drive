@@ -330,7 +330,7 @@ function start_nxdrive {
 
 function unzip($filename, $dest_dir) {
 	# Uncompress a Zip file into a given directory.
-    echo ">>> Uncompressing $filename into $dest_dir"
+	echo ">>> Uncompressing $filename into $dest_dir"
 	$options = 0x14  # overwrite and hide the dialog
 	$shell = New-Object -com shell.application
 	$src = $shell.NameSpace((Join-Path $dest_dir $filename))
