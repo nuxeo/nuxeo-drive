@@ -1,2 +1,2 @@
-py2app==0.12;python_version=='2.7'
+py2app==0.14;python_version=='2.7'
 pyobjc==3.2.1;python_version=='2.7'
