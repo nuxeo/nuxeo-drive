@@ -85,13 +85,16 @@ class FileInfo(object):
         return u'FileInfo[%s, remote_ref=%s]' % (self.filepath, self.remote_ref)
 
     def get_digest(self, digest_func=None):
-        """Lazy computation of the digest"""
+        """ Lazy computation of the digest. """
+
         if self.folderish:
             return None
-        digest_func = digest_func if digest_func is not None else self._digest_func
+        digest_func = (digest_func
+                       if digest_func is not None
+                       else self._digest_func)
         digester = getattr(hashlib, digest_func, None)
         if digester is None:
-            raise ValueError('Unknow digest method: ' + digest_func)
+            raise ValueError('Unknown digest method: ' + digest_func)
 
         h = digester()
         try:
@@ -441,17 +444,37 @@ FolderType=Generic
                         check_suspended=self.check_suspended,
                         remote_ref=remote_ref, size=size)
 
-    def is_equal_digests(self, local_digest, remote_digest, local_path, remote_digest_algorithm=None):
+    def is_equal_digests(
+        self,
+        local_digest,
+        remote_digest,
+        local_path,
+        remote_digest_algorithm=None,
+    ):
+        """
+        Compare 2 document's digests.
+
+        :param str local_digest: Digest of the local document.
+                                 Set to None to force digest computation.
+        :param str remote_digest: Digest of the remote document.
+        :param str local_path: Local path of the document.
+        :param str remote_digest_algorithm: Remote document digest algorithm
+        :return bool: Digest are equals.
+        """
+
         if local_digest == remote_digest:
             return True
         if remote_digest_algorithm is None:
             remote_digest_algorithm = guess_digest_algorithm(remote_digest)
         if remote_digest_algorithm == self._digest_func:
             return False
-        return self.get_info(local_path).get_digest(digest_func=remote_digest_algorithm) == remote_digest
+
+        file_info = self.get_info(local_path)
+        digest = file_info.get_digest(digest_func=remote_digest_algorithm)
+        return digest == remote_digest
 
     def get_content(self, ref):
-        return open(self.abspath(ref), "rb").read()
+        return open(self.abspath(ref), 'rb').read()
 
     def is_osxbundle(self, ref):
         '''
@@ -461,7 +484,8 @@ FolderType=Generic
             return False
         if os.path.isfile(self.abspath(ref)):
             return False
-        # Dont want to synchornize app - when copy paste this file might not has been created yet
+        # Don't want to synchornize app - when copy paste this file
+        # might not has been created yet
         if os.path.isfile(os.path.join(ref, "Contents", "Info.plist")):
             return True
         attrs = self.get_remote_id(ref, "com.apple.FinderInfo")
@@ -471,14 +495,12 @@ FolderType=Generic
 
     def is_ignored(self, parent_ref, file_name):
         # Add parent_ref to be able to filter on size if needed
-        # Office temp file
-        # http://support.microsoft.com/kb/211632
-        if file_name.startswith("~") and file_name.endswith(".tmp"):
-            return True
 
         # Emacs auto save file
         # http://www.emacswiki.org/emacs/AutoSave
-        if file_name.startswith("#") and file_name.endswith("#") and len(file_name) > 2:
+        if (file_name.startswith('#')
+                and file_name.endswith('#')
+                and len(file_name) > 2):
             return True
 
         if (file_name.endswith(self.ignored_suffixes)

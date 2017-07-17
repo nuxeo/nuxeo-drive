@@ -571,7 +571,7 @@ class Application(SimpleApplication):
     @QtCore.pyqtSlot(str)
     def app_updated(self, updated_version):
         self.updated_version = str(updated_version)
-        log.info('Quitting Nuxeo Drive and restarting updated version %s', 
+        log.info('Quitting Nuxeo Drive and restarting updated version %s',
                  self.updated_version)
         self.manager.stopped.connect(self.restart)
         log.debug('Exiting Qt application')

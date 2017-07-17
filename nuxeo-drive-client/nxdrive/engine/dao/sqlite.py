@@ -447,10 +447,10 @@ class ManagerDAO(ConfigurationDAO):
             self._lock.release()
 
     def _migrate_db(self, cursor, version):
-        if (version < 2):
+        if version < 2:
             cursor.execute("CREATE TABLE if not exists Notifications(uid VARCHAR, engine VARCHAR, level VARCHAR, title VARCHAR, description VARCHAR, action VARCHAR, flags INT, PRIMARY KEY(uid))")
             self.update_config(SCHEMA_VERSION, 2)
-        if (version < 3):
+        if version < 3:
             cursor.execute("CREATE TABLE if not exists AutoLock(path VARCHAR, remote_id VARCHAR, process INT, PRIMARY KEY(path))")
             self.update_config(SCHEMA_VERSION, 3)
 
@@ -740,7 +740,6 @@ class EngineDAO(ConfigurationDAO):
     def register_queue_manager(self, manager):
         # Prevent any update while init queue
         self._lock.acquire()
-        con = None
         try:
             self._queue_manager = manager
             con = self._get_write_connection(factory=self._state_factory)
@@ -752,7 +751,7 @@ class EngineDAO(ConfigurationDAO):
                 # Add all the folders
                 if pair.folderish:
                     folders[pair.local_path] = True
-                if not pair.local_parent_path in folders:
+                if pair.local_parent_path not in folders:
                     self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
         # Dont block everything if queue manager fail
         # TODO As the error should be fatal not sure we need this
@@ -956,8 +955,10 @@ class EngineDAO(ConfigurationDAO):
         return res
 
     def _get_recursive_remote_condition(self, doc_pair):
-        remote_path = self._escape(doc_pair.remote_parent_path) + '/' + self._escape(doc_pair.remote_name)
-        return (" WHERE remote_parent_path LIKE '" +  remote_path + "/%' OR remote_parent_path = '" + remote_path + "'")
+        remote_path = (self._escape(doc_pair.remote_parent_path)
+                       + '/' + self._escape(doc_pair.remote_name))
+        return (' WHERE remote_parent_path LIKE "{0}/%"'
+                '       OR remote_parent_path = "{0}"').format(remote_path)
 
     def update_remote_parent_path(self, doc_pair, new_path):
         self._lock.acquire()
@@ -1236,34 +1237,53 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
+
         result = c.rowcount == 1
+
         # Retry without version for folder
         if not result and row.folderish:
             self._lock.acquire()
             try:
                 con = self._get_write_connection()
                 c = con.cursor()
-                c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                          "pair_state='synchronized', last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
-                          "WHERE id=? and local_path=? and remote_name=? and remote_ref=? and remote_parent_ref=?",
-                          (datetime.utcnow(), row.id, row.local_path, row.remote_name, row.remote_ref, row.remote_parent_ref))
+                c.execute('UPDATE States'
+                          '   SET local_state = ?,'
+                          '       remote_state = ?,'
+                          '       pair_state = ?,'
+                          '       last_sync_date = ?,'
+                          '       processor = 0,'
+                          '       last_error = NULL,'
+                          '       error_count = 0,'
+                          '       last_sync_error_date = NULL'
+                          ' WHERE id = ?'
+                          '       AND local_path = ?'
+                          '       AND remote_name = ?'
+                          '       AND remote_ref = ?'
+                          '       AND remote_parent_ref = ?',
+                          (row.local_state, row.remote_state, row.pair_state,
+                           datetime.utcnow(), row.id, row.local_path,
+                           row.remote_name, row.remote_ref,
+                           row.remote_parent_ref))
                 if self.auto_commit:
                     con.commit()
             finally:
                 self._lock.release()
             result = c.rowcount == 1
+
         if not result:
-            log.trace("Was not able to synchronize state: %r", row)
+            log.trace('Was not able to synchronize state: %r', row)
             con = self._get_read_connection()
             c = con.cursor()
-            row2 = c.execute("SELECT * FROM States WHERE id=?", (row.id,)).fetchone()
+            row2 = c.execute('SELECT * FROM States WHERE id = ?',
+                             (row.id,)).fetchone()
             if row2 is None:
-                log.trace("No more row")
+                log.trace('No more row')
             else:
-                log.trace("The current row was: %r (version=%r)", row2, row2.version)
-            log.trace("The previous row was: %r (version=%r)", row, row.version)
+                log.trace('Current row=%r (version=%r)', row2, row2.version)
+            log.trace('Previous row=%r (version=%r)', row, row.version)
         elif row.folderish:
             self.queue_children(row)
+
         return result
 
     def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False, no_digest=False):

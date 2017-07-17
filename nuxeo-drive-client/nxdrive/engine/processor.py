@@ -167,11 +167,13 @@ class Processor(EngineWorker):
                 continue
             try:
                 if doc_pair is None:
-                    log.trace("Didn't acquire state, dropping %r",
+                    log.trace('Did not acquire state, dropping %r',
                               self._current_item)
                     self._current_item = self._get_item()
                     continue
-                # In case of duplicate we remove the local_path as it has conflict
+
+                # In case of duplicate we remove the local_path as it
+                # has conflict
                 if doc_pair.local_path == '':
                     doc_pair.local_path = os.path.join(
                         doc_pair.local_parent_path, doc_pair.remote_name)
@@ -183,6 +185,7 @@ class Processor(EngineWorker):
                 if not self.check_pair_state(doc_pair):
                     self._current_item = self._get_item()
                     continue
+
                 if (AbstractOSIntegration.is_mac()
                         and local_client.exists(doc_pair.local_path)):
                     try:
@@ -207,7 +210,7 @@ class Processor(EngineWorker):
                         if (remote_info.digest != doc_pair.remote_digest
                                 and doc_pair.remote_digest is not None):
                             doc_pair.remote_state = 'modified'
-                        if (doc_pair.folderish
+                        elif (doc_pair.folderish
                                 and remote_info.name != doc_pair.remote_name):
                             doc_pair.remote_state = 'moved'
                         self._refresh_remote(doc_pair, remote_client,
@@ -254,15 +257,16 @@ class Processor(EngineWorker):
                     self._current_item = self._get_item()
                     continue
                 else:
-                    self._current_metrics = dict()
-                    self._current_metrics["handler"] = doc_pair.pair_state
-                    self._current_metrics["start_time"] = current_milli_time()
+                    self._current_metrics = dict(
+                        handler=doc_pair.pair_state,
+                        start_time=current_milli_time(),
+                    )
                     log.trace('Calling %s on doc pair %r', sync_handler,
                               doc_pair)
                     try:
                         soft_lock = self._lock_soft_path(doc_pair.local_path)
                         sync_handler(doc_pair, local_client, remote_client)
-                        self._current_metrics["end_time"] = current_milli_time()
+                        self._current_metrics['end_time'] = current_milli_time()
                         self.pairSync.emit(doc_pair, self._current_metrics)
                     except ThreadInterrupt:
                         raise
@@ -301,7 +305,7 @@ class Processor(EngineWorker):
                 raise
             except Exception as e:
                 log.exception('Pair error')
-                self.increase_error(doc_pair, "EXCEPTION", exception=e)
+                self.increase_error(doc_pair, 'EXCEPTION', exception=e)
                 raise e
             finally:
                 if soft_lock is not None:
@@ -341,7 +345,13 @@ class Processor(EngineWorker):
             log.trace("Transfer speed %d ko/s", speed / 1024)
             self._current_metrics["speed"] = speed
 
-    def _synchronize_if_not_remotely_dirty(self, doc_pair, local_client, remote_client, remote_info=None):
+    def _synchronize_if_not_remotely_dirty(
+        self,
+        doc_pair,
+        local_client,
+        remote_client,
+        remote_info=None,
+    ):
         if (remote_info is not None
                 and (remote_info.name != doc_pair.local_name
                      or remote_info.digest != doc_pair.local_digest)):
@@ -651,15 +661,16 @@ class Processor(EngineWorker):
             try:
                 if doc_pair.remote_can_rename:
                     log.debug('Renaming remote document according to local : %r',
-                                                        doc_pair)
+                              doc_pair)
                     remote_info = remote_client.rename(doc_pair.remote_ref,
-                                                            doc_pair.local_name)
-                    self._refresh_remote(doc_pair, remote_client, remote_info=remote_info)
+                                                       doc_pair.local_name)
+                    self._refresh_remote(doc_pair, remote_client,
+                                         remote_info=remote_info)
                 else:
                     self._handle_failed_remote_rename(doc_pair, doc_pair)
                     return
             except Exception as e:
-                log.debug(e)
+                log.debug(repr(e))
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
                 return
 
@@ -678,7 +689,8 @@ class Processor(EngineWorker):
                 log.debug('Moving remote file according to local : %r', doc_pair)
                 # Bug if move in a parent with no rights / partial move
                 # if rename at the same time
-                parent_path = parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+                parent_path = (parent_pair.remote_parent_path
+                               + '/' + parent_pair.remote_ref)
                 remote_info = remote_client.move(doc_pair.remote_ref,
                                                  parent_pair.remote_ref)
                 self._dao.update_remote_state(doc_pair, remote_info,
@@ -687,12 +699,16 @@ class Processor(EngineWorker):
             else:
                 # Move it back
                 self._handle_failed_remote_move(doc_pair, doc_pair)
+
         # Handle modification at the same time if needed
         if update:
             if doc_pair.local_state == 'moved':
-                self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=remote_info)
+                self._synchronize_if_not_remotely_dirty(
+                    doc_pair, local_client, remote_client,
+                    remote_info=remote_info)
             else:
-                self._synchronize_locally_modified(doc_pair, local_client, remote_client)
+                self._synchronize_locally_modified(
+                    doc_pair, local_client, remote_client)
 
     def _synchronize_deleted_unknown(self, doc_pair, *_):
         """

@@ -278,7 +278,7 @@ class DirectEditErrorLockNotification(Notification):
             title = 'DIRECT_EDIT_UNLOCK_ERROR'
             description = 'DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION'
         else:
-            raise ValueError('Invalid action: %r not in (lock, unlock)', 
+            raise ValueError('Invalid action: %r not in (lock, unlock)',
                              locals())
 
         super(DirectEditErrorLockNotification, self).__init__(
@@ -342,7 +342,7 @@ class DirectEditReadOnlyNotification(Notification):
                    | Notification.FLAG_DISCARD_ON_TRIGGER
                    | Notification.FLAG_REMOVE_ON_DISCARD),
         )
-    
+
 
 class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid, filename):
