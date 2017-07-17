@@ -1,4 +1,6 @@
 # coding: utf-8
+from urllib2 import HTTPError
+
 from nxdrive.client import LocalClient, RemoteDocumentClient
 from tests.common_unit_test import UnitTestCase
 
@@ -189,3 +191,82 @@ class TestPermissionHierarchy(UnitTestCase):
             folder_a_fs))
         self.assertIsNone(self.remote_file_system_client_2.get_fs_item(
             folder_b_fs))
+
+    def test_sync_move_permission_removal(self):
+        root = self.user1.make_folder(self.workspace_uid, 'testing')
+        readonly = self.user1.make_folder(root, 'ReadFolder')
+        readwrite = self.user1.make_folder(root, 'WriteFolder')
+
+        # Register user workspace as a sync root for user1
+        self.user1.register_as_root(self.workspace_uid)
+
+        # Register root folder as a sync root for user2
+        self.set_readonly(self.user_2, root, grant=False)
+        self.user2.register_as_root(root)
+
+        # Make one read-only document
+        self.user1.make_file(readonly, 'file_ro.txt', content='Read-only doc.')
+
+        # Read only folder for user 2
+        self.set_readonly(self.user_2, readonly)
+
+        # Basic test to be sure we are in RO mode
+        with self.assertRaises(HTTPError):
+            self.user2.make_file(readonly, 'test.txt', content='test')
+
+        # ReadWrite folder for user 2
+        self.set_readonly(self.user_2, readwrite, grant=False)
+
+        # Start'n sync
+        self.engine_2.start()
+        self.wait_sync(wait_for_async=True,
+                       wait_for_engine_1=False,
+                       wait_for_engine_2=True)
+
+        # Checks
+        root = '/Other Docs/testing/'
+        self.assertTrue(self.local_client_2.exists(root + 'ReadFolder'))
+        self.assertTrue(self.local_client_2.exists(
+            root + 'ReadFolder/file_ro.txt'))
+        self.assertTrue(self.local_client_2.exists(root + 'WriteFolder'))
+        self.assertEqual(
+            self.local_client_2.get_content(root + 'ReadFolder/file_ro.txt'),
+            'Read-only doc.')
+
+        # Move the read-only file
+        self.local_client_2.move(root + 'ReadFolder/file_ro.txt',
+                                 root + 'WriteFolder',
+                                 name='file_rw.txt')
+
+        # Remove RO on ReadFolder folder
+        self.set_readonly(self.user_2, readonly, grant=False)
+
+        # Edit the new writable file
+        self.local_client_2.update_content(root + 'WriteFolder/file_rw.txt',
+                                           'Now a fresh read-write doc.')
+
+        # Sync
+        self.wait_sync(wait_for_async=True,
+                       wait_for_engine_1=False,
+                       wait_for_engine_2=True)
+
+        # Local checks
+        self.assertFalse(self.local_client_2.exists(
+            root + 'ReadFolder/file_ro.txt'))
+        self.assertFalse(self.local_client_2.exists(
+            root + 'WriteFolder/file_ro.txt'))
+        self.assertTrue(self.local_client_2.exists(
+            root + 'WriteFolder/file_rw.txt'))
+        self.assertEqual(
+            self.local_client_2.get_content(root + 'WriteFolder/file_rw.txt'),
+            'Now a fresh read-write doc.')
+
+        # Remote checks
+        self.assertEqual(len(self.user1.get_children_info(readonly)), 0)
+        children = self.user1.get_children_info(readwrite)
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0].filename, 'file_rw.txt')
+        self.assertEqual(self.user1.get_content(children[0].uid),
+                         'Now a fresh read-write doc.')
+        # No errors check
+        self.assertEqual(len(self.engine_2.get_dao().get_errors()), 0)
