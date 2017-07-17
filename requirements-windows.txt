@@ -1,1 +1,1 @@
-pypiwin32==219;python_version=='2.7'
+pypiwin32==219;python_version=='2.7'  # pyup: <=219
