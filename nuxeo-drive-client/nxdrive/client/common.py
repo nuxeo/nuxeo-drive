@@ -91,6 +91,7 @@ DEFAULT_IGNORED_PREFIXES = tuple({
 
 DEFAULT_IGNORED_SUFFIXES = tuple({
     '.LOCK',  # other locks
+    '.bak',  # temporary backup files
     '.crdownload',  # partially downloaded files by browsers
     '.lock',  # some process use file locks
     '.part',  # partially downloaded files by browsers
