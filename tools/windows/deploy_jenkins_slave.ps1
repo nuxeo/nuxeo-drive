@@ -6,15 +6,23 @@
 #     -tests: launch the tests suite
 #
 # See /docs/deployment.md for more informations.
-param ([switch]$build = $false, [switch]$start = $false, [switch]$tests = $false)
+param (
+	[switch]$build = $false,
+	[switch]$start = $false,
+	[switch]$tests = $false
+)
 
 # Stop the execution on the first error
 $ErrorActionPreference = "Stop"
 
+# Global variables
+$global:PYTHON_OPT = "-E", "-s"
+$global:PIP_OPT = "-m", "pip", "install", "--upgrade", "--upgrade-strategy=only-if-needed"
+
 function build_msi {
 	# Build the famous MSI
 	echo ">>> Building the MSI package"
-	& $Env:PYTHON_DIR\python -E setup.py --freeze bdist_msi
+	& $Env:PYTHON_DIR\python setup.py --freeze bdist_msi
 	if ($lastExitCode -eq 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -24,7 +32,7 @@ function check_import($import) {
 	# Check module import to know if it must be installed
 	# i.e: check_import "from PyQt4 import QtWebKit"
 	#  or: check_import "import cx_Freeze"
-	& $Env:PYTHON_DIR\python -E -c $import
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT -c $import
 	if ($lastExitCode -eq 0) {
 		return 1
 	}
@@ -149,18 +157,18 @@ function install_cxfreeze {
 	}
 
 	echo ">>> [cx_Freeze $Env:CXFREEZE_VERSION] Installing"
-	& $Env:PYTHON_DIR\python -E -s setup.py install
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT setup.py install
 
 	Set-Location $Env:WORKSPACE_DRIVE
 }
 
 function install_deps {
 	echo ">>> Installing requirements"
-	& $Env:PYTHON_DIR\python -E -m pip install -q -t $Env:PYTHON_DIR -r requirements.txt
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python -E -m pip install -q -t $Env:PYTHON_DIR -r requirements-windows.txt
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-windows.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -176,7 +184,7 @@ function install_pip {
 
 	echo ">>> Installing pip"
 	download $url $output -check $false
-	& $Env:PYTHON_DIR\python -E $output -q -t $Env:PYTHON_DIR
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $output -q -t $Env:PYTHON_DIR
 	$ret = $lastExitCode
 
 	# Cleanup
@@ -203,7 +211,7 @@ function install_pyqt {
 	Set-Location "$Env:STORAGE_DIR\$fname"
 
 	echo ">>> [PyQt $Env:PYQT_VERSION] Configuring"
-	& $Env:PYTHON_DIR\python -E -s configure-ng.py `
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT configure-ng.py `
 		--confirm-license `
 		--no-designer-plugin `
 		--no-docstrings `
@@ -218,13 +226,13 @@ function install_pyqt {
 	}
 
 	echo ">>> [PyQt $Env:PYQT_VERSION] Compiling"
-	& mingw32-make --quiet -j 2
+	& mingw32-make -j 2
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
 
 	echo ">>> [PyQt $Env:PYQT_VERSION] Installing"
-	& mingw32-make --quiet install
+	& mingw32-make install
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -261,7 +269,7 @@ function install_sip {
 	Set-Location "$Env:STORAGE_DIR\$fname"
 
 	echo ">>> [SIP $Env:SIP_VERSION] Configuring"
-	& $Env:PYTHON_DIR\python -E -s configure.py `
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT configure.py `
 		--no-stubs `
 		--platform="win32-g++"
 
@@ -270,13 +278,13 @@ function install_sip {
 	}
 
 	echo ">>> [SIP $Env:SIP_VERSION] Compiling"
-	& mingw32-make --quiet -j 2
+	& mingw32-make -j 2
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
 
 	echo ">>> [SIP $Env:SIP_VERSION] Installing"
-	& mingw32-make --quiet install
+	& mingw32-make install
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -286,11 +294,11 @@ function install_sip {
 
 function launch_tests {
 	# Launch the tests suite
-	& $Env:PYTHON_DIR\python -E -m pip install -q -t $Env:PYTHON_DIR -r requirements-tests.txt
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python -E -m pytest $Env:SPECIFIC_TEST `
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT -m pytest $Env:SPECIFIC_TEST `
 		--showlocals `
 		--exitfirst `
 		--strict `

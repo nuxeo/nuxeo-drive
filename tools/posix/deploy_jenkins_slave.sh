@@ -13,7 +13,7 @@
 
 # Global variables
 PYTHON="python -E -s"
-PIP="${PYTHON} -m pip install -q --upgrade"
+PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 
 build_esky() {
     echo ">>> Building the release package"
@@ -132,7 +132,7 @@ download() {
         fi
         echo ">>> [$try/5] Downloading $url"
         echo "                   to $output"
-        curl --silent -L "$url" -o "$output" || true
+        curl -L "$url" -o "$output" || true
         try=$(( ${try} + 1 ))
         sleep 5
     done
@@ -192,7 +192,7 @@ install_pyenv() {
 
     if ! hash pyenv 2>/dev/null; then
         echo ">>> [pyenv] Downloading and installing"
-        curl --silent -L "${url}" | bash
+        curl -L "${url}" | bash
     fi
 
     echo ">>> [pyenv] Initializing"
@@ -234,10 +234,10 @@ install_pyqt() {
         --no-tools
 
     echo ">>> [PyQt ${version}] Compiling"
-    make --quiet -j 4
+    make -j 4
 
     echo ">>> [PyQt ${version}] Installing"
-    make --quiet install
+    make install
 
     cd "${WORKSPACE_DRIVE}"
 }
@@ -272,10 +272,10 @@ install_sip() {
     ${PYTHON} configure.py --no-stubs
 
     echo ">>> [SIP ${version}] Compiling"
-    make --quiet -j 4
+    make -j 4
 
     echo ">>> [SIP ${version}] Installing"
-    make --quiet install
+    make install
 
     cd "${WORKSPACE_DRIVE}"
 }
