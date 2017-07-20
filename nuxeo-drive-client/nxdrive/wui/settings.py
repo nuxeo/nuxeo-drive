@@ -1,6 +1,7 @@
 # coding: utf-8
 import sys
 import urllib2
+import urlparse
 from collections import namedtuple
 from urllib import urlencode
 
@@ -36,9 +37,9 @@ class WebSettingsApi(WebDriveApi):
         super(WebSettingsApi, self).__init__(application, dlg)
         # Attributes for the web authentication feedback
         self.openAuthenticationDialog.connect(self._open_authentication_dialog)
-        self._new_local_folder = ""
-        self._account_creation_error = ""
-        self._token_update_error = ""
+        self._new_local_folder = ''
+        self._account_creation_error = ''
+        self._token_update_error = ''
 
     @QtCore.pyqtSlot(result=str)
     def get_default_section(self):
@@ -67,11 +68,15 @@ class WebSettingsApi(WebDriveApi):
         if engine:
             self._application.show_filters(engine)
 
-    def _bind_server(self, local_folder, url, username, password, name, start_engine=True, check_fs=True, token=None):
+    def _bind_server(self, local_folder, url, username, password, name, **kwargs):
+        # Remove any parameters from the original URL
+        parts = urlparse.urlsplit(str(url))
+        url = urlparse.urlunsplit(
+            (parts.scheme, parts.netloc, parts.path, '', parts.fragment))
+
+        # On first time login convert QString(having special characters) to str
         if isinstance(local_folder, QtCore.QString):
             local_folder = str(local_folder.toUtf8()).decode('utf-8')
-        url = str(url)
-        # On first time login convert QString(having special characters) to str
         if username and isinstance(username, QtCore.QString):
             username = unicode(username).encode('utf-8')
         if password and isinstance(password, QtCore.QString):
@@ -80,96 +85,90 @@ class WebSettingsApi(WebDriveApi):
             name = None
         elif name and isinstance(name, QtCore.QString):
             name = unicode(name).encode('utf-8')
-        binder = namedtuple('binder', ['username', 'password', 'token', 'url', 'no_check', 'no_fscheck'])
+        binder = namedtuple('binder', ['username', 'password', 'token', 'url',
+                                       'no_check', 'no_fscheck'])
         binder.username = username
         binder.password = password
-        binder.token = token
+        binder.token = kwargs.get('token')
         binder.no_check = False
-        binder.no_fscheck = not check_fs
+        binder.no_fscheck = not kwargs.get('check_fs', True)
         binder.url = url
         log.debug("Binder is : %s/%s", binder.url, binder.username)
-        self._manager.bind_engine(self._manager._get_default_server_type(), local_folder, name, binder,
-                                  starts=start_engine)
-        return ""
+        self._manager.bind_engine(
+            self._manager._get_default_server_type(), local_folder, name,
+            binder, starts=kwargs.get('start_engine', True))
+        return ''
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=QtCore.QObject)
-    def bind_server_async(self, local_folder, url, username, password, name, check_fs=True, token=None):
-        return Promise(self.bind_server, local_folder, url, username, password, name, check_fs, token)
+    def bind_server_async(self, *args, **kwargs):
+        # Check bind_server signature for arguments.
+        return Promise(self.bind_server, *args, **kwargs)
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
-    def bind_server(self, local_folder, url, username, password, name, check_fs=True, token=None):
+    def bind_server(self, local_folder, url, username, password, name, **kwargs):
+        log.debug('URL: %r', url)
         try:
-            # Allow to override for other exception handling
-            log.debug("URL: '%s'", url)
-            return self._bind_server(local_folder, url, username, password, name, check_fs=check_fs, token=token)
+            return self._bind_server(local_folder, url, username, password, name, **kwargs)
         except RootAlreadyBindWithDifferentAccount as e:
             # Ask for the user
-            values = dict()
-            values["username"] = e.get_username()
-            values["url"] = e.get_url()
-            msgbox = QtGui.QMessageBox(QtGui.QMessageBox.Question, self._manager.get_appname(),
-                                       Translator.get("ROOT_USED_WITH_OTHER_BINDING", values),
-                                       QtGui.QMessageBox.NoButton, self._dialog)
-            msgbox.addButton(Translator.get("ROOT_USED_CONTINUE"), QtGui.QMessageBox.AcceptRole)
-            cancel = msgbox.addButton(Translator.get("ROOT_USED_CANCEL"), QtGui.QMessageBox.RejectRole)
+            values = dict(username=e.get_username(), url=e.get_url())
+            msgbox = QtGui.QMessageBox(
+                QtGui.QMessageBox.Question, self._manager.get_appname(),
+                Translator.get('ROOT_USED_WITH_OTHER_BINDING', values),
+                QtGui.QMessageBox.NoButton, self._dialog)
+            msgbox.addButton(Translator.get('ROOT_USED_CONTINUE'),
+                             QtGui.QMessageBox.AcceptRole)
+            cancel = msgbox.addButton(Translator.get('ROOT_USED_CANCEL'),
+                                      QtGui.QMessageBox.RejectRole)
             msgbox.exec_()
             if msgbox.clickedButton() == cancel:
-                return "FOLDER_USED"
-            return self.bind_server(local_folder, url, username, password, name, check_fs=False, token=token)
+                return 'FOLDER_USED'
+            return self.bind_server(local_folder, url, username, password,
+                                    name, **kwargs)
         except NotFound:
-            return "FOLDER_DOES_NOT_EXISTS"
+            return 'FOLDER_DOES_NOT_EXISTS'
         except AddonNotInstalled:
-            return "ADDON_NOT_INSTALLED"
+            return 'ADDON_NOT_INSTALLED'
         except InvalidDriveException:
-            return "INVALID_PARTITION"
+            return 'INVALID_PARTITION'
         except Unauthorized:
-            return "UNAUTHORIZED"
+            return 'UNAUTHORIZED'
         except FolderAlreadyUsed:
-            return "FOLDER_USED"
+            return 'FOLDER_USED'
         except urllib2.HTTPError as e:
-            if isinstance(url, QtCore.QString):
-                url = str(url)
-            if e.code == 404 and not url.endswith("nuxeo/"):
-                if not url.endswith("/"):
-                    url += "/"
-                return self.bind_server(local_folder, url + "nuxeo/", username, password, name, check_fs, token)
-            return "CONNECTION_ERROR"
+            return 'CONNECTION_ERROR'
         except urllib2.URLError as e:
             if e.errno == 61:
-                return "CONNECTION_REFUSED"
-            return "CONNECTION_ERROR"
+                return 'CONNECTION_REFUSED'
+            return 'CONNECTION_ERROR'
         except:
             log.exception('Unexpected error')
             # Map error here
-            return "CONNECTION_UNKNOWN"
+            return 'CONNECTION_UNKNOWN'
 
     @QtCore.pyqtSlot(str, str, str, result=QtCore.QObject)
-    def web_authentication_async(self, local_folder, server_url, engine_name):
-        return Promise(self.web_authentication, local_folder, server_url, engine_name)
+    def web_authentication_async(self, *args):
+        # Check web_authentication signature for arguments.
+        return Promise(self.web_authentication, *args)
 
     @QtCore.pyqtSlot(str, str, str, result=str)
     def web_authentication(self, local_folder, server_url, engine_name):
+        # Handle the server URL
+        parts = urlparse.urlsplit(str(server_url))
+        path = parts.path.rstrip('/') + '/'
+        server_url = urlparse.urlunsplit(
+            (parts.scheme, parts.netloc, path, parts.query, parts.fragment))
+
+        # Handle the engine
+        engine_type = parts.fragment or self._manager._get_default_server_type()
+
         try:
             # Handle local folder
             local_folder = str(local_folder.toUtf8()).decode('utf-8')
             self._check_local_folder(local_folder)
 
-            # Handle server URL
-            server_url = str(server_url)
-            engine_type = self._manager._get_default_server_type()
-            if '#' in server_url:
-                info = server_url.split('#')
-                server_url = info[0]
-                engine_type = info[1]
-            if not server_url.endswith('/'):
-                server_url += '/'
-
             # Connect to startup page
             status = self._connect_startup_page(server_url)
-            if status == 404 and not server_url.endswith("nuxeo/"):
-                status = self._connect_startup_page(server_url + "nuxeo/")
-                if status < 400 or status in (401, 500, 503):
-                    server_url = server_url + "nuxeo/"
             # Server will send a 401 in case of anonymous user configuration
             # Should maybe only check for 404
             if status < 400 or status in (401, 500, 503):
@@ -184,15 +183,15 @@ class WebSettingsApi(WebDriveApi):
                     'engine_type': engine_type
                 }
                 url = self._get_authentication_url(server_url)
-                log.debug('Web authentication is available on server %s, opening login window with URL %s',
-                          server_url, url)
+                log.debug('Web authentication is available on server %s, '
+                          'opening login window with URL %s', server_url, url)
                 self.openAuthenticationDialog.emit(url, callback_params)
-                return "true"
+                return 'true'
             else:
                 # Startup page is not available
-                log.debug('Web authentication not available on server %s, falling back on basic authentication',
-                          server_url)
-                return "false"
+                log.debug('Web authentication not available on server %s, '
+                          'falling back on basic authentication', server_url)
+                return 'false'
         except FolderAlreadyUsed:
             return 'FOLDER_USED'
         except StartupPageConnectionError:
@@ -207,17 +206,32 @@ class WebSettingsApi(WebDriveApi):
             raise FolderAlreadyUsed()
 
     def _connect_startup_page(self, server_url):
-        url = server_url + DRIVE_STARTUP_PAGE
+        # Take into account URL parameters
+        parts = urlparse.urlsplit(server_url)
+        url = urlparse.urlunsplit((parts.scheme,
+                                   parts.netloc,
+                                   parts.path + DRIVE_STARTUP_PAGE,
+                                   parts.query,
+                                   parts.fragment))
+
+        # Remove any parameters from the original URL
+        server_url = urlparse.urlunsplit(
+            (parts.scheme, parts.netloc, parts.path, '', parts.fragment))
+
         try:
-            proxy_handler = get_proxy_handler(self._manager.get_proxies(server_url))
+            proxy_handler = get_proxy_handler(
+                self._manager.get_proxies(server_url))
             opener = urllib2.build_opener(proxy_handler)
-            log.debug('Proxy configuration for startup page connection: %s, effective proxy list: %r',
-                      self._manager.get_proxy_settings().config, get_opener_proxies(opener))
+            log.debug('Proxy configuration for startup page connection: %s,'
+                      ' effective proxy list: %r',
+                      self._manager.get_proxy_settings().config,
+                      get_opener_proxies(opener))
             headers = {
                 'X-Application-Name': self._manager.get_appname(),
                 'X-Device-Id': self._manager.get_device_id(),
                 'X-Client-Version': self._manager.get_version(),
-                'User-Agent': self._manager.get_appname() + "/" + self._manager.get_version(),
+                'User-Agent': (self._manager.get_appname()
+                               + '/' + self._manager.get_version()),
             }
             req = urllib2.Request(url, headers=headers)
             response = opener.open(req, timeout=STARTUP_PAGE_CONNECTION_TIMEOUT)
@@ -231,7 +245,8 @@ class WebSettingsApi(WebDriveApi):
         log.debug('Status code for %s = %d', url, status)
         return status
 
-    def update_token(self, engine, token):
+    @staticmethod
+    def update_token(engine, token):
         engine.update_token(token)
 
     @QtCore.pyqtSlot(str, result=str)
@@ -241,7 +256,8 @@ class WebSettingsApi(WebDriveApi):
             if engine is None:
                 return 'CONNECTION_UNKNOWN'
             server_url = engine.get_server_url()
-            url = self._get_authentication_url(server_url) + '&' + urlencode({'updateToken': True})
+            params = urlencode({'updateToken': True})
+            url = self._get_authentication_url(server_url) + '&' + params
             callback_params = {
                 'engine': engine,
             }
@@ -256,7 +272,8 @@ class WebSettingsApi(WebDriveApi):
     @QtCore.pyqtSlot(str, object)
     def _open_authentication_dialog(self, url, callback_params):
         api = WebAuthenticationApi(self, callback_params)
-        dialog = WebAuthenticationDialog(QtCore.QCoreApplication.instance(), str(url), api)
+        dialog = WebAuthenticationDialog(QtCore.QCoreApplication.instance(),
+                                         str(url), api)
         dialog.setWindowModality(QtCore.Qt.NonModal)
         dialog.show()
 
@@ -271,7 +288,17 @@ class WebSettingsApi(WebDriveApi):
             token_params['deviceDescription'] = device_description
         # Force login in case of anonymous user configuration
         token_params['forceAnonymousLogin'] = 'true'
-        return server_url + DRIVE_STARTUP_PAGE + '?' + urlencode(token_params)
+
+        # Handle URL parameters
+        parts = urlparse.urlsplit(server_url)
+        path = parts.path + DRIVE_STARTUP_PAGE
+        params = (parts.query + '&' + urlencode(token_params)
+                  if parts.query
+                  else urlencode(token_params))
+        url = urlparse.urlunsplit(
+            (parts.scheme, parts.netloc, path, params, parts.fragment))
+
+        return url
 
     @QtCore.pyqtSlot(result=str)
     def get_new_local_folder(self):
@@ -314,8 +341,9 @@ class WebSettingsApi(WebDriveApi):
         return self._json(result)
 
     @QtCore.pyqtSlot(str, str, bool, str, str, str, result=QtCore.QObject)
-    def set_proxy_settings_async(self, config, server, authenticated, username, password, pac_url):
-        return Promise(self.set_proxy_settings, config, server, authenticated, username, password, pac_url)
+    def set_proxy_settings_async(self, *args):
+        # Check set_proxy_settings signature for arguments.
+        return Promise(self.set_proxy_settings, *args)
 
     @QtCore.pyqtSlot(str, str, bool, str, str, str, result=str)
     def set_proxy_settings(self, config, server, authenticated, username, password, pac_url):
@@ -339,8 +367,8 @@ class WebSettingsDialog(WebDialog):
             api = WebSettingsApi(application)
 
         super(WebSettingsDialog, self).__init__(
-            application, "settings.html", api=api,
-            title=Translator.get("SETTINGS_WINDOW_TITLE"))
+            application, 'settings.html', api=api,
+            title=Translator.get('SETTINGS_WINDOW_TITLE'))
 
     def set_section(self, section):
         self._section = section
