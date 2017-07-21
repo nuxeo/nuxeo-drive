@@ -549,8 +549,8 @@ class LocalWatcher(EngineWorker):
         log.debug('Watching FS modification on : %s', self.client.base_folder)
 
         # Filter out all ignored suffixes. It will handle custom ones too.
-        ignore_patterns = list(['*' + DOWNLOAD_TMP_FILE_SUFFIX])
-        ignore_patterns.extend('*' + p for p in self.client.ignored_suffixes)
+        ignore_patterns = list(['*' + suffixe
+                                for suffixe in self.client.ignored_suffixes])
 
         self._event_handler = DriveFSEventHandler(
             self, ignore_patterns=ignore_patterns)

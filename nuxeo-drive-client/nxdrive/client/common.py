@@ -94,11 +94,16 @@ DEFAULT_IGNORED_SUFFIXES = tuple({
     '.bak',  # temporary backup files
     '.crdownload',  # partially downloaded files by browsers
     '.lock',  # some process use file locks
+    '.nxpart',  # DOWNLOAD_TMP_FILE_SUFFIX
     '.part',  # partially downloaded files by browsers
     '.partial',  # partially downloaded files by browsers
     '.swp',  # vim swap files
     '.tmp',  # temporary files (MS Office and others)
     '~',  # editor buffers
+
+    # AutoCAD (NXDRIVE-917)
+    '.dwl',
+    '.dwl2',
 })
 
 # Default buffer size for file upload / download and digest computation
