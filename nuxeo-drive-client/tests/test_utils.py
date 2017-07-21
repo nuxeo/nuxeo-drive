@@ -1,10 +1,11 @@
-import sys
+# coding: utf-8
 import hashlib
+import sys
 import unittest
-from nxdrive.utils import guess_mime_type
-from nxdrive.utils import guess_digest_algorithm
-from nxdrive.utils import is_office_temp_file
+
 from nxdrive.manager import ProxySettings
+from nxdrive.utils import guess_digest_algorithm, guess_mime_type, \
+    is_generated_tmp_file
 
 
 class TestUtils(unittest.TestCase):
@@ -57,43 +58,31 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(proxy.to_url(), 'https://user:password@localhost:3129')
         self.assertEqual(proxy.to_url(False), 'https://localhost:3129')
 
-    def test_office_temp_file(self):
+    def test_generated_tempory_file(self):
         # Normal
-        self.assertEqual(is_office_temp_file("plop"), False)
+        self.assertFalse(is_generated_tmp_file('READE'))
 
-        # Powerpoint temp file
-        self.assertEqual(is_office_temp_file("ppt.tmp"), False)
-        self.assertEqual(is_office_temp_file("pptED23.tmp"), True)
-        self.assertEqual(is_office_temp_file("pptzDER.tmp"), False)
-        self.assertEqual(is_office_temp_file("ppt1DER.tmp"), False)
-        self.assertEqual(is_office_temp_file("ppt21AD.tmp"), True)
-        # Powerpoint temp file by Office 365 / 2013
-        self.assertEqual(is_office_temp_file("ppt1.tmp"), True)
-        self.assertEqual(is_office_temp_file("ppt23F.tmp"), True)
+        # AutoCAD
+        self.assertTrue(is_generated_tmp_file('atmp9716'))
+        self.assertTrue(is_generated_tmp_file('7151_CART.dwl'))
+        self.assertTrue(is_generated_tmp_file('7151_CART.dwl2'))
+        self.assertFalse(is_generated_tmp_file('7151_CART.dwg'))
 
-        # Office temp file 2007+
-        self.assertEqual(is_office_temp_file("A239FDCA"), True)
-        self.assertEqual(is_office_temp_file("A2Z9FDCA"), False)
-        self.assertEqual(is_office_temp_file("12345678"), True)
-        self.assertEqual(is_office_temp_file("9ABCDEF0"), True)
-        self.assertEqual(is_office_temp_file("A239FDZA"), False)
-        self.assertEqual(is_office_temp_file("A239FDCA.tmp"), True)
-        self.assertEqual(is_office_temp_file("A2Z9FDCA.tmp"), False)
-        self.assertEqual(is_office_temp_file("12345678.tmp"), True)
-        self.assertEqual(is_office_temp_file("9ABCDEF0.tmp"), True)
-        self.assertEqual(is_office_temp_file("A239FDZA.tmp"), False)
-        self.assertEqual(is_office_temp_file("A2D9FDCA1"), False)
-        self.assertEqual(is_office_temp_file("A2D9FDCA1.tmp"), False)
-        self.assertEqual(is_office_temp_file("9ABCDEF0.tep"), False)
-        # Office temp file 2013
-        self.assertEqual(is_office_temp_file("C199633.tmp"), True)
-        self.assertEqual(is_office_temp_file("BCD574.tmp"), True)
+        # Any temporary file
+        self.assertTrue(is_generated_tmp_file('Book1.bak'))
+        self.assertTrue(is_generated_tmp_file('pptED23.tmp'))
 
         # Office 97
-        self.assertEqual(is_office_temp_file("~A2D9FDCA1.tmp"), True)
-        self.assertEqual(is_office_temp_file("~Whatever is here.tmp"), True)
-        self.assertEqual(is_office_temp_file("~A2D9FDCA1.tm"), False)
-        self.assertEqual(is_office_temp_file("Whatever is here.tmp"), False)
+        self.assertFalse(is_generated_tmp_file('~A2D9FDCA1.tm'))
+
+        # Office 2007+
+        self.assertTrue(is_generated_tmp_file('A239FDCA'))
+        self.assertFalse(is_generated_tmp_file('A2Z9FDCA'))
+        self.assertTrue(is_generated_tmp_file('12345678'))
+        self.assertTrue(is_generated_tmp_file('9ABCDEF0'))
+        self.assertFalse(is_generated_tmp_file('A239FDZA'))
+        self.assertFalse(is_generated_tmp_file('A2D9FDCA1'))
+        self.assertFalse(is_generated_tmp_file('9ABCDEF0.tep'))
 
     def test_guess_mime_type(self):
 

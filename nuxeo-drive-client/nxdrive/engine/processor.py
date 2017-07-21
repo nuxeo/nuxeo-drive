@@ -16,7 +16,7 @@ from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, PairInterrupt, ThreadInterrupt
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.utils import current_milli_time, is_office_temp_file
+from nxdrive.utils import current_milli_time, is_generated_tmp_file
 
 log = get_logger(__name__)
 
@@ -412,7 +412,7 @@ class Processor(EngineWorker):
         """
         name = os.path.basename(doc_pair.local_path)
         if (not doc_pair.folderish
-                and is_office_temp_file(name)
+                and is_generated_tmp_file(name)
                 and doc_pair.error_count == 0):
             # Might be an Office temp file delay it by 60s
             # Save the error_count to not ignore next time

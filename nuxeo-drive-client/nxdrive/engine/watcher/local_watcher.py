@@ -18,7 +18,7 @@ from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.utils import current_milli_time, is_office_temp_file
+from nxdrive.utils import current_milli_time, is_generated_tmp_file
 
 log = get_logger(__name__)
 
@@ -615,7 +615,7 @@ class LocalWatcher(EngineWorker):
                     os.path.basename(rel_path).startswith(LocalClient.CASE_RENAME_PREFIX):
                 log.debug('Ignoring case rename %s to %s', evt.src_path, evt.dest_path)
                 return
-            if is_office_temp_file(dest_filename):
+            if is_generated_tmp_file(dest_filename):
                 log.debug('Ignoring Office tmp file: %r', evt.dest_path)
                 return
             src_path = normalize_event_filename(evt.dest_path)
@@ -812,8 +812,10 @@ class LocalWatcher(EngineWorker):
             parent_rel_path = self.client.get_path(parent_path)
             # Don't care about ignored file, unless it is moved
             if evt.event_type != 'moved' and self.client.is_ignored(parent_rel_path, file_name):
+                log.debug('Ignoring action on banned file: %r', evt)
                 return
             if self.client.is_temp_file(file_name):
+                log.debug('Ignoring temporary generated banned file: %r', evt)
                 return
 
             doc_pair = self._dao.get_state_from_local(rel_path)
@@ -821,7 +823,8 @@ class LocalWatcher(EngineWorker):
                 if doc_pair.pair_state == 'unsynchronized':
                     log.debug("Ignoring %s as marked unsynchronized", doc_pair.local_path)
                     if (evt.event_type == 'deleted'
-                        or evt.event_type == 'moved' and not is_office_temp_file(os.path.basename(evt.dest_path))):
+                        or evt.event_type == 'moved' and not is_generated_tmp_file(
+                                os.path.basename(evt.dest_path))):
                         log.debug('Removing pair state for deleted or moved event: %r', doc_pair)
                         self._dao.remove_state(doc_pair)
                     return
@@ -833,6 +836,7 @@ class LocalWatcher(EngineWorker):
             if evt.event_type == 'moved':
                 dest_filename = os.path.basename(evt.dest_path)
                 if self.client.is_ignored(parent_rel_path, dest_filename):
+                    log.debug('Ignoring move on banned file: %r', evt)
                     return
                 src_path = normalize_event_filename(evt.dest_path)
                 rel_path = self.client.get_path(src_path)

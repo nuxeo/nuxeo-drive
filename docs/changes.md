@@ -2,6 +2,14 @@
 Release date: `2017-??-??`
 
 #### Minor changes
+- Ignore .nxpart file by default
+- Jenkins: use TWANG for packages job
+
+
+# 2.4.8
+Release date: `2017-07-12`
+
+#### Minor changes
 - Packaging: Set required versions for `appdirs` (1.4.3) and `setuptools` (36.0.1)
 - Jenkins: Removed packages job timeout
 - Jenkins: Fail early if the build is unstable on functional tests job
