@@ -45,9 +45,16 @@ properties([
 ])
 
 // Jenkins slaves we will build on
-slaves = ['OSXSLAVE', 'SLAVE', 'WINSLAVE']
+// Note 2017-07-21
+//      TWANG is th eolder macOS version we have.
+//      Until we change the minimum macOS version from 10.5 to 10.9,
+//      we have to keep that slave.
+//      Then, OSXSLAVE-DRIVE will be the good value.
+// Note 2017-07-21:
+//      Later, when we will be in Python3/Qt5, the good value will be OSXSLAVE.
+slaves = ['TWANG', 'SLAVE', 'WINSLAVE']
 labels = [
-    'OSXSLAVE': 'macOS',
+    'TWANG': 'macOS',
     'SLAVE': 'GNU/Linux',
     'WINSLAVE': 'Windows'
 ]
