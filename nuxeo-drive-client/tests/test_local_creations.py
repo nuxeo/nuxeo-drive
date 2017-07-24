@@ -76,7 +76,7 @@ class TestLocalCreations(UnitTestCase):
         local = self.local_client_1
         engine = self.engine_1
 
-        # Create an innocent file, lower case
+        # Create an innocent folder, lower case
         folder = 'abc'
         remote.make_folder('/', folder)
         engine.start()

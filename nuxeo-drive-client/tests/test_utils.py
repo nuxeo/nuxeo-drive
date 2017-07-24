@@ -60,27 +60,25 @@ class TestUtils(unittest.TestCase):
 
     def test_generated_tempory_file(self):
         # Normal
-        self.assertFalse(is_generated_tmp_file('README'))
+        self.assertEqual(is_generated_tmp_file('README'), (False, None))
 
         # Any temporary file
-        self.assertTrue(is_generated_tmp_file('Book1.bak'))
-        self.assertTrue(is_generated_tmp_file('pptED23.tmp'))
-        self.assertFalse(is_generated_tmp_file('9ABCDEF0.tep'))
+        self.assertEqual(is_generated_tmp_file('Book1.bak'), (True, False))
+        self.assertEqual(is_generated_tmp_file('pptED23.tmp'), (True, False))
+        self.assertEqual(is_generated_tmp_file('9ABCDEF0.tep'), (False, None))
 
         # AutoCAD
-        self.assertTrue(is_generated_tmp_file('atmp9716'))
-        self.assertTrue(is_generated_tmp_file('7151_CART.dwl'))
-        self.assertTrue(is_generated_tmp_file('7151_CART.dwl2'))
-        self.assertFalse(is_generated_tmp_file('7151_CART.dwg'))
+        self.assertEqual(is_generated_tmp_file('atmp9716'), (True, False))
+        self.assertEqual(is_generated_tmp_file('7151_CART.dwl'), (True, False))
+        self.assertEqual(is_generated_tmp_file('7151_CART.dwl2'), (True, False))
+        self.assertEqual(is_generated_tmp_file('7151_CART.dwg'), (False, None))
 
         # Microsoft Office
-        self.assertTrue(is_generated_tmp_file('A239FDCA'))
-        self.assertFalse(is_generated_tmp_file('A2Z9FDCA'))
-        self.assertTrue(is_generated_tmp_file('12345678'))
-        self.assertTrue(is_generated_tmp_file('9ABCDEF0'))
-        self.assertFalse(is_generated_tmp_file('A239FDZA'))
-        self.assertFalse(is_generated_tmp_file('A2D9FDCA1'))
-        self.assertFalse(is_generated_tmp_file('~A2D9FDCA1.tm'))
+        self.assertEqual(is_generated_tmp_file('A239FDCA'), (True, True))
+        self.assertEqual(is_generated_tmp_file('A2Z9FDCA'), (False, None))
+        self.assertEqual(is_generated_tmp_file('A239FDZA'), (False, None))
+        self.assertEqual(is_generated_tmp_file('A2D9FDCA1'), (False, None))
+        self.assertEqual(is_generated_tmp_file('~A2D9FDCA1.tm'), (False, None))
 
     def test_guess_mime_type(self):
         # Text

@@ -616,7 +616,8 @@ class LocalWatcher(EngineWorker):
                 log.debug('Ignoring case rename %s to %s',
                           evt.src_path, evt.dest_path)
                 return
-            if is_generated_tmp_file(dest_filename):
+            ignore, _ = is_generated_tmp_file(dest_filename)
+            if ignore:
                 log.debug('Ignoring generated temporary file: %r',
                           evt.dest_path)
                 return
@@ -823,12 +824,14 @@ class LocalWatcher(EngineWorker):
             doc_pair = self._dao.get_state_from_local(rel_path)
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
-                    log.debug("Ignoring %s as marked unsynchronized", doc_pair.local_path)
-                    if (evt.event_type == 'deleted'
-                        or evt.event_type == 'moved' and not is_generated_tmp_file(
-                                os.path.basename(evt.dest_path))):
-                        log.debug('Removing pair state for deleted or moved event: %r', doc_pair)
-                        self._dao.remove_state(doc_pair)
+                    log.debug('Ignoring %s as marked unsynchronized',
+                              doc_pair.local_path)
+                    if evt.event_type in ('deleted', 'moved'):
+                        ignore, _ = is_generated_tmp_file(os.path.basename(evt.dest_path))
+                        if not ignore:
+                            log.debug('Removing pair state for %s event: %r',
+                                      evt.event_type, doc_pair)
+                            self._dao.remove_state(doc_pair)
                     return
                 self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
                 return

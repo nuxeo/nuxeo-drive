@@ -46,7 +46,7 @@ properties([
 
 // Jenkins slaves we will build on
 // Note 2017-07-21
-//      TWANG is th eolder macOS version we have.
+//      TWANG is the older macOS version we have.
 //      Until we change the minimum macOS version from 10.5 to 10.9,
 //      we have to keep that slave.
 //      Then, OSXSLAVE-DRIVE will be the good value.
