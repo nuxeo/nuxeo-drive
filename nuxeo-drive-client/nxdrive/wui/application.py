@@ -25,12 +25,12 @@ QtGui, QApplication, QObject = None, object, object
 try:
     from PyQt4 import QtGui
     from PyQt4 import QtCore
-    QApplication = QtGui.QApplication
-    QObject = QtCore.QObject
-    log.debug("Qt / PyQt4 successfully imported")
 except ImportError:
-    log.warning("Qt / PyQt4 is not installed: GUI is disabled")
-    pass
+    log.warning('Qt / PyQt4 is not installed: GUI is disabled')
+else:
+    from PyQt4.QtGui import QApplication
+    from PyQt4.QtCore import QObject
+    log.debug('Qt / PyQt4 successfully imported')
 
 
 class BindingInfo(object):
