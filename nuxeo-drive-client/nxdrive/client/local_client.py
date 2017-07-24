@@ -502,11 +502,11 @@ FolderType=Generic
 
         # NXDRIVE-655: need to check every parent if they are ignored
         result = False
-        path = parent_ref
-        if path != '/':
-            file_name = os.path.basename(path)
-            path = os.path.dirname(path)
-            result = self.is_ignored(path, file_name)
+        if parent_ref != '/':
+            file_name = os.path.basename(parent_ref)
+            parent_ref = os.path.dirname(parent_ref)
+            result = self.is_ignored(parent_ref, file_name)
+
         return result
 
     @staticmethod

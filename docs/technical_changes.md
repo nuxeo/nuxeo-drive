@@ -6,6 +6,7 @@
 - Removed `config`, `server`, `authenticated`, username, password and pac_url from `set_proxy_settings_async` method in `WebSettingsApi` class. Use `args` instead.
 - Changed `update_token` method to `static` in `WebSettingsApi` class
 - Changed `is_office_temp_file()` function to `is_generated_tmp_file()` in utils.py
+- Added `filtered()` method to `RemoteWatcher` class.
 
 # 2.4.8
 - Removed `size`, `digest_func`, `check_suspended` and `remote_ref` arguments from `FileInfo` class. Use `kwargs.get(arg, default)` instead.

@@ -60,7 +60,12 @@ class TestUtils(unittest.TestCase):
 
     def test_generated_tempory_file(self):
         # Normal
-        self.assertFalse(is_generated_tmp_file('READE'))
+        self.assertFalse(is_generated_tmp_file('README'))
+
+        # Any temporary file
+        self.assertTrue(is_generated_tmp_file('Book1.bak'))
+        self.assertTrue(is_generated_tmp_file('pptED23.tmp'))
+        self.assertFalse(is_generated_tmp_file('9ABCDEF0.tep'))
 
         # AutoCAD
         self.assertTrue(is_generated_tmp_file('atmp9716'))
@@ -68,24 +73,16 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(is_generated_tmp_file('7151_CART.dwl2'))
         self.assertFalse(is_generated_tmp_file('7151_CART.dwg'))
 
-        # Any temporary file
-        self.assertTrue(is_generated_tmp_file('Book1.bak'))
-        self.assertTrue(is_generated_tmp_file('pptED23.tmp'))
-
-        # Office 97
-        self.assertFalse(is_generated_tmp_file('~A2D9FDCA1.tm'))
-
-        # Office 2007+
+        # Microsoft Office
         self.assertTrue(is_generated_tmp_file('A239FDCA'))
         self.assertFalse(is_generated_tmp_file('A2Z9FDCA'))
         self.assertTrue(is_generated_tmp_file('12345678'))
         self.assertTrue(is_generated_tmp_file('9ABCDEF0'))
         self.assertFalse(is_generated_tmp_file('A239FDZA'))
         self.assertFalse(is_generated_tmp_file('A2D9FDCA1'))
-        self.assertFalse(is_generated_tmp_file('9ABCDEF0.tep'))
+        self.assertFalse(is_generated_tmp_file('~A2D9FDCA1.tm'))
 
     def test_guess_mime_type(self):
-
         # Text
         self.assertEqual(guess_mime_type('text.txt'), 'text/plain')
         self.assertEqual(guess_mime_type('text.html'), 'text/html')
@@ -185,15 +182,15 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(guess_mime_type('office.odp'), 'application/vnd.oasis.opendocument.presentation')
 
     def test_guess_digest_algorithm(self):
-        s = 'joe'
-        md5_digest = hashlib.md5(s).hexdigest()
+        md5_digest = hashlib.md5('joe').hexdigest()
         self.assertEqual(guess_digest_algorithm(md5_digest), 'md5')
-        sha1_digest = hashlib.sha1(s).hexdigest()
+        sha1_digest = hashlib.sha1('joe').hexdigest()
         self.assertEqual(guess_digest_algorithm(sha1_digest), 'sha1')
         # For now only md5 and sha1 are supported
-        sha256_digest = hashlib.sha256(s).hexdigest()
+        sha256_digest = hashlib.sha256('joe').hexdigest()
         try:
             guess_digest_algorithm(sha256_digest)
-            self.fail('Other algorithms than md5 and sha1 should not be supported for now')
+            self.fail('Other algorithms than MD5 and SHA1 should not'
+                      ' be supported for now')
         except:
             pass

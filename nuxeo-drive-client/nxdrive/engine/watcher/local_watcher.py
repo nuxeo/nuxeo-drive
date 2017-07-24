@@ -613,10 +613,12 @@ class LocalWatcher(EngineWorker):
             dest_filename = os.path.basename(evt.dest_path)
             if dest_filename.startswith(LocalClient.CASE_RENAME_PREFIX) or \
                     os.path.basename(rel_path).startswith(LocalClient.CASE_RENAME_PREFIX):
-                log.debug('Ignoring case rename %s to %s', evt.src_path, evt.dest_path)
+                log.debug('Ignoring case rename %s to %s',
+                          evt.src_path, evt.dest_path)
                 return
             if is_generated_tmp_file(dest_filename):
-                log.debug('Ignoring Office tmp file: %r', evt.dest_path)
+                log.debug('Ignoring generated temporary file: %r',
+                          evt.dest_path)
                 return
             src_path = normalize_event_filename(evt.dest_path)
             rel_path = self.client.get_path(src_path)
@@ -815,7 +817,7 @@ class LocalWatcher(EngineWorker):
                 log.debug('Ignoring action on banned file: %r', evt)
                 return
             if self.client.is_temp_file(file_name):
-                log.debug('Ignoring temporary generated banned file: %r', evt)
+                log.debug('Ignoring temporary file: %r', evt)
                 return
 
             doc_pair = self._dao.get_state_from_local(rel_path)
