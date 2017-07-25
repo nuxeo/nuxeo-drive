@@ -72,7 +72,16 @@ class DebugDriveApi(WebDriveApi):
         return result
 
     @QtCore.pyqtSlot(str, str, str, str, str, int, str)
-    def send_notification(self, notification_type, engine_uid, level, title, description, flags, action):
+    def send_notification(
+        self,
+        notification_type,
+        engine_uid,
+        level,
+        title,
+        description,
+        flags,
+        action
+    ):
         from nxdrive.notification import Notification
         try:
             notification = Notification(
@@ -81,13 +90,13 @@ class DebugDriveApi(WebDriveApi):
                 flags=flags,
                 level=str(level),
                 action=str(action),
-                description=str(description),
-                title=str(title)
+                description=unicode(description),
+                title=unicode(title)
             )
         except RuntimeError:
             log.exception('Notification error')
         else:
-            center = self._manager.get_notification_service()
+            center = self._manager.notification_service
             center.send_notification(notification)
 
     @QtCore.pyqtSlot(str, result=str)
@@ -137,7 +146,7 @@ class DebugDriveApi(WebDriveApi):
     @QtCore.pyqtSlot(str)
     def direct_edit(self, url):
         try:
-            self._manager.get_direct_edit().handle_url(str(url))
+            self._manager.direct_edit.handle_url(str(url))
         except OSError as e:
             log.exception(repr(e))
 

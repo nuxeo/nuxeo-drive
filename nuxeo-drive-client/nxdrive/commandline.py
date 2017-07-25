@@ -478,22 +478,22 @@ class CliHandler(object):
     def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
         from nxdrive.utils import PidLockFile
-        lock = PidLockFile(self.manager.get_configuration_folder(), "qt")
+        lock = PidLockFile(self.manager.get_configuration_folder(), 'qt')
         if lock.lock() is not None:
-            self.log.warning("Qt application already running: exiting")
+            self.log.warning('Qt application already running: exiting')
             # Handle URL if needed
-            self.manager.get_direct_edit().handle_url()
+            self.manager.direct_edit.handle_url()
             return
         app = self._get_application(options, console=console)
         exit_code = app.exec_()
         lock.unlock()
-        self.log.debug("Qt application exited with code %r", exit_code)
+        self.log.debug('Qt application exited with code %r', exit_code)
         return exit_code
 
     def clean_folder(self, options):
         from nxdrive.client.local_client import LocalClient
         if options.local_folder is None:
-            print "A folder must be specified"
+            print('A folder must be specified')
             return 0
         client = LocalClient(unicode(options.local_folder))
         client.clean_xattr_root()

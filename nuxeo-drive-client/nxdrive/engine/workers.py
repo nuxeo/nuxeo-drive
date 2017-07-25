@@ -137,13 +137,14 @@ class Worker(QObject):
     def _update_action(self, action):
         self.actionUpdate.emit(action)
 
-    def get_action(self):
-        action = Action.get_current_action(self._thread_id)
-        if action is None:
-            action = self._action
-        if action is None:
-            action = IdleAction()
-        return action
+    @property
+    def action(self):
+        action_ = Action.get_current_action(self._thread_id)
+        if action_ is None:
+            action_ = self._action
+        if action_ is None:
+            action_ = IdleAction()
+        return action_
 
     def get_metrics(self):
         """
@@ -156,7 +157,7 @@ class Worker(QObject):
         metrics['name'] = self._name
         metrics['thread_id'] = self._thread_id
         # Get action from activity as methods can have its own Action
-        metrics['action'] = self.get_action()
+        metrics['action'] = self.action
         if hasattr(self, '_metrics'):
             metrics = dict(metrics.items() + self._metrics.items())
         return metrics

@@ -76,7 +76,7 @@ class EngineLogger(QObject):
     @pyqtSlot()
     def logSyncComplete(self):
         log.log(self._level, "Synchronization is complete for engine %s",
-                self.sender().get_uid())
+                self.sender().uid)
 
     @pyqtSlot(object)
     def logSyncStart(self):
@@ -161,9 +161,9 @@ class Engine(QObject):
         # Remove remote client cache on proxy update
         self._manager.proxyUpdated.connect(self.invalidate_client_cache)
         self._local_folder = definition.local_folder
-        self._type = "NXDRIVE"
-        self._uid = definition.uid
-        self._name = definition.name
+        self.type = 'NXDRIVE'
+        self.uid = definition.uid
+        self.name = definition.name
         self._stopped = True
         self._pause = False
         self._sync_started = False
@@ -236,7 +236,7 @@ class Engine(QObject):
         self._local_folder = path
         self._local_watcher.stop()
         self._create_local_watcher()
-        self._manager.update_engine_path(self._uid, path)
+        self._manager.update_engine_path(self.uid, path)
 
     def set_local_folder_lock(self, path):
         self._folder_lock = path
@@ -259,11 +259,11 @@ class Engine(QObject):
             return
         self._offline_state = value
         if value:
-            log.debug("Engine %s goes offline", self._uid)
+            log.debug("Engine %s goes offline", self.uid)
             self._queue_manager.suspend()
             self.offline.emit()
         else:
-            log.debug("Engine %s goes online", self._uid)
+            log.debug("Engine %s goes online", self.uid)
             self._queue_manager.resume()
             self.online.emit()
 
@@ -308,14 +308,17 @@ class Engine(QObject):
 
     def open_edit(self, remote_ref, remote_name):
         doc_ref = remote_ref
-        if "#" in doc_ref:
+        if '#' in doc_ref:
             doc_ref = doc_ref[doc_ref.rfind('#') + 1:]
-        log.debug("Will try to open edit : %s", doc_ref)
+        log.debug('Will try to open edit : %s', doc_ref)
         # TODO Implement a TemporaryWorker
 
         def run():
-            self._manager.get_direct_edit().edit(self._server_url,
-                                                doc_ref, user=self._remote_user)
+            self._manager.direct_edit.edit(
+                self._server_url,
+                doc_ref,
+                user=self._remote_user,
+            )
         self._edit_thread = Thread(target=run)
         self._edit_thread.start()
 
@@ -433,7 +436,7 @@ class Engine(QObject):
 
     def _get_db_file(self):
         return os.path.join(normalized_path(self._manager.get_configuration_folder()),
-                                "ndrive_" + self._uid + ".db")
+                                "ndrive_" + self.uid + ".db")
 
     def _create_dao(self):
         return EngineDAO(self._get_db_file())
@@ -463,9 +466,6 @@ class Engine(QObject):
 
     def get_local_folder(self):
         return self._local_folder
-
-    def get_uid(self):
-        return self._uid
 
     def set_invalid_credentials(self, value=True, reason=None, exception=None):
         changed = self._invalid_credentials != value
@@ -588,7 +588,7 @@ class Engine(QObject):
                 log.trace('No watchdog event detected but sync is completed')
             if self._sync_started:
                 self._sync_started = False
-            log.trace('Emitting syncCompleted for engine %s', self.get_uid())
+            log.trace('Emitting syncCompleted for engine %s', self.uid)
             self.syncCompleted.emit()
 
     def _thread_finished(self):
@@ -610,7 +610,7 @@ class Engine(QObject):
         self._check_root()
         self._stopped = False
         Processor.soft_locks = dict()
-        log.debug("Engine %s starting", self.get_uid())
+        log.debug("Engine %s starting", self.uid)
         for thread in self._threads:
             thread.start()
         self.syncStarted.emit(0)
@@ -676,7 +676,7 @@ class Engine(QObject):
 
     def stop(self):
         self._stopped = True
-        log.trace('Engine %s stopping', self._uid)
+        log.trace('Engine %s stopping', self.uid)
         self._stop.emit()
         for thread in self._threads:
             if not thread.wait(5000):
@@ -695,7 +695,7 @@ class Engine(QObject):
             self._local_watcher.get_thread().wait(5000)
         # Soft locks needs to be reinit in case of threads termination
         Processor.soft_locks = dict()
-        log.trace('Engine %s stopped', self._uid)
+        log.trace('Engine %s stopped', self.uid)
 
     def _get_client_cache(self):
         return self._remote_clients
@@ -710,7 +710,7 @@ class Engine(QObject):
         if client is None:
             return
         update_info = client.get_update_info()
-        log.debug("Fetched update info for engine [%s] from server %s: %r", self._name, self._server_url, update_info)
+        log.debug("Fetched update info for engine [%s] from server %s: %r", self.name, self._server_url, update_info)
         self._dao.update_config("server_version", update_info.get("serverVersion"))
         self._dao.update_config("update_url", update_info.get("updateSiteURL"))
         beta_update_site_url = update_info.get("betaUpdateSiteURL")
@@ -897,7 +897,7 @@ class Engine(QObject):
         row = self._dao.get_state_from_local('/')
         self._dao.update_remote_state(row, remote_info, remote_parent_path='', versionned=False)
         local_client.set_root_id(self._server_url + "|" + self._remote_user +
-                            "|" + self._manager.device_id + "|" + self._uid)
+                            "|" + self._manager.device_id + "|" + self.uid)
         local_client.set_remote_id('/', remote_info.uid)
         self._dao.synchronize_state(row)
         # The root should also be sync

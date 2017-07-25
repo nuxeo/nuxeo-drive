@@ -175,33 +175,30 @@ class StubQApplication(QtCore.QCoreApplication):
 
     @QtCore.pyqtSlot()
     def sync_completed(self):
-        if hasattr(self.sender(), 'get_uid'):
-            uid = self.sender().get_uid()
+        uid = getattr(self.sender(), 'uid')
+        if uid:
+            self._test._wait_sync[uid] = False
             log.debug("Sync Completed slot for: %s", uid)
         else:
-            uid = None
-        if not uid:
             for uid in self._test._wait_sync.iterkeys():
                 self._test._wait_sync[uid] = False
-        else:
-            self._test._wait_sync[uid] = False
 
     @QtCore.pyqtSlot()
     def remote_scan_completed(self):
-        uid = self.sender().get_engine().get_uid()
+        uid = self.sender().get_engine().uid
         log.debug('Remote scan completed for engine %s', uid)
         self._test._wait_remote_scan[uid] = False
 
     @QtCore.pyqtSlot(int)
     def remote_changes_found(self, change_count):
-        uid = self.sender().get_engine().get_uid()
+        uid = self.sender().get_engine().uid
         log.debug("Remote changes slot for: %s", uid)
         change_count = int(change_count)
         self._test._remote_changes_count[uid] = change_count
 
     @QtCore.pyqtSlot()
     def no_remote_changes_found(self,):
-        uid = self.sender().get_engine().get_uid()
+        uid = self.sender().get_engine().uid
         log.trace("No remote changes slot for: %s", uid)
         self._test._no_remote_changes[uid] = True
 
@@ -449,7 +446,7 @@ class UnitTestCase(SimpleUnitTestCase):
         engine.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
         engine.get_remote_watcher().noChangesFound.connect(self.app.no_remote_changes_found)
 
-        engine_uid = engine.get_uid()
+        engine_uid = engine.uid
         self._wait_sync[engine_uid] = True
         self._wait_remote_scan[engine_uid] = True
         self._remote_changes_count[engine_uid] = 0
@@ -461,7 +458,7 @@ class UnitTestCase(SimpleUnitTestCase):
         number_str = str(number)
         engine = getattr(self, 'engine_' + number_str)
         manager = getattr(self, 'manager_' + number_str)
-        manager.unbind_engine(engine.get_uid())
+        manager.unbind_engine(engine.uid)
         delattr(self, 'engine_' + number_str)
 
     def send_bind_engine(self, number, start_engine=True):
@@ -499,11 +496,11 @@ class UnitTestCase(SimpleUnitTestCase):
             log.trace("Need to wait for Windows delete resolution")
             sleep(WIN_MOVE_RESOLUTION_PERIOD/1000)
         self._wait_sync = {
-            self.engine_1.get_uid(): wait_for_engine_1,
-            self.engine_2.get_uid(): wait_for_engine_2
+            self.engine_1.uid: wait_for_engine_1,
+            self.engine_2.uid: wait_for_engine_2
         }
-        self._no_remote_changes = {self.engine_1.get_uid(): not wait_for_engine_1,
-                                   self.engine_2.get_uid(): not wait_for_engine_2}
+        self._no_remote_changes = {self.engine_1.uid: not wait_for_engine_1,
+                                   self.engine_2.uid: not wait_for_engine_2}
         if enforce_errors:
             if not self.connected:
                 self.engine_1.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
@@ -523,24 +520,24 @@ class UnitTestCase(SimpleUnitTestCase):
                               self._wait_remote_scan, self._remote_changes_count, self._no_remote_changes)
                     wait_remote_scan = False
                     if wait_for_engine_1:
-                        wait_remote_scan = self._wait_remote_scan[self.engine_1.get_uid()]
+                        wait_remote_scan = self._wait_remote_scan[self.engine_1.uid]
                     if wait_for_engine_2:
-                        wait_remote_scan = wait_remote_scan or self._wait_remote_scan[self.engine_2.get_uid()]
+                        wait_remote_scan = wait_remote_scan or self._wait_remote_scan[self.engine_2.uid]
                     is_remote_changes = True
                     is_change_summary_over = True
                     if wait_for_engine_1:
-                        is_remote_changes = self._remote_changes_count[self.engine_1.get_uid()] > 0
-                        is_change_summary_over = self._no_remote_changes[self.engine_1.get_uid()]
+                        is_remote_changes = self._remote_changes_count[self.engine_1.uid] > 0
+                        is_change_summary_over = self._no_remote_changes[self.engine_1.uid]
                     if wait_for_engine_2:
                         is_remote_changes = (is_remote_changes
-                                             and self._remote_changes_count[self.engine_2.get_uid()] > 0)
+                                             and self._remote_changes_count[self.engine_2.uid] > 0)
                         is_change_summary_over = (is_change_summary_over
-                                                  and self._no_remote_changes[self.engine_2.get_uid()])
+                                                  and self._no_remote_changes[self.engine_2.uid])
                     if (not wait_remote_scan or is_remote_changes and is_change_summary_over):
-                        self._wait_remote_scan = {self.engine_1.get_uid(): wait_for_engine_1,
-                                                  self.engine_2.get_uid(): wait_for_engine_2}
-                        self._remote_changes_count = {self.engine_1.get_uid(): 0, self.engine_2.get_uid(): 0}
-                        self._no_remote_changes = {self.engine_1.get_uid(): False, self.engine_2.get_uid(): False}
+                        self._wait_remote_scan = {self.engine_1.uid: wait_for_engine_1,
+                                                  self.engine_2.uid: wait_for_engine_2}
+                        self._remote_changes_count = {self.engine_1.uid: 0, self.engine_2.uid: 0}
+                        self._no_remote_changes = {self.engine_1.uid: False, self.engine_2.uid: False}
                         log.debug('Ended wait for sync, setting _wait_remote_scan values to True,'
                                   ' _remote_changes_count values to 0 and _no_remote_changes values to False')
                         return
@@ -559,8 +556,8 @@ class UnitTestCase(SimpleUnitTestCase):
     def wait_remote_scan(self, timeout=DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT, wait_for_engine_1=True,
                          wait_for_engine_2=False):
         log.debug("Wait for remote scan")
-        self._wait_remote_scan = {self.engine_1.get_uid(): wait_for_engine_1,
-                                  self.engine_2.get_uid(): wait_for_engine_2}
+        self._wait_remote_scan = {self.engine_1.uid: wait_for_engine_1,
+                                  self.engine_2.uid: wait_for_engine_2}
         while timeout > 0:
             sleep(1)
             if sum(self._wait_remote_scan.values()) == 0:

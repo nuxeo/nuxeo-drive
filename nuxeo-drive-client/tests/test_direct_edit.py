@@ -29,7 +29,7 @@ class TestDirectEdit(UnitTestCase):
 
     def setUpApp(self):
         super(TestDirectEdit, self).setUpApp()
-        self.direct_edit = self.manager_1.get_direct_edit()
+        self.direct_edit = self.manager_1.direct_edit
         self.direct_edit._test = True
         self.direct_edit.directEditUploadCompleted.connect(self.app.sync_completed)
         self.direct_edit.start()

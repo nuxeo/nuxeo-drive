@@ -12,33 +12,33 @@ class WebConflictsApi(WebDriveApi):
     def __init__(self, application, engine, dlg=None):
         super(WebConflictsApi, self).__init__(application, dlg)
         self._manager = application.manager
-        self._application = application
-        self._dialog = dlg
+        self.application = application
+        self.dialog = dlg
         self._engine = engine
-        self._retrieve_name = False
+        self.retrieve_name = False
 
     def set_engine(self, engine):
         self._engine = engine
 
     @QtCore.pyqtSlot(result=str)
     def get_ignoreds(self):
-        self._retrieve_name = False
-        return super(WebConflictsApi, self).get_unsynchronizeds(self._engine._uid)
+        self.retrieve_name = False
+        return super(WebConflictsApi, self).get_unsynchronizeds(self._engine.uid)
 
     @QtCore.pyqtSlot(result=str)
     def get_errors(self):
-        self._retrieve_name = False
-        return super(WebConflictsApi, self).get_errors(self._engine._uid)
+        self.retrieve_name = False
+        return super(WebConflictsApi, self).get_errors(self._engine.uid)
 
     @QtCore.pyqtSlot(result=QtCore.QObject)
     def get_conflicts_with_fullname_async(self):
-        self._retrieve_name = True
-        return Promise(super(WebConflictsApi, self).get_conflicts, self._engine._uid)
+        self.retrieve_name = True
+        return Promise(super(WebConflictsApi, self).get_conflicts, self._engine.uid)
 
     @QtCore.pyqtSlot(result=str)
     def get_conflicts(self):
-        self._retrieve_name = False
-        return super(WebConflictsApi, self).get_conflicts(self._engine._uid)
+        self.retrieve_name = False
+        return super(WebConflictsApi, self).get_conflicts(self._engine.uid)
 
     @QtCore.pyqtSlot(int)
     def resolve_with_local(self, state_id):
@@ -65,7 +65,7 @@ class WebConflictsApi(WebDriveApi):
 
     @QtCore.pyqtSlot(str, result=str)
     def open_local(self, path):
-        return super(WebConflictsApi, self).open_local(self._engine._uid, path)
+        return super(WebConflictsApi, self).open_local(self._engine.uid, path)
 
     @QtCore.pyqtSlot(str, str)
     def open_remote(self, remote_ref, remote_name):
@@ -82,7 +82,7 @@ class WebConflictsApi(WebDriveApi):
             return None
         result = super(WebConflictsApi, self)._export_state(state)
         result["last_contributor"] = " " if state.last_remote_modifier is None \
-            else self._engine.get_user_full_name(state.last_remote_modifier, cache_only=not self._retrieve_name)
+            else self._engine.get_user_full_name(state.last_remote_modifier, cache_only=not self.retrieve_name)
         date_time = self.get_date_from_sqlite(state.last_remote_updated)
         result["last_remote_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
         date_time = self.get_date_from_sqlite(state.last_local_updated)
@@ -96,4 +96,4 @@ class WebConflictsApi(WebDriveApi):
 
 class WebConflictsDialog(WebDialog):
     def set_engine(self, engine):
-        self._api.set_engine(engine)
+        self.api.set_engine(engine)

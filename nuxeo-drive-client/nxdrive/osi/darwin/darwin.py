@@ -96,7 +96,7 @@ class DarwinIntegration(AbstractOSIntegration):
 
     def _register_services(self):
         serviceProvider = RightClickService.alloc().init()
-        NSRegisterServicesProvider(serviceProvider, self._manager.get_appname())
+        NSRegisterServicesProvider(serviceProvider, self._manager.app_name)
         # Refresh services
         AppKit.NSUpdateDynamicServices()
 
@@ -169,7 +169,7 @@ class DarwinIntegration(AbstractOSIntegration):
             return
         folder_path = normalized_path(folder_path)
         if name is None:
-            name = self._manager.get_appname()
+            name = self._manager.app_name
 
         lst = self._get_favorite_list()
         if lst is None:
@@ -199,7 +199,7 @@ class DarwinIntegration(AbstractOSIntegration):
             return
 
         if name is None:
-            name = self._manager.get_appname()
+            name = self._manager.app_name
 
         lst = self._get_favorite_list()
         if lst is None:

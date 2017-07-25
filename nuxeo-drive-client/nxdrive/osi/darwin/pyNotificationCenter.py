@@ -1,6 +1,7 @@
-# Python integration with Mountain Lion's notification center
+# coding: utf-8
+""" Python integration with Mountain Lion's notification center. """
 
-import Foundation, objc
+import objc
 
 NSUserNotification = objc.lookUpClass('NSUserNotification')
 NSUserNotificationCenter = objc.lookUpClass('NSUserNotificationCenter')
@@ -31,7 +32,8 @@ def setup_delegator(delegator=None):
     if delegator is not None and center is not None:
         center.setDelegate_(delegator)
 
-def notify(title, subtitle, info_text, delay=0, sound=False, userInfo=None):
+
+def notify(title, subtitle, info_text, delay=0, sound=False, user_info=None):
     """ Python method to show a desktop notification on Mountain Lion. Where:
         title: Title of notification
         subtitle: Subtitle of notification
@@ -41,15 +43,15 @@ def notify(title, subtitle, info_text, delay=0, sound=False, userInfo=None):
         userInfo: a dictionary that can be used to handle clicks in your
                   app's applicationDidFinishLaunching:aNotification method
     """
-    if userInfo is None:
-        userInfo = {}
+    if user_info is None:
+        user_info = {}
     notification = NSUserNotification.alloc().init()
     notification.setTitle_(title)
     notification.setSubtitle_(subtitle)
     notification.setInformativeText_(info_text)
-    notification.setUserInfo_(userInfo)
+    notification.setUserInfo_(user_info)
     if sound:
-        notification.setSoundName_("NSUserNotificationDefaultSoundName")
+        notification.setSoundName_('NSUserNotificationDefaultSoundName')
     center = NSUserNotificationCenter.defaultUserNotificationCenter()
     if center is not None:
         center.deliverNotification_(notification)

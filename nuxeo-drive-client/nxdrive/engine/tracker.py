@@ -43,9 +43,9 @@ class Tracker(Worker):
         self._manager.newEngine.connect(self.connect_engine)
         if self._manager.get_updater() is not None:
             self._manager.get_updater().appUpdated.connect(self._send_app_update_event)
-        if self._manager.get_direct_edit() is not None:
-            self._manager.get_direct_edit().openDocument.connect(self._send_directedit_open)
-            self._manager.get_direct_edit().editDocument.connect(self._send_directedit_edit)
+        if self._manager.direct_edit is not None:
+            self._manager.direct_edit.openDocument.connect(self._send_directedit_open)
+            self._manager.direct_edit.editDocument.connect(self._send_directedit_edit)
 
     @QtCore.pyqtSlot(object)
     def connect_engine(self, engine):
@@ -102,7 +102,7 @@ class Tracker(Worker):
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
             extension = 'unknown'
-        timing = self._manager.get_direct_edit().get_metrics()['last_action_timing']
+        timing = self._manager.direct_edit.get_metrics()['last_action_timing']
         log.trace("Send DirectEdit(Open) OverallTime: %d extension: %s", timing, extension)
         self._tracker.send('event', category='DirectEdit', action="Open", label=extension, value=timing)
 
@@ -111,7 +111,7 @@ class Tracker(Worker):
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
             extension = 'unknown'
-        timing = self._manager.get_direct_edit().get_metrics()['last_action_timing']
+        timing = self._manager.direct_edit.get_metrics()['last_action_timing']
         log.trace("Send DirectEdit(Edit) OverallTime: %d extension: %s", timing, extension)
         self._tracker.send('event', category='DirectEdit', action="Edit", label=extension, value=timing)
 

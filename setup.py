@@ -460,14 +460,14 @@ class NuxeoDriveSetup(object):
                             NSMenuItem=dict(
                                 default=attribs.get_CFBundleDisplayName()
                             ),
-                            NSMessage=u"macRightClick",
+                            NSMessage='macRightClick',
                             NSPortName=attribs.get_CFBundleDisplayName(),
                             NSRequiredContext=dict(),
                             NSSendTypes=[
-                                u'NSStringPboardType',
+                                'NSStringPboardType',
                             ],
                             NSSendFileTypes=[
-                                u"public.item"
+                                'public.item',
                             ]
                         )
                     ]

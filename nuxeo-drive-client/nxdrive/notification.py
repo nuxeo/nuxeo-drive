@@ -1,18 +1,19 @@
-'''
-@author: Remi Cattiau
-'''
-from PyQt4 import QtCore
+# coding: utf-8
 import time
 from threading import Lock
+
+from PyQt4 import QtCore
+
 from nxdrive.logging_config import get_logger
 from nxdrive.wui.translator import Translator
+
 log = get_logger(__name__)
 
 
 class Notification(object):
-    LEVEL_INFO = "info"
-    LEVEL_WARNING = "warning"
-    LEVEL_ERROR = "danger"
+    LEVEL_INFO = 'info'
+    LEVEL_WARNING = 'warning'
+    LEVEL_ERROR = 'danger'
 
     # FLAG VALUE
     # Discard notification
@@ -36,79 +37,83 @@ class Notification(object):
     # Discard on trigger
     FLAG_DISCARD_ON_TRIGGER = 512
 
-    def __init__(self, uid=None, uuid=None, engine_uid=None, level=LEVEL_INFO, flags=0, title="", description="", replacements=None, action=""):
-        self._flags = flags
-        self._level = level
-        self._title = title
-        self._description = description
-        self._action = action
+    def __init__(
+        self,
+        uid=None,
+        uuid=None,
+        engine_uid=None,
+        level=LEVEL_INFO,
+        flags=0,
+        title='',
+        description='',
+        replacements=None,
+        action=''
+    ):
+        self.flags = flags
+        self.level = level
+        self.title = title
+        self.description = description
+        self.action = action
+
         if uid is None and uuid is None:
             raise RuntimeError
+
         if engine_uid is not None and isinstance(engine_uid, str):
             raise RuntimeError
-        self._engine_uid = engine_uid
+
+        self.engine_uid = engine_uid
         self._time = None
-        self._uid = uid
+        self.uid = uid
         if uid is not None:
             if engine_uid is not None:
-                self._uid = self._uid + "_" + engine_uid
+                self.uid = self.uid + "_" + engine_uid
             if not self.is_unique():
-                self._uid = self._uid + "_" + str(int(time.time()))
+                self.uid = self.uid + "_" + str(int(time.time()))
         else:
-            self._uid = uuid
+            self.uid = uuid
         if replacements is None:
             self._replacements = dict()
         else:
             self._replacements = replacements
 
     def is_remove_on_discard(self):
-        return self._flags & Notification.FLAG_REMOVE_ON_DISCARD
+        return self.flags & Notification.FLAG_REMOVE_ON_DISCARD
 
     def is_persistent(self):
-        return self._flags & Notification.FLAG_PERSISTENT
+        return self.flags & Notification.FLAG_PERSISTENT
 
     def is_volatile(self):
-        return self._flags & Notification.FLAG_VOLATILE
+        return self.flags & Notification.FLAG_VOLATILE
 
     def is_unique(self):
-        return self._flags & Notification.FLAG_UNIQUE
+        return self.flags & Notification.FLAG_UNIQUE
 
     def is_discard(self):
-        return self._flags & Notification.FLAG_DISCARD
+        return self.flags & Notification.FLAG_DISCARD
 
     def is_discardable(self):
-        return self._flags & Notification.FLAG_DISCARDABLE
+        return self.flags & Notification.FLAG_DISCARDABLE
 
     def is_systray(self):
-        return self._flags & Notification.FLAG_SYSTRAY
+        return self.flags & Notification.FLAG_SYSTRAY
 
     def is_bubble(self):
-        return self._flags & Notification.FLAG_BUBBLE
+        return self.flags & Notification.FLAG_BUBBLE
 
     def is_actionable(self):
-        return self._flags & Notification.FLAG_ACTIONABLE
+        return self.flags & Notification.FLAG_ACTIONABLE
 
     def is_discard_on_trigger(self):
-        return self._flags & Notification.FLAG_DISCARD_ON_TRIGGER
-
-    def get_flags(self):
-        return self._flags
+        return self.flags & Notification.FLAG_DISCARD_ON_TRIGGER
 
     def add_replacement(self, key, value):
         self._replacements[key] = value
 
-    def get_engine_uid(self):
-        return self._engine_uid
-
-    def get_action(self):
-        return self._action
-
     def remove_replacement(self, key):
-        if key in self._replacements:
+        try:
             del self._replacements[key]
-
-    def get_uid(self):
-        return self._uid
+        except KeyError:
+            pass
 
     @staticmethod
     def generate_uid(_type, engine_uid=None):
@@ -120,35 +125,25 @@ class Notification(object):
     def get_type(self):
         return self._type
 
-    def get_level(self):
-        return self._level
-
     def get_replacements(self):
         return self._replacements
 
-    def get_title(self):
-        return self._title
-
-    def get_description(self):
-        return self._description
-
     def get_content(self):
-        return ""
+        return ''
 
     def trigger(self):
         pass
 
     def __repr__(self):
-        return "Notification(%s,%s,uid:%s,unique:%d)" % (
-                    self._level, self.get_title(), self._uid, self.is_unique())
+        return 'Notification(level=%r title=%r uid=%r unique=%r)' % (
+            self.level, self.title, self.uid, self.is_unique())
 
 
 class NotificationService(QtCore.QObject):
+
     newNotification = QtCore.pyqtSignal(object)
     discardNotification = QtCore.pyqtSignal(object)
-    '''
-    classdocs
-    '''
+
     def __init__(self, manager):
         super(NotificationService, self).__init__()
         self._lock = Lock()
@@ -170,10 +165,10 @@ class NotificationService(QtCore.QObject):
                 return self._notifications
             result = dict()
             for notif in self._notifications.values():
-                if notif._engine_uid == engine:
-                    result[notif.get_uid()] = notif
-                if notif._engine_uid is None and include_generic:
-                    result[notif.get_uid()] = notif
+                if notif.engine_uid == engine:
+                    result[notif.uid] = notif
+                if notif.engine_uid is None and include_generic:
+                    result[notif.uid] = notif
             return result
         finally:
             self._lock.release()
@@ -183,11 +178,11 @@ class NotificationService(QtCore.QObject):
         self._lock.acquire()
         try:
             if notification.is_persistent():
-                if notification.get_uid() not in self._notifications:
+                if notification.uid not in self._notifications:
                     self._dao.insert_notification(notification)
                 else:
                     self._dao.update_notification(notification)
-            self._notifications[notification.get_uid()] = notification
+            self._notifications[notification.uid] = notification
         finally:
             self._lock.release()
         self.newNotification.emit(notification)
@@ -197,7 +192,8 @@ class NotificationService(QtCore.QObject):
             return
         notification = self._notifications[uid]
         if notification.is_actionable():
-            self._manager.execute_script(notification.get_action(), notification.get_engine_uid())
+            self._manager.execute_script(notification.action,
+                                         notification.engine_uid)
         if notification.is_discard_on_trigger():
             self.discard_notification(uid)
 
@@ -219,16 +215,15 @@ class NotificationService(QtCore.QObject):
 
 class DebugNotification(Notification):
     def __init__(self, engine_uid):
-        super(DebugNotification, self).__init__("DEBUG", engine_uid=engine_uid, level=Notification.LEVEL_ERROR, flags=Notification.FLAG_UNIQUE|Notification.FLAG_PERSISTENT)
-
-    def get_description(self):
-        return "Small description for this debug notification"
-
-    def get_title(self):
-        return "Debug notification"
-
-    def get_action(self):
-        return ""
+        super(DebugNotification, self).__init__(
+            'DEBUG',
+            engine_uid=engine_uid,
+            level=Notification.LEVEL_ERROR,
+            flags=Notification.FLAG_UNIQUE | Notification.FLAG_PERSISTENT,
+        )
+        self.title = 'Debug notification'
+        self.description = 'Small description for this debug notification'
+        self.action = ''
 
 
 class ErrorNotification(Notification):
@@ -367,11 +362,10 @@ class DefaultNotificationService(NotificationService):
         self._manager = manager
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
-        self._manager.get_direct_edit().directEditLockError.connect(self._directEditLockError)
-        self._manager.get_direct_edit().directEditReadonly.connect(self._directEditReadonly)
-        self._manager.get_direct_edit().directEditLocked.connect(self._directEditLocked)
+        self._manager.direct_edit.directEditLockError.connect(self._directEditLockError)
+        self._manager.direct_edit.directEditReadonly.connect(self._directEditReadonly)
+        self._manager.direct_edit.directEditLocked.connect(self._directEditLocked)
         self._manager.get_autolock_service().documentLocked.connect(self._lockDocument)
-
 
     def _connect_engine(self, engine):
         engine.newConflict.connect(self._newConflict)
@@ -392,44 +386,44 @@ class DefaultNotificationService(NotificationService):
         self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
 
     def _newError(self, row_id):
-        engine_uid = self.sender()._uid
+        engine_uid = self.sender().uid
         doc_pair = self.sender().get_dao().get_state_from_id(row_id)
         if doc_pair is None:
             return
         self.send_notification(ErrorNotification(engine_uid, doc_pair))
 
     def _newConflict(self, row_id):
-        engine_uid = self.sender()._uid
+        engine_uid = self.sender().uid
         doc_pair = self.sender().get_dao().get_state_from_id(row_id)
         if doc_pair is None:
             return
         self.send_notification(ConflictNotification(engine_uid, doc_pair))
 
     def _newReadonly(self, filename, parent):
-        engine_uid = self.sender()._uid
+        engine_uid = self.sender().uid
         self.send_notification(ReadOnlyNotification(engine_uid, filename, parent))
 
     def _directEditReadonly(self, filename):
         self.send_notification(DirectEditReadOnlyNotification(filename))
 
     def _deleteReadonly(self, filename):
-        engine_uid = self.sender()._uid
+        engine_uid = self.sender().uid
         self.send_notification(DeleteReadOnlyNotification(engine_uid, filename))
 
     def _newLocked(self, filename, lock_owner, lock_created):
-        engine_uid = self.sender()._uid
+        engine_uid = self.sender().uid
         self.send_notification(LockedNotification(engine_uid, filename, lock_owner, lock_created))
 
     def _directEditLocked(self, filename, lock_owner, lock_created):
         self.send_notification(DirectEditLockedNotification(filename, lock_owner, lock_created))
 
     def _validAuthentication(self):
-        engine_uid = self.sender()._uid
+        engine_uid = self.sender().uid
         log.debug("discard_notification: " + "INVALID_CREDENTIALS_" + engine_uid)
         self.discard_notification("INVALID_CREDENTIALS_" + engine_uid)
 
     def _invalidAuthentication(self):
-        engine_uid = self.sender()._uid
+        engine_uid = self.sender().uid
         notif = InvalidCredentialNotification(engine_uid)
-        log.debug("send_notification: " + notif.get_uid())
+        log.debug("send_notification: " + notif.uid)
         self.send_notification(notif)

@@ -2,11 +2,11 @@
 import calendar
 import datetime
 import json
+import os.path
 import sys
 import time
 import urllib2
 import uuid
-from os.path import realpath
 
 from PyQt4 import QtCore, QtGui, QtNetwork, QtWebKit
 from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QSslCertificate
@@ -42,11 +42,11 @@ class Promise(Worker):
     _promise_error = QtCore.pyqtSignal(str, str)
 
     def __init__(self, runner, *args, **kwargs):
-        self._uid = uuid.uuid1().hex
+        self.uid = uuid.uuid1().hex
         self._runner = runner
         self._kwargs = kwargs
         self._args = args
-        super(Promise, self).__init__(name="Promise_" + self._uid)
+        super(Promise, self).__init__(name='Promise_' + self.uid)
         self._result = None
         self._wrapper = PromiseWrapper(self)
         self._wrapper.moveToThread(self._thread)
@@ -57,7 +57,7 @@ class Promise(Worker):
 
     @QtCore.pyqtSlot(result=str)
     def _promise_uid(self):
-        return self._uid
+        return self.uid
 
     @QtCore.pyqtSlot()
     def start(self):
@@ -67,9 +67,9 @@ class Promise(Worker):
     def _execute(self):
         try:
             result = self._runner(*self._args, **self._kwargs)
-            self._promise_success.emit(self._uid, result)
+            self._promise_success.emit(self.uid, result)
         except Exception as e:
-            self._promise_error.emit(self._uid, repr(e))
+            self._promise_error.emit(self.uid, repr(e))
 
 
 class WebDriveApi(QtCore.QObject):
@@ -77,9 +77,9 @@ class WebDriveApi(QtCore.QObject):
     def __init__(self, application, dlg=None):
         super(WebDriveApi, self).__init__()
         self._manager = application.manager
-        self._application = application
-        self._dialog = dlg
-        self._last_url = None
+        self.application = application
+        self.dialog = dlg
+        self.last_url = None
 
     def _json_default(self, obj):
         if isinstance(obj, Action):
@@ -98,19 +98,13 @@ class WebDriveApi(QtCore.QObject):
         # Avoid to fail on non serializable object
         return json.dumps(obj, default=self._json_default)
 
-    def get_dialog(self):
-        return self._dialog
-
-    def set_dialog(self, dlg):
-        self._dialog = dlg
-
     def _export_engine(self, engine):
         result = dict()
         if engine is None:
             return result
-        result["uid"] = engine._uid
-        result["type"] = engine._type
-        result["name"] = engine._name
+        result["uid"] = engine.uid
+        result["type"] = engine.type
+        result["name"] = engine.name
         result["offline"] = engine.is_offline()
         result["metrics"] = engine.get_metrics()
         result["started"] = engine.is_started()
@@ -192,7 +186,7 @@ class WebDriveApi(QtCore.QObject):
 
     def _export_worker(self, worker):
         result = dict()
-        action = worker.get_action()
+        action = worker.action
         if action is None:
             result["action"] = None
         else:
@@ -216,16 +210,13 @@ class WebDriveApi(QtCore.QObject):
         except KeyError:
             return None
 
-    def set_last_url(self, url):
-        self._last_url = url
-
     @QtCore.pyqtSlot(result=str)
     def get_last_url(self):
-        return self._last_url
+        return self.last_url
 
     @QtCore.pyqtSlot()
     def retry(self):
-        self._dialog.load(self._last_url, self)
+        self.dialog.load(self.last_url, self)
 
     @QtCore.pyqtSlot(str, int, str, result=str)
     def get_last_files(self, uid, number, direction):
@@ -240,7 +231,7 @@ class WebDriveApi(QtCore.QObject):
     def update_password_async(self, uid, password):
         return Promise(self._update_password, uid, password)
 
-    def _update_password(self, uid, password, result=str):
+    def _update_password(self, uid, password):
         """
         Convert password from unicode to string to support utf-8 character
         """
@@ -268,7 +259,7 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def close(self):
-        self._dialog.close()
+        self.dialog.close()
 
     @QtCore.pyqtSlot(result=str)
     def get_tracker_id(self):
@@ -276,7 +267,7 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(result=str)
     def get_appname(self):
-        return self._manager.get_appname()
+        return self._manager.app_name
 
     @QtCore.pyqtSlot(str)
     def set_language(self, locale):
@@ -287,24 +278,24 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(str)
     def trigger_notification(self, id_):
-        self._manager.get_notification_service().trigger_notification(str(id_))
+        self._manager.notification_service.trigger_notification(str(id_))
 
     @QtCore.pyqtSlot(str)
     def discard_notification(self, id_):
-        self._manager.get_notification_service().discard_notification(str(id_))
+        self._manager.notification_service.discard_notification(str(id_))
 
     @staticmethod
     def _export_notification(notif):
-        result = dict()
-        result["level"] = notif.get_level()
-        result["uid"] = notif.get_uid()
-        result["title"] = notif.get_title()
-        result["description"] = notif.get_description()
-        result["discardable"] = notif.is_discardable()
-        result["discard"] = notif.is_discard()
-        result["systray"] = notif.is_systray()
-        result["replacements"] = notif.get_replacements()
-        return result
+        return {
+            'level': notif.level,
+            'uid': notif.uid,
+            'title': notif.title,
+            'description': notif.description,
+            'discardable': notif.is_discardable(),
+            'discard': notif.is_discard(),
+            'systray': notif.is_systray(),
+            'replacements': notif.get_replacements(),
+        }
 
     def _export_notifications(self, notifs):
         result = []
@@ -315,7 +306,7 @@ class WebDriveApi(QtCore.QObject):
     @QtCore.pyqtSlot(str, result=str)
     def get_notifications(self, engine_uid):
         engine_uid = str(engine_uid)
-        center = self._manager.get_notification_service()
+        center = self._manager.notification_service
         notif = self._export_notifications(center.get_notifications(engine_uid))
         return self._json(notif)
 
@@ -355,7 +346,7 @@ class WebDriveApi(QtCore.QObject):
         result = []
         if engine is not None:
             for count, thread in enumerate(engine.get_threads(), 1):
-                action = thread.worker.get_action()
+                action = thread.worker.action
                 # The filter should be configurable
                 if isinstance(action, FileAction):
                     result.append(self._export_action(action))
@@ -382,7 +373,7 @@ class WebDriveApi(QtCore.QObject):
         engine = self._get_engine(str(uid))
         if engine:
             path = engine.get_abspath(unicode(ref))
-            self._application.show_metadata(path)
+            self.application.show_metadata(path)
 
     @QtCore.pyqtSlot(str, result=str)
     def get_unsynchronizeds(self, uid):
@@ -492,24 +483,24 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def show_activities(self):
-        self._application.show_activities()
+        self.application.show_activities()
 
     @QtCore.pyqtSlot(str)
     def show_conflicts_resolution(self, uid):
         engine = self._get_engine(str(uid))
         if engine:
-            self._application.show_conflicts_resolution(engine)
+            self.application.show_conflicts_resolution(engine)
 
     @QtCore.pyqtSlot(str)
     def show_settings(self, page):
         page = str(page)
         log.debug('Show settings on page %s', page)
-        self._application.show_settings(section=page or None)
+        self.application.show_settings(section=page or None)
 
     @QtCore.pyqtSlot()
     def quit(self):
         try:
-            self._application.quit()
+            self.application.quit()
         except:
             log.exception('Application exit error')
 
@@ -538,7 +529,7 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def show_file_status(self):
-        self._application.show_file_status()
+        self.application.show_file_status()
 
     @QtCore.pyqtSlot(result=str)
     def get_version(self):
@@ -552,8 +543,8 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(int, int)
     def resize(self, width, height):
-        if self._dialog:
-            self._dialog.resize(width, height)
+        if self.dialog:
+            self.dialog.resize(width, height)
 
 
 class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
@@ -583,117 +574,121 @@ class DriveWebPage(QtWebKit.QWebPage):
 
 
 class WebDialog(QtGui.QDialog):
-    # An error has been raised while loading the html
+    # An error has been raised while loading the HTML
     loadError = QtCore.pyqtSignal(object)
 
-    def __init__(self, application, page=None, title="Nuxeo Drive", api=None, token=None):
+    def __init__(
+        self,
+        application,
+        page=None,
+        title='Nuxeo Drive',
+        api=None,
+        token=None,
+    ):
         super(WebDialog, self).__init__()
         self.setWindowTitle(title)
-        self._view = QtWebKit.QWebView()
-        self._frame = None
-        self._page = DriveWebPage()
-        self._token = None
-        self._request = None
-        self._zoomFactor = application.get_osi().get_zoom_factor()
+        self.view = QtWebKit.QWebView()
+        self.frame = None
+        self.page = DriveWebPage()
+        self.api = api
+        self.token = token
+        self.request = None
+        self.zoom_factor = application.get_osi().zoom_factor
+
         if application.manager.is_debug():
-            QtWebKit.QWebSettings.globalSettings().setAttribute(QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
+            QtWebKit.QWebSettings.globalSettings().setAttribute(
+                QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
         else:
-            self._view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+            self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+
         icon = application.get_window_icon()
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
+
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
         self.resize(550, 600)
         self.setLayout(QtGui.QVBoxLayout())
-        self.layout().addWidget(self._view)
+        self.layout().addWidget(self.view)
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
-        self._view.setPage(self._page)
+        self.view.setPage(self.page)
         self.networkManager = TokenNetworkAccessManager(application, token)
-        if not hasattr(application, 'options') or (application.options is not None and
-                                                        not application.options.consider_ssl_errors):
-            self.networkManager.sslErrors.connect(self._sslErrorHandler)
+
+        if (not hasattr(application, 'options')
+                or (application.options is not None
+                    and not application.options.consider_ssl_errors)):
+            self.networkManager.sslErrors.connect(self._ssl_error_handler)
+
         self.networkManager.finished.connect(self.requestFinished)
-        self._page.setNetworkAccessManager(self.networkManager)
-        self.set_token(token)
+        self.page.setNetworkAccessManager(self.networkManager)
         if page is not None:
             self.load(page, api, application)
 
-    def set_token(self, token):
-        self._token = token
-
     def load(self, page, api=None, application=None):
         if application is None and api is not None:
-            application = api._application
+            application = api.application
         if api is None:
-            self._api = WebDriveApi(application, self)
+            self.api = WebDriveApi(application, self)
         else:
-            api.set_dialog(self)
-            self._api = api
-        if not (page.startswith("http") or page.startswith("file://")):
+            api.dialog = self
+            self.api = api
+        if not page.startswith(('http', 'file://')):
             filename = application.get_htmlpage(page)
         else:
             filename = page
         # If connect to a remote page add the X-Authentication-Token
-        if filename.startswith("http"):
-            log.trace("Load web page: %s", filename)
-            self._request = url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
-            if self._token is not None:
-                url.setRawHeader("X-Authentication-Token", QtCore.QByteArray(self._token))
+        if filename.startswith('http'):
+            log.trace('Load web page: %s', filename)
+            self.request = url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
+            if self.token is not None:
+                url.setRawHeader('X-Authentication-Token',
+                                 QtCore.QByteArray(self.token))
             self._set_proxy(application.manager, server_url=page)
-            self._api.set_last_url(filename)
+            self.api.last_url = filename
         else:
-            self._request = None
-            log.trace("Load web file: %s", filename)
-            url = QtCore.QUrl.fromLocalFile(realpath(filename))
-            url.setScheme("file")
+            self.request = None
+            log.trace('Load web file: %s', filename)
+            url = QtCore.QUrl.fromLocalFile(os.path.realpath(filename))
+            url.setScheme('file')
 
-        self._frame = self._page.mainFrame()
-        self._frame.load(url)
-        self._attachJsApi()
-        self._frame.javaScriptWindowObjectCleared.connect(self._attachJsApi)
+        self.frame = self.page.mainFrame()
+        self.frame.load(url)
+        self.attachJsApi()
+        self.frame.javaScriptWindowObjectCleared.connect(self.attachJsApi)
         self.activateWindow()
-
-    def __del__(self):
-        # For unknown reason, need to have a destructor to avoid segfault
-        #
-        # QThreadStorage: Thread 0x7fe0973afce0 exited after QThreadStorage 7 destroyed
-        # Although this warning is still displayed
-        self.disconnect()
-        super(WebDialog, self).__del__()
 
     @QtCore.pyqtSlot(object)
     def requestFinished(self, reply):
-        if (self._request is not None
-                and reply.request().url() == self._request.url()
+        if (self.request is not None
+                and reply.request().url() == self.request.url()
                 and reply.error() != QtNetwork.QNetworkReply.NoError):
             # See http://doc.qt.io/qt-4.8/qnetworkreply.html#NetworkError-enum
             error = dict(code=reply.error())
             self.loadError.emit(error)
 
-    def get_frame(self):
-        return self._frame
-
     def resize(self, width, height):
-        super(WebDialog, self).resize(width * self._zoomFactor, height * self._zoomFactor)
+        super(WebDialog, self).resize(width * self.zoom_factor,
+                                      height * self.zoom_factor)
 
-    def _sslErrorHandler(self, reply, errorList):
+    @staticmethod
+    def _ssl_error_handler(reply, error_list):
         log.warning('--- Bypassing SSL errors listed below ---')
-        for error in errorList:
+        for error in error_list:
             certificate = error.certificate()
-            o = str(certificate.issuerInfo(QSslCertificate.Organization))
-            cn = str(certificate.issuerInfo(QSslCertificate.CommonName))
-            l = str(certificate.issuerInfo(QSslCertificate.LocalityName))
-            ou = str(certificate.issuerInfo(QSslCertificate.OrganizationalUnitName))
-            c = str(certificate.issuerInfo(QSslCertificate.CountryName))
-            st = str(certificate.issuerInfo(QSslCertificate.StateOrProvinceName))
+            o = certificate.issuerInfo(QSslCertificate.Organization)
+            cn = certificate.issuerInfo(QSslCertificate.CommonName)
+            l = certificate.issuerInfo(QSslCertificate.LocalityName)
+            ou = certificate.issuerInfo(QSslCertificate.OrganizationalUnitName)
+            c = certificate.issuerInfo(QSslCertificate.CountryName)
+            st = certificate.issuerInfo(QSslCertificate.StateOrProvinceName)
             log.warning(
                 '%s, certificate: [o=%s, cn=%s, l=%s, ou=%s, c=%s, st=%s]',
                 str(error.errorString()), o, cn, l, ou, c, st)
         reply.ignoreSslErrors()
 
-    def _set_proxy(self, manager, server_url=None):
+    @staticmethod
+    def _set_proxy(manager, server_url=None):
         proxy_settings = manager.get_proxy_settings()
         if proxy_settings.config == 'Manual':
             if proxy_settings.server and proxy_settings.port:
@@ -715,19 +710,9 @@ class WebDialog(QtGui.QDialog):
         else:
             QNetworkProxy.setApplicationProxy(QNetworkProxy(QNetworkProxy.NoProxy))
 
-    def get_view(self):
-        return self._view
-
     @QtCore.pyqtSlot()
-    def show(self):
-        super(WebDialog, self).show()
-        self.raise_()
-        self.activateWindow()
-        self.setFocus(QtCore.Qt.ActiveWindowFocusReason)
-
-    @QtCore.pyqtSlot()
-    def _attachJsApi(self):
-        if self._frame is None:
+    def attachJsApi(self):
+        if self.frame is None:
             return
-        self._frame.addToJavaScriptWindowObject("drive", self._api)
-        self._frame.setZoomFactor(self._zoomFactor)
+        self.frame.addToJavaScriptWindowObject('drive', self.api)
+        self.frame.setZoomFactor(self.zoom_factor)

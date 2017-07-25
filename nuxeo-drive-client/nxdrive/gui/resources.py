@@ -18,14 +18,14 @@ def find_icon(icon_filename):
     icons_dir = find_resource_dir('icons', icons_path)
 
     if icons_dir is None:
-        log.warning("Could not find icon file %s as icons directory"
-                    " could not be found",
+        log.warning('Could not find icon file %s as icons directory'
+                    ' could not be found',
                     icon_filename)
         return None
 
     icon_filepath = os.path.join(icons_dir, icon_filename)
     if not os.path.exists(icon_filepath):
-        log.warning("Could not find icon file: %s", icon_filepath)
+        log.warning('Could not find icon file: %s', icon_filepath)
         return None
 
     return icon_filepath
