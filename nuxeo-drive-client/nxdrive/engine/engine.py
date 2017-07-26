@@ -418,8 +418,9 @@ class Engine(QObject):
     def server_url(self):
         return self._dao.get_config('server_url')
 
-    def get_remote_user(self):
-        return self._dao.get_config("remote_user")
+    @property
+    def remote_user(self):
+        return self._dao.get_config('remote_user')
 
     def get_remote_token(self):
         return self._dao.get_config("remote_token")
@@ -988,7 +989,7 @@ class Engine(QObject):
 
     def get_rest_api_client(self):
         rest_client = RestAPIClient(
-            self.server_url, self.get_remote_user(),
+            self.server_url, self.remote_user,
             self._manager.get_device_id(), self._manager.get_version(), None,
             self.get_remote_token(), timeout=self.timeout,
             cookie_jar=self.cookie_jar,
