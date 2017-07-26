@@ -317,7 +317,7 @@ class Manager(QtCore.QObject):
             os.mkdir(self.nxdrive_home)
         self.remote_watcher_delay = options.delay
         self._nofscheck = options.nofscheck
-        self._debug = options.debug
+        self.debug = options.debug
         self._engine_definitions = None
 
         from nxdrive.engine.next.engine_next import EngineNext
@@ -350,7 +350,7 @@ class Manager(QtCore.QObject):
         self._dao.update_config("update_url", options.update_site_url)
         self._dao.update_config("beta_update_url", options.beta_update_site_url)
         self.refresh_proxies()
-        self._os = AbstractOSIntegration.get(self)
+        self.osi = AbstractOSIntegration.get(self)
 
         try:
             self.ignored_prefixes = options.ignored_prefixes
@@ -386,8 +386,8 @@ class Manager(QtCore.QObject):
         self._started = False
 
         # Pause if in debug
-        self._pause = self.is_debug()
-        self.device_id = self._dao.get_config("device_id")
+        self._pause = self.debug
+        self.device_id = self._dao.get_config('device_id')
         self.updated = False  # self.update_version()
         if not self.device_id:
             self.generate_device_id()
@@ -426,7 +426,7 @@ class Manager(QtCore.QObject):
         }
 
     def open_help(self):
-        self.open_local_file("http://doc.nuxeo.com/display/USERDOC/Nuxeo+Drive")
+        self.open_local_file('https://doc.nuxeo.com/nxdoc/nuxeo-drive/')
 
     def _update_logger(self, log_level):
         logging.getLogger().setLevel(
@@ -435,18 +435,12 @@ class Manager(QtCore.QObject):
         if handler:
             handler.setLevel(log_level)
 
-    def get_osi(self):
-        return self._os
-
     def _handle_os(self):
         # Be sure to register os
-        self._os.register_contextual_menu()
-        self._os.register_protocol_handlers()
+        self.osi.register_contextual_menu()
+        self.osi.register_protocol_handlers()
         if self.get_auto_start():
-            self._os.register_startup()
-
-    def is_debug(self):
-        return self._debug
+            self.osi.register_startup()
 
     def is_checkfs(self):
         return not self._nofscheck
@@ -637,9 +631,6 @@ class Manager(QtCore.QObject):
             url,
         )
         self.started.connect(self.direct_edit._thread.start)
-        return self.direct_edit
-
-    def get_direct_edit(self):
         return self.direct_edit
 
     def is_paused(self):
@@ -901,9 +892,9 @@ class Manager(QtCore.QObject):
     def set_auto_start(self, value):
         self._dao.update_config("auto_start", value)
         if value:
-            self._os.register_startup()
+            self.osi.register_startup()
         else:
-            self._os.unregister_startup()
+            self.osi.unregister_startup()
 
     def get_beta_channel(self):
         return self._dao.get_config("beta_channel", "0") == "1"

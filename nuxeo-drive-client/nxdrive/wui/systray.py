@@ -9,10 +9,6 @@ from nxdrive.wui.translator import Translator
 
 class DriveSystrayIcon(QSystemTrayIcon):
 
-    click_left = QSystemTrayIcon.Trigger
-    click_middle = QSystemTrayIcon.MiddleClick
-    click_right = QSystemTrayIcon.Context
-
     def __init__(self, application):
         super(DriveSystrayIcon, self).__init__(application)
         self.application = application
@@ -21,9 +17,9 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
         self.setContextMenu(self.menu_right)
         self.messageClicked.connect(self.application.message_clicked)
-        self.activated.connect(self.show_left_menu)
+        self.activated.connect(self.handle_mouse_click)
 
-    def show_left_menu(self, reason):
+    def handle_mouse_click(self, reason):
         """
         Handle any mouse click on the systray icon.
         It is not needed to handle the right click as it
@@ -36,10 +32,10 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
         print(reason)
 
-        if reason == self.click_left:
+        if reason == QSystemTrayIcon.Trigger:
             # On left click, open the usual menu with engines and sync files
             self.menu_left.popup(QCursor.pos())
-        elif reason == self.click_middle:
+        elif reason == QSystemTrayIcon.MiddleClick:
             # On middle click, open settings.  Yeah, it is practical!
             self.application.show_settings()
 
@@ -127,7 +123,7 @@ class WebSystrayApi(WebDriveApi):
             else:
                 self.menu.addAction(Translator.get('SUSPEND'), self.suspend)
 
-            if self._manager.is_debug():
+            if self._manager.debug:
                 self.menu.addSeparator()
                 debug_menu = self.application.create_debug_menu(self.menu)
                 debug_action = QAction(Translator.get('DEBUG'), self)

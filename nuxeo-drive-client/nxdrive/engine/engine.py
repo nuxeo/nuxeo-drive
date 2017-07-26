@@ -424,7 +424,7 @@ class Engine(QObject):
         return self._dao.get_config("remote_token")
 
     def _create_queue_manager(self, processors):
-        if self._manager.is_debug():
+        if self._manager.debug:
             return QueueManager(self, self._dao, max_file_processors=2)
         return QueueManager(self, self._dao)
 
@@ -799,7 +799,7 @@ class Engine(QObject):
             self._check_root()
 
     def _check_fs(self, path):
-        if not self._manager.get_osi().is_partition_supported(path):
+        if not self._manager.osi.is_partition_supported(path):
             raise InvalidDriveException()
         if os.path.exists(path):
             local_client = self.get_local_client()

@@ -27,7 +27,7 @@ class EngineNext(Engine):
 
     def _create_queue_manager(self, processors):
         from nxdrive.engine.next.queue_manager import QueueManager
-        if self._manager.is_debug():
+        if self._manager.debug:
             return QueueManager(self, self._dao, max_file_processors=2)
         return QueueManager(self, self._dao)
 

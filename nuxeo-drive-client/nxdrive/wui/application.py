@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 
+from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QApplication
 
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
@@ -70,6 +71,7 @@ class SimpleApplication(QApplication):
 
         self.options = options
         self.manager = manager
+        self.osi = self.manager.osi
         self.setApplicationName(manager.app_name)
         self._init_translator()
 
@@ -95,9 +97,6 @@ class SimpleApplication(QApplication):
         dialog.setObjectName(name)
         dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         dialog.destroyed.connect(self._destroy_dialog)
-
-    def get_osi(self):
-        return self.manager.get_osi()
 
     def _init_translator(self):
         if self.options is not None:
@@ -429,7 +428,7 @@ class Application(SimpleApplication):
         self._show_window(debug)
 
     def init_checks(self):
-        if self.manager.is_debug():
+        if self.manager.debug:
             self.show_debug_window()
         for _, engine in self.manager.get_engines().iteritems():
             self._connect_engine(engine)

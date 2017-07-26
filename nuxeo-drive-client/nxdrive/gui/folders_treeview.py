@@ -250,7 +250,7 @@ class FolderTreeview(QtGui.QTreeView):
         self.setHeaderHidden(True)
 
         # Keep track of dirty items
-        self.dirtyItems = []
+        self.dirty_items = []
         # Add widget overlay for loading
         self.overlay = Overlay(self)
         self.overlay.move(1, 0)
@@ -267,9 +267,7 @@ class FolderTreeview(QtGui.QTreeView):
             if item.child(i).checkState() == QtCore.Qt.Checked:
                 sum_states += 1
             i += 1
-        if sum_states == 0:
-            item.setCheckState(QtCore.Qt.PartiallyChecked)
-        elif sum_states == item.rowCount():
+        if sum_states == item.rowCount():
             item.setCheckState(QtCore.Qt.Checked)
         else:
             item.setCheckState(QtCore.Qt.PartiallyChecked)
@@ -293,11 +291,11 @@ class FolderTreeview(QtGui.QTreeView):
             return
 
         fs_info.set_checkstate(item.checkState())
-        is_in_dirty = fs_info in self.dirtyItems
+        is_in_dirty = fs_info in self.dirty_items
         if fs_info.is_dirty() and not is_in_dirty:
-            self.dirtyItems.append(fs_info)
+            self.dirty_items.append(fs_info)
         elif not fs_info.is_dirty() and is_in_dirty:
-            self.dirtyItems.remove(fs_info)
+            self.dirty_items.remove(fs_info)
 
     def resolve_item_down_changed(self, item):
         self.update_item_changed(item)
@@ -328,9 +326,6 @@ class FolderTreeview(QtGui.QTreeView):
         index = self.model().index(index.row(), 0, index.parent())
         item = self.model().itemFromIndex(index)
         self.load_children(item)
-
-    def get_dirty_items(self):
-        return self.dirtyItems
 
     def load_children(self, item=None):
         if self.client is None:

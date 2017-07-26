@@ -44,7 +44,7 @@ class FiltersDialog(QtGui.QDialog):
         super(FiltersDialog, self).accept()
 
     def apply_filters(self):
-        for item in self.tree_view.get_dirty_items():
+        for item in self.tree_view.dirty_items:
             path = item.get_path()
             if item.get_checkstate() == QtCore.Qt.Unchecked:
                 self._engine.add_filter(path)

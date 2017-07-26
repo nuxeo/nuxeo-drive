@@ -412,7 +412,7 @@ class CliHandler(object):
 
     def uninstall(self, options):
         try:
-            self.manager.get_osi().uninstall()
+            self.manager.osi.uninstall()
             # Remove all token first
             self.manager.unbind_all()
             self.manager.dispose_db()
