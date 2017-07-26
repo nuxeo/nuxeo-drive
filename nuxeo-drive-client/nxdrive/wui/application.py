@@ -211,7 +211,7 @@ class Application(SimpleApplication):
         engine = self.sender()
         info = dict()
         log.debug('Root has been deleted for engine: %s', engine.uid)
-        info['folder'] = engine.get_local_folder()
+        info['folder'] = engine.local_folder
         dlg = WebModal(self, Translator.get('DRIVE_ROOT_DELETED', info))
         dlg.add_button('RECREATE',
                        Translator.get('DRIVE_ROOT_RECREATE'),
@@ -238,7 +238,7 @@ class Application(SimpleApplication):
         info = dict()
         log.debug('Root has been moved for engine: %s to %r',
                   engine.uid, new_path)
-        info['folder'] = engine.get_local_folder()
+        info['folder'] = engine.local_folder
         info['new_folder'] = new_path
         dlg = WebModal(self, Translator.get('DRIVE_ROOT_MOVED', info))
         dlg.add_button('MOVE',

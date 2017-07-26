@@ -104,6 +104,11 @@ class WebSystrayApi(WebDriveApi):
         self.dialog.hide()
         super(WebSystrayApi, self).open_local(str(uid), str(path))
 
+    @pyqtSlot()
+    def open_help(self):
+        self.dialog.hide()
+        self._manager.open_help()
+
     @pyqtSlot(str)
     def trigger_notification(self, id_):
         self.dialog.hide()
@@ -111,7 +116,8 @@ class WebSystrayApi(WebDriveApi):
 
     @pyqtSlot()
     def suspend(self):
-        self.dialog.close()
+        self.dialog.hide()
+        self.menu = None  # Force advanced menu regeneration to keep up-to-date
         self._manager.suspend()
 
     @pyqtSlot(str, result=int)
@@ -124,7 +130,8 @@ class WebSystrayApi(WebDriveApi):
 
     @pyqtSlot()
     def resume(self):
-        self.dialog.close()
+        self.dialog.hide()
+        self.menu = None  # Force advanced menu regeneration to keep up-to-date
         self._manager.resume()
 
     @pyqtSlot()
@@ -189,7 +196,6 @@ class WebSystrayView(WebDialog):
             self.resize(self.default_width, self.default_height)
             self.__resized = True
 
-        # Calculate coordinates of the box that will contain the systray menu
         geometry = self.icon.geometry()
         if self.__geometry != geometry:
             pos_x = max(0, geometry.x() + geometry.width() - self.width())

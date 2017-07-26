@@ -160,7 +160,7 @@ class Engine(QObject):
         self._manager = manager
         # Remove remote client cache on proxy update
         self._manager.proxyUpdated.connect(self.invalidate_client_cache)
-        self._local_folder = definition.local_folder
+        self.local_folder = definition.local_folder
         self.type = 'NXDRIVE'
         self.uid = definition.uid
         self.name = definition.name
@@ -233,7 +233,7 @@ class Engine(QObject):
 
     def set_local_folder(self, path):
         log.debug("Update local folder to '%s'", path)
-        self._local_folder = path
+        self.local_folder = path
         self._local_watcher.stop()
         self._create_local_watcher()
         self._manager.update_engine_path(self.uid, path)
@@ -385,7 +385,7 @@ class Engine(QObject):
     def check_fs_marker(self):
         tag = 'drive-fs-test'
         tag_value = 'NXDRIVE_VERIFICATION'
-        if not os.path.exists(self._local_folder):
+        if not os.path.exists(self.local_folder):
             self.rootDeleted.emit()
             return False
         client = self.get_local_client()
@@ -460,12 +460,9 @@ class Engine(QObject):
             web_authentication=self._web_authentication,
             server_version=None,
             username=self._remote_user,
-            local_folder=self._local_folder,
+            local_folder=self.local_folder,
             initialized=True,
             pwd_update_required=self.has_invalid_credentials())
-
-    def get_local_folder(self):
-        return self._local_folder
 
     def set_invalid_credentials(self, value=True, reason=None, exception=None):
         changed = self._invalid_credentials != value
@@ -758,16 +755,16 @@ class Engine(QObject):
         if check_fs:
             created_folder = False
             try:
-                if not os.path.exists(os.path.dirname(self._local_folder)):
+                if not os.path.exists(os.path.dirname(self.local_folder)):
                     raise NotFound()
-                if not os.path.exists(self._local_folder):
-                    os.mkdir(self._local_folder)
+                if not os.path.exists(self.local_folder):
+                    os.mkdir(self.local_folder)
                     created_folder = True
-                self._check_fs(self._local_folder)
+                self._check_fs(self.local_folder)
             except Exception as e:
                 if created_folder:
                     try:
-                        os.rmdir(self._local_folder)
+                        os.rmdir(self.local_folder)
                     except:
                         pass
                 raise e
@@ -813,12 +810,12 @@ class Engine(QObject):
     def _check_root(self):
         root = self._dao.get_state_from_local("/")
         if root is None:
-            if os.path.exists(self._local_folder):
-                BaseClient.unset_path_readonly(self._local_folder)
-            self._make_local_folder(self._local_folder)
+            if os.path.exists(self.local_folder):
+                BaseClient.unset_path_readonly(self.local_folder)
+            self._make_local_folder(self.local_folder)
             self._add_top_level_state()
             self._set_root_icon()
-            BaseClient.set_path_readonly(self._local_folder)
+            BaseClient.set_path_readonly(self.local_folder)
 
     @staticmethod
     def _make_local_folder(local_folder):
@@ -837,12 +834,12 @@ class Engine(QObject):
 
     def get_local_client(self):
         client = LocalClient(
-            self._local_folder,
+            self.local_folder,
             case_sensitive=self._case_sensitive,
             ignored_prefixes=self._manager.ignored_prefixes,
             ignored_suffixes=self._manager.ignored_suffixes,
         )
-        if self._case_sensitive is None and os.path.exists(self._local_folder):
+        if self._case_sensitive is None and os.path.exists(self.local_folder):
             self._case_sensitive = client.is_case_sensitive()
         return client
 

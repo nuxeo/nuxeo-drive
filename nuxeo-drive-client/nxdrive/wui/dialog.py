@@ -110,7 +110,7 @@ class WebDriveApi(QtCore.QObject):
         result["started"] = engine.is_started()
         result["syncing"] = engine.is_syncing()
         result["paused"] = engine.is_paused()
-        result["local_folder"] = engine._local_folder
+        result["local_folder"] = engine.local_folder
         result["queue"] = engine.get_queue_manager().get_metrics()
         # TODO Make it more generic
         bind = engine.get_binder()
