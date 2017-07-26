@@ -14,11 +14,15 @@ class DriveSystrayIcon(QSystemTrayIcon):
         super(DriveSystrayIcon, self).__init__(application)
         self.application = application
         self.menu_left = self.create_menu_left()
-        self.menu_right = self.create_menu_right()
-
-        self.setContextMenu(self.menu_right)
         self.messageClicked.connect(self.application.message_clicked)
         self.activated.connect(self.handle_mouse_click)
+
+        if not AbstractOSIntegration.is_mac():
+            # On macOS (and PyQt4 for now), only the left click is detected.
+            # So, the context menu is useless.  It is better to not define
+            # it else it will show up every click on the systray icon.
+            self.menu_right = self.create_menu_right()
+            self.setContextMenu(self.menu_right)
 
     def handle_mouse_click(self, reason):
         """
@@ -28,16 +32,12 @@ class DriveSystrayIcon(QSystemTrayIcon):
         menu (right click menu).
 
         Note: on macOS (and PyQt4 for now), only the left
-        click is detected ...
+        click is detected.
         """
-
-        print(reason)
 
         if reason == QSystemTrayIcon.Trigger:
             # On left click, open the usual menu with engines and sync files
             self.menu_left.popup(QCursor.pos())
-            if AbstractOSIntegration.is_mac():
-                self.contextMenu().hide()
         elif reason == QSystemTrayIcon.MiddleClick:
             # On middle click, open settings.  Yeah, it is practical!
             self.application.show_settings()
