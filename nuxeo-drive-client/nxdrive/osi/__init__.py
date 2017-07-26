@@ -86,9 +86,11 @@ def parse_edit_protocol(data_string):
 
 
 class AbstractOSIntegration(object):
+
+    zoom_factor = 1.0
+
     def __init__(self, manager):
         self._manager = manager
-        self.zoom_factor = 1.0
 
     def register_startup(self):
         pass

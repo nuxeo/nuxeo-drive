@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 
+from PyQt4.QtGui import QApplication
+
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
@@ -17,20 +19,6 @@ from nxdrive.wui.systray import DriveSystrayIcon
 from nxdrive.wui.translator import Translator
 
 log = get_logger(__name__)
-
-TIME_FORMAT_PATTERN = '%d %b %H:%M'
-
-# Keep Qt an optional dependency for now
-QtGui, QApplication, QObject = None, object, object
-try:
-    from PyQt4 import QtGui
-    from PyQt4 import QtCore
-except ImportError:
-    log.warning('Qt / PyQt4 is not installed: GUI is disabled')
-else:
-    from PyQt4.QtGui import QApplication
-    from PyQt4.QtCore import QObject
-    log.debug('Qt / PyQt4 successfully imported')
 
 
 class BindingInfo(object):
@@ -343,6 +331,10 @@ class Application(SimpleApplication):
         else:
             settings.set_section(section)
         self._show_window(settings)
+
+    @QtCore.pyqtSlot()
+    def open_help(self):
+        self.manager.open_help()
 
     @QtCore.pyqtSlot()
     def destroyed_filters_dialog(self):

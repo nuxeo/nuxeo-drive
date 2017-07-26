@@ -2,17 +2,68 @@
 from PyQt4.QtCore import Qt, pyqtSlot
 from PyQt4.QtGui import QAction, QCursor, QMenu, QSystemTrayIcon
 
+from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
 
 
 class DriveSystrayIcon(QSystemTrayIcon):
 
+    click_left = QSystemTrayIcon.Trigger
+    click_middle = QSystemTrayIcon.MiddleClick
+    click_right = QSystemTrayIcon.Context
+
     def __init__(self, application):
         super(DriveSystrayIcon, self).__init__(application)
         self.application = application
-        self.setContextMenu(WebSystray(self, application))
+        self.menu_left = self.create_menu_left()
+        self.menu_right = self.create_menu_right()
+
+        self.setContextMenu(self.menu_right)
         self.messageClicked.connect(self.application.message_clicked)
+        self.activated.connect(self.show_left_menu)
+
+    def show_left_menu(self, reason):
+        """
+        Handle any mouse click on the systray icon.
+        It is not needed to handle the right click as it
+        is the native bahevior and will open the context
+        menu (right click menu).
+
+        Note: on macOS (and PyQt4 for now), only the left
+        click is detected ...
+        """
+
+        print(reason)
+
+        if reason == self.click_left:
+            # On left click, open the usual menu with engines and sync files
+            self.menu_left.popup(QCursor.pos())
+        elif reason == self.click_middle:
+            # On middle click, open settings.  Yeah, it is practical!
+            self.application.show_settings()
+
+    def create_menu_left(self):
+        """
+        Create the usual menu with engines and sync files.
+        It shows up on left click.
+        """
+        return WebSystray(self, self.application)
+
+    def create_menu_right(self):
+        """
+        Create the context menu.
+        It shows up on left click.
+        """
+
+        menu = QMenu()
+        menu.addAction(Translator.get('SETTINGS'),
+                       self.application.show_settings)
+        menu.addSeparator()
+        menu.addAction(Translator.get('HELP'), self.application.open_help)
+        menu.addSeparator()
+        menu.addAction(Translator.get('QUIT'), self.application.quit)
+        return menu
 
 
 class WebSystrayApi(WebDriveApi):
@@ -44,20 +95,10 @@ class WebSystrayApi(WebDriveApi):
         self.dialog.hide()
         super(WebSystrayApi, self).open_local(str(uid), str(path))
 
-    @pyqtSlot()
-    def open_help(self):
-        self.dialog.hide()
-        self._manager.open_help()
-
     @pyqtSlot(str)
     def trigger_notification(self, id_):
         self.dialog.hide()
         super(WebSystrayApi, self).trigger_notification(str(id_))
-
-    @pyqtSlot()
-    def open_about(self):
-        self.dialog.hide()
-        self.application.show_settings(section='About')
 
     @pyqtSlot()
     def suspend(self):
@@ -85,19 +126,27 @@ class WebSystrayApi(WebDriveApi):
                 self.menu.addAction(Translator.get('RESUME'), self.resume)
             else:
                 self.menu.addAction(Translator.get('SUSPEND'), self.suspend)
-            self.menu.addSeparator()
-            self.menu.addAction(Translator.get('SETTINGS'),
-                                self.application.show_settings)
-            self.menu.addSeparator()
-            self.menu.addAction(Translator.get('HELP'), self.open_help)
+
             if self._manager.is_debug():
                 self.menu.addSeparator()
                 debug_menu = self.application.create_debug_menu(self.menu)
                 debug_action = QAction(Translator.get('DEBUG'), self)
                 debug_action.setMenu(debug_menu)
                 self.menu.addAction(debug_action)
-            self.menu.addSeparator()
-            self.menu.addAction(Translator.get('QUIT'), self.application.quit)
+
+            if AbstractOSIntegration.is_mac():
+                # Still need to include context menu items as macOS does not
+                # see anything but left clicks.
+                # TODO: check with Qt5.
+                self.menu.addSeparator()
+                self.menu.addAction(Translator.get('SETTINGS'),
+                                    self.application.show_settings)
+                self.menu.addSeparator()
+                self.menu.addAction(Translator.get('HELP'),
+                                    self.application.open_help)
+                self.menu.addSeparator()
+                self.menu.addAction(Translator.get('QUIT'),
+                                    self.application.quit)
 
         self.menu.popup(QCursor.pos())
 
@@ -121,9 +170,9 @@ class WebSystrayView(WebDialog):
                             | Qt.WindowStaysOnTopHint
                             | Qt.Popup)
 
-    def move_and_replace(self):
+    def resize_and_move(self):
         """
-        Resize and move the sysem tray menu accordingly to
+        Resize and move the system tray menu accordingly to
         the system tray icon position.
         """
 
@@ -145,10 +194,12 @@ class WebSystrayView(WebDialog):
 class WebSystray(QMenu):
 
     __dialog = None
+    __geometry = None
 
     def __init__(self, parent, application):
         super(WebSystray, self).__init__()
         self.aboutToShow.connect(self.onShow)
+        self.aboutToHide.connect(self.onHide)
         self.application = application
         self.systray_icon = parent
 
@@ -159,6 +210,7 @@ class WebSystray(QMenu):
                                            self.systray_icon)
             self.__dialog.destroyed.connect(self.onDelete)
             self.__dialog.icon = self.systray_icon
+            self.__geometry = self.__dialog.geometry()
             self.application.aboutToQuit.connect(self.__dialog.close)
         return self.__dialog
 
@@ -167,6 +219,14 @@ class WebSystray(QMenu):
         self.__dialog = None
 
     @pyqtSlot()
+    def onHide(self):
+        """
+        This is not triggered on macOS, but keep it for other platforms.
+        """
+        if not self.__geometry.contains(QCursor.pos()):
+            self.dialog.hide()
+
+    @pyqtSlot()
     def onShow(self):
-        self.dialog.move_and_replace()
+        self.dialog.resize_and_move()
         self.dialog.show()
