@@ -1,6 +1,7 @@
 # coding: utf-8
 from PyQt4.QtCore import Qt, pyqtSlot
-from PyQt4.QtGui import QAction, QCursor, QMenu, QSystemTrayIcon
+from PyQt4.QtGui import QAction, QApplication, QCursor, QMenu, QStyle, \
+    QSystemTrayIcon
 
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
@@ -35,6 +36,8 @@ class DriveSystrayIcon(QSystemTrayIcon):
         if reason == QSystemTrayIcon.Trigger:
             # On left click, open the usual menu with engines and sync files
             self.menu_left.popup(QCursor.pos())
+            if AbstractOSIntegration.is_mac():
+                self.contextMenu().hide()
         elif reason == QSystemTrayIcon.MiddleClick:
             # On middle click, open settings.  Yeah, it is practical!
             self.application.show_settings()
@@ -52,13 +55,23 @@ class DriveSystrayIcon(QSystemTrayIcon):
         It shows up on left click.
         """
 
+        style = QApplication.style()
         menu = QMenu()
-        menu.addAction(Translator.get('SETTINGS'),
-                       self.application.show_settings)
+        menu.addAction(
+            style.standardIcon(QStyle.SP_FileDialogInfoView),
+            Translator.get('SETTINGS'),
+            self.application.show_settings,
+        )
         menu.addSeparator()
-        menu.addAction(Translator.get('HELP'), self.application.open_help)
+        menu.addAction(
+            style.standardIcon(QStyle.SP_MessageBoxQuestion),
+            Translator.get('HELP'),
+            self.application.open_help)
         menu.addSeparator()
-        menu.addAction(Translator.get('QUIT'), self.application.quit)
+        menu.addAction(
+            style.standardIcon(QStyle.SP_DialogCloseButton),
+            Translator.get('QUIT'),
+            self.application.quit)
         return menu
 
 
@@ -192,12 +205,12 @@ class WebSystray(QMenu):
     __dialog = None
     __geometry = None
 
-    def __init__(self, parent, application):
+    def __init__(self, systray_icon, application):
         super(WebSystray, self).__init__()
         self.aboutToShow.connect(self.onShow)
         self.aboutToHide.connect(self.onHide)
         self.application = application
-        self.systray_icon = parent
+        self.systray_icon = systray_icon
 
     @property
     def dialog(self):
