@@ -293,7 +293,7 @@ class Engine(QObject):
         return remote_ref_segments[2]
 
     def get_metadata_url(self, remote_ref):
-        metadata_url = self.get_server_url()
+        metadata_url = self.server_url
         remote_ref_segments = remote_ref.split("#", 2)
         repo = remote_ref_segments[1]
         doc_id = remote_ref_segments[2]
@@ -414,8 +414,9 @@ class Engine(QObject):
         if self._remote_password is None and self._remote_token is None:
             self.set_invalid_credentials(reason="found no password nor token in engine configuration")
 
-    def get_server_url(self):
-        return self._dao.get_config("server_url")
+    @property
+    def server_url(self):
+        return self._dao.get_config('server_url')
 
     def get_remote_user(self):
         return self._dao.get_config("remote_user")
@@ -987,7 +988,7 @@ class Engine(QObject):
 
     def get_rest_api_client(self):
         rest_client = RestAPIClient(
-            self.get_server_url(), self.get_remote_user(),
+            self.server_url, self.get_remote_user(),
             self._manager.get_device_id(), self._manager.get_version(), None,
             self.get_remote_token(), timeout=self.timeout,
             cookie_jar=self.cookie_jar,

@@ -941,7 +941,7 @@ class Manager(QtCore.QObject):
                         # Check if every server URL can be resolved to some
                         # proxy server
                         for engine_def in self._engine_definitions:
-                            url = self._engines[engine_def.uid].get_server_url()
+                            url = self._engines[engine_def.uid].server_url
                             resolver.get_proxies(url)
                     else:
                         resolver.get_proxies(url)
@@ -975,7 +975,7 @@ class Manager(QtCore.QObject):
         elif proxy_settings.config == 'Automatic':
             if self._engine_definitions:
                 for engine_def in self._engine_definitions:
-                    server_url = self._engines[engine_def.uid].get_server_url()
+                    server_url = self._engines[engine_def.uid].server_url
                     self.proxies[server_url] = proxy_settings.get_proxies_automatic(server_url)
                     log.trace('Setting proxy for %s to %r', server_url,
                               self.proxies[server_url])

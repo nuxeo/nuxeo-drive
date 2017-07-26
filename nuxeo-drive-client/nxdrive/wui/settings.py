@@ -255,9 +255,8 @@ class WebSettingsApi(WebDriveApi):
             engine = self._get_engine(str(uid))
             if engine is None:
                 return 'CONNECTION_UNKNOWN'
-            server_url = engine.get_server_url()
             params = urlencode({'updateToken': True})
-            url = self._get_authentication_url(server_url) + '&' + params
+            url = self._get_authentication_url(engine.server_url) + '&' + params
             callback_params = {
                 'engine': engine,
             }
