@@ -175,7 +175,7 @@ class StubQApplication(QtCore.QCoreApplication):
 
     @QtCore.pyqtSlot()
     def sync_completed(self):
-        uid = getattr(self.sender(), 'uid')
+        uid = getattr(self.sender(), 'uid', None)
         if uid:
             self._test._wait_sync[uid] = False
             log.debug("Sync Completed slot for: %s", uid)
