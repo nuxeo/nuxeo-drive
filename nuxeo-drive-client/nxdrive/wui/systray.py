@@ -230,6 +230,11 @@ class WebSystray(QMenu):
         return self.__dialog
 
     @pyqtSlot()
+    def popup(self, pos):
+        self.dialog.resize_and_move()
+        self.dialog.show()
+
+    @pyqtSlot()
     def onDelete(self):
         self.__dialog = None
 

@@ -99,29 +99,29 @@ class WebDriveApi(QtCore.QObject):
         return json.dumps(obj, default=self._json_default)
 
     def _export_engine(self, engine):
-        result = dict()
         if engine is None:
-            return result
-        result["uid"] = engine.uid
-        result["type"] = engine.type
-        result["name"] = engine.name
-        result["offline"] = engine.is_offline()
-        result["metrics"] = engine.get_metrics()
-        result["started"] = engine.is_started()
-        result["syncing"] = engine.is_syncing()
-        result["paused"] = engine.is_paused()
-        result["local_folder"] = engine.local_folder
-        result["queue"] = engine.get_queue_manager().get_metrics()
-        # TODO Make it more generic
+            return {}
+
         bind = engine.get_binder()
-        result["web_authentication"] = bind.web_authentication
-        result["server_url"] = bind.server_url
-        result["username"] = bind.username
-        result["need_password_update"] = bind.pwd_update_required
-        result["initialized"] = bind.initialized
-        result["server_version"] = bind.server_version
-        result["threads"] = self._get_threads(engine)
-        return result
+        return {
+            'uid': engine.uid,
+            'type': engine.type,
+            'name': engine.name,
+            'offline': engine.is_offline(),
+            'metrics': engine.get_metrics(),
+            'started': engine.is_started(),
+            'syncing': engine.is_syncing(),
+            'paused': engine.is_paused(),
+            'local_folder': engine.local_folder,
+            'queue': engine.get_queue_manager().get_metrics(),
+            'web_authentication': bind.web_authentication,
+            'server_url': bind.server_url,
+            'username': bind.username,
+            'need_password_update': bind.pwd_update_required,
+            'initialized': bind.initialized,
+            'server_version': bind.server_version,
+            'threads': self._get_threads(engine) ,
+        }
 
     def get_date_from_sqlite(self, d):
         format_date = '%Y-%m-%d %H:%M:%S'
