@@ -1,4 +1,6 @@
 # dev
+
+# 2.4.9
 - Removed `start_engine`, `check_fs` and `token` arguments from `_bind_server()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
 - Removed `local_folder`, `url`, `username`, `password`, `name`, `check_fs` and `token` arguments from `bind_server_async()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
 - Removed `check_fs` and `token` from `bind_server` method of `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
