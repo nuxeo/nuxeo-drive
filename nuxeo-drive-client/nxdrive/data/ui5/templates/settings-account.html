@@ -2,14 +2,14 @@
   <div class="form-group" ng-show="!currentAccount.initialized">
     <label for="name" class="col-sm-2 control-label" translate>NAME</label>
     <div class="col-sm-10">
-      <input type="text" class="form-control" id="name" placeholder="{{ 'ENGINE_NAME_PLACEHOLDER' | translate }}" ng-model="currentAccount.name">
+      <input class="form-control" id="name" placeholder="{{ 'ENGINE_NAME_PLACEHOLDER' | translate }}" ng-model="currentAccount.name">
     </div>
   </div>
   <div class="form-group">
     <label for="localFolder" class="col-sm-2 control-label" translate>ENGINE_FOLDER</label>
     <div class="col-sm-10">
     	<div class="input-group">
-      <input ng-disabled="currentAccount.initialized" type="text" class="form-control" id="localFolder" placeholder="{{ 'ENGINE_SELECT_FOLDER_PLACEHOLDER' | translate }}" ng-model="currentAccount.local_folder">
+      <input ng-disabled="currentAccount.initialized" class="form-control" id="localFolder" placeholder="{{ 'ENGINE_SELECT_FOLDER_PLACEHOLDER' | translate }}" ng-model="currentAccount.local_folder">
       <span class="input-group-addon" id="basic-addon2" ng-click="browse()" translate>ENGINE_FOLDER_BROWSE</span>
       </div>
     </div>
@@ -18,13 +18,13 @@
   <div class="form-group">
     <label for="serverURL" class="col-sm-2 control-label" translate>URL</label>
     <div class="col-sm-10">
-      <input ng-disabled="currentAccount.initialized" type="text" class="form-control" id="serverURL" placeholder="{{ 'ENGINE_URL_PLACEHOLDER' | translate }}" ng-model="currentAccount.server_url">
+      <input ng-disabled="currentAccount.initialized" class="form-control" id="serverURL" placeholder="{{ 'ENGINE_URL_PLACEHOLDER' | translate }}" ng-model="currentAccount.server_url">
     </div>
   </div>
   <div class="form-group" ng-show="!webAuthenticationAvailable || currentAccount.initialized">
     <label for="username" class="col-sm-2 control-label" translate>USERNAME</label>
     <div class="col-sm-10">
-      <input ng-disabled="currentAccount.initialized" type="text" class="form-control" id="username" placeholder="{{ 'ENGINE_USERNAME_PLACEHOLDER' | translate }}" ng-model="currentAccount.username">
+      <input ng-disabled="currentAccount.initialized" class="form-control" id="username" placeholder="{{ 'ENGINE_USERNAME_PLACEHOLDER' | translate }}" ng-model="currentAccount.username">
     </div>
   </div>
   <div class="form-group" ng-show="!webAuthenticationAvailable && !currentAccount.initialized">
@@ -42,7 +42,7 @@
 	      <input type="password" class="form-control" placeholder="{{ 'UPDATE_PASSWORD_PLACEHOLDER' | translate }}" ng-model="password">
 	      <span class="input-group-btn">
 	        <button class="btn btn-default" ng-click="update_password(currentAccount.uid, password)" type="button">
-              <span ng-show="update_password_error == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span>
+              <span ng-show="update_password_error == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span>
               <span ng-disabled="update_password_error == 'CONNECTING'" translate>UPDATE_PASSWORD_BUTTON</span>
             </button>
 	      </span>
@@ -66,8 +66,8 @@
   <div class="form-group">
     <div class="col-sm-offset-2 col-sm-10">
       <button type="button" ng-blur="unbindBlur()" id="unbindButton" class="btn btn-default" ng-click="unbindServer($event)" ng-show="currentAccount.uid != null" translate>DISCONNECT</button>
-      <button type="button" class="btn btn-default btn-primary" ng-show="!webAuthenticationAvailable && !currentAccount.initialized" ng-disabled="!validForm() || currentAction != ''" ng-click="bindServer()"><span ng-show="currentAction == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span><span translate>CONNECT</span></button>
-      <button type="button" class="btn btn-default btn-primary" ng-show="webAuthenticationAvailable && !currentAccount.initialized" ng-disabled="!validForm() || currentAction != ''" ng-click="webAuthentication()"><span ng-show="currentAction == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span><span translate>CONNECT</span></button>
+      <button type="button" class="btn btn-default btn-primary" ng-show="!webAuthenticationAvailable && !currentAccount.initialized" ng-disabled="!validForm() || currentAction != ''" ng-click="bindServer()"><span ng-show="currentAction == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span><span translate>CONNECT</span></button>
+      <button type="button" class="btn btn-default btn-primary" ng-show="webAuthenticationAvailable && !currentAccount.initialized" ng-disabled="!validForm() || currentAction != ''" ng-click="webAuthentication()"><span ng-show="currentAction == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span><span translate>CONNECT</span></button>
       <button style="float:right;" title="{{ 'SELECT_SYNC_FOLDERS_DESCRIPTION' | translate }}" type="button" class="btn btn-default" ng-disabled="currentAccount.offline" ng-show="currentAccount.uid != null" ng-click="filters()" translate>SELECT_SYNC_FOLDERS</button>
       <button style="float:right;" type="button" class="btn btn-default" ng-show="currentAccount.uid != null && currentAccount.metrics.unsynchronized_files > 0" ng-click="show_conflicts(currentAccount.uid)" translate translate-values="currentAccount.metrics">IGNORES_SYSTRAY</button>
     </div>

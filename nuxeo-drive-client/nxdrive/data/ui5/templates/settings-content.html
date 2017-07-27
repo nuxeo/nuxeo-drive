@@ -6,21 +6,21 @@
       </a>
     </div>
     <ul class="nav navbar-nav">
-      <li ng-class="getSectionClass('General')"><a href="#" ng-click="changeSection('General')"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;<span translate>SECTION_GENERAL</span></a></li>
-      <li ng-class="getSectionClass('Accounts')"><a href="#" ng-click="changeSection('Accounts')"><span class="glyphicon glyphicon-user" aria-hidden="true"></span>&nbsp;<span translate>SECTION_ACCOUNTS</span></a></li>
-      <li ng-class="getSectionClass('Advanced')"><a href="#" ng-click="changeSection('Advanced')"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>&nbsp;<span translate>SECTION_ADVANCED</span></a></li>
-      <li ng-class="getSectionClass('About')"><a href="#" ng-click="changeSection('About')"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>&nbsp;<span translate>SECTION_ABOUT</span></a></li>
+      <li ng-class="getSectionClass('General')"><a href="#" ng-click="changeSection('General')"><span class="glyphicon glyphicon-refresh"></span>&nbsp;<span translate>SECTION_GENERAL</span></a></li>
+      <li ng-class="getSectionClass('Accounts')"><a href="#" ng-click="changeSection('Accounts')"><span class="glyphicon glyphicon-user"></span>&nbsp;<span translate>SECTION_ACCOUNTS</span></a></li>
+      <li ng-class="getSectionClass('Advanced')"><a href="#" ng-click="changeSection('Advanced')"><span class="glyphicon glyphicon-wrench"></span>&nbsp;<span translate>SECTION_ADVANCED</span></a></li>
+      <li ng-class="getSectionClass('About')"><a href="#" ng-click="changeSection('About')"><span class="glyphicon glyphicon-info-sign"></span>&nbsp;<span translate>SECTION_ABOUT</span></a></li>
     </ul>
   </div>
 </nav>
 <div class="container-fluid" style="padding-top: 80px;">
-<div class="container" ng-show="section == 'General'" drive-include="getTemplate('settings-general')">
+<div class="container" ng-show="section == 'General'" drive-include="settings-general">
   
 </div>
-<div class="row" ng-show="section == 'Accounts'" drive-include="getTemplate('settings-accounts')">
+<div class="row" ng-show="section == 'Accounts'" drive-include="settings-accounts">
 </div>
-<div class="container" ng-show="section == 'Advanced'" drive-include="getTemplate('settings-advanced')">
+<div class="container" ng-show="section == 'Advanced'" drive-include="settings-advanced">
 </div>
-<div class="container" ng-show="section == 'About'" drive-include="getTemplate('settings-about')">
+<div class="container" ng-show="section == 'About'" drive-include="settings-about">
 </div>
 </div>

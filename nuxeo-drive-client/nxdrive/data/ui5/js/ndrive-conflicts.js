@@ -57,7 +57,7 @@ ConflictsController.prototype.updateErrors = function($scope) {
 	}
 	$scope.errors = errors;
 
-	for (ignore in ignoreds) {
+	for (var ignore in ignoreds) {
 		if (reasons.indexOf(ignoreds[ignore].last_error) < 0) {
 			ignoreds[ignore].ignore_reason = "IGNORE_REASON_UNKNOWN";
 		} else {
@@ -71,7 +71,7 @@ ConflictsController.prototype.updateConflicts = function($scope, $interval) {
 	$scope.conflicts = angular.fromJson(drive.get_conflicts());
 	for (var i=0; i<$scope.conflicts.length; i++) {
 		if ($scope.conflicts[i].last_error == "DUPLICATING") {
-			setTimeout( function() {
+			setTimeout(function() {
 				self.updateConflicts($scope, $interval);
 				$scope.$apply();
 			}, 1000);

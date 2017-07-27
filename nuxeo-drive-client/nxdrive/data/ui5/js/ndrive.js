@@ -2,26 +2,26 @@
 String.prototype.endsWith = function(suffix) {
     return this.indexOf(suffix, this.length - suffix.length) !== -1;
 };
-_promises = [];
-promise_success = function(uid, result) {
+var _promises = [];
+var promise_success = function(uid, result) {
 	if (_promises[uid] == undefined || _promises[uid]._success_callback == undefined) {
 		return;
 	}
 	_promises[uid]._success_callback(result);
 	delete _promises[uid];
 }
-promise_error = function(uid, err) {
+var promise_error = function(uid, err) {
 	if (_promises[uid] == undefined || _promises[uid]._error_callback == undefined) {
 		return;
 	}
 	_promises[uid]._error_callback(err);
 	delete _promises[uid];
 }
-when = function(result) {
+var when = function(result) {
 	return {
 		then: function(callback, error_callback) {
 			if (result && result['_promise_success'] !== undefined && result['_promise_error'] !== undefined) {
-				uid = result['_promise_uid']();
+				var uid = result['_promise_uid']();
 				if (_promises[uid] == undefined) {
 					_promises[uid] = self
 				}
@@ -37,21 +37,20 @@ when = function(result) {
 	};
 }
 function drive_module(name) {
-	app = angular.module(name, ['pascalprecht.translate']);
+	var app = angular.module(name, ['pascalprecht.translate']);
 	app.directive('driveInclude', function($http, $templateCache, $compile) {
 	    return function(scope, element, attrs) {
-	    	// Not nicest way
-	        var templatePath = eval("scope."+attrs.driveInclude);
-	        $http.get(templatePath, { cache: $templateCache }).success(function(response) {
+	        $http.get(scope.getTemplate(attrs.driveInclude), { cache: $templateCache }).success(
+	        function(response) {
 	            var contents = element.html(response).contents();
 	            $compile(contents)(scope);
 	        });
 	    };
 	});
 	app.config(function ($translateProvider) {
-		languages = angular.fromJson(drive.get_languages());
-		for (i=0; i<languages.length; i++) {
-			$translateProvider.translations(languages[i][0], eval("LABELS." + languages[i][0]));
+		var languages = angular.fromJson(drive.get_languages());
+		for (var i=0; i<languages.length; i++) {
+			$translateProvider.translations(languages[i][0], LABELS[languages[i][0]]);
 		}
 		$translateProvider.preferredLanguage(drive.locale());
 	});
@@ -60,19 +59,19 @@ function drive_module(name) {
 	});
 	return app;
 }
-tracker = drive.get_tracker_id();
+var tracker = drive.get_tracker_id();
 if (tracker != "") {
 	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
 	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
 	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','http://www.google-analytics.com/analytics.js','ga');
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
 
 	ga('create', tracker, 'auto');
 	ga('send', 'pageview');
 }
 
 // Default controller
-DriveController = function($scope, $translate) {
+var DriveController = function($scope, $translate) {
 	// Map default drive API
 	self = this;
 	$scope.currentAction = "";

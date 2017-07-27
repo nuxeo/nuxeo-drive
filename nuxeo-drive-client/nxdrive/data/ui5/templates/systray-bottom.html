@@ -1,4 +1,4 @@
-<div class="label notifications-container" style="position: absolute; padding:0px; left:0px; width: 100%; bottom: 40px; width: 100%;" drive-include="getTemplate('systray-notifications')">
+<div class="label notifications-container" style="position: absolute; padding:0px; left:0px; width: 100%; bottom: 40px; width: 100%;" drive-include="systray-notifications">
 	
   </div>
 <div class="sync-status">
@@ -9,6 +9,6 @@
     <span title="{{SYNCHRONIZATION_COMPLETED | translate }}" class="glyphicon glyphicon-ok"></span>
   </div>
   <div ng-show="!engine.paused && engine.syncing == 'syncing'">
-    <span title="{{SYNCHRONIZATION_IN_PROGRESS | translate }}" ng-show="engine.syncing_count > 0">({{engine.syncing_count}})</span>&nbsp;<img src="imgs/nuxeo_drive_icon_48.png" /></span>
+    <span title="{{SYNCHRONIZATION_IN_PROGRESS | translate }}" ng-show="engine.syncing_count > 0">({{engine.syncing_count}})</span>&nbsp;<img src="imgs/nuxeo_drive_icon_48.png" />
   </div>
 </div>
