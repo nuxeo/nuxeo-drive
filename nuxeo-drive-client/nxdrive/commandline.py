@@ -456,7 +456,7 @@ class CliHandler(object):
 
         try:
             return handler(options)
-        except Exception, e:
+        except Exception as e:
             if options.debug:
                 # Make it possible to use the postmortem debugger
                 raise

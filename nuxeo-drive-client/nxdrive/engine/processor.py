@@ -16,7 +16,7 @@ from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, PairInterrupt, ThreadInterrupt
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.utils import current_milli_time, is_office_temp_file
+from nxdrive.utils import current_milli_time, is_generated_tmp_file
 
 log = get_logger(__name__)
 
@@ -407,17 +407,23 @@ class Processor(EngineWorker):
     def _synchronize_locally_created(self, doc_pair, local_client,
                                      remote_client, overwrite=False):
         """
-        :param overwrite Allows to overwrite an existing document with the
-                         same title on the server.
+        :param bool overwrite: Allows to overwrite an existing document
+                               with the same title on the server.
         """
+
         name = os.path.basename(doc_pair.local_path)
-        if (not doc_pair.folderish
-                and is_office_temp_file(name)
-                and doc_pair.error_count == 0):
-            # Might be an Office temp file delay it by 60s
-            # Save the error_count to not ignore next time
-            self.increase_error(doc_pair, 'Can be Office Temp')
-            return
+        if not doc_pair.folderish:
+            ignore, delay = is_generated_tmp_file(name)
+            if ignore:
+                # Might be a tierce software temporary file
+                if not delay:
+                    log.debug('Ignoring generated tmp file: %s', name)
+                    return
+                if doc_pair.error_count == 0:
+                    # Save the error_count to not ignore next time
+                    log.debug('Delaying generated tmp file like: %s', name)
+                    self.increase_error(doc_pair, 'Can be a temporary file')
+                    return
 
         remote_ref = local_client.get_remote_id(doc_pair.local_path)
         # Find the parent pair to find the ref of the remote folder to

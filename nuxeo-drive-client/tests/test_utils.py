@@ -1,10 +1,11 @@
-import sys
+# coding: utf-8
 import hashlib
+import sys
 import unittest
-from nxdrive.utils import guess_mime_type
-from nxdrive.utils import guess_digest_algorithm
-from nxdrive.utils import is_office_temp_file
+
 from nxdrive.manager import ProxySettings
+from nxdrive.utils import guess_digest_algorithm, guess_mime_type, \
+    is_generated_tmp_file
 
 
 class TestUtils(unittest.TestCase):
@@ -57,46 +58,29 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(proxy.to_url(), 'https://user:password@localhost:3129')
         self.assertEqual(proxy.to_url(False), 'https://localhost:3129')
 
-    def test_office_temp_file(self):
+    def test_generated_tempory_file(self):
         # Normal
-        self.assertEqual(is_office_temp_file("plop"), False)
+        self.assertEqual(is_generated_tmp_file('README'), (False, None))
 
-        # Powerpoint temp file
-        self.assertEqual(is_office_temp_file("ppt.tmp"), False)
-        self.assertEqual(is_office_temp_file("pptED23.tmp"), True)
-        self.assertEqual(is_office_temp_file("pptzDER.tmp"), False)
-        self.assertEqual(is_office_temp_file("ppt1DER.tmp"), False)
-        self.assertEqual(is_office_temp_file("ppt21AD.tmp"), True)
-        # Powerpoint temp file by Office 365 / 2013
-        self.assertEqual(is_office_temp_file("ppt1.tmp"), True)
-        self.assertEqual(is_office_temp_file("ppt23F.tmp"), True)
+        # Any temporary file
+        self.assertEqual(is_generated_tmp_file('Book1.bak'), (True, False))
+        self.assertEqual(is_generated_tmp_file('pptED23.tmp'), (True, False))
+        self.assertEqual(is_generated_tmp_file('9ABCDEF0.tep'), (False, None))
 
-        # Office temp file 2007+
-        self.assertEqual(is_office_temp_file("A239FDCA"), True)
-        self.assertEqual(is_office_temp_file("A2Z9FDCA"), False)
-        self.assertEqual(is_office_temp_file("12345678"), True)
-        self.assertEqual(is_office_temp_file("9ABCDEF0"), True)
-        self.assertEqual(is_office_temp_file("A239FDZA"), False)
-        self.assertEqual(is_office_temp_file("A239FDCA.tmp"), True)
-        self.assertEqual(is_office_temp_file("A2Z9FDCA.tmp"), False)
-        self.assertEqual(is_office_temp_file("12345678.tmp"), True)
-        self.assertEqual(is_office_temp_file("9ABCDEF0.tmp"), True)
-        self.assertEqual(is_office_temp_file("A239FDZA.tmp"), False)
-        self.assertEqual(is_office_temp_file("A2D9FDCA1"), False)
-        self.assertEqual(is_office_temp_file("A2D9FDCA1.tmp"), False)
-        self.assertEqual(is_office_temp_file("9ABCDEF0.tep"), False)
-        # Office temp file 2013
-        self.assertEqual(is_office_temp_file("C199633.tmp"), True)
-        self.assertEqual(is_office_temp_file("BCD574.tmp"), True)
+        # AutoCAD
+        self.assertEqual(is_generated_tmp_file('atmp9716'), (True, False))
+        self.assertEqual(is_generated_tmp_file('7151_CART.dwl'), (True, False))
+        self.assertEqual(is_generated_tmp_file('7151_CART.dwl2'), (True, False))
+        self.assertEqual(is_generated_tmp_file('7151_CART.dwg'), (False, None))
 
-        # Office 97
-        self.assertEqual(is_office_temp_file("~A2D9FDCA1.tmp"), True)
-        self.assertEqual(is_office_temp_file("~Whatever is here.tmp"), True)
-        self.assertEqual(is_office_temp_file("~A2D9FDCA1.tm"), False)
-        self.assertEqual(is_office_temp_file("Whatever is here.tmp"), False)
+        # Microsoft Office
+        self.assertEqual(is_generated_tmp_file('A239FDCA'), (True, True))
+        self.assertEqual(is_generated_tmp_file('A2Z9FDCA'), (False, None))
+        self.assertEqual(is_generated_tmp_file('A239FDZA'), (False, None))
+        self.assertEqual(is_generated_tmp_file('A2D9FDCA1'), (False, None))
+        self.assertEqual(is_generated_tmp_file('~A2D9FDCA1.tm'), (False, None))
 
     def test_guess_mime_type(self):
-
         # Text
         self.assertEqual(guess_mime_type('text.txt'), 'text/plain')
         self.assertEqual(guess_mime_type('text.html'), 'text/html')
@@ -196,15 +180,15 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(guess_mime_type('office.odp'), 'application/vnd.oasis.opendocument.presentation')
 
     def test_guess_digest_algorithm(self):
-        s = 'joe'
-        md5_digest = hashlib.md5(s).hexdigest()
+        md5_digest = hashlib.md5('joe').hexdigest()
         self.assertEqual(guess_digest_algorithm(md5_digest), 'md5')
-        sha1_digest = hashlib.sha1(s).hexdigest()
+        sha1_digest = hashlib.sha1('joe').hexdigest()
         self.assertEqual(guess_digest_algorithm(sha1_digest), 'sha1')
         # For now only md5 and sha1 are supported
-        sha256_digest = hashlib.sha256(s).hexdigest()
+        sha256_digest = hashlib.sha256('joe').hexdigest()
         try:
             guess_digest_algorithm(sha256_digest)
-            self.fail('Other algorithms than md5 and sha1 should not be supported for now')
+            self.fail('Other algorithms than MD5 and SHA1 should not'
+                      ' be supported for now')
         except:
             pass
