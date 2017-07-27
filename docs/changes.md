@@ -1,9 +1,19 @@
 # dev
 Release date: `2017-??-??`
 
+
+# 2.4.9
+Release date: `2017-07-27`
+
 ### Core
+- [NXDRIVE-897](https://jira.nuxeo.com/browse/NXDRIVE-897): Fix error when editing a DWG file
 - [NXDRIVE-907](https://jira.nuxeo.com/browse/NXDRIVE-907): Replace deprecated log.warn with log.warning
+- [NXDRIVE-908](https://jira.nuxeo.com/browse/NXDRIVE-908): Support URL parameters in Nuxeo URL
 - [NXDRIVE-915](https://jira.nuxeo.com/browse/NXDRIVE-915): Subscribe to pyup.io for requirements checks
+- [NXDRIVE-918](https://jira.nuxeo.com/browse/NXDRIVE-918): Ignore .bak files
+
+### Tests
+- [NXDRIVE-917](https://jira.nuxeo.com/browse/NXDRIVE-917): Analyze AutoCAD behaviors
 
 ### Packaging / Build
 - [NXDRIVE-913](https://jira.nuxeo.com/browse/NXDRIVE-913): Jenkins: Drive-prod job requires the esky module
@@ -27,8 +37,6 @@ Release date: `2017-??-??`
 - Packaging: Updated `python-dateutil` from 2.6.0 to 2.6.1
 - Packaging: Removed `setuptools` requirement
 - Jenkins: use TWANG for packages job
-- Tests: Reactivate test_XLS_conflict_* tests
-- `LocalClient`: Ignore .nxpart files by default
 
 
 # 2.4.8
