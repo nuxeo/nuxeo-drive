@@ -34,7 +34,7 @@ class TestReinitDatabase(UnitTestCase):
 
     def _reinit_database(self):
         # Unbind engine
-        self.manager_1.unbind_engine(self.engine_1.get_uid())
+        self.manager_1.unbind_engine(self.engine_1.uid)
         # Re-bind engine
         self.engine_1 = self.manager_1.bind_server(self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1,
                                                    self.password_1, start_engine=False)

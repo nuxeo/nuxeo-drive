@@ -1,4 +1,69 @@
 # dev
+- Removed `get_local_folder()` method from `Engine` class. Use `local_folder` attribute instead.
+- Removed `get_uid()` method from `Engine` class. Use `uid` attribute instead.
+- Removed `get_server_url()` method from `Engine` class. Use `server_url` property instead.
+- Removed `get_remote_user()` method from `Engine` class. Use `remote_user` property instead.
+- Removed `get_action()` method from `Worker` class. Use `action` property instead.
+- Removed `paintEvent()` method from `Overlay` class
+- Removed `get_appname()` method from `Manager` class. Use `app_name` attribute instead.
+- Removed `get_notification_service()` method from `Manager` class. Use `notification_service` property instead.
+- Removed `get_direct_edit()` method from `Manager` class. Use `direct_edit` attribute instead.
+- Removed `get_osi()` method from `Manager` class. Use `osi` attribute instead.
+- Removed `is_debug()` method from `Manager` class. Use `debug` attribute instead.
+- Removed `_create_notification_service()` method from `Manager` class
+- Removed `get_flags()` method from `Notification` class. Use `flags` attribute instead.
+- Removed `get_engine_uid()` method from `Notification` class. Use `engine_uid` attribute instead.
+- Removed `get_action()` method from `Notification` class. Use `action` attribute instead.
+- Removed `get_uid()` method from `Notification` class. Use `uid` attribute instead.
+- Removed `get_level()` method from `Notification` class. Use `level` attribute instead.
+- Removed `get_title()` method from `Notification` class. Use `title` attribute instead.
+- Removed `get_description()` method from `Notification` class. Use `description` attribute instead.
+- Removed `get_zoom_factor()` method from `AbstractOSIntegration` class. Use `zoom_factor` attribute instead. It is a property on Windows.
+- Removed `set_engine_uid()` method from `DriveScript` class. Use `engine_uid` attribute instead.
+- Removed `_get_skin()` method from `SimpleApplication` class. Use `skin` attribute instead.
+- Removed `get_default_tooltip()` method from `Application` class. Use `default_tooltip` attribute instead.
+- Removed `get_icon_state()` method from `Application` class. Use `icon_state` attribute instead.
+- Removed `show_message()` method from `Application` class
+- Removed `get_systray_menu()` method from `Application` class
+- Removed `get_dialog()` method from `WebDriveApi` class. Use `dialog` attribute instead.
+- Removed `set_dialog()` method from `WebDriveApi` class. Use `dialog` attribute instead.
+- Removed `set_last_url()` method from `WebDriveApi` class. Use `last_url` attribute instead.
+- Removed `set_token()` method from `WebDialog` class. Use `token` attribute instead.
+- Removed `get_frame()` method from `WebDialog` class. Use `frame` attribute instead.
+- Removed `get_view()` method from `WebDialog` class. Use `view` attribute instead.
+- Removed `show()` method from `WebDialog` class
+- Removed `__del__()` method from `WebDialog` class
+- Removed `set_last_error()` method from `WebMetadataApi` class. Use `error` attribute instead.
+- Removed `getLoadingOverlay()` method from `FolderTreeview` class
+- Removed `loadFinished()` method from `FolderTreeview` class
+- Removed `get_dirty_items()` method from `FolderTreeview` class. Use `dirty_items` attribute instead.
+- Removed `getLoadingOverlay()` method from `StatusTreeview` class
+- Removed `loadFinished()` method from `StatusTreeview` class
+- Removed `showMessage()` method from `DriveSystrayIcon` class
+- Removed `_show_popup()` method from `DriveSystrayIcon` class
+- Removed `open_about()` method from `WebSystrayApi` class
+- Removed `_create_advanced_menu()` method from `WebSystrayApi` class
+- Removed `show()` method from `WebSystrayView` class
+- Removed `underMouse()` method from `WebSystrayView` class
+- Removed `shouldHide()` method from `WebSystrayView` class
+- Removed `focusOutEvent()` method from `WebSystrayView` class
+- Removed `resizeEvent()` method from `WebSystrayView` class
+- Removed `close()` method from `WebSystrayView` class
+- Removed `dialogDeleted()` method from `WebSystray` class
+- Changed `get_mac_app()` method to `static` in `Application` class
+- Changed `_message_clicked()` method to `message_clicked()` in `Application` class
+- Changed `_sslErrorHandler()` method to static `_ssl_error_handler()` in `WebDialog` class
+- Changed `_set_proxy()` method to `static` in `WebDialog` class
+- Changed `_attachJsApi()` method to `attachJsApi()` in `WebDialog` class
+- Changed `replace()` method to `resize_and_move()` in `WebSystrayView` class
+- Changed `loadChildren()` method to `load_children()` in `FolderTreeview` class
+- Changed `resolveItemUpChanged()` method to `resolve_item_up_changed()` in `FolderTreeview` class
+- Changed `updateItemChanged()` method to `update_item_changed()` in `FolderTreeview` class
+- Changed `resolveItemDownChanged()` method to `resolve_item_down_changed()` in `FolderTreeview` class
+- Changed `setClient()` method to `set_client()` in `FolderTreeview` class
+- Changed `sortChildren()` method to `sort_children()` in `FolderTreeview` class
+- Changed `loadChildrenThread()` method to `load_children_thread()` in `FolderTreeview` class
+- Changed `loadChildren()` method to `load_children()` in `StatusTreeview` class
 
 # 2.4.9
 - Removed `start_engine`, `check_fs` and `token` arguments from `_bind_server()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.

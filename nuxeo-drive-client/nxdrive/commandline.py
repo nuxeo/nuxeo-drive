@@ -412,7 +412,7 @@ class CliHandler(object):
 
     def uninstall(self, options):
         try:
-            self.manager.get_osi().uninstall()
+            self.manager.osi.uninstall()
             # Remove all token first
             self.manager.unbind_all()
             self.manager.dispose_db()
@@ -478,16 +478,16 @@ class CliHandler(object):
     def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
         from nxdrive.utils import PidLockFile
-        lock = PidLockFile(self.manager.get_configuration_folder(), "qt")
+        lock = PidLockFile(self.manager.get_configuration_folder(), 'qt')
         if lock.lock() is not None:
-            self.log.warning("Qt application already running: exiting")
+            self.log.warning('Qt application already running: exiting')
             # Handle URL if needed
-            self.manager.get_direct_edit().handle_url()
+            self.manager.direct_edit.handle_url()
             return
         app = self._get_application(options, console=console)
         exit_code = app.exec_()
         lock.unlock()
-        self.log.debug("Qt application exited with code %r", exit_code)
+        self.log.debug('Qt application exited with code %r', exit_code)
         return exit_code
 
     def clean_folder(self, options):
@@ -538,15 +538,15 @@ class CliHandler(object):
 
     def unbind_server(self, options):
         for uid, engine in self.manager.get_engines().iteritems():
-            if engine.get_local_folder() == options.local_folder:
+            if engine.local_folder == options.local_folder:
                 self.manager.unbind_engine(uid)
                 return 0
         return 0
 
     def bind_root(self, options):
         for engine in self.manager.get_engines().values():
-            self.log.trace("Comparing: %s to %s", engine.get_local_folder(), options.local_folder)
-            if engine.get_local_folder() == options.local_folder:
+            self.log.trace("Comparing: %s to %s", engine.local_folder, options.local_folder)
+            if engine.local_folder == options.local_folder:
                 engine.get_remote_doc_client(repository=options.remote_repo).register_as_root(options.remote_root)
                 return 0
         self.log.error('No engine registered for local folder %s', options.local_folder)
@@ -554,7 +554,7 @@ class CliHandler(object):
 
     def unbind_root(self, options):
         for engine in self.manager.get_engines().values():
-            if engine.get_local_folder() == options.local_folder:
+            if engine.local_folder == options.local_folder:
                 engine.get_remote_doc_client(repository=options.remote_repo).unregister_as_root(options.remote_root)
                 return 0
         self.log.error('No engine registered for local folder %s', options.local_folder)

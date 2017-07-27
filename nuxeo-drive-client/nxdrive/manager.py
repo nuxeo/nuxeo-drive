@@ -277,6 +277,9 @@ class Manager(QtCore.QObject):
     _singleton = None
     ignored_prefixes = DEFAULT_IGNORED_PREFIXES
     ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
+    app_name = 'Nuxeo Drive'
+
+    __notification_service = None
 
     @staticmethod
     def get():
@@ -314,7 +317,7 @@ class Manager(QtCore.QObject):
             os.mkdir(self.nxdrive_home)
         self.remote_watcher_delay = options.delay
         self._nofscheck = options.nofscheck
-        self._debug = options.debug
+        self.debug = options.debug
         self._engine_definitions = None
 
         from nxdrive.engine.next.engine_next import EngineNext
@@ -347,7 +350,7 @@ class Manager(QtCore.QObject):
         self._dao.update_config("update_url", options.update_site_url)
         self._dao.update_config("beta_update_url", options.beta_update_site_url)
         self.refresh_proxies()
-        self._os = AbstractOSIntegration.get(self)
+        self.osi = AbstractOSIntegration.get(self)
 
         try:
             self.ignored_prefixes = options.ignored_prefixes
@@ -384,12 +387,11 @@ class Manager(QtCore.QObject):
         # Create notification service
         self._script_engine = None
         self._script_object = None
-        self._create_notification_service()
         self._started = False
 
         # Pause if in debug
-        self._pause = self.is_debug()
-        self.device_id = self._dao.get_config("device_id")
+        self._pause = self.debug
+        self.device_id = self._dao.get_config('device_id')
         self.updated = False  # self.update_version()
         if not self.device_id:
             self.generate_device_id()
@@ -412,23 +414,23 @@ class Manager(QtCore.QObject):
         return FILE_HANDLER
 
     def get_metrics(self):
-        result = dict()
-        result["version"] = self.get_version()
-        result["auto_start"] = self.get_auto_start()
-        result["auto_update"] = self.get_auto_update()
-        result["beta_channel"] = self.get_beta_channel()
-        result["device_id"] = self.get_device_id()
-        result["tracker_id"] = self.get_tracker_id()
-        result["tracking"] = self.get_tracking()
-        result["qt_version"] = QtCore.QT_VERSION_STR
-        result["pyqt_version"] = QtCore.PYQT_VERSION_STR
-        result["python_version"] = platform.python_version()
-        result["platform"] = platform.system()
-        result["appname"] = self.get_appname()
-        return result
+        return {
+            'version': self.get_version(),
+            'auto_start': self.get_auto_start(),
+            'auto_update': self.get_auto_update(),
+            'beta_channel': self.get_beta_channel(),
+            'device_id': self.get_device_id(),
+            'tracker_id': self.get_tracker_id(),
+            'tracking': self.get_tracking(),
+            'qt_version': QtCore.QT_VERSION_STR,
+            'pyqt_version': QtCore.PYQT_VERSION_STR,
+            'python_version': platform.python_version(),
+            'platform': platform.system(),
+            'appname': self.app_name,
+        }
 
     def open_help(self):
-        self.open_local_file("http://doc.nuxeo.com/display/USERDOC/Nuxeo+Drive")
+        self.open_local_file('https://doc.nuxeo.com/nxdoc/nuxeo-drive/')
 
     def _update_logger(self, log_level):
         logging.getLogger().setLevel(
@@ -437,21 +439,12 @@ class Manager(QtCore.QObject):
         if handler:
             handler.setLevel(log_level)
 
-    def get_osi(self):
-        return self._os
-
     def _handle_os(self):
         # Be sure to register os
-        self._os.register_contextual_menu()
-        self._os.register_protocol_handlers()
+        self.osi.register_contextual_menu()
+        self.osi.register_protocol_handlers()
         if self.get_auto_start():
-            self._os.register_startup()
-
-    def get_appname(self):
-        return "Nuxeo Drive"
-
-    def is_debug(self):
-        return self._debug
+            self.osi.register_startup()
 
     def is_checkfs(self):
         return not self._nofscheck
@@ -459,14 +452,13 @@ class Manager(QtCore.QObject):
     def get_device_id(self):
         return self.device_id
 
-    def get_notification_service(self):
-        return self._notification_service
-
-    def _create_notification_service(self):
-        # Dont use it for now
-        from nxdrive.notification import DefaultNotificationService
-        self._notification_service = DefaultNotificationService(self)
-        return self._notification_service
+    @property
+    def notification_service(self):
+        # Don't use it for now
+        if not self.__notification_service:
+            from nxdrive.notification import DefaultNotificationService
+            self.__notification_service = DefaultNotificationService(self)
+        return self.__notification_service
 
     def get_autolock_service(self):
         return self._autolock_service
@@ -593,7 +585,7 @@ class Manager(QtCore.QObject):
                     first_engine = engines.itervalues().next()
                     update_url = first_engine.get_update_url()
                     log.debug('Update site URL has not been overridden in config.ini nor through the command line,'
-                              ' using configuration from first engine [%s]: %s', first_engine._name, update_url)
+                              ' using configuration from first engine [%s]: %s', first_engine.name, update_url)
             except URLError:
                 log.exception('Cannot refresh engine update infos,'
                               ' using default update site URL')
@@ -611,7 +603,7 @@ class Manager(QtCore.QObject):
                         beta_update_url = engine.get_beta_update_url()
                         if beta_update_url is not None:
                             log.debug('Beta update site URL has not been defined in config.ini nor through the command'
-                                      ' line, using configuration from engine [%s]: %s', engine._name, beta_update_url)
+                                      ' line, using configuration from engine [%s]: %s', engine.name, beta_update_url)
                             return beta_update_url
             except URLError:
                 log.exception('Cannot refresh engine update infos,'
@@ -637,12 +629,13 @@ class Manager(QtCore.QObject):
 
     def _create_direct_edit(self, url):
         from nxdrive.direct_edit import DirectEdit
-        self._direct_edit = DirectEdit(self, os.path.join(normalized_path(self.nxdrive_home), "edit"), url)
-        self.started.connect(self._direct_edit._thread.start)
-        return self._direct_edit
-
-    def get_direct_edit(self):
-        return self._direct_edit
+        self.direct_edit = DirectEdit(
+            self,
+            os.path.join(normalized_path(self.nxdrive_home), 'edit'),
+            url,
+        )
+        self.started.connect(self.direct_edit._thread.start)
+        return self.direct_edit
 
     def is_paused(self):
         return self._pause
@@ -903,9 +896,9 @@ class Manager(QtCore.QObject):
     def set_auto_start(self, value):
         self._dao.update_config("auto_start", value)
         if value:
-            self._os.register_startup()
+            self.osi.register_startup()
         else:
-            self._os.unregister_startup()
+            self.osi.unregister_startup()
 
     def get_beta_channel(self):
         return self._dao.get_config("beta_channel", "0") == "1"
@@ -952,7 +945,7 @@ class Manager(QtCore.QObject):
                         # Check if every server URL can be resolved to some
                         # proxy server
                         for engine_def in self._engine_definitions:
-                            url = self._engines[engine_def.uid].get_server_url()
+                            url = self._engines[engine_def.uid].server_url
                             resolver.get_proxies(url)
                     else:
                         resolver.get_proxies(url)
@@ -986,7 +979,7 @@ class Manager(QtCore.QObject):
         elif proxy_settings.config == 'Automatic':
             if self._engine_definitions:
                 for engine_def in self._engine_definitions:
-                    server_url = self._engines[engine_def.uid].get_server_url()
+                    server_url = self._engines[engine_def.uid].server_url
                     self.proxies[server_url] = proxy_settings.get_proxies_automatic(server_url)
                     log.trace('Setting proxy for %s to %r', server_url,
                               self.proxies[server_url])
@@ -1080,7 +1073,7 @@ class Manager(QtCore.QObject):
         if doc_pair is None:
             log.warning(
                 'Could not find local file for engine %s and remote_ref %s',
-                engine.get_uid(), remote_ref)
+                engine.uid, remote_ref)
             return
 
         # TODO: check synchronization of this state first
@@ -1293,7 +1286,7 @@ class Manager(QtCore.QObject):
             self._create_script_engine()
             if self._script_engine is None:
                 return
-        self._script_object.set_engine_uid(engine_uid)
+        self._script_object.engine_uid = engine_uid
         log.debug("Will execute '%s'", script)
         result = self._script_engine.evaluate(script)
         if self._script_engine.hasUncaughtException():

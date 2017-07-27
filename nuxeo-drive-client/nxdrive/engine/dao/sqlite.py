@@ -346,8 +346,18 @@ class ManagerDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("INSERT INTO Notifications(uid,engine,level,title,description,action, flags) VALUES(?,?,?,?,?,?,?)",
-                      (notification.get_uid(), notification.get_engine_uid(), notification.get_level(), notification.get_title(), notification.get_description(), notification.get_action(), notification.get_flags()))
+            c.execute('INSERT INTO Notifications'
+                      '            (uid, engine, level, title, description,'
+                      '             action, flags)'
+                      '     VALUES (?, ?, ?, ?, ?, ?, ?)',
+                      (notification.uid,
+                       notification.engine_uid,
+                       notification.level,
+                       notification.title,
+                       notification.description,
+                       notification.action,
+                       notification.flags,
+                       ))
             if self.auto_commit:
                 con.commit()
         finally:
@@ -390,8 +400,16 @@ class ManagerDAO(ConfigurationDAO):
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE Notifications SET level=?, title=?, description=? WHERE uid = ?",
-                      (notification.get_level(), notification.get_title(), notification.get_description(), notification.get_uid()))
+            c.execute('UPDATE Notifications'
+                      '   SET level = ?,'
+                      '       title = ?,'
+                      '       description = ?'
+                      ' WHERE uid = ?',
+                      (notification.level,
+                       notification.title,
+                       notification.description,
+                       notification.uid,
+                       ))
             if self.auto_commit:
                 con.commit()
         finally:

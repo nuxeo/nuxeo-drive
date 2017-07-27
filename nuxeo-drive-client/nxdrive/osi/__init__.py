@@ -86,6 +86,9 @@ def parse_edit_protocol(data_string):
 
 
 class AbstractOSIntegration(object):
+
+    zoom_factor = 1.0
+
     def __init__(self, manager):
         self._manager = manager
 
@@ -95,10 +98,6 @@ class AbstractOSIntegration(object):
     @staticmethod
     def is_partition_supported(folder):
         return True
-
-    @staticmethod
-    def get_zoom_factor():
-        return 1.00
 
     def uninstall(self):
         self.unregister_contextual_menu()

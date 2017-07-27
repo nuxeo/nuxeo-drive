@@ -20,7 +20,7 @@ class ProcessAutoLockerWorker(PollWorker):
     def __init__(self, check_interval, manager, watched_folders=None):
         super(ProcessAutoLockerWorker, self).__init__(check_interval)
         self._manager = manager
-        self._osi = manager.get_osi()
+        self._osi = manager.osi
         self._dao = manager.get_dao()
         self._autolocked = dict()
         self._lockers = dict()

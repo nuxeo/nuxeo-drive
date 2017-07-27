@@ -18,14 +18,16 @@ log = get_logger(__name__)
 
 
 class WindowsIntegration(AbstractOSIntegration):
+
     RUN_KEY = 'Software\\Microsoft\\Windows\\CurrentVersion\\Run'
+    __zoom_factor = None
 
     def __init__(self, manager):
         super(WindowsIntegration, self).__init__(manager)
         self._file_sniffer = WindowsProcessFileHandlerSniffer()
 
     def get_menu_parent_key(self):
-        return 'Software\\Classes\\*\\shell\\' + self._manager.get_appname()
+        return 'Software\\Classes\\*\\shell\\' + self._manager.app_name
 
     def get_menu_key(self):
         return self.get_menu_parent_key() + '\\command'
@@ -60,30 +62,32 @@ class WindowsIntegration(AbstractOSIntegration):
             _winreg.SetValueEx(key, attribute, 0, type_, value)
         _winreg.CloseKey(key)
 
-    @staticmethod
-    def get_zoom_factor():
-        try:
-            # Enable DPI detection
-            windll.user32.SetProcessDPIAware()
-            # Get Desktop DC
-            display = windll.user32.GetDC(None)
-            dpi = windll.gdi32.GetDeviceCaps(display, LOGPIXELSX)
-            windll.user32.ReleaseDC(None, display)
-            # Based on https://technet.microsoft.com/en-us/library/dn528846.aspx
-            return dpi / 96.0
-        except:
-            log.debug('Cannot get zoom factor', exc_info=True)
-        return 1.00
+    @property
+    def zoom_factor(self):
+        if not self.__zoom_factor:
+            try:
+                # Enable DPI detection
+                windll.user32.SetProcessDPIAware()
+                display = windll.user32.GetDC(None)
+                dpi = windll.gdi32.GetDeviceCaps(display, LOGPIXELSX)
+                windll.user32.ReleaseDC(None, display)
+                # See https://technet.microsoft.com/en-us/library/dn528846.aspx
+                self.__zoom_factor = dpi / 96.0
+            except:
+                log.debug('Cannot get zoom factor (using default 1.0)',
+                          exc_info=True)
+                self.__zoom_factor = 1.0
+        return self.__zoom_factor
 
     def register_startup(self):
         """Register ndrive as a startup application in the Registry"""
 
         reg_key = self.RUN_KEY
-        app_name = self._manager.get_appname()
+        app_name = self._manager.app_name
         exe_path = self._manager.find_exe_path()
         if exe_path is None:
-            log.warning('Not a frozen windows exe: '
-                     'skipping startup application registration')
+            log.warning('Not a frozen windows exe:'
+                        'skipping startup application registration')
             return
 
         log.debug("Registering '%s' application %s to registry key %s",
@@ -96,12 +100,12 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def unregister_startup(self):
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-        self._delete_reg_value(reg, self.RUN_KEY, self._manager.get_appname())
+        self._delete_reg_value(reg, self.RUN_KEY, self._manager.app_name)
 
     def register_protocol_handlers(self):
         """Register ndrive as a protocol handler in the Registry"""
         exe_path = self._manager.find_exe_path()
-        app_name = self._manager.get_appname()
+        app_name = self._manager.app_name
         if exe_path is None:
             log.warning('Not a frozen Windows executable: '
                         'skipping protocol handler registration')
@@ -153,7 +157,7 @@ class WindowsIntegration(AbstractOSIntegration):
                 pass
 
     def unregister_protocol_handlers(self):
-        app_name = self._manager.get_appname()
+        app_name = self._manager.app_name
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
         self._recursive_delete(reg, 'Software\\', 'Software\\' + app_name + '\\Protocols\\nxdrive\\shell\\open\\command')
         self._recursive_delete(reg, 'Software\\Classes\\', 'Software\\Classes\\nxdrive\\shell\\open\\command')
@@ -235,7 +239,7 @@ class WindowsIntegration(AbstractOSIntegration):
             os.remove(link)
 
     def _get_desktop_link(self):
-        return os.path.join(self._get_desktop_folder(), self._manager.get_appname() + ".lnk")
+        return os.path.join(self._get_desktop_folder(), self._manager.app_name + ".lnk")
 
     @staticmethod
     def _get_desktop_folder():
@@ -252,7 +256,7 @@ class WindowsIntegration(AbstractOSIntegration):
         if iconpath is None:
             iconpath = self._manager.find_exe_path()
         if description is None:
-            description = self._manager.get_appname()
+            description = self._manager.app_name
         shortcut.SetPath(executable)
         shortcut.SetDescription(description)
         shortcut.SetIconLocation(iconpath, 0)
@@ -261,7 +265,7 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def _get_folder_link(self, name=None):
         if name is None:
-            name = self._manager.get_appname()
+            name = self._manager.app_name
         LOCAL_FAVORITES_FOLDER_WINXP = 'Local Favorites'
         win_version = sys.getwindowsversion()
         if win_version.major == 5:

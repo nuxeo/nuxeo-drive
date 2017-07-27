@@ -76,7 +76,7 @@ class EngineLogger(QObject):
     @pyqtSlot()
     def logSyncComplete(self):
         log.log(self._level, "Synchronization is complete for engine %s",
-                self.sender().get_uid())
+                self.sender().uid)
 
     @pyqtSlot(object)
     def logSyncStart(self):
@@ -160,10 +160,10 @@ class Engine(QObject):
         self._manager = manager
         # Remove remote client cache on proxy update
         self._manager.proxyUpdated.connect(self.invalidate_client_cache)
-        self._local_folder = definition.local_folder
-        self._type = "NXDRIVE"
-        self._uid = definition.uid
-        self._name = definition.name
+        self.local_folder = definition.local_folder
+        self.type = 'NXDRIVE'
+        self.uid = definition.uid
+        self.name = definition.name
         self._stopped = True
         self._pause = False
         self._sync_started = False
@@ -233,10 +233,10 @@ class Engine(QObject):
 
     def set_local_folder(self, path):
         log.debug("Update local folder to '%s'", path)
-        self._local_folder = path
+        self.local_folder = path
         self._local_watcher.stop()
         self._create_local_watcher()
-        self._manager.update_engine_path(self._uid, path)
+        self._manager.update_engine_path(self.uid, path)
 
     def set_local_folder_lock(self, path):
         self._folder_lock = path
@@ -259,11 +259,11 @@ class Engine(QObject):
             return
         self._offline_state = value
         if value:
-            log.debug("Engine %s goes offline", self._uid)
+            log.debug("Engine %s goes offline", self.uid)
             self._queue_manager.suspend()
             self.offline.emit()
         else:
-            log.debug("Engine %s goes online", self._uid)
+            log.debug("Engine %s goes online", self.uid)
             self._queue_manager.resume()
             self.online.emit()
 
@@ -293,7 +293,7 @@ class Engine(QObject):
         return remote_ref_segments[2]
 
     def get_metadata_url(self, remote_ref):
-        metadata_url = self.get_server_url()
+        metadata_url = self.server_url
         remote_ref_segments = remote_ref.split("#", 2)
         repo = remote_ref_segments[1]
         doc_id = remote_ref_segments[2]
@@ -308,14 +308,17 @@ class Engine(QObject):
 
     def open_edit(self, remote_ref, remote_name):
         doc_ref = remote_ref
-        if "#" in doc_ref:
+        if '#' in doc_ref:
             doc_ref = doc_ref[doc_ref.rfind('#') + 1:]
-        log.debug("Will try to open edit : %s", doc_ref)
+        log.debug('Will try to open edit : %s', doc_ref)
         # TODO Implement a TemporaryWorker
 
         def run():
-            self._manager.get_direct_edit().edit(self._server_url,
-                                                doc_ref, user=self._remote_user)
+            self._manager.direct_edit.edit(
+                self._server_url,
+                doc_ref,
+                user=self._remote_user,
+            )
         self._edit_thread = Thread(target=run)
         self._edit_thread.start()
 
@@ -382,7 +385,7 @@ class Engine(QObject):
     def check_fs_marker(self):
         tag = 'drive-fs-test'
         tag_value = 'NXDRIVE_VERIFICATION'
-        if not os.path.exists(self._local_folder):
+        if not os.path.exists(self.local_folder):
             self.rootDeleted.emit()
             return False
         client = self.get_local_client()
@@ -411,17 +414,19 @@ class Engine(QObject):
         if self._remote_password is None and self._remote_token is None:
             self.set_invalid_credentials(reason="found no password nor token in engine configuration")
 
-    def get_server_url(self):
-        return self._dao.get_config("server_url")
+    @property
+    def server_url(self):
+        return self._dao.get_config('server_url')
 
-    def get_remote_user(self):
-        return self._dao.get_config("remote_user")
+    @property
+    def remote_user(self):
+        return self._dao.get_config('remote_user')
 
     def get_remote_token(self):
         return self._dao.get_config("remote_token")
 
     def _create_queue_manager(self, processors):
-        if self._manager.is_debug():
+        if self._manager.debug:
             return QueueManager(self, self._dao, max_file_processors=2)
         return QueueManager(self, self._dao)
 
@@ -433,7 +438,7 @@ class Engine(QObject):
 
     def _get_db_file(self):
         return os.path.join(normalized_path(self._manager.get_configuration_folder()),
-                                "ndrive_" + self._uid + ".db")
+                                "ndrive_" + self.uid + ".db")
 
     def _create_dao(self):
         return EngineDAO(self._get_db_file())
@@ -457,15 +462,9 @@ class Engine(QObject):
             web_authentication=self._web_authentication,
             server_version=None,
             username=self._remote_user,
-            local_folder=self._local_folder,
+            local_folder=self.local_folder,
             initialized=True,
             pwd_update_required=self.has_invalid_credentials())
-
-    def get_local_folder(self):
-        return self._local_folder
-
-    def get_uid(self):
-        return self._uid
 
     def set_invalid_credentials(self, value=True, reason=None, exception=None):
         changed = self._invalid_credentials != value
@@ -588,7 +587,7 @@ class Engine(QObject):
                 log.trace('No watchdog event detected but sync is completed')
             if self._sync_started:
                 self._sync_started = False
-            log.trace('Emitting syncCompleted for engine %s', self.get_uid())
+            log.trace('Emitting syncCompleted for engine %s', self.uid)
             self.syncCompleted.emit()
 
     def _thread_finished(self):
@@ -610,7 +609,7 @@ class Engine(QObject):
         self._check_root()
         self._stopped = False
         Processor.soft_locks = dict()
-        log.debug("Engine %s starting", self.get_uid())
+        log.debug("Engine %s starting", self.uid)
         for thread in self._threads:
             thread.start()
         self.syncStarted.emit(0)
@@ -646,27 +645,32 @@ class Engine(QObject):
             pair = self._dao.get_state_from_id(row_id)
             local_client = self.get_local_client()
             parent_ref = local_client.get_remote_id(pair.local_parent_path)
+            same_digests = local_client.is_equal_digests(pair.local_digest,
+                                                         pair.remote_digest,
+                                                         pair.local_path)
             log.warning(
-                'conflict_resolver: name: %d digest: %d(%s/%s) parents: %d(%s/%s)',
+                'Conflict resolver: names=%r(%r|%r) digests=%r(%s|%s)'
+                ' parents=%r(%s|%s) [emit=%r]',
                 pair.remote_name == pair.local_name,
-                local_client.is_equal_digests(
-                    pair.local_digest, pair.remote_digest, pair.local_path),
+                pair.remote_name,
+                pair.local_name,
+                same_digests,
                 pair.local_digest,
                 pair.remote_digest,
                 pair.remote_parent_ref == parent_ref,
                 pair.remote_parent_ref,
-                parent_ref)
-            if (safe_filename(pair.remote_name) == pair.local_name
-                    and local_client.is_equal_digests(pair.local_digest,
-                                                  pair.remote_digest,
-                                                  pair.local_path)
-                    and pair.remote_parent_ref == parent_ref):
+                parent_ref,
+                emit,
+            )
+            if (same_digests
+                    and pair.remote_parent_ref == parent_ref
+                    and safe_filename(pair.remote_name) == pair.local_name):
                 self._dao.synchronize_state(pair)
             elif emit:
                 # Raise conflict only if not resolvable
                 self.newConflict.emit(row_id)
         except:
-            pass
+            log.exception('Conflict resolver error')
 
     def get_errors(self):
         return self._dao.get_errors()
@@ -676,7 +680,7 @@ class Engine(QObject):
 
     def stop(self):
         self._stopped = True
-        log.trace('Engine %s stopping', self._uid)
+        log.trace('Engine %s stopping', self.uid)
         self._stop.emit()
         for thread in self._threads:
             if not thread.wait(5000):
@@ -695,7 +699,7 @@ class Engine(QObject):
             self._local_watcher.get_thread().wait(5000)
         # Soft locks needs to be reinit in case of threads termination
         Processor.soft_locks = dict()
-        log.trace('Engine %s stopped', self._uid)
+        log.trace('Engine %s stopped', self.uid)
 
     def _get_client_cache(self):
         return self._remote_clients
@@ -710,7 +714,7 @@ class Engine(QObject):
         if client is None:
             return
         update_info = client.get_update_info()
-        log.debug("Fetched update info for engine [%s] from server %s: %r", self._name, self._server_url, update_info)
+        log.debug("Fetched update info for engine [%s] from server %s: %r", self.name, self._server_url, update_info)
         self._dao.update_config("server_version", update_info.get("serverVersion"))
         self._dao.update_config("update_url", update_info.get("updateSiteURL"))
         beta_update_site_url = update_info.get("betaUpdateSiteURL")
@@ -758,16 +762,16 @@ class Engine(QObject):
         if check_fs:
             created_folder = False
             try:
-                if not os.path.exists(os.path.dirname(self._local_folder)):
+                if not os.path.exists(os.path.dirname(self.local_folder)):
                     raise NotFound()
-                if not os.path.exists(self._local_folder):
-                    os.mkdir(self._local_folder)
+                if not os.path.exists(self.local_folder):
+                    os.mkdir(self.local_folder)
                     created_folder = True
-                self._check_fs(self._local_folder)
+                self._check_fs(self.local_folder)
             except Exception as e:
                 if created_folder:
                     try:
-                        os.rmdir(self._local_folder)
+                        os.rmdir(self.local_folder)
                     except:
                         pass
                 raise e
@@ -799,7 +803,7 @@ class Engine(QObject):
             self._check_root()
 
     def _check_fs(self, path):
-        if not self._manager.get_osi().is_partition_supported(path):
+        if not self._manager.osi.is_partition_supported(path):
             raise InvalidDriveException()
         if os.path.exists(path):
             local_client = self.get_local_client()
@@ -813,12 +817,12 @@ class Engine(QObject):
     def _check_root(self):
         root = self._dao.get_state_from_local("/")
         if root is None:
-            if os.path.exists(self._local_folder):
-                BaseClient.unset_path_readonly(self._local_folder)
-            self._make_local_folder(self._local_folder)
+            if os.path.exists(self.local_folder):
+                BaseClient.unset_path_readonly(self.local_folder)
+            self._make_local_folder(self.local_folder)
             self._add_top_level_state()
             self._set_root_icon()
-            BaseClient.set_path_readonly(self._local_folder)
+            BaseClient.set_path_readonly(self.local_folder)
 
     @staticmethod
     def _make_local_folder(local_folder):
@@ -837,12 +841,12 @@ class Engine(QObject):
 
     def get_local_client(self):
         client = LocalClient(
-            self._local_folder,
+            self.local_folder,
             case_sensitive=self._case_sensitive,
             ignored_prefixes=self._manager.ignored_prefixes,
             ignored_suffixes=self._manager.ignored_suffixes,
         )
-        if self._case_sensitive is None and os.path.exists(self._local_folder):
+        if self._case_sensitive is None and os.path.exists(self.local_folder):
             self._case_sensitive = client.is_case_sensitive()
         return client
 
@@ -897,7 +901,7 @@ class Engine(QObject):
         row = self._dao.get_state_from_local('/')
         self._dao.update_remote_state(row, remote_info, remote_parent_path='', versionned=False)
         local_client.set_root_id(self._server_url + "|" + self._remote_user +
-                            "|" + self._manager.device_id + "|" + self._uid)
+                            "|" + self._manager.device_id + "|" + self.uid)
         local_client.set_remote_id('/', remote_info.uid)
         self._dao.synchronize_state(row)
         # The root should also be sync
@@ -990,7 +994,7 @@ class Engine(QObject):
 
     def get_rest_api_client(self):
         rest_client = RestAPIClient(
-            self.get_server_url(), self.get_remote_user(),
+            self.server_url, self.remote_user,
             self._manager.get_device_id(), self._manager.get_version(), None,
             self.get_remote_token(), timeout=self.timeout,
             cookie_jar=self.cookie_jar,

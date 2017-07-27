@@ -9,7 +9,7 @@ log = get_logger(__name__)
 
 class WebAuthenticationApi(WebDriveApi):
     def __init__(self, settings_api, callback_params):
-        super(WebAuthenticationApi, self).__init__(settings_api._application)
+        super(WebAuthenticationApi, self).__init__(settings_api.application)
         self._settings_api = settings_api
         self._callback_params = callback_params
 
@@ -35,10 +35,10 @@ class WebAuthenticationApi(WebDriveApi):
                           local_folder, server_url, username)
             error = 'CONNECTION_UNKNOWN'
         finally:
-            self._dialog.accept()
+            self.dialog.accept()
             if error is not None:
                 self._settings_api.set_account_creation_error(error)
-            self._settings_api.get_dialog().get_view().reload()
+            self._settings_api.dialog.view.reload()
 
     @QtCore.pyqtSlot(str)
     def update_token(self, token):
@@ -47,7 +47,7 @@ class WebAuthenticationApi(WebDriveApi):
         try:
             token = str(token)
             log.debug('Updating token for account [%s, %s, %s]',
-                      engine.get_local_folder(), engine.get_server_url(), engine.get_remote_user())
+                      engine.local_folder, engine.server_url, engine.remote_user)
             self._settings_api.update_token(engine, token)
         except urllib2.URLError as e:
             log.exception('HTTP Error')
@@ -57,13 +57,13 @@ class WebAuthenticationApi(WebDriveApi):
                 error = 'CONNECTION_ERROR'
         except:
             log.exception('Unexpected error while trying to update token for account [%s, %s, %s]',
-                          engine.get_local_folder(), engine.get_server_url(), engine.get_remote_user())
+                          engine.local_folder, engine.server_url, engine.remote_user)
             error = 'CONNECTION_UNKNOWN'
         finally:
-            self._dialog.accept()
+            self.dialog.accept()
             if error is not None:
                 self._settings_api.set_token_update_error(error)
-            self._settings_api.get_dialog().get_view().reload()
+            self._settings_api.dialog.view.reload()
 
 
 class WebAuthenticationDialog(WebDialog):

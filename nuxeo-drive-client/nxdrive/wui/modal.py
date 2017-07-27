@@ -10,7 +10,7 @@ from PyQt4.QtCore import pyqtSlot, Qt
 class WebModalApi(WebDriveApi):
     @pyqtSlot(str)
     def result(self, button_id):
-        self._dialog.set_result(button_id)
+        self.dialog.set_result(button_id)
 
     def _json_default(self, obj):
         if isinstance(obj, WebModalButton):
@@ -20,19 +20,19 @@ class WebModalApi(WebDriveApi):
 
     def _export_button(self, obj):
         result = dict()
-        result["uid"] = obj._uid
+        result["uid"] = obj.uid
         result["label"] = obj._label
         result["style"] = obj._style
         return result
 
     @pyqtSlot(result=str)
     def get_message(self):
-        return self._dialog.get_message()
+        return self.dialog.get_message()
 
     @pyqtSlot(result=str)
     def get_buttons(self):
         res = []
-        for button in self._dialog.get_buttons().itervalues():
+        for button in self.dialog.get_buttons().itervalues():
             res.append(button)
         return self._json(res)
 
@@ -40,7 +40,7 @@ class WebModalApi(WebDriveApi):
 class WebModalButton(object):
     # for style see bootstrap
     def __init__(self, uid, label, style="default"):
-        self._uid = uid
+        self.uid = uid
         self._label = label
         self._style = style
 
@@ -58,7 +58,7 @@ class WebModal(WebDialog):
         self._result = ""
         if buttons is not None:
             for button in buttons:
-                self._buttons[button._uid] = button
+                self._buttons[button.uid] = button
 
     def get_message(self):
         return self._message

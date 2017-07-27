@@ -20,15 +20,12 @@ class WebMetadataApi(WebDriveApi):
     def __init__(self, application, engine, remote_ref, dlg=None):
         self._engine = engine
         self._remote_ref = remote_ref
-        self._error = dict()
+        self.error = dict()
         super(WebMetadataApi, self).__init__(application, dlg)
-
-    def set_last_error(self, error):
-        self._error = error
 
     @QtCore.pyqtSlot(result=str)
     def get_last_error(self):
-        return self._json(self._error)
+        return self._json(self.error)
 
     @QtCore.pyqtSlot(str, result=str)
     def set_current_file(self, remote_ref):
@@ -41,11 +38,11 @@ class WebMetadataApi(WebDriveApi):
 
     @QtCore.pyqtSlot()
     def open_file(self):
-        self.open_local(self._engine._uid, self.get_current_file_state().local_path)
+        self.open_local(self._engine.uid, self.get_current_file_state().local_path)
 
     @QtCore.pyqtSlot()
     def open_folder(self):
-        self.open_local(self._engine._uid, self.get_current_file_state().local_parent_path)
+        self.open_local(self._engine.uid, self.get_current_file_state().local_parent_path)
 
     def get_current_file_state(self):
         return self._engine.get_dao().get_normal_state_from_remote(self._remote_ref)
@@ -69,14 +66,14 @@ class WebMetadataApi(WebDriveApi):
 class MetadataErrorHandler(QtCore.QObject):
     def __init__(self, dialog, api):
         super(MetadataErrorHandler, self).__init__()
-        self._api = api
+        self.api = api
         # Have to save itself to the dialog to avoid being destroyed by scoping
         dialog._handler = self
         dialog.loadError.connect(self.loadMetadataErrorPage)
 
     def loadMetadataErrorPage(self, reply):
-        self._api.set_last_error(reply)
-        self.sender().load('network_error.html', api=self._api)
+        self.api.error = reply
+        self.sender().load('network_error.html', api=self.api)
 
 
 def CreateMetadataWebDialog(manager, file_path, application=None):
@@ -91,8 +88,8 @@ def CreateMetadataWebDialog(manager, file_path, application=None):
         dialog.add_button("OK", application.translate("OK"))
         return dialog
     api = WebMetadataApi(application, infos[2], infos[3])
-    dialog = WebDialog(application, page=None, title=manager.get_appname())
-    dialog.set_token(infos[1])
+    dialog = WebDialog(application, page=None, title=manager.app_name)
+    dialog.token = infos[1]
     MetadataErrorHandler(dialog, api)
     dialog.load(infos[0], api=api)
     dialog.resize(METADATA_WEBVIEW_WIDTH, METADATA_WEBVIEW_HEIGHT)

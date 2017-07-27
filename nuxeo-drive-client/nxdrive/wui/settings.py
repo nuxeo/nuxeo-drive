@@ -44,7 +44,7 @@ class WebSettingsApi(WebDriveApi):
     @QtCore.pyqtSlot(result=str)
     def get_default_section(self):
         try:
-            return self._dialog._section
+            return self.dialog._section
         except AttributeError:
             log.exception('Section not reachable')
             return ''
@@ -66,7 +66,7 @@ class WebSettingsApi(WebDriveApi):
     def filters_dialog(self, uid):
         engine = self._get_engine(str(uid))
         if engine:
-            self._application.show_filters(engine)
+            self.application.show_filters(engine)
 
     def _bind_server(self, local_folder, url, username, password, name, **kwargs):
         # Remove any parameters from the original URL
@@ -113,9 +113,9 @@ class WebSettingsApi(WebDriveApi):
             # Ask for the user
             values = dict(username=e.get_username(), url=e.get_url())
             msgbox = QtGui.QMessageBox(
-                QtGui.QMessageBox.Question, self._manager.get_appname(),
+                QtGui.QMessageBox.Question, self._manager.app_name,
                 Translator.get('ROOT_USED_WITH_OTHER_BINDING', values),
-                QtGui.QMessageBox.NoButton, self._dialog)
+                QtGui.QMessageBox.NoButton, self.dialog)
             msgbox.addButton(Translator.get('ROOT_USED_CONTINUE'),
                              QtGui.QMessageBox.AcceptRole)
             cancel = msgbox.addButton(Translator.get('ROOT_USED_CANCEL'),
@@ -227,10 +227,10 @@ class WebSettingsApi(WebDriveApi):
                       self._manager.get_proxy_settings().config,
                       get_opener_proxies(opener))
             headers = {
-                'X-Application-Name': self._manager.get_appname(),
+                'X-Application-Name': self._manager.app_name,
                 'X-Device-Id': self._manager.get_device_id(),
                 'X-Client-Version': self._manager.get_version(),
-                'User-Agent': (self._manager.get_appname()
+                'User-Agent': (self._manager.app_name
                                + '/' + self._manager.get_version()),
             }
             req = urllib2.Request(url, headers=headers)
@@ -255,9 +255,8 @@ class WebSettingsApi(WebDriveApi):
             engine = self._get_engine(str(uid))
             if engine is None:
                 return 'CONNECTION_UNKNOWN'
-            server_url = engine.get_server_url()
             params = urlencode({'updateToken': True})
-            url = self._get_authentication_url(server_url) + '&' + params
+            url = self._get_authentication_url(engine.server_url) + '&' + params
             callback_params = {
                 'engine': engine,
             }
@@ -280,7 +279,7 @@ class WebSettingsApi(WebDriveApi):
     def _get_authentication_url(self, server_url):
         token_params = {
             'deviceId': self._manager.get_device_id(),
-            'applicationName': self._manager.get_appname(),
+            'applicationName': self._manager.app_name,
             'permission': TOKEN_PERMISSION,
         }
         device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
@@ -372,4 +371,4 @@ class WebSettingsDialog(WebDialog):
 
     def set_section(self, section):
         self._section = section
-        self._view.reload()
+        self.view.reload()
