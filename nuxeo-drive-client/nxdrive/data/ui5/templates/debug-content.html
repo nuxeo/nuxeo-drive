@@ -151,15 +151,15 @@
 	<div class="tab-pane" role="tabpanel" id="notifs">
 		<form>
 		  <div class="form-group">
-		    <label for="exampleInputEmail1">Title</label>
-		    <input type="text" class="form-control" ng-model="notification.title" id="exampleInputEmail1" placeholder="Title">
+		    <label for="notif-title">Title</label>
+		    <input class="form-control" ng-model="notification.title" id="notif-title" placeholder="Title">
 		  </div>
 		  <div class="form-group">
-		    <label for="exampleInputPassword1">Description</label>
-		    <input type="text" class="form-control" ng-model="notification.description" id="exampleInputPassword1" placeholder="Description">
+		    <label for="notif-desc">Description</label>
+		    <input class="form-control" ng-model="notification.description" id="notif-desc" placeholder="Description">
 		  </div>
 		  <div class="form-group">
-		    <label for="exampleInputFile">Level</label><br />
+		    <label>Level</label><br />
 		    <select  ng-model="notification.level">
 		    	<option value="danger">ERROR</option>
 		    	<option value="warning">WARNING</option>
@@ -167,8 +167,8 @@
 		    </select>
 		  </div>
 		  <div class="form-group">
-		    <label for="exampleInputFile">Action</label><br />
-		    <input type="text" ng-disabled="!notification.actionable" ng-model="notification.action" class="form-control" id="exampleInputPassword1" placeholder="Action">
+		    <label>Action</label><br />
+		    <input ng-disabled="!notification.actionable" ng-model="notification.action" class="form-control" placeholder="Action">
 		  </div>
 		  <div class="row">
 		  	<div class="col-xs-3">
