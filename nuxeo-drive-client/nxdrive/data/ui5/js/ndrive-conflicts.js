@@ -57,7 +57,7 @@ ConflictsController.prototype.updateErrors = function($scope) {
 	}
 	$scope.errors = errors;
 
-	for (ignore in ignoreds) {
+	for (var ignore in ignoreds) {
 		if (reasons.indexOf(ignoreds[ignore].last_error) < 0) {
 			ignoreds[ignore].ignore_reason = "IGNORE_REASON_UNKNOWN";
 		} else {

@@ -119,7 +119,7 @@ var SettingsController = function($scope, $interval, $translate) {
 	}
 	$scope.reinitMsgs();
 	$scope.unbindServer = function($event) {
-		button = angular.element($event.currentTarget);
+		var button = angular.element($event.currentTarget);
 		$scope.currentConfirm = button;
 		if (button.hasClass("btn-danger")) {
 			button.html('<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span>&nbsp;' + $translate.instant("DISCONNECTING"))
@@ -143,8 +143,8 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.changeSection = function(section) {
 		if (section.length > 9 &&
 				section.substr(0,8) == "Accounts") {
-			uid = section.substr(9, section.length);
-			for (i = 0; i < $scope.engines.length; i++) {
+			var uid = section.substr(9, section.length);
+			for (var i = 0; i < $scope.engines.length; i++) {
 				if ($scope.engines[i].uid == uid) {
 					$scope.changeAccount($scope.engines[i]);
 				}
@@ -169,13 +169,13 @@ var SettingsController = function($scope, $interval, $translate) {
 	}
 	$scope.reinitNewAccount();
 	$scope.changeSection(drive.get_default_section());
-	newLocalFolder = drive.get_new_local_folder();
+	var newLocalFolder = drive.get_new_local_folder();
 	if ($scope.engines.length > 0) {
 		if ($scope.currentAccount == "") {
 			if (newLocalFolder == "") {
 				$scope.changeAccount($scope.engines[0]);
 			} else {
-				for (i = 0; i < $scope.engines.length; i++) {
+				for (var i = 0; i < $scope.engines.length; i++) {
 					if ($scope.engines[i].local_folder == newLocalFolder) {
 						$scope.changeAccount($scope.engines[i]);
 						break;
@@ -191,12 +191,12 @@ var SettingsController = function($scope, $interval, $translate) {
 		$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
 		drive.set_new_local_folder("");
 	} else {
-		accountCreationError = drive.get_account_creation_error();
+		var accountCreationError = drive.get_account_creation_error();
 		if (accountCreationError != "") {
 			$scope.setErrorMessage($translate.instant(accountCreationError));
 			drive.set_account_creation_error("");
 		}
-		tokenUpdateError = drive.get_token_update_error();
+		var tokenUpdateError = drive.get_token_update_error();
 		if(tokenUpdateError != "") {
 			$scope.tokenUpdateError = tokenUpdateError;
 			drive.set_token_update_error("");
@@ -227,13 +227,13 @@ SettingsController.prototype.reinitNewAccount = function ($scope) {
 SettingsController.prototype.bindServer = function($scope, $translate) {
 	$scope.currentAction = "CONNECTING";
 	$scope.reinitMsgs();
-	local_folder = $scope.currentAccount.local_folder;
+	var local_folder = $scope.currentAccount.local_folder;
 	when (drive.bind_server($scope.currentAccount.local_folder, $scope.currentAccount.server_url, $scope.currentAccount.username, $scope.password, $scope.currentAccount.name)).then( function(res) {
 		if (res == "") {
 			$scope.password = "";
 			$scope.engines = angular.fromJson(drive.get_engines());
 			$scope.reinitNewAccount();
-			for (i = 0; i < $scope.engines.length; i++) {
+			for (var i = 0; i < $scope.engines.length; i++) {
 				if ($scope.engines[i].local_folder == local_folder) {
 					$scope.changeAccount($scope.engines[i]);
 					break;
@@ -263,7 +263,7 @@ SettingsController.prototype.webAuthentication = function($scope, $translate) {
 }
 SettingsController.prototype.updateToken = function($scope, $translate) {
 	$scope.reinitMsgs();
-	res = drive.web_update_token($scope.currentAccount.uid);
+	var res = drive.web_update_token($scope.currentAccount.uid);
 	if (res != "") {
 		$scope.setErrorMessage($translate.instant(res));
 	}
