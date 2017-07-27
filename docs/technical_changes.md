@@ -36,7 +36,7 @@
 - Removed `set_last_error()` method from `WebMetadataApi` class. Use `error` attribute instead.
 - Removed `getLoadingOverlay()` method from `FolderTreeview` class
 - Removed `loadFinished()` method from `FolderTreeview` class
-- Removed `()` method from `FolderTreeview` class. Use `dirty_items` attribute instead.
+- Removed `get_dirty_items()` method from `FolderTreeview` class. Use `dirty_items` attribute instead.
 - Removed `getLoadingOverlay()` method from `StatusTreeview` class
 - Removed `loadFinished()` method from `StatusTreeview` class
 - Removed `showMessage()` method from `DriveSystrayIcon` class

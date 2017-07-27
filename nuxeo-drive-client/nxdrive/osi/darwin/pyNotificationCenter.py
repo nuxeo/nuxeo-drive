@@ -17,11 +17,11 @@ class NotificationDelegator(NSObject):
         info = notification.userInfo()
         if "uuid" not in info or self._manager is None:
             return
-        notifications = self._manager.get_notification_service().get_notifications()
+        notifications = self._manager.notification_service.get_notifications()
         if info['uuid'] not in notifications or (info['uuid'] in notifications and
                                                  notifications[info['uuid']].is_discard_on_trigger()):
             center.removeDeliveredNotification_(notification)
-        self._manager.get_notification_service().trigger_notification(info["uuid"])
+        self._manager.notification_service.trigger_notification(info["uuid"])
 
     def userNotificationCenter_shouldPresentNotification_(self, center, notification):
         return True
