@@ -645,27 +645,32 @@ class Engine(QObject):
             pair = self._dao.get_state_from_id(row_id)
             local_client = self.get_local_client()
             parent_ref = local_client.get_remote_id(pair.local_parent_path)
+            same_digests = local_client.is_equal_digests(pair.local_digest,
+                                                         pair.remote_digest,
+                                                         pair.local_path)
             log.warning(
-                'conflict_resolver: name: %d digest: %d(%s/%s) parents: %d(%s/%s)',
+                'Conflict resolver: names=%r(%r|%r) digests=%r(%s|%s)'
+                ' parents=%r(%s|%s) [emit=%r]',
                 pair.remote_name == pair.local_name,
-                local_client.is_equal_digests(
-                    pair.local_digest, pair.remote_digest, pair.local_path),
+                pair.remote_name,
+                pair.local_name,
+                same_digests,
                 pair.local_digest,
                 pair.remote_digest,
                 pair.remote_parent_ref == parent_ref,
                 pair.remote_parent_ref,
-                parent_ref)
-            if (safe_filename(pair.remote_name) == pair.local_name
-                    and local_client.is_equal_digests(pair.local_digest,
-                                                  pair.remote_digest,
-                                                  pair.local_path)
-                    and pair.remote_parent_ref == parent_ref):
+                parent_ref,
+                emit,
+            )
+            if (same_digests
+                    and pair.remote_parent_ref == parent_ref
+                    and safe_filename(pair.remote_name) == pair.local_name):
                 self._dao.synchronize_state(pair)
             elif emit:
                 # Raise conflict only if not resolvable
                 self.newConflict.emit(row_id)
         except:
-            pass
+            log.exception('Conflict resolver error')
 
     def get_errors(self):
         return self._dao.get_errors()

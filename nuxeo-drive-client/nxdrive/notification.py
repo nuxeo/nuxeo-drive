@@ -54,6 +54,9 @@ class Notification(object):
         self.title = title
         self.description = description
         self.action = action
+        self.engine_uid = engine_uid
+        self._time = None
+        self._replacements = replacements or dict()
 
         if uid is None and uuid is None:
             raise RuntimeError
@@ -61,20 +64,14 @@ class Notification(object):
         if engine_uid is not None and isinstance(engine_uid, str):
             raise RuntimeError
 
-        self.engine_uid = engine_uid
-        self._time = None
         self.uid = uid
         if uid is not None:
             if engine_uid is not None:
-                self.uid = self.uid + "_" + engine_uid
+                self.uid = self.uid + '_' + engine_uid
             if not self.is_unique():
-                self.uid = self.uid + "_" + str(int(time.time()))
+                self.uid = self.uid + '_' + str(int(time.time()))
         else:
             self.uid = uuid
-        if replacements is None:
-            self._replacements = dict()
-        else:
-            self._replacements = replacements
 
     def is_remove_on_discard(self):
         return self.flags & Notification.FLAG_REMOVE_ON_DISCARD
@@ -119,7 +116,7 @@ class Notification(object):
     def generate_uid(_type, engine_uid=None):
         result = _type
         if engine_uid:
-            result = result + "_" + engine_uid
+            result = result + '_' + engine_uid
         return result
 
     def get_type(self):
@@ -155,7 +152,14 @@ class NotificationService(QtCore.QObject):
     def load_notifications(self):
         notifications = self._dao.get_notifications()
         for notif in notifications:
-            self._notifications[notif.uid] = Notification(uuid=notif.uid, level=notif.level, action=notif.action, flags=notif.flags, title=notif.title, description=notif.description)
+            self._notifications[notif.uid] = Notification(
+                uuid=notif.uid,
+                level=notif.level,
+                action=notif.action,
+                flags=notif.flags,
+                title=notif.title,
+                description=notif.description,
+            )
 
     def get_notifications(self, engine=None, include_generic=True):
         # Might need to use lock and duplicate
@@ -228,132 +232,187 @@ class DebugNotification(Notification):
 
 class ErrorNotification(Notification):
     def __init__(self, engine_uid, doc_pair):
-        values = dict()
+        values = dict(name='')
         if doc_pair.local_name is not None:
-            values["name"] = doc_pair.local_name
+            values['name'] = doc_pair.local_name
         elif doc_pair.remote_name is not None:
-            values["name"] = doc_pair.remote_name
-        else:
-            values["name"] = ""
-        title = Translator.get("ERROR", values)
-        description = Translator.get("ERROR_ON_FILE", values)
-        super(ErrorNotification, self).__init__("ERROR", title=title, description=description,
-            engine_uid=engine_uid, level=Notification.LEVEL_ERROR,
-            flags=Notification.FLAG_VOLATILE|Notification.FLAG_ACTIONABLE|Notification.FLAG_BUBBLE|Notification.FLAG_PERSISTENT|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD,
-            action="drive.showConflicts();")
+            values['name'] = doc_pair.remote_name
+        super(ErrorNotification, self).__init__(
+            'ERROR',
+            title=Translator.get('ERROR', values),
+            description=Translator.get('ERROR_ON_FILE', values),
+            engine_uid=engine_uid,
+            level=Notification.LEVEL_ERROR,
+            flags=(Notification.FLAG_VOLATILE
+                   | Notification.FLAG_ACTIONABLE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_PERSISTENT
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            action='drive.showConflicts();',
+        )
 
 
 class LockNotification(Notification):
     def __init__(self, filename):
-        values = dict()
-        values["name"] = filename
-        super(LockNotification, self).__init__("LOCK",
-            title=Translator.get("LOCK_NOTIFICATION_TITLE", values),
-            description=Translator.get("LOCK_NOTIFICATION_DESCRIPTION", values), level=Notification.LEVEL_INFO,
-            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+        values = dict(name=filename)
+        super(LockNotification, self).__init__(
+            'LOCK',
+            title=Translator.get('LOCK_NOTIFICATION_TITLE', values),
+            description=Translator.get('LOCK_NOTIFICATION_DESCRIPTION', values),
+            level=Notification.LEVEL_INFO,
+            flags=(Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+        )
 
 
 class DirectEditErrorLockNotification(Notification):
-    def __init__(self, type, filename, ref):
-        values = dict()
-        values["name"] = filename
-        values["ref"] = ref
-        if type == 'lock':
-            title = Translator.get("DIRECT_EDIT_LOCK_ERROR", values)
-            description = Translator.get("DIRECT_EDIT_LOCK_ERROR_DESCRIPTION", values)
-        elif type == 'unlock':
-            title = Translator.get("DIRECT_EDIT_UNLOCK_ERROR", values)
-            description = Translator.get("DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION", values)
+    def __init__(self, action, filename, ref):
+        values = dict(name=filename, ref=ref)
+        if action == 'lock':
+            title = 'DIRECT_EDIT_LOCK_ERROR'
+            description = 'DIRECT_EDIT_LOCK_ERROR_DESCRIPTION'
+        elif action == 'unlock':
+            title = 'DIRECT_EDIT_UNLOCK_ERROR'
+            description = 'DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION'
         else:
-            raise Exception()
-        super(DirectEditErrorLockNotification, self).__init__("ERROR", title=title, description=description, level=Notification.LEVEL_ERROR,
-            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+            raise ValueError('Invalid action: %r not in (lock, unlock)', 
+                             locals())
+
+        super(DirectEditErrorLockNotification, self).__init__(
+            'ERROR',
+            title=Translator.get(title, values),
+            description=Translator.get(description, values),
+            level=Notification.LEVEL_ERROR,
+            flags=(Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+        )
 
 
 class ConflictNotification(Notification):
     def __init__(self, engine_uid, doc_pair):
-        values = dict()
-        values["name"] = doc_pair.local_name
-        title = Translator.get("CONFLICT", values)
-        description = Translator.get("CONFLICT_ON_FILE", values)
-        super(ConflictNotification, self).__init__("CONFLICT_FILE", title=title, description=description,
-            engine_uid=engine_uid, level=Notification.LEVEL_WARNING,
-            flags=Notification.FLAG_VOLATILE|Notification.FLAG_ACTIONABLE|Notification.FLAG_BUBBLE|Notification.FLAG_PERSISTENT|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD,
-            action="drive.showConflicts();")
+        values = dict(name=doc_pair.local_name)
+        super(ConflictNotification, self).__init__(
+            'CONFLICT_FILE',
+            title=Translator.get('CONFLICT', values),
+            description=Translator.get('CONFLICT_ON_FILE', values),
+            engine_uid=engine_uid,
+            level=Notification.LEVEL_WARNING,
+            flags=(Notification.FLAG_VOLATILE
+                   | Notification.FLAG_ACTIONABLE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_PERSISTENT
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            action='drive.showConflicts();',
+        )
 
 
 class ReadOnlyNotification(Notification):
     def __init__(self, engine_uid, filename, parent=None):
-        values = dict()
-        values["name"] = filename
-        values["folder"] = parent
-        title = Translator.get("READONLY", values)
-        if parent is None:
-            description = Translator.get("READONLY_FILE", values)
-        else:
-            description = Translator.get("READONLY_FOLDER", values)
-        super(ReadOnlyNotification, self).__init__("READONLY", title=title, description=description,
-            engine_uid=engine_uid, level=Notification.LEVEL_WARNING,
-            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+        values = dict(name=filename, folder=parent)
+        description = 'READONLY_FILE' if parent is None else 'READONLY_FOLDER'
+        super(ReadOnlyNotification, self).__init__(
+            'READONLY',
+            title=Translator.get('READONLY', values),
+            description=Translator.get(description, values),
+            engine_uid=engine_uid,
+            level=Notification.LEVEL_WARNING,
+            flags=(Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+        )
 
 
 class DirectEditReadOnlyNotification(Notification):
     def __init__(self, filename):
-        values = dict()
-        values["name"] = filename
-        title = Translator.get("READONLY", values)
-        description = Translator.get("DIRECT_EDIT_READONLY_FILE", values)
-        super(DirectEditReadOnlyNotification, self).__init__("DIRECT_EDIT_READONLY", title=title, description=description,
+        values = dict(name=filename)
+        super(DirectEditReadOnlyNotification, self).__init__(
+            'DIRECT_EDIT_READONLY',
+            title=Translator.get('READONLY', values),
+            description=Translator.get('DIRECT_EDIT_READONLY_FILE', values),
             level=Notification.LEVEL_WARNING,
-            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
-
+            flags=(Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+        )
+    
 
 class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid, filename):
-        values = dict()
-        values["name"] = filename
-        title = Translator.get("DELETE_READONLY", values)
-        description = Translator.get("DELETE_READONLY_DOCUMENT", values)
-        super(DeleteReadOnlyNotification, self).__init__("DELETE_READONLY", title=title, description=description,
-                                                         engine_uid=engine_uid, level=Notification.LEVEL_INFO,
-                                                         flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+        values = dict(name=filename)
+        super(DeleteReadOnlyNotification, self).__init__(
+            'DELETE_READONLY',
+            title=Translator.get('DELETE_READONLY', values),
+            description=Translator.get('DELETE_READONLY_DOCUMENT', values),
+            engine_uid=engine_uid,
+            level=Notification.LEVEL_INFO,
+            flags=(Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+        )
 
 
 class LockedNotification(Notification):
     def __init__(self, engine_uid, filename, lock_owner, lock_created):
-        values = dict()
-        values["name"] = filename
-        values["lock_owner"] = lock_owner
-        values["lock_created"] = lock_created.strftime("%m/%d/%Y %H:%M:%S")
-        title = Translator.get("LOCKED", values)
-        description = Translator.get("LOCKED_FILE", values)
-        super(LockedNotification, self).__init__("LOCKED", title=title, description=description,
-            engine_uid=engine_uid, level=Notification.LEVEL_WARNING,
-            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+        values = {
+            'name': filename,
+            'lock_owner': lock_owner,
+            'lock_created': lock_created.strftime('%m/%d/%Y %H:%M:%S'),
+        }
+        super(LockedNotification, self).__init__(
+            'LOCKED',
+            title=Translator.get('LOCKED', values),
+            description=Translator.get('LOCKED_FILE', values),
+            engine_uid=engine_uid,
+            level=Notification.LEVEL_WARNING,
+            flags=(Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+        )
 
 
 class DirectEditLockedNotification(Notification):
     def __init__(self, filename, lock_owner, lock_created):
-        values = dict()
-        values["name"] = filename
-        values["lock_owner"] = lock_owner
-        values["lock_created"] = lock_created.strftime("%m/%d/%Y %H:%M:%S")
-        title = Translator.get("LOCKED", values)
-        description = Translator.get("DIRECT_EDIT_LOCKED_FILE", values)
-        super(DirectEditLockedNotification, self).__init__("DIRECT_EDIT_LOCKED", title=title, description=description,
+        values = {
+            'name': filename,
+            'lock_owner': lock_owner,
+            'lock_created': lock_created.strftime('%m/%d/%Y %H:%M:%S'),
+        }
+        super(DirectEditLockedNotification, self).__init__(
+            'DIRECT_EDIT_LOCKED',
+            title=Translator.get('LOCKED', values),
+            description=Translator.get('DIRECT_EDIT_LOCKED_FILE', values),
             level=Notification.LEVEL_WARNING,
-            flags=Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_DISCARD_ON_TRIGGER|Notification.FLAG_REMOVE_ON_DISCARD)
+            flags=(Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+        )
 
 
 class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid):
-        # show_settings('Accounts_' + engine.uid)
-        super(InvalidCredentialNotification, self).__init__("INVALID_CREDENTIALS",
-            title=Translator.get("INVALID_CREDENTIALS"),
-            description="",
-            engine_uid=engine_uid, level=Notification.LEVEL_ERROR,
-            flags=Notification.FLAG_UNIQUE|Notification.FLAG_VOLATILE|Notification.FLAG_BUBBLE|Notification.FLAG_ACTIONABLE|Notification.FLAG_SYSTRAY,
-            action="drive.showSettings('Accounts_" + engine_uid + "');")
+        super(InvalidCredentialNotification, self).__init__(
+            'INVALID_CREDENTIALS',
+            title=Translator.get('INVALID_CREDENTIALS'),
+            description='',
+            engine_uid=engine_uid,
+            level=Notification.LEVEL_ERROR,
+            flags=(Notification.FLAG_UNIQUE
+                   | Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_ACTIONABLE
+                   | Notification.FLAG_SYSTRAY),
+            action='drive.showSettings("Accounts_{}");'.format(engine_uid))
 
 
 class DefaultNotificationService(NotificationService):
@@ -380,7 +439,7 @@ class DefaultNotificationService(NotificationService):
         self.send_notification(LockNotification(filename))
 
     def _directEditLockError(self, lock, filename, ref):
-        if lock != 'lock' and lock != 'unlock':
+        if lock not in ('lock', 'unlock'):
             log.debug("DirectEdit LockError not handled: %s", lock)
             return
         self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
@@ -419,11 +478,11 @@ class DefaultNotificationService(NotificationService):
 
     def _validAuthentication(self):
         engine_uid = self.sender().uid
-        log.debug("discard_notification: " + "INVALID_CREDENTIALS_" + engine_uid)
-        self.discard_notification("INVALID_CREDENTIALS_" + engine_uid)
+        log.debug('discard_notification: ' + 'INVALID_CREDENTIALS_' + engine_uid)
+        self.discard_notification('INVALID_CREDENTIALS_' + engine_uid)
 
     def _invalidAuthentication(self):
         engine_uid = self.sender().uid
         notif = InvalidCredentialNotification(engine_uid)
-        log.debug("send_notification: " + notif.uid)
+        log.debug('send_notification: ' + notif.uid)
         self.send_notification(notif)
