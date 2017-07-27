@@ -40,18 +40,17 @@ function drive_module(name) {
 	app = angular.module(name, ['pascalprecht.translate']);
 	app.directive('driveInclude', function($http, $templateCache, $compile) {
 	    return function(scope, element, attrs) {
-	    	// Not nicest way
-	        var templatePath = eval("scope."+attrs.driveInclude);
-	        $http.get(templatePath, { cache: $templateCache }).success(function(response) {
+	        $http.get(scope.getTemplate(attrs.driveInclude), { cache: $templateCache }).success(
+	        function(response) {
 	            var contents = element.html(response).contents();
 	            $compile(contents)(scope);
 	        });
 	    };
 	});
 	app.config(function ($translateProvider) {
-		languages = angular.fromJson(drive.get_languages());
-		for (i=0; i<languages.length; i++) {
-			$translateProvider.translations(languages[i][0], eval("LABELS." + languages[i][0]));
+		var languages = angular.fromJson(drive.get_languages());
+		for (var i=0; i<languages.length; i++) {
+			$translateProvider.translations(languages[i][0], LABELS[languages[i][0]]);
 		}
 		$translateProvider.preferredLanguage(drive.locale());
 	});

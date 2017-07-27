@@ -11,8 +11,8 @@
   </div>
 </div>
 <div id="systray" ng-show="bind">
-  <div id="systray-top" class="navbar navbar-fixed-top" drive-include="getTemplate('systray-top')"></div>
-  <div id="systray-bottom" class="navbar navbar-fixed-bottom" drive-include="getTemplate('systray-bottom')"></div>
+  <div id="systray-top" class="navbar navbar-fixed-top" drive-include="systray-top"></div>
+  <div id="systray-bottom" class="navbar navbar-fixed-bottom" drive-include="systray-bottom"></div>
   <div id="sub-menu">
     <span translate>RECENTLY_UPDATED</span>
     <a ng-click="open_local('/')" title="{{ 'OPEN_ROOT_FOLDER' | translate }}">
@@ -22,5 +22,5 @@
       <span class="glyphicon glyphicon-globe"></span>
     </a>
   </div>
-  <div class="list-group" drive-include="getTemplate('systray-files')"></div>
+  <div class="list-group" drive-include="systray-files"></div>
 </div>
