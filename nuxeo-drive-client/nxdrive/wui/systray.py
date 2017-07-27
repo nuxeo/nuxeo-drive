@@ -18,9 +18,9 @@ class DriveSystrayIcon(QSystemTrayIcon):
         self.activated.connect(self.handle_mouse_click)
 
         if not AbstractOSIntegration.is_mac():
-            # On macOS (and PyQt4 for now), only the left click is detected.
-            # So, the context menu is useless.  It is better to not define
-            # it else it will show up every click on the systray icon.
+            # On macOS, only the left click is detected, so the context
+            # menu is useless.  It is better to not define it else it
+            # will show up every click on the systray icon.
             self.menu_right = self.create_menu_right()
             self.setContextMenu(self.menu_right)
 
@@ -31,15 +31,14 @@ class DriveSystrayIcon(QSystemTrayIcon):
         is the native bahevior and will open the context
         menu (right click menu).
 
-        Note: on macOS (and PyQt4 for now), only the left
-        click is detected.
+        Note: only the left click is detected on macOS.
         """
 
         if reason == QSystemTrayIcon.Trigger:
             # On left click, open the usual menu with engines and sync files
             self.menu_left.popup(QCursor.pos())
         elif reason == QSystemTrayIcon.MiddleClick:
-            # On middle click, open settings.  Yeah, it is practical!
+            # On middle click, open settings.  Yeah, it rocks!
             self.application.show_settings()
 
     def create_menu_left(self):
@@ -53,6 +52,9 @@ class DriveSystrayIcon(QSystemTrayIcon):
         """
         Create the context menu.
         It shows up on left click.
+
+        Note: icons will not be displayed on every GNU/Linux
+        distributions, it depends on the graphical environment.
         """
 
         style = QApplication.style()
@@ -82,27 +84,27 @@ class WebSystrayApi(WebDriveApi):
     @pyqtSlot(str)
     def show_settings(self, page):
         self.dialog.hide()
-        super(WebSystrayApi, self).show_settings(str(page))
+        super(WebSystrayApi, self).show_settings(page)
 
     @pyqtSlot(str)
     def show_conflicts_resolution(self, uid):
         self.dialog.hide()
-        super(WebSystrayApi, self).show_conflicts_resolution(str(uid))
+        super(WebSystrayApi, self).show_conflicts_resolution(uid)
 
     @pyqtSlot(str, str)
     def show_metadata(self, uid, ref):
         self.dialog.hide()
-        super(WebSystrayApi, self).show_metadata(str(uid), str(ref))
+        super(WebSystrayApi, self).show_metadata(uid, ref)
 
     @pyqtSlot(str)
     def open_remote(self, uid):
         self.dialog.hide()
-        super(WebSystrayApi, self).open_remote(str(uid))
+        super(WebSystrayApi, self).open_remote(uid)
 
     @pyqtSlot(str, str)
     def open_local(self, uid, path):
         self.dialog.hide()
-        super(WebSystrayApi, self).open_local(str(uid), str(path))
+        super(WebSystrayApi, self).open_local(uid, path)
 
     @pyqtSlot()
     def open_help(self):
@@ -112,7 +114,7 @@ class WebSystrayApi(WebDriveApi):
     @pyqtSlot(str)
     def trigger_notification(self, id_):
         self.dialog.hide()
-        super(WebSystrayApi, self).trigger_notification(str(id_))
+        super(WebSystrayApi, self).trigger_notification(id_)
 
     @pyqtSlot()
     def suspend(self):
@@ -153,7 +155,6 @@ class WebSystrayApi(WebDriveApi):
             if AbstractOSIntegration.is_mac():
                 # Still need to include context menu items as macOS does not
                 # see anything but left clicks.
-                # TODO: check with Qt5.
                 self.menu.addSeparator()
                 self.menu.addAction(Translator.get('SETTINGS'),
                                     self.application.show_settings)
