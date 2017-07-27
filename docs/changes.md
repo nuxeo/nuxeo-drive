@@ -3,7 +3,9 @@ Release date: `2017-??-??`
 
 
 # 2.5.0
-Release date: `2017-07-27`
+Release date: `2017-07-28`
+
+New license: LGPL, version 3
 
 ### Core
 - [NXDRIVE-897](https://jira.nuxeo.com/browse/NXDRIVE-897): Fix error when editing a DWG file
