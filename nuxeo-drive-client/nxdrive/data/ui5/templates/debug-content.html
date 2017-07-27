@@ -7,16 +7,16 @@
       </a>
     </div>
     <ul class="nav navbar-nav">
-    	<li ng-show="!is_paused('engine')"><a href="#" ng-click="pause('engine')"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span>&nbsp;Pause</a></li>
-    	<li ng-show="is_paused('engine')"><a href="#" ng-click="pause('engine')"><span class="glyphicon glyphicon-play" aria-hidden="true"></span>&nbsp;Resume</a></li>
+      <li ng-show="!is_paused('engine')"><a href="#" ng-click="pause('engine')"><span class="glyphicon glyphicon-pause"></span>&nbsp;Pause</a></li>
+      <li ng-show="is_paused('engine')"><a href="#" ng-click="pause('engine')"><span class="glyphicon glyphicon-play"></span>&nbsp;Resume</a></li>
     </ul>
   	<ul class="nav navbar-nav navbar-right">
-  		<li><a href="#" ng-click="pause('local_watcher')"><span ng-class="pause_class('local_watcher')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Watcher</a></li>
-  		<li><a href="#" ng-click="pause('remote_watcher')"><span ng-class="pause_class('remote_watcher')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Watcher</a></li>
-        <li class="dropdown">
-          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><b>{{ engine.name }}</b><span class="caret"></span></a>
+      <li><a href="#" ng-click="pause('local_watcher')"><span ng-class="pause_class('local_watcher')" class="glyphicon"></span>&nbsp;Local Watcher</a></li>
+      <li><a href="#" ng-click="pause('remote_watcher')"><span ng-class="pause_class('remote_watcher')" class="glyphicon"></span>&nbsp;Remote Watcher</a></li>
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><b>{{ engine.name }}</b><span class="caret"></span></a>
           <ul class="dropdown-menu" role="menu">
-            <li ng-repeat="engine in engines" ng-click="setEngine(engine)"><a href="#">{{ engine.name }}</a></li>
+             <li ng-repeat="engine in engines" ng-click="setEngine(engine)"><a href="#">{{ engine.name }}</a></li>
           </ul>
         </li>
       </ul>
@@ -36,7 +36,7 @@
 			<table class="table table-hover table-condensed">
 			<thead>
 				<tr>
-					<th><a href="#" ng-click="pause('local_folder_queue')"><span ng-class="pause_class('local_folder_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Folders</a><span class="badge pull-right">{{ engine.queue.local_folder_queue }}</span></th>
+					<th><a href="#" ng-click="pause('local_folder_queue')"><span ng-class="pause_class('local_folder_queue')" class="glyphicon"></span>&nbsp;Local Folders</a><span class="badge pull-right">{{ engine.queue.local_folder_queue }}</span></th>
 				</tr>
 			</thead>
 			</table>
@@ -54,7 +54,7 @@
 			<table class="table table-hover">
 				<thead>
 					<tr>
-						<th><a href="#" ng-click="pause('local_file_queue')"><span ng-class="pause_class('local_file_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Local Files</a><span class="badge pull-right">{{ engine.queue.local_file_queue }}</span></th>
+						<th><a href="#" ng-click="pause('local_file_queue')"><span ng-class="pause_class('local_file_queue')" class="glyphicon"></span>&nbsp;Local Files</a><span class="badge pull-right">{{ engine.queue.local_file_queue }}</span></th>
 					</tr>
 				</thead>
 			</table>
@@ -72,7 +72,7 @@
 			<table class="table table-hover">
 			<thead>
 				<tr>
-					<th><a href="#" ng-click="pause('remote_folder_queue')"><span ng-class="pause_class('remote_folder_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Folders</a><span class="badge pull-right">{{ engine.queue.remote_folder_queue }}</span></th>
+					<th><a href="#" ng-click="pause('remote_folder_queue')"><span ng-class="pause_class('remote_folder_queue')" class="glyphicon"></span>&nbsp;Remote Folders</a><span class="badge pull-right">{{ engine.queue.remote_folder_queue }}</span></th>
 				</tr>
 			</thead>
 			</table>
@@ -90,7 +90,7 @@
 			<table class="table table-hover">
 				<thead>
 					<tr>
-						<th><a href="#" ng-click="pause('remote_file_queue')"><span ng-class="pause_class('remote_file_queue')" class="glyphicon" aria-hidden="true"></span>&nbsp;Remote Files</a><span class="badge pull-right">{{ engine.queue.remote_file_queue }}</span></th>
+						<th><a href="#" ng-click="pause('remote_file_queue')"><span ng-class="pause_class('remote_file_queue')" class="glyphicon"></span>&nbsp;Remote Files</a><span class="badge pull-right">{{ engine.queue.remote_file_queue }}</span></th>
 					</tr>
 				</thead>
 			</table>
@@ -109,7 +109,7 @@
 		<table class="table table-hover table-condensed">
 		<thead>
 			<tr>
-				<th colspan="2"><a href="#" ng-click="refreshLogs()"><span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;Logs</a></th>
+				<th colspan="2"><a href="#" ng-click="refreshLogs()"><span class="glyphicon glyphicon-refresh"></span>&nbsp;Logs</a></th>
 			</tr>
 		</thead>
 		</table>
