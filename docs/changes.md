@@ -2,7 +2,7 @@
 Release date: `2017-??-??`
 
 
-# 2.4.9
+# 2.5.0
 Release date: `2017-07-27`
 
 ### Core
@@ -20,7 +20,11 @@ Release date: `2017-07-27`
 - [NXDRIVE-716](https://jira.nuxeo.com/browse/NXDRIVE-716): Fix warning: Unknown distribution option: 'attribs'
 
 ### GUI
+- [NXDRIVE-694](https://jira.nuxeo.com/browse/NXDRIVE-694): Systray menu: needs double click to activate
+- [NXDRIVE-711](https://jira.nuxeo.com/browse/NXDRIVE-711): System tray menu acts weird
 - [NXDRIVE-865](https://jira.nuxeo.com/browse/NXDRIVE-865): Upgrade the Windows deploy script to compile PyQt/SIP/cx_Freeze (**breaking change**)
+- [NXDRIVE-898](https://jira.nuxeo.com/browse/NXDRIVE-898): Add a system tray context menu
+- [NXDRIVE-929](https://jira.nuxeo.com/browse/NXDRIVE-929): Cleanup JavaScript/HTML code
 
 #### Minor changes
 - Packaging: Fixed missing `-start` argument on Windows

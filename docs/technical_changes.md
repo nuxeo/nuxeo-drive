@@ -1,4 +1,11 @@
 # dev
+
+# 2.5.0
+- Removed `start_engine`, `check_fs` and `token` arguments from `_bind_server()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
+- Removed `local_folder`, `url`, `username`, `password`, `name`, `check_fs` and `token` arguments from `bind_server_async()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
+- Removed `check_fs` and `token` from `bind_server` method of `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
+- Removed `local_folder`, `server_url` and `engine_name` arguments from `web_authentication` method in `WebSettingsApi` class. Use `args` instead.
+- Removed `config`, `server`, `authenticated`, username, password and pac_url from `set_proxy_settings_async` method in `WebSettingsApi` class. Use `args` instead.
 - Removed `get_local_folder()` method from `Engine` class. Use `local_folder` attribute instead.
 - Removed `get_uid()` method from `Engine` class. Use `uid` attribute instead.
 - Removed `get_server_url()` method from `Engine` class. Use `server_url` property instead.
@@ -50,6 +57,8 @@
 - Removed `resizeEvent()` method from `WebSystrayView` class
 - Removed `close()` method from `WebSystrayView` class
 - Removed `dialogDeleted()` method from `WebSystray` class
+- Changed `update_token` method to `static` in `WebSettingsApi` class
+- Changed `is_office_temp_file()` function to `is_generated_tmp_file()` in utils.py. It now returns `tuple(bool, bool)`.
 - Changed `get_mac_app()` method to `static` in `Application` class
 - Changed `_message_clicked()` method to `message_clicked()` in `Application` class
 - Changed `_sslErrorHandler()` method to static `_ssl_error_handler()` in `WebDialog` class
@@ -64,15 +73,6 @@
 - Changed `sortChildren()` method to `sort_children()` in `FolderTreeview` class
 - Changed `loadChildrenThread()` method to `load_children_thread()` in `FolderTreeview` class
 - Changed `loadChildren()` method to `load_children()` in `StatusTreeview` class
-
-# 2.4.9
-- Removed `start_engine`, `check_fs` and `token` arguments from `_bind_server()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
-- Removed `local_folder`, `url`, `username`, `password`, `name`, `check_fs` and `token` arguments from `bind_server_async()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
-- Removed `check_fs` and `token` from `bind_server` method of `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
-- Removed `local_folder`, `server_url` and `engine_name` arguments from `web_authentication` method in `WebSettingsApi` class. Use `args` instead.
-- Removed `config`, `server`, `authenticated`, username, password and pac_url from `set_proxy_settings_async` method in `WebSettingsApi` class. Use `args` instead.
-- Changed `update_token` method to `static` in `WebSettingsApi` class
-- Changed `is_office_temp_file()` function to `is_generated_tmp_file()` in utils.py. It now returns `tuple(bool, bool)`.
 
 # 2.4.8
 - Removed `size`, `digest_func`, `check_suspended` and `remote_ref` arguments from `FileInfo` class. Use `kwargs.get(arg, default)` instead.
