@@ -228,6 +228,10 @@ class RemoteWatcher(EngineWorker):
 
             # Handle descendants
             for descendant_info in descendants_info:
+                if self.filtered(descendant_info):
+                    log.debug('Ignoring banned file: %r', descendant_info)
+                    continue
+
                 log.trace('Handling remote descendant: %r', descendant_info)
                 if descendant_info.uid in descendants:
                     descendant_pair = descendants.pop(descendant_info.uid)
@@ -291,6 +295,10 @@ class RemoteWatcher(EngineWorker):
 
         to_scan = []
         for child_info in children_info:
+            if self.filtered(child_info):
+                log.debug('Ignoring banned file: %r', child_info)
+                continue
+
             log.trace('Scanning remote child: %r', child_info)
             new_pair = False
             if child_info.uid in children:
@@ -300,8 +308,10 @@ class RemoteWatcher(EngineWorker):
                 self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
             else:
                 child_pair, new_pair = self._find_remote_child_match_or_create(doc_pair, child_info)
+
             if (new_pair or force_recursion) and child_info.folderish:
                     to_scan.append((child_pair, child_info))
+
         # Delete remaining
         for deleted in children.values():
             # TODO Should be DAO
@@ -572,6 +582,11 @@ class RemoteWatcher(EngineWorker):
                 continue
             fs_item = change.get('fileSystemItem')
             new_info = self._client.file_to_info(fs_item) if fs_item else None
+
+            if self.filtered(new_info):
+                log.debug('Ignoring banned file: %r', new_info)
+                continue
+
             log.trace("Processing event: %r", change)
             # Possibly fetch multiple doc pairs as the same doc can be synchronized at 2 places,
             # typically if under a sync root and locally edited.
@@ -726,3 +741,9 @@ class RemoteWatcher(EngineWorker):
             delete_processed.append(delete_pair)
             log.debug("Marking doc_pair '%r' as deleted", delete_pair)
             self._dao.delete_remote_state(delete_pair)
+
+    def filtered(self, info):
+        """ Check if a remote document is locally ignored. """
+        return (info is not None
+                and not info.folderish
+                and self._local_client.is_ignored('/', info.name))

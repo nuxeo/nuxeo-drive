@@ -502,11 +502,11 @@ FolderType=Generic
 
         # NXDRIVE-655: need to check every parent if they are ignored
         result = False
-        path = parent_ref
-        if path != '/':
-            file_name = os.path.basename(path)
-            path = os.path.dirname(path)
-            result = self.is_ignored(path, file_name)
+        if parent_ref != '/':
+            file_name = os.path.basename(parent_ref)
+            parent_ref = os.path.dirname(parent_ref)
+            result = self.is_ignored(parent_ref, file_name)
+
         return result
 
     @staticmethod
@@ -523,6 +523,7 @@ FolderType=Generic
         for child_name in sorted(children):
             if (self.is_ignored(ref, child_name)
                     or self.is_temp_file(child_name)):
+                log.debug('Ignoring banned file %r in %r', child_name, os_path)
                 continue
 
             child_ref = self.get_children_ref(ref, child_name)

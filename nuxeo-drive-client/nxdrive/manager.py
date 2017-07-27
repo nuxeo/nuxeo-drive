@@ -361,6 +361,8 @@ class Manager(QtCore.QObject):
             self.ignored_prefixes = \
                 tuple({fix for fix in self.ignored_prefixes
                        + DEFAULT_IGNORED_PREFIXES})
+        finally:
+            self.ignored_prefixes = tuple(sorted(self.ignored_prefixes))
 
         try:
             self.ignored_suffixes = options.ignored_suffixes
@@ -372,6 +374,8 @@ class Manager(QtCore.QObject):
             self.ignored_suffixes = \
                 tuple({fix for fix in self.ignored_suffixes
                        + DEFAULT_IGNORED_SUFFIXES})
+        finally:
+            self.ignored_suffixes = tuple(sorted(self.ignored_suffixes))
 
         # Create DirectEdit
         self._create_autolock_service()

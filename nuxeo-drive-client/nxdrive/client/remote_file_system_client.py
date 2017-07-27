@@ -235,11 +235,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
             can_update = False
             can_create_child = fs_item['canCreateChild']
             # Scroll API availability
-            can_scroll = fs_item.get('canScrollDescendants')
-            if can_scroll:
-                can_scroll_descendants = True
-            else:
-                can_scroll_descendants = False
+            can_scroll = fs_item.get('canScrollDescendants', False)
+            can_scroll_descendants = can_scroll
         else:
             digest = fs_item['digest']
             item_digest_algorithm = fs_item['digestAlgorithm']

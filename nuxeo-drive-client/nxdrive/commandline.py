@@ -456,7 +456,7 @@ class CliHandler(object):
 
         try:
             return handler(options)
-        except Exception, e:
+        except Exception as e:
             if options.debug:
                 # Make it possible to use the postmortem debugger
                 raise
@@ -493,7 +493,7 @@ class CliHandler(object):
     def clean_folder(self, options):
         from nxdrive.client.local_client import LocalClient
         if options.local_folder is None:
-            print "A folder must be specified"
+            print('A folder must be specified')
             return 0
         client = LocalClient(unicode(options.local_folder))
         client.clean_xattr_root()

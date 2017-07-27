@@ -18,7 +18,7 @@ from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.utils import current_milli_time, is_office_temp_file
+from nxdrive.utils import current_milli_time, is_generated_tmp_file
 
 log = get_logger(__name__)
 
@@ -549,8 +549,8 @@ class LocalWatcher(EngineWorker):
         log.debug('Watching FS modification on : %s', self.client.base_folder)
 
         # Filter out all ignored suffixes. It will handle custom ones too.
-        ignore_patterns = list(['*' + DOWNLOAD_TMP_FILE_SUFFIX])
-        ignore_patterns.extend('*' + p for p in self.client.ignored_suffixes)
+        ignore_patterns = list(['*' + suffixe
+                                for suffixe in self.client.ignored_suffixes])
 
         self._event_handler = DriveFSEventHandler(
             self, ignore_patterns=ignore_patterns)
@@ -613,10 +613,13 @@ class LocalWatcher(EngineWorker):
             dest_filename = os.path.basename(evt.dest_path)
             if dest_filename.startswith(LocalClient.CASE_RENAME_PREFIX) or \
                     os.path.basename(rel_path).startswith(LocalClient.CASE_RENAME_PREFIX):
-                log.debug('Ignoring case rename %s to %s', evt.src_path, evt.dest_path)
+                log.debug('Ignoring case rename %s to %s',
+                          evt.src_path, evt.dest_path)
                 return
-            if is_office_temp_file(dest_filename):
-                log.debug('Ignoring Office tmp file: %r', evt.dest_path)
+            ignore, _ = is_generated_tmp_file(dest_filename)
+            if ignore:
+                log.debug('Ignoring generated temporary file: %r',
+                          evt.dest_path)
                 return
             src_path = normalize_event_filename(evt.dest_path)
             rel_path = self.client.get_path(src_path)
@@ -812,18 +815,23 @@ class LocalWatcher(EngineWorker):
             parent_rel_path = self.client.get_path(parent_path)
             # Don't care about ignored file, unless it is moved
             if evt.event_type != 'moved' and self.client.is_ignored(parent_rel_path, file_name):
+                log.debug('Ignoring action on banned file: %r', evt)
                 return
             if self.client.is_temp_file(file_name):
+                log.debug('Ignoring temporary file: %r', evt)
                 return
 
             doc_pair = self._dao.get_state_from_local(rel_path)
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
-                    log.debug("Ignoring %s as marked unsynchronized", doc_pair.local_path)
-                    if (evt.event_type == 'deleted'
-                        or evt.event_type == 'moved' and not is_office_temp_file(os.path.basename(evt.dest_path))):
-                        log.debug('Removing pair state for deleted or moved event: %r', doc_pair)
-                        self._dao.remove_state(doc_pair)
+                    log.debug('Ignoring %s as marked unsynchronized',
+                              doc_pair.local_path)
+                    if evt.event_type in ('deleted', 'moved'):
+                        ignore, _ = is_generated_tmp_file(os.path.basename(evt.dest_path))
+                        if not ignore:
+                            log.debug('Removing pair state for %s event: %r',
+                                      evt.event_type, doc_pair)
+                            self._dao.remove_state(doc_pair)
                     return
                 self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
                 return
@@ -833,6 +841,7 @@ class LocalWatcher(EngineWorker):
             if evt.event_type == 'moved':
                 dest_filename = os.path.basename(evt.dest_path)
                 if self.client.is_ignored(parent_rel_path, dest_filename):
+                    log.debug('Ignoring move on banned file: %r', evt)
                     return
                 src_path = normalize_event_filename(evt.dest_path)
                 rel_path = self.client.get_path(src_path)
