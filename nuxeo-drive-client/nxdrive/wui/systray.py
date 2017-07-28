@@ -79,8 +79,6 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
 class WebSystrayApi(WebDriveApi):
 
-    menu = None
-
     @pyqtSlot(str)
     def show_settings(self, page):
         self.dialog.hide()
@@ -119,7 +117,6 @@ class WebSystrayApi(WebDriveApi):
     @pyqtSlot()
     def suspend(self):
         self.dialog.hide()
-        self.menu = None  # Force advanced menu regeneration to keep up-to-date
         self._manager.suspend()
 
     @pyqtSlot(str, result=int)
@@ -133,39 +130,36 @@ class WebSystrayApi(WebDriveApi):
     @pyqtSlot()
     def resume(self):
         self.dialog.hide()
-        self.menu = None  # Force advanced menu regeneration to keep up-to-date
         self._manager.resume()
 
     @pyqtSlot()
     def advanced_systray(self):
-        if not self.menu:
-            self.menu = QMenu()
-            if self._manager.is_paused():
-                self.menu.addAction(Translator.get('RESUME'), self.resume)
-            else:
-                self.menu.addAction(Translator.get('SUSPEND'), self.suspend)
+        menu = QMenu()
+        if self._manager.is_paused():
+            menu.addAction(Translator.get('RESUME'), self.resume)
+        else:
+            menu.addAction(Translator.get('SUSPEND'), self.suspend)
 
-            if self._manager.debug:
-                self.menu.addSeparator()
-                debug_menu = self.application.create_debug_menu(self.menu)
-                debug_action = QAction(Translator.get('DEBUG'), self)
-                debug_action.setMenu(debug_menu)
-                self.menu.addAction(debug_action)
+        if self._manager.debug:
+            menu.addSeparator()
+            debug_menu = self.application.create_debug_menu(menu)
+            debug_action = QAction(Translator.get('DEBUG'), self)
+            debug_action.setMenu(debug_menu)
+            menu.addAction(debug_action)
 
-            if AbstractOSIntegration.is_mac():
-                # Still need to include context menu items as macOS does not
-                # see anything but left clicks.
-                self.menu.addSeparator()
-                self.menu.addAction(Translator.get('SETTINGS'),
-                                    self.application.show_settings)
-                self.menu.addSeparator()
-                self.menu.addAction(Translator.get('HELP'),
-                                    self.application.open_help)
-                self.menu.addSeparator()
-                self.menu.addAction(Translator.get('QUIT'),
-                                    self.application.quit)
+        if AbstractOSIntegration.is_mac():
+            # Still need to include context menu items as macOS does not
+            # see anything but left clicks.
+            menu.addSeparator()
+            menu.addAction(Translator.get('SETTINGS'),
+                           self.application.show_settings)
+            menu.addSeparator()
+            menu.addAction(Translator.get('HELP'),
+                           self.application.open_help)
+            menu.addSeparator()
+            menu.addAction(Translator.get('QUIT'), self.application.quit)
 
-        self.menu.popup(QCursor.pos())
+        menu.exec_(QCursor.pos())
 
 
 class WebSystrayView(WebDialog):

@@ -2,6 +2,13 @@
 Release date: `2017-??-??`
 
 
+# 2.5.1
+Release date: `2017-07-28`
+
+### Packaging / Build
+- [NXDRIVE-931](https://jira.nuxeo.com/browse/NXDRIVE-931): macOs build 2.5.0 is broken
+
+
 # 2.5.0
 Release date: `2017-07-28`
 
