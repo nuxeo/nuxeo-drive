@@ -607,7 +607,6 @@ class WebDialog(QtGui.QDialog):
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
-        self.resize(550, 600)
         self.setLayout(QtGui.QVBoxLayout())
         self.layout().addWidget(self.view)
         self.layout().setContentsMargins(0, 0, 0, 0)

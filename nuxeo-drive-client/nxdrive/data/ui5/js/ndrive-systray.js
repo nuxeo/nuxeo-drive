@@ -102,7 +102,6 @@ SystrayController.prototype.init = function($scope) {
 		$scope.setEngine($scope.engines[0]);
 	} else {
 		$scope.bind = false;
-		drive.resize(300, 280);
 	}
 }
 SystrayController.prototype.showMetadata = function(uid, path) {

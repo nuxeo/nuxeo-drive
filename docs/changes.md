@@ -8,6 +8,9 @@ Release date: `2017-07-28`
 ### Packaging / Build
 - [NXDRIVE-931](https://jira.nuxeo.com/browse/NXDRIVE-931): macOs build 2.5.0 is broken
 
+#### Minor changes
+- GUI: Fix context menu position and size when no engine binded
+
 
 # 2.5.0
 Release date: `2017-07-28`

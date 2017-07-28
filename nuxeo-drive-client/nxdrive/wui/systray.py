@@ -164,11 +164,9 @@ class WebSystrayApi(WebDriveApi):
 
 class WebSystrayView(WebDialog):
 
-    default_width = 300
-    default_height = 370
+    default_width, default_height = 300, 370
 
     __geometry = None
-    __resized = False
 
     def __init__(self, application, icon):
         super(WebSystrayView, self).__init__(
@@ -187,12 +185,13 @@ class WebSystrayView(WebDialog):
         the system tray icon position.
         """
 
-        if not self.__resized:
-            self.resize(self.default_width, self.default_height)
-            self.__resized = True
+        height = self.default_height
+        if not self.icon.application.manager.get_engines():
+            height = 280
+        self.resize(self.default_width, height)
 
         geometry = self.icon.geometry()
-        if self.__geometry != geometry:
+        if geometry != self.__geometry:
             pos_x = max(0, geometry.x() + geometry.width() - self.width())
             pos_y = geometry.y() - self.height()
             if pos_y < 0:
