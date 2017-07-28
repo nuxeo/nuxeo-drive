@@ -116,7 +116,6 @@ class WebSystrayApi(WebDriveApi):
 
     @pyqtSlot()
     def suspend(self):
-        self.dialog.hide()
         self._manager.suspend()
 
     @pyqtSlot(str, result=int)
@@ -129,7 +128,6 @@ class WebSystrayApi(WebDriveApi):
 
     @pyqtSlot()
     def resume(self):
-        self.dialog.hide()
         self._manager.resume()
 
     @pyqtSlot()
@@ -164,7 +162,8 @@ class WebSystrayApi(WebDriveApi):
 
 class WebSystrayView(WebDialog):
 
-    default_width, default_height = 300, 370
+    default_width = 300
+    default_height = 370
 
     __geometry = None
 
@@ -207,10 +206,10 @@ class WebSystray(QMenu):
 
     def __init__(self, systray_icon, application):
         super(WebSystray, self).__init__()
-        self.aboutToShow.connect(self.onShow)
-        self.aboutToHide.connect(self.onHide)
         self.application = application
         self.systray_icon = systray_icon
+        self.aboutToShow.connect(self.onShow)
+        self.aboutToHide.connect(self.onHide)
 
     @property
     def dialog(self):
