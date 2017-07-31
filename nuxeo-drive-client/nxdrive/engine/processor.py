@@ -356,10 +356,26 @@ class Processor(EngineWorker):
                 and (remote_info.name != doc_pair.local_name
                      or remote_info.digest != doc_pair.local_digest)):
             doc_pair = self._dao.get_state_from_local(doc_pair.local_path)
-            log.debug('Forcing _synchronize_remotely_modified for pair = %r with info = %r', doc_pair, remote_info)
-            self._synchronize_remotely_modified(doc_pair, local_client, remote_client)
-        else:
-            self._dao.synchronize_state(doc_pair)
+            log.debug('Forcing remotely_modified for pair=%r with info=%r',
+                      doc_pair, remote_info)
+            self._synchronize_remotely_modified(
+                doc_pair, local_client, remote_client)
+            return
+
+        # Force computation of local digest to catch local modifications
+        dynamic_states = False
+        if (not doc_pair.folderish
+                and not local_client.is_equal_digests(None,
+                                                      doc_pair.remote_digest,
+                                                      doc_pair.local_path)):
+            # Note: setted 1st argument of is_equal_digests() to None
+            # to force digest computation
+            info = local_client.get_info(doc_pair.local_path)
+            doc_pair.local_digest = info.get_digest()
+            doc_pair.local_state = 'modified'
+            dynamic_states = True
+
+        self._dao.synchronize_state(doc_pair, dynamic_states=dynamic_states)
 
     def _synchronize_locally_modified(self, doc_pair, local_client, remote_client):
         fs_item_info = None
@@ -1083,9 +1099,8 @@ class Processor(EngineWorker):
                         self._dao.remove_state(target_pair)
                 self._dao.synchronize_state(source_pair)
                 return True
-            except Exception, e:
-                log.error("Can't rollback local modification")
-                log.debug(e)
+            except:
+                log.exception('Cannot rollback local modification')
         return False
 
     def _handle_unsynchronized(self, local_client, doc_pair):

@@ -1,4 +1,5 @@
 # dev
+- Added `dynamic_states=False` argument to `synchronize_state` method in `EngineDAO` class
 
 # 2.5.1
 - Removed `update_tooltip()` method from `Application` class

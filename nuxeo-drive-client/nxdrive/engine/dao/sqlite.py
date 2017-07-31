@@ -1220,19 +1220,45 @@ class EngineDAO(ConfigurationDAO):
         finally:
             self._lock.release()
 
-    def synchronize_state(self, row, version=None):
+    def synchronize_state(self, row, version=None, dynamic_states=False):
         if version is None:
             version = row.version
-        log.trace('Try to synchronize state for [local_path=%s, remote_name=%s, version=%s] with version=%s',
-                  row.local_path, row.remote_name, row.version, version)
+        log.trace('Try to synchronize state for [local_path=%s, '
+                  'remote_name=%s, version=%s] with version=%s '
+                  'and dynamic_states=%r',
+                  row.local_path, row.remote_name, row.version, version,
+                  dynamic_states)
+
+        # Set default states to synchronized, if wanted
+        if not dynamic_states:
+            row.local_state = row.remote_state = 'synchronized'
+        row.pair_state = self._get_pair_state(row)
+
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                      "pair_state='synchronized', last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
-                      "WHERE id=? and version=?",
-                      (datetime.utcnow(), row.id, version))
+            c.execute('UPDATE States'
+                      '   SET local_state = ?,'
+                      '       remote_state = ?,'
+                      '       pair_state = ?,'
+                      '       local_digest = ?,'
+                      '       last_sync_date = ?,'
+                      '       processor = 0,'
+                      '       last_error = NULL,'
+                      '       error_count = 0,'
+                      '       last_sync_error_date = NULL'
+                      ' WHERE id = ?'
+                      '       AND version = ?',
+                      (
+                          row.local_state,
+                          row.remote_state,
+                          row.pair_state,
+                          row.local_digest,
+                          datetime.utcnow(),
+                          row.id,
+                          version,
+                      ))
             if self.auto_commit:
                 con.commit()
         finally:
