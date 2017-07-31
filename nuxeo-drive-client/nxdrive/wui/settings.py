@@ -59,6 +59,9 @@ class WebSettingsApi(WebDriveApi):
 
     @QtCore.pyqtSlot(str, result=str)
     def unbind_server(self, uid):
+        # macOS fix: Force reload of the systray menu
+        self.dialog.view.reload()
+
         self._manager.unbind_engine(str(uid))
         return ''
 
@@ -200,6 +203,9 @@ class WebSettingsApi(WebDriveApi):
             log.exception('Unexpected error while trying to open'
                           ' web authentication window')
             return 'CONNECTION_UNKNOWN'
+        finally:
+            # macOS fix: Force reload of the systray menu
+            self.dialog.view.reload()
 
     def _check_local_folder(self, local_folder):
         if not self._manager.check_local_folder_available(local_folder):

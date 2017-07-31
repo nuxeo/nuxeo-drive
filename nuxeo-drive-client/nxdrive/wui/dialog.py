@@ -120,7 +120,7 @@ class WebDriveApi(QtCore.QObject):
             'need_password_update': bind.pwd_update_required,
             'initialized': bind.initialized,
             'server_version': bind.server_version,
-            'threads': self._get_threads(engine) ,
+            'threads': self._get_threads(engine),
         }
 
     def get_date_from_sqlite(self, d):
