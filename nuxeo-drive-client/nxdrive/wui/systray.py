@@ -117,6 +117,16 @@ class WebSystrayApi(WebDriveApi):
     @pyqtSlot()
     def suspend(self):
         self._manager.suspend()
+        self.dialog.view.reload()
+
+    @pyqtSlot()
+    def resume(self):
+        self._manager.resume()
+        self.dialog.view.reload()
+
+    @pyqtSlot(result=bool)
+    def is_paused(self):
+        return self._manager.is_paused()
 
     @pyqtSlot(str, result=int)
     def get_syncing_items(self, uid):
@@ -127,19 +137,10 @@ class WebSystrayApi(WebDriveApi):
         return count
 
     @pyqtSlot()
-    def resume(self):
-        self._manager.resume()
-
-    @pyqtSlot()
     def advanced_systray(self):
         menu = QMenu()
-        if self._manager.is_paused():
-            menu.addAction(Translator.get('RESUME'), self.resume)
-        else:
-            menu.addAction(Translator.get('SUSPEND'), self.suspend)
 
         if self._manager.debug:
-            menu.addSeparator()
             debug_menu = self.application.create_debug_menu(menu)
             debug_action = QAction(Translator.get('DEBUG'), self)
             debug_action.setMenu(debug_menu)

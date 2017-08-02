@@ -18,6 +18,15 @@ var SystrayController = function($scope, $timeout, $translate) {
 	$scope.interval = null;
 
 	// Set default action
+	$scope.is_paused = function() {
+		return self.isPaused();
+	}
+	$scope.suspend = function() {
+		self.suspendEngines();
+	}
+	$scope.resume = function() {
+		self.resumeEngines();
+	}
 	$scope.open_local = function(path) {
 		self.openLocal($scope.engine.uid, path);
 	}
