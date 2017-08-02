@@ -128,6 +128,15 @@ class WebSystrayApi(WebDriveApi):
     def is_paused(self):
         return self._manager.is_paused()
 
+    @pyqtSlot(result=bool)
+    def need_adv_menu(self):
+        """
+        Do we need to display the left click advanced menu? Yes if:
+          - on debug
+          - on macOS
+        """
+        return self._manager.debug or AbstractOSIntegration.is_mac()
+
     @pyqtSlot(str, result=int)
     def get_syncing_items(self, uid):
         count = 0
@@ -138,6 +147,9 @@ class WebSystrayApi(WebDriveApi):
 
     @pyqtSlot()
     def advanced_systray(self):
+        if not self.need_adv_menu():
+            return
+
         menu = QMenu()
 
         if self._manager.debug:

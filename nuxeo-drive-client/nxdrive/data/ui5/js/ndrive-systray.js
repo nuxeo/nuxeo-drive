@@ -18,6 +18,9 @@ var SystrayController = function($scope, $timeout, $translate) {
 	$scope.interval = null;
 
 	// Set default action
+	$scope.need_adv_menu = function() {
+		return self.needAdvMenu();
+	}
 	$scope.is_paused = function() {
 		return self.isPaused();
 	}
