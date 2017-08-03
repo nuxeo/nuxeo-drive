@@ -19,6 +19,9 @@ class DriveSystrayIcon(QSystemTrayIcon):
         self.messageClicked.connect(self.application.message_clicked)
         self.activated.connect(self.handle_mouse_click)
 
+        # Windows bug: the systray icon is still visible
+        self.application.aboutToQuit.connect(self.hide)
+
         if not AbstractOSIntegration.is_mac():
             # On macOS, only the left click is detected, so the context
             # menu is useless.  It is better to not define it else it
@@ -226,7 +229,6 @@ class WebSystrayView(WebDialog):
 class WebSystray(QMenu):
 
     __dialog = None
-    __geometry = None
 
     def __init__(self, systray_icon, application):
         super(WebSystray, self).__init__()
@@ -238,18 +240,10 @@ class WebSystray(QMenu):
         if not self.__dialog:
             self.__dialog = WebSystrayView(self.application,
                                            self.systray_icon)
-            self.__dialog.destroyed.connect(self.onDelete)
             self.__dialog.icon = self.systray_icon
-            self.__geometry = self.__dialog.geometry()
-            self.application.aboutToQuit.connect(self.__dialog.close)
         return self.__dialog
 
     @pyqtSlot()
     def popup(self, pos):
         self.dialog.resize_and_move()
         self.dialog.show()
-
-    @pyqtSlot()
-    def onDelete(self):
-        self.systray_icon.hide()  # Windows bug: the systray icon is still visible
-        self.__dialog = None

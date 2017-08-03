@@ -16,7 +16,7 @@ Release date: `2017-??-??`
 
 #### Minor changes
 - GUI: Fix context menu position and size when no engine binded
-- GUI: Do not hide menu when clicking on suspend/resume
+- GUI: Fix Windows bug when the systray icon was still visible after exit
 - GUI: More tooltips for better information
 - Metrics: Retrieve the SIP version
 
