@@ -1,7 +1,6 @@
 # coding: utf-8
 from PyQt4.QtCore import Qt, pyqtSlot
-from PyQt4.QtGui import QAction, QApplication, QCursor, QMenu, QStyle, \
-    QSystemTrayIcon
+from PyQt4.QtGui import QApplication, QCursor, QMenu, QStyle, QSystemTrayIcon
 
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
@@ -145,7 +144,7 @@ class WebSystrayApi(WebDriveApi):
     @pyqtSlot(result=bool)
     def need_adv_menu(self):
         """
-        Do we need to display the left click advanced menu? Yes if:
+        Do we need to display the left click advanced menu?  Yes if:
           - on debug
           - on macOS
         """
@@ -224,6 +223,7 @@ class WebSystrayView(WebDialog):
 
 
 class WebSystray(QMenu):
+    """ Left-click menu, also the entire menu on macOS. """
 
     __dialog = None
 
@@ -235,12 +235,15 @@ class WebSystray(QMenu):
     @property
     def dialog(self):
         if not self.__dialog:
-            self.__dialog = WebSystrayView(self.application,
-                                           self.systray_icon)
+            self.__dialog = WebSystrayView(self.application, self.systray_icon)
             self.__dialog.icon = self.systray_icon
         return self.__dialog
 
     @pyqtSlot()
-    def popup(self, pos):
+    def popup(self, _):
         self.dialog.resize_and_move()
         self.dialog.show()
+
+        # macOs bug: if you click on the advanced menu and then elsewhere
+        # when you will re-click on the menu, nothing will appeares.
+        self.dialog.raise_()
