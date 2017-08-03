@@ -5,12 +5,19 @@ Release date: `2017-??-??`
 # 2.5.1
 Release date: `2017-??-??`
 
+### Core
+- [NXDRIVE-935](https://jira.nuxeo.com/browse/NXDRIVE-935):Allow big files (+2 Go) when creating a report
+
 ### Packaging / Build
 - [NXDRIVE-931](https://jira.nuxeo.com/browse/NXDRIVE-931): macOs build 2.5.0 is broken
+
+### GUI
+- [NXDRIVE-936](https://jira.nuxeo.com/browse/NXDRIVE-936): Add pause/resume icons in the left click menu
 
 #### Minor changes
 - GUI: Fix context menu position and size when no engine binded
 - GUI: Do not hide menu when clicking on suspend/resume
+- Metrics: Retrieve the SIP version
 
 
 # 2.5.0
