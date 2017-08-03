@@ -601,7 +601,6 @@ class WebDialog(QtGui.QDialog):
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
 
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
         self.setLayout(QtGui.QVBoxLayout())
         self.layout().addWidget(self.view)
