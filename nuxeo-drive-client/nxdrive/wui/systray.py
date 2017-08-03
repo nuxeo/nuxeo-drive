@@ -167,10 +167,7 @@ class WebSystrayApi(WebDriveApi):
         self.menu = QMenu()
 
         if self._manager.debug:
-            debug_menu = self.application.create_debug_menu(self.menu)
-            debug_action = QAction(Translator.get('DEBUG'), self)
-            debug_action.setMenu(debug_menu)
-            self.menu.addAction(debug_action)
+            self.application.create_debug_menu(self.menu)
 
         if AbstractOSIntegration.is_mac():
             # Still need to include context menu items as macOS does not

@@ -415,25 +415,20 @@ class Application(SimpleApplication):
         menu.addAction(action)
         return menu
 
-    def create_debug_menu(self, parent):
-        menu = QtGui.QMenu(parent)
+    def create_debug_menu(self, menu):
         menu.addAction(Translator.get('DEBUG_WINDOW'), self.show_debug_window)
         for engine in self.manager.get_engines().values():
             action = QtGui.QAction(engine.name, menu)
             action.setMenu(self._create_debug_engine_menu(engine, menu))
             action.setData(engine)
             menu.addAction(action)
-        return menu
-
-    def _get_debug_dialog(self):
-        from nxdrive.debug.wui.engine import EngineDialog
-        return EngineDialog(self)
 
     @QtCore.pyqtSlot()
     def show_debug_window(self):
         debug = self._get_unique_dialog('debug')
         if debug is None:
-            debug = self._get_debug_dialog()
+            from nxdrive.debug.wui.engine import EngineDialog
+            debug = EngineDialog(self)
             self._create_unique_dialog('debug', debug)
         self._show_window(debug)
 
