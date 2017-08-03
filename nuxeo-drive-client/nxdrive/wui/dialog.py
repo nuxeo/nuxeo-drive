@@ -257,10 +257,6 @@ class WebDriveApi(QtCore.QObject):
             # Map error here
             return 'CONNECTION_UNKNOWN'
 
-    @QtCore.pyqtSlot()
-    def close(self):
-        self.dialog.close()
-
     @QtCore.pyqtSlot(result=str)
     def get_tracker_id(self):
         return self._manager.get_tracker_id()
