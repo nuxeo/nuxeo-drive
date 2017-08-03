@@ -6,7 +6,7 @@ Release date: `2017-??-??`
 Release date: `2017-??-??`
 
 ### Core
-- [NXDRIVE-935](https://jira.nuxeo.com/browse/NXDRIVE-935):Allow big files (+2 Go) when creating a report
+- [NXDRIVE-935](https://jira.nuxeo.com/browse/NXDRIVE-935): Allow big files (+2 Go) when creating a report
 
 ### Packaging / Build
 - [NXDRIVE-931](https://jira.nuxeo.com/browse/NXDRIVE-931): macOs build 2.5.0 is broken
