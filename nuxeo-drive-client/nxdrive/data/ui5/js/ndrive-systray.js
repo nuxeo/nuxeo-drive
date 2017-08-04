@@ -18,6 +18,18 @@ var SystrayController = function($scope, $timeout, $translate) {
 	$scope.interval = null;
 
 	// Set default action
+	$scope.need_adv_menu = function() {
+		return self.needAdvMenu();
+	}
+	$scope.is_paused = function() {
+		return self.isPaused();
+	}
+	$scope.suspend = function() {
+		self.suspendEngines();
+	}
+	$scope.resume = function() {
+		self.resumeEngines();
+	}
 	$scope.open_local = function(path) {
 		self.openLocal($scope.engine.uid, path);
 	}
@@ -102,7 +114,6 @@ SystrayController.prototype.init = function($scope) {
 		$scope.setEngine($scope.engines[0]);
 	} else {
 		$scope.bind = false;
-		drive.resize(300, 280);
 	}
 }
 SystrayController.prototype.showMetadata = function(uid, path) {

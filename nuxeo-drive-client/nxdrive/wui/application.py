@@ -282,18 +282,28 @@ class Application(SimpleApplication):
         invalid_credentials = True
         paused = True
         offline = True
-        for _, engine in engines.iteritems():
-            syncing = syncing | engine.is_syncing()
-            invalid_credentials = invalid_credentials & engine.has_invalid_credentials()
-            paused = paused & engine.is_paused()
-            offline = offline & engine.is_offline()
-        new_state = 'asleep'
-        if len(engines) == 0 or paused or offline:
-            new_state = 'disabled'
+
+        for engine in engines.itervalues():
+            syncing |= engine.is_syncing()
+            invalid_credentials &= engine.has_invalid_credentials()
+            paused &= engine.is_paused()
+            offline &= engine.is_offline()
+
+        if offline:
+            new_state = 'stopping'
+            Action(Translator.get('OFFLINE'))
         elif invalid_credentials:
             new_state = 'stopping'
+            Action(Translator.get('INVALID_CREDENTIALS'))
+        elif not engines or paused:
+            new_state = 'disabled'
+            Action.finish_action()
         elif syncing:
             new_state = 'transferring'
+        else:
+            new_state = 'asleep'
+            Action.finish_action()
+
         self.set_icon_state(new_state)
 
     def _get_settings_dialog(self, section):
@@ -405,25 +415,20 @@ class Application(SimpleApplication):
         menu.addAction(action)
         return menu
 
-    def create_debug_menu(self, parent):
-        menu = QtGui.QMenu(parent)
+    def create_debug_menu(self, menu):
         menu.addAction(Translator.get('DEBUG_WINDOW'), self.show_debug_window)
         for engine in self.manager.get_engines().values():
             action = QtGui.QAction(engine.name, menu)
             action.setMenu(self._create_debug_engine_menu(engine, menu))
             action.setData(engine)
             menu.addAction(action)
-        return menu
-
-    def _get_debug_dialog(self):
-        from nxdrive.debug.wui.engine import EngineDialog
-        return EngineDialog(self)
 
     @QtCore.pyqtSlot()
     def show_debug_window(self):
         debug = self._get_unique_dialog('debug')
         if debug is None:
-            debug = self._get_debug_dialog()
+            from nxdrive.debug.wui.engine import EngineDialog
+            debug = EngineDialog(self)
             self._create_unique_dialog('debug', debug)
         self._show_window(debug)
 
@@ -528,19 +533,16 @@ class Application(SimpleApplication):
         self.tray_icon.setIcon(QtGui.QIcon(icon))
         self.icon_spin_count = (self.icon_spin_count + 1) % 10
 
-    def update_tooltip(self):
-        # Update also the file
-        self.tray_icon.setToolTip(self.get_tooltip())
-
     def get_tooltip(self):
         actions = Action.get_actions()
-        if actions is None or len(actions) == 0:
+        if not actions:
             return self.default_tooltip
 
         # Display only the first action for now
-        # TODO Get all actions ? or just file action
-        action = actions.itervalues().next()
-        if action is None:
+        for action in actions.itervalues():
+            if action and not action.type.startswith('_'):
+                break
+        else:
             return self.default_tooltip
 
         if isinstance(action, FileAction):

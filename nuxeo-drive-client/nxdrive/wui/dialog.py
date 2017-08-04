@@ -120,7 +120,7 @@ class WebDriveApi(QtCore.QObject):
             'need_password_update': bind.pwd_update_required,
             'initialized': bind.initialized,
             'server_version': bind.server_version,
-            'threads': self._get_threads(engine) ,
+            'threads': self._get_threads(engine),
         }
 
     def get_date_from_sqlite(self, d):
@@ -256,10 +256,6 @@ class WebDriveApi(QtCore.QObject):
             log.exception('Unexpected error')
             # Map error here
             return 'CONNECTION_UNKNOWN'
-
-    @QtCore.pyqtSlot()
-    def close(self):
-        self.dialog.close()
 
     @QtCore.pyqtSlot(result=str)
     def get_tracker_id(self):
@@ -605,9 +601,7 @@ class WebDialog(QtGui.QDialog):
         if icon is not None:
             self.setWindowIcon(QtGui.QIcon(icon))
 
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
-        self.resize(550, 600)
         self.setLayout(QtGui.QVBoxLayout())
         self.layout().addWidget(self.view)
         self.layout().setContentsMargins(0, 0, 0, 0)

@@ -2,10 +2,27 @@
 Release date: `2017-??-??`
 
 
-# 2.5.0
-Release date: `2017-07-28`
+# 2.5.1
+Release date: `2017-08-04`
 
-New license: LGPL, version 3
+### Core
+- [NXDRIVE-935](https://jira.nuxeo.com/browse/NXDRIVE-935): Allow big files (+2 Go) when creating a report
+
+### Packaging / Build
+- [NXDRIVE-931](https://jira.nuxeo.com/browse/NXDRIVE-931): macOs build 2.5.0 is broken
+
+### GUI
+- [NXDRIVE-936](https://jira.nuxeo.com/browse/NXDRIVE-936): Add pause/resume icons in the left click menu
+
+#### Minor changes
+- GUI: Fix context menu position and size when no engine binded
+- GUI: Fix Windows bug when the systray icon was still visible after exit
+- GUI: More tooltips for better information
+- Metrics: Retrieve the SIP version
+
+
+# 2.5.0
+Release date: `2017-07-27`
 
 ### Core
 - [NXDRIVE-897](https://jira.nuxeo.com/browse/NXDRIVE-897): Fix error when editing a DWG file

@@ -2,6 +2,7 @@
 import logging
 import os
 import platform
+import sip
 import subprocess
 import sys
 import urllib2
@@ -16,11 +17,12 @@ from PyQt4.QtScript import QScriptEngine
 from nxdrive import __version__
 from nxdrive.client import LocalClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
+from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, \
+    DEFAULT_IGNORED_PREFIXES
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive.logging_config import FILE_HANDLER, get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.updater import AppUpdater, FakeUpdater
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, DEFAULT_IGNORED_PREFIXES
 from nxdrive.utils import ENCODING, OSX_SUFFIX, decrypt, encrypt, \
     normalized_path
 
@@ -422,6 +424,7 @@ class Manager(QtCore.QObject):
             'device_id': self.get_device_id(),
             'tracker_id': self.get_tracker_id(),
             'tracking': self.get_tracking(),
+            'sip_version': sip.SIP_VERSION_STR,
             'qt_version': QtCore.QT_VERSION_STR,
             'pyqt_version': QtCore.PYQT_VERSION_STR,
             'python_version': platform.python_version(),

@@ -21,6 +21,12 @@
     <a ng-click="open_remote()" title="{{ 'OPEN_SERVER' | translate }}">
       <span class="glyphicon glyphicon-globe"></span>
     </a>
+    <a ng-show="!is_paused()" ng-click="suspend()" title="{{ 'SUSPEND' | translate }}">
+      <span class="glyphicon glyphicon-pause"></span>
+    </a>
+    <a ng-show="is_paused()" ng-click="resume()" title="{{ 'RESUME' | translate }}">
+      <span class="glyphicon glyphicon-play"></span>
+    </a>
   </div>
   <div class="list-group" drive-include="systray-files"></div>
 </div>

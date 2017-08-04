@@ -8,7 +8,7 @@
   <div class="form-group">
     <label for="localFolder" class="col-sm-2 control-label" translate>ENGINE_FOLDER</label>
     <div class="col-sm-10">
-    	<div class="input-group">
+      <div class="input-group">
       <input ng-disabled="currentAccount.initialized" class="form-control" id="localFolder" placeholder="{{ 'ENGINE_SELECT_FOLDER_PLACEHOLDER' | translate }}" ng-model="currentAccount.local_folder">
       <span class="input-group-addon" id="basic-addon2" ng-click="browse()" translate>ENGINE_FOLDER_BROWSE</span>
       </div>
@@ -39,14 +39,14 @@
       <p translate ng-show="update_password_error != null">{{ update_password_error }}</p>
       <p translate ng-show="update_password_error == null">UNAUTHORIZED</p>
       <div class="input-group">
-	      <input type="password" class="form-control" placeholder="{{ 'UPDATE_PASSWORD_PLACEHOLDER' | translate }}" ng-model="password">
-	      <span class="input-group-btn">
-	        <button class="btn btn-default" ng-click="update_password(currentAccount.uid, password)" type="button">
-              <span ng-show="update_password_error == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span>
-              <span ng-disabled="update_password_error == 'CONNECTING'" translate>UPDATE_PASSWORD_BUTTON</span>
-            </button>
-	      </span>
-	   </div>
+        <input type="password" class="form-control" placeholder="{{ 'UPDATE_PASSWORD_PLACEHOLDER' | translate }}" ng-model="password">
+        <span class="input-group-btn">
+          <button class="btn btn-default" ng-click="update_password(currentAccount.uid, password)" type="button">
+            <span ng-show="update_password_error == 'CONNECTING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span>
+            <span ng-disabled="update_password_error == 'CONNECTING'" translate>UPDATE_PASSWORD_BUTTON</span>
+          </button>
+        </span>
+      </div>
     </div>
   </div>
   <div class="form-group warning alert-warning" ng-show="currentAccount.type == 'NXDRIVENEXT'">
@@ -57,10 +57,10 @@
       <p translate ng-show="tokenUpdateError != null">{{ tokenUpdateError }}</p>
       <p translate ng-show="tokenUpdateError == null">UNAUTHORIZED</p>
       <div class="input-group">
-	      <span class="input-group-btn">
-	        <button class="btn btn-default" ng-click="updateToken()" type="button" translate>CONNECT</button>
-	      </span>
-	   </div>
+        <span class="input-group-btn">
+          <button class="btn btn-default" ng-click="updateToken()" type="button" translate>CONNECT</button>
+        </span>
+      </div>
     </div>
   </div>
   <div class="form-group">
@@ -73,6 +73,6 @@
     </div>
   </div>
   <div class="alert alert-{{ message_type }}" role="alert" ng-show="message != ''">
-  	 {{ message }}
+    {{ message }}
   </div>
 </form>
