@@ -932,11 +932,15 @@ class TestSynchronization(UnitTestCase):
         engine.start()
         self.wait_sync(wait_for_async=True)
 
+        def _raise_for_second_file_only(*args, **kwargs):
+            return kwargs.get('filename').endswith('2.txt')
+
         # Simulate a server conflict on file upload
         engine.remote_filtered_fs_client_factory = RemoteTestClient
         engine.invalidate_client_cache()
         error = urllib2.HTTPError(None, 409, 'Conflict [test]', None, None)
         engine.get_remote_client().make_upload_raise(error)
+        engine.get_remote_client().raise_on = _raise_for_second_file_only
 
         # Create 2 files locally
         base = 'A' * 40
@@ -947,15 +951,18 @@ class TestSynchronization(UnitTestCase):
 
         self.wait_sync(fail_if_timeout=False)
 
-        # Check files are in errors
-        self.assertEqual(engine.get_dao()._queue_manager.get_errors_count(), 2)
+        # Checks
+        self.assertEqual(engine.get_dao()._queue_manager.get_errors_count(), 1)
+        children = remote.get_children_info(self.workspace)
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0].name, file1)
 
         # Re-enable default behavior
-        engine.get_remote_client().make_server_call_raise(None)
+        engine.get_remote_client().reset_errors()
         engine.remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
         engine.invalidate_client_cache()
 
-        self.wait_sync(fail_if_timeout=False)
+        self.wait_sync()
 
         # Checks
         children = remote.get_children_info(self.workspace)
