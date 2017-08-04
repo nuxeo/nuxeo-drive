@@ -280,9 +280,20 @@ class Processor(EngineWorker):
                         self._dao.remove_local_path(doc_pair.id)
                         self._current_item = self._get_item()
                         continue
-                    except Exception as e:
-                        self._handle_pair_handler_exception(doc_pair,
-                                                            handler_name, e)
+                    except HTTPError as exc:
+                        if exc.code == 409:  # Conflict
+                            # It could happen on multiple files drag'n drop
+                            # starting with identical characters.
+                            log.debug('Delaying conflicted document: %r', doc_pair)
+                            self._postpone_pair(doc_pair, 'Conflict')
+                        else:
+                            self._handle_pair_handler_exception(
+                                doc_pair, handler_name, exc)
+                        self._current_item = self._get_item()
+                        continue
+                    except Exception as exc:
+                        self._handle_pair_handler_exception(
+                            doc_pair, handler_name, exc)
                         self._current_item = self._get_item()
                         continue
             except ThreadInterrupt:

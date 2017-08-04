@@ -6,6 +6,7 @@ Release date: `2017-??-??`
 Release date: `2017-08-04`
 
 ### Core
+- [NXDRIVE-926](https://jira.nuxeo.com/browse/NXDRIVE-926): Automatically retry on 409 (Conflict)
 - [NXDRIVE-935](https://jira.nuxeo.com/browse/NXDRIVE-935): Allow big files (+2 Go) when creating a report
 
 ### Packaging / Build

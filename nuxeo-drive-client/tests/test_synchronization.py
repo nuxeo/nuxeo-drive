@@ -1,15 +1,16 @@
+# coding: utf-8
+import socket
 import time
 import urllib2
-import socket
 
-from tests.common import TEST_WORKSPACE_PATH
-from tests.common import OS_STAT_MTIME_RESOLUTION
-from tests.common_unit_test import UnitTestCase
-from tests.common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT, RandomBug
 from nxdrive.client import LocalClient
-from tests import RemoteTestClient
-from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
+from nxdrive.client.remote_filtered_file_system_client import \
+    RemoteFilteredFileSystemClient
 from nxdrive.osi import AbstractOSIntegration
+from tests import RemoteTestClient
+from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
+from tests.common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT, RandomBug, \
+    UnitTestCase
 
 
 class TestSynchronization(UnitTestCase):
@@ -918,3 +919,53 @@ class TestSynchronization(UnitTestCase):
         self.assertEqual(local_1.get_content('/Folder01/File02.txt'), b'42')
         self.assertTrue(local_1.exists('/Folder01/File01.txt'))
         self.assertEqual(local_1.get_content('/Folder01/File01.txt'), b'42.42')
+
+    def test_409_conflict(self):
+        """
+        Test concurrent upload with files having the same first characters.
+        """
+
+        remote = self.remote_document_client_1
+        local = self.local_client_1
+        engine = self.engine_1
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        def _raise_for_second_file_only(*args, **kwargs):
+            return kwargs.get('filename').endswith('2.txt')
+
+        # Simulate a server conflict on file upload
+        engine.remote_filtered_fs_client_factory = RemoteTestClient
+        engine.invalidate_client_cache()
+        error = urllib2.HTTPError(None, 409, 'Conflict [test]', None, None)
+        engine.get_remote_client().make_upload_raise(error)
+        engine.get_remote_client().raise_on = _raise_for_second_file_only
+
+        # Create 2 files locally
+        base = 'A' * 40
+        file1 = base + '1.txt'
+        file2 = base + '2.txt'
+        local.make_file('/', file1, content='foo')
+        local.make_file('/', file2, content='bar')
+
+        self.wait_sync(fail_if_timeout=False)
+
+        # Checks
+        self.assertEqual(engine.get_dao()._queue_manager.get_errors_count(), 1)
+        children = remote.get_children_info(self.workspace)
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0].name, file1)
+
+        # Re-enable default behavior
+        engine.get_remote_client().reset_errors()
+        engine.remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
+        engine.invalidate_client_cache()
+
+        self.wait_sync()
+
+        # Checks
+        children = remote.get_children_info(self.workspace)
+        self.assertEqual(len(children), 2)
+        self.assertEqual(children[0].name, file1)
+        self.assertEqual(children[1].name, file2)
