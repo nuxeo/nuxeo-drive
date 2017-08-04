@@ -76,6 +76,10 @@ var DriveController = function($scope, $translate) {
 	self = this;
 	$scope.currentAction = "";
 	$scope.engines = this.getEngines();
+	$scope.need_adv_menu = this.needAdvMenu;
+	$scope.is_paused = this.isPaused;
+	$scope.suspend = this.suspendEngines;
+	$scope.resume = this.resumeEngines;
 	$scope.open_remote = this.openRemote;
 	$scope.open_local = this.openLocal;
 	$scope.app_update = this.appUpdate;
@@ -115,6 +119,18 @@ DriveController.prototype.openRemote = function(uid) {
 }
 DriveController.prototype.openLocal = function(uid, path) {
 	drive.open_local(uid, path);
+}
+DriveController.prototype.needAdvMenu = function() {
+	return drive.need_adv_menu();
+}
+DriveController.prototype.isPaused = function() {
+	return drive.is_paused();
+}
+DriveController.prototype.suspendEngines = function() {
+	drive.suspend();
+}
+DriveController.prototype.resumeEngines = function() {
+	drive.resume();
 }
 DriveController.prototype.setAutoUpdate = function(value) {
 	drive.set_auto_update(value);

@@ -1,7 +1,6 @@
 # coding: utf-8
 from PyQt4.QtCore import Qt, pyqtSlot
-from PyQt4.QtGui import QAction, QApplication, QCursor, QMenu, QStyle, \
-    QSystemTrayIcon
+from PyQt4.QtGui import QApplication, QCursor, QMenu, QStyle, QSystemTrayIcon
 
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
@@ -10,18 +9,22 @@ from nxdrive.wui.translator import Translator
 
 class DriveSystrayIcon(QSystemTrayIcon):
 
+    __menu_left = None
+    __menu_right = None
+
     def __init__(self, application):
         super(DriveSystrayIcon, self).__init__(application)
         self.application = application
-        self.menu_left = self.create_menu_left()
         self.messageClicked.connect(self.application.message_clicked)
         self.activated.connect(self.handle_mouse_click)
+
+        # Windows bug: the systray icon is still visible
+        self.application.aboutToQuit.connect(self.hide)
 
         if not AbstractOSIntegration.is_mac():
             # On macOS, only the left click is detected, so the context
             # menu is useless.  It is better to not define it else it
             # will show up every click on the systray icon.
-            self.menu_right = self.create_menu_right()
             self.setContextMenu(self.menu_right)
 
     def handle_mouse_click(self, reason):
@@ -41,14 +44,19 @@ class DriveSystrayIcon(QSystemTrayIcon):
             # On middle click, open settings.  Yeah, it rocks!
             self.application.show_settings()
 
-    def create_menu_left(self):
+    @property
+    def menu_left(self):
         """
         Create the usual menu with engines and sync files.
         It shows up on left click.
         """
-        return WebSystray(self, self.application)
 
-    def create_menu_right(self):
+        if not self.__menu_left:
+            self.__menu_left = WebSystray(self, self.application)
+        return self.__menu_left
+
+    @property
+    def menu_right(self):
         """
         Create the context menu.
         It shows up on left click.
@@ -57,24 +65,27 @@ class DriveSystrayIcon(QSystemTrayIcon):
         distributions, it depends on the graphical environment.
         """
 
-        style = QApplication.style()
-        menu = QMenu()
-        menu.addAction(
-            style.standardIcon(QStyle.SP_FileDialogInfoView),
-            Translator.get('SETTINGS'),
-            self.application.show_settings,
-        )
-        menu.addSeparator()
-        menu.addAction(
-            style.standardIcon(QStyle.SP_MessageBoxQuestion),
-            Translator.get('HELP'),
-            self.application.open_help)
-        menu.addSeparator()
-        menu.addAction(
-            style.standardIcon(QStyle.SP_DialogCloseButton),
-            Translator.get('QUIT'),
-            self.application.quit)
-        return menu
+        if not self.__menu_right:
+            style = QApplication.style()
+            menu = QMenu()
+            menu.addAction(
+                style.standardIcon(QStyle.SP_FileDialogInfoView),
+                Translator.get('SETTINGS'),
+                self.application.show_settings,
+            )
+            menu.addSeparator()
+            menu.addAction(
+                style.standardIcon(QStyle.SP_MessageBoxQuestion),
+                Translator.get('HELP'),
+                self.application.open_help)
+            menu.addSeparator()
+            menu.addAction(
+                style.standardIcon(QStyle.SP_DialogCloseButton),
+                Translator.get('QUIT'),
+                self.application.quit)
+            self.__menu_right = menu
+
+        return self.__menu_right
 
 
 class WebSystrayApi(WebDriveApi):
@@ -118,9 +129,26 @@ class WebSystrayApi(WebDriveApi):
 
     @pyqtSlot()
     def suspend(self):
-        self.dialog.hide()
-        self.menu = None  # Force advanced menu regeneration to keep up-to-date
         self._manager.suspend()
+        self.dialog.view.reload()
+
+    @pyqtSlot()
+    def resume(self):
+        self._manager.resume()
+        self.dialog.view.reload()
+
+    @pyqtSlot(result=bool)
+    def is_paused(self):
+        return self._manager.is_paused()
+
+    @pyqtSlot(result=bool)
+    def need_adv_menu(self):
+        """
+        Do we need to display the left click advanced menu?  Yes if:
+          - on debug
+          - on macOS
+        """
+        return self._manager.debug or AbstractOSIntegration.is_mac()
 
     @pyqtSlot(str, result=int)
     def get_syncing_items(self, uid):
@@ -131,39 +159,26 @@ class WebSystrayApi(WebDriveApi):
         return count
 
     @pyqtSlot()
-    def resume(self):
-        self.dialog.hide()
-        self.menu = None  # Force advanced menu regeneration to keep up-to-date
-        self._manager.resume()
-
-    @pyqtSlot()
     def advanced_systray(self):
-        if not self.menu:
-            self.menu = QMenu()
-            if self._manager.is_paused():
-                self.menu.addAction(Translator.get('RESUME'), self.resume)
-            else:
-                self.menu.addAction(Translator.get('SUSPEND'), self.suspend)
+        if not self.need_adv_menu():
+            return
 
-            if self._manager.debug:
-                self.menu.addSeparator()
-                debug_menu = self.application.create_debug_menu(self.menu)
-                debug_action = QAction(Translator.get('DEBUG'), self)
-                debug_action.setMenu(debug_menu)
-                self.menu.addAction(debug_action)
+        self.menu = QMenu()
 
-            if AbstractOSIntegration.is_mac():
-                # Still need to include context menu items as macOS does not
-                # see anything but left clicks.
-                self.menu.addSeparator()
-                self.menu.addAction(Translator.get('SETTINGS'),
-                                    self.application.show_settings)
-                self.menu.addSeparator()
-                self.menu.addAction(Translator.get('HELP'),
-                                    self.application.open_help)
-                self.menu.addSeparator()
-                self.menu.addAction(Translator.get('QUIT'),
-                                    self.application.quit)
+        if self._manager.debug:
+            self.application.create_debug_menu(self.menu)
+
+        if AbstractOSIntegration.is_mac():
+            # Still need to include context menu items as macOS does not
+            # see anything but left clicks.
+            self.menu.addSeparator()
+            self.menu.addAction(Translator.get('SETTINGS'),
+                                self.application.show_settings)
+            self.menu.addSeparator()
+            self.menu.addAction(Translator.get('HELP'),
+                                self.application.open_help)
+            self.menu.addSeparator()
+            self.menu.addAction(Translator.get('QUIT'), self.application.quit)
 
         self.menu.popup(QCursor.pos())
 
@@ -174,7 +189,6 @@ class WebSystrayView(WebDialog):
     default_height = 370
 
     __geometry = None
-    __resized = False
 
     def __init__(self, application, icon):
         super(WebSystrayView, self).__init__(
@@ -193,12 +207,13 @@ class WebSystrayView(WebDialog):
         the system tray icon position.
         """
 
-        if not self.__resized:
-            self.resize(self.default_width, self.default_height)
-            self.__resized = True
+        height = self.default_height
+        if not self.icon.application.manager.get_engines():
+            height = 280
+        self.resize(self.default_width, height)
 
         geometry = self.icon.geometry()
-        if self.__geometry != geometry:
+        if geometry != self.__geometry:
             pos_x = max(0, geometry.x() + geometry.width() - self.width())
             pos_y = geometry.y() - self.height()
             if pos_y < 0:
@@ -208,46 +223,27 @@ class WebSystrayView(WebDialog):
 
 
 class WebSystray(QMenu):
+    """ Left-click menu, also the entire menu on macOS. """
 
     __dialog = None
-    __geometry = None
 
     def __init__(self, systray_icon, application):
         super(WebSystray, self).__init__()
-        self.aboutToShow.connect(self.onShow)
-        self.aboutToHide.connect(self.onHide)
         self.application = application
         self.systray_icon = systray_icon
 
     @property
     def dialog(self):
         if not self.__dialog:
-            self.__dialog = WebSystrayView(self.application,
-                                           self.systray_icon)
-            self.__dialog.destroyed.connect(self.onDelete)
+            self.__dialog = WebSystrayView(self.application, self.systray_icon)
             self.__dialog.icon = self.systray_icon
-            self.__geometry = self.__dialog.geometry()
-            self.application.aboutToQuit.connect(self.__dialog.close)
         return self.__dialog
 
     @pyqtSlot()
-    def popup(self, pos):
+    def popup(self, _):
         self.dialog.resize_and_move()
         self.dialog.show()
 
-    @pyqtSlot()
-    def onDelete(self):
-        self.__dialog = None
-
-    @pyqtSlot()
-    def onHide(self):
-        """
-        This is not triggered on macOS, but keep it for other platforms.
-        """
-        if not self.__geometry.contains(QCursor.pos()):
-            self.dialog.hide()
-
-    @pyqtSlot()
-    def onShow(self):
-        self.dialog.resize_and_move()
-        self.dialog.show()
+        # macOs bug: if you click on the advanced menu and then elsewhere
+        # when you will re-click on the menu, nothing will appeares.
+        self.dialog.raise_()

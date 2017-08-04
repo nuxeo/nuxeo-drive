@@ -111,7 +111,7 @@ class Report(object):
         log.debug('Create report %r', self._report_name)
         log.debug('Manager metrics: %r', self._manager.get_metrics())
         dao = self._manager.get_dao()
-        with ZipFile(self._zipfile, mode='w') as zip_:
+        with ZipFile(self._zipfile, mode='w', allowZip64=True) as zip_:
             # Databases
             self.copy_db(zip_, dao)
             for engine in self._manager.get_engines().values():

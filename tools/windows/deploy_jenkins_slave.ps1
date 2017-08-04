@@ -251,6 +251,10 @@ function install_python {
 	echo ">>> Installing Python"
 	download $url $output
 	Start-Process msiexec -ArgumentList "/a `"$output`" /passive TARGETDIR=`"$Env:PYTHON_DIR`"" -wait
+
+	echo ">>> Retrieving OpenSSL libraries"
+	Copy-Item "C:\mingw32\opt\bin\libeay32.dll" $Env:PYTHON_DIR -Force
+	Copy-Item "C:\mingw32\opt\bin\ssleay32.dll" $Env:PYTHON_DIR -Force
 }
 
 function install_sip {
