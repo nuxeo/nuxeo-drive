@@ -641,8 +641,12 @@ class Engine(QObject):
         return self._dao.get_conflicts()
 
     def conflict_resolver(self, row_id, emit=True):
+        pair = self._dao.get_state_from_id(row_id)
+        if not pair:
+            log.trace('Conflict resolver: empty pair, skipping')
+            return
+
         try:
-            pair = self._dao.get_state_from_id(row_id)
             local_client = self.get_local_client()
             parent_ref = local_client.get_remote_id(pair.local_parent_path)
             same_digests = local_client.is_equal_digests(pair.local_digest,
