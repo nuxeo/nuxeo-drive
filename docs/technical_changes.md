@@ -1,8 +1,8 @@
 # dev
 
 # 2.5.1
-- Removed `update_tooltip` method from `Application` class
-- Removed `_get_debug_dialog` method from `Application` class
+- Removed `update_tooltip()` method from `Application` class
+- Removed `_get_debug_dialog()` method from `Application` class
 
 # 2.5.0
 - Removed `start_engine`, `check_fs` and `token` arguments from `_bind_server()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
