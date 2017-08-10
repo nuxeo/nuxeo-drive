@@ -1,10 +1,4 @@
-'''
-Created on Jul 29, 2015
-
-@author: constantinm
-Adapted to Drive
-'''
-
+# coding: utf-8
 import os
 import shutil
 from unittest import skipIf

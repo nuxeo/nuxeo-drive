@@ -1,5 +1,6 @@
-import sys
+# coding: utf-8
 import hashlib
+import sys
 
 FILE_BUFFER_SIZE = 4096
 

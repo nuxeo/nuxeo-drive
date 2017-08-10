@@ -1,4 +1,6 @@
-"""Launch Nuxeo Drive functional tests against a running Nuxeo instance
+# coding: utf-8
+"""
+Launch Nuxeo Drive functional tests against a running Nuxeo instance
 
 Steps executed by the ``test`` command:
 
@@ -8,16 +10,14 @@ Steps executed by the ``test`` command:
 Get the help on running this with::
 
     python integration_tests_setup.py --help
-
 """
-
-import sys
 
 import argparse
 import fnmatch
 import os
 import re
 import shutil
+import sys
 
 try:
     import urllib2

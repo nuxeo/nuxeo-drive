@@ -1,3 +1,4 @@
+# coding: utf-8
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.logging_config import get_logger
 from tests.common_unit_test import UnitTestCase
@@ -8,7 +9,6 @@ log = get_logger(__name__)
 class TestGroupChanges(UnitTestCase):
     """
     Test that changes on groups are detected by Drive.
-
     See https://jira.nuxeo.com/browse/NXP-14830.
     """
 

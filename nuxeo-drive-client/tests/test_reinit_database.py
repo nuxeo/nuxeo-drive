@@ -1,3 +1,4 @@
+# coding: utf-8
 import time
 
 from tests.common import OS_STAT_MTIME_RESOLUTION

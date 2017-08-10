@@ -1,3 +1,4 @@
+# coding: utf-8
 import os
 from shutil import copyfile
 from time import sleep
@@ -6,6 +7,16 @@ from urllib2 import HTTPError
 
 from nxdrive.client import LocalClient, NotFound, NuxeoClient, Unauthorized
 from tests.common import IntegrationTestCase, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
+
+import os
+from shutil import copyfile
+from time import sleep
+from unittest import SkipTest
+from urllib2 import HTTPError
+
+from nxdrive.client import LocalClient, NotFound, NuxeoClient, Unauthorized
+from tests.common import IntegrationTestCase, SOME_TEXT_CONTENT, \
+    SOME_TEXT_DIGEST
 
 
 def wait_for_deletion(client, doc, retries_left=10, delay=0.300,

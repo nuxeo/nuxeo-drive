@@ -1,7 +1,7 @@
 # conding: utfr-8
 import os
 from datetime import datetime
-from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
+from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler, get_logger
 

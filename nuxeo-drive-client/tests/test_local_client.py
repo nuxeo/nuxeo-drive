@@ -1,9 +1,11 @@
+# coding: utf-8
 """
 Test LocalClient with native FS operations and specific OS ones.
 See win_local_client.py and mac_local_client.py for more informations.
 
 See NXDRIVE-742.
 """
+
 import hashlib
 import os
 from time import sleep

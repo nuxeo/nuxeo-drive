@@ -1,10 +1,11 @@
-from time import sleep
-
+# coding: utf-8
 import urllib2
+from time import sleep
 from unittest import skip
 
 from nxdrive.client import LocalClient, RemoteDocumentClient
-from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
+from nxdrive.client.remote_filtered_file_system_client import \
+    RemoteFilteredFileSystemClient
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
 from nxdrive.osi import AbstractOSIntegration

@@ -1,11 +1,10 @@
-import time
+# coding: utf-8
 import shutil
+import time
+from unittest import SkipTest, skip
 
 from tests.common import OS_STAT_MTIME_RESOLUTION
-from tests.common_unit_test import UnitTestCase
-from tests.common_unit_test import RandomBug
-# from nxdrive.osi import AbstractOSIntegration
-from unittest import SkipTest, skip
+from tests.common_unit_test import RandomBug, UnitTestCase
 
 
 class TestConflicts(UnitTestCase):

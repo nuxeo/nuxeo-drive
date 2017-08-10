@@ -17,8 +17,8 @@ from PyQt4.QtScript import QScriptEngine
 from nxdrive import __version__
 from nxdrive.client import LocalClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, \
-    DEFAULT_IGNORED_PREFIXES
+from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES, \
+    DEFAULT_IGNORED_SUFFIXES
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive.logging_config import FILE_HANDLER, get_logger
 from nxdrive.osi import AbstractOSIntegration

@@ -1,13 +1,10 @@
-'''
-Created on 17 nov. 2014
-
-@author: Remi Cattiau
-'''
-import string
-import random
+# coding: utf-8
 import os
-from docx import Document
+import random
+import string
+
 from PIL import Image
+from docx import Document
 
 words = dict()
 
@@ -189,7 +186,6 @@ def generate_files(path, folder_number, files_number, size_min=10, size_max=3000
 
 
 if __name__ == '__main__':
-    import sys
     load_dictionary("/usr/share/dict/web2a")
     path = 'benchmark_files'
     if not os.path.exists(path):

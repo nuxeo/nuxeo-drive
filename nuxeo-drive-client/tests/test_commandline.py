@@ -1,10 +1,11 @@
-import unittest
+# coding: utf-8
 import os
 import tempfile
+import unittest
 
 from nxdrive.commandline import CliHandler
-from tests.common import clean_dir
 from nxdrive.osi import AbstractOSIntegration
+from tests.common import clean_dir
 
 
 class FakeOSIntegration(AbstractOSIntegration):

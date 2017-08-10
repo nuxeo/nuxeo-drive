@@ -1,14 +1,11 @@
-'''
-Created on 31 mars 2015
-
-@author: Remi Cattiau
-'''
-import unittest
+# coding: utf-8
 import os
 import sys
+import tempfile
+import unittest
+
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
-import tempfile
 
 
 class EngineDAOTest(unittest.TestCase):

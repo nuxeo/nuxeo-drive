@@ -1,10 +1,4 @@
-'''
-Created on Dec 22, 2016
-
-@author: mkeshava
-@author: dgraja
-
-'''
+# coding: utf-8
 import os
 import sys
 

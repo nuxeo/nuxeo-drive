@@ -1,11 +1,12 @@
 # coding: utf-8
 """ Utilities to operate Nuxeo Drive from the command line. """
+
 import argparse
 import os
+import signal
 import sys
 import threading
 import traceback
-import signal
 from datetime import datetime
 from getpass import getpass
 

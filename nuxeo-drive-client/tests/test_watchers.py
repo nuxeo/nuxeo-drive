@@ -1,8 +1,5 @@
-'''
-@author: Remi Cattiau
-'''
+# coding: utf-8
 import sys
-
 from shutil import copyfile
 from unittest import skipIf
 

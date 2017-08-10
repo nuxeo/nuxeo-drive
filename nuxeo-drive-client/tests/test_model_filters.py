@@ -1,8 +1,4 @@
-'''
-Created on 20 mai 2014
-
-@author: Remi Cattiau
-'''
+# coding: utf-8
 from tests.common_unit_test import UnitTestCase
 
 

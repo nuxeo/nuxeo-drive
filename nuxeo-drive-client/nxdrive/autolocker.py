@@ -1,13 +1,12 @@
-'''
-Created on 21 oct. 2015
-
-@author: Remi Cattiau
-'''
-from engine.workers import PollWorker
+# coding: utf-8
 from copy import deepcopy
-from nxdrive.logging_config import get_logger
-from nxdrive.engine.workers import ThreadInterrupt
+
 from PyQt4 import QtCore
+
+from engine.workers import PollWorker
+from nxdrive.engine.workers import ThreadInterrupt
+from nxdrive.logging_config import get_logger
+
 log = get_logger(__name__)
 
 

@@ -1,5 +1,6 @@
-from tests.common_unit_test import UnitTestCase
+# coding: utf-8
 from nxdrive.client import RemoteDocumentClient
+from tests.common_unit_test import UnitTestCase
 
 
 class TestSyncRoots(UnitTestCase):
