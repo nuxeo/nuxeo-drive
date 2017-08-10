@@ -266,15 +266,9 @@ class WindowsIntegration(AbstractOSIntegration):
     def _get_folder_link(self, name=None):
         if name is None:
             name = self._manager.app_name
-        LOCAL_FAVORITES_FOLDER_WINXP = 'Local Favorites'
+
         win_version = sys.getwindowsversion()
-        if win_version.major == 5:
-            favorites = os.path.join(os.path.expanduser('~'), 'Favorites')
-            if not os.path.exists(os.path.join(favorites,
-                                               LOCAL_FAVORITES_FOLDER_WINXP)):
-                os.makedirs(os.path.join(favorites, LOCAL_FAVORITES_FOLDER_WINXP))
-            favorites = os.path.join(favorites, LOCAL_FAVORITES_FOLDER_WINXP)
-        elif win_version.major > 5:
+        if win_version.major > 5:
             favorites = os.path.join(os.path.expanduser('~'), 'Links')
         else:
             log.warning('Windows version %d.%d shortcuts are not supported',
