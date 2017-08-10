@@ -7,8 +7,6 @@ from time import sleep
 
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 
-from nxdrive.wui.application import SimpleApplication
-from nxdrive.wui.modal import WebModal
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
     DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import BaseClient, NotFound
@@ -21,6 +19,8 @@ from nxdrive.engine.workers import ThreadInterrupt, Worker
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import parse_protocol_url
 from nxdrive.utils import current_milli_time, guess_digest_algorithm
+from nxdrive.wui.application import SimpleApplication
+from nxdrive.wui.modal import WebModal
 
 log = get_logger(__name__)
 

@@ -1,4 +1,5 @@
-"""Common test utilities"""
+# coding: utf-8
+""" Common test utilities."""
 
 import hashlib
 import os
@@ -8,7 +9,8 @@ from os.path import dirname
 from unittest import TestCase
 
 import nxdrive
-from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
+from nxdrive.client import LocalClient, RemoteDocumentClient, \
+    RemoteFileSystemClient, RestAPIClient
 from nxdrive.client.common import BaseClient
 from nxdrive.logging_config import configure, get_logger
 from nxdrive.osi import AbstractOSIntegration

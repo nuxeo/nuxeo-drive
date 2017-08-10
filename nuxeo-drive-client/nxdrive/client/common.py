@@ -1,7 +1,8 @@
+# coding: utf-8
 """Common utilities for local and remote clients."""
 
-import re
 import os
+import re
 import stat
 
 

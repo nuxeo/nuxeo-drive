@@ -1,4 +1,6 @@
-"""Common test utilities"""
+# coding: utf-8
+""" Common test utilities. """
+
 import os
 import random
 import struct
@@ -16,8 +18,10 @@ from PyQt4 import QtCore
 from mock import Mock
 
 from nxdrive import __version__
-from nxdrive.client import LocalClient, RemoteDocumentClient, RemoteFileSystemClient, RestAPIClient
-from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES, DEFAULT_IGNORED_SUFFIXES
+from nxdrive.client import LocalClient, RemoteDocumentClient, \
+    RemoteFileSystemClient, RestAPIClient
+from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES, \
+    DEFAULT_IGNORED_SUFFIXES
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.osi import AbstractOSIntegration

@@ -2,9 +2,6 @@
 """"
 Test if changes made to local file system when Drive is offline sync's back
 later when Drive becomes online.
-
-@author: dgraja
-@author: mkeshava
 """
 
 import shutil

@@ -1,5 +1,5 @@
+# coding: utf-8
 import time
-
 from unittest import skip
 
 from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH

@@ -1,12 +1,9 @@
-'''
-Created on 2 juil. 2015
-
-@author: Remi Cattiau
-'''
+# coding: utf-8
 import unittest
+from time import sleep
+
 from nxdrive.engine.blacklist_queue import BlacklistQueue
 from tests.common_unit_test import RandomBug
-from time import sleep
 
 
 class BlacklistQueueTest(unittest.TestCase):

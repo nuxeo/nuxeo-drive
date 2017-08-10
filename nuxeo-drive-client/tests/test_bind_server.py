@@ -1,8 +1,11 @@
+# coding: utf-8
 import os
 import tempfile
 import unittest
+
 from mock import Mock
-from nxdrive.manager import Manager, FolderAlreadyUsed
+
+from nxdrive.manager import FolderAlreadyUsed, Manager
 from tests.common import TEST_DEFAULT_DELAY, clean_dir
 
 

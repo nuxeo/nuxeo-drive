@@ -1,12 +1,16 @@
-import esky.finder
+# coding: utf-8
 import unittest
-from esky import Esky
-from mock import Mock
 from os.path import dirname
 
-from nxdrive.updater import AppUpdater, MissingCompatibleVersion, MissingUpdateSiteInfo, \
+import esky.finder
+from esky import Esky
+from mock import Mock
+
+from nxdrive.updater import AppUpdater, MissingCompatibleVersion, \
+    MissingUpdateSiteInfo, \
     UPDATE_STATUS_DOWNGRADE_NEEDED, \
-    UPDATE_STATUS_MISSING_INFO, UPDATE_STATUS_MISSING_VERSION, UPDATE_STATUS_UPDATE_AVAILABLE, \
+    UPDATE_STATUS_MISSING_INFO, UPDATE_STATUS_MISSING_VERSION, \
+    UPDATE_STATUS_UPDATE_AVAILABLE, \
     UPDATE_STATUS_UPGRADE_NEEDED, UPDATE_STATUS_UP_TO_DATE
 from nxdrive.utils import version_compare, version_compare_client
 

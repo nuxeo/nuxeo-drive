@@ -1,10 +1,6 @@
-'''
-Created on 1 juil. 2015
-
-@author: Remi Cattiau
-'''
-from threading import Lock
+# coding: utf-8
 import time
+from threading import Lock
 
 
 class BlacklistItem(object):

@@ -1,8 +1,5 @@
-'''
-Created on 12-Aug-2016
-
-@author: dgraja
-
+# coding: utf-8
+"""
 Technical Background: GetChildren API can throw error due to network issues or server load. 
     GetChildren API is also called when processing remote events.
 
@@ -17,16 +14,17 @@ Testing: This issue can be testing by simulating network of the API using mock f
 
 Note: searching for the following regular expression in log file will filter the manual test case: 
     STEP:|VERIFY:|Error:
+"""
 
-'''
+from time import sleep
+from urllib2 import URLError
 
 from mock import patch
-from urllib2 import URLError
-from tests.common_unit_test import RandomBug, UnitTestCase
+
 from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
 from nxdrive.logging_config import get_logger
 from tests.common import TEST_DEFAULT_DELAY
-from time import sleep
+from tests.common_unit_test import UnitTestCase
 
 log = get_logger(__name__)
 network_error = 0

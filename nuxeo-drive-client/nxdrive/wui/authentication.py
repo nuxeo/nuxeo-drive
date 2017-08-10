@@ -1,8 +1,11 @@
+# coding: utf-8
+import urllib2
+
 from PyQt4 import QtCore
+
 from nxdrive.logging_config import get_logger
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
-import urllib2
 
 log = get_logger(__name__)
 

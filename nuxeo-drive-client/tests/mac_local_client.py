@@ -1,10 +1,11 @@
+# coding: utf-8
 """
 Intent of this file is to use OSX File Manager to make FS operations to simulate
 user actions.
 """
-import sys
 
 import os
+import sys
 
 from nxdrive.client.local_client import LocalClient
 

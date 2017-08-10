@@ -14,7 +14,7 @@ log = get_logger(__name__)
 SCHEMA_VERSION = "schema_version"
 
 # Summary status from last known pair of states
-
+# (local_state, remote_state)
 PAIR_STATES = {
     # regular cases
     ('unknown', 'unknown'): 'unknown',

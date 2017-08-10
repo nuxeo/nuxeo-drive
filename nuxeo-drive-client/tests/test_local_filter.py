@@ -1,3 +1,4 @@
+# coding: utf-8
 from nxdrive.logging_config import get_logger
 from tests.common_unit_test import RandomBug, UnitTestCase
 

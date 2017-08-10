@@ -1,22 +1,29 @@
-__author__ = 'loopingz'
-from nxdrive.engine.watcher.local_watcher import LocalWatcher, normalize_event_filename
-from time import sleep, time
-from nxdrive.utils import current_milli_time
-import os
+# coding: utf-8
 import copy
+import os
 from Queue import Queue
+from time import sleep, time
+
 from watchdog.events import DirModifiedEvent
-from nxdrive.engine.workers import ThreadInterrupt
-from nxdrive.engine.activity import Action
-from nxdrive.logging_config import get_logger
+
 from nxdrive.client.local_client import FileInfo
+from nxdrive.engine.activity import Action
+from nxdrive.engine.watcher.local_watcher import LocalWatcher, \
+    normalize_event_filename
+from nxdrive.engine.workers import ThreadInterrupt
+from nxdrive.logging_config import get_logger
+from nxdrive.utils import current_milli_time
+
 log = get_logger(__name__)
-'''
-Only handle modified event in this class
-As we cannot rely on DELETE/CREATE etc just using the modification with a folder check should do the trick
-'''
+
 
 class SimpleWatcher(LocalWatcher):
+    """
+    Only handle modified event in this class.  As we cannot
+    rely on DELETE/CREATE etc just using the modification
+    with a folder check should do the trick.
+    """
+
     def __init__(self, engine, dao):
         super(SimpleWatcher, self).__init__(engine, dao)
         self._scan_delay = 1

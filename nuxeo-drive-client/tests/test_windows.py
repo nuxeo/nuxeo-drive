@@ -1,12 +1,13 @@
+# coding: utf-8
 import os
-import time
 import sys
+import time
+from shutil import copyfile
 
 from nxdrive.client import LocalClient
-from shutil import copyfile
-from tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION
-from tests.common import OS_STAT_MTIME_RESOLUTION
-from tests.common_unit_test import UnitTestCase, RandomBug
+from tests.common import OS_STAT_MTIME_RESOLUTION, \
+    REMOTE_MODIFICATION_TIME_RESOLUTION
+from tests.common_unit_test import RandomBug, UnitTestCase
 
 
 class TestWindows(UnitTestCase):

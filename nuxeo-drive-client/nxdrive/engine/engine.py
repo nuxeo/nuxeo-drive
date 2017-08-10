@@ -879,10 +879,7 @@ class Engine(QObject):
             else:
                 icon = find_icon("NuxeoDrive_Mac_Yosemite_Folder.dat")
         elif AbstractOSIntegration.is_windows():
-            if AbstractOSIntegration.os_version_below("5.2"):
-                icon = find_icon("NuxeoDrive_Windows_Xp_Folder.ico")
-            else:
-                icon = find_icon("NuxeoDrive_Windows_Folder.ico")
+            icon = find_icon("NuxeoDrive_Windows_Folder.ico")
         else:
             # No implementation on Linux
             return
