@@ -1,10 +1,7 @@
-'''
-Created on 23 juin 2014
-
-@author: Remi Cattiau
-'''
-from nxdrive.client.remote_filtered_file_system_client import RemoteFileSystemClient
+# coding: utf-8
 from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
+from nxdrive.client.remote_filtered_file_system_client import \
+    RemoteFileSystemClient
 
 
 class RemoteTestClient(RemoteFileSystemClient):

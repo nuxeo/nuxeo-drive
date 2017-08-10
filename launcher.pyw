@@ -1,7 +1,8 @@
-"""Commandline interface for the Nuxeo Drive installation"""
+# coding: utf-8
+""" Commandline interface for the Nuxeo Drive installation."""
 
-import sys
 import subprocess
+import sys
 
 if len(sys.argv) < 2:
     sys.exit(1)

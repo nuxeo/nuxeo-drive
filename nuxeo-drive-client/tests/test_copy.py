@@ -1,3 +1,4 @@
+# coding: utf-8
 from tests.common_unit_test import RandomBug, UnitTestCase
 
 

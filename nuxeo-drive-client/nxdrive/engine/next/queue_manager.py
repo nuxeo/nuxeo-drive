@@ -1,7 +1,9 @@
-__author__ = 'loopingz'
+# coding: utf-8
+import time
+
 from nxdrive.engine.queue_manager import QueueManager as OldQueueManager
 from nxdrive.logging_config import get_logger
-import time
+
 log = get_logger(__name__)
 
 

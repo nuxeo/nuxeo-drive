@@ -1,3 +1,4 @@
+# coding: utf-8
 """
 Intent of this file is to use Explorer operations to make FS to simulate user
 actions.
@@ -9,7 +10,9 @@ IFileOperation can only be applied in a single-threaded apartment (STA)
 situation. It cannot be used for a multithreaded apartment (MTA) situation.
 For MTA, you still must use SHFileOperation.
 """
+
 import os
+
 from win32com.shell import shell, shellcon
 
 from nxdrive.client.local_client import LocalClient

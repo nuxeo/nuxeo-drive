@@ -1,9 +1,10 @@
+# coding: utf-8
 import os
 
 from nxdrive.client import LocalClient
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
-from tests.common_unit_test import UnitTestCase
 from nxdrive.engine.engine import Engine
+from tests.common_unit_test import UnitTestCase
 
 
 class MockUrlTestEngine(Engine):

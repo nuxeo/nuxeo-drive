@@ -1,5 +1,4 @@
-__author__ = 'loopingz'
-
+# coding: utf-8
 from unittest import skipIf
 
 from nxdrive.osi import AbstractOSIntegration

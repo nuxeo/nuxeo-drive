@@ -10,7 +10,6 @@ from nxdrive.manager import Manager
 from nxdrive.report import Report
 from tests.common import clean_dir
 
-
 log = get_logger(__name__)
 
 

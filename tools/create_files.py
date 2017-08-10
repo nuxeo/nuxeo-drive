@@ -1,8 +1,8 @@
-import sys
+# coding: utf-8
 import os
-from random import choice
-from random import seed
 import string
+import sys
+from random import choice, seed
 
 
 def random_word():

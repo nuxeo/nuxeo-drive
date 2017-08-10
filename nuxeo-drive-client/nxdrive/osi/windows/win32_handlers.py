@@ -1,6 +1,7 @@
 # coding: utf-8
-""" Based on code from
-    https://code.google.com/p/winsys/source/browse/trunk/random/file_handles.py
+"""
+Based on code from
+https://code.google.com/p/winsys/source/browse/trunk/random/file_handles.py
 """
 
 import os

@@ -1,3 +1,4 @@
+# coding: utf-8
 """Client for the Nuxeo REST API."""
 
 import base64
@@ -5,8 +6,8 @@ import json
 import urllib2
 from urllib import urlencode
 
-from nxdrive.logging_config import get_logger
 from nxdrive.client.base_automation_client import get_proxy_handler
+from nxdrive.logging_config import get_logger
 
 log = get_logger(__name__)
 

@@ -1,13 +1,15 @@
+# coding: utf-8
+import os
 import sys
 import time
-
-import os
-from mock import patch
 from shutil import copyfile
 from unittest import skip
 
+from mock import patch
+
 from nxdrive.engine.engine import Engine
-from tests.common import DOC_NAME_MAX_LENGTH, OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
+from tests.common import DOC_NAME_MAX_LENGTH, OS_STAT_MTIME_RESOLUTION, \
+    TEST_WORKSPACE_PATH
 from tests.common_unit_test import UnitTestCase
 
 

@@ -1,10 +1,7 @@
-'''
-Created on 18 sept. 2015
+# coding: utf-8
+from PyQt4.QtCore import Qt, pyqtSlot
 
-@author: Remi Cattiau
-'''
-from nxdrive.wui.dialog import WebDriveApi, WebDialog
-from PyQt4.QtCore import pyqtSlot, Qt
+from nxdrive.wui.dialog import WebDialog, WebDriveApi
 
 
 class WebModalApi(WebDriveApi):

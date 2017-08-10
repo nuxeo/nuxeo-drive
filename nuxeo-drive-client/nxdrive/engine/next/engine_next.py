@@ -1,12 +1,13 @@
-__author__ = 'loopingz'
-'''
-Evolution to try new engine solution
-'''
-from nxdrive.engine.engine import Engine, DEFAULT_REMOTE_WATCHER_DELAY
+# coding: utf-8
+""" Evolution to try new engine solution. """
+
 from nxdrive.client.remote_document_client import RemoteDocumentClient
 from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
-from nxdrive.client.remote_filtered_file_system_client import RemoteFilteredFileSystemClient
+from nxdrive.client.remote_filtered_file_system_client import \
+    RemoteFilteredFileSystemClient
+from nxdrive.engine.engine import DEFAULT_REMOTE_WATCHER_DELAY, Engine
 from nxdrive.logging_config import get_logger
+
 log = get_logger(__name__)
 
 

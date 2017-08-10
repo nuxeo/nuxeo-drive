@@ -1,6 +1,6 @@
-import time
-
+# coding: utf-8
 import os
+import time
 from unittest import skipIf
 
 from nxdrive.logging_config import get_logger
