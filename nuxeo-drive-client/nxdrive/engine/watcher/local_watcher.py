@@ -708,23 +708,39 @@ class LocalWatcher(EngineWorker):
 
     def _handle_watchdog_event_on_known_acquired_pair(self, doc_pair, evt, rel_path):
         if evt.event_type == 'deleted':
-            # Delay on Windows the delete event
             if self._windows:
+                if not doc_pair.remote_can_delete:
+                    log.debug('Deleting a read-only document: %r', doc_pair)
+                    log.debug(
+                        'The %s will be downloaded again in the next scan',
+                        ('file' if doc_pair.folderish
+                         else 'folder and its content'))
+                    parent_pair = self._dao.get_state_from_local(
+                        doc_pair.local_parent_path)
+                    self._dao.remove_state(doc_pair)
+                    self._dao.add_path_to_scan(doc_pair.remote_parent_path)
+                    self._engine.newReadonly.emit(
+                        doc_pair.local_name, parent_pair.remote_name)
+                    return
+
+                # Delay on Windows the delete event
                 self._win_lock.acquire()
                 log.debug('Add pair to delete events: %r', doc_pair)
                 try:
-                    self._delete_events[doc_pair.remote_ref] = (current_milli_time(), doc_pair)
+                    self._delete_events[doc_pair.remote_ref] = current_milli_time(), doc_pair
                 finally:
                     self._win_lock.release()
-            else:
-                # In case of case sensitive can be an issue
-                if self.client.exists(doc_pair.local_path):
-                    remote_id = self.client.get_remote_id(doc_pair.local_path)
-                    if remote_id == doc_pair.remote_ref or remote_id is None:
-                        # This happens on update don't do anything
-                        return
-                self._handle_watchdog_delete(doc_pair)
+                return
+
+            # In case of case sensitive can be an issue
+            if self.client.exists(doc_pair.local_path):
+                remote_id = self.client.get_remote_id(doc_pair.local_path)
+                if remote_id == doc_pair.remote_ref or remote_id is None:
+                    # This happens on update, don't do anything
+                    return
+            self._handle_watchdog_delete(doc_pair)
             return
+
         local_info = self.client.get_info(rel_path, raise_if_missing=False)
         if evt.event_type == 'created':
             # NXDRIVE-471 case maybe
@@ -739,13 +755,14 @@ class LocalWatcher(EngineWorker):
             else:
                 # NXDRIVE-509
                 log.debug("Created event on a known pair with a remote_ref: %r", doc_pair)
+
         if local_info is not None:
             # Unchanged folder
             if doc_pair.folderish:
-                log.debug('Unchanged folder %s (watchdog event [%s]), only update last_local_updated',
-                          rel_path, evt.event_type)
+                # Unchanged folder, only update last_local_updated
                 self._dao.update_local_modification_time(doc_pair, local_info)
                 return
+
             if doc_pair.local_state == 'synchronized':
                 digest = local_info.get_digest()
                 # Unchanged digest, can be the case if only the last modification time or file permissions
@@ -757,6 +774,7 @@ class LocalWatcher(EngineWorker):
                         self.client.set_remote_id(rel_path, doc_pair.remote_ref)
                     self._dao.update_local_modification_time(doc_pair, local_info)
                     return
+
                 doc_pair.local_digest = digest
                 doc_pair.local_state = 'modified'
             if evt.event_type == 'modified' and doc_pair.remote_ref is not None and doc_pair.remote_ref != local_info.remote_ref:
@@ -826,7 +844,10 @@ class LocalWatcher(EngineWorker):
                     log.debug('Ignoring %s as marked unsynchronized',
                               doc_pair.local_path)
                     if evt.event_type in ('deleted', 'moved'):
-                        ignore, _ = is_generated_tmp_file(os.path.basename(evt.dest_path))
+                        path = (evt.dest_path
+                                if evt.event_type == 'moved'
+                                else evt.src_path)
+                        ignore, _ = is_generated_tmp_file(os.path.basename(path))
                         if not ignore:
                             log.debug('Removing pair state for %s event: %r',
                                       evt.event_type, doc_pair)

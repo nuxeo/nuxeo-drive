@@ -322,10 +322,7 @@ class ReadOnlyNotification(Notification):
             description=Translator.get(description, values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_WARNING,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
 
 
@@ -337,10 +334,7 @@ class DirectEditReadOnlyNotification(Notification):
             title=Translator.get('READONLY', values),
             description=Translator.get('DIRECT_EDIT_READONLY_FILE', values),
             level=Notification.LEVEL_WARNING,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
 
 
@@ -352,11 +346,8 @@ class DeleteReadOnlyNotification(Notification):
             title=Translator.get('DELETE_READONLY', values),
             description=Translator.get('DELETE_READONLY_DOCUMENT', values),
             engine_uid=engine_uid,
-            level=Notification.LEVEL_INFO,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
 
 

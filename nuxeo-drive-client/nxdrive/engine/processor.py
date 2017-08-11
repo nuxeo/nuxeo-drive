@@ -640,7 +640,8 @@ class Processor(EngineWorker):
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):
         if not doc_pair.remote_ref:
             self._dao.remove_state(doc_pair)
-            self._search_for_dedup(doc_pair)
+            if local_client.duplication_enabled():
+                self._search_for_dedup(doc_pair)
             return
 
         if doc_pair.remote_can_delete:
@@ -672,7 +673,9 @@ class Processor(EngineWorker):
         # A file has been moved locally, and an error occurs when tried to
         # move on the server
         remote_info = None
-        self._search_for_dedup(doc_pair, doc_pair.remote_name)
+        if local_client.duplication_enabled():
+            self._search_for_dedup(doc_pair, doc_pair.remote_name)
+
         if doc_pair.local_name != doc_pair.remote_name:
             try:
                 if doc_pair.remote_can_rename:
