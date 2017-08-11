@@ -31,7 +31,6 @@ class Processor(EngineWorker):
 
     def __init__(self, engine, item_getter, **kwargs):
         super(Processor, self).__init__(engine, engine.get_dao(), **kwargs)
-        self._current_item = None
         self._current_doc_pair = None
         self._get_item = item_getter
         self._engine = engine
@@ -146,31 +145,36 @@ class Processor(EngineWorker):
         return True
 
     def _execute(self):
-        self._current_metrics = dict()
-        self._current_item = self._get_item()
-        soft_lock = None
-        while self._current_item:
+        while 'There are items in the queue':
+            item = self._get_item()
+            if not item:
+                break
+
             # Take client every time as it is cached in engine
             local_client = self._engine.get_local_client()
             remote_client = self._engine.get_remote_client()
             try:
-                doc_pair = self._dao.acquire_state(self._thread_id,
-                                                   self._current_item.id)
+                doc_pair = self._dao.acquire_state(self._thread_id, item.id)
             except sqlite3.OperationalError:
-                state = self._dao.get_state_from_id(self._current_item.id)
+                state = self._dao.get_state_from_id(item.id)
                 if state:
-                    log.trace('Cannot acquire state for: %r',
-                              self._current_item)
-                    self._postpone_pair(self._current_item, 'Pair in use',
-                                        interval=3)
-                self._current_item = self._get_item()
+                    if (AbstractOSIntegration.is_windows()
+                            and state.pair_state == 'locally_moved'
+                            and not state.remote_can_rename):
+                        # A local rename on a read-only folder is allowed
+                        # on Windows, but it should not.
+                        continue
+
+                    log.trace('Cannot acquire state for: %r', item)
+                    self._postpone_pair(item, 'Pair in use', interval=3)
                 continue
+
+            if doc_pair is None:
+                log.trace('Did not acquire state, dropping %r', item)
+                continue
+
             try:
-                if doc_pair is None:
-                    log.trace('Did not acquire state, dropping %r',
-                              self._current_item)
-                    self._current_item = self._get_item()
-                    continue
+                soft_lock = None
 
                 # In case of duplicate we remove the local_path as it
                 # has conflict
@@ -183,7 +187,6 @@ class Processor(EngineWorker):
                 self._current_doc_pair = doc_pair
                 self._current_temp_file = None
                 if not self.check_pair_state(doc_pair):
-                    self._current_item = self._get_item()
                     continue
 
                 if (AbstractOSIntegration.is_mac()
@@ -193,11 +196,10 @@ class Processor(EngineWorker):
                             doc_pair.local_path, "com.apple.FinderInfo")
                         if (finder_info is not None
                                 and 'brokMACS' in finder_info):
-                            log.trace("Skip as pair is in use by Finder: %r",
+                            log.trace('Skip as pair is in use by Finder: %r',
                                       doc_pair)
                             self._postpone_pair(doc_pair, 'Finder using file',
                                                 interval=3)
-                            self._current_item = self._get_item()
                             continue
                     except IOError:
                         pass
@@ -217,11 +219,9 @@ class Processor(EngineWorker):
                                              remote_info)
                         # Can run into conflict
                         if doc_pair.pair_state == 'conflicted':
-                            self._current_item = self._get_item()
                             continue
                         doc_pair = self._dao.get_state_from_id(doc_pair.id)
                         if not self.check_pair_state(doc_pair):
-                            self._current_item = self._get_item()
                             continue
                     except NotFound:
                         doc_pair.remote_ref = None
@@ -230,7 +230,6 @@ class Processor(EngineWorker):
                 parent_pair = self._get_normal_state_from_remote_ref(
                     doc_pair.remote_parent_ref)
                 if parent_pair and parent_pair.last_error == 'DEDUP':
-                    self._current_item = self._get_item()
                     continue
 
                 parent_path = doc_pair.local_parent_path
@@ -243,7 +242,6 @@ class Processor(EngineWorker):
                         doc_pair.local_parent_path = parent_pair.local_path
                     else:
                         self._dao.remove_state(doc_pair)
-                        self._current_item = self._get_item()
                         continue
 
                 self._current_metrics = dict()
@@ -254,7 +252,6 @@ class Processor(EngineWorker):
                     log.debug('Unhandled pair_state: %r for %r',
                               doc_pair.pair_state, doc_pair)
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
-                    self._current_item = self._get_item()
                     continue
                 else:
                     self._current_metrics = dict(
@@ -282,7 +279,6 @@ class Processor(EngineWorker):
                         self.giveup_error(doc_pair, 'DEDUP')
                         log.trace('Removing local_path on %r', doc_pair)
                         self._dao.remove_local_path(doc_pair.id)
-                        self._current_item = self._get_item()
                         continue
                     except HTTPError as exc:
                         if exc.code == 409:  # Conflict
@@ -293,12 +289,10 @@ class Processor(EngineWorker):
                         else:
                             self._handle_pair_handler_exception(
                                 doc_pair, handler_name, exc)
-                        self._current_item = self._get_item()
                         continue
                     except Exception as exc:
                         self._handle_pair_handler_exception(
                             doc_pair, handler_name, exc)
-                        self._current_item = self._get_item()
                         continue
             except ThreadInterrupt:
                 self._engine.get_queue_manager().push(doc_pair)
@@ -312,7 +306,6 @@ class Processor(EngineWorker):
                     self._unlock_soft_path(soft_lock)
                 self._dao.release_state(self._thread_id)
             self._interact()
-            self._current_item = self._get_item()
 
     def _handle_pair_handler_exception(self, doc_pair, handler_name, e):
         if isinstance(e, IOError) and e.errno == 28:
@@ -1081,7 +1074,7 @@ class Processor(EngineWorker):
         # An error occurs return false
         log.error("Renaming from %s to %s canceled",
                   target_pair.remote_name, target_pair.local_name)
-        if self._engine.local_rollback():
+        if self._engine.local_rollback(force=AbstractOSIntegration.is_windows()):
             try:
                 local_client = self._engine.get_local_client()
                 info = local_client.rename(target_pair.local_path,

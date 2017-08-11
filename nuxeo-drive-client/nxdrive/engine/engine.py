@@ -492,7 +492,14 @@ class Engine(QObject):
         return self._dao
 
     @staticmethod
-    def local_rollback():
+    def local_rollback(force=None):
+        """
+        :param mixed force: Force the return value to be the one of `force`.
+        :rtype: bool
+        """
+
+        if isinstance(force, bool):
+            return force
         return False
 
     def create_thread(self, worker=None, name=None, start_connect=True):
