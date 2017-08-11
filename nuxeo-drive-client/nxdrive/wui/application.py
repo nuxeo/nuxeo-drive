@@ -478,8 +478,6 @@ class Application(SimpleApplication):
 
     @QtCore.pyqtSlot(object)
     def _new_notification(self, notif):
-        self.current_notification = notif
-
         if not notif.is_bubble():
             return
 
@@ -490,7 +488,7 @@ class Application(SimpleApplication):
                 notif.title,
                 None,
                 notif.description,
-                user_info=dict(uuid=notif.uid),
+                user_info={'uuid': notif.uid},
             )
 
         icon = QtGui.QSystemTrayIcon.Information
@@ -499,7 +497,8 @@ class Application(SimpleApplication):
         elif notif.level == Notification.LEVEL_ERROR:
             icon = QtGui.QSystemTrayIcon.Critical
 
-        self.tray_icon.showMessage(notif.title, notif.description, icon=icon)
+        self.current_notification = notif
+        self.tray_icon.showMessage(notif.title, notif.description, icon, 10000)
 
     def set_icon_state(self, state):
         """

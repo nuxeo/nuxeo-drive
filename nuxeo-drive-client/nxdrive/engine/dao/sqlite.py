@@ -1316,19 +1316,28 @@ class EngineDAO(ConfigurationDAO):
         row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
-        version = ''
+
         # Check if it really needs an update
-        if (row.remote_ref == info.uid and info.parent_uid == row.remote_parent_ref and remote_parent_path == row.remote_parent_path
-            and info.name == row.remote_name and info.can_rename == row.remote_can_rename
-            and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child):
+        if (row.remote_ref == info.uid
+                and info.parent_uid == row.remote_parent_ref
+                and remote_parent_path == row.remote_parent_path
+                and info.name == row.remote_name
+                and info.can_rename == row.remote_can_rename
+                and info.can_delete == row.remote_can_delete
+                and info.can_update == row.remote_can_update
+                and info.can_create_child == row.remote_can_create_child):
             # It looks similar
-            if info.digest == row.local_digest or info.digest == row.remote_digest:
+            if info.digest in (row.local_digest, row.remote_digest):
                 row.remote_state = 'synchronized'
                 row.pair_state = self._get_pair_state(row)
+                log.error('CHECK %r', row)
             if info.digest == row.remote_digest and not force_update:
-                log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
+                log.trace('Not updating remote state (not dirty)'
+                          ' for row=%r with info=%r', row, info)
                 return
-        log.trace('Updating remote state for row = %r with info = %r (force: %r)', row, info, force_update)
+
+        log.trace('Updating remote state for row=%r with info=%r (force=%r)',
+                  row, info, force_update)
 
         if (row.pair_state not in ('conflicted', 'remotely_created')
                 and row.folderish
@@ -1340,6 +1349,7 @@ class EngineDAO(ConfigurationDAO):
             row.remote_state = 'modified'
             row.pair_state = self._get_pair_state(row)
 
+        version = ''
         if versionned:
             version = ', version=version+1'
             log.trace('Increasing version to %d for pair %r', row.version + 1, row)

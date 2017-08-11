@@ -30,7 +30,7 @@ class Notification(object):
     FLAG_BUBBLE = 32
     # Will be displayed inside the systray menu
     FLAG_SYSTRAY = 64
-    # Will be displayed inside the systray menu
+    # An event will be triggered on click
     FLAG_ACTIONABLE = 128
     # Delete the notifciation on discard
     FLAG_REMOVE_ON_DISCARD = 256
@@ -116,7 +116,7 @@ class Notification(object):
     def generate_uid(_type, engine_uid=None):
         result = _type
         if engine_uid:
-            result = result + '_' + engine_uid
+            result += '_' + engine_uid
         return result
 
     def get_type(self):

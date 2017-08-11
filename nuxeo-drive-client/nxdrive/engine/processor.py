@@ -161,8 +161,9 @@ class Processor(EngineWorker):
                     if (AbstractOSIntegration.is_windows()
                             and state.pair_state == 'locally_moved'
                             and not state.remote_can_rename):
-                        # A local rename on a read-only folder is allowed
-                        # on Windows, but it should not.
+                        log.debug('A local rename on a read-only folder is'
+                                  ' allowed on Windows, but it should not.'
+                                  ' Skipping.')
                         continue
 
                     log.trace('Cannot acquire state for: %r', item)
@@ -254,10 +255,10 @@ class Processor(EngineWorker):
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
                     continue
                 else:
-                    self._current_metrics = dict(
-                        handler=doc_pair.pair_state,
-                        start_time=current_milli_time(),
-                    )
+                    self._current_metrics = {
+                        'handler': doc_pair.pair_state,
+                        'start_time': current_milli_time(),
+                    }
                     log.trace('Calling %s on doc pair %r', sync_handler,
                               doc_pair)
                     try:
@@ -363,10 +364,16 @@ class Processor(EngineWorker):
                                                       doc_pair.local_path)):
             # Note: setted 1st argument of is_equal_digests() to None
             # to force digest computation
-            info = local_client.get_info(doc_pair.local_path)
-            doc_pair.local_digest = info.get_digest()
-            doc_pair.local_state = 'modified'
-            dynamic_states = True
+            try:
+                info = local_client.get_info(doc_pair.local_path)
+            except NotFound:
+                doc_pair.local_state = 'created'
+                dynamic_states = True
+            else:
+                doc_pair.local_digest = info.get_digest()
+                if doc_pair.local_digest != doc_pair.remote_digest:
+                    doc_pair.local_state = 'modified'
+                    dynamic_states = True
 
         self._dao.synchronize_state(doc_pair, dynamic_states=dynamic_states)
 
@@ -399,12 +406,13 @@ class Processor(EngineWorker):
                 self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False)
                 # TODO refresh_client
             else:
-                log.debug("Skip update of remote document '%s' as it is readonly.", doc_pair.local_name)
+                log.debug('Skip update of remote document %r as it is read-only.',
+                          doc_pair.local_name)
                 if self._engine.local_rollback():
                     local_client.delete(doc_pair.local_path)
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
-                    log.debug("Set pair unsynchronized: %r", doc_pair)
+                    log.debug('Set pair unsynchronized: %r', doc_pair)
                     info = remote_client.get_info(doc_pair.remote_ref, raise_if_missing=False)
                     if info is None or info.lock_owner is None:
                         self._dao.unsynchronize_state(doc_pair, 'READONLY')

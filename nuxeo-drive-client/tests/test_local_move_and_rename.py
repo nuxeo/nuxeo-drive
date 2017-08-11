@@ -747,7 +747,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertFalse(local_client.exists(u'/Original Folder 1'))
 
         self.wait_sync(wait_for_async=True)
-        self.assertEqual(self.engine_1.get_dao().get_sync_count(), 6)
+        count = 10 if AbstractOSIntegration.is_windows() else 6
+        self.assertEqual(self.engine_1.get_dao().get_sync_count(), count)
 
         # Check remote folder and its children have not been deleted
         folder_1_remote_info = remote_client.get_info(u'/Original Folder 1')
