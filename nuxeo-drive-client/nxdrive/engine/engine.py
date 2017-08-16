@@ -782,6 +782,8 @@ class Engine(QObject):
             except Exception as e:
                 if created_folder:
                     try:
+                        local_client = self.get_local_client()
+                        local_client.unset_readonly(self.local_folder)
                         os.rmdir(self.local_folder)
                     except:
                         pass
