@@ -167,17 +167,6 @@ class IntegrationTestCase(TestCase):
             password=self.password_2, base_folder=self.workspace,
             upload_tmp_dir=self.upload_tmp_dir)
 
-        self.remote_restapi_client_1 = RestAPIClient(
-            self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-            self.version,
-            password=self.password_1
-        )
-        self.remote_restapi_client_2 = RestAPIClient(
-            self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-            self.version,
-            password=self.password_2
-        )
-
         # File system client to be used to create remote test documents
         # and folders
         remote_file_system_client_1 = RemoteFileSystemClient(

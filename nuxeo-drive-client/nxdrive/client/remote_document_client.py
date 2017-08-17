@@ -372,6 +372,10 @@ class RemoteDocumentClient(BaseAutomationClient):
     def get_parent(self, ref):
         return self.execute("Document.GetParent", op_input="doc:" + ref)
 
+    def is_locked(self, ref):
+        data = self.fetch(ref, extra_headers={'fetch-document': 'lock'})
+        return 'lockCreated' in data
+
     def lock(self, ref):
         return self.execute("Document.Lock", op_input="doc:" + self._check_ref(ref))
 
@@ -421,9 +425,9 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     # These ones are special: no 'op_input' parameter
 
-    def fetch(self, ref):
+    def fetch(self, ref, **kwargs):
         try:
-            return self.execute("Document.Fetch", value=ref)
+            return self.execute("Document.Fetch", value=ref, **kwargs)
         except urllib2.HTTPError as e:
             if e.code == 404:
                 raise NotFound("Failed to fetch document %r on server %r" % (

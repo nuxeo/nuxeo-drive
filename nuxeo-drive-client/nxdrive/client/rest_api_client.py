@@ -105,29 +105,6 @@ class RestAPIClient(object):
             self._log_details(e)
             raise
 
-    def is_locked(self, ref):
-        # TODO Create an adapter on the rest-api server-side
-        url = self.server_url + "restAPI/default/" + ref + "/Locking/state"
-
-        headers = {
-            "Content-Type": "application/json+nxrequest",
-            "Accept": "application/json+nxentity, */*",
-        }
-        headers.update(self._get_common_headers())
-
-        cookies = self._get_cookies()
-        log.trace("Calling REST API %s with headers %r and cookies %r", url,
-                  headers, cookies)
-        req = urllib2.Request(url, headers=headers)
-        try:
-            resp = self.opener.open(req, timeout=self.timeout)
-        except Exception as e:
-            self._log_details(e)
-            raise
-
-        res = self._read_response(resp, url)
-        return 'code="LOCKED"' in res
-
     def _update_auth(self, password=None, token=None):
         """Select the most appropriate auth headers based on credentials"""
         if token is not None:

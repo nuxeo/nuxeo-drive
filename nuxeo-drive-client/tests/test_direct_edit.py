@@ -134,16 +134,16 @@ class TestDirectEdit(UnitTestCase):
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.assertTrue(called_open, "Should have called open_local_file")
         # Should be able to test lock
-        self.assertTrue(self.remote_restapi_client_1.is_locked(doc_id))
+        self.assertTrue(self.remote_document_client_1.is_locked(doc_id))
         os.remove(lock_file)
         self.wait_sync(timeout=2, fail_if_timeout=False)
         # Should be unlock
-        self.assertFalse(self.remote_restapi_client_1.is_locked(doc_id))
+        self.assertFalse(self.remote_document_client_1.is_locked(doc_id))
         self.manager_1.set_direct_edit_auto_lock(0)
         with open(lock_file, 'w') as f:
             f.write("plop")
         self.wait_sync(timeout=2, fail_if_timeout=False)
-        self.assertFalse(self.remote_restapi_client_1.is_locked(doc_id))
+        self.assertFalse(self.remote_document_client_1.is_locked(doc_id))
 
     def _direct_edit_update(self, doc_id, filename, content, url=None):
         # Download file
