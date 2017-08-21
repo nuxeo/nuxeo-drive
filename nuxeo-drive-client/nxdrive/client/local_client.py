@@ -1,6 +1,7 @@
 # coding: utf-8
 """ API to access local resources for synchronization. """
 
+import datetime
 import errno
 import hashlib
 import os
@@ -9,7 +10,7 @@ import shutil
 import sys
 import tempfile
 import unicodedata
-from datetime import datetime
+import warnings
 
 from send2trash import send2trash
 
@@ -429,10 +430,10 @@ FolderType=Generic
         stat_info = os.stat(os_path)
         size = 0 if folderish else stat_info.st_size
         try:
-            mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
+            mtime = datetime.datetime.utcfromtimestamp(stat_info.st_mtime)
         except ValueError, e:
             log.error(str(e) + "file path: %s. st_mtime value: %s" % (str(os_path), str(stat_info.st_mtime)))
-            mtime = datetime.utcfromtimestamp(0)
+            mtime = datetime.datetime.utcfromtimestamp(0)
         # TODO Do we need to load it everytime ?
         remote_ref = self.get_remote_id(ref)
         # On unix we could use the inode for file move detection but that won't
@@ -720,9 +721,10 @@ FolderType=Generic
                     and old_name.lower() == new_name.lower()
                     and not self.is_case_sensitive()):
                 # Must use a temp rename as FS is not case sensitive
-                temp_path = os.tempnam(self.abspath(parent),
-                                       LocalClient.CASE_RENAME_PREFIX
-                                       + old_name + '_')
+                with warnings.catch_warnings(UserWarning):
+                    temp_path = os.tempnam(
+                        self.abspath(parent),
+                        LocalClient.CASE_RENAME_PREFIX + old_name + '_')
                 if AbstractOSIntegration.is_windows():
                     ctypes.windll.kernel32.SetFileAttributesW(
                         unicode(temp_path), 2)

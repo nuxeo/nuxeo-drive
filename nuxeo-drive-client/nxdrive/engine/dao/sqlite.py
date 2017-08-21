@@ -802,26 +802,51 @@ class EngineDAO(ConfigurationDAO):
 
     def update_local_state(self, row, info, versionned=True, queue=True):
         row.pair_state = self._get_pair_state(row)
-        log.trace('Updating local state for row = %r with info = %r', row, info)
+        log.trace('Updating local state for row=%r with info=%r', row, info)
+
         version = ''
         if versionned:
-            version = ', version=version+1'
-            log.trace('Increasing version to %d for pair %r', row.version + 1, row)
+            version = ', version = version + 1'
+            log.trace('Increasing version to %d for pair %r',
+                      row.version + 1, row)
+
         parent_path = os.path.dirname(info.path)
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            # Should not update this
-            c.execute("UPDATE States SET last_local_updated=?, local_digest=?, local_path=?, local_parent_path=?, local_name=?,"
-                      + "local_state=?, size=?, remote_state=?, pair_state=?" + version +
-                      " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, parent_path,
-                                        os.path.basename(info.path), row.local_state, info.size, row.remote_state,
-                                        row.pair_state, row.id))
+            c.execute('UPDATE States'
+                      '   SET last_local_updated = ?,'
+                      '       local_digest = ?,'
+                      '       local_path = ?,'
+                      '       local_parent_path = ?,'
+                      '       local_name = ?,'
+                      '       local_state = ?,'
+                      '       size = ?,'
+                      '       remote_state = ?,'
+                      '       pair_state = ?'
+                      '       {version}'
+                      ' WHERE id = ?'.format(version=version),
+                      (
+                          info.last_modification_time,
+                          row.local_digest,
+                          info.path,
+                          parent_path,
+                          os.path.basename(info.path),
+                          row.local_state,
+                          info.size,
+                          row.remote_state,
+                          row.pair_state,
+                          row.id,
+                      ))
             if queue:
-                parent = c.execute("SELECT * FROM States WHERE local_path=?", (parent_path,)).fetchone()
-                # Dont queue if parent is not yet created
-                if (parent is None and parent_path == '') or (parent is not None and parent.pair_state != "locally_created"):
+                parent = c.execute('SELECT *'
+                                   '  FROM States'
+                                   ' WHERE local_path = ?',
+                                   (parent_path,)).fetchone()
+                # Don't queue if parent is not yet created
+                if ((not parent and not parent_path)
+                        or (parent and parent.local_state != 'created')):
                     self._queue_pair_state(row.id, info.folderish, row.pair_state, pair=row)
             if self.auto_commit:
                 con.commit()
@@ -1325,12 +1350,12 @@ class EngineDAO(ConfigurationDAO):
                 and info.can_rename == row.remote_can_rename
                 and info.can_delete == row.remote_can_delete
                 and info.can_update == row.remote_can_update
-                and info.can_create_child == row.remote_can_create_child):
+                and info.can_create_child == row.remote_can_create_child
+                and os.path.basename(row.local_path) == info.name):
             # It looks similar
             if info.digest in (row.local_digest, row.remote_digest):
                 row.remote_state = 'synchronized'
                 row.pair_state = self._get_pair_state(row)
-                log.error('CHECK %r', row)
             if info.digest == row.remote_digest and not force_update:
                 log.trace('Not updating remote state (not dirty)'
                           ' for row=%r with info=%r', row, info)
