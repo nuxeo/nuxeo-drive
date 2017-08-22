@@ -1,15 +1,18 @@
 # dev
+- Removed `is_office_file()` function from local_watcher.py
+- Added `dynamic_states=False` keyword to `synchronize_state()` method in `EngineDAO` class
+- Added `force` keyword to `local_rollback()` method in `Engine` class
 
 # 2.5.1
 - Removed `update_tooltip()` method from `Application` class
 - Removed `_get_debug_dialog()` method from `Application` class
 
 # 2.5.0
-- Removed `start_engine`, `check_fs` and `token` arguments from `_bind_server()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
-- Removed `local_folder`, `url`, `username`, `password`, `name`, `check_fs` and `token` arguments from `bind_server_async()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
-- Removed `check_fs` and `token` from `bind_server` method of `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
-- Removed `local_folder`, `server_url` and `engine_name` arguments from `web_authentication` method in `WebSettingsApi` class. Use `args` instead.
-- Removed `config`, `server`, `authenticated`, username, password and pac_url from `set_proxy_settings_async` method in `WebSettingsApi` class. Use `args` instead.
+- Removed `start_engine`, `check_fs` and `token` keywords from `_bind_server()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
+- Removed `local_folder`, `url`, `username`, `password`, `name`, `check_fs` and `token` keywords from `bind_server_async()` method in `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
+- Removed `check_fs` and `token` keywords from `bind_server` method of `WebSettingsApi` class. Use `kwargs.get(arg, default)` instead.
+- Removed `local_folder`, `server_url` and `engine_name` keywords from `web_authentication` method in `WebSettingsApi` class. Use `args` instead.
+- Removed `config`, `server`, `authenticated`, `username`, `password` and `pac_url` keywords from `set_proxy_settings_async()` method in `WebSettingsApi` class. Use `args` instead.
 - Removed `get_local_folder()` method from `Engine` class. Use `local_folder` attribute instead.
 - Removed `get_uid()` method from `Engine` class. Use `uid` attribute instead.
 - Removed `get_server_url()` method from `Engine` class. Use `server_url` property instead.
@@ -79,8 +82,8 @@
 - Changed `loadChildren()` method to `load_children()` in `StatusTreeview` class
 
 # 2.4.8
-- Removed `size`, `digest_func`, `check_suspended` and `remote_ref` arguments from `FileInfo` class. Use `kwargs.get(arg, default)` instead.
-- Removed `digest_func`, `ignored_prefixe`, `ignored_suffixes`, `check_suspended`, `case_sensitive` and `disable_duplication` arguments from `LocalClient` class. Use `kwargs.get(arg, default)` instead.
+- Removed `size`, `digest_func`, `check_suspended` and `remote_ref` keywords from `FileInfo` class. Use `kwargs.get(arg, default)` instead.
+- Removed `digest_func`, `ignored_prefixe`, `ignored_suffixes`, `check_suspended`, `case_sensitive` and `disable_duplication` keywords from `LocalClient` class. Use `kwargs.get(arg, default)` instead.
 
 # 2.4.7
 - Changed `get_zoom_factor()` method to `static` in `AbstractOSIntegration` class
@@ -91,5 +94,5 @@
 - Changed `_get_desktop_folder()` method to `static` in `WindowsIntegration` class
 
 # 2.4.6
-- Removed `mark_unknown` keyword from `RemoteWatcher._do_scan_remote()` method
+- Removed `mark_unknown` keyword from `_do_scan_remote()` method in `RemoteWatcher` class
 - Removed `get_user_agent()` method from `Tracker` class. Use `user_agent` property instead.

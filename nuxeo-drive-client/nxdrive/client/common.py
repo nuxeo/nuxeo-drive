@@ -115,7 +115,8 @@ LOCALLY_EDITED_FOLDER_NAME = 'Locally Edited'
 
 COLLECTION_SYNC_ROOT_FACTORY_NAME = 'collectionSyncRootFolderItemFactory'
 
-UNACCESSIBLE_HASH = "TO_COMPUTE"
+UNACCESSIBLE_HASH = 'TO_COMPUTE'
+
 
 def safe_filename(name, replacement=u'-'):
     """Replace invalid character in candidate filename"""

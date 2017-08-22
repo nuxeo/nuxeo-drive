@@ -30,7 +30,7 @@ class Notification(object):
     FLAG_BUBBLE = 32
     # Will be displayed inside the systray menu
     FLAG_SYSTRAY = 64
-    # Will be displayed inside the systray menu
+    # An event will be triggered on click
     FLAG_ACTIONABLE = 128
     # Delete the notifciation on discard
     FLAG_REMOVE_ON_DISCARD = 256
@@ -116,7 +116,7 @@ class Notification(object):
     def generate_uid(_type, engine_uid=None):
         result = _type
         if engine_uid:
-            result = result + '_' + engine_uid
+            result += '_' + engine_uid
         return result
 
     def get_type(self):
@@ -278,7 +278,7 @@ class DirectEditErrorLockNotification(Notification):
             title = 'DIRECT_EDIT_UNLOCK_ERROR'
             description = 'DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION'
         else:
-            raise ValueError('Invalid action: %r not in (lock, unlock)', 
+            raise ValueError('Invalid action: %r not in (lock, unlock)',
                              locals())
 
         super(DirectEditErrorLockNotification, self).__init__(
@@ -322,10 +322,7 @@ class ReadOnlyNotification(Notification):
             description=Translator.get(description, values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_WARNING,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
 
 
@@ -337,12 +334,9 @@ class DirectEditReadOnlyNotification(Notification):
             title=Translator.get('READONLY', values),
             description=Translator.get('DIRECT_EDIT_READONLY_FILE', values),
             level=Notification.LEVEL_WARNING,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
-    
+
 
 class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid, filename):
@@ -352,11 +346,8 @@ class DeleteReadOnlyNotification(Notification):
             title=Translator.get('DELETE_READONLY', values),
             description=Translator.get('DELETE_READONLY_DOCUMENT', values),
             engine_uid=engine_uid,
-            level=Notification.LEVEL_INFO,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
 
 

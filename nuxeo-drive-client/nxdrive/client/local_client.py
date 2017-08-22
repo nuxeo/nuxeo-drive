@@ -1,6 +1,7 @@
 # coding: utf-8
 """ API to access local resources for synchronization. """
 
+import datetime
 import errno
 import hashlib
 import os
@@ -9,7 +10,7 @@ import shutil
 import sys
 import tempfile
 import unicodedata
-from datetime import datetime
+import warnings
 
 from send2trash import send2trash
 
@@ -85,13 +86,16 @@ class FileInfo(object):
         return u'FileInfo[%s, remote_ref=%s]' % (self.filepath, self.remote_ref)
 
     def get_digest(self, digest_func=None):
-        """Lazy computation of the digest"""
+        """ Lazy computation of the digest. """
+
         if self.folderish:
             return None
-        digest_func = digest_func if digest_func is not None else self._digest_func
+        digest_func = (digest_func
+                       if digest_func is not None
+                       else self._digest_func)
         digester = getattr(hashlib, digest_func, None)
         if digester is None:
-            raise ValueError('Unknow digest method: ' + digest_func)
+            raise ValueError('Unknown digest method: ' + digest_func)
 
         h = digester()
         try:
@@ -426,10 +430,10 @@ FolderType=Generic
         stat_info = os.stat(os_path)
         size = 0 if folderish else stat_info.st_size
         try:
-            mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
+            mtime = datetime.datetime.utcfromtimestamp(stat_info.st_mtime)
         except ValueError, e:
             log.error(str(e) + "file path: %s. st_mtime value: %s" % (str(os_path), str(stat_info.st_mtime)))
-            mtime = datetime.utcfromtimestamp(0)
+            mtime = datetime.datetime.utcfromtimestamp(0)
         # TODO Do we need to load it everytime ?
         remote_ref = self.get_remote_id(ref)
         # On unix we could use the inode for file move detection but that won't
@@ -441,17 +445,37 @@ FolderType=Generic
                         check_suspended=self.check_suspended,
                         remote_ref=remote_ref, size=size)
 
-    def is_equal_digests(self, local_digest, remote_digest, local_path, remote_digest_algorithm=None):
+    def is_equal_digests(
+        self,
+        local_digest,
+        remote_digest,
+        local_path,
+        remote_digest_algorithm=None,
+    ):
+        """
+        Compare 2 document's digests.
+
+        :param str local_digest: Digest of the local document.
+                                 Set to None to force digest computation.
+        :param str remote_digest: Digest of the remote document.
+        :param str local_path: Local path of the document.
+        :param str remote_digest_algorithm: Remote document digest algorithm
+        :return bool: Digest are equals.
+        """
+
         if local_digest == remote_digest:
             return True
         if remote_digest_algorithm is None:
             remote_digest_algorithm = guess_digest_algorithm(remote_digest)
         if remote_digest_algorithm == self._digest_func:
             return False
-        return self.get_info(local_path).get_digest(digest_func=remote_digest_algorithm) == remote_digest
+
+        file_info = self.get_info(local_path)
+        digest = file_info.get_digest(digest_func=remote_digest_algorithm)
+        return digest == remote_digest
 
     def get_content(self, ref):
-        return open(self.abspath(ref), "rb").read()
+        return open(self.abspath(ref), 'rb').read()
 
     def is_osxbundle(self, ref):
         '''
@@ -461,7 +485,8 @@ FolderType=Generic
             return False
         if os.path.isfile(self.abspath(ref)):
             return False
-        # Dont want to synchornize app - when copy paste this file might not has been created yet
+        # Don't want to synchornize app - when copy paste this file
+        # might not has been created yet
         if os.path.isfile(os.path.join(ref, "Contents", "Info.plist")):
             return True
         attrs = self.get_remote_id(ref, "com.apple.FinderInfo")
@@ -471,14 +496,12 @@ FolderType=Generic
 
     def is_ignored(self, parent_ref, file_name):
         # Add parent_ref to be able to filter on size if needed
-        # Office temp file
-        # http://support.microsoft.com/kb/211632
-        if file_name.startswith("~") and file_name.endswith(".tmp"):
-            return True
 
         # Emacs auto save file
         # http://www.emacswiki.org/emacs/AutoSave
-        if file_name.startswith("#") and file_name.endswith("#") and len(file_name) > 2:
+        if (file_name.startswith('#')
+                and file_name.endswith('#')
+                and len(file_name) > 2):
             return True
 
         if (file_name.endswith(self.ignored_suffixes)
@@ -698,9 +721,10 @@ FolderType=Generic
                     and old_name.lower() == new_name.lower()
                     and not self.is_case_sensitive()):
                 # Must use a temp rename as FS is not case sensitive
-                temp_path = os.tempnam(self.abspath(parent),
-                                       LocalClient.CASE_RENAME_PREFIX
-                                       + old_name + '_')
+                with warnings.catch_warnings(UserWarning):
+                    temp_path = os.tempnam(
+                        self.abspath(parent),
+                        LocalClient.CASE_RENAME_PREFIX + old_name + '_')
                 if AbstractOSIntegration.is_windows():
                     ctypes.windll.kernel32.SetFileAttributesW(
                         unicode(temp_path), 2)

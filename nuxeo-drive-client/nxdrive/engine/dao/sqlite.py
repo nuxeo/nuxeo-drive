@@ -447,10 +447,10 @@ class ManagerDAO(ConfigurationDAO):
             self._lock.release()
 
     def _migrate_db(self, cursor, version):
-        if (version < 2):
+        if version < 2:
             cursor.execute("CREATE TABLE if not exists Notifications(uid VARCHAR, engine VARCHAR, level VARCHAR, title VARCHAR, description VARCHAR, action VARCHAR, flags INT, PRIMARY KEY(uid))")
             self.update_config(SCHEMA_VERSION, 2)
-        if (version < 3):
+        if version < 3:
             cursor.execute("CREATE TABLE if not exists AutoLock(path VARCHAR, remote_id VARCHAR, process INT, PRIMARY KEY(path))")
             self.update_config(SCHEMA_VERSION, 3)
 
@@ -740,7 +740,6 @@ class EngineDAO(ConfigurationDAO):
     def register_queue_manager(self, manager):
         # Prevent any update while init queue
         self._lock.acquire()
-        con = None
         try:
             self._queue_manager = manager
             con = self._get_write_connection(factory=self._state_factory)
@@ -752,7 +751,7 @@ class EngineDAO(ConfigurationDAO):
                 # Add all the folders
                 if pair.folderish:
                     folders[pair.local_path] = True
-                if not pair.local_parent_path in folders:
+                if pair.local_parent_path not in folders:
                     self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
         # Dont block everything if queue manager fail
         # TODO As the error should be fatal not sure we need this
@@ -803,26 +802,51 @@ class EngineDAO(ConfigurationDAO):
 
     def update_local_state(self, row, info, versionned=True, queue=True):
         row.pair_state = self._get_pair_state(row)
-        log.trace('Updating local state for row = %r with info = %r', row, info)
+        log.trace('Updating local state for row=%r with info=%r', row, info)
+
         version = ''
         if versionned:
-            version = ', version=version+1'
-            log.trace('Increasing version to %d for pair %r', row.version + 1, row)
+            version = ', version = version + 1'
+            log.trace('Increasing version to %d for pair %r',
+                      row.version + 1, row)
+
         parent_path = os.path.dirname(info.path)
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            # Should not update this
-            c.execute("UPDATE States SET last_local_updated=?, local_digest=?, local_path=?, local_parent_path=?, local_name=?,"
-                      + "local_state=?, size=?, remote_state=?, pair_state=?" + version +
-                      " WHERE id=?", (info.last_modification_time, row.local_digest, info.path, parent_path,
-                                        os.path.basename(info.path), row.local_state, info.size, row.remote_state,
-                                        row.pair_state, row.id))
+            c.execute('UPDATE States'
+                      '   SET last_local_updated = ?,'
+                      '       local_digest = ?,'
+                      '       local_path = ?,'
+                      '       local_parent_path = ?,'
+                      '       local_name = ?,'
+                      '       local_state = ?,'
+                      '       size = ?,'
+                      '       remote_state = ?,'
+                      '       pair_state = ?'
+                      '       {version}'
+                      ' WHERE id = ?'.format(version=version),
+                      (
+                          info.last_modification_time,
+                          row.local_digest,
+                          info.path,
+                          parent_path,
+                          os.path.basename(info.path),
+                          row.local_state,
+                          info.size,
+                          row.remote_state,
+                          row.pair_state,
+                          row.id,
+                      ))
             if queue:
-                parent = c.execute("SELECT * FROM States WHERE local_path=?", (parent_path,)).fetchone()
-                # Dont queue if parent is not yet created
-                if (parent is None and parent_path == '') or (parent is not None and parent.pair_state != "locally_created"):
+                parent = c.execute('SELECT *'
+                                   '  FROM States'
+                                   ' WHERE local_path = ?',
+                                   (parent_path,)).fetchone()
+                # Don't queue if parent is not yet created
+                if ((not parent and not parent_path)
+                        or (parent and parent.local_state != 'created')):
                     self._queue_pair_state(row.id, info.folderish, row.pair_state, pair=row)
             if self.auto_commit:
                 con.commit()
@@ -956,8 +980,10 @@ class EngineDAO(ConfigurationDAO):
         return res
 
     def _get_recursive_remote_condition(self, doc_pair):
-        remote_path = self._escape(doc_pair.remote_parent_path) + '/' + self._escape(doc_pair.remote_name)
-        return (" WHERE remote_parent_path LIKE '" +  remote_path + "/%' OR remote_parent_path = '" + remote_path + "'")
+        remote_path = (self._escape(doc_pair.remote_parent_path)
+                       + '/' + self._escape(doc_pair.remote_name))
+        return (' WHERE remote_parent_path LIKE "{0}/%"'
+                '       OR remote_parent_path = "{0}"').format(remote_path)
 
     def update_remote_parent_path(self, doc_pair, new_path):
         self._lock.acquire()
@@ -1219,70 +1245,124 @@ class EngineDAO(ConfigurationDAO):
         finally:
             self._lock.release()
 
-    def synchronize_state(self, row, version=None):
+    def synchronize_state(self, row, version=None, dynamic_states=False):
         if version is None:
             version = row.version
-        log.trace('Try to synchronize state for [local_path=%s, remote_name=%s, version=%s] with version=%s',
-                  row.local_path, row.remote_name, row.version, version)
+        log.trace('Try to synchronize state for [local_path=%s, '
+                  'remote_name=%s, version=%s] with version=%s '
+                  'and dynamic_states=%r',
+                  row.local_path, row.remote_name, row.version, version,
+                  dynamic_states)
+
+        # Set default states to synchronized, if wanted
+        if not dynamic_states:
+            row.local_state = row.remote_state = 'synchronized'
+        row.pair_state = self._get_pair_state(row)
+
         self._lock.acquire()
         try:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                      "pair_state='synchronized', last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
-                      "WHERE id=? and version=?",
-                      (datetime.utcnow(), row.id, version))
+            c.execute('UPDATE States'
+                      '   SET local_state = ?,'
+                      '       remote_state = ?,'
+                      '       pair_state = ?,'
+                      '       local_digest = ?,'
+                      '       last_sync_date = ?,'
+                      '       processor = 0,'
+                      '       last_error = NULL,'
+                      '       error_count = 0,'
+                      '       last_sync_error_date = NULL'
+                      ' WHERE id = ?'
+                      '       AND version = ?',
+                      (
+                          row.local_state,
+                          row.remote_state,
+                          row.pair_state,
+                          row.local_digest,
+                          datetime.utcnow(),
+                          row.id,
+                          version,
+                      ))
             if self.auto_commit:
                 con.commit()
         finally:
             self._lock.release()
+
         result = c.rowcount == 1
+
         # Retry without version for folder
         if not result and row.folderish:
             self._lock.acquire()
             try:
                 con = self._get_write_connection()
                 c = con.cursor()
-                c.execute("UPDATE States SET local_state='synchronized', remote_state='synchronized', " +
-                          "pair_state='synchronized', last_sync_date=?, processor = 0, last_error=NULL, error_count=0, last_sync_error_date=NULL " +
-                          "WHERE id=? and local_path=? and remote_name=? and remote_ref=? and remote_parent_ref=?",
-                          (datetime.utcnow(), row.id, row.local_path, row.remote_name, row.remote_ref, row.remote_parent_ref))
+                c.execute('UPDATE States'
+                          '   SET local_state = ?,'
+                          '       remote_state = ?,'
+                          '       pair_state = ?,'
+                          '       last_sync_date = ?,'
+                          '       processor = 0,'
+                          '       last_error = NULL,'
+                          '       error_count = 0,'
+                          '       last_sync_error_date = NULL'
+                          ' WHERE id = ?'
+                          '       AND local_path = ?'
+                          '       AND remote_name = ?'
+                          '       AND remote_ref = ?'
+                          '       AND remote_parent_ref = ?',
+                          (row.local_state, row.remote_state, row.pair_state,
+                           datetime.utcnow(), row.id, row.local_path,
+                           row.remote_name, row.remote_ref,
+                           row.remote_parent_ref))
                 if self.auto_commit:
                     con.commit()
             finally:
                 self._lock.release()
             result = c.rowcount == 1
+
         if not result:
-            log.trace("Was not able to synchronize state: %r", row)
+            log.trace('Was not able to synchronize state: %r', row)
             con = self._get_read_connection()
             c = con.cursor()
-            row2 = c.execute("SELECT * FROM States WHERE id=?", (row.id,)).fetchone()
+            row2 = c.execute('SELECT * FROM States WHERE id = ?',
+                             (row.id,)).fetchone()
             if row2 is None:
-                log.trace("No more row")
+                log.trace('No more row')
             else:
-                log.trace("The current row was: %r (version=%r)", row2, row2.version)
-            log.trace("The previous row was: %r (version=%r)", row, row.version)
+                log.trace('Current row=%r (version=%r)', row2, row2.version)
+            log.trace('Previous row=%r (version=%r)', row, row.version)
         elif row.folderish:
             self.queue_children(row)
+
         return result
 
     def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False, no_digest=False):
         row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
-        version = ''
+
         # Check if it really needs an update
-        if (row.remote_ref == info.uid and info.parent_uid == row.remote_parent_ref and remote_parent_path == row.remote_parent_path
-            and info.name == row.remote_name and info.can_rename == row.remote_can_rename
-            and info.can_delete == row.remote_can_delete and info.can_update == row.remote_can_update and info.can_create_child == row.remote_can_create_child):
+        if (row.remote_ref == info.uid
+                and info.parent_uid == row.remote_parent_ref
+                and remote_parent_path == row.remote_parent_path
+                and info.name == row.remote_name
+                and info.can_rename == row.remote_can_rename
+                and info.can_delete == row.remote_can_delete
+                and info.can_update == row.remote_can_update
+                and info.can_create_child == row.remote_can_create_child
+                and os.path.basename(row.local_path) == info.name):
             # It looks similar
-            if info.digest == row.local_digest or info.digest == row.remote_digest:
+            if info.digest in (row.local_digest, row.remote_digest):
                 row.remote_state = 'synchronized'
                 row.pair_state = self._get_pair_state(row)
             if info.digest == row.remote_digest and not force_update:
-                log.trace('Not updating remote state (not dirty) for row = %r with info = %r', row, info)
+                log.trace('Not updating remote state (not dirty)'
+                          ' for row=%r with info=%r', row, info)
                 return
-        log.trace('Updating remote state for row = %r with info = %r (force: %r)', row, info, force_update)
+
+        log.trace('Updating remote state for row=%r with info=%r (force=%r)',
+                  row, info, force_update)
 
         if (row.pair_state not in ('conflicted', 'remotely_created')
                 and row.folderish
@@ -1294,6 +1374,7 @@ class EngineDAO(ConfigurationDAO):
             row.remote_state = 'modified'
             row.pair_state = self._get_pair_state(row)
 
+        version = ''
         if versionned:
             version = ', version=version+1'
             log.trace('Increasing version to %d for pair %r', row.version + 1, row)

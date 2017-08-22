@@ -674,14 +674,14 @@ class TestLocalMoveAndRename(UnitTestCase):
         folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(uid)
         self.assertEqual(folder_1_state.remote_name, u'Original Folder 1')
 
-        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9/Original File 1.1.txt'))
-
-        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9/Sub-Folder 1.1'))
-
-        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9/Sub-Folder 1.2'))
-        self.assertEqual(len(local_client.get_children_info(u'/Renamed Folder 1 \xe9')), 3)
+        # The folder is re-renamed to its original name
+        folder_name = u'Original Folder 1'
+        self.assertTrue(local_client.exists('/' + folder_name + '/Original File 1.1.txt'))
+        self.assertTrue(local_client.exists('/' + folder_name + '/Sub-Folder 1.1'))
+        self.assertTrue(local_client.exists('/' + folder_name + '/Sub-Folder 1.2'))
+        self.assertEqual(len(local_client.get_children_info('/' + folder_name)), 3)
         self.assertEqual(len(remote_client.get_children_info(folder_1_remote_info.uid)), 3)
-        self.assertEqual(len(local_client.get_children_info(u'/')), 4)
+        self.assertEqual(len(local_client.get_children_info('/')), 4)
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
 
     def test_local_move_with_remote_error(self):
@@ -747,7 +747,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertFalse(local_client.exists(u'/Original Folder 1'))
 
         self.wait_sync(wait_for_async=True)
-        self.assertEqual(self.engine_1.get_dao().get_sync_count(), 6)
+        count = 10 if AbstractOSIntegration.is_windows() else 6
+        self.assertEqual(self.engine_1.get_dao().get_sync_count(), count)
 
         # Check remote folder and its children have not been deleted
         folder_1_remote_info = remote_client.get_info(u'/Original Folder 1')
@@ -762,12 +763,14 @@ class TestLocalMoveAndRename(UnitTestCase):
         folder_1_2_remote_info = remote_client.get_info(u'/Original Folder 1/Sub-Folder 1.2')
         self.assertEqual(folder_1_2_remote_info.name, u'Sub-Folder 1.2')
 
-        # Check filter has been created
-        self.assertTrue(
-            self.engine_1.get_dao().is_filter(folder_1_state.remote_parent_path + '/' + folder_1_state.remote_ref))
+        if not AbstractOSIntegration.is_windows():
+            # Check filter has been created
+            self.assertTrue(
+                self.engine_1.get_dao().is_filter(
+                    folder_1_state.remote_parent_path + '/' + folder_1_state.remote_ref))
 
-        # Check local folder haven't been re-created
-        self.assertFalse(local_client.exists(u'/Original Folder 1'))
+            # Check local folder haven't been re-created
+            self.assertFalse(local_client.exists(u'/Original Folder 1'))
 
     @skip('Need expectation on this test')
     def test_local_move_folder_to_readonly(self):
