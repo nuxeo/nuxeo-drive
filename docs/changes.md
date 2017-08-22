@@ -11,6 +11,9 @@ Release date: `2017-??-??`
 #### Minor changes
 - Account: Unset read-only when overwriting local folder
 - Tools: Updated `changelog.py` from 1.2.3 to 1.2.4
+- Packaging: Updated `Js2Py` from 0.44 to 0.50
+- Packaging: Updated `Send2Trash` from 1.3.0 to 1.4.1
+- Packaging: Updated `pytest` from 3.1.3 to 3.2.1
 
 
 # 2.5.1
