@@ -5,15 +5,16 @@ Git changelog generator.
 
 from __future__ import print_function, unicode_literals
 
-from argparse import ArgumentParser
-from operator import itemgetter
-from re import findall
-from subprocess import check_output
-from sys import stderr
+import argparse
+import codecs
+import operator
+import re
+import subprocess
+import sys
 
-from requests import HTTPError, get
+import requests
 
-__version__ = '1.2.3'
+__version__ = '1.2.4'
 
 
 # Available formatters
@@ -36,7 +37,7 @@ FORMAT_ISSUE = {
 def backtick(cmd):
     """ Get command output as stripped string. """
 
-    output = check_output(cmd)
+    output = subprocess.check_output(cmd)
     return output.decode('utf-8').strip()
 
 
@@ -46,7 +47,8 @@ def changelog(issues, formatter='txt', func=None):
     fmt = FORMAT_ISSUE[formatter]
 
     # Important issues first, then regular ones sorted by type, priority, name
-    issues = sorted(issues, key=itemgetter('sla', 'type', 'priority', 'name'))
+    sorter = operator.itemgetter('sla', 'type', 'priority', 'name')
+    issues = sorted(issues, key=sorter)
 
     # Print the header
     version = get_version()
@@ -64,7 +66,7 @@ def changelog(issues, formatter='txt', func=None):
 def debug(*args, **kwargs):
     """ Print a line to STDERR to no pollute generated changelog. """
 
-    print(*args, file=stderr, **kwargs)
+    print(*args, file=sys.stderr, **kwargs)
 
 
 def examples():
@@ -75,6 +77,17 @@ Example {}: changelog.py
 
     Print changelog of commits from HEAD to the latest release tag.
     If there is no release tag, it will use the full commit history.
+
+
+Example {}: changelog.py --format=md
+
+    Same as previously, but printed changelog is in Markdown format.
+
+
+Example {}: changelog.py --format=md --types NXPY SUPNXP
+
+    Same as previously, but printed changelog takes into acocunt only
+    NXPY and SUPNXP issues.
 
 
 Example {}: changelog.py -- HEAD...COMMIT_ID
@@ -124,8 +137,7 @@ def get_issues(args):
         # No commit ID, so we just need to find commits after the latest tag
         args.GIT_OPTIONS = ['HEAD...' + get_latest_tag()]
 
-    debug('>>> Retrieving commits {}'.format(
-        ' '.join(arg.decode('utf-8') for arg in args.GIT_OPTIONS)))
+    debug('>>> Retrieving commits')
     cmd = ['git', 'log', '--pretty=format:%B'] + args.GIT_OPTIONS
     all_commits = backtick(cmd)
 
@@ -159,9 +171,9 @@ def get_issue_infos(issue, raw=False):
 
     for _ in range(5):
         try:
-            content = get(url)
+            content = requests.get(url)
             break
-        except HTTPError:
+        except requests.HTTPError:
             pass
         finally:
             data = content.json()
@@ -203,10 +215,10 @@ def get_version():
     """ Find the current version. """
 
     init_file = 'nuxeo-drive-client/nxdrive/__init__.py'
-    with open(init_file) as handler:
+    with codecs.open(init_file, encoding='utf-8') as handler:
         for line in handler.readlines():
             if line.startswith('__version__'):
-                return findall(r"'(.+)'", line)[0]
+                return re.findall(r"'(.+)'", line)[0]
 
 
 def report_categorized(issues_list, fmt):
@@ -241,7 +253,7 @@ def report_categorized(issues_list, fmt):
 def main():
     """ Main logic. """
 
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('--examples', action='store_true',
                         help='show usage examples')

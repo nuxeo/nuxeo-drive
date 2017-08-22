@@ -31,7 +31,6 @@ class Processor(EngineWorker):
 
     def __init__(self, engine, item_getter, **kwargs):
         super(Processor, self).__init__(engine, engine.get_dao(), **kwargs)
-        self._current_item = None
         self._current_doc_pair = None
         self._get_item = item_getter
         self._engine = engine
@@ -146,32 +145,40 @@ class Processor(EngineWorker):
         return True
 
     def _execute(self):
-        self._current_metrics = dict()
-        self._current_item = self._get_item()
-        soft_lock = None
-        while self._current_item:
+        while 'There are items in the queue':
+            item = self._get_item()
+            if not item:
+                break
+
             # Take client every time as it is cached in engine
             local_client = self._engine.get_local_client()
             remote_client = self._engine.get_remote_client()
             try:
-                doc_pair = self._dao.acquire_state(self._thread_id,
-                                                   self._current_item.id)
+                doc_pair = self._dao.acquire_state(self._thread_id, item.id)
             except sqlite3.OperationalError:
-                state = self._dao.get_state_from_id(self._current_item.id)
+                state = self._dao.get_state_from_id(item.id)
                 if state:
-                    log.trace('Cannot acquire state for: %r',
-                              self._current_item)
-                    self._postpone_pair(self._current_item, 'Pair in use',
-                                        interval=3)
-                self._current_item = self._get_item()
+                    if (AbstractOSIntegration.is_windows()
+                            and state.pair_state == 'locally_moved'
+                            and not state.remote_can_rename):
+                        log.debug('A local rename on a read-only folder is'
+                                  ' allowed on Windows, but it should not.'
+                                  ' Skipping.')
+                        continue
+
+                    log.trace('Cannot acquire state for: %r', item)
+                    self._postpone_pair(item, 'Pair in use', interval=3)
                 continue
+
+            if doc_pair is None:
+                log.trace('Did not acquire state, dropping %r', item)
+                continue
+
             try:
-                if doc_pair is None:
-                    log.trace("Didn't acquire state, dropping %r",
-                              self._current_item)
-                    self._current_item = self._get_item()
-                    continue
-                # In case of duplicate we remove the local_path as it has conflict
+                soft_lock = None
+
+                # In case of duplicate we remove the local_path as it
+                # has conflict
                 if doc_pair.local_path == '':
                     doc_pair.local_path = os.path.join(
                         doc_pair.local_parent_path, doc_pair.remote_name)
@@ -181,8 +188,8 @@ class Processor(EngineWorker):
                 self._current_doc_pair = doc_pair
                 self._current_temp_file = None
                 if not self.check_pair_state(doc_pair):
-                    self._current_item = self._get_item()
                     continue
+
                 if (AbstractOSIntegration.is_mac()
                         and local_client.exists(doc_pair.local_path)):
                     try:
@@ -190,11 +197,10 @@ class Processor(EngineWorker):
                             doc_pair.local_path, "com.apple.FinderInfo")
                         if (finder_info is not None
                                 and 'brokMACS' in finder_info):
-                            log.trace("Skip as pair is in use by Finder: %r",
+                            log.trace('Skip as pair is in use by Finder: %r',
                                       doc_pair)
                             self._postpone_pair(doc_pair, 'Finder using file',
                                                 interval=3)
-                            self._current_item = self._get_item()
                             continue
                     except IOError:
                         pass
@@ -207,18 +213,16 @@ class Processor(EngineWorker):
                         if (remote_info.digest != doc_pair.remote_digest
                                 and doc_pair.remote_digest is not None):
                             doc_pair.remote_state = 'modified'
-                        if (doc_pair.folderish
+                        elif (doc_pair.folderish
                                 and remote_info.name != doc_pair.remote_name):
                             doc_pair.remote_state = 'moved'
                         self._refresh_remote(doc_pair, remote_client,
                                              remote_info)
                         # Can run into conflict
                         if doc_pair.pair_state == 'conflicted':
-                            self._current_item = self._get_item()
                             continue
                         doc_pair = self._dao.get_state_from_id(doc_pair.id)
                         if not self.check_pair_state(doc_pair):
-                            self._current_item = self._get_item()
                             continue
                     except NotFound:
                         doc_pair.remote_ref = None
@@ -227,7 +231,6 @@ class Processor(EngineWorker):
                 parent_pair = self._get_normal_state_from_remote_ref(
                     doc_pair.remote_parent_ref)
                 if parent_pair and parent_pair.last_error == 'DEDUP':
-                    self._current_item = self._get_item()
                     continue
 
                 parent_path = doc_pair.local_parent_path
@@ -240,7 +243,6 @@ class Processor(EngineWorker):
                         doc_pair.local_parent_path = parent_pair.local_path
                     else:
                         self._dao.remove_state(doc_pair)
-                        self._current_item = self._get_item()
                         continue
 
                 self._current_metrics = dict()
@@ -251,18 +253,18 @@ class Processor(EngineWorker):
                     log.debug('Unhandled pair_state: %r for %r',
                               doc_pair.pair_state, doc_pair)
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
-                    self._current_item = self._get_item()
                     continue
                 else:
-                    self._current_metrics = dict()
-                    self._current_metrics["handler"] = doc_pair.pair_state
-                    self._current_metrics["start_time"] = current_milli_time()
+                    self._current_metrics = {
+                        'handler': doc_pair.pair_state,
+                        'start_time': current_milli_time(),
+                    }
                     log.trace('Calling %s on doc pair %r', sync_handler,
                               doc_pair)
                     try:
                         soft_lock = self._lock_soft_path(doc_pair.local_path)
                         sync_handler(doc_pair, local_client, remote_client)
-                        self._current_metrics["end_time"] = current_milli_time()
+                        self._current_metrics['end_time'] = current_milli_time()
                         self.pairSync.emit(doc_pair, self._current_metrics)
                     except ThreadInterrupt:
                         raise
@@ -278,7 +280,6 @@ class Processor(EngineWorker):
                         self.giveup_error(doc_pair, 'DEDUP')
                         log.trace('Removing local_path on %r', doc_pair)
                         self._dao.remove_local_path(doc_pair.id)
-                        self._current_item = self._get_item()
                         continue
                     except HTTPError as exc:
                         if exc.code == 409:  # Conflict
@@ -289,26 +290,23 @@ class Processor(EngineWorker):
                         else:
                             self._handle_pair_handler_exception(
                                 doc_pair, handler_name, exc)
-                        self._current_item = self._get_item()
                         continue
                     except Exception as exc:
                         self._handle_pair_handler_exception(
                             doc_pair, handler_name, exc)
-                        self._current_item = self._get_item()
                         continue
             except ThreadInterrupt:
                 self._engine.get_queue_manager().push(doc_pair)
                 raise
             except Exception as e:
                 log.exception('Pair error')
-                self.increase_error(doc_pair, "EXCEPTION", exception=e)
+                self.increase_error(doc_pair, 'EXCEPTION', exception=e)
                 raise e
             finally:
                 if soft_lock is not None:
                     self._unlock_soft_path(soft_lock)
                 self._dao.release_state(self._thread_id)
             self._interact()
-            self._current_item = self._get_item()
 
     def _handle_pair_handler_exception(self, doc_pair, handler_name, e):
         if isinstance(e, IOError) and e.errno == 28:
@@ -341,15 +339,43 @@ class Processor(EngineWorker):
             log.trace("Transfer speed %d ko/s", speed / 1024)
             self._current_metrics["speed"] = speed
 
-    def _synchronize_if_not_remotely_dirty(self, doc_pair, local_client, remote_client, remote_info=None):
+    def _synchronize_if_not_remotely_dirty(
+        self,
+        doc_pair,
+        local_client,
+        remote_client,
+        remote_info=None,
+    ):
         if (remote_info is not None
                 and (remote_info.name != doc_pair.local_name
                      or remote_info.digest != doc_pair.local_digest)):
             doc_pair = self._dao.get_state_from_local(doc_pair.local_path)
-            log.debug('Forcing _synchronize_remotely_modified for pair = %r with info = %r', doc_pair, remote_info)
-            self._synchronize_remotely_modified(doc_pair, local_client, remote_client)
-        else:
-            self._dao.synchronize_state(doc_pair)
+            log.debug('Forcing remotely_modified for pair=%r with info=%r',
+                      doc_pair, remote_info)
+            self._synchronize_remotely_modified(
+                doc_pair, local_client, remote_client)
+            return
+
+        # Force computation of local digest to catch local modifications
+        dynamic_states = False
+        if (not doc_pair.folderish
+                and not local_client.is_equal_digests(None,
+                                                      doc_pair.remote_digest,
+                                                      doc_pair.local_path)):
+            # Note: setted 1st argument of is_equal_digests() to None
+            # to force digest computation
+            try:
+                info = local_client.get_info(doc_pair.local_path)
+            except NotFound:
+                doc_pair.local_state = 'created'
+                dynamic_states = True
+            else:
+                doc_pair.local_digest = info.get_digest()
+                if doc_pair.local_digest != doc_pair.remote_digest:
+                    doc_pair.local_state = 'modified'
+                    dynamic_states = True
+
+        self._dao.synchronize_state(doc_pair, dynamic_states=dynamic_states)
 
     def _synchronize_locally_modified(self, doc_pair, local_client, remote_client):
         fs_item_info = None
@@ -380,12 +406,13 @@ class Processor(EngineWorker):
                 self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False)
                 # TODO refresh_client
             else:
-                log.debug("Skip update of remote document '%s' as it is readonly.", doc_pair.local_name)
+                log.debug('Skip update of remote document %r as it is read-only.',
+                          doc_pair.local_name)
                 if self._engine.local_rollback():
                     local_client.delete(doc_pair.local_path)
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
-                    log.debug("Set pair unsynchronized: %r", doc_pair)
+                    log.debug('Set pair unsynchronized: %r', doc_pair)
                     info = remote_client.get_info(doc_pair.remote_ref, raise_if_missing=False)
                     if info is None or info.lock_owner is None:
                         self._dao.unsynchronize_state(doc_pair, 'READONLY')
@@ -614,7 +641,8 @@ class Processor(EngineWorker):
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):
         if not doc_pair.remote_ref:
             self._dao.remove_state(doc_pair)
-            self._search_for_dedup(doc_pair)
+            if local_client.duplication_enabled():
+                self._search_for_dedup(doc_pair)
             return
 
         if doc_pair.remote_can_delete:
@@ -646,20 +674,23 @@ class Processor(EngineWorker):
         # A file has been moved locally, and an error occurs when tried to
         # move on the server
         remote_info = None
-        self._search_for_dedup(doc_pair, doc_pair.remote_name)
+        if local_client.duplication_enabled():
+            self._search_for_dedup(doc_pair, doc_pair.remote_name)
+
         if doc_pair.local_name != doc_pair.remote_name:
             try:
                 if doc_pair.remote_can_rename:
                     log.debug('Renaming remote document according to local : %r',
-                                                        doc_pair)
+                              doc_pair)
                     remote_info = remote_client.rename(doc_pair.remote_ref,
-                                                            doc_pair.local_name)
-                    self._refresh_remote(doc_pair, remote_client, remote_info=remote_info)
+                                                       doc_pair.local_name)
+                    self._refresh_remote(doc_pair, remote_client,
+                                         remote_info=remote_info)
                 else:
                     self._handle_failed_remote_rename(doc_pair, doc_pair)
                     return
             except Exception as e:
-                log.debug(e)
+                log.debug(repr(e))
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
                 return
 
@@ -678,7 +709,8 @@ class Processor(EngineWorker):
                 log.debug('Moving remote file according to local : %r', doc_pair)
                 # Bug if move in a parent with no rights / partial move
                 # if rename at the same time
-                parent_path = parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+                parent_path = (parent_pair.remote_parent_path
+                               + '/' + parent_pair.remote_ref)
                 remote_info = remote_client.move(doc_pair.remote_ref,
                                                  parent_pair.remote_ref)
                 self._dao.update_remote_state(doc_pair, remote_info,
@@ -687,12 +719,16 @@ class Processor(EngineWorker):
             else:
                 # Move it back
                 self._handle_failed_remote_move(doc_pair, doc_pair)
+
         # Handle modification at the same time if needed
         if update:
             if doc_pair.local_state == 'moved':
-                self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=remote_info)
+                self._synchronize_if_not_remotely_dirty(
+                    doc_pair, local_client, remote_client,
+                    remote_info=remote_info)
             else:
-                self._synchronize_locally_modified(doc_pair, local_client, remote_client)
+                self._synchronize_locally_modified(
+                    doc_pair, local_client, remote_client)
 
     def _synchronize_deleted_unknown(self, doc_pair, *_):
         """
@@ -1046,7 +1082,7 @@ class Processor(EngineWorker):
         # An error occurs return false
         log.error("Renaming from %s to %s canceled",
                   target_pair.remote_name, target_pair.local_name)
-        if self._engine.local_rollback():
+        if self._engine.local_rollback(force=AbstractOSIntegration.is_windows()):
             try:
                 local_client = self._engine.get_local_client()
                 info = local_client.rename(target_pair.local_path,
@@ -1067,9 +1103,8 @@ class Processor(EngineWorker):
                         self._dao.remove_state(target_pair)
                 self._dao.synchronize_state(source_pair)
                 return True
-            except Exception, e:
-                log.error("Can't rollback local modification")
-                log.debug(e)
+            except:
+                log.exception('Cannot rollback local modification')
         return False
 
     def _handle_unsynchronized(self, local_client, doc_pair):

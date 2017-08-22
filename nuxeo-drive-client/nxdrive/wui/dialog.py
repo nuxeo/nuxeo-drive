@@ -294,10 +294,7 @@ class WebDriveApi(QtCore.QObject):
         }
 
     def _export_notifications(self, notifs):
-        result = []
-        for notif in notifs.values():
-            result.append(self._export_notification(notif))
-        return result
+        return [self._export_notification(notif) for notif in notifs.values()]
 
     @QtCore.pyqtSlot(str, result=str)
     def get_notifications(self, engine_uid):

@@ -241,6 +241,9 @@ class WebSystray(QMenu):
 
     @pyqtSlot()
     def popup(self, _):
+        # Not the best, but works for now
+        self.dialog.view.reload()
+
         self.dialog.resize_and_move()
         self.dialog.show()
 
