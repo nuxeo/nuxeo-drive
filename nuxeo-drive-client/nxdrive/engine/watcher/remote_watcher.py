@@ -138,9 +138,7 @@ class RemoteWatcher(EngineWorker):
             return
         doc_pair = self._dao.get_state_from_remote_with_path(remote_ref, parent_path)
         if doc_pair is not None:
-            log.debug("Remote scan_pair: %s", doc_pair.local_path)
             self._do_scan_remote(doc_pair, child_info)
-            log.debug("Remote scan_pair ended: %s", doc_pair.local_path)
             return
         log.debug("parent_path: '%s'\t'%s'\t'%s'", parent_path, os.path.basename(parent_path),
                   os.path.dirname(parent_path))
@@ -155,32 +153,31 @@ class RemoteWatcher(EngineWorker):
             row_id = self._dao.insert_remote_state(child_info, remote_parent_path, local_path, parent_pair.local_path)
             doc_pair = self._dao.get_state_from_id(row_id, from_write=True)
             if child_info.folderish:
-                log.debug("Remote scan_pair: %s", doc_pair.local_path)
                 self._do_scan_remote(doc_pair, child_info)
-                log.debug("Remote scan_pair ended: %s", doc_pair.local_path)
         else:
-            log.debug("Remote scan_pair: %s is not available, Do full scan", remote_path)
+            log.debug('Remote scan_pair: %s is not available', remote_path)
             self._scan_remote()
 
     @staticmethod
     def _check_modified(child_pair, child_info):
-        if (child_pair.remote_can_delete != child_info.can_delete
-                or child_pair.remote_can_rename != child_info.can_rename
-                or child_pair.remote_can_update != child_info.can_update
-                or child_pair.remote_can_create_child != child_info.can_create_child
-                or child_pair.remote_digest != child_info.digest):
-            return True
-        return False
+        return any((
+            child_pair.remote_can_delete != child_info.can_delete,
+            child_pair.remote_can_rename != child_info.can_rename,
+            child_pair.remote_can_update != child_info.can_update,
+            child_pair.remote_can_create_child != child_info.can_create_child,
+            child_pair.remote_digest != child_info.digest,
+        ))
 
     def _do_scan_remote(self, doc_pair, remote_info, force_recursion=True, moved=False):
         if remote_info.can_scroll_descendants:
-            log.debug('Performing scroll remote scan for %s (%s)', remote_info.name, remote_info.uid)
+            log.debug('Performing scroll remote scan for %s (%r)',
+                      remote_info.name, remote_info)
             self._scan_remote_scroll(doc_pair, remote_info, moved=moved)
         else:
-            log.debug('Scroll scan not available, performing recursive remote scan for %s (%s)', remote_info.name,
-                      remote_info.uid)
-            self._scan_remote_recursive(doc_pair, remote_info,
-                                        force_recursion=force_recursion)
+            log.debug('Scroll scan not available, performing recursive '
+                      'remote scan for %s (%r)', remote_info.name, remote_info)
+            self._scan_remote_recursive(
+                doc_pair, remote_info, force_recursion=force_recursion)
 
     def _scan_remote_scroll(self, doc_pair, remote_info, moved=False):
         """

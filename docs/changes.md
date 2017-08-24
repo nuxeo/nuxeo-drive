@@ -4,6 +4,7 @@ Release date: `2017-??-??`
 ### Core
 - [NXDRIVE-731](https://jira.nuxeo.com/browse/NXDRIVE-731): Remove nuxeo-jsf-ui package dependency
 - [NXDRIVE-836](https://jira.nuxeo.com/browse/NXDRIVE-836): Bad behaviors with read-only documents on Windows
+- [NXDRIVE-956](https://jira.nuxeo.com/browse/NXDRIVE-956): Uniformize actions on local deletion of read-only documents
 - [NXDRIVE-957](https://jira.nuxeo.com/browse/NXDRIVE-957): Update process from 2.5.0 to 2.5.1 is broken
 
 ### GUI:
@@ -14,6 +15,7 @@ Release date: `2017-??-??`
 #### Minor changes
 - Account: Unset read-only when overwriting local folder
 - Tools: Updated `changelog.py` from 1.2.3 to 1.2.4
+- Tests: Use `QT_PATH` and `MINGW_PATH` envars on Windows
 - Packaging: Updated `Js2Py` from 0.44 to 0.50
 - Packaging: Updated `Send2Trash` from 1.3.0 to 1.4.1
 - Packaging: Updated `pytest` from 3.1.3 to 3.2.1
