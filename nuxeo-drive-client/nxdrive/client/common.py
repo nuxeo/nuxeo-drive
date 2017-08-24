@@ -81,6 +81,7 @@ class DuplicationError(IOError):
 
 DEFAULT_BETA_SITE_URL = 'http://community.nuxeo.com/static/drive-tests/'
 DEFAULT_REPOSITORY_NAME = 'default'
+DRIVE_STARTUP_PAGE = 'drive_login.jsp'
 
 DEFAULT_IGNORED_PREFIXES = tuple({
     '.',  # hidden Unix files

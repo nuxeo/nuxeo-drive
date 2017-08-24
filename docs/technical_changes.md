@@ -2,6 +2,11 @@
 - Removed `is_office_file()` function from local_watcher.py
 - Added `dynamic_states=False` keyword to `synchronize_state()` method in `EngineDAO` class
 - Added `force` keyword to `local_rollback()` method in `Engine` class
+- Removed `get_username()` method from `RootAlreadyBindWithDifferentAccount` class. Use `username` attribute instead.
+- Removed `get_url()` method from `RootAlreadyBindWithDifferentAccount` class. Use `url` attribute instead.
+- Removed `deprecated()` function from utils.py
+- Added `guess_server_url()` function to utils.py
+- Moved `DRIVE_STARTUP_PAGE` constant from wui/settings.py to client/common.py
 
 # 2.5.1
 - Removed `update_tooltip()` method from `Application` class

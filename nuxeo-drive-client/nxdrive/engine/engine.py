@@ -38,14 +38,8 @@ class InvalidDriveException(Exception):
 class RootAlreadyBindWithDifferentAccount(Exception):
 
     def __init__(self, username, url):
-        self._username = username
-        self._url = url
-
-    def get_username(self):
-        return self._username
-
-    def get_url(self):
-        return self._url
+        self.username = username
+        self.url = url
 
 
 class FsMarkerException(Exception):
