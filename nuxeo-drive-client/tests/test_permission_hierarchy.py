@@ -253,12 +253,8 @@ class TestPermissionHierarchy(UnitTestCase):
                        wait_for_engine_2=True)
 
         # Local checks
-        if AbstractOSIntegration.is_windows():
-            self.assertTrue(self.local_client_2.exists(
-                root + 'ReadFolder/file_ro.txt'))
-        else:
-            self.assertFalse(self.local_client_2.exists(
-                root + 'ReadFolder/file_ro.txt'))
+        self.assertFalse(self.local_client_2.exists(
+            root + 'ReadFolder/file_ro.txt'))
         self.assertFalse(self.local_client_2.exists(
             root + 'WriteFolder/file_ro.txt'))
         self.assertTrue(self.local_client_2.exists(
@@ -268,8 +264,7 @@ class TestPermissionHierarchy(UnitTestCase):
             'Now a fresh read-write doc.')
 
         # Remote checks
-        count = int(AbstractOSIntegration.is_windows())
-        self.assertEqual(len(self.user1.get_children_info(readonly)), count)
+        self.assertEqual(len(self.user1.get_children_info(readonly)), 0)
         children = self.user1.get_children_info(readwrite)
         self.assertEqual(len(children), 1)
         self.assertEqual(children[0].filename, 'file_rw.txt')
