@@ -423,7 +423,7 @@ class AppUpdater(PollWorker):
 
     def _update_callback(self, status):
         if "received" in status and "size" in status:
-            self.action.progress = (status["received"] * 100 / status["size"])
+            self.action.progress = status["received"] * 100 / status["size"]
             self.last_status = (self.last_status[0],
                                 self.last_status[1],
                                 self.action.progress)

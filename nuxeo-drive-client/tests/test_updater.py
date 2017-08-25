@@ -280,7 +280,6 @@ class TestUpdater(unittest.TestCase):
         self.assertEqual(version_compare_client(None, '2.0.805'), -1)
         self.assertEqual(version_compare_client(None, None), 0)
 
-
     def test_get_active_version(self):
         # Active version is None because Esky instance is built from a
         # directory, see Esky._init_from_appdir

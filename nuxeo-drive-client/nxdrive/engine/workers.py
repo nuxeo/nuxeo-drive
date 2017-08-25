@@ -139,12 +139,15 @@ class Worker(QObject):
 
     @property
     def action(self):
-        action_ = Action.get_current_action(self._thread_id)
-        if action_ is None:
-            action_ = self._action
-        if action_ is None:
-            action_ = IdleAction()
-        return action_
+        if self._action is None:
+            self._action = Action.get_current_action(self._thread_id)
+            if self._action is None:
+                self._action = IdleAction()
+        return self._action
+
+    @action.setter
+    def action(self, value):
+        self._action = value
 
     def get_metrics(self):
         """
