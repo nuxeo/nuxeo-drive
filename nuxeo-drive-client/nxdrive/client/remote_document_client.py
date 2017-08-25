@@ -6,7 +6,6 @@ import unicodedata
 import urllib2
 from collections import namedtuple
 from datetime import datetime
-from urllib import urlencode
 
 from dateutil import parser
 
