@@ -997,33 +997,42 @@ class Engine(QObject):
             self._dao.dispose()
 
     def get_rest_api_client(self):
-        rest_client = RestAPIClient(
-            self.server_url, self.remote_user,
-            self._manager.get_device_id(), self._manager.get_version(), None,
-            self.get_remote_token(), timeout=self.timeout,
+        return RestAPIClient(
+            self.server_url,
+            self.remote_user,
+            self._manager.get_device_id(),
+            self._manager.get_version(),
+            password=None,
+            token=self.get_remote_token(),
+            timeout=self.timeout,
             cookie_jar=self.cookie_jar,
             proxies=self._manager.get_proxies(self._server_url),
-            proxy_exceptions=self._manager.proxy_exceptions)
-        return rest_client
+            proxy_exceptions=self._manager.proxy_exceptions,
+        )
 
     def get_user_full_name(self, userid, cache_only=False):
-        """
-            Get the last contributor full name
-        """
-        fullname = userid
+        """ Get the last contributor full name. """
+
         try:
-            if userid in self._user_cache:
-                fullname = self._user_cache[userid]
-            elif not cache_only:
-                rest_client = self.get_rest_api_client()
+            return self._user_cache[userid]
+        except KeyError:
+            full_name = userid
+
+        if not cache_only:
+            rest_client = self.get_rest_api_client()
+            try:
                 response = rest_client.get_user_full_name(userid)
-                if response and 'properties' in response:
-                    properties = response['properties']
-                    first_name = properties.get('firstName')
-                    last_name = properties.get('lastName')
-                    if first_name and last_name:
-                        fullname = " ".join([first_name, last_name]).strip()
-                self._user_cache[userid] = fullname
-        except urllib2.URLError:
-            log.exception('Network error')
-        return fullname
+                prop = response['properties']
+            except urllib2.URLError:
+                log.exception('Network error')
+            except (TypeError, KeyError):
+                log.exception('Content error')
+            else:
+                first_name = prop.get('firstName') or ''
+                last_name = prop.get('lastName') or ''
+                full_name = ' '.join([first_name, last_name]).strip()
+                if not full_name:
+                    full_name = prop.get('username', userid)
+                self._user_cache[userid] = full_name
+
+        return full_name

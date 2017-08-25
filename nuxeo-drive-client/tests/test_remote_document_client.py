@@ -417,20 +417,16 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         self.assertIsNotNone(update_info.get('updateSiteURL'))
 
     def test_lock_unlock(self):
-        # TODO NXDRIVE-731
-        remote_client = self.remote_document_client_1
-        remote_restapi = self.remote_restapi_client_1
-        doc_id = remote_client.make_file(self.workspace, 'TestLocking.txt', content='File content')
-        try:
-            status = remote_restapi.is_locked(doc_id)
-        except HTTPError, e:
-            if e.code == 404:
-                raise SkipTest('nuxeo-jsf-ui is not installed, so lock methods are not available.')
-            raise e
+        remote = self.remote_document_client_1
+        doc_id = remote.make_file(
+            self.workspace,
+            'TestLocking.txt',
+            content='File content')
 
+        status = remote.is_locked(doc_id)
         self.assertFalse(status)
-        remote_client.lock(doc_id)
-        self.assertTrue(remote_restapi.is_locked(doc_id))
+        remote.lock(doc_id)
+        self.assertTrue(remote.is_locked(doc_id))
 
-        remote_client.unlock(doc_id)
-        self.assertFalse(remote_restapi.is_locked(doc_id))
+        remote.unlock(doc_id)
+        self.assertFalse(remote.is_locked(doc_id))

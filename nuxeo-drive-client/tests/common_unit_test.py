@@ -412,16 +412,6 @@ class UnitTestCase(SimpleUnitTestCase):
             self.version,
             password=self.password_2, upload_tmp_dir=self.upload_tmp_dir)
 
-        self.remote_restapi_client_1 = RestAPIClient(
-            self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-            self.version,
-            password=self.password_1
-        )
-        self.remote_restapi_client_2 = RestAPIClient(
-            self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-            self.version,
-            password=self.password_2
-        )
         self.remote_restapi_client_admin = RestAPIClient(
             self.nuxeo_url, self.admin_user, u'nxdrive-test-device-2',
             self.version,
@@ -625,7 +615,7 @@ class UnitTestCase(SimpleUnitTestCase):
         self.result = result
 
         def launch_test():
-            self.remote_restapi_client_admin.log_on_server(
+            self.root_remote_client.log_on_server(
                 '>>> testing: ' + self.id())
             log.debug('UnitTest thread started')
             sleep(1)

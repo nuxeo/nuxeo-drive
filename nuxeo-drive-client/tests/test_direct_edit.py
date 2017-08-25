@@ -134,16 +134,16 @@ class TestDirectEdit(UnitTestCase):
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.assertTrue(called_open, "Should have called open_local_file")
         # Should be able to test lock
-        self.assertTrue(self.remote_restapi_client_1.is_locked(doc_id))
+        self.assertTrue(self.remote_document_client_1.is_locked(doc_id))
         os.remove(lock_file)
         self.wait_sync(timeout=2, fail_if_timeout=False)
         # Should be unlock
-        self.assertFalse(self.remote_restapi_client_1.is_locked(doc_id))
+        self.assertFalse(self.remote_document_client_1.is_locked(doc_id))
         self.manager_1.set_direct_edit_auto_lock(0)
         with open(lock_file, 'w') as f:
             f.write("plop")
         self.wait_sync(timeout=2, fail_if_timeout=False)
-        self.assertFalse(self.remote_restapi_client_1.is_locked(doc_id))
+        self.assertFalse(self.remote_document_client_1.is_locked(doc_id))
 
     def _direct_edit_update(self, doc_id, filename, content, url=None):
         # Download file
@@ -172,14 +172,13 @@ class TestDirectEdit(UnitTestCase):
         self.wait_sync()
         self.assertEqual(self.remote.get_blob(self.remote.get_info(doc_id)), update_content)
 
-
     def test_direct_edit_cleanup(self):
         filename = u'Mode op\xe9ratoire.txt'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
         # Download file
         local_path = u'/%s/%s' % (doc_id, filename)
 
-        def open_local_file(path):
+        def open_local_file(_):
             pass
 
         self.manager_1.open_local_file = open_local_file
@@ -208,3 +207,18 @@ class TestDirectEdit(UnitTestCase):
         self.direct_edit.stop()
         self.direct_edit._cleanup()
         self.assertFalse(self.local.exists(local_path))
+
+    def test_user_name(self):
+        # user_1 is drive_user_1, no more informations
+        user = self.engine_1.get_user_full_name(self.user_1)
+        self.assertEqual(user, self.user_1)
+
+        # Create a complete user
+        remote = self.root_remote_client
+        remote.create_user('john', firstName='John', lastName='Doe')
+        user = self.engine_1.get_user_full_name('john')
+        self.assertEqual(user, 'John Doe')
+
+        # Unknown user
+        user = self.engine_1.get_user_full_name('unknown')
+        self.assertEqual(user, 'unknown')

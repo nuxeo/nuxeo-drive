@@ -372,11 +372,18 @@ class RemoteDocumentClient(BaseAutomationClient):
     def get_parent(self, ref):
         return self.execute("Document.GetParent", op_input="doc:" + ref)
 
+    def is_locked(self, ref):
+        data = self.fetch(ref, extra_headers={'fetch-document': 'lock'})
+        return 'lockCreated' in data
+
     def lock(self, ref):
         return self.execute("Document.Lock", op_input="doc:" + self._check_ref(ref))
 
     def unlock(self, ref):
         return self.execute("Document.Unlock", op_input="doc:" + self._check_ref(ref))
+
+    def create_user(self, user_name, **kwargs):
+        return self.execute('User.CreateOrUpdate', username=user_name, **kwargs)
 
     def move(self, ref, target, name=None):
         return self.execute("Document.Move",
@@ -421,9 +428,9 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     # These ones are special: no 'op_input' parameter
 
-    def fetch(self, ref):
+    def fetch(self, ref, **kwargs):
         try:
-            return self.execute("Document.Fetch", value=ref)
+            return self.execute("Document.Fetch", value=ref, **kwargs)
         except urllib2.HTTPError as e:
             if e.code == 404:
                 raise NotFound("Failed to fetch document %r on server %r" % (
@@ -460,6 +467,11 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def delete_blob(self, ref, xpath=None):
         return self.execute("Blob.Remove", op_input="doc:" + ref, xpath=xpath)
+
+    def log_on_server(self, message, level='WARN'):
+        """ Log the current test server side.  Helpful for debugging. """
+
+        return self.execute('Log', message=message, level=level.lower())
 
     #
     # Nuxeo Drive specific operations

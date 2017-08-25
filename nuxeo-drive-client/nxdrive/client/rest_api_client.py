@@ -4,7 +4,6 @@
 import base64
 import json
 import urllib2
-from urllib import urlencode
 
 from nxdrive.client.base_automation_client import get_proxy_handler
 from nxdrive.logging_config import get_logger
@@ -49,11 +48,7 @@ class RestAPIClient(object):
     def get_acls(self, ref):
         return self.execute('id/' + ref, adapter='acl')
 
-    def fetch(self, ref, fetchDocument=None, enrichers=None):
-        return self.execute('id/' + ref, fetchDocument=fetchDocument, enrichers=enrichers)
-
-    def execute(self, relative_url, method='GET', body=None, adapter=None, fetchDocument=None, enrichers=None,
-                timeout=-1):
+    def execute(self, relative_url, method='GET', body=None, adapter=None, timeout=-1):
         """Execute a REST API call"""
 
         url = self.rest_api_url + relative_url
@@ -68,14 +63,6 @@ class RestAPIClient(object):
             "X-NXDocumentProperties": "*",
         }
         headers.update(self._get_common_headers())
-        if fetchDocument is not None:
-            headers.update({
-                "X-NXfetch.document": ', '.join(fetchDocument),
-            })
-        if enrichers is not None:
-            headers.update({
-                "X-NXenrichers.document": ', '.join(enrichers),
-            })
 
         data = json.dumps(body) if body is not None else None
 
@@ -92,41 +79,6 @@ class RestAPIClient(object):
             raise
 
         return self._read_response(resp, url, method=method)
-
-    def log_on_server(self, message, level='WARN'):
-        """ Log the current test server side. Helpful for debugging. """
-
-        params = {'token': 'dolog', 'level': level, 'message': message}
-        url = self.server_url + 'restAPI/systemLog?' + urlencode(params)
-        req = urllib2.Request(url, headers=self._get_common_headers())
-        try:
-            self.opener.open(req, timeout=self.timeout)
-        except urllib2.HTTPError as e:
-            self._log_details(e)
-            raise
-
-    def is_locked(self, ref):
-        # TODO Create an adapter on the rest-api server-side
-        url = self.server_url + "restAPI/default/" + ref + "/Locking/state"
-
-        headers = {
-            "Content-Type": "application/json+nxrequest",
-            "Accept": "application/json+nxentity, */*",
-        }
-        headers.update(self._get_common_headers())
-
-        cookies = self._get_cookies()
-        log.trace("Calling REST API %s with headers %r and cookies %r", url,
-                  headers, cookies)
-        req = urllib2.Request(url, headers=headers)
-        try:
-            resp = self.opener.open(req, timeout=self.timeout)
-        except Exception as e:
-            self._log_details(e)
-            raise
-
-        res = self._read_response(resp, url)
-        return 'code="LOCKED"' in res
 
     def _update_auth(self, password=None, token=None):
         """Select the most appropriate auth headers based on credentials"""
