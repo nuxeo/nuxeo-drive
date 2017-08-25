@@ -9,9 +9,6 @@ Release date: `2017-??-??`
 - [NXDRIVE-953](https://jira.nuxeo.com/browse/NXDRIVE-953): After disconnect, Drive is not showing set account window
 - [NXDRIVE-954](https://jira.nuxeo.com/browse/NXDRIVE-954): Disconnect, quit and set account, Drive is not showing systray menu
 
-### Tests
-- [NXDRIVE-731](https://jira.nuxeo.com/browse/NXDRIVE-731): Remove nuxeo-jsf-ui package dependency
-
 #### Minor changes
 - Account: Unset read-only when overwriting local folder
 - Tools: Updated `changelog.py` from 1.2.3 to 1.2.4
