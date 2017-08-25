@@ -6,13 +6,15 @@ import os
 import re
 import sys
 import time
+import urlparse
 from distutils.version import StrictVersion
+from urllib2 import HTTPError, URLError, urlopen
 
 import psutil
 from Crypto import Random
 from Crypto.Cipher import AES
 
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES
+from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, DRIVE_STARTUP_PAGE
 from nxdrive.logging_config import get_logger
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
@@ -396,22 +398,65 @@ def guess_digest_algorithm(digest):
     raise Exception('Unknown digest algorithm for %s' % digest)
 
 
+def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
+    """
+    Guess the complete server URL given an URL (either an IP address,
+    a simple domain name or an already complete URL).
+
+    :param url: The server URL (IP, domain name, full URL).
+    :param login_page: The Drive login page.
+    :param int timeout: Timeout for each and every request.
+    :return: The complete URL.
+    """
+
+    if url.startswith('http'):
+        return url
+
+    parts = urlparse.urlsplit(str(url))
+
+    # IP address or domain name only
+    if parts.scheme:
+        """
+        Handle that kind of `url`:
+
+        >>> urlparse.urlsplit('192.168.0.42:8080/nuxeo')
+        SplitResult(scheme='192.168.0.42', netloc='', path='8080/nuxeo', ...)
+        """
+        domain = ':'.join([parts.scheme, parts.path.strip('/')])
+    else:
+        domain = parts.path.strip('/')
+
+    # List of URLs we will test, secured first
+    urls = [
+        # https://domain.com
+        ('https', domain, '', '', ''),
+        # https://domain.com/nuxeo
+        ('https', domain, 'nuxeo', '', ''),
+        # https://domain.com:8080/nuxeo
+        ('https', domain + ':8080', 'nuxeo', '', ''),
+
+        # http://domain.com
+        ('http', domain, '', '', ''),
+        # http://domain.com/nuxeo
+        ('http', domain, 'nuxeo', '', ''),
+        # http://domain.com:8080/nuxeo
+        ('http', domain + ':8080', 'nuxeo', '', ''),
+    ]
+    for count, new_url in enumerate(urls, 1):
+        new_url = urlparse.urlunsplit(new_url)
+        log.trace('Test %d, URL is %r', count, new_url)
+        try:
+            urlopen(new_url + '/' + login_page, timeout=timeout)
+        except (URLError, HTTPError):
+            pass
+        else:
+            return new_url
+    return url
+
+
 def _patch_win32_mime_type(mime_type):
     patched_mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type)
     return patched_mime_type if patched_mime_type else mime_type
-
-
-def deprecated(func):
-    """"This is a decorator which can be used to mark functions
-    as deprecated. It will result in a warning being emitted
-    when the function is used."""
-    def new_func(*args, **kwargs):
-        log.warning("Call to deprecated function {}.".format(func.__name__))
-        return func(*args, **kwargs)
-    new_func.__name__ = func.__name__
-    new_func.__doc__ = func.__doc__
-    new_func.__dict__.update(func.__dict__)
-    return new_func
 
 
 class ServerLoader(object):
@@ -430,10 +475,8 @@ class ServerLoader(object):
             child_uid = None
             if child.path not in existing_childs:
                 if child.folderish:
-                    print "Making folder: %s" % child.path
                     child_uid = self._remote_client.make_folder(remote_uid, child.name)
                 else:
-                    print "Making file: %s" % child.path
                     self._remote_client.stream_file(remote_uid, self._local_client.abspath(child.path))
             else:
                 child_uid = existing_childs[child.path].uid

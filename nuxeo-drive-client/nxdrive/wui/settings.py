@@ -9,19 +9,20 @@ from PyQt4 import QtCore, QtGui
 
 from nxdrive.client.base_automation_client import AddonNotInstalled, \
     Unauthorized, get_opener_proxies, get_proxy_handler
-from nxdrive.client.common import NotFound
+from nxdrive.client.common import DRIVE_STARTUP_PAGE, NotFound
 from nxdrive.engine.engine import InvalidDriveException, \
     RootAlreadyBindWithDifferentAccount
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import FolderAlreadyUsed, ProxySettings
-from nxdrive.utils import DEVICE_DESCRIPTIONS, TOKEN_PERMISSION
+from nxdrive.utils import DEVICE_DESCRIPTIONS, TOKEN_PERMISSION, \
+    guess_server_url
 from nxdrive.wui.authentication import WebAuthenticationApi, \
     WebAuthenticationDialog
 from nxdrive.wui.dialog import Promise, WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
 
 log = get_logger(__name__)
-DRIVE_STARTUP_PAGE = 'drive_login.jsp'
+
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30
 
 
@@ -70,9 +71,10 @@ class WebSettingsApi(WebDriveApi):
 
     def _bind_server(self, local_folder, url, username, password, name, **kwargs):
         # Remove any parameters from the original URL
-        parts = urlparse.urlsplit(str(url))
+        parts = urlparse.urlsplit(guess_server_url(unicode(url)))
         url = urlparse.urlunsplit(
             (parts.scheme, parts.netloc, parts.path, '', parts.fragment))
+        log.debug('URL: %r', url)
 
         # On first time login convert QString(having special characters) to str
         if isinstance(local_folder, QtCore.QString):
@@ -106,12 +108,11 @@ class WebSettingsApi(WebDriveApi):
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
     def bind_server(self, local_folder, url, username, password, name, **kwargs):
-        log.debug('URL: %r', url)
         try:
             return self._bind_server(local_folder, url, username, password, name, **kwargs)
         except RootAlreadyBindWithDifferentAccount as e:
             # Ask for the user
-            values = dict(username=e.get_username(), url=e.get_url())
+            values = {'username': e.username, 'url': e.url}
             msgbox = QtGui.QMessageBox(
                 QtGui.QMessageBox.Question, self._manager.app_name,
                 Translator.get('ROOT_USED_WITH_OTHER_BINDING', values),
@@ -154,10 +155,9 @@ class WebSettingsApi(WebDriveApi):
     @QtCore.pyqtSlot(str, str, str, result=str)
     def web_authentication(self, local_folder, server_url, engine_name):
         # Handle the server URL
-        parts = urlparse.urlsplit(str(server_url))
-        path = parts.path.rstrip('/') + '/'
+        parts = urlparse.urlsplit(guess_server_url(unicode(server_url)))
         server_url = urlparse.urlunsplit(
-            (parts.scheme, parts.netloc, path, parts.query, parts.fragment))
+            (parts.scheme, parts.netloc, parts.path, parts.query, parts.fragment))
 
         # Handle the engine
         engine_type = parts.fragment or self._manager._get_default_server_type()
@@ -207,10 +207,10 @@ class WebSettingsApi(WebDriveApi):
 
     def _connect_startup_page(self, server_url):
         # Take into account URL parameters
-        parts = urlparse.urlsplit(server_url)
+        parts = urlparse.urlsplit(guess_server_url(server_url))
         url = urlparse.urlunsplit((parts.scheme,
                                    parts.netloc,
-                                   parts.path + DRIVE_STARTUP_PAGE,
+                                   parts.path + '/' + DRIVE_STARTUP_PAGE,
                                    parts.query,
                                    parts.fragment))
 
@@ -289,8 +289,8 @@ class WebSettingsApi(WebDriveApi):
         token_params['forceAnonymousLogin'] = 'true'
 
         # Handle URL parameters
-        parts = urlparse.urlsplit(server_url)
-        path = parts.path + DRIVE_STARTUP_PAGE
+        parts = urlparse.urlsplit(guess_server_url(server_url))
+        path = parts.path + '/' + DRIVE_STARTUP_PAGE
         params = (parts.query + '&' + urlencode(token_params)
                   if parts.query
                   else urlencode(token_params))
