@@ -6,6 +6,7 @@ import unicodedata
 import urllib2
 from collections import namedtuple
 from datetime import datetime
+from urllib import urlencode
 
 from dateutil import parser
 
@@ -467,6 +468,11 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def delete_blob(self, ref, xpath=None):
         return self.execute("Blob.Remove", op_input="doc:" + ref, xpath=xpath)
+
+    def log_on_server(self, message, level='WARN'):
+        """ Log the current test server side.  Helpful for debugging. """
+
+        return self.execute('Log', message=message, level=level.lower())
 
     #
     # Nuxeo Drive specific operations
