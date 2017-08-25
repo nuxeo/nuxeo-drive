@@ -382,6 +382,9 @@ class RemoteDocumentClient(BaseAutomationClient):
     def unlock(self, ref):
         return self.execute("Document.Unlock", op_input="doc:" + self._check_ref(ref))
 
+    def create_user(self, user_name, **kwargs):
+        return self.execute('User.CreateOrUpdate', username=user_name, **kwargs)
+
     def move(self, ref, target, name=None):
         return self.execute("Document.Move",
                             op_input="doc:" + self._check_ref(ref),
