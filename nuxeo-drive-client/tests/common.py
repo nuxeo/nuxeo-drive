@@ -10,7 +10,7 @@ from unittest import TestCase
 
 import nxdrive
 from nxdrive.client import LocalClient, RemoteDocumentClient, \
-    RemoteFileSystemClient, RestAPIClient
+    RemoteFileSystemClient
 from nxdrive.client.common import BaseClient
 from nxdrive.logging_config import configure, get_logger
 from nxdrive.osi import AbstractOSIntegration

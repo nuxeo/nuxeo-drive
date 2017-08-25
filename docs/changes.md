@@ -2,6 +2,7 @@
 Release date: `2017-??-??`
 
 ### Core
+- [NXDRIVE-731](https://jira.nuxeo.com/browse/NXDRIVE-731): Remove nuxeo-jsf-ui package dependency
 - [NXDRIVE-836](https://jira.nuxeo.com/browse/NXDRIVE-836): Bad behaviors with read-only documents on Windows
 
 ### GUI:
