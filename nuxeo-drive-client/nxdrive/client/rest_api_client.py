@@ -49,11 +49,7 @@ class RestAPIClient(object):
     def get_acls(self, ref):
         return self.execute('id/' + ref, adapter='acl')
 
-    def fetch(self, ref, fetchDocument=None, enrichers=None):
-        return self.execute('id/' + ref, fetchDocument=fetchDocument, enrichers=enrichers)
-
-    def execute(self, relative_url, method='GET', body=None, adapter=None, fetchDocument=None, enrichers=None,
-                timeout=-1):
+    def execute(self, relative_url, method='GET', body=None, adapter=None, timeout=-1):
         """Execute a REST API call"""
 
         url = self.rest_api_url + relative_url
@@ -68,14 +64,6 @@ class RestAPIClient(object):
             "X-NXDocumentProperties": "*",
         }
         headers.update(self._get_common_headers())
-        if fetchDocument is not None:
-            headers.update({
-                "X-NXfetch.document": ', '.join(fetchDocument),
-            })
-        if enrichers is not None:
-            headers.update({
-                "X-NXenrichers.document": ', '.join(enrichers),
-            })
 
         data = json.dumps(body) if body is not None else None
 

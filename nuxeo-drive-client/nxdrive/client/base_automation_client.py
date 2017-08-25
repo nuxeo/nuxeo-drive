@@ -306,7 +306,7 @@ class BaseAutomationClient(BaseClient):
 
     def execute(self, command, url=None, op_input=None, timeout=-1,
                 check_params=True, void_op=False, extra_headers=None,
-                file_out=None, **params):
+                enrichers=None, file_out=None, **params):
         """Execute an Automation operation"""
         if check_params:
             self._check_params(command, params)
@@ -326,6 +326,10 @@ class BaseAutomationClient(BaseClient):
             headers.update({"X-NXRepository": self.repository})
         if extra_headers is not None:
             headers.update(extra_headers)
+        if enrichers is not None:
+            headers.update({
+                'X-NXenrichers.document': ', '.join(enrichers),
+            })
         headers.update(self._get_common_headers())
 
         json_struct = {'params': {}}
