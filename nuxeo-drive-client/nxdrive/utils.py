@@ -409,9 +409,6 @@ def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
     :return: The complete URL.
     """
 
-    if url.startswith('http'):
-        return url
-
     parts = urlparse.urlsplit(str(url))
 
     # IP address or domain name only
@@ -426,8 +423,17 @@ def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
     else:
         domain = parts.path.strip('/')
 
-    # List of URLs we will test, secured first
+    # URLs to test
     urls = [
+        # First, test the given URL
+        parts,
+        # URL/nuxeo
+        (parts.scheme, parts.netloc, parts.path + '/nuxeo',
+         parts.query, parts.fragment),
+        # URL:8080/nuxeo
+        (parts.scheme, parts.netloc + ':8080', parts.path + '/nuxeo',
+         parts.query, parts.fragment),
+
         # https://domain.com
         ('https', domain, '', '', ''),
         # https://domain.com/nuxeo
@@ -442,12 +448,13 @@ def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
         # http://domain.com:8080/nuxeo
         ('http', domain + ':8080', 'nuxeo', '', ''),
     ]
+
     for count, new_url in enumerate(urls, 1):
         new_url = urlparse.urlunsplit(new_url)
         log.trace('Test %d, URL is %r', count, new_url)
         try:
             urlopen(new_url + '/' + login_page, timeout=timeout)
-        except (URLError, HTTPError):
+        except (ValueError, URLError, HTTPError):
             pass
         else:
             return new_url
