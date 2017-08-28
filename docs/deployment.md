@@ -38,9 +38,9 @@ You will also need to install the Qt4 library, using HomeBrew:
 
 #### GNU/Linux
 
-You will also need to install the Qt4 qmake tool:
+You will also need to install the Qt4 qmake tool and the Qt4 library:
 
-	apt install qt4-make
+	apt install qt4-make libqt4-dev libqtwebkit-dev
 
 ## Windows
 
@@ -84,10 +84,10 @@ If an envar is specifying a version, this means that the specified version of th
 - `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `2.7.13`.
 - `PYQT_VERSION` is the required **PyQt version** to use, i.e. `4.12`.
 - `WORKSPACE` is the **absolute path to the WORKSPACE**, i.e. `/opt/jenkins/workspace/xxx`.
+- `WORKSPACE_DRIVE` is the **absolute path to Drive sources**, i.e. `$WORKSPACE/sources`. If not defined, it will be set to `$WORKSPACE/sources` or `$WORKSPACE/nuxeo-drive` if folder exists else `$WORKSPACE`.
 
 ### Optional Envars
 
-- `WORKSPACE_DRIVE` is the **absolute path to Drive sources**, i.e. `$WORKSPACE/sources`. If not defined, it will be set to `$WORKSPACE/sources` or `$WORKSPACE/nuxeo-drive` if folder exists else `$WORKSPACE`.
 - `CXFREEZE_VERSION` is the **cx_Freeze version** to use, i.e. `4.3.3`.
 - `SIP_VERSION` is the **SIP version** to use, i.e. `4.19`.
 - `SPECIFIC_TEST` is a **specific test** to launch. The syntax must be the same as [pytest markers](http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id), i.e.:
