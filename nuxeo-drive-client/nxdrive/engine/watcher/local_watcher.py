@@ -728,20 +728,9 @@ class LocalWatcher(EngineWorker):
     def _handle_watchdog_event_on_known_acquired_pair(self, doc_pair, evt, rel_path):
         if evt.event_type == 'deleted':
             if self._windows:
-                if not doc_pair.remote_can_delete:
-                    log.debug('Deleting a read-only document: %r', doc_pair)
-                    log.debug(
-                        'The %s will be downloaded again in the next scan',
-                        ('file' if doc_pair.folderish
-                         else 'folder and its content'))
-                    self._dao.remove_state(doc_pair)
-                    self._dao.add_path_to_scan(doc_pair.remote_parent_path)
-                    self._engine.deleteReadonly.emit(doc_pair.local_name)
-                    return
-
                 # Delay on Windows the delete event
-                self._win_lock.acquire()
                 log.debug('Add pair to delete events: %r', doc_pair)
+                self._win_lock.acquire()
                 try:
                     self._delete_events[doc_pair.remote_ref] = current_milli_time(), doc_pair
                 finally:

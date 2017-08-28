@@ -78,6 +78,12 @@ function check_vars {
 	if (-Not ($Env:CXFREEZE_VERSION)) {
 		$Env:CXFREEZE_VERSION = "4.3.3"  # XXX: CXFREEZE_VERSION
 	}
+	if (-Not ($Env:QT_PATH)) {
+		$Env:QT_PATH = "C:\Qt\4.8.7\bin"
+	}
+	if (-Not ($Env:MINGW_PATH)) {
+		$Env:MINGW_PATH = "C:\mingw32\bin"
+	}
 	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir").FullName
 	$Env:PYTHON_DIR = "$Env:STORAGE_DIR\drive-$Env:PYTHON_DRIVE_VERSION-python"
 
@@ -89,6 +95,11 @@ function check_vars {
 	echo "    WORKSPACE_DRIVE      = $Env:WORKSPACE_DRIVE"
 	echo "    STORAGE_DIR          = $Env:STORAGE_DIR"
 	echo "    PYTHON_DIR           = $Env:PYTHON_DIR"
+	echo "    QT_PATH              = $Env:QT_PATH"
+	echo "    MINGW_PATH           = $Env:MINGW_PATH"
+
+	# Adjust the PATH for compilation tools
+	$Env:Path = "$Env:QT_PATH;$Env:MINGW_PATH"
 
 	Set-Location "$Env:WORKSPACE_DRIVE"
 
@@ -351,9 +362,6 @@ function unzip($filename, $dest_dir) {
 }
 
 function main {
-	# Adjust the PATH for compilation tools
-	$env:Path = "C:\Qt\4.8.7\bin;C:\mingw32\bin"
-
 	# Launch operations
 	check_vars
 	install_python
