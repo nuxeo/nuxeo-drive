@@ -10,7 +10,7 @@ from collections import namedtuple
 from urlparse import urlparse
 
 import pypac
-from PyQt4 import QtCore
+from PyQt4 import QtCore, QtWebKit
 from PyQt4.QtScript import QScriptEngine
 from PyQt4.QtWebKit import qWebKitVersion
 
@@ -396,6 +396,7 @@ class Manager(QtCore.QObject):
             'qt_version': QtCore.QT_VERSION_STR,
             'webkit_version': str(qWebKitVersion()),
             'pyqt_version': QtCore.PYQT_VERSION_STR,
+            'webkit_version': str(QtWebKit.qWebKitVersion()),
             'python_version': platform.python_version(),
             'platform': platform.system(),
             'appname': self.app_name,
@@ -729,7 +730,7 @@ class Manager(QtCore.QObject):
                 subprocess.Popen(['xdg-open', file_path])
             except OSError:
                 # xdg-open should be supported by recent Gnome, KDE, Xfce
-                log.error("Failed to find and editor for: '%s'", file_path)
+                log.error('Failed to find and editor for: %r', file_path)
 
     def check_version_updated(self):
         last_version = self._dao.get_config("client_version")

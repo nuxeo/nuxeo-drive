@@ -28,6 +28,8 @@ Release date: `2017-??-??`
 - Packaging: Updated `pypac` from 0.3.1 to 0.4.0
 - Packaging: Updated `pytest` from 3.2.3 to 3.2.5
 - Packaging: Better SIP check
+- Tests: Use `QT_PATH` and `MINGW_PATH` envars on Windows
+- Tests: Use `COMPILE_WITH_DEBUG` envar, only revelant on GNU/Linux
 
 
 # 2.5.9

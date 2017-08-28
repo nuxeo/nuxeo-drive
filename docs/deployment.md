@@ -91,6 +91,7 @@ If an envar is specifying a version, this means that the specified version of th
 
 - `CXFREEZE_VERSION` is the **cx_Freeze version** to use, i.e. `4.3.3`.
 - `SIP_VERSION` is the **SIP version** to use, i.e. `4.19`.
+- `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
 - `SPECIFIC_TEST` is a **specific test** to launch. The syntax must be the same as [pytest markers](http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id), i.e.:
 ```
     test_local_client.py (an entire test file)

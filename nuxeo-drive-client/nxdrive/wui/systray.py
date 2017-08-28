@@ -257,5 +257,5 @@ class WebSystray(QMenu):
         self.dialog.show()
 
         # macOs bug: if you click on the advanced menu and then elsewhere
-        # when you will re-click on the menu, nothing will appeares.
+        # when you will re-click on the menu, nothing will appear.
         self.dialog.raise_()
