@@ -223,6 +223,11 @@ class TestUtils(unittest.TestCase):
         good_url = domain
         self.assertEqual(guess_server_url(domain), good_url)
 
+        # Incomplete URL
+        domain = 'https://nightly.nuxeo.com'
+        good_url = 'https://nightly.nuxeo.com/nuxeo'
+        self.assertEqual(guess_server_url(domain), good_url)
+
         # Bad IP
         domain = '1.2.3.4'
         good_url = '1.2.3.4'
