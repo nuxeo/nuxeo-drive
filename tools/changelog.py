@@ -14,7 +14,7 @@ import sys
 
 import requests
 
-__version__ = '1.2.4'
+__version__ = '1.2.5'
 
 
 # Available formatters
@@ -141,22 +141,19 @@ def get_issues(args):
     cmd = ['git', 'log', '--pretty=format:%B'] + args.GIT_OPTIONS
     all_commits = backtick(cmd)
 
-    debug('>>> Retrieving issues')
-    commits, reverts = [], []
-    for commit in all_commits.splitlines():
-        if not commit:
-            continue
-        issue = commit.split()[0]
-        for issue_type in args.types:
-            if issue == 'Revert':
-                issue = commit.split()[1].split(':')[0].lstrip('"')
-                reverts.append(issue)
-                break
-            elif issue.startswith(issue_type):
-                commits.append(issue.split(':')[0])
-                break
+    # Match any categorie (issue type) with inconsistent use of spaces
+    regexp = re.compile('^((?:{categories})\s*-\s*\d+\s*):.*'.format(
+        categories='|'.join(args.types)), re.IGNORECASE)
 
-    for commit in set(set(commits) - set(reverts)):
+    debug('>>> Retrieving issues')
+    commits = []
+    for commit in all_commits.splitlines():
+        for issue in regexp.findall(commit):
+            # Sanitization
+            issue = re.sub('\s+', '', issue).upper()
+            commits.append(issue)
+
+    for commit in set(commits):
         data = get_issue_infos(commit)
         if data:
             yield data
