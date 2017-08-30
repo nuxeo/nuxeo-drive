@@ -12,9 +12,12 @@ Release date: `2017-??-??`
 - [NXDRIVE-953](https://jira.nuxeo.com/browse/NXDRIVE-953): After disconnect, Drive is not showing set account window
 - [NXDRIVE-954](https://jira.nuxeo.com/browse/NXDRIVE-954): Disconnect, quit and set account, Drive is not showing systray menu
 
+### Tests:
+- [NXDRIVE-961](https://jira.nuxeo.com/browse/NXDRIVE-961): Create a script to check any auto-update process regressions
+
 #### Minor changes
 - Account: Unset read-only when overwriting local folder
-- Tools: Updated `changelog.py` from 1.2.3 to 1.2.4
+- Tools: Updated `changelog.py` from 1.2.3 to 1.2.5
 - Tests: Use `QT_PATH` and `MINGW_PATH` envars on Windows
 - Packaging: Updated `Js2Py` from 0.44 to 0.50
 - Packaging: Updated `Send2Trash` from 1.3.0 to 1.4.1
