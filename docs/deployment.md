@@ -87,8 +87,8 @@ If an envar is specifying a version, this means that the specified version of th
 
 ### Optional Envars
 
-- `QT_PATH` is the **Qt binaries path**, i.e. `C:\Qt\4.8.7\bin`.
-- `MINGW_PATH` is the **MinGW binaries path** to use, i.e. `C:\mingw32\bin`.
+- `QT_PATH` is the **Qt path**, i.e. `C:\Qt\4.8.7`.
+- `MINGW_PATH` is the **MinGW path** to use, i.e. `C:\mingw32`.
 - `WORKSPACE_DRIVE` is the **absolute path to Drive sources**, i.e. `$WORKSPACE/sources`. If not defined, it will be set to `$WORKSPACE/sources` or `$WORKSPACE/nuxeo-drive` if folder exists else `$WORKSPACE`.
 - `CXFREEZE_VERSION` is the **cx_Freeze version** to use, i.e. `4.3.3`.
 - `SIP_VERSION` is the **SIP version** to use, i.e. `4.19`.

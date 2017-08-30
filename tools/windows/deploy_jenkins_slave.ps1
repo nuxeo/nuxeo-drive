@@ -79,10 +79,10 @@ function check_vars {
 		$Env:CXFREEZE_VERSION = "4.3.3"  # XXX: CXFREEZE_VERSION
 	}
 	if (-Not ($Env:QT_PATH)) {
-		$Env:QT_PATH = "C:\Qt\4.8.7\bin"
+		$Env:QT_PATH = "C:\Qt\4.8.7"
 	}
 	if (-Not ($Env:MINGW_PATH)) {
-		$Env:MINGW_PATH = "C:\mingw32\bin"
+		$Env:MINGW_PATH = "C:\mingw32"
 	}
 	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir").FullName
 	$Env:PYTHON_DIR = "$Env:STORAGE_DIR\drive-$Env:PYTHON_DRIVE_VERSION-python"
@@ -99,7 +99,7 @@ function check_vars {
 	echo "    MINGW_PATH           = $Env:MINGW_PATH"
 
 	# Adjust the PATH for compilation tools
-	$Env:Path = "$Env:QT_PATH;$Env:MINGW_PATH"
+	$Env:Path = "$Env:QT_PATH\bin;$Env:MINGW_PATH\bin"
 
 	Set-Location "$Env:WORKSPACE_DRIVE"
 
@@ -264,8 +264,8 @@ function install_python {
 	Start-Process msiexec -ArgumentList "/a `"$output`" /passive TARGETDIR=`"$Env:PYTHON_DIR`"" -wait
 
 	echo ">>> Retrieving OpenSSL libraries"
-	Copy-Item "C:\mingw32\opt\bin\libeay32.dll" $Env:PYTHON_DIR -Force
-	Copy-Item "C:\mingw32\opt\bin\ssleay32.dll" $Env:PYTHON_DIR -Force
+	Copy-Item "$Env:MINGW_PATH\opt\bin\libeay32.dll" $Env:PYTHON_DIR -Force
+	Copy-Item "$Env:MINGW_PATH\opt\bin\ssleay32.dll" $Env:PYTHON_DIR -Force
 }
 
 function install_sip {
