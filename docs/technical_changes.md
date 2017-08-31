@@ -1,12 +1,23 @@
 # dev
+
+
+# 2.5.2
 - Removed `is_office_file()` function from local_watcher.py
-- Added `dynamic_states=False` keyword to `synchronize_state()` method in `EngineDAO` class
+- Added `dynamic_states` keyword to `synchronize_state()` method in `EngineDAO` class
 - Added `force` keyword to `local_rollback()` method in `Engine` class
 - Removed `get_username()` method from `RootAlreadyBindWithDifferentAccount` class. Use `username` attribute instead.
 - Removed `get_url()` method from `RootAlreadyBindWithDifferentAccount` class. Use `url` attribute instead.
 - Removed `deprecated()` function from utils.py
 - Added `guess_server_url()` function to utils.py
 - Moved `DRIVE_STARTUP_PAGE` constant from wui/settings.py to client/common.py
+- Added `enrichers` keyword to `execute()` method in `BaseAutomationClient` class
+- Added `**kwargs` keyword to `fetch()` method in `RemoteDocumentClient` class
+- Removed `fetch()` method from `RestAPIClient` class
+- Removed `is_locked()` method from `RestAPIClient` class
+- Removed `log_on_server()` method from `RestAPIClient` class
+- Added `log_on_server()` method to `RemoteDocumentClient` class
+- Added `is_locked()` method to `RemoteDocumentClient` class
+- Added `create_user()` method to `RemoteDocumentClient` class
 
 # 2.5.1
 - Removed `update_tooltip()` method from `Application` class

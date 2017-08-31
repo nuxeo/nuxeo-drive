@@ -1,11 +1,16 @@
 # dev
 Release date: `2017-??-??`
 
+
+# 2.5.2
+Release date: `2017-08-31`
+
 ### Core
 - [NXDRIVE-731](https://jira.nuxeo.com/browse/NXDRIVE-731): Remove nuxeo-jsf-ui package dependency
 - [NXDRIVE-836](https://jira.nuxeo.com/browse/NXDRIVE-836): Bad behaviors with read-only documents on Windows
 - [NXDRIVE-956](https://jira.nuxeo.com/browse/NXDRIVE-956): Uniformize actions on local deletion of read-only documents
 - [NXDRIVE-957](https://jira.nuxeo.com/browse/NXDRIVE-957): Update process from 2.5.0 to 2.5.1 is broken
+- [NXDRIVE-729](https://jira.nuxeo.com/browse/NXDRIVE-729): Homogenize headers in source files
 
 ### GUI:
 - [NXDRIVE-934](https://jira.nuxeo.com/browse/NXDRIVE-934): Try to guess the server URL
