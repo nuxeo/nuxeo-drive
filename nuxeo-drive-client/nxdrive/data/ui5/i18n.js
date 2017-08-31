@@ -265,6 +265,7 @@ LABELS={
     "ERROR_REASON_UNKNOWN": "This file is in error for unknown reason",
     "FILE_PATH": "Path: {{ path }}",
     "FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filters",
+    "FILTERS_DISABLED": "You must wait for current synchronisation actions to be done before filtering some folders.",
     "FOLDER_DOES_NOT_EXISTS": "This folder does not exist",
     "FOLDER_USED": "Folder already used by another Nuxeo Drive account",
     "HELP": "Help",

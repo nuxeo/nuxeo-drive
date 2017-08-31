@@ -12,11 +12,11 @@ class FiltersDialog(QtGui.QDialog):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle(Translator.get('FILTERS_WINDOW_TITLE'))
 
-        self.resize(491, 443)
         self.vertical_layout = QtGui.QVBoxLayout(self)
         self.vertical_layout.setContentsMargins(0, 0, 0, 0)
 
         self._engine = engine
+        self.syncing = self._engine.is_syncing()  # NXDRIVE-959
         self.application = application
         icon = self.application.get_window_icon()
         if icon is not None:
@@ -34,13 +34,24 @@ class FiltersDialog(QtGui.QDialog):
         self.button_box.rejected.connect(self.reject)
 
     def get_tree_view(self):
+        if self.syncing:
+            # Prevent filter modifications while syncing
+            label = QtGui.QLabel(Translator.get('FILTERS_DISABLED'))
+            return label
+
+        self.resize(491, 443)
         filters = self._engine.get_dao().get_filters()
         fs_client = self._engine.get_remote_client(filtered=False)
         client = FilteredFsClient(fs_client, filters)
         return FolderTreeview(self, client)
 
     def accept(self):
-        self.apply_filters()
+        """ When you click on the OK button. """
+
+        if not self.syncing:
+            # Prevent filter modifications while syncing
+            self.apply_filters()
+
         super(FiltersDialog, self).accept()
 
     def apply_filters(self):
@@ -56,6 +67,7 @@ class FiltersDialog(QtGui.QDialog):
                 # Remove current parent filter and need to commit to enable the
                 # add
                 self._engine.remove_filter(path)
+
                 # We need to browse every child and create a filter for
                 # unchecked as they are not dirty but has become root filter
                 for child in item.get_children():
