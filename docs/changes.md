@@ -1,6 +1,9 @@
 # dev
 Release date: `2017-??-??`
 
+### GUI
+- [NXDRIVE-958](https://jira.nuxeo.com/browse/NXDRIVE-958): Disallow root uncheck in the filter list
+
 
 # 2.5.2
 Release date: `2017-08-31`

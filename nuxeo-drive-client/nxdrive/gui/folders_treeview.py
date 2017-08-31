@@ -89,6 +89,9 @@ class FsRootFileInfo(FileInfo):
         super(FsRootFileInfo, self).__init__(parent=None, checkstate=checkstate)
         self.fs_info = fs_info
 
+    def checkable(self):
+        return False
+
     def get_label(self):
         return self.fs_info.get('name')
 
