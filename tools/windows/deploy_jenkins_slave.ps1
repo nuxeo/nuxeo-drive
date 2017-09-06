@@ -206,6 +206,12 @@ function install_pip {
 	}
 }
 
+function install_openssl {
+	echo ">>> Retrieving OpenSSL libraries"
+	Copy-Item "$Env:MINGW_PATH\opt\bin\libeay32.dll" $Env:WORKSPACE_DRIVE -Force
+	Copy-Item "$Env:MINGW_PATH\opt\bin\ssleay32.dll" $Env:WORKSPACE_DRIVE -Force
+}
+
 function install_pyqt {
 	$fname = "PyQt4_gpl_win-$Env:PYQT_VERSION"
 	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/$fname.zip"
@@ -262,10 +268,6 @@ function install_python {
 	echo ">>> Installing Python"
 	download $url $output
 	Start-Process msiexec -ArgumentList "/a `"$output`" /passive TARGETDIR=`"$Env:PYTHON_DIR`"" -wait
-
-	echo ">>> Retrieving OpenSSL libraries"
-	Copy-Item "$Env:MINGW_PATH\opt\bin\libeay32.dll" $Env:PYTHON_DIR -Force
-	Copy-Item "$Env:MINGW_PATH\opt\bin\ssleay32.dll" $Env:PYTHON_DIR -Force
 }
 
 function install_sip {
@@ -365,6 +367,7 @@ function main {
 	# Launch operations
 	check_vars
 	install_python
+	install_openssl
 	install_pip
 	install_deps
 	install_sip

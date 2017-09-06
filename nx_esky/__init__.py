@@ -1,4 +1,6 @@
-"""esky extension
+# coding: utf-8
+"""
+Esky extension.
 
 Extends the 'bdist_esky' command with:
 
@@ -10,23 +12,31 @@ freeze directory after zipping it if 'create-zipfile' is True.
 
 """
 
-import sys
-import shutil
 import os
+import shutil
+import sys
+
 from esky.bdist_esky import bdist_esky as e_bdist_esky
-from esky.util import get_platform
-from esky.util import create_zipfile
-from esky.util import really_rmtree
+from esky.util import create_zipfile, get_platform, really_rmtree
 
 
-def fix_imageformats(self):
+def fix_missing(self):
     if sys.platform != "win32":
         return
 
-    # Dupplicate imageformats folder content in root directory
-    appDataDir = os.path.basename(self.bootstrap_dir)
-    imageFormatsPath = os.path.join(self.bootstrap_dir, "appdata", appDataDir, "imageformats")
-    shutil.copytree(imageFormatsPath, os.path.join(self.bootstrap_dir, "imageformats"))
+    appdata_dir =  os.path.join(
+        self.bootstrap_dir,
+        'appdata',
+        os.path.basename(self.bootstrap_dir),
+    )
+
+    # Duplicate imageformats folder content in root directory
+    shutil.copytree(os.path.join(appdata_dir, 'imageformats'),
+                    os.path.join(self.bootstrap_dir, 'imageformats'))
+
+    # Duplicate OpenSSL DDL
+    shutil.copy(os.path.join(appdata_dir, 'libeay32.dll'), self.bootstrap_dir)
+    shutil.copy(os.path.join(appdata_dir, 'ssleay32.dll'), self.bootstrap_dir)
 
 
 class bdist_esky(e_bdist_esky):
@@ -40,7 +50,7 @@ class bdist_esky(e_bdist_esky):
     def initialize_options(self):
         e_bdist_esky.initialize_options(self)
         self.create_zipfile = True
-        self.pre_zip_callback = fix_imageformats
+        self.pre_zip_callback = fix_missing
         self.rm_freeze_dir_after_zipping = True
 
     def _run(self):
