@@ -293,11 +293,11 @@ class NuxeoDrivePackageAttributes(NuxeoDriveAttributes):
 
 class NuxeoDriveSetup(object):
 
-    def __init__(self, driveAttributes):
+    def __init__(self, drive_attributes):
 
         from distutils.core import setup
 
-        attribs = driveAttributes
+        attribs = drive_attributes
         freeze_options = {}
         ext_modules = []
 
@@ -333,6 +333,11 @@ class NuxeoDriveSetup(object):
         data_files = [('icons', icon_files)]
         data_files.extend(ui5_files)
         data_files.extend(attribs.get_data_files())
+        if sys.platform == 'win32':
+            # Copy OpenSSL DLL
+            data_files.append('libeay32.dll')
+            data_files.append('ssleay32.dll')
+
         drive_version = get_version(attribs.get_init_file())
 
         # Create JSON metadata file for the frozen application
@@ -424,8 +429,7 @@ class NuxeoDriveSetup(object):
                     },
                     "bdist_msi": {
                         "add_to_path": True,
-                        "upgrade_code":
-                            attribs.get_uid(),
+                        "upgrade_code": attribs.get_uid(),
                     },
                 },
             })

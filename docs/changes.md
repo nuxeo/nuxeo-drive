@@ -1,6 +1,13 @@
 # dev
 Release date: `2017-??-??`
 
+
+# 2.5.3
+Release date: `2017-09-06`
+
+### Core
+- [NXDRIVE-975](https://jira.nuxeo.com/browse/NXDRIVE-975): Missing OpenSSL DLL in the Windows package
+
 ### GUI
 - [NXDRIVE-958](https://jira.nuxeo.com/browse/NXDRIVE-958): Disallow root uncheck in the filter list
 - [NXDRIVE-959](https://jira.nuxeo.com/browse/NXDRIVE-959): Disable the filter list when syncing
