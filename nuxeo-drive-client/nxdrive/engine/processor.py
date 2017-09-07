@@ -491,16 +491,19 @@ class Processor(EngineWorker):
 
         if remote_ref is not None and '#' in remote_ref:
             # TODO Decide what to do
-            log.warning('This document %r has remote_ref %s',
-                        doc_pair, remote_ref)
             # Get the remote doc
-            # Verify it is not already synced elsewhere ( a missed move ? )
-            # If same hash dont do anything and reconcile
+            # Verify it is not already synced elsewhere (a missed move?)
+            # If same hash don't do anything and reconcile
             remote_doc_client = self._engine.get_remote_doc_client()
             uid = remote_ref.split('#')[-1]
-            info = remote_doc_client.get_info(uid, raise_if_missing=False,
-                                              fetch_parent_uid=False,
-                                              use_trash=False)
+            info = remote_doc_client.get_info(
+                uid,
+                raise_if_missing=False,
+                fetch_parent_uid=False,
+                use_trash=False,
+            )
+            log.warning('This document %r has remote_ref %s, info=%r',
+                        doc_pair, remote_ref, info)
             if not info:
                 return
 

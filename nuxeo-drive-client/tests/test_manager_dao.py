@@ -6,10 +6,9 @@ import unittest
 from mock import Mock
 
 import nxdrive
-from nxdrive.client import RemoteDocumentClient
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.manager import Manager
-from tests.common import clean_dir
+from tests.common import RemoteDocumentClientForTests, clean_dir
 
 
 class ManagerDAOTest(unittest.TestCase):
@@ -107,8 +106,9 @@ class ManagerDAOTest(unittest.TestCase):
         conn = sqlite3.connect(old_db)
         c = conn.cursor()
         device_id = c.execute("SELECT device_id FROM device_config LIMIT 1").fetchone()[0]
-        remote_client = RemoteDocumentClient(self.nuxeo_url, self.admin_user, device_id, nxdrive.__version__,
-                                             password=self.admin_password)
+        remote_client = RemoteDocumentClientForTests(
+            self.nuxeo_url, self.admin_user, device_id, nxdrive.__version__,
+            password=self.admin_password)
         token = remote_client.request_token()
         c.execute("UPDATE server_bindings SET remote_token='%s' WHERE local_folder='%s'" % (
             token, '/home/ataillefer/Nuxeo Drive'))

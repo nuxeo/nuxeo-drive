@@ -5,6 +5,7 @@ import hashlib
 import os
 import shutil
 import tempfile
+import urllib2
 from os.path import dirname
 from unittest import TestCase
 
@@ -87,6 +88,81 @@ def clean_dir(_dir):
                 os.system('rmdir /S /Q %s' % to_remove)
 
 
+class RemoteDocumentClientForTests(RemoteDocumentClient):
+
+    def get_repository_names(self):
+        return self.execute("GetRepositories")[u'value']
+
+    def make_file_in_user_workspace(self, content, filename):
+        """Stream the given content as a document in the user workspace"""
+        file_path = self.make_tmp_file(content)
+        try:
+            return self.execute_with_blob_streaming(
+                'UserWorkspace.CreateDocumentFromBlob',
+                file_path,
+                filename=filename)
+        finally:
+            os.remove(file_path)
+
+    def activate_profile(self, profile):
+        self.execute('NuxeoDrive.SetActiveFactories', profile=profile)
+
+    def deactivate_profile(self, profile):
+        self.execute('NuxeoDrive.SetActiveFactories', profile=profile,
+                     enable=False)
+
+    def add_to_locally_edited_collection(self, ref):
+        doc = self.execute('NuxeoDrive.AddToLocallyEditedCollection',
+                           op_input='doc:' + self._check_ref(ref))
+        return doc['uid']
+
+    def get_collection_members(self, ref):
+        docs = self.execute('Collection.GetDocumentsFromCollection',
+                           op_input='doc:' + self._check_ref(ref))
+        return [doc['uid'] for doc in docs['entries']]
+
+    def mass_import(self, target_path, nb_nodes, nb_threads=12):
+        tx_timeout = 3600
+        url = self.server_url + 'site/randomImporter/run?'
+        params = {
+            'targetPath': target_path,
+            'batchSize': 50,
+            'nbThreads': nb_threads,
+            'interactive': 'true',
+            'fileSizeKB': 1,
+            'nbNodes': nb_nodes,
+            'nonUniform': 'true',
+            'transactionTimeout': tx_timeout
+        }
+        for param, value in params.iteritems():
+            url += param + '=' + str(value) + '&'
+        headers = self._get_common_headers()
+        headers.update({'Nuxeo-Transaction-Timeout': tx_timeout})
+        try:
+            log.info(
+                'Calling random mass importer on %s with %d threads and %d nodes',
+                target_path, nb_threads, nb_nodes)
+            self.opener.open(urllib2.Request(url, headers=headers), timeout=tx_timeout)
+        except Exception as e:
+            self._log_details(e)
+            raise e
+
+    def wait_for_async_and_es_indexing(self):
+        """ Use for test_volume only. """
+
+        tx_timeout = 3600
+        extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout}
+        self.execute(
+            'Elasticsearch.WaitForIndexing',
+            timeout=tx_timeout,
+            extra_headers=extra_headers,
+            timeoutSecond=tx_timeout,
+            refresh=True)
+
+    def result_set_query(self, query):
+        return self.execute('Repository.ResultSetQuery', query=query)
+
+
 class IntegrationTestCase(TestCase):
 
     def setUp(self):
@@ -134,7 +210,7 @@ class IntegrationTestCase(TestCase):
         # server and might need to wait for a long time without failing for
         # Nuxeo to finish initialize the repo on the first request after
         # startup
-        root_remote_client = RemoteDocumentClient(
+        root_remote_client = RemoteDocumentClientForTests(
             self.nuxeo_url, self.admin_user,
             u'nxdrive-test-administrator-device', self.version,
             password=self.password, base_folder=u'/', timeout=60)
@@ -155,13 +231,13 @@ class IntegrationTestCase(TestCase):
         # Document client to be used to create remote test documents
         # and folders
         self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads', dir=self.tmpdir)
-        remote_document_client_1 = RemoteDocumentClient(
+        remote_document_client_1 = RemoteDocumentClientForTests(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.version,
             password=self.password_1, base_folder=self.workspace,
             upload_tmp_dir=self.upload_tmp_dir)
 
-        remote_document_client_2 = RemoteDocumentClient(
+        remote_document_client_2 = RemoteDocumentClientForTests(
             self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
             self.version,
             password=self.password_2, base_folder=self.workspace,

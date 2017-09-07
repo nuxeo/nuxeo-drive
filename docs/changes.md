@@ -7,6 +7,7 @@ Release date: `2017-??-??`
 
 #### Minor changes
 - Utils: `guess_server_url()` now checks for the good HTTP status code
+- Tests: Moved a big part of RemoteDocumentClient methods into tests
 
 
 # 2.5.3

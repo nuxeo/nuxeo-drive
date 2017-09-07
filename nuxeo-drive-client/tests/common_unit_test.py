@@ -18,15 +18,15 @@ from PyQt4 import QtCore
 from mock import Mock
 
 from nxdrive import __version__
-from nxdrive.client import LocalClient, RemoteDocumentClient, \
-    RemoteFileSystemClient, RestAPIClient
+from nxdrive.client import LocalClient, RemoteFileSystemClient, RestAPIClient
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES, \
     DEFAULT_IGNORED_SUFFIXES
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.translator import Translator
-from tests.common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
+from tests.common import RemoteDocumentClientForTests, TEST_DEFAULT_DELAY, \
+    TEST_WORKSPACE_PATH, clean_dir
 
 YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '')
 if YAPPI_PATH:
@@ -250,7 +250,7 @@ class UnitTestCase(SimpleUnitTestCase):
         # server and might need to wait for a long time without failing for
         # Nuxeo to finish initialize the repo on the first request after
         # startup
-        self.root_remote_client = RemoteDocumentClient(
+        self.root_remote_client = RemoteDocumentClientForTests(
             self.nuxeo_url, self.admin_user,
             u'nxdrive-test-administrator-device', self.version,
             password=self.password, base_folder=u'/', timeout=60)
@@ -389,13 +389,13 @@ class UnitTestCase(SimpleUnitTestCase):
 
         # Document client to be used to create remote test documents
         # and folders
-        remote_document_client_1 = RemoteDocumentClient(
+        remote_document_client_1 = RemoteDocumentClientForTests(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.version,
             password=self.password_1, base_folder=self.workspace_1,
             upload_tmp_dir=self.upload_tmp_dir)
 
-        remote_document_client_2 = RemoteDocumentClient(
+        remote_document_client_2 = RemoteDocumentClientForTests(
             self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
             self.version,
             password=self.password_2, base_folder=self.workspace_2,
