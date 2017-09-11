@@ -2,7 +2,6 @@
 Release date: `2017-??-??`
 
 ### Core
-- [NXDRIVE-903](https://jira.nuxeo.com/browse/NXDRIVE-903): Renaming folders/files does not sync while network interface is OFF
 - [NXDRIVE-904](https://jira.nuxeo.com/browse/NXDRIVE-904): Renaming folders and removing files does not sync while not running
 
 #### Minor changes
