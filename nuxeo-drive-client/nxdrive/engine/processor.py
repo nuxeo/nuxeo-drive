@@ -490,7 +490,6 @@ class Processor(EngineWorker):
                 % (doc_pair.local_path, doc_pair.local_parent_path))
 
         if remote_ref is not None and '#' in remote_ref:
-            # TODO Decide what to do
             # Get the remote doc
             # Verify it is not already synced elsewhere (a missed move?)
             # If same hash don't do anything and reconcile
@@ -505,6 +504,10 @@ class Processor(EngineWorker):
             log.warning('This document %r has remote_ref %s, info=%r',
                         doc_pair, remote_ref, info)
             if not info:
+                # A document with a remote reference that does not exist
+                # appears to be deleted server side.
+                self._synchronize_remotely_deleted(
+                    doc_pair, local_client, remote_client)
                 return
 
             try:
