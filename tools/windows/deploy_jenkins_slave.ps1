@@ -23,7 +23,7 @@ function build_msi {
 	# Build the famous MSI
 	echo ">>> Building the MSI package"
 	& $Env:PYTHON_DIR\python setup.py --freeze bdist_msi
-	if ($lastExitCode -eq 0) {
+	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
 }
