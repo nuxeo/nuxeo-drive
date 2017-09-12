@@ -512,7 +512,7 @@ class Processor(EngineWorker):
 
             try:
                 if info.state == 'deleted':
-                    log.debug("Untrash from the client: %r", doc_pair)
+                    log.debug('Untrash from the client: %r', doc_pair)
                     remote_doc_client.undelete(uid)
                     remote_parent_path = (parent_pair.remote_parent_path + '/'
                                           + parent_pair.remote_ref)
@@ -523,18 +523,19 @@ class Processor(EngineWorker):
                             fs_item_info.uid, parent_pair.remote_ref)
                     # Handle document rename
                     if fs_item_info.name != doc_pair.local_name:
-                        fs_item_info = remote_client.rename(fs_item_info.uid,
-                                                            doc_pair.local_name)
+                        fs_item_info = remote_client.rename(
+                            fs_item_info.uid, doc_pair.local_name)
                     self._dao.update_remote_state(
                         doc_pair, fs_item_info,
                         remote_parent_path=remote_parent_path, versionned=False)
                     # Handle document modification - update the doc_pair
                     doc_pair = self._dao.get_state_from_id(doc_pair.id)
-                    self._synchronize_locally_modified(doc_pair, local_client,
-                                                       remote_client)
+                    self._synchronize_locally_modified(
+                        doc_pair, local_client, remote_client)
                     return
+
                 fs_item_info = remote_client.get_info(remote_ref)
-                log.trace("Compare parents: %r | %r", fs_item_info.parent_uid,
+                log.trace('Compare parents: %r | %r', fs_item_info.parent_uid,
                           parent_pair.remote_ref)
                 # Document exists on the server
                 if (parent_pair.remote_ref is not None
@@ -544,9 +545,8 @@ class Processor(EngineWorker):
                                                           doc_pair.local_path)
                         and doc_pair.local_name == info.name):
                     if overwrite and info.folderish:
-                        self._synchronize_locally_moved(doc_pair,
-                                                        local_client,
-                                                        remote_client)
+                        self._synchronize_locally_moved(
+                            doc_pair, local_client, remote_client)
                     else:
                         log.warning(
                             'Document is already on the server should not create: %r | %r',
