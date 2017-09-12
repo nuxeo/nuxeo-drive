@@ -37,6 +37,8 @@ class FiltersDialog(QtGui.QDialog):
         if self.syncing:
             # Prevent filter modifications while syncing
             label = QtGui.QLabel(Translator.get('FILTERS_DISABLED'))
+            label.setMargin(15)
+            label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
             return label
 
         self.resize(491, 443)
