@@ -25,8 +25,8 @@ def create_json_metadata(client_version, server_version):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    file_path = os.path.abspath(os.path.join(OUTPUT_DIR,
-                                             client_version + '.json'))
+    file_path = os.path.abspath(
+        os.path.join(OUTPUT_DIR, client_version + '.json'))
     with open(file_path, 'wb') as f:
         f.write('{"nuxeoPlatformMinVersion": "%s"}\n' % server_version)
     return file_path
@@ -147,7 +147,7 @@ class NuxeoDriveAttributes(object):
 
     def get_package_data(self):
         package_data = {
-                self.rubric_3rd_dir() + '.data': self._get_recursive_data('data'),
+            self.rubric_3rd_dir() + '.data': self._get_recursive_data('data'),
         }
         return package_data
 
@@ -160,14 +160,11 @@ class NuxeoDriveAttributes(object):
                 rel_path = rel_path[1:]
             data_files.extend([os.path.join(rel_path, filename)
                                for filename in filenames
-                               if not (filename.endswith('.py') or filename.endswith('.pyc'))])
+                               if not filename.endswith(('.py', '.pyc'))])
         return data_files
 
     def get_package_dirs(self):
-        package_dirs = [os.path.join(self.rubric_2nd_dir(),
-                                     self.rubric_3rd_dir())]
-
-        return package_dirs
+        return [os.path.join(self.rubric_2nd_dir(), self.rubric_3rd_dir())]
 
     def get_script(self):
         return os.path.join(self.rubric_2nd_dir(), 'scripts', 'ndrive')
@@ -182,12 +179,12 @@ class NuxeoDriveAttributes(object):
         return self.get_scripts()
 
     def get_ui5_home(self):
-        return os.path.join(self.rubric_2nd_dir(), self.rubric_3rd_dir(),
-                            'data', 'ui5')
+        return os.path.join(
+            self.rubric_2nd_dir(), self.rubric_3rd_dir(), 'data', 'ui5')
 
     def get_icons_home(self):
-        return os.path.join(self.rubric_2nd_dir(), self.rubric_3rd_dir(),
-                            'data', 'icons')
+        return os.path.join(
+            self.rubric_2nd_dir(), self.rubric_3rd_dir(), 'data', 'icons')
 
     def get_win_icon(self):
         return 'nuxeo_drive_icon_64.ico'
@@ -247,7 +244,7 @@ class NuxeoDriveAttributes(object):
         return "contact@nuxeo.com"
 
     def get_url(self):
-        return 'http://github.com/nuxeo/nuxeo-drive'
+        return 'https://github.com/nuxeo/nuxeo-drive'
 
     def get_long_description(self):
         return open('README.md').read()
@@ -263,9 +260,9 @@ class NuxeoDriveAttributes(object):
 
     def get_gpl_licence(self):
         license_ = open('LICENSE.txt').read().replace('\n', '\\line')
-        return '{\\rtf1\\ansi\\ansicpg1252\\deff0\\deftab720{'\
-                '\\fonttbl{\\f0\\froman\\fprq2 Times New Roman;}}'\
-                '{\\colortbl\\red0\\green0\\blue0;}' + license_ + '}'
+        return ('{\\rtf1\\ansi\\ansicpg1252\\deff0\\deftab720{'
+                '\\fonttbl{\\f0\\froman\\fprq2 Times New Roman;}}'
+                '{\\colortbl\\red0\\green0\\blue0;}' + license_ + '}')
 
     def customize_msi(self, db):
         import msilib
@@ -285,8 +282,10 @@ class NuxeoDriveAttributes(object):
 class NuxeoDrivePackageAttributes(NuxeoDriveAttributes):
     def rubric_product_name(self):
         return self.get_name()
+
     def get_long_description(self):
-        return ""
+        return ''
+
     def include_xattr_binaries(self):
         return False
 
