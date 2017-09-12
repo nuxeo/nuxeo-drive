@@ -91,7 +91,12 @@ for (x in slaves) {
                     dir('sources') {
                         deleteDir()
                     }
-                    checkout_custom()
+                    try {
+                        checkout_custom()
+                    } catch(e) {
+                        currentBuild.result = 'UNSTABLE'
+                        throw e
+                    }
                 }
 
                 stage(osi + ' Build') {
@@ -103,17 +108,23 @@ for (x in slaves) {
                             deleteDir()
                         }
 
-                        if (osi == 'macOS') {
-                            sh 'tools/osx/deploy_jenkins_slave.sh --build'
-                            archive 'dist/*.dmg, dist/*.zip'
-                        } else if (osi == 'GNU/Linux') {
-                            sh 'tools/linux/deploy_jenkins_slave.sh --build'
-                            archive 'dist/*.json, dist/*.deb, dist/*.zip'
-                        } else {
-                            bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
-                            archive 'dist/*.msi, dist/*.zip'
+                        try {
+                            if (osi == 'macOS') {
+                                sh 'tools/osx/deploy_jenkins_slave.sh --build'
+                                archive 'dist/*.dmg, dist/*.zip'
+                            } else if (osi == 'GNU/Linux') {
+                                sh 'tools/linux/deploy_jenkins_slave.sh --build'
+                                archive 'dist/*.json, dist/*.deb, dist/*.zip'
+                            } else {
+                                bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
+                                archive 'dist/*.msi, dist/*.zip'
+                            }
+                        } catch(e) {
+                            currentBuild.result = 'FAILURE'
+                            throw e
+                        } finally {
+                            currentBuild.description = "Python ${params.PYTHON_DRIVE_VERSION}, Qt ${params.PYQT_VERSION}<br/>${params.BRANCH_NAME}"
                         }
-                        currentBuild.description = "Python ${params.PYTHON_DRIVE_VERSION}, Qt ${params.PYQT_VERSION}<br/>${params.BRANCH_NAME}"
                     }
                 }
             }
