@@ -1,6 +1,6 @@
 # coding: utf-8
-from nxdrive.client import LocalClient, RemoteDocumentClient
-from tests.common import TEST_WORKSPACE_PATH
+from nxdrive.client import LocalClient
+from tests.common import RemoteDocumentClientForTests, TEST_WORKSPACE_PATH
 from tests.common_unit_test import UnitTestCase
 
 
@@ -12,11 +12,11 @@ class TestSharedFolders(UnitTestCase):
         user1_workspace_uid = None
         try:
             # Get remote  and local clients
-            remote_user1 = RemoteDocumentClient(
+            remote_user1 = RemoteDocumentClientForTests(
                 self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
                 self.version, password=self.password_1,
                 upload_tmp_dir=self.upload_tmp_dir)
-            remote_user2 = RemoteDocumentClient(
+            remote_user2 = RemoteDocumentClientForTests(
                 self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
                 self.version, password=self.password_2,
                 upload_tmp_dir=self.upload_tmp_dir)

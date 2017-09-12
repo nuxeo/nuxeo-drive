@@ -1,6 +1,6 @@
 # coding: utf-8
-from nxdrive.client import RemoteDocumentClient
 from nxdrive.logging_config import get_logger
+from tests.common import RemoteDocumentClientForTests
 from tests.common_unit_test import UnitTestCase
 
 log = get_logger(__name__)
@@ -44,11 +44,9 @@ class TestGroupChanges(UnitTestCase):
                      }
         remote.execute('path' + workspaces_path, method='POST', body=workspace)
 
-        self.admin_remote = RemoteDocumentClient(self.nuxeo_url,
-                                                 self.admin_user, 'nxdrive-test-administrator-device',
-                                                 self.version,
-                                                 password=self.password,
-                                                 base_folder=self.workspace_path)
+        self.admin_remote = RemoteDocumentClientForTests(
+            self.nuxeo_url, self.admin_user, 'nxdrive-test-administrator-device',
+            self.version, password=self.password, base_folder=self.workspace_path)
 
     def tearDown(self):
         remote = self.remote_restapi_client_admin
@@ -171,13 +169,10 @@ class TestGroupChanges(UnitTestCase):
         self._test_group_changes_with_ancestor_groups('grandParentGroup')
 
     def _register_sync_root_user1(self, sync_root_id):
-        user1_remote = RemoteDocumentClient(self.nuxeo_url,
-                                            self.user_1,
-                                            'nxdrive-test-device-1',
-                                            self.version,
-                                            password=self.password_1,
-                                            base_folder=sync_root_id,
-                                            upload_tmp_dir=self.upload_tmp_dir)
+        user1_remote = RemoteDocumentClientForTests(
+            self.nuxeo_url, self.user_1, 'nxdrive-test-device-1', self.version,
+            password=self.password_1, base_folder=sync_root_id,
+            upload_tmp_dir=self.upload_tmp_dir)
         user1_remote.register_as_root(sync_root_id)
 
     def _test_group_changes(self, folder_path, group_name, needsParentGroup=False):

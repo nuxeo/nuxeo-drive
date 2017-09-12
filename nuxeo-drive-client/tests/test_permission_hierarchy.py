@@ -2,9 +2,8 @@
 import hashlib
 from urllib2 import HTTPError
 
-from nxdrive.client import LocalClient, RemoteDocumentClient
-from nxdrive.osi import AbstractOSIntegration
-from tests.common_unit_test import UnitTestCase
+from nxdrive.client import LocalClient
+from tests.common_unit_test import RemoteDocumentClientForTests, UnitTestCase
 
 
 class TestPermissionHierarchy(UnitTestCase):
@@ -19,18 +18,12 @@ class TestPermissionHierarchy(UnitTestCase):
 
     def setUp(self):
         self.admin = self.root_remote_client
-        self.user1 = RemoteDocumentClient(self.nuxeo_url,
-                                          self.user_1,
-                                          'nxdrive-test-device-1',
-                                          self.version,
-                                          password=self.password_1,
-                                          upload_tmp_dir=self.upload_tmp_dir)
-        self.user2 = RemoteDocumentClient(self.nuxeo_url,
-                                          self.user_2,
-                                          'nxdrive-test-device-2',
-                                          self.version,
-                                          password=self.password_2,
-                                          upload_tmp_dir=self.upload_tmp_dir)
+        self.user1 = RemoteDocumentClientForTests(
+            self.nuxeo_url, self.user_1, 'nxdrive-test-device-1', self.version,
+            password=self.password_1, upload_tmp_dir=self.upload_tmp_dir)
+        self.user2 = RemoteDocumentClientForTests(
+            self.nuxeo_url, self.user_2, 'nxdrive-test-device-2', self.version,
+            password=self.password_2, upload_tmp_dir=self.upload_tmp_dir)
         self.local_client_1 = LocalClient(self.local_nxdrive_folder_1)
         self.local_client_2 = LocalClient(self.local_nxdrive_folder_2)
 

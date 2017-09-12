@@ -1,5 +1,13 @@
 # dev
-
+- Moved `get_repository_names()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
+- Moved `make_file_in_user_workspace()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
+- Moved `activate_profile()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
+- Moved `deactivate_profile()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
+- Moved `add_to_locally_edited_collection()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
+- Moved `get_collection_members()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
+- Moved `mass_import()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
+- Moved `wait_for_async_and_es_indexing()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
+- Moved `result_set_query()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
 
 # 2.5.2
 - Removed `is_office_file()` function from local_watcher.py

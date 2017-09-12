@@ -1,6 +1,13 @@
 # dev
 Release date: `2017-??-??`
 
+### Core
+- [NXDRIVE-904](https://jira.nuxeo.com/browse/NXDRIVE-904): Renaming folders and removing files does not sync while not running
+
+#### Minor changes
+- Utils: `guess_server_url()` now checks for the good HTTP status code
+- Tests: Moved a big part of RemoteDocumentClient methods into tests
+
 
 # 2.5.3
 Release date: `2017-09-06`

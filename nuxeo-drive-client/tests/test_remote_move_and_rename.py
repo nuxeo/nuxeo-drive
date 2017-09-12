@@ -7,9 +7,10 @@ from unittest import skipIf
 
 from mock import Mock, patch
 
-from nxdrive.client import LocalClient, RemoteDocumentClient
+from nxdrive.client import LocalClient
 from nxdrive.engine.engine import Engine
-from tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION
+from tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION, \
+    RemoteDocumentClientForTests
 from tests.common_unit_test import UnitTestCase
 
 
@@ -784,7 +785,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         workspaces = workspaces_info[u'uid']
 
         # Get remote client with Workspaces as base folder and local client
-        remote_client = RemoteDocumentClient(
+        remote_client = RemoteDocumentClientForTests(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.version,
             password=self.password_1, base_folder=workspaces,
