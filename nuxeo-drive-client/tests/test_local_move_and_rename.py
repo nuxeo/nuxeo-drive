@@ -3,14 +3,14 @@ import urllib2
 from time import sleep
 from unittest import skip
 
-from nxdrive.client import LocalClient, RemoteDocumentClient
+from nxdrive.client import LocalClient
 from nxdrive.client.remote_filtered_file_system_client import \
     RemoteFilteredFileSystemClient
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
 from nxdrive.osi import AbstractOSIntegration
 from tests import RemoteTestClient
-from tests.common import TEST_WORKSPACE_PATH
+from tests.common import RemoteDocumentClientForTests, TEST_WORKSPACE_PATH
 from tests.common_unit_test import RandomBug, UnitTestCase
 
 # TODO NXDRIVE-170: refactor
@@ -612,7 +612,7 @@ class TestLocalMoveAndRename(UnitTestCase):
     def test_local_rename_sync_root_folder(self):
         # Use the Administrator to be able to introspect the container of the
         # test workspace.
-        remote_client = RemoteDocumentClient(
+        remote_client = RemoteDocumentClientForTests(
             self.nuxeo_url, self.admin_user,
             'nxdrive-test-administrator-device', self.version,
             password=self.password, base_folder=self.workspace)

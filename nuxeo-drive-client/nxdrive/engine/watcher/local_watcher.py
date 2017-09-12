@@ -287,52 +287,47 @@ class LocalWatcher(EngineWorker):
     def get_creation_time(self, child_full_path):
         if self._windows:
             return os.path.getctime(child_full_path)
-        else:
-            stat = os.stat(child_full_path)
-            # Try inode number as on HFS seems to be increasing
-            if AbstractOSIntegration.is_mac() and hasattr(stat, "st_ino"):
-                return stat.st_ino
-            if hasattr(stat, "st_birthtime"):
-                return stat.st_birthtime
-            return 0
+
+        stat = os.stat(child_full_path)
+        # Try inode number as on HFS seems to be increasing
+        if AbstractOSIntegration.is_mac() and hasattr(stat, 'st_ino'):
+            return stat.st_ino
+        if hasattr(stat, 'st_birthtime'):
+            return stat.st_birthtime
+        return 0
 
     def _scan_recursive(self, info, recursive=True):
-        log.trace('Starting to get DB local children for %r', info.path)
         if recursive:
             # Don't interact if only one level
             self._interact()
 
         # Load all children from DB
-        log.trace('Starting to get DB local children for %r', info.path)
+        log.trace('Fetching DB local children of %r', info.path)
         db_children = self._dao.get_local_children(info.path)
-        log.trace('Fetched DB local children for %r', info.path)
 
         # Create a list of all children by their name
-        children = dict()
         to_scan = []
         to_scan_new = []
-        for child in db_children:
-            children[child.local_name] = child
+        children = {child.local_name: child for child in db_children}
 
         # Load all children from FS
         # detect recently deleted children
-        log.trace('Starting to get FS children info for %r', info.path)
+        log.trace('Fetching FS children info of %r', info.path)
         try:
             fs_children_info = self.client.get_children_info(info.path)
         except OSError:
             # The folder has been deleted in the mean time
             return
-        log.trace('Fetched FS children info for %r', info.path)
 
         # Get remote children to be able to check if a local child found during the scan is really a new item
         # or if it is just the result of a remote creation performed on the file system but not yet updated in the DB
         # as for its local information
-        remote_children = []
         parent_remote_id = self.client.get_remote_id(info.path)
         if parent_remote_id is not None:
-            remote_children_pairs = self._dao.get_new_remote_children(parent_remote_id)
-            for remote_child_pair in remote_children_pairs:
-                remote_children.append(remote_child_pair.remote_name)
+            pairs_ = self._dao.get_new_remote_children(parent_remote_id)
+            remote_children = {pair.remote_name for pair in pairs_}
+        else:
+            remote_children = set()
 
         # recursively update children
         for child_info in fs_children_info:
@@ -343,12 +338,12 @@ class LocalWatcher(EngineWorker):
                     remote_id = self.client.get_remote_id(child_info.path)
                     if remote_id is None:
                         # Avoid IntegrityError: do not insert a new pair state if item is already referenced in the DB
-                        if remote_children and child_name in remote_children:
+                        if child_name in remote_children:
                             log.debug('Skip potential new %s as it is the result of a remote creation: %r',
                                       child_type, child_info.path)
                             continue
                         log.debug("Found new %s %s", child_type, child_info.path)
-                        self._metrics['new_files'] = self._metrics['new_files'] + 1
+                        self._metrics['new_files'] += 1
                         self._dao.insert_local_state(child_info, info.path)
                     else:
                         log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
@@ -372,7 +367,7 @@ class LocalWatcher(EngineWorker):
                         if doc_pair is None:
                             log.debug("Can't find reference for %s in database, put it in locally_created state",
                                       child_info.path)
-                            self._metrics['new_files'] = self._metrics['new_files'] + 1
+                            self._metrics['new_files'] += 1
                             self._dao.insert_local_state(child_info, info.path)
                             self._protected_files[remote_id] = True
                         elif doc_pair.processor > 0:
@@ -500,7 +495,7 @@ class LocalWatcher(EngineWorker):
                             if child_pair.local_digest != digest:
                                 child_pair.local_digest = digest
                                 child_pair.local_state = 'modified'
-                        self._metrics['update_files'] = self._metrics['update_files'] + 1
+                        self._metrics['update_files'] += 1
                         self._dao.update_local_state(child_pair, child_info)
                     if child_info.folderish:
                         to_scan.append(child_info)
@@ -525,13 +520,10 @@ class LocalWatcher(EngineWorker):
             self._push_to_scan(child_info)
 
         if not recursive:
-            log.trace('Ended recursive local scan of %r', info.path)
             return
 
         for child_info in to_scan:
             self._push_to_scan(child_info)
-
-        log.trace('Ended recursive local scan of %r', info.path)
 
     def _push_to_scan(self, info):
         self._scan_recursive(info)

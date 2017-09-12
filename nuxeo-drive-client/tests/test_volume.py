@@ -259,7 +259,7 @@ class VolumeTestCase(UnitTestCase):
         # Random mass import
         self.root_remote_client.mass_import(TEST_WORKSPACE_PATH, nb_nodes)
         # Wait for ES indexing
-        self.root_remote_client.wait_for_async_and_ES_indexing()
+        self.root_remote_client.wait_for_async_and_es_indexing()
         # Synchronize
         self.engine_1.start()
         self.wait_sync(timeout=nb_nodes)

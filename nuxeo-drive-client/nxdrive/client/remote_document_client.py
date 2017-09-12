@@ -188,14 +188,24 @@ class RemoteDocumentClient(BaseAutomationClient):
             filename = self.get_info(ref).name
         self.attach_blob(self._check_ref(ref), content, filename)
 
-    def stream_update(self, ref, file_path, filename=None, mime_type=None, apply_versioning_policy=False):
+    def stream_update(
+        self,
+        ref,
+        file_path,
+        filename=None,
+        mime_type=None,
+        apply_versioning_policy=False,
+    ):
         """Update a document by streaming the file with the given path"""
         ref = self._check_ref(ref)
-        op_name = 'NuxeoDrive.AttachBlob' if self.is_nuxeo_drive_attach_blob() else 'Blob.Attach'
+        op_name = ('NuxeoDrive.AttachBlob'
+                   if self.is_nuxeo_drive_attach_blob()
+                   else 'Blob.Attach')
         params = {'document': ref}
         if self.is_nuxeo_drive_attach_blob():
             params.update({'applyVersioningPolicy': apply_versioning_policy})
-        self.execute_with_blob_streaming(op_name, file_path, filename=filename, mime_type=mime_type, **params)
+        self.execute_with_blob_streaming(
+            op_name, file_path, filename=filename, mime_type=mime_type, **params)
 
     def delete(self, ref, use_trash=True):
         op_input = "doc:" + self._check_ref(ref)
@@ -241,13 +251,12 @@ class RemoteDocumentClient(BaseAutomationClient):
         return True
 
     def _check_ref(self, ref):
-        if ref.startswith('/'):
+        if ref.startswith('/') and  self._base_folder_path is not None:
             # This is a path ref (else an id ref)
-            if self._base_folder_path is not None:
-                if self._base_folder_path.endswith('/'):
-                    ref = self._base_folder_path + ref[1:]
-                else:
-                    ref = self._base_folder_path + ref
+            if self._base_folder_path.endswith('/'):
+                ref = self._base_folder_path + ref[1:]
+            else:
+                ref = self._base_folder_path + ref
         return ref
 
     def doc_to_info(self, doc, fetch_parent_uid=True, parent_uid=None):
@@ -263,26 +272,26 @@ class RemoteDocumentClient(BaseAutomationClient):
             # no millisecond?
             last_update = datetime.strptime(doc['lastModified'],
                                             "%Y-%m-%dT%H:%M:%SZ")
-        lastContributor = props['dc:lastContributor']
+        last_contributor = props['dc:lastContributor']
 
         # TODO: support other main files
         has_blob = False
         if folderish:
-            digestAlgorithm = None
+            digest_algorithm = None
             digest = None
         else:
             blob = props.get('file:content')
             if blob is None:
                 note = props.get('note:note')
                 if note is None:
-                    digestAlgorithm = None
+                    digest_algorithm = None
                     digest = None
                 else:
                     import hashlib
                     m = hashlib.md5()
                     m.update(note.encode('utf-8'))
                     digest = m.hexdigest()
-                    digestAlgorithm = 'md5'
+                    digest_algorithm = 'md5'
                     ext = '.txt'
                     mime_type = props.get('note:mime_type')
                     if mime_type == 'text/html':
@@ -297,9 +306,9 @@ class RemoteDocumentClient(BaseAutomationClient):
                         filename = name
             else:
                 has_blob = True
-                digestAlgorithm = blob.get('digestAlgorithm')
-                if digestAlgorithm is not None:
-                    digestAlgorithm = digestAlgorithm.lower().replace('-', '')
+                digest_algorithm = blob.get('digestAlgorithm')
+                if digest_algorithm is not None:
+                    digest_algorithm = digest_algorithm.lower().replace('-', '')
                 digest = blob.get('digest')
                 filename = blob.get('name')
 
@@ -310,8 +319,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             lock_created = parser.parse(lock_created)
 
         # Permissions
-        contextParameters = doc.get('contextParameters')
-        permissions = contextParameters.get('permissions') if contextParameters is not None else None
+        permissions = doc.get('contextParameters', {}).get('permissions', None)
 
         # XXX: we need another roundtrip just to fetch the parent uid...
         if parent_uid is None and fetch_parent_uid:
@@ -319,15 +327,16 @@ class RemoteDocumentClient(BaseAutomationClient):
 
         # Normalize using NFC to make the tests more intuitive
         if 'uid:major_version' in props and 'uid:minor_version' in props:
-            version = str(props['uid:major_version']) + "." + str(props['uid:minor_version'])
+            version = str(props['uid:major_version']) + '.' + str(props['uid:minor_version'])
         else:
             version = None
         if name is not None:
             name = unicodedata.normalize('NFC', name)
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
-            doc['path'], folderish, last_update, lastContributor,
-            digestAlgorithm, digest, self.repository, doc['type'], version, doc['state'], has_blob, filename,
+            doc['path'], folderish, last_update, last_contributor,
+            digest_algorithm, digest, self.repository, doc['type'],
+            version, doc['state'], has_blob, filename,
             lock_owner, lock_created, permissions)
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
@@ -403,8 +412,10 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def get_versions(self, ref):
         extra_headers = {'X-NXfetch.document': 'versionLabel'}
-        versions = self.execute("Document.GetVersions",
-                            op_input="doc:" + self._check_ref(ref), extra_headers=extra_headers)
+        versions = self.execute(
+            'Document.GetVersions',
+            op_input='doc:' + self._check_ref(ref),
+            extra_headers=extra_headers)
         return [(v['uid'], v['versionLabel']) for v in versions['entries']]
 
     def restore_version(self, version):
@@ -447,11 +458,9 @@ class RemoteDocumentClient(BaseAutomationClient):
             if not ref.has_blob and ref.doc_type == "Note":
                 doc = self.fetch(doc_id)
                 content = doc['properties'].get('note:note')
-                if file_out is not None:
-                    if content is not None:
-                        encoded_content = content.encode('utf-8')
+                if file_out is not None and content is not None:
                     with open(file_out, 'wb') as f:
-                        f.write(encoded_content)
+                        f.write(content.encode('utf-8'))
                 return content
         else:
             doc_id = ref
@@ -461,7 +470,8 @@ class RemoteDocumentClient(BaseAutomationClient):
     def attach_blob(self, ref, blob, filename):
         file_path = self.make_tmp_file(blob)
         try:
-            return self.execute_with_blob_streaming("Blob.Attach", file_path, filename=filename, document=ref)
+            return self.execute_with_blob_streaming(
+                'Blob.Attach', file_path, filename=filename, document=ref)
         finally:
             os.remove(file_path)
 
@@ -477,84 +487,23 @@ class RemoteDocumentClient(BaseAutomationClient):
     # Nuxeo Drive specific operations
     #
 
-    def get_repository_names(self):
-        return self.execute("GetRepositories")[u'value']
-
     def get_roots(self):
-        entries = self.execute("NuxeoDrive.GetRoots")[u'entries']
+        entries = self.execute('NuxeoDrive.GetRoots')['entries']
         return self._filtered_results(entries, fetch_parent_uid=False)
 
+    def get_update_info(self):
+        return self.execute('NuxeoDrive.GetClientUpdateInfo')
+
     def register_as_root(self, ref):
-        ref = self._check_ref(ref)
-        self.execute("NuxeoDrive.SetSynchronization", op_input="doc:" + ref,
-                     enable=True)
+        self.execute(
+            'NuxeoDrive.SetSynchronization',
+            op_input='doc:' + self._check_ref(ref),
+            enable=True)
         return True
 
     def unregister_as_root(self, ref):
-        ref = self._check_ref(ref)
-        self.execute("NuxeoDrive.SetSynchronization", op_input="doc:" + ref,
-                     enable=False)
+        self.execute(
+            'NuxeoDrive.SetSynchronization',
+            op_input='doc:' + self._check_ref(ref),
+            enable=False)
         return True
-
-    def make_file_in_user_workspace(self, content, filename):
-        """Stream the given content as a document in the user workspace"""
-        file_path = self.make_tmp_file(content)
-        try:
-            return self.execute_with_blob_streaming("UserWorkspace.CreateDocumentFromBlob", file_path,
-                                                    filename=filename)
-        finally:
-            os.remove(file_path)
-
-    def activate_profile(self, profile):
-        self.execute("NuxeoDrive.SetActiveFactories", profile=profile)
-
-    def deactivate_profile(self, profile):
-        self.execute("NuxeoDrive.SetActiveFactories", profile=profile,
-                     enable=False)
-
-    def get_update_info(self):
-        return self.execute("NuxeoDrive.GetClientUpdateInfo")
-
-    def add_to_locally_edited_collection(self, ref):
-        doc = self.execute("NuxeoDrive.AddToLocallyEditedCollection",
-                           op_input="doc:" + self._check_ref(ref))
-        return doc['uid']
-
-    def get_collection_members(self, ref):
-        docs = self.execute("Collection.GetDocumentsFromCollection",
-                           op_input="doc:" + self._check_ref(ref))
-        return [doc['uid'] for doc in docs['entries']]
-
-    def mass_import(self, target_path, nb_nodes, nb_threads=12):
-        tx_timeout = 3600
-        url = self.server_url + 'site/randomImporter/run?'
-        params = {
-            'targetPath': target_path,
-            'batchSize': 50,
-            'nbThreads': nb_threads,
-            'interactive': 'true',
-            'fileSizeKB': 1,
-            'nbNodes': nb_nodes,
-            'nonUniform': 'true',
-            'transactionTimeout': tx_timeout
-        }
-        for param, value in params.iteritems():
-            url += param + '=' + str(value) + '&'
-        headers = self._get_common_headers()
-        headers.update({'Nuxeo-Transaction-Timeout': tx_timeout})
-        try:
-            log.info('Calling random mass importer on %s with %d threads and %d nodes', target_path,
-                     nb_threads, nb_nodes)
-            self.opener.open(urllib2.Request(url, headers=headers), timeout=tx_timeout)
-        except Exception as e:
-            self._log_details(e)
-            raise e
-
-    def wait_for_async_and_ES_indexing(self):
-        tx_timeout = 3600
-        extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout}
-        self.execute('Elasticsearch.WaitForIndexing', timeout=tx_timeout, extra_headers=extra_headers,
-                     timeoutSecond=tx_timeout, refresh=True)
-
-    def result_set_query(self, query):
-        return self.execute("Repository.ResultSetQuery", query=query)

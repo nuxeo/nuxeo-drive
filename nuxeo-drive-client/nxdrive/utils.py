@@ -453,11 +453,12 @@ def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
         new_url = urlparse.urlunsplit(new_url)
         log.trace('Test %d, URL is %r', count, new_url)
         try:
-            urlopen(new_url + '/' + login_page, timeout=timeout)
+            ret = urlopen(new_url + '/' + login_page, timeout=timeout)
         except (ValueError, URLError, HTTPError):
             pass
         else:
-            return new_url
+            if ret.code == 200:
+                return new_url
     return url
 
 

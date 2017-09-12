@@ -1,18 +1,9 @@
 # coding: utf-8
-import os
-from shutil import copyfile
-from time import sleep
-from unittest import SkipTest
-from urllib2 import HTTPError
-
-from nxdrive.client import LocalClient, NotFound, NuxeoClient, Unauthorized
-from tests.common import IntegrationTestCase, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 
 import os
 from shutil import copyfile
 from time import sleep
 from unittest import SkipTest
-from urllib2 import HTTPError
 
 from nxdrive.client import LocalClient, NotFound, NuxeoClient, Unauthorized
 from tests.common import IntegrationTestCase, SOME_TEXT_CONTENT, \
