@@ -7,6 +7,9 @@ Release date: `2017-??-??`
 #### Minor changes
 - Utils: `guess_server_url()` now checks for the good HTTP status code
 - Tests: Moved a big part of RemoteDocumentClient methods into tests
+- Packaging: Updated `psutil` from 5.2.2 to 5.3.1
+- Packaging: Updated `pytest` from 3.2.1 to 3.2.2
+- Packaging: Updated `pytest-sugar` from 0.8.0 to 0.9.0
 
 
 # 2.5.3
