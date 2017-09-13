@@ -4,6 +4,9 @@ Release date: `2017-??-??`
 ### Core
 - [NXDRIVE-990](https://jira.nuxeo.com/browse/NXDRIVE-990): "Other docs" folder is deleted after disconnect and reconnect with same user
 
+#### Minor changes
+- GUI: Add more versions informations in About (Python, Qt, WebKit and SIP)
+
 
 # 2.5.4
 Release date: `2017-09-16`

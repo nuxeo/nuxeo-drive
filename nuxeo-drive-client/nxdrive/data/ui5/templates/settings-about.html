@@ -1,17 +1,21 @@
-<div id="about-view">
+<div id="about-view" xmlns="http://www.w3.org/1999/html">
 	<div class="info">
-	  <p><img src="imgs/nuxeo_drive_icon_48.png" /> Nuxeo Drive {{ version }}</p>
-	  <p>
-	    <img src="imgs/github.png" />
-	    <a href="" ng-click="open_local('https://github.com/nuxeo/nuxeo-drive')">https://github.com/nuxeo/nuxeo-drive</a>
-	  </p>
-	  <p>
-	    <img src="imgs/update.png" />
-	    <a href="" ng-click="open_local(update_url)">{{ update_url }}</a>
-	  </p>
+		<p>
+			<img src="imgs/nuxeo_drive_icon_48.png" />
+			<span>Nuxeo Drive {{ version }}</span>
+			<small>[Python {{ metrics.python_version }}, Qt {{ metrics.qt_version }}, PyQt {{ metrics.pyqt_version }}, WebKit {{ metrics.webkit_version }}, SIP {{ metrics.sip_version }}]</small>
+		</p>
+		<p>
+			<img src="imgs/github.png" />
+			<a href="" ng-click="open_local('https://github.com/nuxeo/nuxeo-drive')">https://github.com/nuxeo/nuxeo-drive</a>
+		</p>
+		<p>
+			<img src="imgs/update.png" />
+			<a href="" ng-click="open_local(update_url)">{{ update_url }}</a>
+		</p>
 	</div>
 	<div class="license">
-	  <div translate>LICENSE</div>
-	  <pre ng-include="'GPL.txt'"></pre>
+		<div translate>LICENSE</div>
+		<pre ng-include="'GPL.txt'"></pre>
 	</div>
 </div>
