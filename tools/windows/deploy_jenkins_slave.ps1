@@ -210,14 +210,21 @@ function install_openssl {
 	$src = "$Env:MINGW_PATH\opt\bin"
 	$dst = "$Env:PYTHON_DIR"
 
-	if ((Test-Path "$dst\libeay32.dll") -And (Test-Path "$dst\ssleay32.dll")) {
-		return
+	if (-Not (Test-Path "$dst\libeay32.dll")) {
+		echo ">>> Retrieving OpenSSL DLL: libeay32.dll"
+		Copy-Item -Force "$src\libeay32.dll" "$dst"
 	}
 
-	echo ">>> Retrieving OpenSSL libraries"
+	if (-Not (Test-Path "$dst\ssleay32.dll")) {
+		echo ">>> Retrieving OpenSSL DLL: ssleay32.dll"
+		Copy-Item -Force "$src\ssleay32.dll" "$dst"
+	}
 
-	Copy-Item $src\libeay32.dll $dst -Force -Verbose
-	Copy-Item $src\ssleay32.dll $dst -Force -Verbose
+	Start-Sleep -s 5
+	if (-Not (Test-Path "$dst\libeay32.dll") -Or -Not (Test-Path "$dst\ssleay32.dll")) {
+		echo ">>> Error when copying OpenSSL DLL. Aborting."
+		ExitWithCode 1
+	}
 }
 
 function install_pyqt {
