@@ -82,14 +82,14 @@ function check_vars {
 		$Env:QT_PATH = "C:\Qt\4.8.7"
 	}
 	if (-Not (Test-Path "$Env:QT_PATH")) {
-		echo ">>> QT_PATH dos not exist: $Env:QT_PATH. Aborting."
+		echo ">>> QT_PATH does not exist: $Env:QT_PATH. Aborting."
 		ExitWithCode 1
 	}
 	if (-Not ($Env:MINGW_PATH)) {
 		$Env:MINGW_PATH = "C:\mingw32"
 	}
 	if (-Not (Test-Path "$Env:MINGW_PATH")) {
-		echo ">>> MINGW_PATH dos not exist: $Env:MINGW_PATH. Aborting."
+		echo ">>> MINGW_PATH does not exist: $Env:MINGW_PATH. Aborting."
 		ExitWithCode 1
 	}
 
@@ -217,7 +217,7 @@ function install_pip {
 
 function install_openssl {
 	$src = "$Env:MINGW_PATH\opt\bin"
-	$dst = "$Env:PYTHON_DIR"
+	$dst = "$Env:WORKSPACE_DRIVE"
 
 	if (-Not (Test-Path "$dst\libeay32.dll")) {
 		echo ">>> Retrieving OpenSSL DLL: libeay32.dll"
