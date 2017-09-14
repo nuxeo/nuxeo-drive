@@ -217,26 +217,17 @@ function install_pip {
 
 function install_openssl {
 	$src = "$Env:MINGW_PATH\opt\bin"
-	$dst = "$Env:WORKSPACE_DRIVE"
 
-	if (-Not (Test-Path "$dst\libeay32.dll")) {
-		echo ">>> Retrieving OpenSSL DLL: libeay32.dll"
-		Copy-Item -Force "$src\libeay32.dll" "$dst"
-		if (-Not (Test-Path "$Env:PYTHON_DIR\libeay32.dll")) {
-		    Copy-Item -Force "$src\libeay32.dll" "$Env:PYTHON_DIR"
-		}
-	}
+	echo ">>> Retrieving OpenSSL DLL: libeay32.dll"
+	Copy-Item -Force "$src\libeay32.dll" "$Env:WORKSPACE_DRIVE"
+	Copy-Item -Force "$src\libeay32.dll" "$Env:PYTHON_DIR"
 
-	if (-Not (Test-Path "$dst\ssleay32.dll")) {
-		echo ">>> Retrieving OpenSSL DLL: ssleay32.dll"
-		Copy-Item -Force "$src\ssleay32.dll" "$dst"
-		if (-Not (Test-Path "$Env:PYTHON_DIR\ssleay32.dll")) {
-		    Copy-Item -Force "$src\ssleay32.dll" "$Env:PYTHON_DIR"
-		}
-	}
+	echo ">>> Retrieving OpenSSL DLL: ssleay32.dll"
+	Copy-Item -Force "$src\ssleay32.dll" "$Env:WORKSPACE_DRIVE"
+	Copy-Item -Force "$src\ssleay32.dll" "$Env:PYTHON_DIR"
 
 	Start-Sleep -s 5
-	if (-Not (Test-Path "$dst\libeay32.dll") -Or -Not (Test-Path "$dst\ssleay32.dll")) {
+	if (-Not (Test-Path "$Env:WORKSPACE_DRIVE\libeay32.dll") -Or -Not (Test-Path "$Env:WORKSPACE_DRIVE\ssleay32.dll")) {
 		echo ">>> Error when copying OpenSSL DLL. Aborting."
 		ExitWithCode 1
 	}
