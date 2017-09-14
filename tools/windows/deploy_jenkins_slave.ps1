@@ -208,16 +208,16 @@ function install_pip {
 
 function install_openssl {
 	$src = "$Env:MINGW_PATH\opt\bin"
-	$dst = "$Env:WORKSPACE_DRIVE"
+	$dst = "$Env:PYTHON_DIR"
 
-	if ((Test-Path $dst\libeay32.dll) -And (Test-Path $dst\ssleay32.dll)) {
+	if ((Test-Path "$dst\libeay32.dll") -And (Test-Path "$dst\ssleay32.dll")) {
 		return
 	}
 
 	echo ">>> Retrieving OpenSSL libraries"
 
-	Copy-Item $src\libeay32.dll $dst -Force
-	Copy-Item $src\ssleay32.dll $dst -Force
+	Copy-Item $src\libeay32.dll $dst -Force -Verbose
+	Copy-Item $src\ssleay32.dll $dst -Force -Verbose
 }
 
 function install_pyqt {
