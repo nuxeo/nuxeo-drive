@@ -342,7 +342,10 @@ class NuxeoDriveSetup(object):
         json_file = create_json_metadata(drive_version, SERVER_MIN_VERSION)
         print('Created JSON metadata file for frozen app: ' + json_file)
 
-        includes = []
+        includes = [
+            'atexit',  # Implicitly required by PyQt4
+            'js2py.pyjs',  # Implicitly required by pypac
+        ]
         excludes = [
             'ipdb',
             'pydoc',
