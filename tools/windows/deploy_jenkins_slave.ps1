@@ -54,14 +54,14 @@ function check_sum($file) {
 function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
-		echo "PYTHON_DRIVE_VERSION not defined. Aborting."
-		exit 1
+		echo ">>> PYTHON_DRIVE_VERSION not defined. Aborting."
+		ExitWithCode 1
 	} elseif (-Not ($Env:PYQT_VERSION)) {
-		echo "PYQT_VERSION not defined. Aborting."
-		exit 1
+		echo ">>> PYQT_VERSION not defined. Aborting."
+		ExitWithCode 1
 	} elseif (-Not ($Env:WORKSPACE)) {
-		echo "WORKSPACE not defined. Aborting."
-		exit 1
+		echo ">>> WORKSPACE not defined. Aborting."
+		ExitWithCode 1
 	}
 	if (-Not ($Env:WORKSPACE_DRIVE)) {
 		if (Test-Path "$($Env:WORKSPACE)\sources") {
@@ -81,9 +81,18 @@ function check_vars {
 	if (-Not ($Env:QT_PATH)) {
 		$Env:QT_PATH = "C:\Qt\4.8.7"
 	}
+	if (-Not (Test-Path "$Env:QT_PATH")) {
+		echo ">>> QT_PATH does not exist: $Env:QT_PATH. Aborting."
+		ExitWithCode 1
+	}
 	if (-Not ($Env:MINGW_PATH)) {
 		$Env:MINGW_PATH = "C:\mingw32"
 	}
+	if (-Not (Test-Path "$Env:MINGW_PATH")) {
+		echo ">>> MINGW_PATH does not exist: $Env:MINGW_PATH. Aborting."
+		ExitWithCode 1
+	}
+
 	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir").FullName
 	$Env:PYTHON_DIR = "$Env:STORAGE_DIR\drive-$Env:PYTHON_DRIVE_VERSION-python"
 
@@ -207,9 +216,30 @@ function install_pip {
 }
 
 function install_openssl {
-	echo ">>> Retrieving OpenSSL libraries"
-	Copy-Item "$Env:MINGW_PATH\opt\bin\libeay32.dll" $Env:WORKSPACE_DRIVE -Force
-	Copy-Item "$Env:MINGW_PATH\opt\bin\ssleay32.dll" $Env:WORKSPACE_DRIVE -Force
+	$src = "$Env:MINGW_PATH\opt\bin"
+	$dst = "$Env:WORKSPACE_DRIVE"
+
+	if (-Not (Test-Path "$dst\libeay32.dll")) {
+		echo ">>> Retrieving OpenSSL DLL: libeay32.dll"
+		Copy-Item -Force "$src\libeay32.dll" "$dst"
+		if (-Not (Test-Path "$Env:PYTHON_DIR\libeay32.dll")) {
+		    Copy-Item -Force "$src\libeay32.dll" "$Env:PYTHON_DIR"
+		}
+	}
+
+	if (-Not (Test-Path "$dst\ssleay32.dll")) {
+		echo ">>> Retrieving OpenSSL DLL: ssleay32.dll"
+		Copy-Item -Force "$src\ssleay32.dll" "$dst"
+		if (-Not (Test-Path "$Env:PYTHON_DIR\ssleay32.dll")) {
+		    Copy-Item -Force "$src\ssleay32.dll" "$Env:PYTHON_DIR"
+		}
+	}
+
+	Start-Sleep -s 5
+	if (-Not (Test-Path "$dst\libeay32.dll") -Or -Not (Test-Path "$dst\ssleay32.dll")) {
+		echo ">>> Error when copying OpenSSL DLL. Aborting."
+		ExitWithCode 1
+	}
 }
 
 function install_pyqt {
@@ -373,8 +403,13 @@ function main {
 	install_sip
 	install_pyqt
 	install_cxfreeze
+
 	if ((check_import "import PyQt4.QtWebKit") -ne 1) {
-		echo ">>> Installation failed."
+		echo ">>> No WebKit. Installation failed."
+		ExitWithCode 1
+	}
+	if ((check_import "import os; from PyQt4.QtNetwork import QSslSocket as s; os._exit(not s.supportsSsl())") -ne 1) {
+		echo ">>> No SSL support. Installation failed."
 		ExitWithCode 1
 	}
 

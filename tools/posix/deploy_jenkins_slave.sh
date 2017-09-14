@@ -44,7 +44,7 @@ check_import() {
     local import="$1"
     local ret=0
 
-    /bin/echo -n ">>> Checking module: ${import} ... "
+    /bin/echo -n ">>> Checking Python code: ${import} ... "
     ${PYTHON} -c "${import}" 2>/dev/null || ret=1
     if [ ${ret} -ne 0 ]; then
         echo "Failed."
@@ -341,7 +341,10 @@ main() {
     install_deps
 
     if ! check_import "import PyQt4.QtWebKit" >/dev/null; then
-        echo ">>> Installation failed."
+        echo ">>> No WebKit. Installation failed."
+        exit 1
+    elif ! check_import "import os; from PyQt4.QtNetwork import QSslSocket as s; os._exit(not s.supportsSsl())" >/dev/null; then
+        echo ">>> No SSL support. Installation failed."
         exit 1
     fi
 

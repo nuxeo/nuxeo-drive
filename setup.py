@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import print_function
 
+import io
 import os
 import re
 import sys
@@ -19,7 +20,9 @@ OUTPUT_DIR = 'dist'
 SERVER_MIN_VERSION = '5.6'
 
 
+
 def create_json_metadata(client_version, server_version):
+    string = unicode if sys.version[0] == '2' else str
 
     output_dir = os.path.abspath(OUTPUT_DIR)
     if not os.path.exists(output_dir):
@@ -27,15 +30,16 @@ def create_json_metadata(client_version, server_version):
 
     file_path = os.path.abspath(
         os.path.join(OUTPUT_DIR, client_version + '.json'))
-    with open(file_path, 'wb') as f:
-        f.write('{"nuxeoPlatformMinVersion": "%s"}\n' % server_version)
+    with io.open(file_path, mode='w', encoding='utf-8') as f:
+        txt = string('{"nuxeoPlatformMinVersion": "%s"}\n' % server_version)
+        f.write(txt)
     return file_path
 
 
 def get_version(init_file):
     """ Find the current version. """
 
-    with open(init_file) as handler:
+    with io.open(init_file, encoding='utf-8') as handler:
         for line in handler.readlines():
             if line.startswith('__version__'):
                 return re.findall(r"'(.+)'", line)[0]
@@ -332,18 +336,16 @@ class NuxeoDriveSetup(object):
         data_files = [('icons', icon_files)]
         data_files.extend(ui5_files)
         data_files.extend(attribs.get_data_files())
-        if sys.platform == 'win32':
-            # Copy OpenSSL DLL
-            data_files.append('libeay32.dll')
-            data_files.append('ssleay32.dll')
-
         drive_version = get_version(attribs.get_init_file())
 
         # Create JSON metadata file for the frozen application
         json_file = create_json_metadata(drive_version, SERVER_MIN_VERSION)
         print('Created JSON metadata file for frozen app: ' + json_file)
 
-        includes = []
+        includes = [
+            'atexit',  # Implicitly required by PyQt4
+            'js2py.pyjs',  # Implicitly required by pypac
+        ]
         excludes = [
             'ipdb',
             'pydoc',
@@ -376,6 +378,10 @@ class NuxeoDriveSetup(object):
             executables = [cx_Executable(script)]
             freeze_options = dict()
             if sys.platform == "win32":
+                # Copy OpenSSL DLL
+                data_files.append('libeay32.dll')
+                data_files.append('ssleay32.dll')
+
                 # Windows GUI program that can be launched without a cmd
                 # console
                 script_w = attribs.get_win_script()
