@@ -54,14 +54,14 @@ function check_sum($file) {
 function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
-		echo "PYTHON_DRIVE_VERSION not defined. Aborting."
-		exit 1
+		echo ">>> PYTHON_DRIVE_VERSION not defined. Aborting."
+		ExitWithCode 1
 	} elseif (-Not ($Env:PYQT_VERSION)) {
-		echo "PYQT_VERSION not defined. Aborting."
-		exit 1
+		echo ">>> PYQT_VERSION not defined. Aborting."
+		ExitWithCode 1
 	} elseif (-Not ($Env:WORKSPACE)) {
-		echo "WORKSPACE not defined. Aborting."
-		exit 1
+		echo ">>> WORKSPACE not defined. Aborting."
+		ExitWithCode 1
 	}
 	if (-Not ($Env:WORKSPACE_DRIVE)) {
 		if (Test-Path "$($Env:WORKSPACE)\sources") {
@@ -81,9 +81,18 @@ function check_vars {
 	if (-Not ($Env:QT_PATH)) {
 		$Env:QT_PATH = "C:\Qt\4.8.7"
 	}
+	if (-Not (Test-Path "$Env:QT_PATH")) {
+		echo ">>> QT_PATH dos not exist: $Env:QT_PATH. Aborting."
+		ExitWithCode 1
+	}
 	if (-Not ($Env:MINGW_PATH)) {
 		$Env:MINGW_PATH = "C:\mingw32"
 	}
+	if (-Not (Test-Path "$Env:MINGW_PATH")) {
+		echo ">>> MINGW_PATH dos not exist: $Env:MINGW_PATH. Aborting."
+		ExitWithCode 1
+	}
+
 	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir").FullName
 	$Env:PYTHON_DIR = "$Env:STORAGE_DIR\drive-$Env:PYTHON_DRIVE_VERSION-python"
 
