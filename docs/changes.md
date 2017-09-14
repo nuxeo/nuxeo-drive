@@ -4,6 +4,9 @@ Release date: `2017-??-??`
 ### Core
 - [NXDRIVE-904](https://jira.nuxeo.com/browse/NXDRIVE-904): Renaming folders and removing files does not sync while not running
 
+### Packaging / Build
+- [NXDRIVE-983](https://jira.nuxeo.com/browse/NXDRIVE-983): Windows pip installation failure because of inexistant DLL
+
 #### Minor changes
 - Utils: `guess_server_url()` now checks for the good HTTP status code
 - Tests: Moved a big part of RemoteDocumentClient methods into tests
