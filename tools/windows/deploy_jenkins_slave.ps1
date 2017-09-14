@@ -54,14 +54,14 @@ function check_sum($file) {
 function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
-		echo "PYTHON_DRIVE_VERSION not defined. Aborting."
-		exit 1
+		echo ">>> PYTHON_DRIVE_VERSION not defined. Aborting."
+		ExitWithCode 1
 	} elseif (-Not ($Env:PYQT_VERSION)) {
-		echo "PYQT_VERSION not defined. Aborting."
-		exit 1
+		echo ">>> PYQT_VERSION not defined. Aborting."
+		ExitWithCode 1
 	} elseif (-Not ($Env:WORKSPACE)) {
-		echo "WORKSPACE not defined. Aborting."
-		exit 1
+		echo ">>> WORKSPACE not defined. Aborting."
+		ExitWithCode 1
 	}
 	if (-Not ($Env:WORKSPACE_DRIVE)) {
 		if (Test-Path "$($Env:WORKSPACE)\sources") {
@@ -81,9 +81,18 @@ function check_vars {
 	if (-Not ($Env:QT_PATH)) {
 		$Env:QT_PATH = "C:\Qt\4.8.7"
 	}
+	if (-Not (Test-Path "$Env:QT_PATH")) {
+		echo ">>> QT_PATH does not exist: $Env:QT_PATH. Aborting."
+		ExitWithCode 1
+	}
 	if (-Not ($Env:MINGW_PATH)) {
 		$Env:MINGW_PATH = "C:\mingw32"
 	}
+	if (-Not (Test-Path "$Env:MINGW_PATH")) {
+		echo ">>> MINGW_PATH does not exist: $Env:MINGW_PATH. Aborting."
+		ExitWithCode 1
+	}
+
 	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir").FullName
 	$Env:PYTHON_DIR = "$Env:STORAGE_DIR\drive-$Env:PYTHON_DRIVE_VERSION-python"
 
@@ -208,16 +217,23 @@ function install_pip {
 
 function install_openssl {
 	$src = "$Env:MINGW_PATH\opt\bin"
-	$dst = "$Env:PYTHON_DIR"
+	$dst = "$Env:WORKSPACE_DRIVE"
 
-	if ((Test-Path "$dst\libeay32.dll") -And (Test-Path "$dst\ssleay32.dll")) {
-		return
+	if (-Not (Test-Path "$dst\libeay32.dll")) {
+		echo ">>> Retrieving OpenSSL DLL: libeay32.dll"
+		Copy-Item -Force "$src\libeay32.dll" "$dst"
 	}
 
-	echo ">>> Retrieving OpenSSL libraries"
+	if (-Not (Test-Path "$dst\ssleay32.dll")) {
+		echo ">>> Retrieving OpenSSL DLL: ssleay32.dll"
+		Copy-Item -Force "$src\ssleay32.dll" "$dst"
+	}
 
-	Copy-Item $src\libeay32.dll $dst -Force -Verbose
-	Copy-Item $src\ssleay32.dll $dst -Force -Verbose
+	Start-Sleep -s 5
+	if (-Not (Test-Path "$dst\libeay32.dll") -Or -Not (Test-Path "$dst\ssleay32.dll")) {
+		echo ">>> Error when copying OpenSSL DLL. Aborting."
+		ExitWithCode 1
+	}
 }
 
 function install_pyqt {
