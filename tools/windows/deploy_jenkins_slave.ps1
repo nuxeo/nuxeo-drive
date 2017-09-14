@@ -207,9 +207,17 @@ function install_pip {
 }
 
 function install_openssl {
+	$src = "$Env:MINGW_PATH\opt\bin"
+	$dst = "$Env:WORKSPACE_DRIVE"
+
+	if ((Test-Path $dst\libeay32.dll) -And (Test-Path $dst\ssleay32.dll)) {
+		return
+	}
+
 	echo ">>> Retrieving OpenSSL libraries"
-	Copy-Item "$Env:MINGW_PATH\opt\bin\libeay32.dll" $Env:WORKSPACE_DRIVE -Force
-	Copy-Item "$Env:MINGW_PATH\opt\bin\ssleay32.dll" $Env:WORKSPACE_DRIVE -Force
+
+	Copy-Item $src\libeay32.dll $dst -Force
+	Copy-Item $src\ssleay32.dll $dst -Force
 }
 
 function install_pyqt {
@@ -373,8 +381,13 @@ function main {
 	install_sip
 	install_pyqt
 	install_cxfreeze
+
 	if ((check_import "import PyQt4.QtWebKit") -ne 1) {
-		echo ">>> Installation failed."
+		echo ">>> No WebKit. Installation failed."
+		ExitWithCode 1
+	}
+	if ((check_import "import os; from PyQt4.QtNetwork import QSslSocket as s; os._exit(not s.supportsSsl())") -ne 1) {
+		echo ">>> No SSL support. Installation failed."
 		ExitWithCode 1
 	}
 
