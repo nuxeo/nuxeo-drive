@@ -222,11 +222,17 @@ function install_openssl {
 	if (-Not (Test-Path "$dst\libeay32.dll")) {
 		echo ">>> Retrieving OpenSSL DLL: libeay32.dll"
 		Copy-Item -Force "$src\libeay32.dll" "$dst"
+		if (-Not (Test-Path "$Env:PYTHON_DIR\libeay32.dll")) {
+		    Copy-Item -Force "$src\libeay32.dll" "$Env:PYTHON_DIR"
+		}
 	}
 
 	if (-Not (Test-Path "$dst\ssleay32.dll")) {
 		echo ">>> Retrieving OpenSSL DLL: ssleay32.dll"
 		Copy-Item -Force "$src\ssleay32.dll" "$dst"
+		if (-Not (Test-Path "$Env:PYTHON_DIR\ssleay32.dll")) {
+		    Copy-Item -Force "$src\ssleay32.dll" "$Env:PYTHON_DIR"
+		}
 	}
 
 	Start-Sleep -s 5
