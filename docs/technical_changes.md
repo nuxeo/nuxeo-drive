@@ -1,4 +1,6 @@
 # dev
+
+# 2.5.4
 - Moved `get_repository_names()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
 - Moved `make_file_in_user_workspace()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests
 - Moved `activate_profile()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests

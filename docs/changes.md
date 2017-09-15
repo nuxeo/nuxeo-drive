@@ -1,6 +1,10 @@
 # dev
 Release date: `2017-??-??`
 
+
+# 2.5.4
+Release date: `2017-09-16`
+
 ### Core
 - [NXDRIVE-904](https://jira.nuxeo.com/browse/NXDRIVE-904): Renaming folders and removing files does not sync while not running
 
