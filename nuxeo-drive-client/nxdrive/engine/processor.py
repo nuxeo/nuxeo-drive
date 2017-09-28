@@ -504,10 +504,12 @@ class Processor(EngineWorker):
             log.warning('This document %r has remote_ref %s, info=%r',
                         doc_pair, remote_ref, info)
             if not info:
-                # A document with a remote reference that does not exist
-                # appears to be deleted server side.
-                self._synchronize_remotely_deleted(
-                    doc_pair, local_client, remote_client)
+                # Document not found in server by remote document client.
+                # Either its deleted  or a local virtual folder
+                if "default#" in remote_ref:
+                    # Document appears to be deleted in server side.
+                    self._synchronize_remotely_deleted(
+                        doc_pair, local_client, remote_client)
                 return
 
             try:
