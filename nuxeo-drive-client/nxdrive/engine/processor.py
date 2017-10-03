@@ -505,9 +505,9 @@ class Processor(EngineWorker):
                         doc_pair, remote_ref, info)
             if not info:
                 # Document not found in server by remote document client.
-                # Either its deleted  or a local virtual folder
-                if "default#" in remote_ref:
-                    # Document appears to be deleted in server side.
+                # Either it was deleted or it is a local virtual folder.
+                if 'default#' in remote_ref:
+                    # Document appears to be deleted server side.
                     self._synchronize_remotely_deleted(
                         doc_pair, local_client, remote_client)
                 return
