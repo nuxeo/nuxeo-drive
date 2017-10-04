@@ -250,9 +250,9 @@ class WebSettingsApi(WebDriveApi):
         log.debug('Status code for %s = %d', url, status)
         return status
 
-    @staticmethod
-    def update_token(engine, token):
+    def update_token(self, engine, token):
         engine.update_token(token)
+        self.application.set_icon_state('transferring')
 
     @QtCore.pyqtSlot(str, result=str)
     def web_update_token(self, uid):
@@ -295,7 +295,7 @@ class WebSettingsApi(WebDriveApi):
 
         # Handle URL parameters
         parts = urlparse.urlsplit(guess_server_url(server_url))
-        path = parts.path + '/' + DRIVE_STARTUP_PAGE
+        path = (parts.path + '/' + DRIVE_STARTUP_PAGE).replace('//', '/')
         params = (parts.query + '&' + urlencode(token_params)
                   if parts.query
                   else urlencode(token_params))
