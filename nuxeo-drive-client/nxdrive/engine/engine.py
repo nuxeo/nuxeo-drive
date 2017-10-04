@@ -10,6 +10,7 @@ from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
 from nxdrive.client import LocalClient, RemoteDocumentClient, \
     RemoteFileSystemClient, RemoteFilteredFileSystemClient
+from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.common import BaseClient, DEFAULT_REPOSITORY_NAME, \
     NotFound, safe_filename
 from nxdrive.client.rest_api_client import RestAPIClient
@@ -361,20 +362,24 @@ class Engine(QObject):
     def unbind(self):
         self.stop()
         try:
-            # Don't fail if not possible to remove token
             doc_client = self.get_remote_doc_client()
             if doc_client:
                 doc_client.revoke_token()
+        except Unauthorized:
+            # Token already revoked
+            # The exception can happened in both get_remote_doc_client()
+            # and revoke_token()
+            pass
         except:
             log.exception('Unbind error')
+
         self.dispose_db()
-        # Remove DB
-        log.debug("Remove DB file %s", self._get_db_file())
+        log.debug('Remove DB file %s', self._get_db_file())
         try:
             os.remove(self._get_db_file())
-        except (IOError, OSError) as ioe:
-            log.exception(ioe)
-        return
+        except (IOError, OSError) as exc:
+            if exc.errno != 2:  # File not found, already removed
+                log.exception('Database removal error')
 
     def check_fs_marker(self):
         tag = 'drive-fs-test'

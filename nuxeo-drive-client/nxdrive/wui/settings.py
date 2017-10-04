@@ -74,7 +74,6 @@ class WebSettingsApi(WebDriveApi):
         parts = urlparse.urlsplit(guess_server_url(unicode(url)))
         url = urlparse.urlunsplit(
             (parts.scheme, parts.netloc, parts.path, '', parts.fragment))
-        log.debug('URL: %r', url)
 
         # On first time login convert QString(having special characters) to str
         if isinstance(local_folder, QtCore.QString):
