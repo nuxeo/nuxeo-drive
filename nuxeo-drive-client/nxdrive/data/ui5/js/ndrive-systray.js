@@ -126,15 +126,3 @@ SystrayController.prototype.getLastFiles = function($scope) {
 	$scope.last_files = angular.fromJson(drive.get_last_files(
 	    $scope.engine.uid, 4 - $scope.current_actions.length, null));
 }
-
-/**
- * Sample of a CustomSystrayController
- */
-function CustomSystrayController($scope, $interval, $translate) {
-	SystrayController.call(this, $scope, $interval, $translate);
-}
-CustomSystrayController.prototype = Object.create(SystrayController.prototype);
-CustomSystrayController.prototype.constructor = CustomSystrayController;
-CustomSystrayController.prototype.advancedSystray = function() {
-	drive.advanced_systray();
-}
