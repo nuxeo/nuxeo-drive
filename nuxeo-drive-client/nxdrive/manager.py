@@ -1178,6 +1178,11 @@ class Manager(QtCore.QObject):
         if starts:
             self._engines[uid].start()
         self.newEngine.emit(self._engines[uid])
+
+        # NXDRIVE-978: Update the current state to reflect the change in
+        # the systray menu
+        self._pause = False
+
         return self._engines[uid]
 
     def unbind_engine(self, uid):
