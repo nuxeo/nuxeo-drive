@@ -7,6 +7,7 @@ import subprocess
 import sys
 import urllib2
 import uuid
+from collections import namedtuple
 from urllib2 import URLError
 from urlparse import urlparse
 
@@ -1090,7 +1091,6 @@ class Manager(QtCore.QObject):
 
     def bind_server(self, local_folder, url, username, password, token=None,
                     name=None, start_engine=True, check_credentials=True):
-        from collections import namedtuple
         if name is None:
             name = self._get_engine_name(url)
         binder = namedtuple('binder', ['username', 'password', 'token', 'url',
