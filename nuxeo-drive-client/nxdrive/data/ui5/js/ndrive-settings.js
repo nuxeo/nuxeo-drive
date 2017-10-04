@@ -1,6 +1,7 @@
 var SettingsController = function($scope, $interval, $translate) {
 	DriveController.call(this, $scope, $translate);
 	self = this;
+	$scope.metrics = angular.fromJson(drive.get_infos());
 	$scope.accounts = [];
 	$scope.section = ""
 	$scope.local_folder = "";

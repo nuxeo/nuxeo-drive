@@ -280,7 +280,7 @@ a, a:link {
   font-size: 1.1em;
   margin-bottom: 30px; }
 
-#about-view .info p:first-child {
+#about-view .info p:first-child span {
   font-weight: bold;
   margin-bottom: 5px; }
 
