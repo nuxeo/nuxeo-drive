@@ -71,6 +71,7 @@ class WebAuthenticationApi(WebDriveApi):
 
 class WebAuthenticationDialog(WebDialog):
     def __init__(self, application, url, api):
-        super(WebAuthenticationDialog, self).__init__(application, url,
-                                                      title=Translator.get("WEB_AUTHENTICATION_WINDOW_TITLE"), api=api)
+        title = Translator.get('WEB_AUTHENTICATION_WINDOW_TITLE')
+        super(WebAuthenticationDialog, self).__init__(
+            application, url, title=title, api=api)
         self.resize(1000, 800)
