@@ -41,6 +41,7 @@ class WebSettingsApi(WebDriveApi):
         self._new_local_folder = ''
         self._account_creation_error = ''
         self._token_update_error = ''
+        self.__unbinding = False
 
     @QtCore.pyqtSlot(result=str)
     def get_default_section(self):
@@ -56,11 +57,16 @@ class WebSettingsApi(WebDriveApi):
 
     @QtCore.pyqtSlot(str, result=QtCore.QObject)
     def unbind_server_async(self, uid):
-        return Promise(self.unbind_server, uid)
+        if not self.__unbinding:
+            return Promise(self.unbind_server, uid)
 
     @QtCore.pyqtSlot(str, result=str)
     def unbind_server(self, uid):
-        self._manager.unbind_engine(str(uid))
+        self.__unbinding = True
+        try:
+            self._manager.unbind_engine(str(uid))
+        finally:
+            self.__unbinding = False
         return ''
 
     @QtCore.pyqtSlot(str)

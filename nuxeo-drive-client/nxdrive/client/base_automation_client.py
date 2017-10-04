@@ -567,7 +567,7 @@ class BaseAutomationClient(BaseClient):
             'deviceId': self.device_id,
             'applicationName': self.application_name,
             'permission': TOKEN_PERMISSION,
-            'revoke': 'true' if revoke else 'false',
+            'revoke': str(revoke).lower(),
         }
         device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
         if device_description:
