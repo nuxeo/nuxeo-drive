@@ -129,8 +129,10 @@ class WebSettingsApi(WebDriveApi):
             msgbox.exec_()
             if msgbox.clickedButton() == cancel:
                 return 'FOLDER_USED'
-            return self.bind_server(local_folder, url, username, password,
-                                    name, **kwargs)
+
+            kwargs['check_fs'] = False
+            return self.bind_server(
+                local_folder, url, username, password, name, **kwargs)
         except NotFound:
             return 'FOLDER_DOES_NOT_EXISTS'
         except AddonNotInstalled:
