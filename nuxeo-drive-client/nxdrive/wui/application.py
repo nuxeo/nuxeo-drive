@@ -386,6 +386,7 @@ class Application(SimpleApplication):
         engine.rootDeleted.connect(self._root_deleted)
         engine.rootMoved.connect(self._root_moved)
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
+        self.change_systray_icon()
 
     @QtCore.pyqtSlot()
     def _debug_toggle_invalid_credentials(self):
