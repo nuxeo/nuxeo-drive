@@ -195,6 +195,7 @@ class TestUtils(unittest.TestCase):
         except:
             pass
 
+    @unittest.skipIf(sys.platform == 'win32', 'Random failure on Windows')
     def test_guess_server_url(self):
         good_url = os.environ.get(
             'NXDRIVE_TEST_NUXEO_URL',
