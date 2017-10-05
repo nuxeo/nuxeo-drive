@@ -10,6 +10,7 @@ Release date: `2017-??-??`
 ### GUI
 - [NXDRIVE-963](https://jira.nuxeo.com/browse/NXDRIVE-963): Crash when deleting an account
 - [NXDRIVE-978](https://jira.nuxeo.com/browse/NXDRIVE-978): Wrong resume/suspend icon after pause and disconnect/reconnect
+- [NXDRIVE-982](https://jira.nuxeo.com/browse/NXDRIVE-982): After disconnect and connect, systray menu alignment is not proper
 
 #### Minor changes
 - GUI: Add more versions informations in About (Python, Qt, WebKit and SIP)

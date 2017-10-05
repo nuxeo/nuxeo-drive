@@ -189,6 +189,7 @@ class WebSystrayView(WebDialog):
     default_height = 370
 
     __geometry = None
+    __icon = None
 
     def __init__(self, application, icon):
         super(WebSystrayView, self).__init__(
@@ -212,14 +213,16 @@ class WebSystrayView(WebDialog):
             height = 280
         self.resize(self.default_width, height)
 
-        geometry = self.icon.geometry()
-        if geometry != self.__geometry:
-            pos_x = max(0, geometry.x() + geometry.width() - self.width())
-            pos_y = geometry.y() - self.height()
+        geometry = self.geometry()
+        icon = self.icon.geometry()
+        if geometry != self.__geometry or icon != self.__icon:
+            pos_x = max(0, icon.x() + icon.width() - self.width())
+            pos_y = icon.y() - self.height()
             if pos_y < 0:
-                pos_y = geometry.y() + geometry.height()
+                pos_y = icon.y() + icon.height()
             self.move(pos_x, pos_y)
             self.__geometry = geometry
+            self.__icon = icon
 
 
 class WebSystray(QMenu):
