@@ -392,29 +392,28 @@ FolderType=Generic
             finally:
                 self.lock_path(path, locker)
 
-    def get_remote_id(self, ref, name="ndrive"):
+    def get_remote_id(self, ref, name='ndrive'):
         # Can be move to another class
         path = self.abspath(ref)
         return LocalClient.get_path_remote_id(path, name)
 
     @staticmethod
-    def get_path_remote_id(path, name="ndrive"):
+    def get_path_remote_id(path, name='ndrive'):
         if AbstractOSIntegration.is_windows():
-            path = path + ":" + name
+            path += ':' + name
             try:
-                with open(path, "r") as f:
+                with open(path, 'r') as f:
                     return unicode(f.read(), 'utf-8')
             except:
                 return None
-        else:
-            try:
-                if AbstractOSIntegration.is_mac():
-                    value = xattr.getxattr(path, name)
-                else:
-                    value = xattr.getxattr(path, 'user.' + name)
-                return unicode(value, 'utf-8')
-            except:
-                return None
+
+        if AbstractOSIntegration.is_linux():
+            name = 'user.' + name
+        try:
+            value = xattr.getxattr(path, name)
+            return unicode(value, 'utf-8')
+        except:
+            return None
 
     # Getters
     def get_info(self, ref, raise_if_missing=True):
@@ -644,15 +643,16 @@ FolderType=Generic
             path = parent + u"/" + name
         return path, os_path, name
 
-    def update_content(self, ref, content, xattr_names=tuple('ndrive')):
-        xattrs = {}
-        for name in xattr_names:
-            xattrs[name] = self.get_remote_id(ref, name=name)
-        with open(self.abspath(ref), "wb") as f:
+    def update_content(self, ref, content, xattr_names=('ndrive',)):
+        xattrs = {name: self.get_remote_id(ref, name=name)
+                  for name in xattr_names}
+
+        with open(self.abspath(ref), 'wb') as f:
             f.write(content)
-        for name in xattr_names:
-            if xattrs[name] is not None:
-                self.set_remote_id(ref, xattrs[name], name=name)
+
+        for name, value in xattrs.iteritems():
+            if value is not None:
+                self.set_remote_id(ref, value, name=name)
 
     def delete(self, ref):
         locker = self.unlock_ref(ref)
