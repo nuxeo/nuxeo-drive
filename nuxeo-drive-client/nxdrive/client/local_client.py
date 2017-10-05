@@ -648,8 +648,10 @@ FolderType=Generic
         xattrs = {}
         for name in xattr_names:
             xattrs[name] = self.get_remote_id(ref, name=name)
-        with open(self.abspath(ref), "wb") as f:
+
+        with open(self.abspath(ref), 'wb') as f:
             f.write(content)
+
         for name in xattr_names:
             if xattrs[name] is not None:
                 self.set_remote_id(ref, xattrs[name], name=name)
