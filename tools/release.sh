@@ -6,6 +6,16 @@
 # Warning: do not execute this script manually but from Jenkins.
 #
 
+cancel_beta() {
+    local drive_version
+
+    drive_version="$(python tools/changelog.py --drive-version)"
+
+    echo ">>> [beta ${drive_version}] Removing the release tag"
+    git tag --delete "release-${drive_version}" || true
+    git push --delete origin "release-${drive_version}" || true
+}
+
 changelog() {
     # Create the draft.json file with the pre-release content
     local drive_version
@@ -77,10 +87,12 @@ publish_beta() {
 }
 
 main() {
-    if [ "$1" = "--create" ]; then
-        create_beta
-    elif [ "$1" = "--publish" ]; then
-        publish_beta
+    if [ $# -eq 1 ]; then
+        case "$1" in
+            "--cancel") cancel_beta ;;
+            "--create") create_beta ;;
+            "--publish") publish_beta ;;
+        esac
     fi
 }
 
