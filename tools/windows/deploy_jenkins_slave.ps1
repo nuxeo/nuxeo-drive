@@ -183,6 +183,15 @@ function install_cxfreeze {
 }
 
 function install_deps {
+	if (-Not (check_import "import pip")) {
+		echo ">>> Installing pip"
+		# https://github.com/python/cpython/blob/master/Tools/msi/pip/pip.wxs#L28
+		& $Env:PYTHON_DIR\python $global:PYTHON_OPT -m ensurepip -U --default-pip
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
+	}
+
 	echo ">>> Installing requirements"
 	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements.txt
 	if ($lastExitCode -ne 0) {
@@ -191,27 +200,6 @@ function install_deps {
 	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-windows.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
-	}
-}
-
-function install_pip {
-	$output = "$Env:STORAGE_DIR\get-pip.py"
-	$url = "https://bootstrap.pypa.io/get-pip.py"
-
-	if (check_import "import pip") {
-		return
-	}
-
-	echo ">>> Installing pip"
-	download $url $output -check $false
-	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $output -q -t $Env:PYTHON_DIR
-	$ret = $lastExitCode
-
-	# Cleanup
-	Remove-Item -Force $output
-
-	if ($ret -ne 0) {
-		ExitWithCode $ret
 	}
 }
 
@@ -389,7 +377,6 @@ function main {
 	check_vars
 	install_python
 	install_openssl
-	install_pip
 	install_deps
 	install_sip
 	install_pyqt
