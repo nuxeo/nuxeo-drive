@@ -136,7 +136,7 @@ class ConfigurationDAO(QObject):
 
     def __init__(self, db):
         super(ConfigurationDAO, self).__init__()
-        log.debug("Create DAO on %s", db)
+        log.debug('Create DAO on %r', db)
         self._db = db
         migrate = os.path.exists(self._db)
         # For testing purpose only should always be True
@@ -220,8 +220,8 @@ class ConfigurationDAO(QObject):
         cursor.execute("CREATE TABLE if not exists Configuration(name VARCHAR NOT NULL, value VARCHAR, PRIMARY KEY (name))")
 
     def _create_main_conn(self):
-        log.debug("Create main connexion on %s (dir exists: %d / file exists: %d)",
-                    self._db, os.path.exists(os.path.dirname(self._db)), os.path.exists(self._db))
+        log.debug('Create main connexion on %r (dir_exists=%r, file_exists=%r)',
+                  self._db, os.path.exists(os.path.dirname(self._db)), os.path.exists(self._db))
         self._conn = AutoRetryConnection(self._db, check_same_thread=False)
         self._connections.append(self._conn)
 
@@ -229,7 +229,7 @@ class ConfigurationDAO(QObject):
         log.trace(query)
 
     def dispose(self):
-        log.debug("Disposing sqlite database %r", self.get_db())
+        log.debug('Disposing SQLite database %r', self.get_db())
         for con in self._connections:
             con.close()
         self._connections = []
@@ -633,9 +633,9 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             self._reinit_states(c)
             con.commit()
-            log.trace("Vacuum sqlite")
-            con.execute("VACUUM")
-            log.trace("Vacuum sqlite finished")
+            log.trace('Vacuum SQLite')
+            con.execute('VACUUM')
+            log.trace('Vacuum SQLite finished')
         finally:
             self._lock.release()
 
@@ -648,9 +648,9 @@ class EngineDAO(ConfigurationDAO):
             c.execute("UPDATE States SET error_count=0, last_sync_error_date=NULL, last_error = NULL WHERE pair_state='synchronized'")
             if self.auto_commit:
                 con.commit()
-            log.trace("Vacuum sqlite")
-            con.execute("VACUUM")
-            log.trace("Vacuum sqlite finished")
+            log.trace('Vacuum SQLite')
+            con.execute('VACUUM')
+            log.trace('Vacuum SQLite finished')
         finally:
             self._lock.release()
 
@@ -1248,8 +1248,8 @@ class EngineDAO(ConfigurationDAO):
     def synchronize_state(self, row, version=None, dynamic_states=False):
         if version is None:
             version = row.version
-        log.trace('Try to synchronize state for [local_path=%s, '
-                  'remote_name=%s, version=%s] with version=%s '
+        log.trace('Try to synchronize state for [local_path=%r, '
+                  'remote_name=%r, version=%s] with version=%s '
                   'and dynamic_states=%r',
                   row.local_path, row.remote_name, row.version, version,
                   dynamic_states)

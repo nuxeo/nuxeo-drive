@@ -229,7 +229,7 @@ class LocalClient(BaseClient):
 
     def remove_remote_id(self, ref, name='ndrive'):
         path = self.abspath(ref)
-        log.trace('Removing xattr %s from %s', name, path)
+        log.trace('Removing xattr %r from %r', name, path)
         locker = self.unlock_path(path, False)
         func = (self._remove_remote_id_windows
                 if AbstractOSIntegration.is_windows()
@@ -350,8 +350,8 @@ FolderType=Generic
             info = self._read_data(icon)
             xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, info)
             os.chflags(meta_file, stat.UF_HIDDEN)
-        except Exception as e:
-            log.error("Exception when setting folder icon : %s", e)
+        except:
+            log.exception('Impossible to set the folder icon')
 
     def set_remote_id(self, ref, remote_id, name='ndrive'):
         if not isinstance(remote_id, bytes):
@@ -415,7 +415,6 @@ FolderType=Generic
         except:
             return None
 
-    # Getters
     def get_info(self, ref, raise_if_missing=True):
         if isinstance(ref, bytes):
             ref = unicode(ref)
@@ -663,7 +662,7 @@ FolderType=Generic
         # Remove the \\?\ prefix, specific to Windows
         os_path = os_path.lstrip('\\\\?\\')
 
-        log.trace('Sending to trash ' + os_path)
+        log.trace('Trashing %r', os_path)
 
         # Send2Trash needs bytes
         if not isinstance(os_path, bytes):
@@ -672,7 +671,7 @@ FolderType=Generic
         try:
             send2trash(os_path)
         except OSError:
-            log.debug('Cannot use trash, deleting ' + os_path)
+            log.debug('Cannot use trash, deleting %r', os_path)
             self.delete_final(ref)
         finally:
             # Don't want to unlock the current deleted
@@ -821,6 +820,6 @@ FolderType=Generic
                 name = u"%s__%d" % (short_name, int(increment) + 1)
             else:
                 name = name + u'__1'
-            log.trace("De-duplicate %s to %s", os_path, name)
+            log.trace('De-duplicate %r to %r', os_path, name)
         raise DuplicationError(
-            'Failed to de-duplicate "%s" under "%s"' % (orig_name, parent))
+            'Failed to de-duplicate %r under %r' % (orig_name, parent))

@@ -342,11 +342,11 @@ class LocalWatcher(EngineWorker):
                             log.debug('Skip potential new %s as it is the result of a remote creation: %r',
                                       child_type, child_info.path)
                             continue
-                        log.debug("Found new %s %s", child_type, child_info.path)
+                        log.debug('Found new %s %r', child_type, child_info.path)
                         self._metrics['new_files'] += 1
                         self._dao.insert_local_state(child_info, info.path)
                     else:
-                        log.debug("Found potential moved file %s[%s]", child_info.path, remote_id)
+                        log.debug('Found potential moved file %r[%s]', child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
                         if doc_pair is not None and self.client.exists(doc_pair.local_path):
                             if (not self.client.is_case_sensitive()
@@ -365,7 +365,7 @@ class LocalWatcher(EngineWorker):
                             doc_creation_time = self.get_creation_time(doc_full_path)
                             log.trace('child_cre_time=%f, doc_cre_time=%f', child_creation_time, doc_creation_time)
                         if doc_pair is None:
-                            log.debug("Can't find reference for %s in database, put it in locally_created state",
+                            log.debug('Cannot find reference for %r in database, put it in locally_created state',
                                       child_info.path)
                             self._metrics['new_files'] += 1
                             self._dao.insert_local_state(child_info, info.path)
@@ -386,7 +386,7 @@ class LocalWatcher(EngineWorker):
                             self._protected_files[doc_pair.remote_ref] = True
                             if self.client.exists(doc_pair.local_path) and child_creation_time < doc_creation_time:
                                 # Need to put back the new created - need to check maybe if already there
-                                log.trace("Found a moved file that has been copy/paste back: %s", doc_pair.local_path)
+                                log.trace('Found a moved file that has been copy/paste back: %r', doc_pair.local_path)
                                 self.client.remove_remote_id(doc_pair.local_path)
                                 self._dao.insert_local_state(self.client.get_info(doc_pair.local_path), os.path.dirname(doc_pair.local_path))
                         else:
@@ -431,7 +431,7 @@ class LocalWatcher(EngineWorker):
                     if (child_pair.processor == 0
                             and child_pair.last_local_updated is not None
                             and last_mtime != child_pair.last_local_updated.split('.')[0]):
-                        log.trace('Update file %s', child_info.path)
+                        log.trace('Update file %r', child_info.path)
                         remote_ref = self.client.get_remote_id(child_pair.local_path)
                         if remote_ref is not None and child_pair.remote_ref is None:
                             log.debug("Possible race condition between remote and local scan, let's refresh pair: %r",
@@ -446,7 +446,7 @@ class LocalWatcher(EngineWorker):
                             # Load correct doc_pair | Put the others one back
                             # to children
                             log.warning(
-                                'Detected file substitution: %s (%s/%s)',
+                                'Detected file substitution: %r (%s/%s)',
                                 child_pair.local_path, remote_ref, child_pair.remote_ref)
                             if remote_ref is None:
                                 if not child_info.folderish:
@@ -508,7 +508,7 @@ class LocalWatcher(EngineWorker):
         for deleted in children.values():
             if deleted.pair_state == "remotely_created" or deleted.remote_state == "created":
                 continue
-            log.debug("Found deleted file %s", deleted.local_path)
+            log.debug('Found deleted file %r', deleted.local_path)
             # May need to count the children to be ok
             self._metrics['delete_files'] += 1
             if deleted.remote_ref is None:
@@ -543,7 +543,7 @@ class LocalWatcher(EngineWorker):
                 ob.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
             except ImportError:
                 log.exception('Cannot import read_directory_changes')
-        log.debug('Watching FS modification on : %s', self.client.base_folder)
+        log.debug('Watching FS modification on : %r', self.client.base_folder)
 
         # Filter out all ignored suffixes. It will handle custom ones too.
         ignore_patterns = list(['*' + suffixe
@@ -610,7 +610,7 @@ class LocalWatcher(EngineWorker):
             dest_filename = os.path.basename(evt.dest_path)
             if dest_filename.startswith(LocalClient.CASE_RENAME_PREFIX) or \
                     os.path.basename(rel_path).startswith(LocalClient.CASE_RENAME_PREFIX):
-                log.debug('Ignoring case rename %s to %s',
+                log.debug('Ignoring case rename %r to %r',
                           evt.src_path, evt.dest_path)
                 return
 
@@ -633,7 +633,7 @@ class LocalWatcher(EngineWorker):
                     # if only file permissions have been updated
                     if not doc_pair.folderish and pair.local_digest == digest:
                         log.trace(
-                            'Dropping watchdog event [%s] as digest has not changed for %s',
+                            'Dropping watchdog event [%s] as digest has not changed for %r',
                             evt.event_type, rel_path)
                         # If pair are the same don't drop it.  It can happen
                         # in case of server rename on a document.
@@ -765,7 +765,7 @@ class LocalWatcher(EngineWorker):
                 # Unchanged digest, can be the case if only the last modification time or file permissions
                 # have been updated
                 if doc_pair.local_digest == digest:
-                    log.debug('Digest has not changed for %s (watchdog event [%s]), only update last_local_updated',
+                    log.debug('Digest has not changed for %r (watchdog event [%s]), only update last_local_updated',
                               rel_path, evt.event_type)
                     if local_info.remote_ref is None:
                         self.client.set_remote_id(rel_path, doc_pair.remote_ref)
@@ -809,14 +809,14 @@ class LocalWatcher(EngineWorker):
         self._metrics['last_event'] = current_milli_time()
         self._action = Action("Handle watchdog event")
         if evt.event_type == 'moved':
-            log.debug("Handling watchdog event [%s] on %s to %s", evt.event_type, evt.src_path, evt.dest_path)
+            log.debug('Handling watchdog event [%s] on %r to %r', evt.event_type, evt.src_path, evt.dest_path)
             # Ignore normalization of the filename on the file system
             # See https://jira.nuxeo.com/browse/NXDRIVE-188
             if evt.dest_path == normalize_event_filename(evt.src_path, action=False) or evt.dest_path == evt.src_path.strip():
                 log.debug('Ignoring move from %r to normalized name: %r', evt.src_path, evt.dest_path)
                 return
         else:
-            log.debug("Handling watchdog event [%s] on %r", evt.event_type, evt.src_path)
+            log.debug('Handling watchdog event [%s] on %r', evt.event_type, evt.src_path)
 
         try:
             src_path = normalize_event_filename(evt.src_path)
@@ -840,7 +840,7 @@ class LocalWatcher(EngineWorker):
             doc_pair = self._dao.get_state_from_local(rel_path)
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
-                    log.debug('Ignoring %s as marked unsynchronized',
+                    log.debug('Ignoring %r as marked unsynchronized',
                               doc_pair.local_path)
                     if evt.event_type in ('deleted', 'moved'):
                         path = (evt.dest_path
@@ -857,7 +857,7 @@ class LocalWatcher(EngineWorker):
                 return
 
             if evt.event_type == 'deleted':
-                log.debug('Unknown pair deleted: %s', rel_path)
+                log.debug('Unknown pair deleted: %r', rel_path)
                 return
 
             if evt.event_type == 'moved':
@@ -894,7 +894,7 @@ class LocalWatcher(EngineWorker):
                 return
             # if the pair is modified and not known consider as created
             if evt.event_type not in ('created', 'modified'):
-                log.debug('Unhandled case: %r %s %s', evt, rel_path, file_name)
+                log.debug('Unhandled case: %r %r %r', evt, rel_path, file_name)
                 return
 
             # If doc_pair is not None mean
@@ -902,7 +902,7 @@ class LocalWatcher(EngineWorker):
             # As Windows send a delete / create event for reparent
             local_info = self.client.get_info(rel_path, raise_if_missing=False)
             if local_info is None:
-                log.trace("Event on a disappeared file: %r %s %s", evt, rel_path, file_name)
+                log.trace("Event on a disappeared file: %r %r %r", evt, rel_path, file_name)
                 return
 
             # This might be a move but Windows don't emit this event...
@@ -950,12 +950,16 @@ class LocalWatcher(EngineWorker):
                         doc_pair_creation_time = self.get_creation_time(doc_pair_full_path)
                         from_pair_full_path = self.client.abspath(from_pair.local_path)
                         from_pair_creation_time = self.get_creation_time(from_pair_full_path)
-                        log.trace('doc_pair_full_path=%s, doc_pair_creation_time=%s, from_pair_full_path=%s, version=%d', doc_pair_full_path, doc_pair_creation_time, from_pair_full_path, from_pair.version)
+                        log.trace('doc_pair_full_path=%r, doc_pair_creation_time=%s, from_pair_full_path=%r, version=%d', doc_pair_full_path, doc_pair_creation_time, from_pair_full_path, from_pair.version)
                         # If file at the original location is newer,
                         #   it is moved to the new location earlier then copied back (what else can it be?)
                         if (not from_pair_creation_time <= doc_pair_creation_time) and evt.event_type == 'created':
-                            log.trace("Found moved file: from_pair: %f doc_pair:%f for %s", from_pair_creation_time, doc_pair_creation_time, doc_pair_full_path)
-                            log.trace("Creation time are: from: %f | new: %f : boolean: %d", from_pair_creation_time, doc_pair_creation_time, from_pair_creation_time >= doc_pair_creation_time)
+                            log.trace(
+                                'Found moved file %r (times: from=%f, to=%f)',
+                                doc_pair_full_path,
+                                from_pair_creation_time,
+                                doc_pair_creation_time,
+                            )
                             from_pair.local_state = 'moved'
                             self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
                             self._dao.insert_local_state(self.client.get_info(from_pair.local_path), os.path.dirname(from_pair.local_path))
