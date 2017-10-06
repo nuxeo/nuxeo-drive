@@ -14,10 +14,12 @@ Release date: `2017-??-??`
 
 ### Packaging / Build
 - [NXDRIVE-992](https://jira.nuxeo.com/browse/NXDRIVE-992): Rollback release tag on Drive-package job failure
+- [NXDRIVE-992](https://jira.nuxeo.com/browse/NXDRIVE-991): Upgrade Python from 2.7.13 to 2.7.14
 
 #### Minor changes
 - GUI: Add more versions informations in About (Python, Qt, WebKit and SIP)
 - Jenkins: Better artifacts deployment on the server
+- Packaging: Bypass use of get-pip.py for `pip` installation
 
 
 # 2.5.4
