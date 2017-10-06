@@ -2,7 +2,7 @@
 // Script to launch Nuxeo Drive tests on every supported platform.
 
 // Default values for required envars
-python_drive_version = '2.7.13'
+python_drive_version = '2.7.14'  // XXX: PYTHON_DRIVE_VERSION
 pyqt_version = '4.12'
 cxfreeze_version = '4.3.3'
 sip_version = '4.19'
