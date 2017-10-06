@@ -12,8 +12,12 @@ Release date: `2017-??-??`
 - [NXDRIVE-978](https://jira.nuxeo.com/browse/NXDRIVE-978): Wrong resume/suspend icon after pause and disconnect/reconnect
 - [NXDRIVE-982](https://jira.nuxeo.com/browse/NXDRIVE-982): After disconnect and connect, systray menu alignment is not proper
 
+### Packaging / Build
+- [NXDRIVE-992](https://jira.nuxeo.com/browse/NXDRIVE-992): Rollback release tag on Drive-package job failure
+
 #### Minor changes
 - GUI: Add more versions informations in About (Python, Qt, WebKit and SIP)
+- Jenkins: Better artifacts deployment on the server
 
 
 # 2.5.4
