@@ -2,6 +2,7 @@
 import inspect
 import os
 import sqlite3
+import sys
 from datetime import datetime
 from threading import RLock, current_thread, local
 
@@ -1350,16 +1351,19 @@ class EngineDAO(ConfigurationDAO):
                 and info.can_rename == row.remote_can_rename
                 and info.can_delete == row.remote_can_delete
                 and info.can_update == row.remote_can_update
-                and info.can_create_child == row.remote_can_create_child
-                and os.path.basename(row.local_path) == info.name):
-            # It looks similar
-            if info.digest in (row.local_digest, row.remote_digest):
-                row.remote_state = 'synchronized'
-                row.pair_state = self._get_pair_state(row)
-            if info.digest == row.remote_digest and not force_update:
-                log.trace('Not updating remote state (not dirty)'
-                          ' for row=%r with info=%r', row, info)
-                return
+                and info.can_create_child == row.remote_can_create_child):
+            bname = os.path.basename(row.local_path)
+            if (bname == info.name
+                    or (sys.platform == 'win32'
+                        and bname.strip() == info.name.strip())):
+                # It looks similar
+                if info.digest in (row.local_digest, row.remote_digest):
+                    row.remote_state = 'synchronized'
+                    row.pair_state = self._get_pair_state(row)
+                if info.digest == row.remote_digest and not force_update:
+                    log.trace('Not updating remote state (not dirty)'
+                              ' for row=%r with info=%r', row, info)
+                    return
 
         log.trace('Updating remote state for row=%r with info=%r (force=%r)',
                   row, info, force_update)
