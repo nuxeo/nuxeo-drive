@@ -875,12 +875,16 @@ class Processor(EngineWorker):
                         self._dao.update_remote_parent_path(doc_pair,
                                                             new_parent_path)
                     else:
-                        log.debug('Renaming local %s %r to %r',
-                                  file_or_folder,
-                                  local_client.abspath(doc_pair.local_path),
-                                  doc_pair.remote_name)
-                        updated_info = local_client.rename(
-                            doc_pair.local_path, doc_pair.remote_name)
+                        if not (AbstractOSIntegration.is_windows()
+                                and doc_pair.remote_name.endswith(' ')):
+                            # Prevent renaming from 'folder' to 'folder '
+                            log.debug(
+                                'Renaming local %s %r to %r',
+                                file_or_folder,
+                                local_client.abspath(doc_pair.local_path),
+                                doc_pair.remote_name)
+                            updated_info = local_client.rename(
+                                doc_pair.local_path, doc_pair.remote_name)
 
                     if updated_info:
                         # Should call a DAO method
