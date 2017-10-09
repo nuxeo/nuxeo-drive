@@ -473,7 +473,8 @@ FolderType=Generic
         return digest == remote_digest
 
     def get_content(self, ref):
-        return open(self.abspath(ref), 'rb').read()
+        with open(self.abspath(ref), 'rb') as f:
+            return f.read()
 
     def is_ignored(self, parent_ref, file_name):
         # Add parent_ref to be able to filter on size if needed
