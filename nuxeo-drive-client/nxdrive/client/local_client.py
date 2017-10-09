@@ -475,23 +475,6 @@ FolderType=Generic
     def get_content(self, ref):
         return open(self.abspath(ref), 'rb').read()
 
-    def is_osxbundle(self, ref):
-        '''
-        This is not reliable yet
-        '''
-        if not AbstractOSIntegration.is_mac():
-            return False
-        if os.path.isfile(self.abspath(ref)):
-            return False
-        # Don't want to synchornize app - when copy paste this file
-        # might not has been created yet
-        if os.path.isfile(os.path.join(ref, "Contents", "Info.plist")):
-            return True
-        attrs = self.get_remote_id(ref, "com.apple.FinderInfo")
-        if attrs is None:
-            return False
-        return bool(ord(attrs[8]) & 0x20)
-
     def is_ignored(self, parent_ref, file_name):
         # Add parent_ref to be able to filter on size if needed
 
