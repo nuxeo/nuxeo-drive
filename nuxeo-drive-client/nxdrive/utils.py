@@ -86,7 +86,7 @@ def is_generated_tmp_file(name):
             return ignore, delay
 
         # AutoCAD
-        if re.match(r'^atmp\d+$', name) is not None:
+        if re.match(r'^atmp\d+$', name.lower()) is not None:
             # Ban definitively that pattern as we have no other
             # solution for now.
             return ignore, do_not_delay
