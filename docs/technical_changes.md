@@ -1,6 +1,7 @@
 # dev
 - Changed `update_token` method in `WebSettingsApi` class. No more `static.`
 - Removed `is_osxbundle()` method from `LocalClient` class
+- Removed `is_updated()` method from `Manager` class. Use `updated` attribute instead.
 
 # 2.5.4
 - Moved `get_repository_names()` method from `RemoteDocumentClient` class to `RemoteDocumentClientForTests` class, only for tests

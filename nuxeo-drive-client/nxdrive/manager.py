@@ -1235,9 +1235,6 @@ class Manager(QtCore.QObject):
     def is_started(self):
         return self._started
 
-    def is_updated(self):
-        return self.updated
-
     def is_syncing(self):
         syncing_engines = []
         for uid, engine in self._engines.items():
