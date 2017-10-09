@@ -2,7 +2,6 @@
 import os
 import re
 import sqlite3
-import unicodedata
 from Queue import Queue
 from threading import Lock
 from time import mktime, sleep, time
@@ -17,7 +16,8 @@ from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.utils import current_milli_time, is_generated_tmp_file
+from nxdrive.utils import current_milli_time, is_generated_tmp_file, \
+    normalize_event_filename
 
 log = get_logger(__name__)
 
@@ -25,9 +25,6 @@ log = get_logger(__name__)
 WIN_MOVE_RESOLUTION_PERIOD = 2000
 
 TEXT_EDIT_TMP_FILE_PATTERN = ur'.*\.rtf\.sb\-(\w)+\-(\w)+$'
-
-if AbstractOSIntegration.is_windows():
-    import win32api
 
 
 def is_text_edit_tmp_file(name):
@@ -812,7 +809,8 @@ class LocalWatcher(EngineWorker):
             log.debug('Handling watchdog event [%s] on %r to %r', evt.event_type, evt.src_path, evt.dest_path)
             # Ignore normalization of the filename on the file system
             # See https://jira.nuxeo.com/browse/NXDRIVE-188
-            if evt.dest_path == normalize_event_filename(evt.src_path, action=False) or evt.dest_path == evt.src_path.strip():
+            if (evt.dest_path == normalize_event_filename(evt.src_path, action=False)
+                    or evt.dest_path == evt.src_path.strip()):
                 log.debug('Ignoring move from %r to normalized name: %r', evt.src_path, evt.dest_path)
                 return
         else:
@@ -1060,63 +1058,3 @@ class DriveFSRootEventHandler(PatternMatchingEventHandler):
             return
         self.counter += 1
         self.watcher.handle_watchdog_root_event(event)
-
-
-def normalize_event_filename(filename, action=True):
-    """
-    Normalize a file name.
-
-    :param unicode filename: The file name to normalize.
-    :param bool action: Apply changes on the file system.
-    :return unicode: The normalized file name.
-    """
-
-    # NXDRIVE-688: Ensure the name is stripped for a file
-    stripped = filename.strip()
-    if AbstractOSIntegration.is_windows():
-        # Windows does not allow files/folders ending with space(s)
-        filename = stripped
-    elif (action
-            and filename != stripped
-            and os.path.exists(filename)
-            and not os.path.isdir(filename)):
-        # We can have folders ending with spaces
-        log.debug('Forcing space normalization: %r -> %r', filename, stripped)
-        os.rename(filename, stripped)
-        filename = stripped
-
-    # NXDRIVE-188: Normalize name on the file system, if needed
-    try:
-        normalized = unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
-    except TypeError:
-        normalized = unicodedata.normalize('NFC', unicode(filename))
-
-    if AbstractOSIntegration.is_mac():
-        return normalized
-    elif AbstractOSIntegration.is_windows() and os.path.exists(filename):
-        """
-        If `filename` exists, and as Windows is case insensitive,
-        the result of Get(Full|Long|Short)PathName() could be unexpected
-        because it will return the path of the existant `filename`.
-
-        Check this simplified code session (the file "ABC.txt" exists):
-
-            >>> win32api.GetLongPathName('abc.txt')
-            'ABC.txt'
-            >>> win32api.GetLongPathName('ABC.TXT')
-            'ABC.txt'
-            >>> win32api.GetLongPathName('ABC.txt')
-            'ABC.txt'
-
-        So, to counter that behavior, we save the actual file name
-        and restore it in the full path.
-        """
-        long_path = win32api.GetLongPathNameW(filename)
-        filename = os.path.join(os.path.dirname(long_path),
-                                os.path.basename(filename))
-
-    if action and filename != normalized and os.path.exists(filename):
-        log.debug('Forcing normalization: %r -> %r', filename, normalized)
-        os.rename(filename, normalized)
-
-    return normalized
