@@ -21,8 +21,6 @@ from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES, \
     DEFAULT_IGNORED_SUFFIXES
 from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
-from nxdrive.engine.engine import Engine
-from nxdrive.engine.next.engine_next import EngineNext
 from nxdrive.logging_config import FILE_HANDLER, get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.updater import AppUpdater, FakeUpdater
@@ -311,6 +309,8 @@ class Manager(QtCore.QObject):
         self.debug = options.debug
         self._engine_definitions = None
 
+        from nxdrive.engine.engine import Engine
+        from nxdrive.engine.next.engine_next import EngineNext
         self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
         self._engines = None
         self.proxies = dict()
