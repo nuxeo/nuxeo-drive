@@ -20,7 +20,8 @@ Release date: `2017-??-??`
 #### Minor changes
 - GUI: Add more versions informations in About (Python, Qt, WebKit and SIP)
 - Jenkins: Better artifacts deployment on the server
-- Packaging: Bypass use of get-pip.py for `pip` installation
+- Jenkins: Update `pyenv` to take into account new Python versions
+- Packaging: Bypass use of get-pip.py for `pip` installation on Windows
 
 
 # 2.5.4
