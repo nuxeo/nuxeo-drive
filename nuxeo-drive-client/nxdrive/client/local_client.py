@@ -395,7 +395,7 @@ FolderType=Generic
     def get_remote_id(self, ref, name='ndrive'):
         # Can be move to another class
         path = self.abspath(ref)
-        return LocalClient.get_path_remote_id(path, name)
+        return self.get_path_remote_id(path, name)
 
     @staticmethod
     def get_path_remote_id(path, name='ndrive'):
@@ -706,7 +706,7 @@ FolderType=Generic
                 with warnings.catch_warnings(UserWarning):
                     temp_path = os.tempnam(
                         self.abspath(parent),
-                        LocalClient.CASE_RENAME_PREFIX + old_name + '_')
+                        self.CASE_RENAME_PREFIX + old_name + '_')
                 if AbstractOSIntegration.is_windows():
                     ctypes.windll.kernel32.SetFileAttributesW(
                         unicode(temp_path), 2)
