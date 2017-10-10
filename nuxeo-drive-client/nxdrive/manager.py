@@ -232,13 +232,13 @@ class ProxySettings(object):
                 for given URL.
         """
 
-        default = {}
+        default = None
         if self.config != 'Automatic':
             return default
 
         try:
             response = urllib2.urlopen(self.pac_url)
-        except urllib2.HTTPError:
+        except urllib2.URLError:
             log.exception('Network error')
             return default
         else:
@@ -1063,7 +1063,7 @@ class Manager(QtCore.QObject):
         elif proxy_settings.config == 'System':
             proxies = self.retreive_system_proxies(server_url)
         elif proxy_settings.config == 'Automatic':
-            if server_url not in self.proxies:
+            if server_url not in self.proxies or self.proxies[server_url] is None:
                 self.proxies[server_url] = \
                     proxy_settings.get_proxies_automatic(server_url)
             proxies = self.proxies[server_url]
