@@ -6,6 +6,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-950](https://jira.nuxeo.com/browse/NXDRIVE-950): Invalid credentials loop when revoking the user's token
 - [NXDRIVE-964](https://jira.nuxeo.com/browse/NXDRIVE-964): Impossible to use an old local folder from another user
 - [NXDRIVE-994](https://jira.nuxeo.com/browse/NXDRIVE-994): Bad use of tuple for keyword xattr_names of LocalClient.update_content()
+- [NXDRIVE-995](https://jira.nuxeo.com/browse/NXDRIVE-995): Prevent renaming from 'folder' to 'folder ' on Windows
 
 ### GUI
 - [NXDRIVE-963](https://jira.nuxeo.com/browse/NXDRIVE-963): Crash when deleting an account
@@ -14,12 +15,13 @@ Release date: `2017-??-??`
 
 ### Packaging / Build
 - [NXDRIVE-992](https://jira.nuxeo.com/browse/NXDRIVE-992): Rollback release tag on Drive-package job failure
-- [NXDRIVE-992](https://jira.nuxeo.com/browse/NXDRIVE-991): Upgrade Python from 2.7.13 to 2.7.14
+- [NXDRIVE-991](https://jira.nuxeo.com/browse/NXDRIVE-991): Upgrade Python from 2.7.13 to 2.7.14
 
 #### Minor changes
 - GUI: Add more versions informations in About (Python, Qt, WebKit and SIP)
 - Jenkins: Better artifacts deployment on the server
-- Packaging: Bypass use of get-pip.py for `pip` installation
+- Jenkins: Update `pyenv` to take into account new Python versions
+- Packaging: Bypass use of get-pip.py for `pip` installation on Windows
 
 
 # 2.5.4

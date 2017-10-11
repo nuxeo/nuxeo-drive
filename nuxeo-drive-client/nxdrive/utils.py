@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urlparse
 from distutils.version import StrictVersion
 from urllib2 import HTTPError, URLError, urlopen
@@ -16,6 +17,9 @@ from Crypto.Cipher import AES
 
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, DRIVE_STARTUP_PAGE
 from nxdrive.logging_config import get_logger
+
+if sys.platform == 'win32':
+    import win32api
 
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 log = get_logger(__name__)
@@ -86,7 +90,7 @@ def is_generated_tmp_file(name):
             return ignore, delay
 
         # AutoCAD
-        if re.match(r'^atmp\d+$', name) is not None:
+        if re.match(r'^atmp\d+$', name.lower()) is not None:
             # Ban definitively that pattern as we have no other
             # solution for now.
             return ignore, do_not_delay
@@ -227,6 +231,66 @@ def normalized_path(path):
 
     return os.path.realpath(
         os.path.normpath(os.path.abspath(os.path.expanduser(path))))
+
+
+def normalize_event_filename(filename, action=True):
+    """
+    Normalize a file name.
+
+    :param unicode filename: The file name to normalize.
+    :param bool action: Apply changes on the file system.
+    :return unicode: The normalized file name.
+    """
+
+    # NXDRIVE-688: Ensure the name is stripped for a file
+    stripped = filename.strip()
+    if sys.platform == 'win32':
+        # Windows does not allow files/folders ending with space(s)
+        filename = stripped
+    elif (action
+          and filename != stripped
+          and os.path.exists(filename)
+          and not os.path.isdir(filename)):
+        # We can have folders ending with spaces
+        log.debug('Forcing space normalization: %r -> %r', filename, stripped)
+        os.rename(filename, stripped)
+        filename = stripped
+
+    # NXDRIVE-188: Normalize name on the file system, if needed
+    try:
+        normalized = unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
+    except TypeError:
+        normalized = unicodedata.normalize('NFC', unicode(filename))
+
+    if sys.platform == 'darwin':
+        return normalized
+    elif sys.platform == 'win32' and os.path.exists(filename):
+        """
+        If `filename` exists, and as Windows is case insensitive,
+        the result of Get(Full|Long|Short)PathName() could be unexpected
+        because it will return the path of the existant `filename`.
+
+        Check this simplified code session (the file "ABC.txt" exists):
+
+            >>> win32api.GetLongPathName('abc.txt')
+            'ABC.txt'
+            >>> win32api.GetLongPathName('ABC.TXT')
+            'ABC.txt'
+            >>> win32api.GetLongPathName('ABC.txt')
+            'ABC.txt'
+
+        So, to counter that behavior, we save the actual file name
+        and restore it in the full path.
+        """
+        long_path = win32api.GetLongPathNameW(filename)
+        filename = os.path.join(os.path.dirname(long_path),
+                                os.path.basename(filename))
+
+    if action and filename != normalized and os.path.exists(filename):
+        log.debug('Forcing normalization: %r -> %r', filename, normalized)
+        os.rename(filename, normalized)
+
+    return normalized
 
 
 def safe_long_path(path):

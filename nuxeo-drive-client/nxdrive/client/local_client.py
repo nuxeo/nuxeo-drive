@@ -229,7 +229,7 @@ class LocalClient(BaseClient):
 
     def remove_remote_id(self, ref, name='ndrive'):
         path = self.abspath(ref)
-        log.trace('Removing xattr %s from %s', name, path)
+        log.trace('Removing xattr %r from %r', name, path)
         locker = self.unlock_path(path, False)
         func = (self._remove_remote_id_windows
                 if AbstractOSIntegration.is_windows()
@@ -350,8 +350,8 @@ FolderType=Generic
             info = self._read_data(icon)
             xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, info)
             os.chflags(meta_file, stat.UF_HIDDEN)
-        except Exception as e:
-            log.error("Exception when setting folder icon : %s", e)
+        except:
+            log.exception('Impossible to set the folder icon')
 
     def set_remote_id(self, ref, remote_id, name='ndrive'):
         if not isinstance(remote_id, bytes):
@@ -395,7 +395,7 @@ FolderType=Generic
     def get_remote_id(self, ref, name='ndrive'):
         # Can be move to another class
         path = self.abspath(ref)
-        return LocalClient.get_path_remote_id(path, name)
+        return self.get_path_remote_id(path, name)
 
     @staticmethod
     def get_path_remote_id(path, name='ndrive'):
@@ -415,7 +415,6 @@ FolderType=Generic
         except:
             return None
 
-    # Getters
     def get_info(self, ref, raise_if_missing=True):
         if isinstance(ref, bytes):
             ref = unicode(ref)
@@ -474,24 +473,8 @@ FolderType=Generic
         return digest == remote_digest
 
     def get_content(self, ref):
-        return open(self.abspath(ref), 'rb').read()
-
-    def is_osxbundle(self, ref):
-        '''
-        This is not reliable yet
-        '''
-        if not AbstractOSIntegration.is_mac():
-            return False
-        if os.path.isfile(self.abspath(ref)):
-            return False
-        # Don't want to synchornize app - when copy paste this file
-        # might not has been created yet
-        if os.path.isfile(os.path.join(ref, "Contents", "Info.plist")):
-            return True
-        attrs = self.get_remote_id(ref, "com.apple.FinderInfo")
-        if attrs is None:
-            return False
-        return bool(ord(attrs[8]) & 0x20)
+        with open(self.abspath(ref), 'rb') as f:
+            return f.read()
 
     def is_ignored(self, parent_ref, file_name):
         # Add parent_ref to be able to filter on size if needed
@@ -663,7 +646,7 @@ FolderType=Generic
         # Remove the \\?\ prefix, specific to Windows
         os_path = os_path.lstrip('\\\\?\\')
 
-        log.trace('Sending to trash ' + os_path)
+        log.trace('Trashing %r', os_path)
 
         # Send2Trash needs bytes
         if not isinstance(os_path, bytes):
@@ -672,7 +655,7 @@ FolderType=Generic
         try:
             send2trash(os_path)
         except OSError:
-            log.debug('Cannot use trash, deleting ' + os_path)
+            log.debug('Cannot use trash, deleting %r', os_path)
             self.delete_final(ref)
         finally:
             # Don't want to unlock the current deleted
@@ -724,7 +707,7 @@ FolderType=Generic
                 with warnings.catch_warnings(UserWarning):
                     temp_path = os.tempnam(
                         self.abspath(parent),
-                        LocalClient.CASE_RENAME_PREFIX + old_name + '_')
+                        self.CASE_RENAME_PREFIX + old_name + '_')
                 if AbstractOSIntegration.is_windows():
                     ctypes.windll.kernel32.SetFileAttributesW(
                         unicode(temp_path), 2)
@@ -821,6 +804,6 @@ FolderType=Generic
                 name = u"%s__%d" % (short_name, int(increment) + 1)
             else:
                 name = name + u'__1'
-            log.trace("De-duplicate %s to %s", os_path, name)
+            log.trace('De-duplicate %r to %r', os_path, name)
         raise DuplicationError(
-            'Failed to de-duplicate "%s" under "%s"' % (orig_name, parent))
+            'Failed to de-duplicate %r under %r' % (orig_name, parent))

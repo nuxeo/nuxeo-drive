@@ -8,11 +8,11 @@ from watchdog.events import DirModifiedEvent
 
 from nxdrive.client.local_client import FileInfo
 from nxdrive.engine.activity import Action
-from nxdrive.engine.watcher.local_watcher import LocalWatcher, \
-    normalize_event_filename
+from nxdrive.engine.watcher.local_watcher import LocalWatcher
+
 from nxdrive.engine.workers import ThreadInterrupt
 from nxdrive.logging_config import get_logger
-from nxdrive.utils import current_milli_time
+from nxdrive.utils import current_milli_time, normalize_event_filename
 
 log = get_logger(__name__)
 
