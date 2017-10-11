@@ -22,6 +22,10 @@ Release date: `2017-??-??`
 - Jenkins: Better artifacts deployment on the server
 - Jenkins: Update `pyenv` to take into account new Python versions
 - Packaging: Bypass use of get-pip.py for `pip` installation on Windows
+- Packaging: Updated `cffi` from 1.10.0 to 1.11.2
+- Packaging: Updated `faulthandler` from 2.6 to 3.0
+- Packaging: Updated `pyobjc` from 3.2.1 to 4.0
+- Packaging: Updated `pytest` from 3.2.2 to 3.2.3
 
 
 # 2.5.4
