@@ -186,13 +186,15 @@ install_deps() {
 install_pyenv() {
     local url="https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
 
-    echo ">>> [pyenv] Setting up"
     export PYENV_ROOT="${STORAGE_DIR}/.pyenv"
     export PATH="${PYENV_ROOT}/bin:$PATH"
 
     if ! hash pyenv 2>/dev/null; then
         echo ">>> [pyenv] Downloading and installing"
         curl -L "${url}" | bash
+    else
+        echo ">>> [pyenv] Updating"
+        cd "${PYENV_ROOT}" && git pull && cd -
     fi
 
     echo ">>> [pyenv] Initializing"

@@ -294,24 +294,10 @@ class Manager(QtCore.QObject):
         Manager._singleton = self
         super(Manager, self).__init__()
 
-        # Let's bypass HTTPS verification unless --consider-ssl-errors is passed
-        # since many servers unfortunately have invalid certificates.
-        # See https://www.python.org/dev/peps/pep-0476/
-        # and https://jira.nuxeo.com/browse/NXDRIVE-506
         if not options.consider_ssl_errors:
             log.warning('--consider-ssl-errors option is False, '
                         'will not verify HTTPS certificates')
-            import ssl
-            try:
-                _create_unverified_https_context = ssl._create_unverified_context
-            except AttributeError:
-                log.info("Legacy Python that doesn't verify HTTPS certificates by default")
-            else:
-                log.info("Handle target environment that doesn't support HTTPS verification:"
-                         " globally disable verification by monkeypatching the ssl module though highly discouraged")
-                ssl._create_default_https_context = _create_unverified_https_context
-        else:
-            log.info("--consider-ssl-errors option is True, will verify HTTPS certificates")
+            self._bypass_https_verification()
 
         self._autolock_service = None
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
@@ -323,8 +309,8 @@ class Manager(QtCore.QObject):
         self.debug = options.debug
         self._engine_definitions = None
 
-        from nxdrive.engine.next.engine_next import EngineNext
         from nxdrive.engine.engine import Engine
+        from nxdrive.engine.next.engine_next import EngineNext
         self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
         self._engines = None
         self.proxies = dict()
@@ -411,6 +397,25 @@ class Manager(QtCore.QObject):
         self._tracker = None
         if self.get_tracking():
             self._create_tracker()
+
+    @staticmethod
+    def _bypass_https_verification():
+        """
+        Let's bypass HTTPS verification since many servers
+        unfortunately have invalid certificates.
+        See https://www.python.org/dev/peps/pep-0476/ and NXDRIVE-506.
+        """
+
+        import ssl
+        try:
+            _context = ssl._create_unverified_context
+        except AttributeError:
+            log.info('Legacy Python that does not verify HTTPS certificates')
+        else:
+            log.info('Handle target environment that does not support HTTPS '
+                     'verification: globally disable verification by '
+                     'monkeypatching the ssl module though highly discouraged')
+            ssl._create_default_https_context = _context
 
     def _get_file_log_handler(self):
         # Might store it in global static
@@ -1234,9 +1239,6 @@ class Manager(QtCore.QObject):
 
     def is_started(self):
         return self._started
-
-    def is_updated(self):
-        return self.updated
 
     def is_syncing(self):
         syncing_engines = []

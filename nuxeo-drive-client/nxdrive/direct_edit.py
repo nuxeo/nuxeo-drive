@@ -13,12 +13,12 @@ from nxdrive.client.common import BaseClient, NotFound
 from nxdrive.client.local_client import LocalClient
 from nxdrive.engine.activity import Action
 from nxdrive.engine.blacklist_queue import BlacklistQueue
-from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler, \
-    normalize_event_filename
+from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler
 from nxdrive.engine.workers import ThreadInterrupt, Worker
 from nxdrive.logging_config import get_logger
 from nxdrive.osi import parse_protocol_url
-from nxdrive.utils import current_milli_time, guess_digest_algorithm
+from nxdrive.utils import current_milli_time, guess_digest_algorithm, \
+    normalize_event_filename
 from nxdrive.wui.application import SimpleApplication
 from nxdrive.wui.modal import WebModal
 
