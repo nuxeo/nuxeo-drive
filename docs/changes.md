@@ -17,6 +17,9 @@ Release date: `2017-??-??`
 - [NXDRIVE-992](https://jira.nuxeo.com/browse/NXDRIVE-992): Rollback release tag on Drive-package job failure
 - [NXDRIVE-991](https://jira.nuxeo.com/browse/NXDRIVE-991): Upgrade Python from 2.7.13 to 2.7.14
 
+### Tests
+- [NXDRIVE-1001](https://jira.nuxeo.com/browse/NXDRIVE-1001): Prevent failures in tearDownServer()
+
 ### Doc
 - [NXDRIVE-1003](https://jira.nuxeo.com/browse/NXDRIVE-1003): Add MSI arguments documentation
 - [NXDRIVE-974](https://jira.nuxeo.com/browse/NXDRIVE-974): Document Windows CLI related to Drive
