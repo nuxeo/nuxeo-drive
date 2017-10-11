@@ -251,7 +251,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         return True
 
     def _check_ref(self, ref):
-        if ref.startswith('/') and  self._base_folder_path is not None:
+        if ref.startswith('/') and self._base_folder_path is not None:
             # This is a path ref (else an id ref)
             if self._base_folder_path.endswith('/'):
                 ref = self._base_folder_path + ref[1:]

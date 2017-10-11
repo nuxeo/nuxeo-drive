@@ -28,7 +28,7 @@ from nxdrive.wui.translator import Translator
 from tests.common import RemoteDocumentClientForTests, TEST_DEFAULT_DELAY, \
     TEST_WORKSPACE_PATH, clean_dir
 
-YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '')
+YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '') != ''
 if YAPPI_PATH:
     import yappi
 
@@ -283,7 +283,7 @@ class UnitTestCase(SimpleUnitTestCase):
     def tearDownServer(self, server_profile=None):
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
-        self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
+        self.root_remote_client.execute('NuxeoDrive.TearDownIntegrationTests')
 
         # Deactivate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
@@ -418,7 +418,7 @@ class UnitTestCase(SimpleUnitTestCase):
             password=self.password
         )
 
-        # Register root
+        # Register sync roots
         remote_document_client_1.register_as_root(self.workspace_1)
         remote_document_client_2.register_as_root(self.workspace_2)
 
@@ -651,6 +651,11 @@ class UnitTestCase(SimpleUnitTestCase):
                 and not self.result.wasSuccessful()):
                 self.generate_report()
         log.debug('TearDown unit test')
+
+        # Unregister sync roots
+        self.root_remote_client.unregister_as_root(self.workspace_2)
+        self.root_remote_client.unregister_as_root(self.workspace_1)
+
         # Unbind all
         self.manager_1.unbind_all()
         self.manager_1.dispose_db()
