@@ -19,6 +19,7 @@ Release date: `2017-??-??`
 
 ### Doc
 - [NXDRIVE-1003](https://jira.nuxeo.com/browse/NXDRIVE-1003): Add MSI arguments documentation
+- [NXDRIVE-974](https://jira.nuxeo.com/browse/NXDRIVE-974): Document Windows CLI related to Drive
 
 #### Minor changes
 - GUI: Add more versions informations in About (Python, Qt, WebKit and SIP)
