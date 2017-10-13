@@ -14,6 +14,7 @@ from urlparse import urlparse
 import pypac
 from PyQt4 import QtCore
 from PyQt4.QtScript import QScriptEngine
+from PyQt4.QtWebKit import qWebKitVersion
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient
@@ -432,6 +433,7 @@ class Manager(QtCore.QObject):
             'tracking': self.get_tracking(),
             'sip_version': sip.SIP_VERSION_STR,
             'qt_version': QtCore.QT_VERSION_STR,
+            'webkit_version': str(qWebKitVersion()),
             'pyqt_version': QtCore.PYQT_VERSION_STR,
             'python_version': platform.python_version(),
             'platform': platform.system(),
