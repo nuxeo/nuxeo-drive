@@ -3,6 +3,9 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+
+
+# 2.5.5
 - Removed `LocalClient.is_osxbundle()`
 - Removed `Manager.is_updated()`. Use `updated` attribute instead.
 - Changed `WebSettingsApi.update_token()`. No more static.
