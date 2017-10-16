@@ -1,13 +1,11 @@
 # coding: utf-8
 import os
-import sys
 from ctypes import windll
 
 import _winreg
-import pythoncom
 import win32api
 import win32file
-from win32com.shell import shell, shellcon
+from win32com.client import Dispatch
 from win32con import LOGPIXELSX
 
 from nxdrive.logging_config import get_logger
@@ -35,32 +33,28 @@ class WindowsIntegration(AbstractOSIntegration):
     @staticmethod
     def _delete_reg_value(reg, path, value):
         try:
-            key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_ALL_ACCESS)
-        except:
+            with _winreg.OpenKey(reg, path, 0, _winreg.KEY_ALL_ACCESS) as key:
+                _winreg.DeleteValue(key, value)
+                return True
+        except WindowsError:
             return False
-        try:
-            _winreg.DeleteValue(key, value)
-        except:
-            return False
-        _winreg.CloseKey(key)
-        return True
 
     def get_open_files(self, pids=None):
         return self._file_sniffer.get_open_files(pids)
 
     @staticmethod
     def _update_reg_key(reg, path, attributes=()):
-        """Helper function to create / set a key with attribute values"""
+        """ Helper function to create / set a key with attribute values. """
+
         key = _winreg.CreateKey(reg, path)
         _winreg.CloseKey(key)
-        key = _winreg.OpenKey(reg, path, 0, _winreg.KEY_WRITE)
-        for attribute, type_, value in attributes:
-            # Handle None case for app name in
-            # contextual_menu.register_contextual_menu_win32
-            if attribute == "None":
-                attribute = None
-            _winreg.SetValueEx(key, attribute, 0, type_, value)
-        _winreg.CloseKey(key)
+        with _winreg.OpenKey(reg, path, 0, _winreg.KEY_WRITE) as key:
+            for attribute, type_, value in attributes:
+                # Handle None case for app name in
+                # contextual_menu.register_contextual_menu_win32
+                if attribute == 'None':
+                    attribute = None
+                _winreg.SetValueEx(key, attribute, 0, type_, value)
 
     @property
     def zoom_factor(self):
@@ -80,7 +74,7 @@ class WindowsIntegration(AbstractOSIntegration):
         return self.__zoom_factor
 
     def register_startup(self):
-        """Register ndrive as a startup application in the Registry"""
+        """ Register ndrive as a startup application in the registry. """
 
         reg_key = self.RUN_KEY
         app_name = self._manager.app_name
@@ -90,7 +84,8 @@ class WindowsIntegration(AbstractOSIntegration):
                         'skipping startup application registration')
             return
 
-        log.debug("Registering '%s' application %s to registry key %s",
+        log.debug(
+            'Registering %r application %r to registry key %r',
             app_name, exe_path, reg_key)
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
         self._update_reg_key(
@@ -99,8 +94,8 @@ class WindowsIntegration(AbstractOSIntegration):
         )
 
     def unregister_startup(self):
-        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-        self._delete_reg_value(reg, self.RUN_KEY, self._manager.app_name)
+        self._delete_reg_value(
+            _winreg.HKEY_CURRENT_USER, self.RUN_KEY, self._manager.app_name)
 
     def register_protocol_handlers(self):
         """Register ndrive as a protocol handler in the Registry"""
@@ -111,7 +106,7 @@ class WindowsIntegration(AbstractOSIntegration):
                         'skipping protocol handler registration')
             return
 
-        log.debug("Registering 'nxdrive' protocol handler to: %s", exe_path)
+        log.debug('Registering "nxdrive" protocol handler to: %r', exe_path)
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
 
         # Register Nuxeo Drive as a software as a protocol command provider
@@ -148,32 +143,47 @@ class WindowsIntegration(AbstractOSIntegration):
             [('', _winreg.REG_SZ, command)],
         )
 
-    def _recursive_delete(self, reg, start_path, end_path):
-        while len(start_path) < len(end_path):
-            try:
-                _winreg.DeleteKey(reg, end_path)
-                end_path = end_path[0:end_path.rfind('\\')]
-            except:
-                pass
+    def _recursive_delete(self, key0, key1, key2=''):
+        """ Delete a key and its subkeys. """
+
+        current = key1 if not key2 else key1 + '\\' + key2
+        with _winreg.OpenKey(key0, current, 0, _winreg.KEY_ALL_ACCESS) as key:
+            info = _winreg.QueryInfoKey(key)
+            for x in range(info[0]):
+                """
+                Deleting the subkey will change the SubKey count used by EnumKey.
+                We must always pass 0 to EnumKey so we always get back the new
+                first SubKey.
+                """
+                subkey = _winreg.EnumKey(key, 0)
+                try:
+                    _winreg.DeleteKey(key, subkey)
+                except WindowsError:
+                    self._recursive_delete(key0, current, key2=subkey)
+
+        try:
+            _winreg.DeleteKey(key0, key1)
+        except WindowsError:
+            pass
 
     def unregister_protocol_handlers(self):
         app_name = self._manager.app_name
-        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-        self._recursive_delete(reg, 'Software\\', 'Software\\' + app_name + '\\Protocols\\nxdrive\\shell\\open\\command')
-        self._recursive_delete(reg, 'Software\\Classes\\', 'Software\\Classes\\nxdrive\\shell\\open\\command')
+        reg = _winreg.HKEY_CURRENT_USER
+        self._recursive_delete(reg, 'Software\\' + app_name + '\\Protocols\\nxdrive')
+        self._recursive_delete(reg, 'Software\\Classes\\nxdrive')
 
     def register_contextual_menu(self):
         # TODO: better understand why / how this works.
         # See https://jira.nuxeo.com/browse/NXDRIVE-120
-        app_name = "None"
-        args = " metadata --file \"%1\""
+        app_name = 'None'
+        args = ' metadata --file "%1"'
         exe_path = self._manager.find_exe_path() + args
         if exe_path is None:
             log.warning('Not a frozen windows exe: '
                         'skipping startup application registration')
             return
-        icon_path = self._manager.find_exe_path() + ",0"
-        log.debug("Registering '%s' application %s to registry key %s",
+        icon_path = self._manager.find_exe_path() + ',0'
+        log.debug('Registering %r application %r to registry key %r',
                   app_name, exe_path, self.get_menu_key())
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
         self._update_reg_key(
@@ -202,76 +212,43 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def get_system_configuration(self):
         result = dict()
+        reg = _winreg.HKEY_CURRENT_USER
         try:
-            reg = _winreg.ConnectRegistry(None, _winreg.HKEY_LOCAL_MACHINE)
-            key = _winreg.OpenKey(reg, "Software\\Nuxeo\\Drive", 0, _winreg.KEY_READ)
-            for i in xrange(0, _winreg.QueryInfoKey(key)[1]):
-                subkey = _winreg.EnumValue(key, i)
-                result[subkey[0].replace('-', '_')] = subkey[1]
-            _winreg.CloseKey(key)
-        except OSError:
+            with _winreg.OpenKey(reg, 'Software\\Nuxeo\\Drive', 0, _winreg.KEY_READ) as key:
+                for i in range(_winreg.QueryInfoKey(key)[1]):
+                    k, v, _ = _winreg.EnumValue(key, i)
+                    result[k.replace('-', '_').lower()] = v
+        except WindowsError:
             pass
         return result
 
     def unregister_contextual_menu(self):
-        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
+        reg = _winreg.HKEY_CURRENT_USER
         if self._delete_reg_value(reg, self.get_menu_key(), ''):
             _winreg.DeleteKey(reg, self.get_menu_key())
             _winreg.DeleteKey(reg, self.get_menu_parent_key())
 
     def register_folder_link(self, folder_path, name=None):
-        file_lnk = self._get_folder_link(name)
-        self._create_shortcut(file_lnk, folder_path)
+        self._create_shortcut(self._get_folder_link(name), folder_path)
 
     def unregister_folder_link(self, name):
-        file_lnk = self._get_folder_link(name)
-        if file_lnk is None:
-            return
-        if os.path.exists(file_lnk):
-            os.remove(file_lnk)
+        try:
+            os.remove(self._get_folder_link(name))
+        except OSError:
+            pass
 
-    def register_desktop_link(self):
-        self._create_shortcut(self._get_desktop_link(), self._manager.find_exe_path())
-
-    def unregister_desktop_link(self):
-        link = self._get_desktop_link()
-        if os.path.exists(link):
-            os.remove(link)
-
-    def _get_desktop_link(self):
-        return os.path.join(self._get_desktop_folder(), self._manager.app_name + ".lnk")
-
-    @staticmethod
-    def _get_desktop_folder():
-        return shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
-
-    def _create_shortcut(self, link, filepath, iconpath=None, description=None):
-        shortcut = pythoncom.CoCreateInstance(
-          shell.CLSID_ShellLink,
-          None,
-          pythoncom.CLSCTX_INPROC_SERVER,
-          shell.IID_IShellLink
-        )
-        executable = filepath
-        if iconpath is None:
-            iconpath = self._manager.find_exe_path()
-        if description is None:
-            description = self._manager.app_name
-        shortcut.SetPath(executable)
-        shortcut.SetDescription(description)
-        shortcut.SetIconLocation(iconpath, 0)
-        persist_file = shortcut.QueryInterface(pythoncom.IID_IPersistFile)
-        persist_file.Save(link, 0)
+    def _create_shortcut(self, link, filepath):
+        log.debug('Linking %r to %r', filepath, link)
+        shell = Dispatch('WScript.Shell')
+        shortcut = shell.CreateShortCut(link)
+        shortcut.Targetpath = filepath
+        shortcut.WorkingDirectory = os.path.dirname(filepath)
+        shortcut.IconLocation = filepath
+        log.info('SHORTCUT=%r', shortcut)
+        shortcut.save()
 
     def _get_folder_link(self, name=None):
-        if name is None:
-            name = self._manager.app_name
-
-        win_version = sys.getwindowsversion()
-        if win_version.major > 5:
-            favorites = os.path.join(os.path.expanduser('~'), 'Links')
-        else:
-            log.warning('Windows version %d.%d shortcuts are not supported',
-                            win_version.major, win_version.minor)
-            return None
-        return os.path.join(favorites, name + '.lnk')
+        return os.path.join(
+            os.environ('USERPROFILE'),
+            'Links',
+            (name or self._manager.app_name) + '.lnk')

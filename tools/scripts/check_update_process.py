@@ -32,7 +32,7 @@ import threading
 import time
 import zipfile
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 
 class Server(SimpleHTTPServer.SimpleHTTPRequestHandler):
@@ -98,7 +98,7 @@ def launch_drive(archive):
         subprocess.check_output(['chmod', '-R', '+x', 'Nuxeo Drive.app'])
         cmd = './Nuxeo Drive.app/Contents/MacOS/ndrive'
     else:
-        cmd = 'ndrive.exe'
+        cmd = 'ndrivew.exe'
 
     args = [
         cmd,
@@ -121,7 +121,7 @@ def webserver(folder, port=8000):
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        pass
+        httpd.shutdown()
 
 
 def version_decrement(version):

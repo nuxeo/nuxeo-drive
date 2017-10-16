@@ -20,7 +20,6 @@ OUTPUT_DIR = 'dist'
 SERVER_MIN_VERSION = '5.6'
 
 
-
 def create_json_metadata(client_version, server_version):
     string = unicode if sys.version[0] == '2' else str
 
@@ -80,10 +79,10 @@ class Packages(object):
         return self.packages
 
 
-class data_file_dir(object):
-    def __init__(self, home_dir, subfolderName, include_files):
+class DataFileDir(object):
+    def __init__(self, home_dir, subfolder_name, include_files):
         self.home_dir = home_dir
-        self.subfolderName = subfolderName
+        self.subfolder_name = subfolder_name
         self.include_files = include_files
         self.recursive_result = None
 
@@ -95,14 +94,14 @@ class data_file_dir(object):
             filepath = os.path.join(self.home_dir, filename)
             if os.path.isfile(filepath):
                 self.include_files.append(
-                        (filepath, os.path.join(self.subfolderName, filename)))
+                        (filepath, os.path.join(self.subfolder_name, filename)))
                 result.append(filepath)
         return result
 
     def load_recursive(self, path=None, shortpath=None):
         if path is None:
             self.recursive_result = []
-            shortpath = self.subfolderName
+            shortpath = self.subfolder_name
             path = self.home_dir
         result = []
         if not (os.path.exists(os.path.normpath(path))):
@@ -171,16 +170,8 @@ class NuxeoDriveAttributes(object):
         return [os.path.join(self.rubric_2nd_dir(), self.rubric_3rd_dir())]
 
     def get_script(self):
-        return os.path.join(self.rubric_2nd_dir(), 'scripts', 'ndrive')
-
-    def get_scripts(self):
-        return [es_Executable(self.get_script()), 'launcher.pyw']
-
-    def get_win_script(self):
-        return os.path.join(self.rubric_2nd_dir(), 'scripts', 'ndrivew.pyw')
-
-    def get_app(self):
-        return self.get_scripts()
+        file_ = 'ndrivew.pyw' if sys.platform == 'win32' else 'ndrive'
+        return os.path.join(self.rubric_2nd_dir(), 'scripts', file_)
 
     def get_ui5_home(self):
         return os.path.join(
@@ -200,18 +191,17 @@ class NuxeoDriveAttributes(object):
         return 'nuxeo_drive_app_icon_128.icns'
 
     def get_init_file(self):
-        return os.path.abspath(os.path.join(self.rubric_2nd_dir(),
-                                            self.rubric_3rd_dir(),
-                                            '__init__.py'))
+        return os.path.abspath(os.path.join(
+            self.rubric_2nd_dir(), self.rubric_3rd_dir(), '__init__.py'))
 
     def append_includes(self, includes):
         pass
 
-    def get_win_targetName(self):
-        return "ndrivew.exe"
+    def get_win_target_name(self):
+        return 'ndrivew.exe'
 
     def shortcutName(self):
-        return "Nuxeo Drive"
+        return 'Nuxeo Drive'
 
     def get_CFBundleURLSchemes(self):
         return ['nxdrive']
@@ -230,28 +220,29 @@ class NuxeoDriveAttributes(object):
         return self.rubric_product_name()
 
     def get_CFBundleIdentifier(self):
-        return "org.nuxeo.drive"
+        return 'org.nuxeo.drive'
 
     def get_CFBundleURLName(self):
         return 'Nuxeo Drive URL'
 
     def get_description(self):
-        return "Desktop synchronization client for Nuxeo."
+        return 'Desktop synchronization client for Nuxeo.'
 
     def get_author(self):
-        return "Nuxeo"
+        return 'Nuxeo'
 
     def get_install_dir(self):
         return os.path.join(self.get_author(), 'Drive')
 
     def get_author_email(self):
-        return "contact@nuxeo.com"
+        return 'contact@nuxeo.com'
 
     def get_url(self):
         return 'https://github.com/nuxeo/nuxeo-drive'
 
     def get_long_description(self):
-        return open('README.md').read()
+        with open('README.md') as handler:
+            return handler.read()
 
     def get_data_files(self):
         return []
@@ -260,27 +251,48 @@ class NuxeoDriveAttributes(object):
         return []
 
     def get_licence(self):
-        return None
+        return 'LGPLv2+'
 
     def get_gpl_licence(self):
-        license_ = open('LICENSE.txt').read().replace('\n', '\\line')
-        return ('{\\rtf1\\ansi\\ansicpg1252\\deff0\\deftab720{'
-                '\\fonttbl{\\f0\\froman\\fprq2 Times New Roman;}}'
-                '{\\colortbl\\red0\\green0\\blue0;}' + license_ + '}')
+        with open('LICENSE.txt') as handler:
+            content = handler.read().replace('\n', '\\line')
+            return ('{\\rtf1\\ansi\\ansicpg1252\\deff0\\deftab720{'
+                    '\\fonttbl{\\f0\\froman\\fprq2 Times New Roman;}}'
+                    '{\\colortbl\\red0\\green0\\blue0;}' + content + '}')
 
     def customize_msi(self, db):
+        """ Add custom actions to the MSI. """
+
         import msilib
+
         # Make the appdata folder writable to enable Windows Auto update
-        msilib.add_data(db, "CustomAction", [("AllowAutoUpdate", 3234,
-                        "TARGETDIR", "Icacls . /grant Users:(OI)(CI)(M,DC) /t /c /q")])
-        msilib.add_data(db, "InstallExecuteSequence",
-                        [("AllowAutoUpdate", 'NOT Installed', 6401)])
+        msilib.add_data(db, 'CustomAction', [(
+            'AllowAutoUpdate', 3234, 'TARGETDIR', 'Icacls . /grant Users:(OI)(CI)(M,DC) /t /c /q')])
+        msilib.add_data(db, 'InstallExecuteSequence', [(
+            'AllowAutoUpdate', 'NOT Installed', 6401)])
+
+        # Call OSI.uninstall() on uninstallation
+        # Deffered action with noImpersonate to have the correct privileges
+        msilib.add_data(db, 'CustomAction', [(
+            'NuxeoDriveCleanUp', 82, self.get_win_target_name(), 'uninstall')])
+        msilib.add_data(db, 'InstallExecuteSequence', [(
+            'NuxeoDriveCleanUp', 'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE', 1260)])
+        msilib.add_data(db, 'CustomAction', [(
+            'NuxeoDriveFolderCleanUp', 3234, 'TARGETDIR', 'cmd.exe /C "rmdir /S /Q appdata"')])
+        msilib.add_data(db, 'InstallExecuteSequence', [(
+            'NuxeoDriveFolderCleanUp', 'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE', 1560)])
+
         # Add the possibility to bind an engine with MSI
-        msilib.add_data(db, "CustomAction", [("NuxeoDriveBinder", 82,
-                        self.get_win_targetName(),
-                        "bind-server --password \"[TARGETPASSWORD]\" --local-folder \"[TARGETDRIVEFOLDER]\" [TARGETUSERNAME] [TARGETURL]")])
-        msilib.add_data(db, "InstallExecuteSequence", [("NuxeoDriveBinder",
-                              'NOT (TARGETUSERNAME="" OR TARGETURL="")', -1)])
+        args = (
+            'bind-server'
+            ' --password \"[TARGETPASSWORD]\"'
+            ' --local-folder \"[TARGETDRIVEFOLDER]\"'
+            ' \"[TARGETUSERNAME]\" \"[TARGETURL]\"')
+        msilib.add_data(db, 'CustomAction', [(
+            'NuxeoDriveBinder', 82, self.get_win_target_name(), args)])
+        # Arguments TARGETUSERNAME and TARGETURL are mandatory
+        msilib.add_data(db, 'InstallExecuteSequence', [(
+            'NuxeoDriveBinder', 'NOT (TARGETUSERNAME="" OR TARGETURL="")', -1)])
 
 
 class NuxeoDrivePackageAttributes(NuxeoDriveAttributes):
@@ -296,16 +308,15 @@ class NuxeoDrivePackageAttributes(NuxeoDriveAttributes):
 
 class NuxeoDriveSetup(object):
 
-    def __init__(self, drive_attributes):
+    def __init__(self, attribs):
 
         from distutils.core import setup
 
-        attribs = drive_attributes
         freeze_options = {}
         ext_modules = []
 
         script = attribs.get_script()
-        scripts = []
+        scripts = [script]
         name = attribs.get_name()
         packages = Packages(attribs.get_package_dirs()).load()
 
@@ -313,26 +324,23 @@ class NuxeoDriveSetup(object):
         icons_home = attribs.get_icons_home()
         ui5_home = attribs.get_ui5_home()
 
-        win_icon = os.path.join(icons_home, attribs.get_win_icon())
-        png_icon = os.path.join(icons_home, attribs.get_png_icon())
-        osx_icon = os.path.join(icons_home, attribs.get_osx_icon())
-
         if sys.platform == 'win32':
-            icon = win_icon
+            icon = os.path.join(icons_home, attribs.get_win_icon())
         elif sys.platform == 'darwin':
-            icon = osx_icon
+            icon = os.path.join(icons_home, attribs.get_osx_icon())
         else:
-            icon = png_icon
+            icon = os.path.join(icons_home, attribs.get_png_icon())
 
         # Files to include in frozen app
         # build_exe freeze with cx_Freeze (Windows)
         include_files = attribs.get_includes()
+
         # bdist_esky freeze with cx_Freeze (Windows) and py2app (OS X)
         # In fact this is a global setup option
         # TODO NXP-13810: check removed data_files from py2app and added to
         # global setup
-        icon_files = data_file_dir(icons_home, 'icons', include_files).load()
-        ui5_files = data_file_dir(ui5_home, 'ui5', include_files).load_recursive()
+        icon_files = DataFileDir(icons_home, 'icons', include_files).load()
+        ui5_files = DataFileDir(ui5_home, 'ui5', include_files).load_recursive()
         data_files = [('icons', icon_files)]
         data_files.extend(ui5_files)
         data_files.extend(attribs.get_data_files())
@@ -360,7 +368,6 @@ class NuxeoDriveSetup(object):
         attribs.append_includes(includes)
 
         if '--freeze' in sys.argv:
-            scripts = attribs.get_scripts()
             print('Building standalone executable...')
             sys.argv.remove('--freeze')
             from nx_cx_Freeze import setup
@@ -377,26 +384,38 @@ class NuxeoDriveSetup(object):
 
             executables = [cx_Executable(script)]
             freeze_options = dict()
-            if sys.platform == "win32":
+            if sys.platform == 'win32':
                 # Copy OpenSSL DLL
                 data_files.append('libeay32.dll')
                 data_files.append('ssleay32.dll')
 
                 # Windows GUI program that can be launched without a cmd
                 # console
-                script_w = attribs.get_win_script()
-                if script_w is not None:
-                    scripts.append(
-                        es_Executable(script_w, icon=icon,
-                                      shortcutDir="ProgramMenuFolder",
-                                      shortcutName=attribs.shortcutName()))
+                scripts.append(es_Executable(
+                    attribs.get_script(),
+                    icon=icon,
+                    shortcutDir='ProgramMenuFolder',
+                    shortcutName=attribs.shortcutName(),
+                ))
+                executables.append(cx_Executable(
+                    attribs.get_win_target_name(),
+                    targetName=attribs.get_win_target_name(),
+                    base='Win32GUI',
+                    icon=icon,
+                    shortcutDir='ProgramMenuFolder',
+                    shortcutName=attribs.shortcutName(),
+                ))
 
-                    executables.append(
-                        cx_Executable(script_w,
-                                      targetName=attribs.get_win_targetName(),
-                                      base="Win32GUI", icon=icon,
-                                      shortcutDir="ProgramMenuFolder",
-                                      shortcutName=attribs.shortcutName()))
+                # Add a shortcut on the desktop
+                executables.append(cx_Executable(
+                    attribs.get_win_target_name(),
+                    targetName=attribs.get_win_target_name(),
+                    base='Win32GUI',
+                    icon=icon,
+                    shortcutDir='DesktopFolder',
+                    shortcutName=attribs.shortcutName(),
+                ))
+
                 freeze_options.update({'attribs': attribs})
 
             package_data = {}
@@ -406,35 +425,35 @@ class NuxeoDriveSetup(object):
             freeze_options.update({
                 'executables': executables,
                 'options': {
-                    "build": {
-                        "exe_command": "bdist_esky",
+                    'build': {
+                        'exe_command': 'bdist_esky',
                     },
-                    "build_exe": {
-                        "includes": includes,
-                        "packages": packages,
-                        "excludes": excludes,
-                        "include_files": include_files,
+                    'build_exe': {
+                        'includes': includes,
+                        'packages': packages,
+                        'excludes': excludes,
+                        'include_files': include_files,
                     },
-                    "bdist_esky": {
-                        "includes": includes,
-                        "excludes": excludes,
-                        "enable_appdata_dir": True,
-                        "freezer_options": {
-                            "packages": packages,
+                    'bdist_esky': {
+                        'includes': includes,
+                        'excludes': excludes,
+                        'enable_appdata_dir': True,
+                        'freezer_options': {
+                            'packages': packages,
                         },
-                        "rm_freeze_dir_after_zipping": False,
+                        'rm_freeze_dir_after_zipping': False,
                     },
-                    "install": {
-                        "skip_sub_commands":
-                            "install_lib,install_scripts,install_data",
+                    'install': {
+                        'skip_sub_commands':
+                            'install_lib,install_scripts,install_data',
                     },
-                    "install_exe": {
-                        "skip_build": True,
-                        "build_dir": esky_dist_dir,
+                    'install_exe': {
+                        'skip_build': True,
+                        'build_dir': esky_dist_dir,
                     },
-                    "bdist_msi": {
-                        "add_to_path": True,
-                        "upgrade_code": attribs.get_uid(),
+                    'bdist_msi': {
+                        'add_to_path': True,
+                        'upgrade_code': attribs.get_uid(),
                     },
                 },
             })
@@ -444,54 +463,55 @@ class NuxeoDriveSetup(object):
             # - argv_emulation=True for nxdrive:// URL scheme handling
             # - easy Info.plist customization
             name = attribs.get_CFBundleName()
-            scripts = attribs.get_scripts()
-            py2app_options = dict(
-                iconfile=icon,
-                qt_plugins='imageformats',
-                argv_emulation=False,  # We use QT for URL scheme handling
-                plist=dict(
-                    CFBundleDisplayName=attribs.get_CFBundleDisplayName(),
-                    CFBundleName=attribs.get_CFBundleName(),
-                    CFBundleIdentifier=attribs.get_CFBundleIdentifier(),
-                    LSUIElement=True,  # Do not launch as a Dock application
-                    CFBundleURLTypes=[
-                        dict(
-                            CFBundleURLName=attribs.get_CFBundleURLName(),
-                            CFBundleURLSchemes=(attribs
-                                                .get_CFBundleURLSchemes()),
-                        )
-                    ],
-                    NSServices=[
-                        dict(
-                            NSMenuItem=dict(
-                                default=attribs.get_CFBundleDisplayName()
-                            ),
-                            NSMessage='macRightClick',
-                            NSPortName=attribs.get_CFBundleDisplayName(),
-                            NSRequiredContext=dict(),
-                            NSSendTypes=[
-                                'NSStringPboardType',
-                            ],
-                            NSSendFileTypes=[
-                                'public.item',
-                            ]
-                        )
-                    ]
-                ),
-                includes=includes,
-                excludes=excludes,
-            )
-            freeze_options = dict(
-                app=attribs.get_app(),
-                options=dict(
-                    py2app=py2app_options,
-                    bdist_esky=dict(
-                        enable_appdata_dir=True,
-                        create_zipfile=False,
-                        freezer_options=py2app_options,
-                    )
-                )
-            )
+            py2app_options = {
+                'iconfile': icon,
+                'qt_plugins': 'imageformats',
+                'argv_emulation': False,  # We use Qt for URL scheme handling
+                'plist': {
+                    'CFBundleDisplayName': attribs.get_CFBundleDisplayName(),
+                    'CFBundleName': attribs.get_CFBundleName(),
+                    'CFBundleIdentifier': attribs.get_CFBundleIdentifier(),
+                    'LSUIElement': True,  # Do not launch as a Dock application
+                    'CFBundleURLTypes': [{
+                        'CFBundleURLName': attribs.get_CFBundleURLName(),
+                        'CFBundleURLSchemes': attribs.get_CFBundleURLSchemes(),
+                    }],
+                    'NSServices': [{
+                        'NSMenuItem': {
+                            'default': attribs.get_CFBundleDisplayName(),
+                        },
+                        'NSMessage': 'macRightClick',
+                        'NSPortName': attribs.get_CFBundleDisplayName(),
+                        'NSRequiredContext': {},
+                        'NSSendTypes': [
+                            'NSStringPboardType',
+                        ],
+                        'NSSendFileTypes': [
+                            'public.item',
+                        ],
+                    }],
+                },
+                'includes': includes,
+                'excludes': excludes,
+            }
+            freeze_options = {
+                'app': scripts,
+                'options': {
+                    'py2app': py2app_options,
+                    'bdist_esky': {
+                        'enable_appdata_dir': True,
+                        'create_zipfile': False,
+                        'freezer_options': py2app_options,
+                    }
+                }
+            }
+
+        entry_points = {}
+        if sys.platform == 'win32':
+            entry_points = {
+                'console_scripts': ['ndrive=nxdrive.commandline:main'],
+                'gui_scripts': ['ndrivew=nxdrive.commandline:main'],
+            }
 
         with warnings.catch_warnings():
             # Hide Windows "Unknown distribution option: 'attribs'"
@@ -510,16 +530,20 @@ class NuxeoDriveSetup(object):
                 long_description=attribs.get_long_description(),
                 data_files=data_files,
                 ext_modules=ext_modules,
+                entry_points=entry_points,
+                platforms=['Darwin', 'Linux', 'Windows'],
+                license=attribs.get_licence(),
                 **freeze_options
             )
 
 
 def main():
-    if "bdist_esky" in sys.argv or "bdist_msi" in sys.argv:
+    if 'bdist_esky' in sys.argv or 'bdist_msi' in sys.argv:
         attribs = NuxeoDriveAttributes()
     else:
         attribs = NuxeoDrivePackageAttributes()
     NuxeoDriveSetup(attribs)
 
+
 if __name__ == '__main__':
-    exit(main())
+    sys.exit(main())

@@ -191,7 +191,7 @@ class GetObjectInfoThread(threading.Thread):
         return self._result
 
 
-class WindowsProcessFileHandlerSniffer():
+class WindowsProcessFileHandlerSniffer(object):
 
     def __init__(self):
         self.DEVICE_DRIVES = dict()

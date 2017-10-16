@@ -3,7 +3,8 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
-
+- Removed `WindowsIntegration.register_desktop_link()`
+- Removed `WindowsIntegration.unregister_desktop_link()`
 
 # 2.5.5
 - Removed `LocalClient.is_osxbundle()`

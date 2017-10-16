@@ -422,7 +422,7 @@ class CliHandler(object):
         except Exception as e:
             # Exit with 0 signal to not block the uninstall
             print(e)
-            exit(0)
+            sys.exit(0)
 
     def handle(self, argv):
         """Parse options, setup logs and manager and dispatch execution."""
@@ -641,4 +641,4 @@ def main(argv=None):
     return CliHandler().handle(argv)
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())
