@@ -1,6 +1,9 @@
 # dev
 Release date: `2017-??-??`
 
+### Core
+- [NXDRIVE-1012](https://jira.nuxeo.com/browse/NXDRIVE-1012): Remote watcher is missing keywords
+
 #### Minor changes
 - Framework: Clean-up queue_manager.py
 - Framework: Fix LocalClient.get_path() to use str.partition() and prevent IndexErrors

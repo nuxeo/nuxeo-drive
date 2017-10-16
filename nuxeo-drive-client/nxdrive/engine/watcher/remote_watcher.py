@@ -649,14 +649,24 @@ class RemoteWatcher(EngineWorker):
                                 new_info_parent_uid = doc_pair.remote_parent_ref
                                 new_info_path = doc_pair.remote_parent_path + '/' + remote_ref
                                 consistent_new_info = RemoteFileInfo(
-                                    new_info.name, new_info.uid,
+                                    new_info.name,
+                                    new_info.uid,
                                     new_info_parent_uid,
-                                    new_info_path, new_info.folderish,
+                                    new_info_path,
+                                    new_info.folderish,
                                     new_info.last_modification_time,
-                                    new_info.last_contributor, new_info.digest,
-                                    new_info.digest_algorithm, new_info.download_url,
-                                    new_info.can_rename, new_info.can_delete,
-                                    new_info.can_update, new_info.can_create_child)
+                                    new_info.last_contributor,
+                                    new_info.digest,
+                                    new_info.digest_algorithm,
+                                    new_info.download_url,
+                                    new_info.can_rename,
+                                    new_info.can_delete,
+                                    new_info.can_update,
+                                    new_info.can_create_child,
+                                    new_info.lock_owner,
+                                    new_info.lock_created,
+                                    new_info.can_scroll_descendants,
+                                )
                             # Perform a regular document update on a document
                             # that has been updated, renamed or moved
                             log.debug('Refreshing remote state info for '
