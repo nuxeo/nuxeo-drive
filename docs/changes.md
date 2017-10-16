@@ -1,6 +1,10 @@
 # dev
 Release date: `2017-??-??`
 
+#### Minor changes
+- Framework: Clean-up queue_manager.py
+- Framework: Fix LocalClient.get_path() to use str.partition() and prevent IndexErrors
+
 
 # 2.5.5
 Release date: `2017-10-13`
