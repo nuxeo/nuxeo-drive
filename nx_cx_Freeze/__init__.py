@@ -1,4 +1,6 @@
-"""cx_Freeze extension
+# coding: utf-8
+"""
+cx_Freeze extension
 
 Extends:
 
@@ -13,19 +15,20 @@ running a set of sub commands, e.g.:
 - the 'bdist_msi' command to handle LaunchAfterInstall and a clean uninstall.
 """
 
+from __future__ import unicode_literals
+
 import distutils.command.build
-import sys
 import os
-from cx_Freeze.dist import build as cx_build
-from cx_Freeze.dist import install as cx_install
-from cx_Freeze.dist import setup as cx_setup
-from cx_Freeze.dist import _AddCommandClass
+import sys
+
+from cx_Freeze.dist import _AddCommandClass, build as cx_build, \
+    install as cx_install, setup as cx_setup
 
 
 class build(cx_build):
 
     cx_build.user_options.append(
-        ('exe-command=', None, "Python script executables command"))
+        ('exe-command=', None, 'Python script executables command'))
 
     def initialize_options(self):
         cx_build.initialize_options(self)
@@ -42,132 +45,129 @@ class install(cx_install):
 
     cx_install.user_options.append(
         ('skip-sub-commands=', None,
-         "sub commands to ignore when running command"))
+         'sub commands to ignore when running command'))
 
     def initialize_options(self):
         cx_install.initialize_options(self)
         self.skip_sub_commands = None
 
     def get_sub_commands(self):
-        subCommands = cx_install.get_sub_commands(self)
+        sub_commands = cx_install.get_sub_commands(self)
         if self.skip_sub_commands:
             skip_sub_commands = self.skip_sub_commands.split(',')
             for cmd in skip_sub_commands:
-                if cmd in subCommands:
-                    subCommands.remove(cmd)
-        return subCommands
+                if cmd in sub_commands:
+                    sub_commands.remove(cmd)
+        return sub_commands
 
 
 if sys.platform == 'win32':
+    import msilib
     from cx_Freeze.windist import bdist_msi as cx_bdist_msi
 
     class bdist_msi(cx_bdist_msi):
         attribs = None
         initial_target_dir = None
+        __licence = None
 
         def finalize_options(self):
             self.distribution.get_name()
             if self.initial_target_dir is None:
-                if distutils.util.get_platform() == "win-amd64":
-                    programFilesFolder = "ProgramFiles64Folder"
+                if distutils.util.get_platform() == 'win-amd64':
+                    program_files_folder = 'ProgramFiles64Folder'
                 else:
-                    programFilesFolder = "ProgramFilesFolder"
-                self.initial_target_dir = r"[%s]\%s" % (programFilesFolder,
-                                            self.attribs.get_install_dir())
+                    program_files_folder = 'ProgramFilesFolder'
+                self.initial_target_dir = r'[%s]\%s' % (
+                    program_files_folder, self.attribs.get_install_dir())
             # Using old style class so can't use super
             import cx_Freeze
             cx_Freeze.windist.bdist_msi.finalize_options(self)
 
         def get_executable(self):
-            return self.attribs.get_win_targetName()
+            return self.attribs.get_win_target_name()
 
-        def get_license(self):
-            return self.attribs.get_licence()
+        def get_licence(self):
+            if self.__licence is None:
+                self.__licence = self.attribs.get_gpl_licence()
+            return self.__licence
 
         def add_licence_dialog(self):
-            import msilib
-            msilib.add_data(self.db, 'InstallUISequence',
-                [("LicenceDialog", None, 380)])
-            dialog = distutils.command.bdist_msi.PyDialog(self.db,
-                                                          "LicenceDialog",
-                    self.x, self.y, self.width, self.height, self.modal,
-                    self.title, "Next", "Next", "Cancel")
-            dialog.text("LicenseTitle", 15, 10, 320, 20, 0x3, "License")
-            dialog.control("License", "ScrollableText",
-                                  15, 30, 340, 200, 0x7, None,
-                                    self.get_license(), None, None)
-            dialog.control("LicenseAccepted", "CheckBox",
-                               15, 240, 320, 20, 0x3,
-                               "LicenseAccepted",
-                               "I've accepted this agreement", None, None)
-            button = dialog.cancel("Cancel", "Next")
-            button.event("EndDialog", "Exit")
-            button = dialog.next("Next", "Cancel", active=False)
-            button.condition("Enable", "LicenseAccepted")
-            button.condition("Disable", "not LicenseAccepted")
-            button.event("EndDialog", "Return")
+            msilib.add_data(self.db, 'InstallUISequence',  [(
+                'LicenceDialog', None, 380)])
+            dialog = distutils.command.bdist_msi.PyDialog(
+                self.db, 'LicenceDialog',
+                self.x, self.y, self.width, self.height, self.modal,
+                self.title, 'Next', 'Next', 'Cancel')
+            dialog.text('LicenseTitle', 15, 10, 320, 20, 0x3, 'License')
+            dialog.control(
+                'License', 'ScrollableText', 15, 30, 340, 200,  0x7,
+                None, self.get_licence(), None, None)
+            dialog.control(
+                'LicenseAccepted', 'CheckBox', 15, 240, 320, 20, 0x3,
+                'LicenseAccepted', 'I have accepted this agreement', None, None)
+            button = dialog.cancel('Cancel', 'Next')
+            button.event('EndDialog', 'Exit')
+            button = dialog.next('Next', 'Cancel', active=False)
+            button.condition('Enable', 'LicenseAccepted')
+            button.condition('Disable', 'not LicenseAccepted')
+            button.event('EndDialog', 'Return')
 
         def add_exit_dialog(self):
-            import msilib
-            if self.get_license() is not None:
+            # Add the license screen
+            if self.get_licence() is not None:
                 self.add_licence_dialog()
-            dialog = distutils.command.bdist_msi.PyDialog(self.db,
-                                                          "ExitDialog",
-                    self.x, self.y, self.width, self.height, self.modal,
-                    self.title, "Finish", "Finish", "Finish")
-            dialog.title("Completing the [ProductName]")
-            dialog.back("< Back", "Finish", active=False)
-            dialog.cancel("Cancel", "Back", active=False)
-            dialog.text("Description", 15, 235, 320, 20, 0x30003,
-                    "Click the Finish button to exit the installer.")
-            button = dialog.next("Finish", "Cancel", name="Finish")
-            button.event("EndDialog", "Return")
-            msilib.add_data(self.db, "Property",
-                     [("StartClient", "1")])
-            # Launch product checkbox
-            c = dialog.control("LaunchAfterInstall", "CheckBox",
-                               15, 200, 320, 20, 0x3,
-                               "StartClient", "Launch [ProductName]",
-                               None, None)
-            c.condition("Hide", 'Progress1<>"Install"')
-            # 18 is for execute a .exe from install
-            msilib.add_data(self.db, "CustomAction", [("LaunchNuxeoDrive", 82,
-                                                       "launcher.exe",
-                                                       self.get_executable())])
-            button.event("DoAction", "LaunchNuxeoDrive",
-                         'StartClient=1 and Progress1="Install"')
-            msilib.add_data(self.db, "CustomAction", [("NuxeoDriveCleanUp", 82,
-                                                       self.get_executable(),
-                                                       "uninstall")])
-            # Deffered action with noImpersonate to have the correct privileges
-            msilib.add_data(self.db, "CustomAction", [("NuxeoDriveFolderCleanUp", 3234,
-                                                       "TARGETDIR",
-                                                       "cmd.exe /C \"rmdir /S /Q appdata\"")])
-            msilib.add_data(self.db, "InstallExecuteSequence",
-                            [("NuxeoDriveCleanUp",
-                              'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE',
-                              1260)])
-            # After InstallInitialize
-            msilib.add_data(self.db, "InstallExecuteSequence",
-                            [("NuxeoDriveFolderCleanUp",
-                              'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE',
-                              1560)])
-            # Add product icon
-            icon_file = os.path.join(self.attribs.get_icons_home(), self.attribs.get_win_icon())
-            if os.path.exists(icon_file):
-                msilib.add_data(self.db, "Property", [("ARPPRODUCTICON", "InstallIcon")])
-                msilib.add_data(self.db, "Icon", [("InstallIcon", msilib.Binary(icon_file))])
+
             # Allow to customize the MSI
-            if getattr(self.attribs, 'customize_msi', None) is not None:
+            if hasattr(self.attribs, 'customize_msi'):
                 self.attribs.customize_msi(self.db)
+
+            # Add the product icon in control panel Install/Remove softwares
+            icon_file = os.path.join(self.attribs.get_icons_home(),
+                                     self.attribs.get_win_icon())
+            if os.path.exists(icon_file):
+                msilib.add_data(self.db, 'Property', [
+                    ('ARPPRODUCTICON', 'InstallIcon'),
+                ])
+                msilib.add_data(self.db, 'Icon', [(
+                    'InstallIcon', msilib.Binary(icon_file))])
+
+            # Copy/paste from parent's method
+            dialog = distutils.command.bdist_msi.PyDialog(
+                self.db, 'ExitDialog',
+                self.x, self.y, self.width, self.height, self.modal,
+                self.title, 'Finish', 'Finish', 'Finish')
+            dialog.title('Completing the [ProductName]')
+            dialog.back('< Back', 'Finish', active=False)
+            dialog.cancel('Cancel', 'Back', active=False)
+            dialog.text(
+                'Description', 15, 235, 320, 20, 0x30003,
+                'Click the Finish button to exit the installer.')
+            button = dialog.next('Finish', 'Cancel', name='Finish')
+            button.event('EndDialog', 'Return')
+
+            """
+            Does not work as expected, no more time for that as an icon
+            is created on the desktop and in the menu.
+            # Launch product checkbox
+            msilib.add_data(self.db, 'Property', [(
+                'StartClient', '1')])
+            c = dialog.control(
+                'LaunchAfterInstall', 'CheckBox',  15, 200, 320, 20, 0x3,
+                'StartClient', 'Launch [ProductName]', None, None)
+            c.condition('Hide', 'Progress1<>"Install"')
+            msilib.add_data(self.db, 'CustomAction', [(
+                'LaunchNuxeoDrive', 768, 'TARGETDIR', 'start /B %s' % self.get_executable())])
+            msilib.add_data(self.db, 'InstallExecuteSequence', [(
+                'LaunchNuxeoDrive', 'StartClient=1 and Progress1="Install"', 6600 - 2)])
+            """
 
 
 # Override cx_Freeze setup to override build and install commands.
 def setup(**attrs):
-    commandClasses = attrs.setdefault("cmdclass", {})
-    _AddCommandClass(commandClasses, "build", build)
-    _AddCommandClass(commandClasses, "install", install)
+    command_classes = attrs.setdefault('cmdclass', {})
+    _AddCommandClass(command_classes, 'build', build)
+    _AddCommandClass(command_classes, 'install', install)
     if sys.platform == 'win32':
-        bdist_msi.attribs = attrs.get("attribs")
-        _AddCommandClass(commandClasses, "bdist_msi", bdist_msi)
+        bdist_msi.attribs = attrs.get('attribs')
+        _AddCommandClass(command_classes, 'bdist_msi', bdist_msi)
     cx_setup(**attrs)

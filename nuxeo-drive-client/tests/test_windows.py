@@ -1,8 +1,9 @@
 # coding: utf-8
 import os
+import shutil
 import sys
 import time
-from shutil import copyfile
+import unittest
 
 from nxdrive.client import LocalClient
 from tests.common import OS_STAT_MTIME_RESOLUTION, \
@@ -23,8 +24,9 @@ class TestWindows(UnitTestCase):
         # in separate folders
         local.make_file('/', 'test.odt', 'Some content.')
         local.make_folder('/', 'folder')
-        copyfile(os.path.join(self.local_test_folder_1, 'test.odt'),
-                 os.path.join(self.local_test_folder_1, 'folder', 'test.odt'))
+        shutil.copyfile(
+            os.path.join(self.local_test_folder_1, 'test.odt'),
+            os.path.join(self.local_test_folder_1, 'folder', 'test.odt'))
         local.update_content('/folder/test.odt', 'Updated content.')
 
         # Copy the newest file to the root workspace and synchronize it
@@ -32,7 +34,7 @@ class TestWindows(UnitTestCase):
                                  self.workspace_title)
         test_file = os.path.join(self.local_test_folder_1, 'folder',
                                  'test.odt')
-        copyfile(test_file, os.path.join(sync_root, 'test.odt'))
+        shutil.copyfile(test_file, os.path.join(sync_root, 'test.odt'))
         self.wait_sync()
         self.assertTrue(remote.exists('/test.odt'))
         self.assertEqual(remote.get_content('/test.odt'), 'Updated content.')
@@ -40,8 +42,9 @@ class TestWindows(UnitTestCase):
         # Copy the oldest file to the root workspace and synchronize it.
         # First wait a bit for file time stamps to increase enough.
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        copyfile(os.path.join(self.local_test_folder_1, 'test.odt'),
-                 os.path.join(sync_root, 'test.odt'))
+        shutil.copyfile(
+            os.path.join(self.local_test_folder_1, 'test.odt'),
+            os.path.join(sync_root, 'test.odt'))
         self.wait_sync()
         self.assertTrue(remote.exists('/test.odt'))
         self.assertEqual(remote.get_content('/test.odt'), 'Some content.')
@@ -142,3 +145,30 @@ class TestWindows(UnitTestCase):
                              'Updated content.')
             self.assertNxPart('/', name='test_update.docx', present=False)
             self.assertFalse(local.exists('/test_delete.docx'))
+
+    @unittest.skipUnless(sys.platform == 'win32', 'Windows only.')
+    def test_registry_configuration(self):
+        """ Test the configuration stored in the registry. """
+
+        import _winreg
+
+        osi = self.manager_1.osi
+        key = 'Software\\Nuxeo\\Drive'
+
+        self.assertEqual(osi.get_system_configuration(), {})
+        self.addCleanup(osi._recursive_delete,
+                        _winreg.HKEY_CURRENT_USER,
+                        'Software\\Nuxeo\\Drive')
+
+        # Add new parameters
+        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
+        osi._update_reg_key(
+            reg, key,
+            [('update-site-url', _winreg.REG_SZ, 'http://no.where')])
+        osi._update_reg_key(
+            reg, key,
+            [('update-BETA_site-url', _winreg.REG_SZ, 'http://no.where.beta')])
+
+        conf = osi.get_system_configuration()
+        self.assertEqual(conf['update_site_url'], 'http://no.where')
+        self.assertEqual(conf['update_beta_site_url'], 'http://no.where.beta')

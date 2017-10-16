@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
-""" Commandline interface for the Nuxeo Drive filesystem synchronizer. """
+"""
+Commandline interface for the Nuxeo Drive filesystem synchronizer.
+For GUI (no console displayed).
+"""
 
 import sys
 

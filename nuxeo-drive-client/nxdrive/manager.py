@@ -284,6 +284,7 @@ class Manager(QtCore.QObject):
     app_name = 'Nuxeo Drive'
 
     __notification_service = None
+    __exe_path = None
 
     @staticmethod
     def get():
@@ -874,35 +875,42 @@ class Manager(QtCore.QObject):
         return report.get_path()
 
     def find_exe_path(self):
-        """Introspect the Python runtime to find the frozen Windows exe"""
-        import nxdrive
-        nxdrive_path = os.path.realpath(os.path.dirname(nxdrive.__file__))
-        log.trace("nxdrive_path: %s", nxdrive_path)
+        """ Introspect the Python runtime to find the frozen Windows exe. """
 
-        # Detect frozen win32 executable under Windows
-        executable = sys.executable
-        if "appdata" in executable:
-            executable = os.path.join(os.path.dirname(executable),
-                                      "..", "..", os.path.basename(
-                                      sys.executable))
-            exe_path = os.path.abspath(executable)
-            if os.path.exists(exe_path):
-                log.trace("Returning exe path: %s", exe_path)
-                return exe_path
+        if not self.__exe_path:
+            import nxdrive
+            path = os.path.realpath(os.path.dirname(nxdrive.__file__))
+            log.trace('Found nxdrive path=%r', path)
 
-        # Detect OSX frozen app
-        if nxdrive_path.endswith(OSX_SUFFIX):
-            log.trace("Detected OS X frozen app")
-            exe_path = nxdrive_path.replace(OSX_SUFFIX, "Contents/MacOS/"
-                                            + self._get_binary_name())
-            if os.path.exists(exe_path):
-                log.trace("Returning exe path: %s", exe_path)
-                return exe_path
+            # Detect frozen win32 executable under Windows
+            executable = sys.executable
+            if 'appdata' in executable:
+                executable = os.path.join(os.path.dirname(executable),
+                                          '..', '..', os.path.basename(
+                                          sys.executable))
+                exe_path = os.path.abspath(executable)
+                if os.path.exists(exe_path):
+                    log.trace('Returning exe path=%r', exe_path)
+                    self.__exe_path = exe_path
+                    return self.__exe_path
 
-        # Fall-back to the regular method that should work both the ndrive script
-        exe_path = sys.argv[0]
-        log.trace("Returning default exe path: %s", exe_path)
-        return exe_path
+            # Detect OSX frozen app
+            if path.endswith(OSX_SUFFIX):
+                log.trace('Detected OS X frozen app')
+                exe_path = path.replace(
+                    OSX_SUFFIX, 'Contents/MacOS/' + self._get_binary_name())
+                if os.path.exists(exe_path):
+                    log.trace('Returning exe path=%r', exe_path)
+                    self.__exe_path = exe_path
+                    return self.__exe_path
+
+            # Fall-back to the regular method that should work both the
+            # ndrive script
+            exe_path = sys.argv[0]
+            log.trace('Returning default exe path=%r', exe_path)
+            self.__exe_path = exe_path
+
+        return self.__exe_path
 
     def set_auto_start(self, value):
         self._dao.update_config("auto_start", value)

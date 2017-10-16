@@ -836,12 +836,10 @@ class Engine(QObject):
             self._set_root_icon()
             BaseClient.set_path_readonly(self.local_folder)
 
-    @staticmethod
-    def _make_local_folder(local_folder):
+    def _make_local_folder(self, local_folder):
         if not os.path.exists(local_folder):
             os.makedirs(local_folder)
-            # OSI package
-            # TODO self.register_folder_link(local_folder)
+            self._manager.osi.register_folder_link(local_folder)
         # Put the ROOT in readonly
 
     def cancel_action_on(self, pair_id):
