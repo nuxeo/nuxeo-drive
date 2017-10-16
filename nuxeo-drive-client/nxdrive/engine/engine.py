@@ -921,10 +921,11 @@ class Engine(QObject):
         # Verify thread status
         thread_id = current_thread().ident
         for thread in self._threads:
-            if hasattr(thread, "worker") and isinstance(thread.worker, Processor):
-                if (thread.worker.get_thread_id() == thread_id and
-                        not thread.worker.is_started()):
-                    raise ThreadInterrupt
+            if (hasattr(thread, 'worker')
+                    and isinstance(thread.worker, Processor)
+                    and thread.worker.get_thread_id() == thread_id
+                    and not thread.worker.is_started()):
+                raise ThreadInterrupt
         # Get action
         current_file = None
         action = Action.get_current_action()

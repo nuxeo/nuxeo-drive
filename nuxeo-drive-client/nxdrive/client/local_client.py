@@ -754,12 +754,12 @@ FolderType=Generic
         return abspath.startswith(self.base_folder)
 
     def get_path(self, abspath):
-        """Relative path to the local client from an absolute OS path"""
-        path = abspath.split(self.base_folder, 1)[1]
-        rel_path = path.replace(os.path.sep, '/')
-        if rel_path == '':
-            rel_path = u'/'
-        return rel_path
+        """ Relative path to the local client from an absolute OS path. """
+
+        _, _, path = abspath.partition(self.base_folder)
+        if not path:
+            return '/'
+        return path.replace(os.path.sep, '/')
 
     def abspath(self, ref):
         """Absolute path on the operating system"""
