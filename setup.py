@@ -278,7 +278,7 @@ class NuxeoDriveAttributes(object):
         msilib.add_data(db, 'InstallExecuteSequence', [(
             'NuxeoDriveCleanUp', 'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE', 1260)])
         msilib.add_data(db, 'CustomAction', [(
-            'NuxeoDriveFolderCleanUp', 3234, 'TARGETDIR', 'cmd.exe /C "rmdir /S /Q appdata"')])
+            'NuxeoDriveFolderCleanUp', 3170, 'TARGETDIR', 'cmd.exe /C "rmdir /S /Q appdata"')])
         msilib.add_data(db, 'InstallExecuteSequence', [(
             'NuxeoDriveFolderCleanUp', 'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE', 1560)])
 
