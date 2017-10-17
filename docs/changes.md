@@ -6,6 +6,7 @@ Release date: `2017-??-??`
 
 ### Packaging / Build
 - [NXDRIVE-737](https://jira.nuxeo.com/browse/NXDRIVE-737): Use a single launcher
+- [NXDRIVE-971](https://jira.nuxeo.com/browse/NXDRIVE-971): Uninstallation fails sometimes on Windows
 
 #### Minor changes
 - Framework: Clean-up queue_manager.py
