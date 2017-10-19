@@ -17,6 +17,7 @@ Where `$OSI` is one of: `linux`, `osx`.
 Possible `ARG`:
 
     --build: freeze the client into self-hosted binary package
+    --pip  : launch a local PyPi server and test pip upload/installation
     --start: start Nuxeo Drive
     --tests: launch the tests suite
 
