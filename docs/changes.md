@@ -8,10 +8,14 @@ Release date: `2017-??-??`
 - [NXDRIVE-737](https://jira.nuxeo.com/browse/NXDRIVE-737): Use a single launcher
 - [NXDRIVE-971](https://jira.nuxeo.com/browse/NXDRIVE-971): Uninstallation fails sometimes on Windows
 
+### Tests
+- [NXDRIVE-984](https://jira.nuxeo.com/browse/NXDRIVE-984): Create a script to check any pip installation regressions
+
 #### Minor changes
 - Framework: Clean-up queue_manager.py
 - Framework: Fix LocalClient.get_path() to use str.partition() and prevent IndexErrors
 - GUI: Fix a SEGFAULT when closing the metadata window
+- Jenkins: The beta job now uploads the package to the PyPi server
 - \[Windows\] Packaging: Prevent infinite loop when uninstalling
 - \[Windows\] Packaging: Fix symbolic link creation
 - \[Windows\] Packaging: Create the desktop shortcut at installation
