@@ -27,8 +27,10 @@ class FiltersDialog(QtGui.QDialog):
 
         self.button_box = QtGui.QDialogButtonBox(self)
         self.button_box.setOrientation(QtCore.Qt.Horizontal)
-        self.button_box.setStandardButtons(QtGui.QDialogButtonBox.Cancel
-                                           | QtGui.QDialogButtonBox.Ok)
+        buttons = QtGui.QDialogButtonBox.Ok
+        if not self.syncing:
+            buttons |= QtGui.QDialogButtonBox.Cancel
+        self.button_box.setStandardButtons(buttons)
         self.vertical_layout.addWidget(self.button_box)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)

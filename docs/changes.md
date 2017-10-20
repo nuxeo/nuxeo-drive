@@ -16,6 +16,7 @@ Release date: `2017-??-??`
 - Framework: Fix LocalClient.get_path() to use str.partition() and prevent IndexErrors
 - GUI: Fix a SEGFAULT when closing the metadata window
 - Jenkins: The beta job now uploads the package to the PyPi server
+- \[macOS\] Fix the favorite link creation
 - \[Windows\] Packaging: Prevent infinite loop when uninstalling
 - \[Windows\] Packaging: Fix symbolic link creation
 - \[Windows\] Packaging: Create the desktop shortcut at installation

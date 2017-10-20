@@ -229,7 +229,9 @@ class WindowsIntegration(AbstractOSIntegration):
             _winreg.DeleteKey(reg, self.get_menu_parent_key())
 
     def register_folder_link(self, folder_path, name=None):
-        self._create_shortcut(self._get_folder_link(name), folder_path)
+        favorite = self._get_folder_link(name)
+        if not os.path.isfile(favorite):
+            self._create_shortcut(favorite, folder_path)
 
     def unregister_folder_link(self, name):
         try:
@@ -237,18 +239,21 @@ class WindowsIntegration(AbstractOSIntegration):
         except OSError:
             pass
 
-    def _create_shortcut(self, link, filepath):
-        log.debug('Linking %r to %r', filepath, link)
-        shell = Dispatch('WScript.Shell')
-        shortcut = shell.CreateShortCut(link)
-        shortcut.Targetpath = filepath
-        shortcut.WorkingDirectory = os.path.dirname(filepath)
-        shortcut.IconLocation = filepath
-        log.info('SHORTCUT=%r', shortcut)
-        shortcut.save()
+    def _create_shortcut(self, favorite, filepath):
+        try:
+            shell = Dispatch('WScript.Shell')
+            shortcut = shell.CreateShortCut(favorite)
+            shortcut.Targetpath = filepath
+            shortcut.WorkingDirectory = os.path.dirname(filepath)
+            shortcut.IconLocation = filepath
+            shortcut.save()
+        except:
+            log.exception('Could not create the favorite for %r', filepath)
+        else:
+            log.debug('Registered new favorite in Explorer for %r', filepath)
 
     def _get_folder_link(self, name=None):
         return os.path.join(
-            os.environ('USERPROFILE'),
+            os.path.expanduser('~'),
             'Links',
             (name or self._manager.app_name) + '.lnk')

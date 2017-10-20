@@ -381,6 +381,8 @@ class Engine(QObject):
             if exc.errno != 2:  # File not found, already removed
                 log.exception('Database removal error')
 
+        self._manager.osi.unregister_folder_link(self.local_folder)
+
     def check_fs_marker(self):
         tag = 'drive-fs-test'
         tag_value = 'NXDRIVE_VERIFICATION'
@@ -834,12 +836,12 @@ class Engine(QObject):
             self._make_local_folder(self.local_folder)
             self._add_top_level_state()
             self._set_root_icon()
+            self._manager.osi.register_folder_link(self.local_folder)
             BaseClient.set_path_readonly(self.local_folder)
 
     def _make_local_folder(self, local_folder):
         if not os.path.exists(local_folder):
             os.makedirs(local_folder)
-            self._manager.osi.register_folder_link(local_folder)
         # Put the ROOT in readonly
 
     def cancel_action_on(self, pair_id):

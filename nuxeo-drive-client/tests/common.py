@@ -4,9 +4,9 @@
 import hashlib
 import os
 import shutil
+import sys
 import tempfile
 import urllib2
-from os.path import dirname
 from unittest import TestCase
 
 import nxdrive
@@ -14,7 +14,6 @@ from nxdrive.client import LocalClient, RemoteDocumentClient, \
     RemoteFileSystemClient
 from nxdrive.client.common import BaseClient
 from nxdrive.logging_config import configure, get_logger
-from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import safe_long_path
 
 # Default remote watcher delay used for tests
@@ -71,21 +70,26 @@ def execute(cmd, exit_on_failure=True):
 
 
 def clean_dir(_dir):
-    if os.path.exists(_dir):
-        to_remove = safe_long_path(_dir)
-        if "TEST_SAVE_DATA" in os.environ:
-            shutil.move(to_remove, os.environ["TEST_SAVE_DATA"])
-            return
-        try:
-            for dirpath, dirnames, filenames in os.walk(to_remove):
-                for dirname in dirnames:
-                    BaseClient.unset_path_readonly(os.path.join(dirpath, dirname))
-                for filename in filenames:
-                    BaseClient.unset_path_readonly(os.path.join(dirpath, filename))
-            shutil.rmtree(to_remove)
-        except Exception as e:
-            if isinstance(e, OSError) and AbstractOSIntegration.is_windows():
-                os.system('rmdir /S /Q %s' % to_remove)
+    if not os.path.exists(_dir):
+        return
+
+    to_remove = safe_long_path(_dir)
+    test_data = os.environ.get('TEST_SAVE_DATA')
+    if test_data:
+        shutil.move(to_remove, test_data)
+        return
+    try:
+        for dirpath, folders, filenames in os.walk(to_remove):
+            for folder in folders:
+                BaseClient.unset_path_readonly(os.path.join(dirpath, folder))
+            for filename in filenames:
+                BaseClient.unset_path_readonly(os.path.join(dirpath, filename))
+        shutil.rmtree(to_remove)
+    except OSError:
+        if sys.platform == 'win32':
+            os.system('rmdir /S /Q %s' % to_remove)
+    except:
+        pass
 
 
 class RemoteDocumentClientForTests(RemoteDocumentClient):
@@ -264,7 +268,7 @@ class IntegrationTestCase(TestCase):
         self.local_client_1 = LocalClient(os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
         self.local_client_2 = LocalClient(os.path.join(self.local_nxdrive_folder_2, self.workspace_title))
 
-        self.ndrive_exec = os.path.join(self.location, '..', 'scripts', 'ndrive.py')
+        self.ndrive_exec = os.path.join(self.location, '..', 'scripts', 'ndrive')
         cmdline_options = ' --log-level-file=TRACE'
         cmdline_options += ' --nxdrive-home="%s"'
         if os.environ.get('PYDEV_DEBUG') == 'True':

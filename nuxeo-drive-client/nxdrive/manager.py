@@ -295,6 +295,7 @@ class Manager(QtCore.QObject):
             raise Exception("Only one instance of Manager can be create")
         Manager._singleton = self
         super(Manager, self).__init__()
+        self.osi = AbstractOSIntegration.get(self)
 
         if not options.consider_ssl_errors:
             log.warning('--consider-ssl-errors option is False, '
@@ -341,7 +342,6 @@ class Manager(QtCore.QObject):
         self._dao.update_config("update_url", options.update_site_url)
         self._dao.update_config("beta_update_url", options.beta_update_site_url)
         self.refresh_proxies()
-        self.osi = AbstractOSIntegration.get(self)
 
         try:
             self.ignored_prefixes = options.ignored_prefixes
