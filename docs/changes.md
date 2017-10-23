@@ -5,6 +5,9 @@ Release date: `2017-??-??`
 - [NXDRIVE-1012](https://jira.nuxeo.com/browse/NXDRIVE-1012): Remote watcher is missing keywords
 - [NXDRIVE-1013](https://jira.nuxeo.com/browse/NXDRIVE-1012): Fix and improve connection test for new account creation
 
+### GUI
+- [NXDRIVE-1016](https://jira.nuxeo.com/browse/NXDRIVE-1016): Unity does not use left click in the systray
+
 ### Packaging / Build
 - [NXDRIVE-737](https://jira.nuxeo.com/browse/NXDRIVE-737): Use a single launcher
 - [NXDRIVE-971](https://jira.nuxeo.com/browse/NXDRIVE-971): Uninstallation fails sometimes on Windows
@@ -17,6 +20,7 @@ Release date: `2017-??-??`
 - Framework: Clean-up queue_manager.py
 - Framework: Fix LocalClient.get_path() to use str.partition() and prevent IndexErrors
 - GUI: Fix a SEGFAULT when closing the metadata window
+- GUI: Add envar `USE_OLD_MENU` to force the use of the old menu
 - Jenkins: The beta job now uploads the package to the PyPi server
 - \[macOS\] Fix the favorite link creation
 - \[Windows\] Packaging: Prevent infinite loop when uninstalling

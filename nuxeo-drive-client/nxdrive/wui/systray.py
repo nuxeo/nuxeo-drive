@@ -1,8 +1,10 @@
 # coding: utf-8
+import os
+import sys
+
 from PyQt4.QtCore import Qt, pyqtSlot
 from PyQt4.QtGui import QApplication, QCursor, QMenu, QStyle, QSystemTrayIcon
 
-from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
 
@@ -11,6 +13,8 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
     __menu_left = None
     __menu_right = None
+    use_old_menu = (sys.platform == 'darwin'
+                    or os.environ.get('USE_OLD_MENU') is not None)
 
     def __init__(self, application):
         super(DriveSystrayIcon, self).__init__(application)
@@ -21,7 +25,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
         # Windows bug: the systray icon is still visible
         self.application.aboutToQuit.connect(self.hide)
 
-        if not AbstractOSIntegration.is_mac():
+        if not self.use_old_menu:
             # On macOS, only the left click is detected, so the context
             # menu is useless.  It is better to not define it else it
             # will show up every click on the systray icon.
@@ -147,8 +151,12 @@ class WebSystrayApi(WebDriveApi):
         Do we need to display the left click advanced menu?  Yes if:
           - on debug
           - on macOS
+          - when the envar USE_OLD_MENU is set
+            (for Unity that does not see right click into the systray)
         """
-        return self._manager.debug or AbstractOSIntegration.is_mac()
+        return (self._manager.debug
+                or sys.platform == 'darwin'
+                or os.environ.get('USE_OLD_MENU') is not None)
 
     @pyqtSlot(str, result=int)
     def get_syncing_items(self, uid):
@@ -168,17 +176,14 @@ class WebSystrayApi(WebDriveApi):
         if self._manager.debug:
             self.application.create_debug_menu(self.menu)
 
-        if AbstractOSIntegration.is_mac():
-            # Still need to include context menu items as macOS does not
-            # see anything but left clicks.
-            self.menu.addSeparator()
-            self.menu.addAction(Translator.get('SETTINGS'),
-                                self.application.show_settings)
-            self.menu.addSeparator()
-            self.menu.addAction(Translator.get('HELP'),
-                                self.application.open_help)
-            self.menu.addSeparator()
-            self.menu.addAction(Translator.get('QUIT'), self.application.quit)
+        self.menu.addSeparator()
+        self.menu.addAction(Translator.get('SETTINGS'),
+                            self.application.show_settings)
+        self.menu.addSeparator()
+        self.menu.addAction(Translator.get('HELP'),
+                            self.application.open_help)
+        self.menu.addSeparator()
+        self.menu.addAction(Translator.get('QUIT'), self.application.quit)
 
         self.menu.popup(QCursor.pos())
 
