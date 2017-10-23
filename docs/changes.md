@@ -9,6 +9,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-971](https://jira.nuxeo.com/browse/NXDRIVE-971): Uninstallation fails sometimes on Windows
 
 ### Tests
+- [NXDRIVE-739](https://jira.nuxeo.com/browse/NXDRIVE-739): Refactor tests that use direct call to ndrive.py
 - [NXDRIVE-984](https://jira.nuxeo.com/browse/NXDRIVE-984): Create a script to check any pip installation regressions
 
 #### Minor changes
