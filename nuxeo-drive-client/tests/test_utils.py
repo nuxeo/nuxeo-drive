@@ -214,5 +214,10 @@ class TestUtils(unittest.TestCase):
 
         # Bad IP
         domain = '1.2.3.4'
-        good_url = '1.2.3.4'
+        good_url = None
+        self.assertEqual(guess_server_url(domain), good_url)
+
+        # Bad protocal
+        domain = 'htto://intranet.nuxeo.com/nuxeo'
+        good_url = None
         self.assertEqual(guess_server_url(domain), good_url)

@@ -77,7 +77,7 @@ class WebSettingsApi(WebDriveApi):
 
     def _bind_server(self, local_folder, url, username, password, name, **kwargs):
         # Remove any parameters from the original URL
-        parts = urlparse.urlsplit(guess_server_url(unicode(url)))
+        parts = urlparse.urlsplit(url)
         url = urlparse.urlunsplit(
             (parts.scheme, parts.netloc, parts.path, '', parts.fragment))
 
@@ -113,6 +113,10 @@ class WebSettingsApi(WebDriveApi):
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
     def bind_server(self, local_folder, url, username, password, name, **kwargs):
+        url = guess_server_url(unicode(url))
+        if not url:
+            return 'CONNECTION_ERROR'
+
         try:
             return self._bind_server(local_folder, url, username, password, name, **kwargs)
         except RootAlreadyBindWithDifferentAccount as e:
@@ -143,7 +147,7 @@ class WebSettingsApi(WebDriveApi):
             return 'UNAUTHORIZED'
         except FolderAlreadyUsed:
             return 'FOLDER_USED'
-        except urllib2.HTTPError as e:
+        except urllib2.HTTPError:
             return 'CONNECTION_ERROR'
         except urllib2.URLError as e:
             if e.errno == 61:
@@ -162,7 +166,11 @@ class WebSettingsApi(WebDriveApi):
     @QtCore.pyqtSlot(str, str, str, result=str)
     def web_authentication(self, local_folder, server_url, engine_name):
         # Handle the server URL
-        parts = urlparse.urlsplit(guess_server_url(unicode(server_url)))
+        url = guess_server_url(unicode(server_url))
+        if not url:
+            return 'CONNECTION_ERROR'
+
+        parts = urlparse.urlsplit(url)
         server_url = urlparse.urlunsplit(
             (parts.scheme, parts.netloc, parts.path, parts.query, parts.fragment))
 

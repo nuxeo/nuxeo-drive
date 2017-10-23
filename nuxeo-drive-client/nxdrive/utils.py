@@ -9,9 +9,10 @@ import time
 import unicodedata
 import urlparse
 from distutils.version import StrictVersion
-from urllib2 import HTTPError, URLError, urlopen
+from urllib2 import URLError, urlopen
 
 import psutil
+import rfc3987
 from Crypto import Random
 from Crypto.Cipher import AES
 
@@ -513,16 +514,20 @@ def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
         ('http', domain + ':8080', 'nuxeo', '', ''),
     ]
 
-    for count, new_url in enumerate(urls, 1):
-        new_url = urlparse.urlunsplit(new_url)
-        log.trace('Test %d, URL is %r', count, new_url)
+    for new_url_parts in urls:
+        new_url = urlparse.urlunsplit(new_url_parts)
+        log.trace('Testing URL %r', new_url)
         try:
+            rfc3987.parse(new_url, rule='URI')
             ret = urlopen(new_url + '/' + login_page, timeout=timeout)
-        except (ValueError, URLError, HTTPError):
+        except (ValueError, URLError):
             pass
         else:
             if ret.code == 200:
                 return new_url
+
+    if not url.lower().startswith('http'):
+        return None
     return url
 
 
