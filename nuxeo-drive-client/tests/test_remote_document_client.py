@@ -6,8 +6,8 @@ from time import sleep
 from unittest import SkipTest
 
 from nxdrive.client import LocalClient, NotFound, NuxeoClient, Unauthorized
-from tests.common import IntegrationTestCase, SOME_TEXT_CONTENT, \
-    SOME_TEXT_DIGEST
+from tests.common import SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
+from tests.common_unit_test import UnitTestCase
 
 
 def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
@@ -24,7 +24,7 @@ def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
                       use_trash=use_trash)
 
 
-class TestRemoteDocumentClient(IntegrationTestCase):
+class TestRemoteDocumentClient(UnitTestCase):
 
     def test_authentication_failure(self):
         self.assertRaises(Unauthorized, NuxeoClient,
@@ -41,9 +41,12 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         token = remote_client.request_token()
         if token is None:
             raise SkipTest('nuxeo-platform-login-token is not deployed')
-        self.assertTrue(len(token) > 5)
+        self.assertGreater(len(token), 5)
         self.assertEqual(remote_client.auth[0], 'X-Authentication-Token')
         self.assertEqual(remote_client.auth[1], token)
+
+        remote_client.unregister_as_root(self.workspace)
+        self.wait()
 
         # Requesting token is an idempotent operation
         token2 = remote_client.request_token()
@@ -236,6 +239,8 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         self.assertEqual(remote_client.get_repository_names(), ['default'])
 
         # By default no root is synchronized
+        remote_client.unregister_as_root(self.workspace)
+        self.wait()
         self.assertEqual(remote_client.get_roots(), [])
 
         # Register one root explicitly
@@ -287,7 +292,10 @@ class TestRemoteDocumentClient(IntegrationTestCase):
         self.assertEqual(remote_client.get_repository_names(), ['default'])
 
         # By default no root is synchronized
+        remote_client.unregister_as_root(self.workspace)
+        self.wait()
         self.assertEqual(remote_client.get_roots(), [])
+
         folder = remote_client.make_folder(self.workspace, 'Folder')
         sub_folder_1 = remote_client.make_folder(folder, 'Sub Folder 1')
         sub_folder_2 = remote_client.make_folder(folder, 'Sub Folder 2')

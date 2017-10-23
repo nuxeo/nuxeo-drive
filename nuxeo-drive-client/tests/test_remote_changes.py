@@ -1,11 +1,8 @@
 # coding: utf-8
-import sys
-import unittest
-
-from tests.common import IntegrationTestCase
+from tests.common_unit_test import UnitTestCase
 
 
-class TestRemoteChanges(IntegrationTestCase):
+class TestRemoteChanges(UnitTestCase):
 
     def setUp(self):
         super(TestRemoteChanges, self).setUp()
@@ -30,6 +27,9 @@ class TestRemoteChanges(IntegrationTestCase):
 
     def test_changes_without_active_roots(self):
         remote_client = self.remote_file_system_client_1
+        self.remote_document_client_1.unregister_as_root(self.workspace)
+        self.wait()
+        self.get_changes()  # Reset
         summary = self.get_changes()
         self.assertEqual(summary['hasTooManyChanges'], False)
         self.assertEqual(summary['fileSystemChanges'], [])
@@ -52,7 +52,6 @@ class TestRemoteChanges(IntegrationTestCase):
             second_event_log_id = summary['upperBound']
             self.assertTrue(second_event_log_id >= first_event_log_id)
 
-    @unittest.skipIf(sys.platform == 'win32', 'NXDRIVE-739: Need refactor')
     def test_changes_root_registrations(self):
         # Lets create some folders in Nuxeo
         remote_client = self.remote_document_client_1
@@ -61,14 +60,16 @@ class TestRemoteChanges(IntegrationTestCase):
         remote_client.make_folder(folder_2, 'Folder 2.2')
 
         # Check no changes without any registered roots
+        remote_client.unregister_as_root(self.workspace)
         self.wait()
+        self.get_changes()  # Reset
         summary = self.get_changes()
         self.assertEqual(summary['hasTooManyChanges'], False)
         self.assertEqual(summary['activeSynchronizationRootDefinitions'], '')
         self.assertEqual(summary['fileSystemChanges'], [])
 
         # Let's register one of the previously created folders as sync root
-        self.setUpDrive_1(root=folder_1)
+        remote_client.register_as_root(folder_1)
 
         self.wait()
         summary = self.get_changes()
@@ -84,7 +85,7 @@ class TestRemoteChanges(IntegrationTestCase):
         self.assertEqual(change['docUuid'], folder_1)
 
         # Let's register the second root
-        self.bind_root(self.ndrive_1_options, folder_2, self.local_nxdrive_folder_1)
+        remote_client.register_as_root(folder_2)
 
         self.wait()
         summary = self.get_changes()
@@ -110,8 +111,8 @@ class TestRemoteChanges(IntegrationTestCase):
         self.assertEqual(len(summary['fileSystemChanges']), 0)
 
         # Let's unregister both roots at the same time
-        self.unbind_root(self.ndrive_1_options, folder_1, self.local_nxdrive_folder_1)
-        self.unbind_root(self.ndrive_1_options, folder_2, self.local_nxdrive_folder_1)
+        remote_client.unregister_as_root(folder_1)
+        remote_client.unregister_as_root(folder_2)
 
         self.wait()
         summary = self.get_changes()
@@ -138,16 +139,16 @@ class TestRemoteChanges(IntegrationTestCase):
         self.assertEqual(raw_root_defs, '')
         self.assertEqual(len(summary['fileSystemChanges']), 0)
 
-    @unittest.skipIf(sys.platform == 'win32', 'NXDRIVE-739: Need refactor')
     def test_sync_root_parent_registration(self):
         # Create a folder
         remote_client = self.remote_document_client_1
         folder_1 = remote_client.make_folder(self.workspace, 'Folder 1')
+        remote_client.unregister_as_root(self.workspace)
         self.wait()
-        self.get_changes()
+        self.get_changes()  # Reset
 
         # Mark Folder 1 as a sync root
-        self.setUpDrive_1(root=folder_1)
+        remote_client.register_as_root(folder_1)
         self.wait()
         summary = self.get_changes()
 
@@ -158,7 +159,7 @@ class TestRemoteChanges(IntegrationTestCase):
         self.assertEqual(change['fileSystemItemId'], u'defaultSyncRootFolderItemFactory#default#%s' % folder_1)
 
         # Mark parent folder as a sync root, should unregister Folder 1
-        self.bind_root(self.ndrive_1_options, self.workspace, self.local_nxdrive_folder_1)
+        remote_client.register_as_root(self.workspace)
         self.wait()
         summary = self.get_changes()
 
@@ -176,11 +177,9 @@ class TestRemoteChanges(IntegrationTestCase):
             else:
                 self.fail('Unexpected event %s' % change['eventId'])
 
-    @unittest.skipIf(sys.platform == 'win32', 'NXDRIVE-739: Need refactor')
     def test_lock_unlock_events(self):
         remote = self.remote_document_client_1
         doc_id = remote.make_file(self.workspace, 'TestLocking.txt', 'File content')
-        self.setUpDrive_1()
         self.wait()
         self.get_changes()
 
