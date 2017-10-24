@@ -307,6 +307,7 @@ class UnitTestCase(SimpleUnitTestCase):
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD', 'Administrator')
         self.build_workspace = os.environ.get('WORKSPACE')
+        self.report_path = os.environ.get('REPORT_PATH')
         self.tearedDown = False
 
         self.tmpdir = None
@@ -611,7 +612,6 @@ class UnitTestCase(SimpleUnitTestCase):
     def run(self, result=None):
         self.app = StubQApplication([], self)
         self.setUpApp()
-        self.result = result
 
         def launch_test():
             self.root_remote_client.log_on_server(
@@ -633,6 +633,7 @@ class UnitTestCase(SimpleUnitTestCase):
         log.debug('UnitTest run finished')
 
     def tearDown(self):
+        self.generate_report()
         try:
             unittest.TestCase.tearDown(self)
         except StandardError:
@@ -646,9 +647,6 @@ class UnitTestCase(SimpleUnitTestCase):
     def tearDownApp(self, server_profile=None):
         if self.tearedDown:
             return
-        if (hasattr(self.result, 'wasSuccessful')
-                and not self.result.wasSuccessful()):
-                self.generate_report()
         log.debug('TearDown unit test')
 
         # Unregister sync roots
@@ -770,13 +768,12 @@ class UnitTestCase(SimpleUnitTestCase):
                 self.wait(retry - 1)
 
     def generate_report(self):
-        if "REPORT_PATH" not in os.environ:
+        success = vars(self._resultForDoCleanups).get('_excinfo') is None
+        if success or not self.report_path:
             return
 
-        report_path = os.path.join(os.environ["REPORT_PATH"],
-                                   self.id() + '-' + sys.platform)
-        self.manager_1.generate_report(report_path)
-        log.debug("Report generated in '%s'", report_path)
+        path = os.path.join(self.report_path, self.id() + '-' + sys.platform)
+        self.manager_1.generate_report(path)
 
     def _set_read_permission(self, user, doc_path, grant):
         op_input = "doc:" + doc_path

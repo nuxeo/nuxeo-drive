@@ -19,6 +19,11 @@ from nxdrive.client.local_client import LocalClient
 from tests.common import log
 
 
+class MockFile(object):
+    def __init__(self, path):
+        self.path = path.replace(os.path.sep, '/')
+
+
 class WindowsLocalClient(LocalClient):
     def __init__(self, base_folder, **kwargs):
         super(WindowsLocalClient, self).__init__(base_folder, **kwargs)
@@ -67,13 +72,15 @@ class WindowsLocalClient(LocalClient):
                          'prefix. So the test is likely to fail.'))
         return abs_path[4:]
 
-    def rename(self, ref, to_name):
-        path = self.abspath(ref)
+    def rename(self, srcref, to_name):
+        parent = os.path.dirname(srcref)
+        path = self.abspath(srcref)
         new_path = os.path.join(os.path.dirname(path), to_name)
         res = shell.SHFileOperation((0, shellcon.FO_RENAME, path, new_path,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
         if res[0] != 0:
             raise IOError(res, locals())
+        return MockFile(os.path.join(parent, to_name))
 
     def delete(self, ref):
         path = self.abspath(ref)

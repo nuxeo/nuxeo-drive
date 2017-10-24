@@ -13,6 +13,11 @@ if sys.platform == 'darwin':
     import Cocoa
 
 
+class MockFile(object):
+    def __init__(self, path):
+        self.path = path
+
+
 class MacLocalClient(LocalClient):
     def __init__(self, base_folder, **kwargs):
         super(MacLocalClient, self).__init__(base_folder, **kwargs)
@@ -59,6 +64,7 @@ class MacLocalClient(LocalClient):
         parent = os.path.dirname(srcref)
         dstref = os.path.join(parent)
         self.move(srcref, dstref, name=to_name)
+        return MockFile(os.path.join(parent, to_name))
 
     def delete(self, ref):
         path = self.abspath(ref)
@@ -69,4 +75,4 @@ class MacLocalClient(LocalClient):
     @staticmethod
     def _process_result(result):
         if not result[0]:
-            raise IOError(result[1].decode('utf-8', 'ignore'), locals())
+            raise IOError(str(result[1]).decode('utf-8', 'ignore'), locals())

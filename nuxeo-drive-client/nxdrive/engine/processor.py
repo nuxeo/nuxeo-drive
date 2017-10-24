@@ -678,7 +678,8 @@ class Processor(EngineWorker):
 
     def _synchronize_locally_moved_remotely_modified(self, doc_pair, local_client, remote_client):
         self._synchronize_locally_moved(doc_pair, local_client, remote_client, update=False)
-        self._synchronize_remotely_modified(doc_pair, local_client, remote_client)
+        refreshed_pair = self._dao.get_state_from_id(doc_pair.id)
+        self._synchronize_remotely_modified(refreshed_pair, local_client, remote_client)
 
     def _synchronize_locally_moved_created(self, doc_pair, local_client, remote_client):
         doc_pair.remote_ref = None
