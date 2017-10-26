@@ -1,4 +1,6 @@
 # coding: utf-8
+from __future__ import unicode_literals
+
 from tests.common_unit_test import UnitTestCase
 
 
@@ -31,26 +33,27 @@ class TestRemoteChanges(UnitTestCase):
         self.wait()
         self.get_changes()  # Reset
         summary = self.get_changes()
-        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertFalse(summary['hasTooManyChanges'])
         self.assertEqual(summary['fileSystemChanges'], [])
         self.assertEqual(summary['activeSynchronizationRootDefinitions'], '')
         first_timestamp = summary['syncDate']
         self.assertTrue(first_timestamp > 0)
+        first_event_log_id = 0
         if remote_client.is_event_log_id_available():
             first_event_log_id = summary['upperBound']
-            self.assertTrue(first_event_log_id > 0)
+            self.assertGreater(first_event_log_id, 0)
 
         self.wait()
         summary = self.get_changes()
 
-        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertFalse(summary['hasTooManyChanges'])
         self.assertEqual(summary['fileSystemChanges'], [])
         self.assertEqual(summary['activeSynchronizationRootDefinitions'], '')
         second_time_stamp = summary['syncDate']
         self.assertTrue(second_time_stamp >= first_timestamp)
         if remote_client.is_event_log_id_available():
             second_event_log_id = summary['upperBound']
-            self.assertTrue(second_event_log_id >= first_event_log_id)
+            self.assertGreaterEqual(second_event_log_id, first_event_log_id)
 
     def test_changes_root_registrations(self):
         # Lets create some folders in Nuxeo
@@ -64,7 +67,7 @@ class TestRemoteChanges(UnitTestCase):
         self.wait()
         self.get_changes()  # Reset
         summary = self.get_changes()
-        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertFalse(summary['hasTooManyChanges'])
         self.assertEqual(summary['activeSynchronizationRootDefinitions'], '')
         self.assertEqual(summary['fileSystemChanges'], [])
 
@@ -74,13 +77,13 @@ class TestRemoteChanges(UnitTestCase):
         self.wait()
         summary = self.get_changes()
 
-        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertFalse(summary['hasTooManyChanges'])
         root_defs = summary['activeSynchronizationRootDefinitions'].split(',')
         self.assertEqual(len(root_defs), 1)
         self.assertTrue(root_defs[0].startswith('default:'))
         self.assertEqual(len(summary['fileSystemChanges']), 1)
         change = summary['fileSystemChanges'][0]
-        self.assertEqual(change['fileSystemItemName'], u"Folder 1")
+        self.assertEqual(change['fileSystemItemName'], 'Folder 1')
         self.assertEqual(change['repositoryId'], "default")
         self.assertEqual(change['docUuid'], folder_1)
 
@@ -90,20 +93,20 @@ class TestRemoteChanges(UnitTestCase):
         self.wait()
         summary = self.get_changes()
 
-        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertFalse(summary['hasTooManyChanges'])
         root_defs = summary['activeSynchronizationRootDefinitions'].split(',')
         self.assertEqual(len(root_defs), 2)
         self.assertTrue(root_defs[0].startswith('default:'))
         self.assertTrue(root_defs[1].startswith('default:'))
         self.assertEqual(len(summary['fileSystemChanges']), 1)
         change = summary['fileSystemChanges'][0]
-        self.assertEqual(change['fileSystemItemName'], u"Folder 2")
+        self.assertEqual(change['fileSystemItemName'], 'Folder 2')
         self.assertEqual(change['repositoryId'], "default")
         self.assertEqual(change['docUuid'], folder_2)
 
         # Let's do nothing and refetch the changes
         summary = self.get_changes()
-        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertFalse(summary['hasTooManyChanges'])
         root_defs = summary['activeSynchronizationRootDefinitions'].split(',')
         self.assertEqual(len(root_defs), 2)
         self.assertTrue(root_defs[0].startswith('default:'))
@@ -117,24 +120,24 @@ class TestRemoteChanges(UnitTestCase):
         self.wait()
         summary = self.get_changes()
 
-        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertFalse(summary['hasTooManyChanges'])
         raw_root_defs = summary['activeSynchronizationRootDefinitions']
         self.assertEqual(raw_root_defs, '')
         self.assertEqual(len(summary['fileSystemChanges']), 2)
         change = summary['fileSystemChanges'][0]
-        self.assertEqual(change['eventId'], u"deleted")
+        self.assertEqual(change['eventId'], 'deleted')
         self.assertIsNone(change['fileSystemItemName'])
         self.assertEqual(change['repositoryId'], "default")
         self.assertEqual(change['docUuid'], folder_2)
         change = summary['fileSystemChanges'][1]
-        self.assertEqual(change['eventId'], u"deleted")
+        self.assertEqual(change['eventId'], 'deleted')
         self.assertIsNone(change['fileSystemItemName'])
         self.assertEqual(change['repositoryId'], "default")
         self.assertEqual(change['docUuid'], folder_1)
 
         # Let's do nothing and refetch the changes
         summary = self.get_changes()
-        self.assertEqual(summary['hasTooManyChanges'], False)
+        self.assertFalse(summary['hasTooManyChanges'])
         raw_root_defs = summary['activeSynchronizationRootDefinitions']
         self.assertEqual(raw_root_defs, '')
         self.assertEqual(len(summary['fileSystemChanges']), 0)
@@ -154,9 +157,9 @@ class TestRemoteChanges(UnitTestCase):
 
         self.assertEqual(len(summary['fileSystemChanges']), 1)
         change = summary['fileSystemChanges'][0]
-        self.assertEqual(change['eventId'], u'rootRegistered')
-        self.assertEqual(change['fileSystemItemName'], u'Folder 1')
-        self.assertEqual(change['fileSystemItemId'], u'defaultSyncRootFolderItemFactory#default#%s' % folder_1)
+        self.assertEqual(change['eventId'], 'rootRegistered')
+        self.assertEqual(change['fileSystemItemName'], 'Folder 1')
+        self.assertEqual(change['fileSystemItemId'], 'defaultSyncRootFolderItemFactory#default#%s' % folder_1)
 
         # Mark parent folder as a sync root, should unregister Folder 1
         remote_client.register_as_root(self.workspace)
@@ -165,14 +168,14 @@ class TestRemoteChanges(UnitTestCase):
 
         self.assertEqual(len(summary['fileSystemChanges']), 2)
         for change in summary['fileSystemChanges']:
-            if change['eventId'] == u'rootRegistered':
-                self.assertEqual(change['fileSystemItemName'], u'Nuxeo Drive Test Workspace')
+            if change['eventId'] == 'rootRegistered':
+                self.assertEqual(change['fileSystemItemName'], 'Nuxeo Drive Test Workspace')
                 self.assertEqual(change['fileSystemItemId'],
-                                 u'defaultSyncRootFolderItemFactory#default#%s' % self.workspace)
+                                 'defaultSyncRootFolderItemFactory#default#%s' % self.workspace)
                 self.assertIsNotNone(change['fileSystemItem'])
-            elif change['eventId'] == u'deleted':
+            elif change['eventId'] == 'deleted':
                 self.assertIsNone(change['fileSystemItemName'])
-                self.assertEqual(change['fileSystemItemId'], u'default#%s' % folder_1)
+                self.assertEqual(change['fileSystemItemId'], 'default#%s' % folder_1)
                 self.assertIsNone(change['fileSystemItem'])
             else:
                 self.fail('Unexpected event %s' % change['eventId'])
@@ -188,15 +191,15 @@ class TestRemoteChanges(UnitTestCase):
         summary = self.get_changes()
         self.assertEqual(len(summary['fileSystemChanges']), 1)
         change = summary['fileSystemChanges'][0]
-        self.assertEqual(change['eventId'], u"documentLocked")
+        self.assertEqual(change['eventId'], 'documentLocked')
         self.assertEqual(change['docUuid'], doc_id)
-        self.assertEqual(change['fileSystemItemName'], u"TestLocking.txt")
+        self.assertEqual(change['fileSystemItemName'], 'TestLocking.txt')
 
         remote.unlock(doc_id)
         self.wait()
         summary = self.get_changes()
         self.assertEqual(len(summary['fileSystemChanges']), 1)
         change = summary['fileSystemChanges'][0]
-        self.assertEqual(change['eventId'], u"documentUnlocked")
+        self.assertEqual(change['eventId'], 'documentUnlocked')
         self.assertEqual(change['docUuid'], doc_id)
-        self.assertEqual(change['fileSystemItemName'], u"TestLocking.txt")
+        self.assertEqual(change['fileSystemItemName'], 'TestLocking.txt')

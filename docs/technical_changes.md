@@ -3,6 +3,8 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+- Added `BaseAutomationClient.check_access()`
+- Added `BaseAutomationClient.server_reachable()`
 - Removed `WindowsIntegration.register_desktop_link()`
 - Removed `WindowsIntegration.unregister_desktop_link()`
 

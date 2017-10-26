@@ -9,7 +9,7 @@ import time
 import unicodedata
 import urlparse
 from distutils.version import StrictVersion
-from urllib2 import URLError, urlopen
+from urllib2 import HTTPError, URLError, urlopen
 
 import psutil
 import rfc3987
@@ -45,10 +45,10 @@ WIN32_PATCHED_MIME_TYPES = {
 }
 
 DEVICE_DESCRIPTIONS = {
-    'linux2': 'GNU/Linux Desktop',
-    'darwin': 'Mac OSX Desktop',
-    'cygwin': 'Windows Desktop',
-    'win32': 'Windows Desktop',
+    'linux2': 'Linux',
+    'darwin': 'Mac',
+    'cygwin': 'Windows',
+    'win32': 'Windows',
 }
 
 TOKEN_PERMISSION = 'ReadWrite'
@@ -447,8 +447,8 @@ def guess_mime_type(filename):
             # Patch bad Windows MIME types
             # See https://jira.nuxeo.com/browse/NXP-11660
             # and http://bugs.python.org/issue15207
-            mime_type = _patch_win32_mime_type(mime_type)
-        log.trace("Guessed mime type '%s' for '%s'", mime_type, filename)
+            mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type, mime_type)
+        log.trace('Guessed mime type %r for %r', mime_type, filename)
         return mime_type
     log.trace("Could not guess mime type for '%s', returing 'application/octet-stream'", filename)
     return "application/octet-stream"
@@ -499,27 +499,31 @@ def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
         (parts.scheme, parts.netloc + ':8080', parts.path + '/nuxeo',
          parts.query, parts.fragment),
 
-        # https://domain.com
-        ('https', domain, '', '', ''),
         # https://domain.com/nuxeo
         ('https', domain, 'nuxeo', '', ''),
-        # https://domain.com:8080/nuxeo
         ('https', domain + ':8080', 'nuxeo', '', ''),
+        # https://domain.com
+        ('https', domain, '', '', ''),
+        # https://domain.com:8080/nuxeo
 
-        # http://domain.com
-        ('http', domain, '', '', ''),
         # http://domain.com/nuxeo
         ('http', domain, 'nuxeo', '', ''),
         # http://domain.com:8080/nuxeo
         ('http', domain + ':8080', 'nuxeo', '', ''),
+        # http://domain.com
+        ('http', domain, '', '', ''),
     ]
 
     for new_url_parts in urls:
         new_url = urlparse.urlunsplit(new_url_parts)
-        log.trace('Testing URL %r', new_url)
         try:
             rfc3987.parse(new_url, rule='URI')
+            log.trace('Testing URL %r', new_url)
             ret = urlopen(new_url + '/' + login_page, timeout=timeout)
+        except HTTPError as exc:
+            if exc.code == 401:
+                # When there is only Web-UI installed, the code is 401.
+                return new_url
         except (ValueError, URLError):
             pass
         else:
@@ -529,11 +533,6 @@ def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
     if not url.lower().startswith('http'):
         return None
     return url
-
-
-def _patch_win32_mime_type(mime_type):
-    patched_mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type)
-    return patched_mime_type if patched_mime_type else mime_type
 
 
 class ServerLoader(object):

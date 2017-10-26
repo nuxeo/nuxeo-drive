@@ -424,15 +424,16 @@ class RemoteWatcher(EngineWorker):
         try:
             self._client = self._engine.get_remote_client()
         except HTTPError as e:
-            if e.code == 401 or e.code == 403:
-                if not self._engine.has_invalid_credentials():
-                    self._engine.set_invalid_credentials(reason='got HTTPError %d while checking if offline' % e.code,
-                                                         exception=e)
+            if (e.code in (401, 403)
+                    and not self._engine.has_invalid_credentials()):
+                self._engine.set_invalid_credentials(
+                    reason='got HTTPError %d while checking if offline' % e.code,
+                    exception=e)
         except Unauthorized as e:
             if not self._engine.has_invalid_credentials():
-                self._engine.set_invalid_credentials(reason='got Unauthorized with code %s while checking if offline'
-                                                     % e.code if hasattr(e, 'code') and e.code else 'None',
-                                                     exception=e)
+                self._engine.set_invalid_credentials(
+                    reason='got Unauthorized with code %r while checking if offline' % getattr(e, 'code'),
+                    exception=e)
         except:
             pass
 
@@ -442,8 +443,8 @@ class RemoteWatcher(EngineWorker):
             return None
         if self._engine.is_offline():
             try:
-                # Try to get the api
-                self._client.fetch_api()
+                # Try to get the server status
+                self._client.server_reachable()
                 # if retrieved
                 self._engine.set_offline(False)
                 return self._client

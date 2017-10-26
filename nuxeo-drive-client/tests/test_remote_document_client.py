@@ -5,7 +5,8 @@ from shutil import copyfile
 from time import sleep
 from unittest import SkipTest
 
-from nxdrive.client import LocalClient, NotFound, NuxeoClient, Unauthorized
+from nxdrive.client import LocalClient, NotFound, RemoteDocumentClient, \
+    Unauthorized
 from tests.common import SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from tests.common_unit_test import UnitTestCase
 
@@ -27,14 +28,16 @@ def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
 class TestRemoteDocumentClient(UnitTestCase):
 
     def test_authentication_failure(self):
-        self.assertRaises(Unauthorized, NuxeoClient,
-                      self.remote_document_client_1.server_url,
-                      'someone else', 'test-device', self.version,
-                      password='bad password')
-        self.assertRaises(Unauthorized, NuxeoClient,
-                      self.remote_document_client_1.server_url,
-                      'someone else', 'test-device', self.version,
-                      token='some-bad-token')
+        with self.assertRaises(Unauthorized):
+            RemoteDocumentClient(
+                self.remote_document_client_1.server_url,
+                'someone else', 'test-device', self.version,
+                password='bad password')
+        with self.assertRaises(Unauthorized):
+            RemoteDocumentClient(
+                self.remote_document_client_1.server_url,
+                'someone else', 'test-device', self.version,
+                token='some-bad-token')
 
     def test_make_token(self):
         remote_client = self.remote_document_client_1
@@ -53,7 +56,7 @@ class TestRemoteDocumentClient(UnitTestCase):
         self.assertEqual(token, token2)
 
         # It's possible to create a new client using the same token
-        remote_client2 = NuxeoClient(
+        remote_client2 = RemoteDocumentClient(
             remote_client.server_url, remote_client.user_id,
             remote_client.device_id, remote_client.client_version,
             token=token, base_folder=self.workspace)
@@ -71,7 +74,7 @@ class TestRemoteDocumentClient(UnitTestCase):
 
         # The root can also been seen with a new client connected using
         # password based auth
-        remote_client3 = NuxeoClient(
+        remote_client3 = RemoteDocumentClient(
             remote_client.server_url, remote_client.user_id,
             remote_client.device_id, remote_client.client_version,
             password=self.password_1, base_folder=None)
@@ -81,7 +84,7 @@ class TestRemoteDocumentClient(UnitTestCase):
 
         # Another device using the same user credentials will get a different
         # token
-        remote_client4 = NuxeoClient(
+        remote_client4 = RemoteDocumentClient(
             remote_client.server_url, remote_client.user_id,
             'other-test-device', remote_client.client_version,
             password=self.password_1, base_folder=None)
@@ -348,6 +351,17 @@ class TestRemoteDocumentClient(UnitTestCase):
         self.assertEqual(doc_info.digest_algorithm, 'md5')
         self.assertEqual(doc_info.digest,
                          local_client.get_info('/testFile.pdf').get_digest())
+
+    def test_server_reachable(self):
+        remote_client = self.remote_document_client_1
+        self.assertTrue(remote_client.server_reachable())
+
+        server_url = remote_client.server_url
+        remote_client.server_url = 'http://example.org/'
+        try:
+            self.assertFalse(remote_client.server_reachable())
+        finally:
+            remote_client.server_url = server_url
 
     def test_bad_mime_type(self):
         remote_client = self.remote_document_client_1
