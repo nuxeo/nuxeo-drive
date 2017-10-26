@@ -27,6 +27,9 @@ def wait_for_deletion(client, doc, retries_left=10, delay=0.300,
 
 class TestRemoteDocumentClient(UnitTestCase):
 
+    def test_repr(self):
+        assert repr(self.remote_document_client_1)
+
     def test_authentication_failure(self):
         with self.assertRaises(Unauthorized):
             RemoteDocumentClient(

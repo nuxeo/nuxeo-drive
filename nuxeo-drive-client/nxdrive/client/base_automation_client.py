@@ -237,7 +237,7 @@ class BaseAutomationClient(BaseClient):
         self.check_access()
 
     def __repr__(self):
-        attrs = ', '.join('{}={!r}'.format(attr, getattr(self, attr))
+        attrs = ', '.join('{}={!r}'.format(attr, getattr(self, attr, None))
                           for attr in sorted(self.__init__.__code__.co_varnames[1:]))
         return '<{} {}>'.format(self.__class__.__name__, attrs)
 
