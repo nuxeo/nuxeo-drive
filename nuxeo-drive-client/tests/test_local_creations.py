@@ -25,7 +25,6 @@ class TestLocalCreations(UnitTestCase):
         len_pictures = 10
         total_files = len_text_files + len_pictures
     
-        self.engine_1.get_local_watcher().set_windows_queue_threshold(1000)
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 

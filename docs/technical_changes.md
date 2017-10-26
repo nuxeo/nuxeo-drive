@@ -3,6 +3,8 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+- Removed `LocalWatcher.get_windows_queue_threshold()`
+- Removed `LocalWatcher.set_windows_queue_threshold()`
 - Removed `WindowsIntegration.register_desktop_link()`
 - Removed `WindowsIntegration.unregister_desktop_link()`
 
