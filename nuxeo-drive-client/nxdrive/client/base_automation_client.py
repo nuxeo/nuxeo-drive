@@ -12,7 +12,7 @@ import tempfile
 import time
 import urllib2
 from urllib import urlencode
-from urllib2 import ProxyHandler
+from urllib2 import ProxyHandler, quote
 from urlparse import urlparse
 
 from poster.streaminghttp import get_handlers
@@ -22,7 +22,7 @@ from nxdrive.client.common import BaseClient, DEFAULT_IGNORED_PREFIXES, \
     safe_filename
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.logging_config import get_logger
-from nxdrive.utils import DEVICE_DESCRIPTIONS, TOKEN_PERMISSION, force_decode, \
+from nxdrive.utils import TOKEN_PERMISSION, force_decode, get_device, \
     guess_digest_algorithm, guess_mime_type
 
 log = None
@@ -617,14 +617,11 @@ class BaseAutomationClient(BaseClient):
 
         parameters = {
             'deviceId': self.device_id,
-            'applicationName': self.application_name,
+            'applicationName': quote(self.application_name),
             'permission': TOKEN_PERMISSION,
             'revoke': str(revoke).lower(),
+            'deviceDescription': get_device(),
         }
-        device = DEVICE_DESCRIPTIONS.get(sys.platform)
-        if not device:
-            device = sys.platform.replace(' ', '')
-        parameters['deviceDescription'] = device
         url = self.server_url + 'authentication/token?'
         url += urlencode(parameters)
 

@@ -22,15 +22,12 @@ from nxdrive.logging_config import get_logger
 if sys.platform == 'win32':
     import win32api
 
-NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
-log = get_logger(__name__)
-
-WIN32_SUFFIX = os.path.join('library.zip', 'nxdrive')
-OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
-
-ENCODING = locale.getpreferredencoding()
-DEFAULT_ENCODING = 'utf-8'
-
+DEVICE_DESCRIPTIONS = {
+    'cygwin': 'Windows',
+    'darwin': 'macOS',
+    'linux2': 'GNU/Linux',
+    'win32': 'Windows',
+}
 WIN32_PATCHED_MIME_TYPES = {
     'image/pjpeg': 'image/jpeg',
     'image/x-png': 'image/png',
@@ -43,19 +40,25 @@ WIN32_PATCHED_MIME_TYPES = {
     'application/x-mspowerpoint.12':
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 }
-
-DEVICE_DESCRIPTIONS = {
-    'linux2': 'Linux',
-    'darwin': 'Mac',
-    'cygwin': 'Windows',
-    'win32': 'Windows',
-}
-
 TOKEN_PERMISSION = 'ReadWrite'
+NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
+OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
+ENCODING = locale.getpreferredencoding()
+
+log = get_logger(__name__)
 
 
 def current_milli_time():
     return int(round(time.time() * 1000))
+
+
+def get_device():
+    """ Retreive the device type. """
+
+    device = DEVICE_DESCRIPTIONS.get(sys.platform)
+    if not device:
+        device = sys.platform.replace(' ', '')
+    return device
 
 
 def is_hexastring(value):
