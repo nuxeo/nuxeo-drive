@@ -1063,7 +1063,7 @@ class Manager(QtCore.QObject):
         elif proxy_settings.config == 'System':
             proxies = self.retreive_system_proxies(server_url)
         elif proxy_settings.config == 'Automatic':
-            if server_url not in self.proxies or self.proxies[server_url] is None:
+            if self.proxies.get(server_url) is None:
                 self.proxies[server_url] = \
                     proxy_settings.get_proxies_automatic(server_url)
             proxies = self.proxies[server_url]
