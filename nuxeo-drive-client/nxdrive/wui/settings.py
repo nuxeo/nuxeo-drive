@@ -1,9 +1,9 @@
 # coding: utf-8
-import sys
 import urllib2
 import urlparse
 from collections import namedtuple
 from urllib import urlencode
+from urllib2 import quote
 
 from PyQt4 import QtCore, QtGui
 
@@ -14,8 +14,7 @@ from nxdrive.engine.engine import InvalidDriveException, \
     RootAlreadyBindWithDifferentAccount
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import FolderAlreadyUsed, ProxySettings
-from nxdrive.utils import DEVICE_DESCRIPTIONS, TOKEN_PERMISSION, \
-    guess_server_url
+from nxdrive.utils import TOKEN_PERMISSION, get_device, guess_server_url
 from nxdrive.wui.authentication import WebAuthenticationApi, \
     WebAuthenticationDialog
 from nxdrive.wui.dialog import Promise, WebDialog, WebDriveApi
@@ -77,7 +76,7 @@ class WebSettingsApi(WebDriveApi):
 
     def _bind_server(self, local_folder, url, username, password, name, **kwargs):
         # Remove any parameters from the original URL
-        parts = urlparse.urlsplit(guess_server_url(unicode(url)))
+        parts = urlparse.urlsplit(url)
         url = urlparse.urlunsplit(
             (parts.scheme, parts.netloc, parts.path, '', parts.fragment))
 
@@ -113,6 +112,10 @@ class WebSettingsApi(WebDriveApi):
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=str)
     def bind_server(self, local_folder, url, username, password, name, **kwargs):
+        url = guess_server_url(unicode(url))
+        if not url:
+            return 'CONNECTION_ERROR'
+
         try:
             return self._bind_server(local_folder, url, username, password, name, **kwargs)
         except RootAlreadyBindWithDifferentAccount as e:
@@ -143,7 +146,7 @@ class WebSettingsApi(WebDriveApi):
             return 'UNAUTHORIZED'
         except FolderAlreadyUsed:
             return 'FOLDER_USED'
-        except urllib2.HTTPError as e:
+        except urllib2.HTTPError:
             return 'CONNECTION_ERROR'
         except urllib2.URLError as e:
             if e.errno == 61:
@@ -162,7 +165,11 @@ class WebSettingsApi(WebDriveApi):
     @QtCore.pyqtSlot(str, str, str, result=str)
     def web_authentication(self, local_folder, server_url, engine_name):
         # Handle the server URL
-        parts = urlparse.urlsplit(guess_server_url(unicode(server_url)))
+        url = guess_server_url(unicode(server_url))
+        if not url:
+            return 'CONNECTION_ERROR'
+
+        parts = urlparse.urlsplit(url)
         server_url = urlparse.urlunsplit(
             (parts.scheme, parts.netloc, parts.path, parts.query, parts.fragment))
 
@@ -286,12 +293,10 @@ class WebSettingsApi(WebDriveApi):
     def _get_authentication_url(self, server_url):
         token_params = {
             'deviceId': self._manager.get_device_id(),
-            'applicationName': self._manager.app_name,
+            'applicationName': quote(self._manager.app_name),
             'permission': TOKEN_PERMISSION,
+            'deviceDescription': get_device(),
         }
-        device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
-        if device_description:
-            token_params['deviceDescription'] = device_description
         # Force login in case of anonymous user configuration
         token_params['forceAnonymousLogin'] = 'true'
 

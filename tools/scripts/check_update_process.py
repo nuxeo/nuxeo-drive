@@ -32,18 +32,20 @@ import threading
 import time
 import zipfile
 
-__version__ = '0.1.0'
+__version__ = '0.1.2'
 
 
 class Server(SimpleHTTPServer.SimpleHTTPRequestHandler):
-    """
-    Simple server handler to emulate custom responses.
-    """
+    """ Simple server handler to emulate custom responses. """
 
     def do_GET(self):
-        if self.path.endswith('-SNAPSHOT.json'):
-            # Serve files like "9.3-SNAPSHOT.json"
-            content = b'{"nuxeoDriveMinVersion": "2.0.1028"}'
+        if self.path.endswith('.json'):
+            if re.match(r'^/\d\.\d\.\d\.json$', self.path):
+                # Serve files like "2.5.5.json"
+                content = b'{"nuxeoPlatformMinVersion": "5.6"}'
+            else:
+                # Serve files like "9.2.json" or 9.3-SNAPSHOT.json"
+                content = b'{"nuxeoDriveMinVersion": "2.0.1028"}'
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Content-length', 4 * len(content))
@@ -96,7 +98,7 @@ def launch_drive(archive):
         subprocess.check_output(['chmod', '-R', '+x', 'Nuxeo Drive.app'])
         cmd = './Nuxeo Drive.app/Contents/MacOS/ndrive'
     else:
-        cmd = 'ndrive.exe'
+        cmd = 'ndrivew.exe'
 
     args = [
         cmd,
@@ -119,7 +121,7 @@ def webserver(folder, port=8000):
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        pass
+        httpd.shutdown()
 
 
 def version_decrement(version):

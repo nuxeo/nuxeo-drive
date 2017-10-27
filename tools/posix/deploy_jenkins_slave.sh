@@ -5,6 +5,7 @@
 #
 # Possible ARG:
 #     --build: build the package
+#     --pip: launch a local PyPi server and test pip upload/installation
 #     --start: start Nuxeo Drive
 #     --tests: launch the tests suite
 #
@@ -146,9 +147,9 @@ extract() {
     local file="$1"
     local folder="$2"
 
-    echo ">>> Extracting $file"
-    echo "            to $folder"
-    [ -d "$folder" ] || tar zxf "$file" -C "${STORAGE_DIR}"
+    echo ">>> Extracting ${file}"
+    echo "            to ${folder}"
+    [ -d "${folder}" ] || tar zxf "${file}" -C "${STORAGE_DIR}"
 }
 
 install_cxfreeze() {
@@ -164,8 +165,8 @@ install_cxfreeze() {
     check_import "import cx_Freeze" && return
     echo ">>> Installing cx_Freeze ${version}"
 
-    download "$url" "$output"
-    extract "$output" "$path"
+    download "${url}" "${output}"
+    extract "${output}" "${path}"
 
     cd "$path"
     python setup.py install
@@ -186,13 +187,15 @@ install_deps() {
 install_pyenv() {
     local url="https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
 
-    echo ">>> [pyenv] Setting up"
     export PYENV_ROOT="${STORAGE_DIR}/.pyenv"
     export PATH="${PYENV_ROOT}/bin:$PATH"
 
     if ! hash pyenv 2>/dev/null; then
         echo ">>> [pyenv] Downloading and installing"
         curl -L "${url}" | bash
+    else
+        echo ">>> [pyenv] Updating"
+        cd "${PYENV_ROOT}" && git pull && cd -
     fi
 
     echo ">>> [pyenv] Initializing"
@@ -219,8 +222,8 @@ install_pyqt() {
     check_import "import PyQt4.QtWebKit" && return
     echo ">>> Installing PyQt ${version}"
 
-    download "$url" "$output"
-    extract "$output" "$path"
+    download "${url}" "${output}"
+    extract "${output}" "${path}"
 
     cd "$path"
 
@@ -263,10 +266,10 @@ install_sip() {
     check_import "import sipconfig" && return
     echo ">>> Installing SIP ${version}"
 
-    download "$url" "$output"
-    extract "$output" "$path"
+    download "${url}" "${output}"
+    extract "${output}" "${path}"
 
-    cd "$path"
+    cd "${path}"
 
     echo ">>> [SIP ${version}] Configuring"
     ${PYTHON} configure.py --no-stubs
@@ -280,6 +283,67 @@ install_sip() {
     cd "${WORKSPACE_DRIVE}"
 }
 
+launch_pip_tests() {
+    local pid
+    local cwd=$(pwd)
+    local folder="$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')"
+    local port="1234"
+    local url="http://localhost:${port}"
+    local pip_args="install --isolated --extra-index-url ${url}"
+
+    purge() {
+        local pid=$1
+        local ret=$2
+
+        cd "${cwd}"
+
+        kill "${pid}" || true
+        deactivate || true
+        rm -rf "${folder}" || true
+        exit ${ret}
+    }
+
+    echo ">>> Launching pip tests in ${folder}"
+    ${PIP} virtualenv
+
+    echo ">>> [PyPi] Setting up the virtualenv"
+    cd "${folder}"
+    ${PYTHON} -m virtualenv --no-wheel pypi
+    export VIRTUAL_ENV_DISABLE_PROMPT="true"  # macOS fix
+    . pypi/bin/activate
+
+    echo ">>> [PyPi] Removing old module installation"
+    pip uninstall --yes nuxeo-drive || true
+
+    echo ">>> [PyPi] Setting up the local server"
+    mkdir pypi/packages
+    pip install pypiserver
+    pypi-server --disable-fallback -p "${port}" -P . -a . pypi/packages &
+    pid=$!
+    echo ">>> [PyPi] PID is ${pid}"
+
+    echo ">>> [PyPi] Uploading to the local server"
+    cd "${cwd}"
+    pip install $(grep esky requirements.txt)
+    python setup.py sdist upload -r "${url}" || purge ${pid} 1
+    cd "${folder}"
+
+    echo ">>> [PyPi] Installing from the local server"
+    pip ${pip_args} nuxeo-drive || purge ${pid} 1
+
+    echo ">>> [PyPi] Testing import"
+    ret=$(${PYTHON} -c "import nxdrive ; print('${folder}' in nxdrive.__path__[0])")
+    if [ "${ret}" = "False" ]; then
+        echo ">>> [PyPi] Result: ERROR"
+        echo "${folder}"
+        ${PYTHON} -c "import nxdrive ; print(nxdrive.__path__[0])"
+        purge ${pid} 1
+    fi
+
+    echo ">>> [PyPi] Result: OK"
+    purge ${pid} 0 2>/dev/null
+}
+
 launch_tests() {
     echo ">>> Launching the tests suite"
 
@@ -289,7 +353,8 @@ launch_tests() {
         --exitfirst \
         --strict \
         --failed-first \
-        -r Efx
+        -r Efx \
+        -vv
 }
 
 start_nxdrive() {
@@ -333,6 +398,13 @@ main() {
     if ! check_import "import sqlite3" >/dev/null; then
         echo ">>> Python installation failed, check compilation process."
         exit 1
+    fi
+
+    # Some arguments do not need a whole setup
+    if [ $# -eq 1 ]; then
+        case "$1" in
+            "--pip"  ) launch_pip_tests ;;
+        esac
     fi
 
     install_sip "${SIP_VERSION}"

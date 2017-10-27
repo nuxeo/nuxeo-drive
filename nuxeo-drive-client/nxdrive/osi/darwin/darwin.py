@@ -110,13 +110,8 @@ class DarwinIntegration(AbstractOSIntegration):
 
     def register_protocol_handlers(self):
         """Register the URL scheme listener using PyObjC"""
-        try:
-            from Foundation import NSBundle
-            from LaunchServices import LSSetDefaultHandlerForURLScheme
-        except ImportError:
-            log.warning("Cannot register %r scheme: missing OSX Foundation module",
-                        self.NXDRIVE_SCHEME)
-            return
+        from Foundation import NSBundle
+        from LaunchServices import LSSetDefaultHandlerForURLScheme
 
         bundle_id = NSBundle.mainBundle().bundleIdentifier()
         if bundle_id == 'org.python.python':
@@ -124,7 +119,7 @@ class DarwinIntegration(AbstractOSIntegration):
                       " was launched from the Python OSX app bundle")
             return
         LSSetDefaultHandlerForURLScheme(self.NXDRIVE_SCHEME, bundle_id)
-        log.debug("Registered bundle '%s' for URL scheme '%s'", bundle_id,
+        log.debug('Registered bundle %r for URL scheme %r', bundle_id,
                   self.NXDRIVE_SCHEME)
 
     def unregister_protocol_handlers(self):
@@ -159,68 +154,63 @@ class DarwinIntegration(AbstractOSIntegration):
         return result
 
     def register_folder_link(self, folder_path, name=None):
-        try:
-            from LaunchServices import LSSharedFileListInsertItemURL
-            from LaunchServices import kLSSharedFileListItemBeforeFirst
-            from LaunchServices import CFURLCreateWithString
-        except ImportError:
-            log.warning("PyObjC package is not installed:"
-                        " skipping favorite link creation")
+        from LaunchServices import LSSharedFileListInsertItemURL
+        from LaunchServices import kLSSharedFileListItemBeforeFirst
+        from LaunchServices import CFURLCreateWithString
+
+        favorites = self._get_favorite_list() or []
+        if not favorites:
+            log.warning('Could not fetch the Finder favorite list.')
             return
+
         folder_path = normalized_path(folder_path)
         if name is None:
             name = self._manager.app_name
+        else:
+            name = os.path.basename(name)
 
-        lst = self._get_favorite_list()
-        if lst is None:
-            log.warning("Could not fetch the Finder favorite list.")
+        if self._find_item_in_list(favorites, name):
             return
 
-        url = CFURLCreateWithString(None, 'file://'
-                                    + urllib2.quote(folder_path), None)
+        url = CFURLCreateWithString(
+            None, 'file://' + urllib2.quote(folder_path), None)
         if url is None:
-            log.warning('Could not generate valid favorite URL for: %s',
-                        folder_path)
+            log.warning(
+                'Could not generate valid favorite URL for: %r', folder_path)
             return
 
         # Register the folder as favorite if not already there
         item = LSSharedFileListInsertItemURL(
-            lst, kLSSharedFileListItemBeforeFirst, name, None, url,
-            {}, [])
+            favorites, kLSSharedFileListItemBeforeFirst, name, None, url, {}, [])
         if item is not None:
-            log.debug("Registered new favorite in Finder for: %s", folder_path)
+            log.debug('Registered new favorite in Finder for: %r', folder_path)
 
-    def unregister_folder_link(self, name):
-        try:
-            from LaunchServices import LSSharedFileListItemRemove
-        except ImportError:
-            log.warning("PyObjC package is not installed:"
-                        " skipping favorite link creation")
+    def unregister_folder_link(self, name=None):
+        from LaunchServices import LSSharedFileListItemRemove
+
+        favorites = self._get_favorite_list()
+        if favorites is None:
+            log.warning('Could not fetch the Finder favorite list.')
             return
 
         if name is None:
             name = self._manager.app_name
+        else:
+            name = os.path.basename(name)
 
-        lst = self._get_favorite_list()
-        if lst is None:
-            log.warning("Could not fetch the Finder favorite list.")
-            return
-
-        item = self._find_item_in_list(lst, name)
+        item = self._find_item_in_list(favorites, name)
         if item is None:
-            log.warning("Unable to find the favorite list item")
             return
 
-        LSSharedFileListItemRemove(lst, item)
+        LSSharedFileListItemRemove(favorites, item)
 
     @staticmethod
     def _get_favorite_list():
         from LaunchServices import LSSharedFileListCreate
         from LaunchServices import kLSSharedFileListFavoriteItems
 
-        return LSSharedFileListCreate(None,
-                                      kLSSharedFileListFavoriteItems,
-                                      None)
+        return LSSharedFileListCreate(
+            None, kLSSharedFileListFavoriteItems, None)
 
     @staticmethod
     def _find_item_in_list(lst, name):
@@ -228,6 +218,7 @@ class DarwinIntegration(AbstractOSIntegration):
         from LaunchServices import LSSharedFileListItemCopyDisplayName
 
         for item in LSSharedFileListCopySnapshot(lst, None)[0]:
-            if name == LSSharedFileListItemCopyDisplayName(item):
+            item_name = LSSharedFileListItemCopyDisplayName(item)
+            if name == item_name:
                 return item
         return None

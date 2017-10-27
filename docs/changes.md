@@ -2,11 +2,45 @@
 Release date: `2017-??-??`
 
 ### Core
-- [NXDRIVE-990](https://jira.nuxeo.com/browse/NXDRIVE-990): "Other docs" folder is deleted after disconnect and reconnect with same user
+- [NXDRIVE-998](https://jira.nuxeo.com/browse/NXDRIVE-998): Fix behavior if the PAC URL is not reachable
+- [NXDRIVE-1006](https://jira.nuxeo.com/browse/NXDRIVE-1006): Improve calls to /site/automation
+- [NXDRIVE-1012](https://jira.nuxeo.com/browse/NXDRIVE-1012): Remote watcher is missing keywords
+- [NXDRIVE-1013](https://jira.nuxeo.com/browse/NXDRIVE-1012): Fix and improve connection test for new account creation
+
+### GUI
+- [NXDRIVE-1016](https://jira.nuxeo.com/browse/NXDRIVE-1016): Unity does not use left click in the systray
+
+### Packaging / Build
+- [NXDRIVE-737](https://jira.nuxeo.com/browse/NXDRIVE-737): Use a single launcher
+- [NXDRIVE-971](https://jira.nuxeo.com/browse/NXDRIVE-971): Uninstallation fails sometimes on Windows
+
+### Tests
+- [NXDRIVE-739](https://jira.nuxeo.com/browse/NXDRIVE-739): Refactor tests that use direct call to ndrive.py
+- [NXDRIVE-984](https://jira.nuxeo.com/browse/NXDRIVE-984): Create a script to check any pip installation regressions
+
+#### Minor changes
+- Framework: Clean-up queue_manager.py
+- Framework: Fix LocalClient.get_path() to use str.partition() and prevent IndexErrors
+- GUI: Fix a SEGFAULT when closing the metadata window
+- GUI: Add envar `USE_OLD_MENU` to force the use of the old menu
+- Jenkins: The beta job now uploads the package to the PyPi server
+- \[macOS\] Fix the favorite link creation
+- \[Windows\] Packaging: Prevent infinite loop when uninstalling
+- \[Windows\] Packaging: Fix symbolic link creation
+- \[Windows\] Packaging: Create the desktop shortcut at installation
+- \[Windows\] Packaging: Removed "Launch Nuxeo Drive" checkbox from the installer
+- \[Windows\] Packaging: The configuration stored in the registry moved from `HKEY_LOCAL_MACHINE` to `HKEY_CURRENT_USER`
+
+
+# 2.5.5
+Release date: `2017-10-13`
+
+### Core
 - [NXDRIVE-950](https://jira.nuxeo.com/browse/NXDRIVE-950): Invalid credentials loop when revoking the user's token
 - [NXDRIVE-964](https://jira.nuxeo.com/browse/NXDRIVE-964): Impossible to use an old local folder from another user
+- [NXDRIVE-990](https://jira.nuxeo.com/browse/NXDRIVE-990): "Other docs" folder is deleted after disconnect and reconnect with same user
 - [NXDRIVE-994](https://jira.nuxeo.com/browse/NXDRIVE-994): Bad use of tuple for keyword xattr_names of LocalClient.update_content()
-- [NXDRIVE-998](https://jira.nuxeo.com/browse/NXDRIVE-998): Fix behavior if the PAC URL is not reachable
+- [NXDRIVE-995](https://jira.nuxeo.com/browse/NXDRIVE-995): Prevent renaming from 'folder' to 'folder ' on Windows
 
 ### GUI
 - [NXDRIVE-963](https://jira.nuxeo.com/browse/NXDRIVE-963): Crash when deleting an account
@@ -14,13 +48,26 @@ Release date: `2017-??-??`
 - [NXDRIVE-982](https://jira.nuxeo.com/browse/NXDRIVE-982): After disconnect and connect, systray menu alignment is not proper
 
 ### Packaging / Build
+- [NXDRIVE-991](https://jira.nuxeo.com/browse/NXDRIVE-991): Upgrade Python from 2.7.13 to 2.7.14
 - [NXDRIVE-992](https://jira.nuxeo.com/browse/NXDRIVE-992): Rollback release tag on Drive-package job failure
-- [NXDRIVE-992](https://jira.nuxeo.com/browse/NXDRIVE-991): Upgrade Python from 2.7.13 to 2.7.14
+
+### Tests
+- [NXDRIVE-1001](https://jira.nuxeo.com/browse/NXDRIVE-1001): Prevent failures in tearDownServer()
+
+### Doc
+- [NXDRIVE-974](https://jira.nuxeo.com/browse/NXDRIVE-974): Document Windows CLI related to Drive
+- [NXDRIVE-1003](https://jira.nuxeo.com/browse/NXDRIVE-1003): Add MSI arguments documentation
 
 #### Minor changes
 - GUI: Add more versions informations in About (Python, Qt, WebKit and SIP)
 - Jenkins: Better artifacts deployment on the server
-- Packaging: Bypass use of get-pip.py for `pip` installation
+- Jenkins: Update `pyenv` to take into account new Python versions
+- Packaging: Updated `cffi` from 1.10.0 to 1.11.2
+- Packaging: Updated `faulthandler` from 2.6 to 3.0
+- Packaging: Updated `pyobjc` from 3.2.1 to 4.0
+- Packaging: Updated `pytest` from 3.2.2 to 3.2.3
+- Tools: Fix JSON delivery in check_update_process.py
+- \[Windows\] Packaging: Bypass use of get-pip.py for `pip` installation
 
 
 # 2.5.4
@@ -57,11 +104,11 @@ Release date: `2017-09-06`
 Release date: `2017-08-31`
 
 ### Core
+- [NXDRIVE-729](https://jira.nuxeo.com/browse/NXDRIVE-729): Homogenize headers in source files
 - [NXDRIVE-731](https://jira.nuxeo.com/browse/NXDRIVE-731): Remove nuxeo-jsf-ui package dependency
 - [NXDRIVE-836](https://jira.nuxeo.com/browse/NXDRIVE-836): Bad behaviors with read-only documents on Windows
 - [NXDRIVE-956](https://jira.nuxeo.com/browse/NXDRIVE-956): Uniformize actions on local deletion of read-only documents
 - [NXDRIVE-957](https://jira.nuxeo.com/browse/NXDRIVE-957): Update process from 2.5.0 to 2.5.1 is broken
-- [NXDRIVE-729](https://jira.nuxeo.com/browse/NXDRIVE-729): Homogenize headers in source files
 
 ### GUI:
 - [NXDRIVE-934](https://jira.nuxeo.com/browse/NXDRIVE-934): Try to guess the server URL
@@ -74,10 +121,10 @@ Release date: `2017-08-31`
 #### Minor changes
 - Account: Unset read-only when overwriting local folder
 - Tools: Updated `changelog.py` from 1.2.3 to 1.2.5
-- Tests: Use `QT_PATH` and `MINGW_PATH` envars on Windows
 - Packaging: Updated `Js2Py` from 0.44 to 0.50
 - Packaging: Updated `Send2Trash` from 1.3.0 to 1.4.1
 - Packaging: Updated `pytest` from 3.1.3 to 3.2.1
+- \[Windows\] Tests: Use `QT_PATH` and `MINGW_PATH` envars
 
 
 # 2.5.1
@@ -114,8 +161,8 @@ Release date: `2017-07-27`
 - [NXDRIVE-917](https://jira.nuxeo.com/browse/NXDRIVE-917): Analyze AutoCAD behaviors
 
 ### Packaging / Build
-- [NXDRIVE-913](https://jira.nuxeo.com/browse/NXDRIVE-913): Jenkins: Drive-prod job requires the esky module
 - [NXDRIVE-716](https://jira.nuxeo.com/browse/NXDRIVE-716): Fix warning: Unknown distribution option: 'attribs'
+- [NXDRIVE-913](https://jira.nuxeo.com/browse/NXDRIVE-913): Jenkins: Drive-prod job requires the esky module
 
 ### GUI
 - [NXDRIVE-694](https://jira.nuxeo.com/browse/NXDRIVE-694): Systray menu: needs double click to activate
@@ -125,11 +172,7 @@ Release date: `2017-07-27`
 - [NXDRIVE-929](https://jira.nuxeo.com/browse/NXDRIVE-929): Cleanup JavaScript/HTML code
 
 #### Minor changes
-- Packaging: Fixed missing `-start` argument on Windows
-- Packaging: Removed `7-Zip` dependency on Windows
 - Packaging: Upgraded `SIP` from 4.19 to 4.19.3
-- Packaging: Upgraded `PyQt` from 4.12 to 4.12.1 on GNU/Linux and macOS
-- Packaging: Upgraded `PyQt` from 4.11.4 to 4.12.1 on Windows
 - Packaging: Updated `py2app` from 0.12 to 0.14
 - Packaging: Updated `pytest` from 3.0.7 to 3.1.3
 - Packaging: Updated `xattr` from 0.9.1 to 0.9.2
@@ -138,7 +181,11 @@ Release date: `2017-07-27`
 - Packaging: Updated `pypac` from 0.2.1 to 0.3.1
 - Packaging: Updated `python-dateutil` from 2.6.0 to 2.6.1
 - Packaging: Removed `setuptools` requirement
-- Jenkins: use TWANG for packages job
+- Jenkins: Use TWANG for packages job
+- \[Unix\] Packaging: Upgraded `PyQt` from 4.12 to 4.12.1
+- \[Windows\] Packaging: Fixed missing `-start` argument
+- \[Windows\] Packaging: Removed `7-Zip` dependency
+- \[Windows\] Packaging: Upgraded `PyQt` from 4.11.4 to 4.12.1
 
 
 # 2.4.8

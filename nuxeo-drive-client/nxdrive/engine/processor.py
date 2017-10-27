@@ -36,7 +36,7 @@ class Processor(EngineWorker):
         self._engine = engine
 
     def _unlock_soft_path(self, path):
-        log.trace("Soft unlocking: %s", path)
+        log.trace('Soft unlocking %r', path)
         path = path.lower()
         Processor.path_locker.acquire()
         if self._engine.uid not in Processor.soft_locks:
@@ -54,11 +54,11 @@ class Processor(EngineWorker):
             Processor.readonly_locks[self._engine.uid] = dict()
         try:
             if path in Processor.readonly_locks[self._engine.uid]:
-                log.trace("readonly unlock: increase count on %s", path)
+                log.trace('Readonly unlock: increase count on %r', path)
                 Processor.readonly_locks[self._engine.uid][path][0] = Processor.readonly_locks[self._engine.uid][path][0] + 1
             else:
                 lock = local_client.unlock_ref(path)
-                log.trace("readonly unlock: unlock on %s with %d", path, lock)
+                log.trace('Readonly unlock: unlock on %r with %d', path, lock)
                 Processor.readonly_locks[self._engine.uid][path] = [1, lock]
         finally:
             Processor.readonly_locker.release()
@@ -69,19 +69,19 @@ class Processor(EngineWorker):
             Processor.readonly_locks[self._engine.uid] = dict()
         try:
             if path not in Processor.readonly_locks[self._engine.uid]:
-                log.debug("readonly lock: can't find reference on %s", path)
+                log.debug('Readonly lock: cannot find reference on %r', path)
                 return
             Processor.readonly_locks[self._engine.uid][path][0] = Processor.readonly_locks[self._engine.uid][path][0] - 1
-            log.trace("readonly lock: update lock count on %s to %d", path, Processor.readonly_locks[self._engine.uid][path][0])
+            log.trace('Readonly lock: update lock count on %r to %d', path, Processor.readonly_locks[self._engine.uid][path][0])
             if Processor.readonly_locks[self._engine.uid][path][0] <= 0:
                 local_client.lock_ref(path, Processor.readonly_locks[self._engine.uid][path][1])
-                log.trace("readonly lock: relocked path: %s with %d", path, Processor.readonly_locks[self._engine.uid][path][1])
+                log.trace('Readonly lock: relocked %r with %d', path, Processor.readonly_locks[self._engine.uid][path][1])
                 del Processor.readonly_locks[self._engine.uid][path]
         finally:
             Processor.readonly_locker.release()
 
     def _lock_soft_path(self, path):
-        log.trace("Soft locking: %s", path)
+        log.trace('Soft locking %r', path)
         path = path.lower()
         Processor.path_locker.acquire()
         if self._engine.uid not in Processor.soft_locks:
@@ -106,12 +106,12 @@ class Processor(EngineWorker):
                 lock = Lock()
         finally:
             Processor.path_locker.release()
-        log.trace("Locking '%s'", path)
+        log.trace('Locking %r', path)
         lock.acquire()
         Processor.path_locks[self._engine.uid][path] = lock
 
     def _unlock_path(self, path):
-        log.trace("Unlocking '%s'", path)
+        log.trace('Unlocking %r', path)
         Processor.path_locker.acquire()
         if self._engine.uid not in Processor.path_locks:
             Processor.path_locks[self._engine.uid] = dict()
@@ -393,7 +393,7 @@ class Processor(EngineWorker):
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
                     self._postpone_pair(doc_pair, 'Unaccessible hash')
                     return
-                log.debug("Updating remote document '%s'.",
+                log.debug('Updating remote document %r',
                           doc_pair.local_name)
                 fs_item_info = remote_client.stream_update(
                     doc_pair.remote_ref,
@@ -455,11 +455,11 @@ class Processor(EngineWorker):
             if ignore:
                 # Might be a tierce software temporary file
                 if not delay:
-                    log.debug('Ignoring generated tmp file: %s', name)
+                    log.debug('Ignoring generated tmp file: %r', name)
                     return
                 if doc_pair.error_count == 0:
                     # Save the error_count to not ignore next time
-                    log.debug('Delaying generated tmp file like: %s', name)
+                    log.debug('Delaying generated tmp file like: %r', name)
                     self.increase_error(doc_pair, 'Can be a temporary file')
                     return
 
@@ -486,7 +486,7 @@ class Processor(EngineWorker):
                 self._handle_unsynchronized(local_client, doc_pair)
                 return
             raise ValueError(
-                "Parent folder of %s, %s is not bound to a remote folder"
+                'Parent folder of %r, %r is not bound to a remote folder'
                 % (doc_pair.local_path, doc_pair.local_parent_path))
 
         if remote_ref is not None and '#' in remote_ref:
@@ -567,7 +567,7 @@ class Processor(EngineWorker):
             remote_parent_path = (parent_pair.remote_parent_path + '/'
                                   + parent_pair.remote_ref)
             if doc_pair.folderish:
-                log.debug("Creating remote folder '%s' in folder '%s'",
+                log.debug('Creating remote folder %r in folder %r',
                           name, parent_pair.remote_name)
                 fs_item_info = remote_client.make_folder(parent_ref, name,
                                                          overwrite=overwrite)
@@ -575,7 +575,7 @@ class Processor(EngineWorker):
             else:
                 # TODO Check if the file is already on the server with the
                 # TODO good digest
-                log.debug("Creating remote document '%s' in folder '%s'",
+                log.debug('Creating remote document %r in folder %r',
                           name, parent_pair.remote_name)
                 info = local_client.get_info(doc_pair.local_path)
                 if info.size != doc_pair.size:
@@ -653,17 +653,17 @@ class Processor(EngineWorker):
             return
 
         if doc_pair.remote_can_delete:
-            log.debug("Deleting or unregistering remote document '%s' (%s)", doc_pair.remote_name,
+            log.debug('Deleting or unregistering remote document %r (%s)', doc_pair.remote_name,
                       doc_pair.remote_ref)
             if doc_pair.remote_state != 'deleted':
                 remote_client.delete(doc_pair.remote_ref, parent_fs_item_id=doc_pair.remote_parent_ref)
             self._dao.remove_state(doc_pair)
         else:
-            log.debug("%s can not be remotely deleted:  either it is readonly or it is a virtual folder that "
-                      "doesn't exist in the server hierarchy", doc_pair.local_path)
+            log.debug('%r can not be remotely deleted: either it is readonly or it is a virtual folder that '
+                      'does not exist in the server hierarchy', doc_pair.local_path)
             if doc_pair.remote_state != 'deleted':
-                log.debug("Marking %s as filter since remote document '%s' (%s) can not be deleted:", doc_pair,
-                          doc_pair.remote_name, doc_pair.remote_ref)
+                log.debug('Marking %r as filter since remote document %r (%s) can not be deleted',
+                          doc_pair, doc_pair.remote_name, doc_pair.remote_ref)
                 self._dao.remove_state(doc_pair)
                 self._dao.add_filter(doc_pair.remote_parent_path + '/' + doc_pair.remote_ref)
                 self._engine.deleteReadonly.emit(doc_pair.local_name)
@@ -780,10 +780,10 @@ class Processor(EngineWorker):
         os_path = local_client.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os.path.join(os.path.dirname(os_path), safe_filename(doc_pair.remote_name))
-            log.debug("Replacing local file '%s' by '%s'.", os_path, new_os_path)
+            log.debug('Replacing local file %r by %r', os_path, new_os_path)
         else:
             new_os_path = os_path
-        log.debug("Updating content of local file '%s'.", os_path)
+        log.debug('Updating content of local file %r', os_path)
         self.tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
         # Delete original file and rename tmp file
         remote_id = local_client.get_remote_id(doc_pair.local_path)
@@ -799,7 +799,7 @@ class Processor(EngineWorker):
         if name is None:
             name = doc_pair.local_name
         # Auto resolve duplicate
-        log.debug('Search for dupe pair with %s %s', name, doc_pair.remote_parent_ref)
+        log.debug('Search for dupe pair with %r %s', name, doc_pair.remote_parent_ref)
         dupe_pair = self._dao.get_dedupe_pair(name, doc_pair.remote_parent_ref, doc_pair.id)
         if dupe_pair is not None:
             log.debug('Dupe pair found %r', dupe_pair)
@@ -849,8 +849,8 @@ class Processor(EngineWorker):
                             self._dao.synchronize_state(doc_pair)
 
                         log.debug('DOC_PAIR(%r):'
-                                  ' old_path[exists=%r, id=%r]: %s,'
-                                  ' new_path[exists=%r, id=%r]: %s',
+                                  ' old_path[exists=%r, id=%r]: %r,'
+                                  ' new_path[exists=%r, id=%r]: %r',
                                   doc_pair, local_client.exists(old_path),
                                   local_client.get_remote_id(old_path),
                                   old_path, local_client.exists(new_path),
@@ -875,10 +875,11 @@ class Processor(EngineWorker):
                         self._dao.update_remote_parent_path(doc_pair,
                                                             new_parent_path)
                     else:
-                        log.debug('Renaming local %s %r to %r',
-                                  file_or_folder,
-                                  local_client.abspath(doc_pair.local_path),
-                                  doc_pair.remote_name)
+                        log.debug(
+                            'Renaming local %s %r to %r',
+                            file_or_folder,
+                            local_client.abspath(doc_pair.local_path),
+                            doc_pair.remote_name)
                         updated_info = local_client.rename(
                             doc_pair.local_path, doc_pair.remote_name)
 
@@ -983,13 +984,13 @@ class Processor(EngineWorker):
         tmp_file = None
         try:
             if doc_pair.folderish:
-                log.debug("Creating local folder '%s' in '%s'", name,
+                log.debug('Creating local folder %r in %r', name,
                           local_client.abspath(parent_pair.local_path))
                 path = local_client.make_folder(local_parent_path, name)
             else:
                 path, os_path, name = local_client.get_new_file(local_parent_path,
                                                                 name)
-                log.debug("Creating local file '%s' in '%s'", name,
+                log.debug('Creating local file %r in %r', name,
                           local_client.abspath(parent_pair.local_path))
                 tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
                 tmp_file_path = local_client.get_path(tmp_file)
@@ -1008,7 +1009,7 @@ class Processor(EngineWorker):
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
         try:
             if doc_pair.local_state != 'deleted':
-                log.debug("Deleting locally %s", local_client.abspath(doc_pair.local_path))
+                log.debug('Deleting locally %r', local_client.abspath(doc_pair.local_path))
                 if doc_pair.folderish:
                     self._engine.set_local_folder_lock(doc_pair.local_path)
                 else:
@@ -1050,9 +1051,9 @@ class Processor(EngineWorker):
                   doc_pair)
         self._dao.remove_state(doc_pair)
         if doc_pair.local_path is not None:
-            log.debug("Since the local path is not None: %s, the synchronizer"
-                      " will probably consider this as a local creation at"
-                      " next iteration and create the file or folder remotely",
+            log.debug('Since the local path is not None: %r, the synchronizer'
+                      ' will probably consider this as a local creation at'
+                      ' next iteration and create the file or folder remotely',
                       doc_pair.local_path)
         else:
             log.debug("Since the local path is None the synchronizer will"
@@ -1086,7 +1087,7 @@ class Processor(EngineWorker):
 
     def _handle_failed_remote_rename(self, source_pair, target_pair):
         # An error occurs return false
-        log.error("Renaming from %s to %s canceled",
+        log.error('Renaming %r to %r canceled',
                   target_pair.remote_name, target_pair.local_name)
         if self._engine.local_rollback(force=AbstractOSIntegration.is_windows()):
             try:

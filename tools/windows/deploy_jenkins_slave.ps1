@@ -329,7 +329,8 @@ function launch_tests {
 		--exitfirst `
 		--strict `
 		--failed-first `
-		-r Efx
+		-r Efx `
+		-vv
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}

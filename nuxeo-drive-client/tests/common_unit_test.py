@@ -28,7 +28,7 @@ from nxdrive.wui.translator import Translator
 from tests.common import RemoteDocumentClientForTests, TEST_DEFAULT_DELAY, \
     TEST_WORKSPACE_PATH, clean_dir
 
-YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '')
+YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '') != ''
 if YAPPI_PATH:
     import yappi
 
@@ -283,7 +283,7 @@ class UnitTestCase(SimpleUnitTestCase):
     def tearDownServer(self, server_profile=None):
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
-        self.root_remote_client.execute("NuxeoDrive.TearDownIntegrationTests")
+        self.root_remote_client.execute('NuxeoDrive.TearDownIntegrationTests')
 
         # Deactivate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
@@ -298,7 +298,7 @@ class UnitTestCase(SimpleUnitTestCase):
             return MacLocalClient(path)
         return LocalClient(path)
 
-    def setUpApp(self, server_profile=None):
+    def setUpApp(self, server_profile=None, register_roots=True):
         # Save the current path for test files
         self.location = dirname(__file__)
 
@@ -378,36 +378,39 @@ class UnitTestCase(SimpleUnitTestCase):
         self.bind_engine(2, start_engine=False)
         self.queue_manager_2 = self.engine_2.get_queue_manager()
 
-        self.sync_root_folder_1 = os.path.join(self.local_nxdrive_folder_1, self.workspace_title_1)
-        self.sync_root_folder_2 = os.path.join(self.local_nxdrive_folder_2, self.workspace_title_2)
+        self.sync_root_folder_1 = os.path.join(
+            self.local_nxdrive_folder_1, self.workspace_title_1)
+        self.sync_root_folder_2 = os.path.join(
+            self.local_nxdrive_folder_2, self.workspace_title_2)
 
         self.local_root_client_1 = self.engine_1.get_local_client()
         self.local_root_client_2 = self.engine_2.get_local_client()
 
-        self.local_client_1 = self.get_local_client(os.path.join(self.local_nxdrive_folder_1, self.workspace_title))
-        self.local_client_2 = self.get_local_client(os.path.join(self.local_nxdrive_folder_2, self.workspace_title))
+        self.local_client_1 = self.get_local_client(self.sync_root_folder_1)
+        self.local_client_2 = self.get_local_client(self.sync_root_folder_2)
 
         # Document client to be used to create remote test documents
         # and folders
-        remote_document_client_1 = RemoteDocumentClientForTests(
+        self.remote_document_client_1 = RemoteDocumentClientForTests(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.version,
             password=self.password_1, base_folder=self.workspace_1,
             upload_tmp_dir=self.upload_tmp_dir)
 
-        remote_document_client_2 = RemoteDocumentClientForTests(
+        self.remote_document_client_2 = RemoteDocumentClientForTests(
             self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
             self.version,
             password=self.password_2, base_folder=self.workspace_2,
             upload_tmp_dir=self.upload_tmp_dir)
+
         # File system client to be used to create remote test documents
         # and folders
-        remote_file_system_client_1 = RemoteFileSystemClient(
+        self.remote_file_system_client_1 = RemoteFileSystemClient(
             self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
             self.version,
             password=self.password_1, upload_tmp_dir=self.upload_tmp_dir)
 
-        remote_file_system_client_2 = RemoteFileSystemClient(
+        self.remote_file_system_client_2 = RemoteFileSystemClient(
             self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
             self.version,
             password=self.password_2, upload_tmp_dir=self.upload_tmp_dir)
@@ -418,14 +421,10 @@ class UnitTestCase(SimpleUnitTestCase):
             password=self.password
         )
 
-        # Register root
-        remote_document_client_1.register_as_root(self.workspace_1)
-        remote_document_client_2.register_as_root(self.workspace_2)
-
-        self.remote_document_client_1 = remote_document_client_1
-        self.remote_document_client_2 = remote_document_client_2
-        self.remote_file_system_client_1 = remote_file_system_client_1
-        self.remote_file_system_client_2 = remote_file_system_client_2
+        # Register sync roots
+        if register_roots:
+            self.remote_document_client_1.register_as_root(self.workspace_1)
+            self.remote_document_client_2.register_as_root(self.workspace_2)
 
     def bind_engine(self, number, start_engine=True):
         number_str = str(number)
@@ -651,6 +650,11 @@ class UnitTestCase(SimpleUnitTestCase):
                 and not self.result.wasSuccessful()):
                 self.generate_report()
         log.debug('TearDown unit test')
+
+        # Unregister sync roots
+        self.root_remote_client.unregister_as_root(self.workspace_2)
+        self.root_remote_client.unregister_as_root(self.workspace_1)
+
         # Unbind all
         self.manager_1.unbind_all()
         self.manager_1.dispose_db()

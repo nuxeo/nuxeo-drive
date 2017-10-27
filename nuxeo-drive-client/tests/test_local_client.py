@@ -8,8 +8,8 @@ See NXDRIVE-742.
 
 import hashlib
 import os
+import unittest
 from time import sleep
-from unittest import skipIf
 
 import pytest
 
@@ -43,7 +43,7 @@ class StubLocalClient(object):
         self.assertEqual(doc_1_info.name, 'Document 1.txt')
         self.assertEqual(doc_1_info.path, doc_1)
         self.assertEqual(doc_1_info.get_digest(), EMPTY_DIGEST)
-        self.assertEqual(doc_1_info.folderish, False)
+        self.assertFalse(doc_1_info.folderish)
 
         doc_2 = self.local_client_1.make_file('/', 'Document 2.txt',
                                               content=SOME_TEXT_CONTENT)
@@ -54,7 +54,7 @@ class StubLocalClient(object):
         self.assertEqual(doc_2_info.name, 'Document 2.txt')
         self.assertEqual(doc_2_info.path, doc_2)
         self.assertEqual(doc_2_info.get_digest(), SOME_TEXT_DIGEST)
-        self.assertEqual(doc_2_info.folderish, False)
+        self.assertFalse(doc_2_info.folderish)
 
         self.local_client_1.delete(doc_2)
         self.assertTrue(self.local_client_1.exists(doc_1))
@@ -66,7 +66,7 @@ class StubLocalClient(object):
         self.assertEqual(folder_1_info.name, 'A new folder')
         self.assertEqual(folder_1_info.path, folder_1)
         self.assertEqual(folder_1_info.get_digest(), None)
-        self.assertEqual(folder_1_info.folderish, True)
+        self.assertTrue(folder_1_info.folderish)
 
         doc_3 = self.local_client_1.make_file(folder_1, 'Document 3.txt',
                                               content=SOME_TEXT_CONTENT)
@@ -82,7 +82,7 @@ class StubLocalClient(object):
         self.assertEqual(doc_1_info.name, 'Document 1.txt')
         self.assertEqual(doc_1_info.path, doc_1)
         self.assertEqual(doc_1_info.get_digest(), EMPTY_DIGEST)
-        self.assertEqual(doc_1_info.folderish, False)
+        self.assertFalse(doc_1_info.folderish)
 
     def test_complex_filenames(self):
         # create another folder with the same title
@@ -142,8 +142,7 @@ class StubLocalClient(object):
                 local.make_file('/', 'ABC.txt')
         self.assertEqual(len(local.get_children_info('/')), sensitive + 1)
 
-    @skipIf(not AbstractOSIntegration.is_windows(),
-            'Not relevant on GNU/Linux nor macOS')
+    @unittest.skipUnless(AbstractOSIntegration.is_windows(), 'Windows only.')
     def test_windows_short_names(self):
         """
         Test 8.3 file name convention:
@@ -175,8 +174,8 @@ class StubLocalClient(object):
     def test_get_children_info(self):
         folder_1 = self.local_client_1.make_folder('/', 'Folder 1')
         folder_2 = self.local_client_1.make_folder('/', 'Folder 2')
-        file_1 = self.local_client_1.make_file('/', 'File 1.txt',
-                                               content=b'foo\n')
+        file_1 = self.local_client_1.make_file(
+            '/', 'File 1.txt', content=b'foo\n')
 
         # not a direct child of '/'
         self.local_client_1.make_file(folder_1, 'File 2.txt', content=b'bar\n')
@@ -194,8 +193,8 @@ class StubLocalClient(object):
             self.local_client_1.make_file('/', 'File 2.txt.LOCK', content=data)
         else:
             with self.assertRaises(DuplicationDisabledError):
-                self.local_client_1.make_file('/', 'File 2.txt.LOCK',
-                                              content=data)
+                self.local_client_1.make_file(
+                    '/', 'File 2.txt.LOCK', content=data)
 
         workspace_children = self.local_client_1.get_children_info('/')
         self.assertEqual(len(workspace_children), 3)
@@ -258,17 +257,19 @@ class StubLocalClient(object):
         mtime = int(os.path.getmtime(path))
         sleep(1)
         self.local_client_1.set_remote_id(ref, 'TEST')
-        self.assertTrue(mtime == int(os.path.getmtime(path)))
+        self.assertEqual(mtime, int(os.path.getmtime(path)))
         sleep(1)
         self.local_client_1.remove_remote_id(ref)
-        self.assertTrue(mtime == int(os.path.getmtime(path)))
+        self.assertEqual(mtime, int(os.path.getmtime(path)))
 
     def test_get_path(self):
-        abs_path = os.path.join(self.local_nxdrive_folder_1,
-                                self.workspace_title,
-                                'Test doc.txt')
-        self.assertEqual(self.local_client_1.get_path(abs_path),
-                         '/Test doc.txt')
+        doc = 'doc.txt'
+        abs_path = os.path.join(
+            self.local_nxdrive_folder_1, self.workspace_title, doc)
+        self.assertEqual(self.local_client_1.get_path(abs_path), '/' + doc)
+
+        # Encoding test
+        self.assertEqual(self.local_client_1.get_path('été.txt'), '/')
 
     def test_is_equal_digests(self):
         content = b'joe'
@@ -276,32 +277,28 @@ class StubLocalClient(object):
                                                    content=content)
         local_digest = hashlib.md5(content).hexdigest()
         # Equal digests
-        self.assertTrue(self.local_client_1.is_equal_digests(local_digest,
-                                                             local_digest,
-                                                             local_path))
+        self.assertTrue(self.local_client_1.is_equal_digests(
+            local_digest, local_digest, local_path))
 
         # Different digests with same digest algorithm
         other_content = b'jack'
         remote_digest = hashlib.md5(other_content).hexdigest()
         self.assertNotEqual(local_digest, remote_digest)
-        self.assertFalse(self.local_client_1.is_equal_digests(local_digest,
-                                                              remote_digest,
-                                                              local_path))
+        self.assertFalse(self.local_client_1.is_equal_digests(
+            local_digest, remote_digest, local_path))
 
         # Different digests with different digest algorithms but same content
         remote_digest = hashlib.sha1(content).hexdigest()
         self.assertNotEqual(local_digest, remote_digest)
-        self.assertTrue(self.local_client_1.is_equal_digests(local_digest,
-                                                             remote_digest,
-                                                             local_path))
+        self.assertTrue(self.local_client_1.is_equal_digests(
+            local_digest, remote_digest, local_path))
 
         # Different digests with different digest algorithms and different
         # content
         remote_digest = hashlib.sha1(other_content).hexdigest()
         self.assertNotEqual(local_digest, remote_digest)
-        self.assertFalse(self.local_client_1.is_equal_digests(local_digest,
-                                                              remote_digest,
-                                                              local_path))
+        self.assertFalse(self.local_client_1.is_equal_digests(
+            local_digest, remote_digest, local_path))
 
 
 class TestLocalClientNative(StubLocalClient, UnitTestCase):
@@ -319,8 +316,8 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
         return LocalClient(path)
 
 
-@skipIf(AbstractOSIntegration.is_linux(),
-        'GNU/Linux uses native LocalClient.')
+@unittest.skipIf(AbstractOSIntegration.is_linux(),
+                 'GNU/Linux uses native LocalClient.')
 class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
     """
     Test LocalClient using OS specific commands to make FS operations.

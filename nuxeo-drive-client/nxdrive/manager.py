@@ -14,6 +14,7 @@ from urlparse import urlparse
 import pypac
 from PyQt4 import QtCore
 from PyQt4.QtScript import QScriptEngine
+from PyQt4.QtWebKit import qWebKitVersion
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient
@@ -283,6 +284,7 @@ class Manager(QtCore.QObject):
     app_name = 'Nuxeo Drive'
 
     __notification_service = None
+    __exe_path = None
 
     @staticmethod
     def get():
@@ -293,25 +295,12 @@ class Manager(QtCore.QObject):
             raise Exception("Only one instance of Manager can be create")
         Manager._singleton = self
         super(Manager, self).__init__()
+        self.osi = AbstractOSIntegration.get(self)
 
-        # Let's bypass HTTPS verification unless --consider-ssl-errors is passed
-        # since many servers unfortunately have invalid certificates.
-        # See https://www.python.org/dev/peps/pep-0476/
-        # and https://jira.nuxeo.com/browse/NXDRIVE-506
         if not options.consider_ssl_errors:
             log.warning('--consider-ssl-errors option is False, '
                         'will not verify HTTPS certificates')
-            import ssl
-            try:
-                _create_unverified_https_context = ssl._create_unverified_context
-            except AttributeError:
-                log.info("Legacy Python that doesn't verify HTTPS certificates by default")
-            else:
-                log.info("Handle target environment that doesn't support HTTPS verification:"
-                         " globally disable verification by monkeypatching the ssl module though highly discouraged")
-                ssl._create_default_https_context = _create_unverified_https_context
-        else:
-            log.info("--consider-ssl-errors option is True, will verify HTTPS certificates")
+            self._bypass_https_verification()
 
         self._autolock_service = None
         self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
@@ -323,8 +312,8 @@ class Manager(QtCore.QObject):
         self.debug = options.debug
         self._engine_definitions = None
 
-        from nxdrive.engine.next.engine_next import EngineNext
         from nxdrive.engine.engine import Engine
+        from nxdrive.engine.next.engine_next import EngineNext
         self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
         self._engines = None
         self.proxies = dict()
@@ -353,7 +342,6 @@ class Manager(QtCore.QObject):
         self._dao.update_config("update_url", options.update_site_url)
         self._dao.update_config("beta_update_url", options.beta_update_site_url)
         self.refresh_proxies()
-        self.osi = AbstractOSIntegration.get(self)
 
         try:
             self.ignored_prefixes = options.ignored_prefixes
@@ -412,6 +400,25 @@ class Manager(QtCore.QObject):
         if self.get_tracking():
             self._create_tracker()
 
+    @staticmethod
+    def _bypass_https_verification():
+        """
+        Let's bypass HTTPS verification since many servers
+        unfortunately have invalid certificates.
+        See https://www.python.org/dev/peps/pep-0476/ and NXDRIVE-506.
+        """
+
+        import ssl
+        try:
+            _context = ssl._create_unverified_context
+        except AttributeError:
+            log.info('Legacy Python that does not verify HTTPS certificates')
+        else:
+            log.info('Handle target environment that does not support HTTPS '
+                     'verification: globally disable verification by '
+                     'monkeypatching the ssl module though highly discouraged')
+            ssl._create_default_https_context = _context
+
     def _get_file_log_handler(self):
         # Might store it in global static
         return FILE_HANDLER
@@ -427,6 +434,7 @@ class Manager(QtCore.QObject):
             'tracking': self.get_tracking(),
             'sip_version': sip.SIP_VERSION_STR,
             'qt_version': QtCore.QT_VERSION_STR,
+            'webkit_version': str(qWebKitVersion()),
             'pyqt_version': QtCore.PYQT_VERSION_STR,
             'python_version': platform.python_version(),
             'platform': platform.system(),
@@ -867,35 +875,42 @@ class Manager(QtCore.QObject):
         return report.get_path()
 
     def find_exe_path(self):
-        """Introspect the Python runtime to find the frozen Windows exe"""
-        import nxdrive
-        nxdrive_path = os.path.realpath(os.path.dirname(nxdrive.__file__))
-        log.trace("nxdrive_path: %s", nxdrive_path)
+        """ Introspect the Python runtime to find the frozen Windows exe. """
 
-        # Detect frozen win32 executable under Windows
-        executable = sys.executable
-        if "appdata" in executable:
-            executable = os.path.join(os.path.dirname(executable),
-                                      "..", "..", os.path.basename(
-                                      sys.executable))
-            exe_path = os.path.abspath(executable)
-            if os.path.exists(exe_path):
-                log.trace("Returning exe path: %s", exe_path)
-                return exe_path
+        if not self.__exe_path:
+            import nxdrive
+            path = os.path.realpath(os.path.dirname(nxdrive.__file__))
+            log.trace('Found nxdrive path=%r', path)
 
-        # Detect OSX frozen app
-        if nxdrive_path.endswith(OSX_SUFFIX):
-            log.trace("Detected OS X frozen app")
-            exe_path = nxdrive_path.replace(OSX_SUFFIX, "Contents/MacOS/"
-                                            + self._get_binary_name())
-            if os.path.exists(exe_path):
-                log.trace("Returning exe path: %s", exe_path)
-                return exe_path
+            # Detect frozen win32 executable under Windows
+            executable = sys.executable
+            if 'appdata' in executable:
+                executable = os.path.join(os.path.dirname(executable),
+                                          '..', '..', os.path.basename(
+                                          sys.executable))
+                exe_path = os.path.abspath(executable)
+                if os.path.exists(exe_path):
+                    log.trace('Returning exe path=%r', exe_path)
+                    self.__exe_path = exe_path
+                    return self.__exe_path
 
-        # Fall-back to the regular method that should work both the ndrive script
-        exe_path = sys.argv[0]
-        log.trace("Returning default exe path: %s", exe_path)
-        return exe_path
+            # Detect OSX frozen app
+            if path.endswith(OSX_SUFFIX):
+                log.trace('Detected OS X frozen app')
+                exe_path = path.replace(
+                    OSX_SUFFIX, 'Contents/MacOS/' + self._get_binary_name())
+                if os.path.exists(exe_path):
+                    log.trace('Returning exe path=%r', exe_path)
+                    self.__exe_path = exe_path
+                    return self.__exe_path
+
+            # Fall-back to the regular method that should work both the
+            # ndrive script
+            exe_path = sys.argv[0]
+            log.trace('Returning default exe path=%r', exe_path)
+            self.__exe_path = exe_path
+
+        return self.__exe_path
 
     def set_auto_start(self, value):
         self._dao.update_config("auto_start", value)
@@ -1234,9 +1249,6 @@ class Manager(QtCore.QObject):
 
     def is_started(self):
         return self._started
-
-    def is_updated(self):
-        return self.updated
 
     def is_syncing(self):
         syncing_engines = []

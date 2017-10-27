@@ -381,6 +381,8 @@ class Engine(QObject):
             if exc.errno != 2:  # File not found, already removed
                 log.exception('Database removal error')
 
+        self._manager.osi.unregister_folder_link(self.local_folder)
+
     def check_fs_marker(self):
         tag = 'drive-fs-test'
         tag_value = 'NXDRIVE_VERIFICATION'
@@ -834,14 +836,12 @@ class Engine(QObject):
             self._make_local_folder(self.local_folder)
             self._add_top_level_state()
             self._set_root_icon()
+            self._manager.osi.register_folder_link(self.local_folder)
             BaseClient.set_path_readonly(self.local_folder)
 
-    @staticmethod
-    def _make_local_folder(local_folder):
+    def _make_local_folder(self, local_folder):
         if not os.path.exists(local_folder):
             os.makedirs(local_folder)
-            # OSI package
-            # TODO self.register_folder_link(local_folder)
         # Put the ROOT in readonly
 
     def cancel_action_on(self, pair_id):
@@ -921,10 +921,11 @@ class Engine(QObject):
         # Verify thread status
         thread_id = current_thread().ident
         for thread in self._threads:
-            if hasattr(thread, "worker") and isinstance(thread.worker, Processor):
-                if (thread.worker.get_thread_id() == thread_id and
-                        not thread.worker.is_started()):
-                    raise ThreadInterrupt
+            if (hasattr(thread, 'worker')
+                    and isinstance(thread.worker, Processor)
+                    and thread.worker.get_thread_id() == thread_id
+                    and not thread.worker.is_started()):
+                raise ThreadInterrupt
         # Get action
         current_file = None
         action = Action.get_current_action()

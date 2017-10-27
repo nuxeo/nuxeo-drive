@@ -1,9 +1,7 @@
 # coding: utf-8
 import hashlib
-import os
 import sys
 import unittest
-import urlparse
 
 from nxdrive.manager import ProxySettings
 from nxdrive.utils import guess_digest_algorithm, guess_mime_type, \
@@ -195,24 +193,10 @@ class TestUtils(unittest.TestCase):
         except:
             pass
 
-    @unittest.skipIf(sys.platform == 'win32', 'Random failure on Windows')
     def test_guess_server_url(self):
-        good_url = os.environ.get(
-            'NXDRIVE_TEST_NUXEO_URL',
-            'http://localhost:8080/nuxeo')
-        self.assertEqual(guess_server_url(good_url), good_url)
-
-        # IP or domain
-        if '#' in good_url:
-            # Remove the engine type for the rest of the test
-            good_url = good_url.split('#')[0]
-        domain = urlparse.urlsplit(good_url).netloc
+        domain = 'localhost'
+        good_url = 'http://localhost:8080/nuxeo'
         self.assertEqual(guess_server_url(domain), good_url)
-
-        # IP or domain + default port => remove the port
-        if ':' in domain:
-            domain = domain.split(':')[0]
-            self.assertEqual(guess_server_url(domain), good_url)
 
         # HTTPS domain
         domain = 'intranet.nuxeo.com'
@@ -225,11 +209,16 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(guess_server_url(domain), good_url)
 
         # Incomplete URL
-        domain = 'https://nightly.nuxeo.com'
-        good_url = 'https://nightly.nuxeo.com/nuxeo'
+        domain = 'https://intranet.nuxeo.com'
+        good_url = 'https://intranet.nuxeo.com/nuxeo'
         self.assertEqual(guess_server_url(domain), good_url)
 
         # Bad IP
         domain = '1.2.3.4'
-        good_url = '1.2.3.4'
+        good_url = None
+        self.assertEqual(guess_server_url(domain), good_url)
+
+        # Bad protocal
+        domain = 'htto://intranet.nuxeo.com/nuxeo'
+        good_url = None
         self.assertEqual(guess_server_url(domain), good_url)

@@ -6,26 +6,28 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urlparse
 from distutils.version import StrictVersion
 from urllib2 import HTTPError, URLError, urlopen
 
 import psutil
+import rfc3987
 from Crypto import Random
 from Crypto.Cipher import AES
 
 from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, DRIVE_STARTUP_PAGE
 from nxdrive.logging_config import get_logger
 
-NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
-log = get_logger(__name__)
+if sys.platform == 'win32':
+    import win32api
 
-WIN32_SUFFIX = os.path.join('library.zip', 'nxdrive')
-OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
-
-ENCODING = locale.getpreferredencoding()
-DEFAULT_ENCODING = 'utf-8'
-
+DEVICE_DESCRIPTIONS = {
+    'cygwin': 'Windows',
+    'darwin': 'macOS',
+    'linux2': 'GNU/Linux',
+    'win32': 'Windows',
+}
 WIN32_PATCHED_MIME_TYPES = {
     'image/pjpeg': 'image/jpeg',
     'image/x-png': 'image/png',
@@ -38,19 +40,25 @@ WIN32_PATCHED_MIME_TYPES = {
     'application/x-mspowerpoint.12':
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 }
-
-DEVICE_DESCRIPTIONS = {
-    'linux2': 'GNU/Linux Desktop',
-    'darwin': 'Mac OSX Desktop',
-    'cygwin': 'Windows Desktop',
-    'win32': 'Windows Desktop',
-}
-
 TOKEN_PERMISSION = 'ReadWrite'
+NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
+OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
+ENCODING = locale.getpreferredencoding()
+
+log = get_logger(__name__)
 
 
 def current_milli_time():
     return int(round(time.time() * 1000))
+
+
+def get_device():
+    """ Retreive the device type. """
+
+    device = DEVICE_DESCRIPTIONS.get(sys.platform)
+    if not device:
+        device = sys.platform.replace(' ', '')
+    return device
 
 
 def is_hexastring(value):
@@ -86,7 +94,7 @@ def is_generated_tmp_file(name):
             return ignore, delay
 
         # AutoCAD
-        if re.match(r'^atmp\d+$', name) is not None:
+        if re.match(r'^atmp\d+$', name.lower()) is not None:
             # Ban definitively that pattern as we have no other
             # solution for now.
             return ignore, do_not_delay
@@ -227,6 +235,66 @@ def normalized_path(path):
 
     return os.path.realpath(
         os.path.normpath(os.path.abspath(os.path.expanduser(path))))
+
+
+def normalize_event_filename(filename, action=True):
+    """
+    Normalize a file name.
+
+    :param unicode filename: The file name to normalize.
+    :param bool action: Apply changes on the file system.
+    :return unicode: The normalized file name.
+    """
+
+    # NXDRIVE-688: Ensure the name is stripped for a file
+    stripped = filename.strip()
+    if sys.platform == 'win32':
+        # Windows does not allow files/folders ending with space(s)
+        filename = stripped
+    elif (action
+          and filename != stripped
+          and os.path.exists(filename)
+          and not os.path.isdir(filename)):
+        # We can have folders ending with spaces
+        log.debug('Forcing space normalization: %r -> %r', filename, stripped)
+        os.rename(filename, stripped)
+        filename = stripped
+
+    # NXDRIVE-188: Normalize name on the file system, if needed
+    try:
+        normalized = unicodedata.normalize('NFC', unicode(filename, 'utf-8'))
+    except TypeError:
+        normalized = unicodedata.normalize('NFC', unicode(filename))
+
+    if sys.platform == 'darwin':
+        return normalized
+    elif sys.platform == 'win32' and os.path.exists(filename):
+        """
+        If `filename` exists, and as Windows is case insensitive,
+        the result of Get(Full|Long|Short)PathName() could be unexpected
+        because it will return the path of the existant `filename`.
+
+        Check this simplified code session (the file "ABC.txt" exists):
+
+            >>> win32api.GetLongPathName('abc.txt')
+            'ABC.txt'
+            >>> win32api.GetLongPathName('ABC.TXT')
+            'ABC.txt'
+            >>> win32api.GetLongPathName('ABC.txt')
+            'ABC.txt'
+
+        So, to counter that behavior, we save the actual file name
+        and restore it in the full path.
+        """
+        long_path = win32api.GetLongPathNameW(filename)
+        filename = os.path.join(os.path.dirname(long_path),
+                                os.path.basename(filename))
+
+    if action and filename != normalized and os.path.exists(filename):
+        log.debug('Forcing normalization: %r -> %r', filename, normalized)
+        os.rename(filename, normalized)
+
+    return normalized
 
 
 def safe_long_path(path):
@@ -382,8 +450,8 @@ def guess_mime_type(filename):
             # Patch bad Windows MIME types
             # See https://jira.nuxeo.com/browse/NXP-11660
             # and http://bugs.python.org/issue15207
-            mime_type = _patch_win32_mime_type(mime_type)
-        log.trace("Guessed mime type '%s' for '%s'", mime_type, filename)
+            mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type, mime_type)
+        log.trace('Guessed mime type %r for %r', mime_type, filename)
         return mime_type
     log.trace("Could not guess mime type for '%s', returing 'application/octet-stream'", filename)
     return "application/octet-stream"
@@ -434,37 +502,40 @@ def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
         (parts.scheme, parts.netloc + ':8080', parts.path + '/nuxeo',
          parts.query, parts.fragment),
 
-        # https://domain.com
-        ('https', domain, '', '', ''),
         # https://domain.com/nuxeo
         ('https', domain, 'nuxeo', '', ''),
-        # https://domain.com:8080/nuxeo
         ('https', domain + ':8080', 'nuxeo', '', ''),
+        # https://domain.com
+        ('https', domain, '', '', ''),
+        # https://domain.com:8080/nuxeo
 
-        # http://domain.com
-        ('http', domain, '', '', ''),
         # http://domain.com/nuxeo
         ('http', domain, 'nuxeo', '', ''),
         # http://domain.com:8080/nuxeo
         ('http', domain + ':8080', 'nuxeo', '', ''),
+        # http://domain.com
+        ('http', domain, '', '', ''),
     ]
 
-    for count, new_url in enumerate(urls, 1):
-        new_url = urlparse.urlunsplit(new_url)
-        log.trace('Test %d, URL is %r', count, new_url)
+    for new_url_parts in urls:
+        new_url = urlparse.urlunsplit(new_url_parts)
         try:
+            rfc3987.parse(new_url, rule='URI')
+            log.trace('Testing URL %r', new_url)
             ret = urlopen(new_url + '/' + login_page, timeout=timeout)
-        except (ValueError, URLError, HTTPError):
+        except HTTPError as exc:
+            if exc.code == 401:
+                # When there is only Web-UI installed, the code is 401.
+                return new_url
+        except (ValueError, URLError):
             pass
         else:
             if ret.code == 200:
                 return new_url
+
+    if not url.lower().startswith('http'):
+        return None
     return url
-
-
-def _patch_win32_mime_type(mime_type):
-    patched_mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type)
-    return patched_mime_type if patched_mime_type else mime_type
 
 
 class ServerLoader(object):

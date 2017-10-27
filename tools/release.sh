@@ -1,7 +1,10 @@
 #!/bin/sh -eu
 #
-# Create a new release: it means creating a new beta, managing GitHub actions and
-# deploying artifacts to the staging site.
+# Create a new release, it means:
+#     - creating a new beta;
+#     - managing GitHub actions;
+#     - deploying artifacts to the staging site;
+#     - uploading to the PyPi server
 #
 # Warning: do not execute this script manually but from Jenkins.
 #
@@ -86,12 +89,34 @@ publish_beta() {
     curl -X POST -i -n -d @draft.json https://api.github.com/repos/nuxeo/nuxeo-drive/releases
 }
 
+publish_on_pip() {
+    local drive_version
+
+    drive_version="$(python tools/changelog.py --drive-version)"
+
+    echo ">>> [beta ${drive_version}] Creating the virtualenv"
+    [ -d pypi ] && rm -rf pypi
+    python -m virtualenv pypi
+    . pypi/bin/activate
+    pip install $(grep esky requirements.txt)
+
+    echo ">>> [beta ${drive_version}] Uploading to the PyPi server"
+    python setup.py sdist upload
+
+    deactivate
+    rm -rf pypi
+}
+
 main() {
     if [ $# -eq 1 ]; then
         case "$1" in
             "--cancel") cancel_beta ;;
             "--create") create_beta ;;
-            "--publish") publish_beta ;;
+            "--publish-on-pip-only") publish_on_pip ;;
+            "--publish")
+                publish_beta
+                publish_on_pip
+            ;;
         esac
     fi
 }
