@@ -6,6 +6,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-950](https://jira.nuxeo.com/browse/NXDRIVE-950): Invalid credentials loop when revoking the user's token
 - [NXDRIVE-964](https://jira.nuxeo.com/browse/NXDRIVE-964): Impossible to use an old local folder from another user
 - [NXDRIVE-994](https://jira.nuxeo.com/browse/NXDRIVE-994): Bad use of tuple for keyword xattr_names of LocalClient.update_content()
+- [NXDRIVE-998](https://jira.nuxeo.com/browse/NXDRIVE-998): Fix behavior if the PAC URL is not reachable
 
 ### GUI
 - [NXDRIVE-963](https://jira.nuxeo.com/browse/NXDRIVE-963): Crash when deleting an account
