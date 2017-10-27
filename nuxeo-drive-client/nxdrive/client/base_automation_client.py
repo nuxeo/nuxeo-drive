@@ -12,7 +12,7 @@ import tempfile
 import time
 import urllib2
 from urllib import urlencode
-from urllib2 import ProxyHandler
+from urllib2 import ProxyHandler, quote
 from urlparse import urlparse
 
 from poster.streaminghttp import get_handlers
@@ -22,7 +22,7 @@ from nxdrive.client.common import BaseClient, DEFAULT_IGNORED_PREFIXES, \
     safe_filename
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.logging_config import get_logger
-from nxdrive.utils import DEVICE_DESCRIPTIONS, TOKEN_PERMISSION, force_decode, \
+from nxdrive.utils import TOKEN_PERMISSION, force_decode, get_device, \
     guess_digest_algorithm, guess_mime_type
 
 log = None
@@ -157,6 +157,8 @@ class BaseAutomationClient(BaseClient):
     # Parameters used when negotiating authentication token:
     application_name = 'Nuxeo Drive'
 
+    __operations = None
+
     def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
                  password=None, token=None, repository=DEFAULT_REPOSITORY_NAME,
@@ -230,13 +232,43 @@ class BaseAutomationClient(BaseClient):
         self.new_upload_api_available = True
         self.rest_api_url = server_url + 'api/v1/'
         self.batch_upload_path = 'upload'
+        self.is_event_log_id = True
 
-        self.fetch_api()
+        self.check_access()
 
     def __repr__(self):
         attrs = ', '.join('{}={!r}'.format(attr, getattr(self, attr, None))
                           for attr in sorted(self.__init__.__code__.co_varnames[1:]))
         return '<{} {}>'.format(self.__class__.__name__, attrs)
+
+    @property
+    def operations(self):
+        """
+        A dict of all operations and their parameters.
+        Fetched on demand as it is a heavy work for the server and the network.
+
+        :rtype: dict
+        """
+
+        if not self.__operations:
+            self.fetch_api()
+        return self.__operations
+
+    def check_access(self):
+        """ Simple call to check credentials. """
+
+        url = self.automation_url + 'logInAudit'
+        headers = self._get_common_headers()
+        log.trace('Checking credentials at %r with headers=%r', url, headers)
+        req = urllib2.Request(url, headers=headers)
+        try:
+            self.opener.open(req, timeout=self.timeout)
+        except urllib2.HTTPError as exc:
+            if exc.code in (401, 403):
+                raise Unauthorized(self.server_url, self.user_id, exc.code)
+            raise exc
+        except:
+            raise
 
     def fetch_api(self):
         base_error_message = (
@@ -290,13 +322,13 @@ class BaseAutomationClient(BaseClient):
                 msg += ": " + e.msg
             e.msg = msg
             raise e
-        self.operations = {}
-        for operation in response["operations"]:
-            self.operations[operation['id']] = operation
-            op_aliases = operation.get('aliases')
-            if op_aliases:
-                for op_alias in op_aliases:
-                    self.operations[op_alias] = operation
+
+        operations = {}
+        for operation in response['operations']:
+            operations[operation['id']] = operation
+            for alias in operation.get('aliases', []):
+                operations[alias] = operation
+        self.__operations = operations
 
         # Is event log id available in change summary?
         # See https://jira.nuxeo.com/browse/NXP-14826
@@ -304,8 +336,9 @@ class BaseAutomationClient(BaseClient):
         self.is_event_log_id = 'lowerBound' in [
                         param['name'] for param in change_summary_op['params']]
 
+
     def execute(self, command, url=None, op_input=None, timeout=-1,
-                check_params=True, void_op=False, extra_headers=None,
+                check_params=False, void_op=False, extra_headers=None,
                 enrichers=None, file_out=None, **params):
         """Execute an Automation operation"""
         if check_params:
@@ -463,6 +496,25 @@ class BaseAutomationClient(BaseClient):
             raise e
         return self._read_response(resp, url)
 
+    def server_reachable(self):
+        """
+        Simple call to the server status page to check if it is reachable.
+        """
+
+        url = self.server_url + 'runningstatus'
+        headers = self._get_common_headers()
+        log.trace('Checking server availability at %r with headers=%r',
+                  url, headers)
+        req = urllib2.Request(url, headers=headers)
+        try:
+            ret = self.opener.open(req, timeout=self.timeout)
+        except:
+            pass
+        else:
+            if ret.code == 200:
+                return True
+        return False
+
     def upload(self, batch_id, file_path, filename=None, file_index=0,
                mime_type=None):
         """Upload a file through an Automation batch
@@ -565,13 +617,11 @@ class BaseAutomationClient(BaseClient):
 
         parameters = {
             'deviceId': self.device_id,
-            'applicationName': self.application_name,
+            'applicationName': quote(self.application_name),
             'permission': TOKEN_PERMISSION,
             'revoke': str(revoke).lower(),
+            'deviceDescription': get_device(),
         }
-        device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
-        if device_description:
-            parameters['deviceDescription'] = device_description
         url = self.server_url + 'authentication/token?'
         url += urlencode(parameters)
 
@@ -647,7 +697,8 @@ class BaseAutomationClient(BaseClient):
             raise ValueError("Either password or token must be provided")
 
     def _get_common_headers(self):
-        """Headers to include in every HTTP requests
+        """
+        Headers to include in every HTTP requests
 
         Includes the authentication heads (token based or basic auth if no
         token).
@@ -655,13 +706,12 @@ class BaseAutomationClient(BaseClient):
         Also include an application name header to make it possible for the
         server to compute access statistics for various client types (e.g.
         browser vs devices).
-
         """
         return {
             'X-User-Id': self.user_id,
             'X-Device-Id': self.device_id,
             'X-Client-Version': self.client_version,
-            'User-Agent': self.application_name + "/" + self.client_version,
+            'User-Agent': self.application_name + '/' + self.client_version,
             'X-Application-Name': self.application_name,
             self.auth[0]: self.auth[1],
             'Cache-Control': 'no-cache',

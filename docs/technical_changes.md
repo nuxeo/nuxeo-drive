@@ -3,10 +3,15 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+- Added `BaseAutomationClient.check_access()`
+- Added `BaseAutomationClient.server_reachable()`
 - Removed `LocalWatcher.get_windows_queue_threshold()`
 - Removed `LocalWatcher.set_windows_queue_threshold()`
 - Removed `WindowsIntegration.register_desktop_link()`
 - Removed `WindowsIntegration.unregister_desktop_link()`
+- Added `get_device()` to utils.py
+- Removed `DEFAULT_ENCODING` contant from utils.py
+- Removed `WIN32_SUFFIX` contant from utils.py
 
 # 2.5.5
 - Removed `LocalClient.is_osxbundle()`

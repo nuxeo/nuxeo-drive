@@ -353,7 +353,8 @@ launch_tests() {
         --exitfirst \
         --strict \
         --failed-first \
-        -r Efx
+        -r Efx \
+        -vv
 }
 
 start_nxdrive() {

@@ -1,9 +1,7 @@
 # coding: utf-8
 import hashlib
-import os
 import sys
 import unittest
-import urlparse
 
 from nxdrive.manager import ProxySettings
 from nxdrive.utils import guess_digest_algorithm, guess_mime_type, \
@@ -195,8 +193,11 @@ class TestUtils(unittest.TestCase):
         except:
             pass
 
-    @unittest.skipIf(sys.platform == 'win32', 'Random failure on Windows')
     def test_guess_server_url(self):
+        domain = 'localhost'
+        good_url = 'http://localhost:8080/nuxeo'
+        self.assertEqual(guess_server_url(domain), good_url)
+
         # HTTPS domain
         domain = 'intranet.nuxeo.com'
         good_url = 'https://intranet.nuxeo.com/nuxeo'
