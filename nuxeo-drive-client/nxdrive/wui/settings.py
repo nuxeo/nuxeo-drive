@@ -1,9 +1,9 @@
 # coding: utf-8
-import sys
 import urllib2
 import urlparse
 from collections import namedtuple
 from urllib import urlencode
+from urllib2 import quote
 
 from PyQt4 import QtCore, QtGui
 
@@ -14,8 +14,7 @@ from nxdrive.engine.engine import InvalidDriveException, \
     RootAlreadyBindWithDifferentAccount
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import FolderAlreadyUsed, ProxySettings
-from nxdrive.utils import DEVICE_DESCRIPTIONS, TOKEN_PERMISSION, \
-    guess_server_url
+from nxdrive.utils import TOKEN_PERMISSION, get_device, guess_server_url
 from nxdrive.wui.authentication import WebAuthenticationApi, \
     WebAuthenticationDialog
 from nxdrive.wui.dialog import Promise, WebDialog, WebDriveApi
@@ -294,12 +293,10 @@ class WebSettingsApi(WebDriveApi):
     def _get_authentication_url(self, server_url):
         token_params = {
             'deviceId': self._manager.get_device_id(),
-            'applicationName': self._manager.app_name,
+            'applicationName': quote(self._manager.app_name),
             'permission': TOKEN_PERMISSION,
+            'deviceDescription': get_device(),
         }
-        device_description = DEVICE_DESCRIPTIONS.get(sys.platform)
-        if device_description:
-            token_params['deviceDescription'] = device_description
         # Force login in case of anonymous user configuration
         token_params['forceAnonymousLogin'] = 'true'
 

@@ -11,6 +11,3 @@ from nxdrive.client.remote_file_system_client import RemoteFileInfo, \
 from nxdrive.client.remote_filtered_file_system_client import \
     RemoteFilteredFileSystemClient
 from nxdrive.client.rest_api_client import RestAPIClient
-
-# Backward compatibility with old remote client name, to be removed
-NuxeoClient = RemoteDocumentClient

@@ -756,6 +756,9 @@ FolderType=Generic
     def get_path(self, abspath):
         """ Relative path to the local client from an absolute OS path. """
 
+        if isinstance(abspath, bytes):
+            abspath = abspath.decode(sys.getfilesystemencoding() or 'utf-8')
+
         _, _, path = abspath.partition(self.base_folder)
         if not path:
             return '/'
