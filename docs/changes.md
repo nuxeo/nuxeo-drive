@@ -6,6 +6,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-1006](https://jira.nuxeo.com/browse/NXDRIVE-1006): Improve calls to /site/automation
 - [NXDRIVE-1012](https://jira.nuxeo.com/browse/NXDRIVE-1012): Remote watcher is missing keywords
 - [NXDRIVE-1013](https://jira.nuxeo.com/browse/NXDRIVE-1012): Fix and improve connection test for new account creation
+- [NXDRIVE-1020](https://jira.nuxeo.com/browse/NXDRIVE-1020): Unlock Windows events queue capacity
 
 ### GUI
 - [NXDRIVE-1016](https://jira.nuxeo.com/browse/NXDRIVE-1016): Unity does not use left click in the systray
