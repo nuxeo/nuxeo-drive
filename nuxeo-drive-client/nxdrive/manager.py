@@ -1275,20 +1275,36 @@ class Manager(QtCore.QObject):
     def get_cf_bundle_identifier():
         return "org.nuxeo.drive"
 
+    def open_metadata_window(self, file_path, application=None):
+        """
+        Open the user's browser to a remote document's metadata.
+        Shows a dialog box on failure.
+        """
+
+        log.debug('Opening metadata window for %r', file_path)
+        try:
+            url = self.get_metadata_infos(file_path)
+        except ValueError:
+            log.warning('The document %r is not handled by the Nuxeo server'
+                        ' or is not synchronized yet.', file_path)
+        else:
+            self.open_local_file(url)
+
     def get_metadata_infos(self, file_path):
         remote_ref = LocalClient.get_path_remote_id(file_path)
         if remote_ref is None:
-            raise ValueError('Could not find file %s as Nuxeo Drive managed' % file_path)
+            raise ValueError(
+                'Could not find file %r as Nuxeo Drive managed' % file_path)
+
         root_id = self.get_root_id(file_path)
-        # TODO Add a class to handle root info
-        root_values = root_id.split("|")
+        root_values = root_id.split('|')
         try:
             engine = self.get_engines()[root_values[3]]
         except:
-            raise ValueError('Unknown engine %s for %s' %
-                             (root_values[3], file_path))
-        metadata_url = engine.get_metadata_url(remote_ref)
-        return metadata_url, engine.get_remote_token(), engine, remote_ref
+            raise ValueError(
+                'Unknown engine %s for %r' % (root_values[3], file_path))
+
+        return engine.get_metadata_url(remote_ref)
 
     def set_script_object(self, obj):
         # Used to enhance scripting with UI

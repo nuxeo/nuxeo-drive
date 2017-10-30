@@ -611,8 +611,7 @@ class Application(SimpleApplication):
         WebDialog(self, url).show()
 
     def show_metadata(self, file_path):
-        from nxdrive.wui.metadata import CreateMetadataWebDialog
-        CreateMetadataWebDialog(self.manager, file_path).show()
+        self.manager.open_metadata_window(file_path)
 
     def setup_systray(self):
         self.tray_icon = DriveSystrayIcon(self)
