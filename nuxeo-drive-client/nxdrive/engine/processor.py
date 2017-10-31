@@ -2,9 +2,10 @@
 import os
 import shutil
 import sqlite3
+import socket
 from threading import Lock
 from time import sleep
-from urllib2 import HTTPError
+from urllib2 import HTTPError, URLError
 
 from PyQt4.QtCore import pyqtSignal
 
@@ -268,19 +269,6 @@ class Processor(EngineWorker):
                         self.pairSync.emit(doc_pair, self._current_metrics)
                     except ThreadInterrupt:
                         raise
-                    except PairInterrupt:
-                        # Wait one second to avoid retrying to quickly
-                        self._current_doc_pair = None
-                        log.debug('PairInterrupt wait 1s and requeue on %r',
-                                  doc_pair)
-                        sleep(1)
-                        self._engine.get_queue_manager().push(doc_pair)
-                        continue
-                    except DuplicationDisabledError:
-                        self.giveup_error(doc_pair, 'DEDUP')
-                        log.trace('Removing local_path on %r', doc_pair)
-                        self._dao.remove_local_path(doc_pair.id)
-                        continue
                     except HTTPError as exc:
                         if exc.code == 409:  # Conflict
                             # It could happen on multiple files drag'n drop
@@ -290,6 +278,20 @@ class Processor(EngineWorker):
                         else:
                             self._handle_pair_handler_exception(
                                 doc_pair, handler_name, exc)
+                        del exc  # Fix reference leak
+                        continue
+                    except (URLError, socket.error, PairInterrupt) as exc:
+                        # socket.error for SSLError
+                        log.debug('%s on %r, wait 1s and requeue',
+                                  type(exc).__name__, doc_pair)
+                        sleep(1)
+                        self._engine.get_queue_manager().push(doc_pair)
+                        del exc  # Fix reference leak
+                        continue
+                    except DuplicationDisabledError:
+                        self.giveup_error(doc_pair, 'DEDUP')
+                        log.trace('Removing local_path on %r', doc_pair)
+                        self._dao.remove_local_path(doc_pair.id)
                         continue
                     except Exception as exc:
                         self._handle_pair_handler_exception(
