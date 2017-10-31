@@ -3,6 +3,9 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+
+
+# 2.5.6
 - Added `BaseAutomationClient.check_access()`
 - Added `BaseAutomationClient.server_reachable()`
 - Added `Manager.open_metadata_window()`
