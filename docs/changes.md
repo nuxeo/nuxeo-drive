@@ -9,7 +9,9 @@ Release date: `2017-??-??`
 - [NXDRIVE-1020](https://jira.nuxeo.com/browse/NXDRIVE-1020): Unlock Windows events queue capacity
 
 ### GUI
+- [NXDRIVE-1004](https://jira.nuxeo.com/browse/NXDRIVE-1004): Dynamically select the JSF or Web UI URLs
 - [NXDRIVE-1016](https://jira.nuxeo.com/browse/NXDRIVE-1016): Unity does not use left click in the systray
+- [NXDRIVE-1018](https://jira.nuxeo.com/browse/NXDRIVE-1018): Use the user's browser to show the metadata window
 
 ### Packaging / Build
 - [NXDRIVE-737](https://jira.nuxeo.com/browse/NXDRIVE-737): Use a single launcher

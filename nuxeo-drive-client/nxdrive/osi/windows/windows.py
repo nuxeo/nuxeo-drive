@@ -102,8 +102,6 @@ class WindowsIntegration(AbstractOSIntegration):
         exe_path = self._manager.find_exe_path()
         app_name = self._manager.app_name
         if exe_path is None:
-            log.warning('Not a frozen Windows executable: '
-                        'skipping protocol handler registration')
             return
 
         log.debug('Registering "nxdrive" protocol handler to: %r', exe_path)
@@ -179,8 +177,6 @@ class WindowsIntegration(AbstractOSIntegration):
         args = ' metadata --file "%1"'
         exe_path = self._manager.find_exe_path() + args
         if exe_path is None:
-            log.warning('Not a frozen windows exe: '
-                        'skipping startup application registration')
             return
         icon_path = self._manager.find_exe_path() + ',0'
         log.debug('Registering %r application %r to registry key %r',
