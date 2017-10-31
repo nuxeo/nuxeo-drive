@@ -25,6 +25,7 @@ Release date: `2017-??-??`
 - GUI: Fix a SEGFAULT when closing the metadata window
 - GUI: Add envar `USE_OLD_MENU` to force the use of the old menu
 - Jenkins: The beta job now uploads the package to the PyPi server
+- Packaging: Updated `psutil` from 5.3.1 to 5.4.0
 - \[macOS\] Fix the favorite link creation
 - \[Windows\] Packaging: Prevent infinite loop when uninstalling
 - \[Windows\] Packaging: Fix symbolic link creation
