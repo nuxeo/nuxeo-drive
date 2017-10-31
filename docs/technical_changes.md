@@ -5,13 +5,15 @@
 # dev
 - Added `BaseAutomationClient.check_access()`
 - Added `BaseAutomationClient.server_reachable()`
+- Added `Manager.open_metadata_window()`
 - Removed `LocalWatcher.get_windows_queue_threshold()`
 - Removed `LocalWatcher.set_windows_queue_threshold()`
 - Removed `WindowsIntegration.register_desktop_link()`
 - Removed `WindowsIntegration.unregister_desktop_link()`
-- Added `get_device()` to utils.py
-- Removed `DEFAULT_ENCODING` contant from utils.py
-- Removed `WIN32_SUFFIX` contant from utils.py
+- Added utils.py::`get_device()`
+- Removed utils.py::`DEFAULT_ENCODING`
+- Removed utils.py::`WIN32_SUFFIX`
+- Removed wui/metadata.py
 
 # 2.5.5
 - Removed `LocalClient.is_osxbundle()`
