@@ -220,6 +220,8 @@ class RemoteWatcher(EngineWorker):
                       remote_info.name, remote_info.uid, elapsed)
             scroll_id = scroll_res['scroll_id']
 
+            del scroll_res['descendants']  # Fix reference leak
+
             # Results are not necessarily sorted
             descendants_info = sorted(descendants_info, key=lambda x: x.path)
 

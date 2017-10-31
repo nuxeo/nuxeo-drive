@@ -756,8 +756,8 @@ class BaseAutomationClient(BaseClient):
         # TODO: add typechecking
 
     def _read_response(self, response, url):
-        info = response.info()
-        s = response.read()
+        info, s = response.info(), response.read()
+        del response  # Fix reference leak
         content_type = info.get('content-type', '')
         cookies = self._get_cookies()
         if content_type.startswith("application/json"):
@@ -795,7 +795,10 @@ class BaseAutomationClient(BaseClient):
                     message = detail
                 log.error(message)
                 if isinstance(e, urllib2.HTTPError):
-                    return e.code, None, message, None
+                    code = e.code
+                    del e  # Fix reference leak
+                    return code, None, message, None
+        del e  # Fix reference leak
         return None
 
     @staticmethod
