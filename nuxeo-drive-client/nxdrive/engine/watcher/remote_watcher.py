@@ -473,13 +473,13 @@ class RemoteWatcher(EngineWorker):
             if full_scan is not None:
                 self._partial_full_scan(full_scan)
                 return None
-            else:
+
+            paths = self._dao.get_paths_to_scan()
+            while paths:
+                remote_ref = paths[0].path
+                self._dao.update_config('remote_need_full_scan', remote_ref)
+                self._partial_full_scan(remote_ref)
                 paths = self._dao.get_paths_to_scan()
-                while len(paths) > 0:
-                    remote_ref = paths[0].path
-                    self._dao.update_config('remote_need_full_scan', remote_ref)
-                    self._partial_full_scan(remote_ref)
-                    paths = self._dao.get_paths_to_scan()
             self._action = Action("Handle remote changes")
             self._update_remote_states()
             self._save_changes_state()

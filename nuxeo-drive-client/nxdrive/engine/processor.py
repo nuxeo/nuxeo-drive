@@ -311,7 +311,8 @@ class Processor(EngineWorker):
     def _handle_pair_handler_exception(self, doc_pair, handler_name, e):
         if isinstance(e, IOError) and e.errno == 28:
             self._engine.noSpaceLeftOnDevice.emit()
-        log.exception(repr(e))
+            self._engine.suspend()
+        log.exception('Unknown error')
         self.increase_error(doc_pair, "SYNC_HANDLER_%s" % handler_name, exception=e)
 
     def _synchronize_conflicted(self, doc_pair, local_client, remote_client):

@@ -5,6 +5,7 @@
 # dev
 - Added `BaseAutomationClient.check_access()`
 - Added `BaseAutomationClient.server_reachable()`
+- Removed `BaseAutomationClient.get_download_buffer()`. Use `FILE_BUFFER_SIZE` attribute instead.
 - Removed `LocalWatcher.get_windows_queue_threshold()`
 - Removed `LocalWatcher.set_windows_queue_threshold()`
 - Removed `WindowsIntegration.register_desktop_link()`
