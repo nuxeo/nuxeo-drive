@@ -126,11 +126,13 @@ class Processor(EngineWorker):
     def get_current_pair(self):
         return self._current_doc_pair
 
+    """
     def _clean(self, reason, e=None):
         super(Processor, self)._clean(reason, e)
         if reason == 'exception' and self._current_doc_pair is not None:
             # Add it back to the queue ? Add the error delay
             self.increase_error(self._current_doc_pair, 'EXCEPTION', exception=e)
+    """
 
     @staticmethod
     def check_pair_state(doc_pair):
