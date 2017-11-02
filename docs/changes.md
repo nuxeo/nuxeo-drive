@@ -3,7 +3,7 @@ Release date: `2017-??-??`
 
 
 # 2.5.6
-Release date: `2017-10-31`
+Release date: `2017-11-02`
 
 ### Core
 - [NXDRIVE-998](https://jira.nuxeo.com/browse/NXDRIVE-998): Fix behavior if the PAC URL is not reachable
