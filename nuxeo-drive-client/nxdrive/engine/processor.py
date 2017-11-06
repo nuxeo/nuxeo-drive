@@ -2,9 +2,10 @@
 import os
 import shutil
 import sqlite3
+import socket
 from threading import Lock
 from time import sleep
-from urllib2 import HTTPError
+from urllib2 import HTTPError, URLError
 
 from PyQt4.QtCore import pyqtSignal
 
@@ -125,11 +126,13 @@ class Processor(EngineWorker):
     def get_current_pair(self):
         return self._current_doc_pair
 
+    """
     def _clean(self, reason, e=None):
         super(Processor, self)._clean(reason, e)
         if reason == 'exception' and self._current_doc_pair is not None:
             # Add it back to the queue ? Add the error delay
             self.increase_error(self._current_doc_pair, 'EXCEPTION', exception=e)
+    """
 
     @staticmethod
     def check_pair_state(doc_pair):
@@ -268,19 +271,6 @@ class Processor(EngineWorker):
                         self.pairSync.emit(doc_pair, self._current_metrics)
                     except ThreadInterrupt:
                         raise
-                    except PairInterrupt:
-                        # Wait one second to avoid retrying to quickly
-                        self._current_doc_pair = None
-                        log.debug('PairInterrupt wait 1s and requeue on %r',
-                                  doc_pair)
-                        sleep(1)
-                        self._engine.get_queue_manager().push(doc_pair)
-                        continue
-                    except DuplicationDisabledError:
-                        self.giveup_error(doc_pair, 'DEDUP')
-                        log.trace('Removing local_path on %r', doc_pair)
-                        self._dao.remove_local_path(doc_pair.id)
-                        continue
                     except HTTPError as exc:
                         if exc.code == 409:  # Conflict
                             # It could happen on multiple files drag'n drop
@@ -290,10 +280,25 @@ class Processor(EngineWorker):
                         else:
                             self._handle_pair_handler_exception(
                                 doc_pair, handler_name, exc)
+                        del exc  # Fix reference leak
+                        continue
+                    except (URLError, socket.error, PairInterrupt) as exc:
+                        # socket.error for SSLError
+                        log.debug('%s on %r, wait 1s and requeue',
+                                  type(exc).__name__, doc_pair)
+                        sleep(1)
+                        self._engine.get_queue_manager().push(doc_pair)
+                        del exc  # Fix reference leak
+                        continue
+                    except DuplicationDisabledError:
+                        self.giveup_error(doc_pair, 'DEDUP')
+                        log.trace('Removing local_path on %r', doc_pair)
+                        self._dao.remove_local_path(doc_pair.id)
                         continue
                     except Exception as exc:
                         self._handle_pair_handler_exception(
                             doc_pair, handler_name, exc)
+                        del exc  # Fix reference leak
                         continue
             except ThreadInterrupt:
                 self._engine.get_queue_manager().push(doc_pair)
@@ -303,6 +308,7 @@ class Processor(EngineWorker):
                 self.increase_error(doc_pair, 'EXCEPTION', exception=e)
                 raise e
             finally:
+                self._current_doc_pair = None  # Fix reference leak
                 if soft_lock is not None:
                     self._unlock_soft_path(soft_lock)
                 self._dao.release_state(self._thread_id)
@@ -311,7 +317,8 @@ class Processor(EngineWorker):
     def _handle_pair_handler_exception(self, doc_pair, handler_name, e):
         if isinstance(e, IOError) and e.errno == 28:
             self._engine.noSpaceLeftOnDevice.emit()
-        log.exception(repr(e))
+            self._engine.suspend()
+        log.exception('Unknown error')
         self.increase_error(doc_pair, "SYNC_HANDLER_%s" % handler_name, exception=e)
 
     def _synchronize_conflicted(self, doc_pair, local_client, remote_client):

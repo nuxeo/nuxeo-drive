@@ -3,14 +3,14 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
-
+- Removed `BaseAutomationClient.get_download_buffer()`. Use `FILE_BUFFER_SIZE` attribute instead.
 
 # 2.5.6
 - Added `BaseAutomationClient.check_access()`
 - Added `BaseAutomationClient.server_reachable()`
-- Added `Manager.open_metadata_window()`
 - Removed `LocalWatcher.get_windows_queue_threshold()`
 - Removed `LocalWatcher.set_windows_queue_threshold()`
+- Added `Manager.open_metadata_window()`
 - Removed `WindowsIntegration.register_desktop_link()`
 - Removed `WindowsIntegration.unregister_desktop_link()`
 - Added utils.py::`get_device()`

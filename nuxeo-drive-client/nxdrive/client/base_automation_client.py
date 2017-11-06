@@ -336,7 +336,6 @@ class BaseAutomationClient(BaseClient):
         self.is_event_log_id = 'lowerBound' in [
                         param['name'] for param in change_summary_op['params']]
 
-
     def execute(self, command, url=None, op_input=None, timeout=-1,
                 check_params=False, void_op=False, extra_headers=None,
                 enrichers=None, file_out=None, **params):
@@ -407,12 +406,11 @@ class BaseAutomationClient(BaseClient):
                         if self.check_suspended is not None:
                             self.check_suspended('File download: %s'
                                                  % file_out)
-                        buffer_ = resp.read(self.get_download_buffer())
+                        buffer_ = resp.read(FILE_BUFFER_SIZE)
                         if buffer_ == '':
                             break
                         if current_action:
-                            current_action.progress += (
-                                                self.get_download_buffer())
+                            current_action.progress += FILE_BUFFER_SIZE
                         f.write(buffer_)
                 return None, file_out
             finally:
@@ -758,8 +756,8 @@ class BaseAutomationClient(BaseClient):
         # TODO: add typechecking
 
     def _read_response(self, response, url):
-        info = response.info()
-        s = response.read()
+        info, s = response.info(), response.read()
+        del response  # Fix reference leak
         content_type = info.get('content-type', '')
         cookies = self._get_cookies()
         if content_type.startswith("application/json"):
@@ -797,7 +795,10 @@ class BaseAutomationClient(BaseClient):
                     message = detail
                 log.error(message)
                 if isinstance(e, urllib2.HTTPError):
-                    return e.code, None, message, None
+                    code = e.code
+                    del e  # Fix reference leak
+                    return code, None, message, None
+        del e  # Fix reference leak
         return None
 
     @staticmethod
@@ -857,12 +858,11 @@ class BaseAutomationClient(BaseClient):
                             if self.check_suspended is not None:
                                 self.check_suspended('File download: %s'
                                                      % file_out)
-                            buffer_ = response.read(self.get_download_buffer())
+                            buffer_ = response.read(FILE_BUFFER_SIZE)
                             if buffer_ == '':
                                 break
                             if current_action:
-                                current_action.progress += (
-                                                    self.get_download_buffer())
+                                current_action.progress += FILE_BUFFER_SIZE
                             f.write(buffer_)
                             if h is not None:
                                 h.update(buffer_)
@@ -897,6 +897,3 @@ class BaseAutomationClient(BaseClient):
                 e.msg = base_error_message + ": " + e.msg
             raise
 
-    @staticmethod
-    def get_download_buffer():
-        return FILE_BUFFER_SIZE
