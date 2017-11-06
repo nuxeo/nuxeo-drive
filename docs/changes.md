@@ -1,6 +1,9 @@
 # dev
 Release date: `2017-??-??`
 
+### Core
+- [NXDRIVE-1026](https://jira.nuxeo.com/browse/NXDRIVE-1026): Retry in case of connection timeout
+
 
 # 2.5.6
 Release date: `2017-11-02`
