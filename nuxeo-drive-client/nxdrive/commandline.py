@@ -507,10 +507,8 @@ class CliHandler(object):
         return self.launch(options=options, console=True)
 
     def metadata(self, options):
-        from nxdrive.wui.metadata import MetadataApplication
-        self.log.debug('Opening metadata window for %r', options.file)
-        app = MetadataApplication(self.manager, options)
-        return app.exec_()
+        file_path = normalized_path(options.file)
+        self.manager.open_metadata_window(file_path)
 
     def edit(self, options):
         # Kept for backward compatibility

@@ -3,16 +3,20 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+- Removed `BaseAutomationClient.get_download_buffer()`. Use `FILE_BUFFER_SIZE` attribute instead.
+
+# 2.5.6
 - Added `BaseAutomationClient.check_access()`
 - Added `BaseAutomationClient.server_reachable()`
-- Removed `BaseAutomationClient.get_download_buffer()`. Use `FILE_BUFFER_SIZE` attribute instead.
 - Removed `LocalWatcher.get_windows_queue_threshold()`
 - Removed `LocalWatcher.set_windows_queue_threshold()`
+- Added `Manager.open_metadata_window()`
 - Removed `WindowsIntegration.register_desktop_link()`
 - Removed `WindowsIntegration.unregister_desktop_link()`
-- Added `get_device()` to utils.py
-- Removed `DEFAULT_ENCODING` contant from utils.py
-- Removed `WIN32_SUFFIX` contant from utils.py
+- Added utils.py::`get_device()`
+- Removed utils.py::`DEFAULT_ENCODING`
+- Removed utils.py::`WIN32_SUFFIX`
+- Removed wui/metadata.py
 
 # 2.5.5
 - Removed `LocalClient.is_osxbundle()`

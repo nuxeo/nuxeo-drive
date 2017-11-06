@@ -288,12 +288,50 @@ class Engine(QObject):
         return remote_ref_segments[2]
 
     def get_metadata_url(self, remote_ref):
-        metadata_url = self.server_url
-        remote_ref_segments = remote_ref.split("#", 2)
-        repo = remote_ref_segments[1]
-        doc_id = remote_ref_segments[2]
-        metadata_url += 'nxdoc/' + repo + '/' + doc_id + '/view_drive_metadata'
-        return metadata_url
+        """
+        Build the document's metadata URL based on the server's UI.
+        Fallback on JSF if no defined UI.
+
+        :param str remote_ref: The document remote reference (UID) of the
+            document we want to show metadata.
+        :return str: The complete URL.
+        """
+
+        urls = {
+            'jsf': '{server}nxdoc/{repo}/{uid}/view_drive_metadata?token={token}',
+            'web': '{server}ui?token={token}#!/doc/{uid}',
+        }
+
+        remote_ref_segments = remote_ref.split('#', 2)
+        infos = {
+            'server': self.server_url,
+            'repo': remote_ref_segments[1],
+            'uid': remote_ref_segments[2],
+            'token': self.get_remote_token(),
+        }
+        ui = self._manager.get_config('ui', default='jsf')
+        return urls[ui].format(**infos)
+
+    def get_remote_url(self):
+        """
+        Build the server's URL based on the server's UI.
+        Fallback on JSF if no defined UI.
+
+        :return str: The complete URL.
+        """
+
+        urls = {
+            'jsf': '{server}nxhome/{repo}/default-domain@view_home?tabIds=USER_CENTER%3AuserCenterNuxeoDrive',
+            'web': '{server}ui?token={token}#!/drive',
+        }
+
+        infos = {
+            'server': self.server_url,
+            'repo': DEFAULT_REPOSITORY_NAME,
+            'token': self.get_remote_token(),
+        }
+        ui = self._manager.get_config('ui', default='jsf')
+        return urls[ui].format(**infos)
 
     def is_syncing(self):
         return self._sync_started
@@ -443,16 +481,6 @@ class Engine(QObject):
 
     def _create_dao(self):
         return EngineDAO(self._get_db_file())
-
-    def get_remote_url(self):
-        server_link = self._dao.get_config("server_url", "")
-        repository = DEFAULT_REPOSITORY_NAME
-        if not server_link.endswith('/'):
-            server_link += '/'
-        url_suffix = ('@view_home?tabIds=MAIN_TABS:home,'
-                      'USER_CENTER:userCenterNuxeoDrive')
-        server_link += 'nxhome/' + repository + url_suffix
-        return server_link
 
     def get_abspath(self, path):
         return self.get_local_client().abspath(path)
