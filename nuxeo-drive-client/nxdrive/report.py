@@ -108,7 +108,7 @@ class Report(object):
     def generate(self):
         """ Create the ZIP report with all interesting files. """
 
-        log.debug('Create report %r', self._report_name)
+        log.debug('Create report %r', self._zipfile)
         log.debug('Manager metrics: %r', self._manager.get_metrics())
         dao = self._manager.get_dao()
         with ZipFile(self._zipfile, mode='w', allowZip64=True) as zip_:

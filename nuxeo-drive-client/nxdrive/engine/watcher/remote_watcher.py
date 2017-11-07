@@ -165,6 +165,7 @@ class RemoteWatcher(EngineWorker):
             child_pair.remote_can_rename != child_info.can_rename,
             child_pair.remote_can_update != child_info.can_update,
             child_pair.remote_can_create_child != child_info.can_create_child,
+            child_pair.remote_name != child_info.name,
             child_pair.remote_digest != child_info.digest,
         ))
 
@@ -677,9 +678,9 @@ class RemoteWatcher(EngineWorker):
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved
                         log.debug('Refreshing remote state info for '
-                                  'doc_pair=%r, event_id=%r '
+                                  'doc_pair=%r, event_id=%r, new_info=%r '
                                   '(force_recursion=%d)', doc_pair_repr,
-                                  event_id, event_id == 'securityUpdated')
+                                  event_id, new_info, event_id == 'securityUpdated')
 
                         # Force remote state update in case of a locked / unlocked event since lock info is not
                         # persisted, so not part of the dirty check

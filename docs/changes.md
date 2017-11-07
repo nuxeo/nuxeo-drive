@@ -1,8 +1,18 @@
 # dev
 Release date: `2017-??-??`
 
+
+# 2.5.7
+Release date: `2017-11-07`
+
 ### Core
+- [NXDRIVE-903](https://jira.nuxeo.com/browse/NXDRIVE-903): Renaming folders/files does not sync while network interface is OFF
 - [NXDRIVE-1026](https://jira.nuxeo.com/browse/NXDRIVE-1026): Retry in case of connection timeout
+
+#### Minor changes
+- Packaging: Do not upload to PyPi if Python < 2.7.13 (NXDRIVE-1027)
+- Tests: Report is generated on failure only
+- Tests: Less verbosity
 
 
 # 2.5.6
