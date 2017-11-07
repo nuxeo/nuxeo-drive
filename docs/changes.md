@@ -1,6 +1,10 @@
 # dev
 Release date: `2017-??-??`
 
+
+# 2.5.7
+Release date: `2017-11-07`
+
 ### Core
 - [NXDRIVE-903](https://jira.nuxeo.com/browse/NXDRIVE-903): Renaming folders/files does not sync while network interface is OFF
 - [NXDRIVE-1026](https://jira.nuxeo.com/browse/NXDRIVE-1026): Retry in case of connection timeout

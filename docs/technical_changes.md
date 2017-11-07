@@ -3,6 +3,9 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+
+
+# 2.5.7
 - Removed `BaseAutomationClient.get_download_buffer()`. Use `FILE_BUFFER_SIZE` attribute instead.
 
 # 2.5.6
