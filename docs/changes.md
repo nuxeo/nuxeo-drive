@@ -6,6 +6,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-1026](https://jira.nuxeo.com/browse/NXDRIVE-1026): Retry in case of connection timeout
 
 #### Minor changes
+- Packaging: Do not upload to PyPi if Python < 2.7.13 (NXDRIVE-1027)
 - Tests: Report is generated on failure only
 - Tests: Less verbosity
 
