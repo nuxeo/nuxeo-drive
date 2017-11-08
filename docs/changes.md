@@ -2,6 +2,13 @@
 Release date: `2017-??-??`
 
 
+# 2.5.8
+Release date: `2017-11-08`
+
+#### Minor changes
+- Packaging: Fix bad bash comparison in tools/release.sh to prevent PyPi upload
+
+
 # 2.5.7
 Release date: `2017-11-07`
 
