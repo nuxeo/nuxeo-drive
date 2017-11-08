@@ -2,6 +2,13 @@
 Release date: `2017-??-??`
 
 
+# 2.5.9
+Release date: `2017-11-08`
+
+### Packaging / Build
+- [NXDRIVE-1032](https://jira.nuxeo.com/browse/NXDRIVE-1032): Bypass PyPI upload
+
+
 # 2.5.8
 Release date: `2017-11-08`
 
