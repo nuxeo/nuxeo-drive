@@ -95,7 +95,7 @@ publish_on_pip() {
     local version_ok
 
     version_ok="$(python -c "import sys; print(sys.version_info > (2, 7, 12))")"
-    if [ "${version_ok}" == "False" ]; then
+    if [ "${version_ok}" = "False" ]; then
         cur_version=$(python --version 2>&1 | awk '{print $2}')
         echo ">>> Python 2.7.13 or newer is required."
         echo ">>> Current version is ${cur_version}"
