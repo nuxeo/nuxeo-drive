@@ -16,7 +16,7 @@ import rfc3987
 from Crypto import Random
 from Crypto.Cipher import AES
 
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, DRIVE_STARTUP_PAGE
+from nxdrive.options import Options
 from nxdrive.logging_config import get_logger
 
 if sys.platform == 'win32':
@@ -82,7 +82,7 @@ def is_generated_tmp_file(name):
     delay, do_not_delay, no_delay_effect = True, False, None
 
     # Default ignored suffixes already handle .bak, .tmp, etc..
-    if name.endswith(DEFAULT_IGNORED_SUFFIXES):
+    if name.endswith(Options.ignored_suffixes):
         return ignore, do_not_delay
 
     # Files without extension
@@ -467,7 +467,7 @@ def guess_digest_algorithm(digest):
     raise Exception('Unknown digest algorithm for %s' % digest)
 
 
-def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
+def guess_server_url(url, login_page=Options.startup_page, timeout=5):
     """
     Guess the complete server URL given an URL (either an IP address,
     a simple domain name or an already complete URL).

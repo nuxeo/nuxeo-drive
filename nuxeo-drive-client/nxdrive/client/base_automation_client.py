@@ -17,11 +17,10 @@ from urlparse import urlparse
 
 from poster.streaminghttp import get_handlers
 
-from nxdrive.client.common import BaseClient, DEFAULT_IGNORED_PREFIXES, \
-    DEFAULT_IGNORED_SUFFIXES, DEFAULT_REPOSITORY_NAME, FILE_BUFFER_SIZE, \
-    safe_filename
+from nxdrive.client.common import BaseClient, FILE_BUFFER_SIZE, safe_filename
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.logging_config import get_logger
+from nxdrive.options import Options
 from nxdrive.utils import TOKEN_PERMISSION, force_decode, get_device, \
     guess_digest_algorithm, guess_mime_type
 
@@ -161,8 +160,7 @@ class BaseAutomationClient(BaseClient):
 
     def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
-                 password=None, token=None, repository=DEFAULT_REPOSITORY_NAME,
-                 ignored_prefixes=None, ignored_suffixes=None,
+                 password=None, token=None, repository=Options.remote_repo,
                  timeout=20, blob_timeout=60, cookie_jar=None,
                  upload_tmp_dir=None, check_suspended=None):
         global log
@@ -178,15 +176,6 @@ class BaseAutomationClient(BaseClient):
         if blob_timeout is None or blob_timeout < 0:
             blob_timeout = 60
         self.blob_timeout = blob_timeout
-        if ignored_prefixes is not None:
-            self.ignored_prefixes = ignored_prefixes
-        else:
-            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
-
-        if ignored_suffixes is not None:
-            self.ignored_suffixes = ignored_suffixes
-        else:
-            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
 
         self.upload_tmp_dir = (upload_tmp_dir if upload_tmp_dir is not None
                                else tempfile.gettempdir())
@@ -354,7 +343,7 @@ class BaseAutomationClient(BaseClient):
         }
         if void_op:
             headers.update({"X-NXVoidOperation": "true"})
-        if self.repository != DEFAULT_REPOSITORY_NAME:
+        if self.repository != Options.remote_repo:
             headers.update({"X-NXRepository": self.repository})
         if extra_headers is not None:
             headers.update(extra_headers)

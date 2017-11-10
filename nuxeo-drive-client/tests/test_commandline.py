@@ -31,12 +31,13 @@ class CommandLineTestCase(unittest.TestCase):
 
     def create_ini(self, filename='config.ini', env='PROD'):
         with open(filename, 'w+') as inifile:
-            inifile.writelines(['[DEFAULT]\n',
-                            'env=' + env + '\n',
-                            '[PROD]\n',
-                            'log-level-console=TRACE\n',
-                            '[DEV]\n',
-                            'log-level-console=ERROR\n'])
+            inifile.writelines([
+                '[DEFAULT]\n',
+                'env=' + env + '\n',
+                '[PROD]\n',
+                'log-level-console=TRACE\n',
+                '[DEV]\n',
+                'log-level-console=ERROR\n'])
 
     def clean_ini(self, filename='config.ini'):
         try:

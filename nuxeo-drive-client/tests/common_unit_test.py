@@ -16,15 +16,13 @@ from threading import Thread
 from time import sleep
 
 from PyQt4 import QtCore
-from mock import Mock
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteFileSystemClient, RestAPIClient
-from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES, \
-    DEFAULT_IGNORED_SUFFIXES
 from nxdrive.engine.engine import Engine
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
+from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.translator import Translator
 from tests.common import RemoteDocumentClientForTests, TEST_DEFAULT_DELAY, \
@@ -305,6 +303,7 @@ class UnitTestCase(SimpleUnitTestCase):
             return MacLocalClient(path)
         return LocalClient(path)
 
+    @Options.mock()
     def setUpApp(self, server_profile=None, register_roots=True):
         if Manager._singleton:
             Manager._singleton = None
@@ -353,25 +352,16 @@ class UnitTestCase(SimpleUnitTestCase):
             self.local_test_folder_2, u'nuxeo-drive-conf')
         os.mkdir(self.nxdrive_conf_folder_2)
 
-        options = Mock()
-        options.debug = False
-        options.delay = TEST_DEFAULT_DELAY
-        options.force_locale = None
-        options.proxy_server = None
-        options.log_level_file = None
-        options.update_site_url = None
-        options.beta_update_site_url = None
-        options.autolock_interval = 30
-        options.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
-        options.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
-        options.nxdrive_home = self.nxdrive_conf_folder_1
-        self.manager_1 = Manager(options)
+        Options.delay = TEST_DEFAULT_DELAY
+        # Options.autolock_interval = 30
+        Options.nxdrive_home = self.nxdrive_conf_folder_1
+        self.manager_1 = Manager()
         self.connected = False
         i18n_path = self.location + '/resources/i18n.js'
         Translator(self.manager_1, i18n_path)
-        options.nxdrive_home = self.nxdrive_conf_folder_2
+        Options.nxdrive_home = self.nxdrive_conf_folder_2
         Manager._singleton = None
-        self.manager_2 = Manager(options)
+        self.manager_2 = Manager()
         self.addCleanup(self._stop_managers)
 
         self.version = __version__

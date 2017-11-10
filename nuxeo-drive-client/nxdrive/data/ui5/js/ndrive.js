@@ -84,10 +84,8 @@ var DriveController = function($scope, $translate) {
 	$scope.open_local = this.openLocal;
 	$scope.app_update = this.appUpdate;
 	$scope.auto_update = this.getAutoUpdate();
-	$scope.betaChannel = this.getBetaChannel();
 	$scope.get_update_status = this.getUpdateStatus;
 	$scope.show_conflicts = this.showConflicts;
-	$scope.setAutoUpdate = this.setAutoUpdate;
 	$scope.update_password = function(uid, password) {
 		$scope.update_password_error = "CONNECTING";
 		self.updatePassword($scope, uid, password);
@@ -132,14 +130,8 @@ DriveController.prototype.suspendEngines = function() {
 DriveController.prototype.resumeEngines = function() {
 	drive.resume();
 }
-DriveController.prototype.setAutoUpdate = function(value) {
-	drive.set_auto_update(value);
-}
 DriveController.prototype.getAutoUpdate = function() {
 	return drive.get_auto_update();
-}
-DriveController.prototype.getBetaChannel = function() {
-	return drive.get_beta_channel();
 }
 DriveController.prototype.getEngines = function() {
 	return angular.fromJson(drive.get_engines());

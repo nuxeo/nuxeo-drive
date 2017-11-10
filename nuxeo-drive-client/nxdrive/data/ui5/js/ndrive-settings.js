@@ -10,7 +10,6 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.show_activities = drive.show_activities;
 	$scope.direct_edit_auto_lock = drive.get_direct_edit_auto_lock();
 	$scope.auto_start = drive.get_auto_start();
-	$scope.beta_channel_available = drive.is_beta_channel_available();
 	$scope.beta_channel = drive.get_beta_channel();
 	$scope.tracking = drive.get_tracking();
 	$scope.proxy = angular.fromJson(drive.get_proxy_settings());
@@ -241,7 +240,6 @@ SettingsController.prototype.bindServer = function($scope, $translate) {
 				}
 			}
 			$scope.setSuccessMessage($translate.instant("CONNECTION_SUCCESS"));
-			$scope.beta_channel_available = drive.is_beta_channel_available();
 		} else {
 			$scope.setErrorMessage($translate.instant(res));
 		}

@@ -8,11 +8,12 @@ from PyQt4 import QtCore, QtGui
 
 from nxdrive.client.base_automation_client import AddonNotInstalled, \
     Unauthorized, get_opener_proxies, get_proxy_handler
-from nxdrive.client.common import DRIVE_STARTUP_PAGE, NotFound
+from nxdrive.client.common import NotFound
 from nxdrive.engine.engine import InvalidDriveException, \
     RootAlreadyBindWithDifferentAccount
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import FolderAlreadyUsed, ProxySettings
+from nxdrive.options import Options
 from nxdrive.utils import TOKEN_PERMISSION, get_device, guess_server_url
 from nxdrive.wui.authentication import WebAuthenticationApi, \
     WebAuthenticationDialog
@@ -223,7 +224,7 @@ class WebSettingsApi(WebDriveApi):
         parts = urlparse.urlsplit(guess_server_url(server_url))
         url = urlparse.urlunsplit((parts.scheme,
                                    parts.netloc,
-                                   parts.path + '/' + DRIVE_STARTUP_PAGE,
+                                   parts.path + '/' + Options.startup_page,
                                    parts.query,
                                    parts.fragment))
 
@@ -300,7 +301,7 @@ class WebSettingsApi(WebDriveApi):
 
         # Handle URL parameters
         parts = urlparse.urlsplit(guess_server_url(server_url))
-        path = (parts.path + '/' + DRIVE_STARTUP_PAGE).replace('//', '/')
+        path = (parts.path + '/' + Options.startup_page).replace('//', '/')
         params = (parts.query + '&' + urlencode(token_params)
                   if parts.query
                   else urlencode(token_params))

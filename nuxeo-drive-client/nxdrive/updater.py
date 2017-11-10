@@ -12,10 +12,10 @@ from PyQt4 import QtCore
 from esky import Esky
 from esky.errors import Error
 
-from nxdrive.commandline import DEFAULT_UPDATE_CHECK_DELAY
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import PollWorker
 from nxdrive.logging_config import get_logger
+from nxdrive.options import Options
 from nxdrive.utils import version_compare, version_compare_client
 
 log = get_logger(__name__)
@@ -90,7 +90,7 @@ class AppUpdater(PollWorker):
     updateAvailable = QtCore.pyqtSignal()
 
     def __init__(self, manager, version_finder=None,
-                 check_interval=DEFAULT_UPDATE_CHECK_DELAY,
+                 check_interval=Options.update_check_delay,
                  esky_app=None, local_update_site=False):
         super(AppUpdater, self).__init__(check_interval)
         self.refreshStatus.connect(self._poll)

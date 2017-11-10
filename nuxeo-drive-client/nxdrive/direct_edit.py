@@ -48,11 +48,7 @@ class DirectEdit(Worker):
         if isinstance(folder, bytes):
             folder = unicode(folder)
         self._folder = folder
-        self._local_client = LocalClient(
-            self._folder,
-            ignored_prefixes=manager.ignored_prefixes,
-            ignored_suffixes=manager.ignored_suffixes,
-        )
+        self._local_client = LocalClient(self._folder)
         self._upload_queue = Queue()
         self._lock_queue = Queue()
         self._error_queue = BlacklistQueue()
@@ -216,7 +212,7 @@ class DirectEdit(Worker):
         return file_out
 
     def _display_modal(self, message, values=None):
-        app = SimpleApplication(self._manager, None, {})
+        app = SimpleApplication(self._manager)
         dialog = WebModal(app, app.translate(message, values))
         dialog.add_button("OK", app.translate("OK"))
         dialog.show()

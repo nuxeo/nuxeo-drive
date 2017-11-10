@@ -19,10 +19,8 @@ from PyQt4.QtWebKit import qWebKitVersion
 from nxdrive import __version__
 from nxdrive.client import LocalClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
-from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES, \
-    DEFAULT_IGNORED_SUFFIXES
-from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive.logging_config import FILE_HANDLER, get_logger
+from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.updater import AppUpdater, FakeUpdater
 from nxdrive.utils import ENCODING, OSX_SUFFIX, decrypt, encrypt, \
@@ -279,8 +277,6 @@ class Manager(QtCore.QObject):
     suspended = QtCore.pyqtSignal()
     resumed = QtCore.pyqtSignal()
     _singleton = None
-    ignored_prefixes = DEFAULT_IGNORED_PREFIXES
-    ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
     app_name = 'Nuxeo Drive'
 
     __notification_service = None
@@ -290,26 +286,28 @@ class Manager(QtCore.QObject):
     def get():
         return Manager._singleton
 
-    def __init__(self, options):
+    def __init__(self):
         if Manager._singleton is not None:
-            raise Exception("Only one instance of Manager can be create")
+            raise RuntimeError('Only one instance of Manager can be create')
+
         Manager._singleton = self
         super(Manager, self).__init__()
         self.osi = AbstractOSIntegration.get(self)
 
-        if not options.consider_ssl_errors:
+        if not Options.consider_ssl_errors:
             log.warning('--consider-ssl-errors option is False, '
                         'will not verify HTTPS certificates')
             self._bypass_https_verification()
 
         self._autolock_service = None
-        self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
-        self.nxdrive_home = os.path.realpath(self.nxdrive_home)
+        self.nxdrive_home = os.path.realpath(
+            os.path.expanduser(Options.nxdrive_home))
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
-        self.remote_watcher_delay = options.delay
-        self._nofscheck = options.nofscheck
-        self.debug = options.debug
+
+        self.remote_watcher_delay = Options.delay
+        self._nofscheck = Options.nofscheck
+        self.debug = Options.debug
         self._engine_definitions = None
 
         from nxdrive.engine.engine import Engine
@@ -321,59 +319,26 @@ class Manager(QtCore.QObject):
         self._app_updater = None
         self._dao = None
         self._create_dao()
-        if options.proxy_server is not None:
+        if Options.proxy_server is not None:
             proxy = ProxySettings()
-            proxy.from_url(options.proxy_server)
+            proxy.from_url(Options.proxy_server)
             proxy.save(self._dao)
 
         # Set the log_level_file option
-        handler = self._get_file_log_handler()
+        handler = FILE_HANDLER
         if handler:
-            handler.setLevel(options.log_level_file)
-            # Store it in the database
-            self._dao.update_config("log_level_file", str(handler.level))
+            handler.setLevel(Options.log_level_file)
 
         # Add auto lock on edit
         res = self._dao.get_config("direct_edit_auto_lock")
         if not res:
             self._dao.update_config("direct_edit_auto_lock", "1")
 
-        # Persist update URL infos
-        self._dao.update_config("update_url", options.update_site_url)
-        self._dao.update_config("beta_update_url", options.beta_update_site_url)
         self.refresh_proxies()
-
-        try:
-            self.ignored_prefixes = options.ignored_prefixes
-        except AttributeError:
-            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
-        else:
-            if not isinstance(self.ignored_prefixes, tuple):
-                # In case the given option is not a list of pattern
-                # but one string
-                self.ignored_prefixes = tuple([self.ignored_prefixes])
-            self.ignored_prefixes = \
-                tuple({fix for fix in self.ignored_prefixes
-                       + DEFAULT_IGNORED_PREFIXES})
-        finally:
-            self.ignored_prefixes = tuple(sorted(self.ignored_prefixes))
-
-        try:
-            self.ignored_suffixes = options.ignored_suffixes
-        except AttributeError:
-            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
-        else:
-            if not isinstance(self.ignored_suffixes, tuple):
-                self.ignored_suffixes = tuple([self.ignored_suffixes])
-            self.ignored_suffixes = \
-                tuple({fix for fix in self.ignored_suffixes
-                       + DEFAULT_IGNORED_SUFFIXES})
-        finally:
-            self.ignored_suffixes = tuple(sorted(self.ignored_suffixes))
 
         # Create DirectEdit
         self._create_autolock_service()
-        self._create_direct_edit(options.protocol_url)
+        self._create_direct_edit(Options.protocol_url)
 
         # Create notification service
         self._script_engine = None
@@ -390,11 +355,15 @@ class Manager(QtCore.QObject):
         self.load()
 
         # Create the application update verification thread
-        self._create_updater(options.update_check_delay)
+        self._create_updater(Options.update_check_delay)
 
         # Force language
-        if options.force_locale is not None:
-            self.set_config("locale", options.force_locale)
+        if Options.force_locale is not None:
+            self.set_config('locale', Options.force_locale)
+
+        # Persist beta channel check
+        Options.set('beta_channel', self.get_beta_channel(), setter='manual')
+
         # Setup analytics tracker
         self._tracker = None
         if self.get_tracking():
@@ -418,10 +387,6 @@ class Manager(QtCore.QObject):
                      'verification: globally disable verification by '
                      'monkeypatching the ssl module though highly discouraged')
             ssl._create_default_https_context = _context
-
-    def _get_file_log_handler(self):
-        # Might store it in global static
-        return FILE_HANDLER
 
     def get_metrics(self):
         return {
@@ -571,59 +536,17 @@ class Manager(QtCore.QObject):
         self.started.connect(self._app_updater._thread.start)
         return self._app_updater
 
-    def get_version_finder(self, refresh_engines=False):
+    def get_version_finder(self):
         # Used by extended application to inject version finder
         if self.get_beta_channel():
             log.debug('Update beta channel activated')
-            update_site_url = self._get_beta_update_url(refresh_engines)
+            update_site_url = Options.beta_update_site_url
         else:
-            update_site_url = self._get_update_url(refresh_engines)
-        if update_site_url is None:
-            update_site_url = DEFAULT_UPDATE_SITE_URL
+            update_site_url = Options.update_site_url
+
         if not update_site_url.endswith('/'):
             update_site_url += '/'
         return update_site_url
-
-    def _get_update_url(self, refresh_engines):
-        update_url = self._dao.get_config("update_url", DEFAULT_UPDATE_SITE_URL)
-        # If update site URL is not overridden in config.ini nor through the command line, refresh engine update infos
-        # and use first engine configuration
-        if update_url == DEFAULT_UPDATE_SITE_URL:
-            try:
-                if refresh_engines:
-                    self._refresh_engine_update_infos()
-                engines = self.get_engines()
-                if engines:
-                    first_engine = engines.itervalues().next()
-                    update_url = first_engine.get_update_url()
-                    log.debug('Update site URL has not been overridden in config.ini nor through the command line,'
-                              ' using configuration from first engine [%s]: %s', first_engine.name, update_url)
-            except URLError:
-                log.exception('Cannot refresh engine update infos,'
-                              ' using default update site URL')
-        return update_url
-
-    def _get_beta_update_url(self, refresh_engines):
-        beta_update_url = self._dao.get_config("beta_update_url")
-        if beta_update_url is None:
-            try:
-                if refresh_engines:
-                    self._refresh_engine_update_infos()
-                engines = self.get_engines()
-                if engines:
-                    for engine in engines.itervalues():
-                        beta_update_url = engine.get_beta_update_url()
-                        if beta_update_url is not None:
-                            log.debug('Beta update site URL has not been defined in config.ini nor through the command'
-                                      ' line, using configuration from engine [%s]: %s', engine.name, beta_update_url)
-                            return beta_update_url
-            except URLError:
-                log.exception('Cannot refresh engine update infos,'
-                              ' not using beta update site URL')
-        return beta_update_url
-
-    def is_beta_channel_available(self):
-        return self._get_beta_update_url(False) is not None
 
     def get_updater(self):
         return self._app_updater
@@ -823,8 +746,9 @@ class Manager(QtCore.QObject):
             self.clientUpdated.emit(last_version, self.get_version())
 
     def generate_device_id(self):
-        self.device_id = uuid.uuid1().hex
-        self._dao.update_config("device_id", self.device_id)
+        device_id = uuid.uuid1().hex
+        self._dao.update_config('device_id', device_id)
+        return device_id
 
     def get_proxy_settings(self):
         """ Fetch proxy settings from database. """
@@ -847,6 +771,7 @@ class Manager(QtCore.QObject):
         return self._dao.get_config(value, default)
 
     def set_config(self, key, value):
+        Options.set(key, value, setter='manual', fail_on_error=False)
         return self._dao.update_config(key, value)
 
     def get_direct_edit_auto_lock(self):
@@ -920,10 +845,10 @@ class Manager(QtCore.QObject):
             self.osi.unregister_startup()
 
     def get_beta_channel(self):
-        return self._dao.get_config("beta_channel", "0") == "1"
+        return self._dao.get_config('beta_channel', '0') == '1'
 
     def set_beta_channel(self, value):
-        self._dao.update_config("beta_channel", value)
+        self.set_config('beta_channel', value)
         # Trigger update status refresh
         self.refresh_update_status()
 
