@@ -446,3 +446,23 @@ class TestRemoteDocumentClient(UnitTestCase):
 
         remote.unlock(doc_id)
         self.assertFalse(remote.is_locked(doc_id))
+
+    def test_create_folders_with_dots(self):
+        """ Check that folders containing dots are well synced. """
+
+        remote = self.remote_document_client_1
+        local = self.local_client_1
+        engine = self.engine_1
+
+        folder1 = 'Affaire.1487689320370'
+        folder2 = 'Affaire.1487689320.370'
+        remote.make_folder(self.workspace, folder1)
+        remote.make_folder(self.workspace, folder2)
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Check
+        assert remote.exists('/' + folder1)
+        assert remote.exists('/' + folder2)
+        assert local.exists('/' + folder1)
+        assert local.exists('/' + folder2)

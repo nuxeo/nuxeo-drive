@@ -1,6 +1,9 @@
 # dev
 Release date: `2017-??-??`
 
+### Tests
+- [NXDRIVE-1034](https://jira.nuxeo.com/browse/NXDRIVE-1034): Test folders containing dots
+
 
 # 2.5.9
 Release date: `2017-11-08`
