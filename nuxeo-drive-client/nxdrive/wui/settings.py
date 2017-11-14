@@ -292,7 +292,7 @@ class WebSettingsApi(WebDriveApi):
 
     def _get_authentication_url(self, server_url):
         token_params = {
-            'deviceId': self._manager.get_device_id(),
+            'deviceId': self._manager.device_id,
             'applicationName': self._manager.app_name,
             'permission': TOKEN_PERMISSION,
             'deviceDescription': get_device(),

@@ -347,7 +347,9 @@ class Manager(QtCore.QObject):
 
         # Pause if in debug
         self._pause = self.debug
-        self.device_id = self._dao.get_config('device_id') or self.generate_device_id()
+        self.device_id = self.get_config('device_id')
+        if not self.device_id:
+            self.device_id = self.generate_device_id()
         self.updated = False  # self.update_version()
 
         self.load()

@@ -14,6 +14,7 @@ from functools import wraps
 from os.path import dirname
 from threading import Thread
 from time import sleep
+from urllib2 import URLError
 
 from PyQt4 import QtCore
 
@@ -427,10 +428,18 @@ class UnitTestCase(SimpleUnitTestCase):
         )
 
         # Register sync roots
-        self.register_roots = register_roots
-        if self.register_roots:
+        if register_roots:
             self.remote_document_client_1.register_as_root(self.workspace_1)
+            self.addCleanup(self._unregister, self.workspace_1)
             self.remote_document_client_2.register_as_root(self.workspace_2)
+            self.addCleanup(self._unregister, self.workspace_2)
+
+    def _unregister(self, workspace):
+        """ Skip HTTP errors when cleaning up the test. """
+        try:
+            self.root_remote_client.unregister_as_root(workspace)
+        except URLError:
+            pass
 
     def bind_engine(self, number, start_engine=True):
         number_str = str(number)
@@ -652,13 +661,8 @@ class UnitTestCase(SimpleUnitTestCase):
     def tearDownApp(self, server_profile=None):
         if self.tearedDown:
             return
+
         log.debug('TearDown unit test')
-
-        # Unregister sync roots
-        if self.register_roots:
-            self.root_remote_client.unregister_as_root(self.workspace_2)
-            self.root_remote_client.unregister_as_root(self.workspace_1)
-
         self.tearDownServer(server_profile)
 
         if hasattr(self, 'engine_1'):

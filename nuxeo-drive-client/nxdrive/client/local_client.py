@@ -474,14 +474,8 @@ FolderType=Generic
             return f.read()
 
     def is_ignored(self, parent_ref, file_name):
-        # Add parent_ref to be able to filter on size if needed
-
-        # Emacs auto save file
-        # http://www.emacswiki.org/emacs/AutoSave
-        if (file_name.startswith('#')
-                and file_name.endswith('#')
-                and len(file_name) > 2):
-            return True
+        # type: (unicode, unicode) -> bool
+        """ Note: added parent_ref to be able to filter on size if needed. """
 
         if (file_name.endswith(Options.ignored_suffixes)
                 or file_name.startswith(Options.ignored_prefixes)):
