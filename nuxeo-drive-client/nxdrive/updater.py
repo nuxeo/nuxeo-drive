@@ -31,6 +31,7 @@ UPDATE_STATUS_MISSING_INFO = 'missing_info'
 UPDATE_STATUS_MISSING_VERSION = 'missing_version'
 
 DEFAULT_SERVER_MIN_VERSION = '5.6'
+SERVER_CONF_URL = 'drive/config.json'
 
 
 class UnavailableUpdateSite(Exception):
@@ -467,3 +468,37 @@ class AppUpdater(PollWorker):
         log.exception(repr(e))
         raise UnavailableUpdateSite(
             "Connection to update site '%s' timed out" % self.update_site)
+
+
+class ServerOptionsUpdater(PollWorker):
+    """ Class for checking server's config.json updates on a regular basis. """
+
+    def __init__(self, manager, check_interval=Options.update_check_delay):
+        super(ServerOptionsUpdater, self).__init__(check_interval)
+        self.manager = manager
+
+    @QtCore.pyqtSlot()
+    def _poll(self):
+        # type: () -> bool
+        """ Check for the configuration file and apply updates. """
+
+        for _, engine in self.manager._engines.items():
+            client = engine.get_remote_doc_client()
+            if not client:
+                continue
+
+            try:
+                raw, _ = client.do_get(client.server_url + SERVER_CONF_URL)
+                conf = json.loads(raw, encoding='utf-8')
+            except HTTPError as exc:
+                if exc.code == 404:
+                    self._enable = False
+                    log.info('Disabling server configuration updater thread')
+                    break
+            except (URLError, ValueError):
+                continue
+            else:
+                Options.update(conf, setter='server', fail_on_error=True)
+                break
+
+        return True

@@ -19,7 +19,7 @@ class PairInterrupt(Exception):
     pass
 
 
-class Worker(QObject):
+class Worker(QObject, object):
     """" Utility class that handle one thread. """
 
     _thread = None

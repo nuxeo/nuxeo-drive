@@ -22,7 +22,7 @@ from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.logging_config import FILE_HANDLER, get_logger
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.updater import AppUpdater, FakeUpdater
+from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
 from nxdrive.utils import ENCODING, OSX_SUFFIX, decrypt, encrypt, \
     normalized_path
 
@@ -347,12 +347,13 @@ class Manager(QtCore.QObject):
 
         # Pause if in debug
         self._pause = self.debug
-        self.device_id = self._dao.get_config('device_id')
+        self.device_id = self._dao.get_config('device_id') or self.generate_device_id()
         self.updated = False  # self.update_version()
-        if not self.device_id:
-            self.generate_device_id()
 
         self.load()
+
+        # Create the server's config.json update verification thread
+        self._create_server_config_updater(Options.update_check_delay)
 
         # Create the application update verification thread
         self._create_updater(Options.update_check_delay)
@@ -524,6 +525,16 @@ class Manager(QtCore.QObject):
             self._migrate()
             return
         self._dao = ManagerDAO(self._get_db())
+
+    def _create_server_config_updater(self, update_check_delay):
+        # type: (int) -> Any
+        if update_check_delay == 0:
+            return
+
+        self.server_config_updater = ServerOptionsUpdater(
+            self, check_interval=update_check_delay)
+        self.started.connect(self.server_config_updater._thread.start)
+        return self.server_config_updater
 
     def _create_updater(self, update_check_delay):
         if update_check_delay == 0:

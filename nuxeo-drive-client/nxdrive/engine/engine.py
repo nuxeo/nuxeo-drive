@@ -635,11 +635,16 @@ class Engine(QObject):
     def start(self):
         if not self.check_fs_marker():
             raise FsMarkerException()
+
         # Checking root in case of failed migration
         self._check_root()
+
+        # Launch the server confg file updater
+        self._manager.server_config_updater.force_poll()
+
         self._stopped = False
         Processor.soft_locks = dict()
-        log.debug("Engine %s starting", self.uid)
+        log.debug('Engine %s is starting', self.uid)
         for thread in self._threads:
             thread.start()
         self.syncStarted.emit(0)
