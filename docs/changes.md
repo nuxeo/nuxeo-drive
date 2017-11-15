@@ -4,13 +4,9 @@ Release date: `2017-??-??`
 ### Core
 - [NXDRIVE-968](https://jira.nuxeo.com/browse/NXDRIVE-968): Improve logs disk space usage (set level to DEBUG)
 - [NXDRIVE-1019](https://jira.nuxeo.com/browse/NXDRIVE-1019): Retrieve the configuration from the server (**breaking change**)
-<<<<<<< HEAD
 - [NXDRIVE-1036](https://jira.nuxeo.com/browse/NXDRIVE-1036): Cannot unsync an accentued root
 - [NXDRIVE-1038](https://jira.nuxeo.com/browse/NXDRIVE-1038): Don't quote parameters when acquiring a token
 - [NXDRIVE-1040](https://jira.nuxeo.com/browse/NXDRIVE-1040): Handle documents that are indexed but inexistant
-=======
-- [NXDRIVE-1038](https://jira.nuxeo.com/browse/NXDRIVE-1038): Don't quote parameters when acquiring a token
->>>>>>> 96977ee5... NXDRIVE-1019: Adapt others test
 
 ### Tests
 - [NXDRIVE-317](https://jira.nuxeo.com/browse/NXDRIVE-317): Test tmp directories are not cleaned up after tear down
@@ -21,6 +17,7 @@ Release date: `2017-??-??`
 #### Minor changes
 - Packaging: Updated `psutil` from 5.4.0 to 5.4.1
 - Packaging: Updated `pypac` from 0.3.1 to 0.4.0
+- Packaging: Better SIP check
 
 
 # 2.5.9

@@ -284,7 +284,7 @@ function install_sip {
 	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/$fname.zip"
 	$output = "$Env:STORAGE_DIR\$fname.zip"
 
-	if (check_import "import sipconfig") {
+	if (check_import "import os, sip; os._exit(not sip.SIP_VERSION_STR == '$Env:SIP_VERSION')") {
 		return
 	}
 
