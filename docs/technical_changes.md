@@ -14,6 +14,9 @@
 - Removed `ignored_prefixes` keyword from `LocalClient.__init__()`. Use `Options.ignored_prefixes` instead.
 - Removed `ignored_suffixes` keyword from `LocalClient.__init__()`. Use `Options.ignored_suffixes` instead.
 - Removed `options` keyword from `Manager.__init__()`. Use `Options` instead.
+- Removed `Manager.generate_device_id()`. Use `devide_id` property instead.
+- Removed `Manager.get_configuration_folder()`. Use `nxdrive_home` property instead.
+- Removed `Manager.get_device_id()`. Use `devide_id` property instead.
 - Removed `refresh_engines` keyword from `Manager.get_version_finder()`
 - Removed `Manager.is_beta_channel_available()`. Always True.
 - Removed `options` keyword from `SimpleApplication.__init__()`. Use `Options` instead.

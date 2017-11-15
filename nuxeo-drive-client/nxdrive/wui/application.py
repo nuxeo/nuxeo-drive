@@ -114,7 +114,7 @@ class SimpleApplication(QApplication):
         return find_icon('nuxeo_drive_icon_64.png')
 
     def get_cache_folder(self):
-        return os.path.join(self.manager.get_configuration_folder(), 'cache', 'wui')
+        return os.path.join(self.manager.nxdrive_home, 'cache', 'wui')
 
 
 class Application(SimpleApplication):
@@ -253,9 +253,7 @@ class Application(SimpleApplication):
             engine.start()
 
     def get_cache_folder(self):
-        return os.path.join(self.manager.get_configuration_folder(),
-                            'cache',
-                            'wui')
+        return os.path.join(self.manager.nxdrive_home, 'cache', 'wui')
 
     def _init_translator(self):
         Translator(

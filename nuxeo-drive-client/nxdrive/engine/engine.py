@@ -470,8 +470,8 @@ class Engine(QObject):
         return LocalWatcher(self, self._dao)
 
     def _get_db_file(self):
-        return os.path.join(normalized_path(self._manager.get_configuration_folder()),
-                                "ndrive_" + self.uid + ".db")
+        return os.path.join(normalized_path(self._manager.nxdrive_home),
+                            'ndrive_' + self.uid + '.db')
 
     def _create_dao(self):
         return EngineDAO(self._get_db_file())
@@ -1029,7 +1029,7 @@ class Engine(QObject):
         return RestAPIClient(
             self.server_url,
             self.remote_user,
-            self._manager.get_device_id(),
+            self._manager.device_id,
             self._manager.get_version(),
             token=self.get_remote_token(),
             timeout=self.timeout,

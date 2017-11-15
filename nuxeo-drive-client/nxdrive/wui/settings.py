@@ -242,7 +242,7 @@ class WebSettingsApi(WebDriveApi):
                       get_opener_proxies(opener))
             headers = {
                 'X-Application-Name': self._manager.app_name,
-                'X-Device-Id': self._manager.get_device_id(),
+                'X-Device-Id': self._manager.device_id,
                 'X-Client-Version': self._manager.get_version(),
                 'User-Agent': (self._manager.app_name
                                + '/' + self._manager.get_version()),

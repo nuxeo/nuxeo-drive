@@ -281,6 +281,7 @@ class Manager(QtCore.QObject):
 
     __notification_service = None
     __exe_path = None
+    __device_id = None
 
     @staticmethod
     def get():
@@ -347,9 +348,6 @@ class Manager(QtCore.QObject):
 
         # Pause if in debug
         self._pause = self.debug
-        self.device_id = self.get_config('device_id')
-        if not self.device_id:
-            self.device_id = self.generate_device_id()
         self.updated = False  # self.update_version()
 
         self.load()
@@ -397,7 +395,7 @@ class Manager(QtCore.QObject):
             'auto_start': self.get_auto_start(),
             'auto_update': self.get_auto_update(),
             'beta_channel': self.get_beta_channel(),
-            'device_id': self.get_device_id(),
+            'device_id': self.device_id,
             'tracker_id': self.get_tracker_id(),
             'tracking': self.get_tracking(),
             'sip_version': sip.SIP_VERSION_STR,
@@ -428,9 +426,6 @@ class Manager(QtCore.QObject):
 
     def is_checkfs(self):
         return not self._nofscheck
-
-    def get_device_id(self):
-        return self.device_id
 
     @property
     def notification_service(self):
@@ -482,7 +477,7 @@ class Manager(QtCore.QObject):
             c = conn.cursor()
             cfg = c.execute("SELECT * FROM device_config LIMIT 1").fetchone()
             if cfg is not None:
-                self.device_id = cfg.device_id
+                self.__device_id = cfg.device_id
                 self._dao.update_config("device_id", cfg.device_id)
                 self._dao.update_config("proxy_config", cfg.proxy_config)
                 self._dao.update_config("proxy_type", cfg.proxy_type)
@@ -719,9 +714,6 @@ class Manager(QtCore.QObject):
                 return ""
         return nuxeo_drive_folder
 
-    def get_configuration_folder(self):
-        return self.nxdrive_home
-
     def open_local_file(self, file_path, select=False):
         """
         Launch the local OS program on the given file / folder.
@@ -758,10 +750,13 @@ class Manager(QtCore.QObject):
         if last_version != self.get_version():
             self.clientUpdated.emit(last_version, self.get_version())
 
-    def generate_device_id(self):
-        device_id = uuid.uuid1().hex
-        self._dao.update_config('device_id', device_id)
-        return device_id
+    @property
+    def device_id(self):
+        # type: () -> unicode
+        if not self.__device_id:
+            self.__device_id = uuid.uuid1().hex
+            self._dao.update_config('device_id', self.__device_id)
+        return self.__device_id
 
     def get_proxy_settings(self):
         """ Fetch proxy settings from database. """
@@ -1104,7 +1099,7 @@ class Manager(QtCore.QObject):
             self.load()
 
         local_folder = normalized_path(local_folder)
-        if local_folder == self.get_configuration_folder():
+        if local_folder == self.nxdrive_home:
             # Prevent from binding in the configuration folder
             raise FolderAlreadyUsed()
         uid = uuid.uuid1().hex

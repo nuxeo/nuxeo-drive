@@ -468,7 +468,7 @@ class CliHandler(object):
     def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
         from nxdrive.utils import PidLockFile
-        lock = PidLockFile(self.manager.get_configuration_folder(), 'qt')
+        lock = PidLockFile(self.manager.nxdrive_home, 'qt')
         if lock.lock() is not None:
             self.log.warning('Qt application already running: exiting')
             # Handle URL if needed
