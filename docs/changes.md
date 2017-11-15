@@ -18,6 +18,10 @@ Release date: `2017-??-??`
 - [NXDRIVE-1035](https://jira.nuxeo.com/browse/NXDRIVE-1035): Update Nuxeo version to 9.10-SNAPSHOT
 - [NXDRIVE-1039](https://jira.nuxeo.com/browse/NXDRIVE-1039): Align the test REST API client following [NXP-22542](https://jira.nuxeo.com/browse/NXP-22542)
 
+#### Minor changes
+- Packaging: Updated `psutil` from 5.4.0 to 5.4.1
+- Packaging: Updated `pypac` from 0.3.1 to 0.4.0
+
 
 # 2.5.9
 Release date: `2017-11-08`
