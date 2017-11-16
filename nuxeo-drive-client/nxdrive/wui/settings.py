@@ -3,7 +3,6 @@ import urllib2
 import urlparse
 from collections import namedtuple
 from urllib import urlencode
-from urllib2 import quote
 
 from PyQt4 import QtCore, QtGui
 
@@ -293,12 +292,11 @@ class WebSettingsApi(WebDriveApi):
     def _get_authentication_url(self, server_url):
         token_params = {
             'deviceId': self._manager.get_device_id(),
-            'applicationName': quote(self._manager.app_name),
+            'applicationName': self._manager.app_name,
             'permission': TOKEN_PERMISSION,
             'deviceDescription': get_device(),
+            'forceAnonymousLogin': 'true',
         }
-        # Force login in case of anonymous user configuration
-        token_params['forceAnonymousLogin'] = 'true'
 
         # Handle URL parameters
         parts = urlparse.urlsplit(guess_server_url(server_url))

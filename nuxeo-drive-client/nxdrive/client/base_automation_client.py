@@ -12,7 +12,7 @@ import tempfile
 import time
 import urllib2
 from urllib import urlencode
-from urllib2 import ProxyHandler, quote
+from urllib2 import ProxyHandler
 from urlparse import urlparse
 
 from poster.streaminghttp import get_handlers
@@ -615,7 +615,7 @@ class BaseAutomationClient(BaseClient):
 
         parameters = {
             'deviceId': self.device_id,
-            'applicationName': quote(self.application_name),
+            'applicationName': self.application_name,
             'permission': TOKEN_PERMISSION,
             'revoke': str(revoke).lower(),
             'deviceDescription': get_device(),
