@@ -133,14 +133,14 @@ class TestConflicts(UnitTestCase):
     # @skipIf(not AbstractOSIntegration.is_windows(),
     #        'Windows Office only test')
     @skip(('NXDRIVE-776: Random bug but we cannot use RandomBug because this'
-           'test would take ~30 minutes to complete.'))
+           ' test would take ~30 minutes to complete.'))
     def test_XLS_conflict_on_locked_document(self):
         self._XLS_local_update_on_locked_document(locked_from_start=False)
 
     # @skipIf(not AbstractOSIntegration.is_windows(),
     #        'Windows Office only test')
     @skip(('NXDRIVE-776: Random bug but we cannot use RandomBug because this'
-           'test would take ~30 minutes to complete.'))
+           ' test would take ~30 minutes to complete.'))
     def test_XLS_conflict_on_locked_document_from_start(self):
         self._XLS_local_update_on_locked_document()
 

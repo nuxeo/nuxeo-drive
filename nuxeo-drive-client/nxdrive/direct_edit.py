@@ -511,6 +511,7 @@ class DirectEdit(Worker):
                 return
             ref = self._local_client.get_path(src_path)
             file_name = os.path.basename(src_path)
+
             # Disable as we use the global open files instead of editor lock file
             if self.is_lock_file(file_name) and self._manager.get_direct_edit_auto_lock():
                 if evt.event_type == 'created':

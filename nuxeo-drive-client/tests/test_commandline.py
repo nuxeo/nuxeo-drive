@@ -21,14 +21,12 @@ def getOSIntegration(manager):
 
 class CommandLineTestCase(unittest.TestCase):
     def setUp(self):
+        self.tmpdir = os.path.join(os.environ.get('WORKSPACE', ''), 'tmp')
+        self.addCleanup(clean_dir, self.tmpdir)
+        if not os.path.isdir(self.tmpdir):
+            os.makedirs(self.tmpdir)
+
         self.cmd = CliHandler()
-        self.build_workspace = os.environ.get('WORKSPACE')
-        self.tmpdir = None
-        if self.build_workspace is not None:
-            self.tmpdir = os.path.join(self.build_workspace, 'tmp')
-            if not os.path.isdir(self.tmpdir):
-                os.makedirs(self.tmpdir)
-            self.addCleanup(clean_dir, self.tmpdir)
         self.addCleanup(self.clean_ini)
 
     def create_ini(self, filename='config.ini', env='PROD'):

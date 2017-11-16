@@ -864,8 +864,16 @@ class Engine(QObject):
             self._make_local_folder(self.local_folder)
             self._add_top_level_state()
             self._set_root_icon()
-            self._manager.osi.register_folder_link(self.local_folder)
+            self.add_to_favorites()
             BaseClient.set_path_readonly(self.local_folder)
+
+    def add_to_favorites(self):
+        # type: () -> None
+        """
+        Register the local folder as a favorite.
+        Let the possibility to override that method from tests.
+        """
+        self._manager.osi.register_folder_link(self.local_folder)
 
     def _make_local_folder(self, local_folder):
         if not os.path.exists(local_folder):

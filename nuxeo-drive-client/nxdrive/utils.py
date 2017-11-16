@@ -238,6 +238,7 @@ def normalized_path(path):
 
 
 def normalize_event_filename(filename, action=True):
+    # type: (unicode, bool) -> unicode
     """
     Normalize a file name.
 

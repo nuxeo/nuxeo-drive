@@ -5,6 +5,7 @@ import hashlib
 import os
 import shutil
 import sys
+import time
 import urllib2
 
 from nxdrive.client import RemoteDocumentClient
@@ -65,11 +66,13 @@ def execute(cmd, exit_on_failure=True):
         exit(code)
 
 
-def clean_dir(_dir):
+def clean_dir(_dir, retry=1, max_retries=5):
+    # type: (unicode, int, int) -> None
+
     if not os.path.exists(_dir):
         return
 
-    log.debug('Removing directory %r', _dir)
+    log.debug('%d/%d Removing directory %r', retry, max_retries, _dir)
 
     to_remove = safe_long_path(_dir)
     test_data = os.environ.get('TEST_SAVE_DATA')
@@ -84,11 +87,10 @@ def clean_dir(_dir):
             for filename in filenames:
                 BaseClient.unset_path_readonly(os.path.join(dirpath, filename))
         shutil.rmtree(to_remove)
-    except OSError:
-        if sys.platform == 'win32':
-            os.system('rmdir /S /Q %s' % to_remove)
     except:
-        pass
+        if retry < max_retries:
+            time.sleep(2)
+            clean_dir(_dir, retry=retry + 1)
 
 
 class RemoteDocumentClientForTests(RemoteDocumentClient):

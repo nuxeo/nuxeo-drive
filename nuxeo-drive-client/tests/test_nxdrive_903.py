@@ -37,6 +37,7 @@ from tests.common_unit_test import RandomBug, UnitTestCase
 class Test(UnitTestCase):
 
     @RandomBug('NXDRIVE-903', target='windows', mode='BYPASS')
+    @RandomBug('NXDRIVE-903', target='mac', mode='RELAX')
     def test_nxdrive_903(self):
         """ On Windows, some files are postponed. Ignore the test if so. """
 

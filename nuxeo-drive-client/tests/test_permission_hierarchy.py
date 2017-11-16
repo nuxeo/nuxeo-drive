@@ -8,11 +8,11 @@ from tests.common_unit_test import RemoteDocumentClientForTests, UnitTestCase
 
 class TestPermissionHierarchy(UnitTestCase):
 
-    def setUpApp(self):
+    def setUpApp(self, **kwargs):
         super(TestPermissionHierarchy, self).setUpApp(
             server_profile='permission')
 
-    def tearDownApp(self):
+    def tearDownApp(self, **kwargs):
         super(TestPermissionHierarchy, self).tearDownApp(
             server_profile='permission')
 
@@ -30,8 +30,9 @@ class TestPermissionHierarchy(UnitTestCase):
         # Make sure user workspace is created and fetch its UID
         self.workspace_uid = self.user1.make_file_in_user_workspace(
             'File in user workspace', filename='USFile.txt')['parentRef']
+        self.addCleanup(self.delete_wspace)
 
-    def tearDown(self):
+    def delete_wspace(self):
         # Cleanup user workspace
         if self.workspace_uid and self.admin.exists(self.workspace_uid):
             self.admin.delete(self.workspace_uid, use_trash=False)
@@ -91,24 +92,17 @@ class TestPermissionHierarchy(UnitTestCase):
             len(self.local_client_1.get_children_info('/My Docs')), 0)
 
     def test_sync_delete_shared_folder(self):
-        # Register user workspace as a sync root for user1
-        self.user1.register_as_root(self.workspace_uid)
-
-        # Start engine
         self.engine_1.start()
 
-        # Wait for synchronization
-        self.wait_sync(wait_for_async=True)
-        # Check locally synchronized content
-        self.assertTrue(self.local_client_1.exists('/My Docs'))
+        # Register user workspace as a sync root for user1
+        self.user1.register_as_root(self.workspace_uid)
 
         # Create test folder in user workspace as user1
         test_folder_uid = self.user1.make_folder(
             self.workspace_uid, 'test_folder')
-        # Wait for synchronization
         self.wait_sync(wait_for_async=True)
-        # Check locally synchronized content
-        self.assertTrue(self.local_client_1.exists('/My Docs/test_folder'))
+        assert self.local_client_1.exists('/My Docs')
+        assert self.local_client_1.exists('/My Docs/test_folder')
 
         # Grant ReadWrite permission to user2 on test folder
         self.set_readonly(self.user_2, test_folder_uid, grant=False)
@@ -116,18 +110,16 @@ class TestPermissionHierarchy(UnitTestCase):
 
         # Register test folder as a sync root for user2
         self.user2.register_as_root(test_folder_uid)
-        # Wait for synchronization
         self.wait_sync(wait_for_async=True)
 
         # Delete test folder
         self.user1.delete(test_folder_uid)
-
-        # Synchronize deletion
         self.wait_sync(wait_for_async=True)
+
         # Check locally synchronized content
-        self.assertFalse(self.local_client_1.exists('/My Docs/test_folder'))
-        self.assertEqual(
-            len(self.local_client_1.get_children_info('/My Docs')), 1)
+        assert not self.local_client_1.exists('/My Docs/test_folder')
+        children = self.local_client_1.get_children_info('/My Docs')
+        assert len(children) == 1
 
     def test_sync_unshared_folder(self):
         # Register user workspace as a sync root for user1

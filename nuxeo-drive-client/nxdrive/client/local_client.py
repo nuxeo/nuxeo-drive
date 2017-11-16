@@ -393,16 +393,18 @@ FolderType=Generic
                 self.lock_path(path, locker)
 
     def get_remote_id(self, ref, name='ndrive'):
+        # type: (unicode, unicode) -> Union[unicode, None]
         # Can be move to another class
         path = self.abspath(ref)
         return self.get_path_remote_id(path, name)
 
     @staticmethod
     def get_path_remote_id(path, name='ndrive'):
+        # type: (unicode, unicode) -> Union[unicode, None]
         if AbstractOSIntegration.is_windows():
             path += ':' + name
             try:
-                with open(path, 'r') as f:
+                with open(path) as f:
                     return unicode(f.read(), 'utf-8')
             except:
                 return None

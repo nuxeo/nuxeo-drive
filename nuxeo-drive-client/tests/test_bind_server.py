@@ -11,16 +11,12 @@ from tests.common import TEST_DEFAULT_DELAY, clean_dir
 
 class BindServerTest(unittest.TestCase):
     def setUp(self):
-        self.build_workspace = os.environ.get('WORKSPACE')
+        self.tmpdir = os.path.join(os.environ.get('WORKSPACE', ''), 'tmp')
+        self.addCleanup(clean_dir, self.tmpdir)
+        if not os.path.isdir(self.tmpdir):
+            os.makedirs(self.tmpdir)
 
-        self.tmp_dir = None
-        if self.build_workspace is not None:
-            self.tmp_dir = os.path.join(self.build_workspace, 'tmp')
-            if not os.path.isdir(self.tmp_dir):
-                os.makedirs(self.tmp_dir)
-            self.addCleanup(clean_dir, self.tmp_dir)
-
-        self.local_test_folder = tempfile.mkdtemp(u'-nxdrive-temp-config', dir=self.tmp_dir)
+        self.local_test_folder = tempfile.mkdtemp(u'-nxdrive-temp-config', dir=self.tmpdir)
         self.nxdrive_conf_folder = os.path.join(self.local_test_folder, u'nuxeo-drive-conf')
 
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL', "http://localhost:8080/nuxeo")
