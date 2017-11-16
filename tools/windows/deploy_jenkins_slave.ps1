@@ -326,7 +326,6 @@ function launch_tests {
 	}
 	& $Env:PYTHON_DIR\python $global:PYTHON_OPT -m pytest $Env:SPECIFIC_TEST `
 		--showlocals `
-		--exitfirst `
 		--strict `
 		--failed-first `
 		-r Efx `

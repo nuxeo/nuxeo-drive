@@ -350,7 +350,6 @@ launch_tests() {
     ${PIP} -r requirements-tests.txt
     ${PYTHON} -m pytest "${SPECIFIC_TEST}" \
         --showlocals \
-        --exitfirst \
         --strict \
         --failed-first \
         -r Efx \
