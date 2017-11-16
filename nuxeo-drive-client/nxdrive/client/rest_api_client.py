@@ -164,7 +164,10 @@ class RestAPIClient(object):
     def create_group(self, name, member_users=None, member_groups=None):
         group = {
             'entity-type': 'group',
-            'groupname': name
+            'id': name,
+            'properties': {
+                'groupname': name
+            }
         }
         if member_users is not None:
             group['memberUsers'] = member_users
@@ -178,7 +181,10 @@ class RestAPIClient(object):
     def update_group(self, name, member_users=None, member_groups=None):
         group = {
             'entity-type': 'group',
-            'groupname': name
+            'id': name,
+            'properties': {
+                'groupname': name
+            }
         }
         if member_users is not None:
             group['memberUsers'] = member_users
