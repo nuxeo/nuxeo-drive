@@ -2,6 +2,7 @@
 Release date: `2017-??-??`
 
 ### Core
+- [NXDRIVE-968](https://jira.nuxeo.com/browse/NXDRIVE-968): Improve logs disk space usage (set level to DEBUG)
 - [NXDRIVE-1038](https://jira.nuxeo.com/browse/NXDRIVE-1038): Don't quote parameters when acquiring a token
 
 ### Tests
