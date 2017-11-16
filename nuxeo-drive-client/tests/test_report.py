@@ -17,6 +17,7 @@ class ReportTest(TestCase):
 
     def setUp(self):
         self.folder = tempfile.mkdtemp(u'-nxdrive-tests')
+        self.addCleanup(clean_dir, self.folder)
         options = Mock()
         options.debug = False
         options.force_locale = None
@@ -26,12 +27,10 @@ class ReportTest(TestCase):
         options.beta_update_site_url = None
         options.nxdrive_home = self.folder
         self.manager = Manager(options)
+        self.addCleanup(self.manager.dispose_db)
 
     def tearDown(self):
-        # Remove singleton
-        self.manager.dispose_db()
         Manager._singleton = None
-        clean_dir(self.folder)
 
     def test_logs(self):
         log.debug("Strange encoding \xe9")

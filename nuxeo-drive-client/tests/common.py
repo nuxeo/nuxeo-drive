@@ -69,6 +69,8 @@ def clean_dir(_dir):
     if not os.path.exists(_dir):
         return
 
+    log.debug('Removing directory %r', _dir)
+
     to_remove = safe_long_path(_dir)
     test_data = os.environ.get('TEST_SAVE_DATA')
     if test_data:
