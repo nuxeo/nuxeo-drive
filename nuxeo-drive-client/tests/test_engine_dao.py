@@ -6,6 +6,7 @@ import unittest
 
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
+from tests.common import clean_dir
 
 
 class EngineDAOTest(unittest.TestCase):
@@ -28,19 +29,17 @@ class EngineDAOTest(unittest.TestCase):
         self.build_workspace = os.environ.get('WORKSPACE')
         self.tmpdir = None
         if self.build_workspace is not None:
-            self.tmpdir = os.path.join(self.build_workspace, "tmp")
+            self.tmpdir = os.path.join(self.build_workspace, 'tmp')
             if not os.path.isdir(self.tmpdir):
                 os.makedirs(self.tmpdir)
+            self.addCleanup(clean_dir, self.tmpdir)
         self.tmp_db = self.get_db_temp_file()
-        db = open(self._get_default_db(), 'rb')
-        with open(self.tmp_db.name, 'wb') as f:
+
+        with open(self._get_default_db(), 'rb') as db, \
+                open(self.tmp_db.name, 'wb') as f:
             f.write(db.read())
         self._dao = EngineDAO(self.tmp_db.name)
-
-    def tearDown(self):
-        self._clean_dao(self._dao)
-        if sys.platform == 'win32' and os.path.exists(self.tmp_db.name):
-            os.remove(self.tmp_db.name)
+        self.addCleanup(self._clean_dao, self._dao)
 
     def test_init_db(self):
         init_db = self.get_db_temp_file()

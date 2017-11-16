@@ -312,9 +312,10 @@ class UnitTestCase(SimpleUnitTestCase):
 
         self.tmpdir = None
         if self.build_workspace is not None:
-            self.tmpdir = os.path.join(self.build_workspace, "tmp")
+            self.tmpdir = os.path.join(self.build_workspace, 'tmp')
             if not os.path.isdir(self.tmpdir):
                 os.makedirs(self.tmpdir)
+            self.addCleanup(clean_dir, self.tmpdir)
         self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads', dir=self.tmpdir)
 
         # Check the local filesystem test environment
@@ -661,10 +662,6 @@ class UnitTestCase(SimpleUnitTestCase):
         Manager._singleton = None
         self.tearDownServer(server_profile)
 
-        clean_dir(self.upload_tmp_dir)
-        clean_dir(self.local_test_folder_1)
-        clean_dir(self.local_test_folder_2)
-
         if hasattr(self, 'engine_1'):
             del self.engine_1
         self.engine_1 = None
@@ -684,6 +681,12 @@ class UnitTestCase(SimpleUnitTestCase):
         del self.remote_file_system_client_2
         self.remote_file_system_client_2 = None
         self.tearedDown = True
+
+        try:
+            for root, _, files in os.walk(self.tmpdir):
+                log.error('tempdir not cleaned-up: %r (%d)', root, len(files))
+        except OSError:
+            pass
 
     def _interact(self, pause=0):
         self.app.processEvents()

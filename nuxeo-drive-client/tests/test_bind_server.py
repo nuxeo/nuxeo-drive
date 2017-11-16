@@ -15,9 +15,10 @@ class BindServerTest(unittest.TestCase):
 
         self.tmp_dir = None
         if self.build_workspace is not None:
-            self.tmp_dir = os.path.join(self.build_workspace, "tmp")
+            self.tmp_dir = os.path.join(self.build_workspace, 'tmp')
             if not os.path.isdir(self.tmp_dir):
                 os.makedirs(self.tmp_dir)
+            self.addCleanup(clean_dir, self.tmp_dir)
 
         self.local_test_folder = tempfile.mkdtemp(u'-nxdrive-temp-config', dir=self.tmp_dir)
         self.nxdrive_conf_folder = os.path.join(self.local_test_folder, u'nuxeo-drive-conf')
@@ -30,8 +31,6 @@ class BindServerTest(unittest.TestCase):
         self.manager.unbind_all()
         self.manager.dispose_all()
         Manager._singleton = None
-
-        clean_dir(self.local_test_folder)
 
     def test_bind_local_folder_on_config_folder(self):
         options = Mock()

@@ -17,9 +17,10 @@ class ManagerDAOTest(unittest.TestCase):
         self.build_workspace = os.environ.get('WORKSPACE')
         self.tmpdir = None
         if self.build_workspace is not None:
-            self.tmpdir = os.path.join(self.build_workspace, "tmp")
+            self.tmpdir = os.path.join(self.build_workspace, 'tmp')
             if not os.path.isdir(self.tmpdir):
                 os.makedirs(self.tmpdir)
+            self.addCleanup(clean_dir, self.tmpdir)
         self.test_folder = tempfile.mkdtemp(u'-nxdrive-tests', dir=self.tmpdir)
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL', 'http://localhost:8080/nuxeo')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
@@ -33,7 +34,6 @@ class ManagerDAOTest(unittest.TestCase):
 
     def tearDown(self):
         Manager._singleton = None
-        clean_dir(self.test_folder)
 
     def _get_db(self, name):
         return os.path.join(os.path.dirname(__file__), 'resources', name)
