@@ -272,7 +272,13 @@ class Processor(EngineWorker):
                     except ThreadInterrupt:
                         raise
                     except HTTPError as exc:
-                        if exc.code == 409:  # Conflict
+                        if exc.code == 404:
+                            # We saw it happened once a migration is done.
+                            # Nuxeo kept the document reference but it does
+                            # not exist physically anywhere.
+                            log.debug('The document does not exist anymore: %r', doc_pair)
+                            self._dao.remove_state(doc_pair)
+                        elif exc.code == 409:  # Conflict
                             # It could happen on multiple files drag'n drop
                             # starting with identical characters.
                             log.debug('Delaying conflicted document: %r', doc_pair)
