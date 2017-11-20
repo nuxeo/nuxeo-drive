@@ -3,6 +3,7 @@ Release date: `2017-??-??`
 
 ### Core
 - [NXDRIVE-968](https://jira.nuxeo.com/browse/NXDRIVE-968): Improve logs disk space usage (set level to DEBUG)
+- [NXDRIVE-1034](https://jira.nuxeo.com/browse/NXDRIVE-1034): Cannot unsync an accentued root on Windows
 - [NXDRIVE-1038](https://jira.nuxeo.com/browse/NXDRIVE-1038): Don't quote parameters when acquiring a token
 - [NXDRIVE-1040](https://jira.nuxeo.com/browse/NXDRIVE-1040): Handle documents that are indexed but inexistant
 

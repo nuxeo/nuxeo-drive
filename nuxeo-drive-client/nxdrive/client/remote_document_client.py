@@ -229,6 +229,15 @@ class RemoteDocumentClient(BaseAutomationClient):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)
 
     def exists(self, ref, use_trash=True, include_versions=False):
+        # type: (unicode, bool, bool) -> bool
+        """
+        Check if a document exists on the server.
+
+        :param ref: Document reference (UID).
+        :param use_trash: Filter documents inside the trash.
+        :param include_versions:
+        :rtype: bool
+        """
         ref = self._check_ref(ref)
         id_prop = 'ecm:path' if ref.startswith('/') else 'ecm:uuid'
         if use_trash:

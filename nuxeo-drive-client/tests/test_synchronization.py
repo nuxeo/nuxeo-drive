@@ -969,3 +969,20 @@ class TestSynchronization(UnitTestCase):
         self.assertEqual(len(children), 2)
         self.assertEqual(children[0].name, file1)
         self.assertEqual(children[1].name, file2)
+
+    def test_unsynchronize_accentued_document(self):
+        remote = self.remote_document_client_1
+        local = self.local_client_1
+        engine = self.engine_1
+        engine.start()
+
+        # Create the folder
+        root_name = u'Été indien'
+        root = remote.make_folder(self.workspace, root_name)
+        self.wait_sync(wait_for_async=True)
+        assert local.exists('/' + root_name)
+
+        # Remove the folder
+        remote.delete(root)
+        self.wait_sync(wait_for_async=True)
+        assert not local.exists('/' + root_name)

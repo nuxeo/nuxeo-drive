@@ -983,8 +983,8 @@ class EngineDAO(ConfigurationDAO):
     def _get_recursive_remote_condition(self, doc_pair):
         remote_path = (self._escape(doc_pair.remote_parent_path)
                        + '/' + self._escape(doc_pair.remote_name))
-        return (' WHERE remote_parent_path LIKE "{0}/%"'
-                '       OR remote_parent_path = "{0}"').format(remote_path)
+        return (" WHERE remote_parent_path LIKE '" + remote_path + "/%'"
+                " OR remote_parent_path = '" + remote_path + "'")
 
     def update_remote_parent_path(self, doc_pair, new_path):
         self._lock.acquire()
