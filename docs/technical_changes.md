@@ -21,7 +21,6 @@
 - Removed `Manager.is_beta_channel_available()`. Always True.
 - Removed `options` keyword from `SimpleApplication.__init__()`. Use `Options` instead.
 - Removed `WebDriveApi.is_beta_channel_available()`. Always True.
-- Added options.py
 - Removed client/common.py::`DEFAULT_BETA_SITE_URL`. Use `Options.beta_update_site_url` instead.
 - Removed client/common.py::`DEFAULT_IGNORED_PREFIXES`. Use `Options.ignored_prefixes` instead.
 - Removed client/common.py::`DEFAULT_IGNORED_SUFFIXES`. Use `Options.ignored_suffixes` instead.
@@ -36,6 +35,9 @@
 - Removed commandline.py::`DEFAULT_TIMEOUT`. Use `Options.timeout` instead.
 - Removed commandline.py::`DEFAULT_UPDATE_CHECK_DELAY`. Use `Options.update_check_delay` instead.
 - Removed commandline.py::`DEFAULT_UPDATE_SITE_URL`. Use `Options.update_site_url` instead.
+- Added logging_config.py::`configure_logger_console`
+- Added logging_config.py::`configure_logger_file`
+- Added options.py
 
 # 2.5.7
 - Removed `BaseAutomationClient.get_download_buffer()`. Use `FILE_BUFFER_SIZE` attribute instead.
