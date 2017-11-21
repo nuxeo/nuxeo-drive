@@ -4,8 +4,6 @@
 // Default values for required envars
 python_drive_version = '2.7.14'  // XXX: PYTHON_DRIVE_VERSION
 pyqt_version = '4.12.1'  // XXX: PYQT_VERSION
-sip_version = '4.19.3'  // XXX: SIP_VERSION
-cxfreeze_version = '4.3.3'  // XXX: CXFREEZE_VERSION
 
 // Pipeline properties
 properties([
@@ -17,26 +15,6 @@ properties([
         [$class: 'StringParameterDefinition',
             name: 'BRANCH_NAME',
             defaultValue: 'master'],
-        [$class: 'StringParameterDefinition',
-            name: 'PYTHON_DRIVE_VERSION',
-            defaultValue: python_drive_version,
-            description: '<b>Required</b> Python version to use'],
-        [$class: 'StringParameterDefinition',
-            name: 'PYQT_VERSION',
-            defaultValue: pyqt_version,
-            description: '<b>Required</b> PyQt version to use (GNU/Linux and macOS only)'],
-        [$class: 'StringParameterDefinition',
-            name: 'CXFREEZE_VERSION',
-            defaultValue: cxfreeze_version,
-            description: '<i>Optional</i> cx_Freeze version to use'],
-        [$class: 'StringParameterDefinition',
-            name: 'SIP_VERSION',
-            defaultValue: sip_version,
-            description: '<i>Optional</i> SIP version to use (GNU/Linux and macOS only)'],
-        [$class: 'StringParameterDefinition',
-            name: 'ENGINE',
-            defaultValue: 'NXDRIVE',
-            description: '<i>Optional</i> The engine to use (another possible value is <i>NXDRIVENEXT</i>)'],
         [$class: 'BooleanParameterDefinition',
             name: 'CLEAN_WORKSPACE',
             defaultValue: false,
